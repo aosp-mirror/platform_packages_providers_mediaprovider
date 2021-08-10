@@ -76,6 +76,7 @@ import java.util.List;
 public class PhotoPickerActivity extends AppCompatActivity {
 
     private static final String TAG =  "PhotoPickerActivity";
+    private static final String EXTRA_BOTTOM_SHEET_STATE = "bottom_sheet_state";
     private static final String EXTRA_TAB_CHIP_TYPE = "tab_chip_type";
     private static final int TAB_CHIP_TYPE_PHOTOS = 0;
     private static final int TAB_CHIP_TYPE_ALBUMS = 1;
@@ -116,6 +117,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mTabChipContainer = findViewById(R.id.chip_container);
         initTabChips();
+        initBottomSheetBehavior();
         restoreState(savedInstanceState);
 
         mUserIdManager = mPickerViewModel.getUserIdManager();
@@ -124,41 +126,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
             profileSwitch.setVisibility(View.VISIBLE);
             setUpWorkProfileToggleSwitch(profileSwitch);
         }
-        mBottomSheetView = findViewById(R.id.bottom_sheet);
-        mBottomSheetBehavior = BottomSheetBehavior.from(mBottomSheetView);
-        if (mPickerViewModel.canSelectMultiple()) {
-            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-            mBottomSheetBehavior.setSkipCollapsed(true);
-        } else {
-            //TODO(b/185800839): Compute this dynamically such that 2 photos rows is shown
-            mBottomSheetBehavior.setPeekHeight(1200);
-            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-        }
-
-        mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetCallback() {
-            @Override
-            public void onStateChanged(@NonNull View bottomSheet, int newState) {
-                if (newState == BottomSheetBehavior.STATE_HIDDEN) {
-                    finish();
-                }
-            }
-
-            @Override
-            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-            }
-        });
-
-        final float cornerRadiusDP = getResources().getDimension(R.dimen.picker_top_corner_radius);
-        final float cornerRadius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX,
-                cornerRadiusDP, getResources().getDisplayMetrics());
-        final ViewOutlineProvider viewOutlineProvider = new ViewOutlineProvider() {
-            @Override
-            public void getOutline(final View view, final Outline outline) {
-                outline.setRoundRect(0, 0, view.getWidth(),
-                        (int)(view.getHeight() + cornerRadius), cornerRadius);
-            }
-        };
-        mBottomSheetView.setOutlineProvider(viewOutlineProvider);
     }
 
     @Override
@@ -199,6 +166,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void onSaveInstanceState(Bundle state) {
         super.onSaveInstanceState(state);
         state.putInt(EXTRA_TAB_CHIP_TYPE, mSelectedTabChipType);
+        state.putInt(EXTRA_BOTTOM_SHEET_STATE, mBottomSheetBehavior.getState());
     }
 
     private void restoreState(Bundle savedInstanceState) {
@@ -221,6 +189,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
                     mAlbumsTabChip.setSelected(true);
                 }
             }
+            restoreBottomSheetState(savedInstanceState.getInt(EXTRA_BOTTOM_SHEET_STATE));
         } else {
             // This is the first launch, set the default behavior. Hide the title, show the chips
             // and show the PhotosTabFragment
@@ -238,6 +207,50 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private void initTabChips() {
         initPhotosTabChip();
         initAlbumsTabChip();
+    }
+
+    private void initBottomSheetBehavior() {
+        mBottomSheetView = findViewById(R.id.bottom_sheet);
+        mBottomSheetBehavior = BottomSheetBehavior.from(mBottomSheetView);
+        if (mPickerViewModel.canSelectMultiple()) {
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            mBottomSheetBehavior.setSkipCollapsed(true);
+        } else {
+            //TODO(b/185800839): Compute this dynamically such that 2 photos rows is shown
+            mBottomSheetBehavior.setPeekHeight(1200);
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        }
+
+        mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                if (newState == BottomSheetBehavior.STATE_HIDDEN) {
+                    finish();
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+            }
+        });
+
+        final float cornerRadius =
+                getResources().getDimensionPixelSize(R.dimen.picker_top_corner_radius);
+        final ViewOutlineProvider viewOutlineProvider = new ViewOutlineProvider() {
+            @Override
+            public void getOutline(final View view, final Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(),
+                        (int)(view.getHeight() + cornerRadius), cornerRadius);
+            }
+        };
+        mBottomSheetView.setOutlineProvider(viewOutlineProvider);
+    }
+
+    private void restoreBottomSheetState(int savedState) {
+        if (savedState == BottomSheetBehavior.STATE_COLLAPSED ||
+                savedState == BottomSheetBehavior.STATE_EXPANDED) {
+            mBottomSheetBehavior.setState(savedState);
+        }
     }
 
     private void initPhotosTabChip() {

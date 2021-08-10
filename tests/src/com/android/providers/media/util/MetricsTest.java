@@ -45,7 +45,7 @@ public class MetricsTest {
         Metrics.logDeletion(volumeName, 42, packageName, 42, new int[] { 42 });
         Metrics.logPermissionGranted(volumeName, 42, packageName, 42);
         Metrics.logPermissionDenied(volumeName, 42, packageName, 42);
-        Metrics.logSchemaChange(volumeName, 42, 42, 42, 42);
+        Metrics.logSchemaChange(volumeName, 42, 42, 42, 42, "UUID");
         Metrics.logIdleMaintenance(volumeName, 42, 42, 42, 42);
     }
 }

@@ -89,8 +89,8 @@ public class VolumeCache {
     /**
      * @return List of paths to unreliable volumes if any, an empty list otherwise
      */
-    public @NonNull ArrayList<File> getUnreliableVolumePath() throws FileNotFoundException {
-        ArrayList<File> unreliableVolumes = new ArrayList<>();
+    public @NonNull List<File> getUnreliableVolumePath() throws FileNotFoundException {
+        List<File> unreliableVolumes = new ArrayList<>();
         synchronized (mLock) {
             for (MediaVolume volume : mExternalVolumes){
                 final File volPath = volume.getPath();

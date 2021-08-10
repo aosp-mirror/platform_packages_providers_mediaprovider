@@ -33,7 +33,8 @@ import androidx.annotation.VisibleForTesting;
  */
 public class PickerDatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private static final String TAG = "PickerDatabaseHelper";
-    private static final String PICKER_DATABASE_NAME = "picker.db";
+    @VisibleForTesting
+    static final String PICKER_DATABASE_NAME = "picker.db";
 
     final Context mContext;
     final String mName;

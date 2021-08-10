@@ -32,7 +32,7 @@ import android.provider.CloudMediaProvider;
 import android.provider.MediaStore;
 
 import com.android.providers.media.MediaProvider;
-import com.android.providers.media.photopicker.data.ExternalDbFacadeForPicker;
+import com.android.providers.media.photopicker.data.ExternalDbFacade;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -47,12 +47,12 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     private static final String TAG = "PhotoPickerProvider";
 
     private MediaProvider mMediaProvider;
-    private ExternalDbFacadeForPicker mDbFacade;
+    private ExternalDbFacade mDbFacade;
 
     @Override
     public boolean onCreate() {
         mMediaProvider = getMediaProvider();
-        mDbFacade = new ExternalDbFacadeForPicker(mMediaProvider.getExternalDatabaseHelper());
+        mDbFacade = new ExternalDbFacade(mMediaProvider.getExternalDatabaseHelper());
         return true;
     }
 

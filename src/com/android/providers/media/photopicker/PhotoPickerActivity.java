@@ -25,6 +25,7 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Outline;
+import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -34,6 +35,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -157,6 +159,22 @@ public class PhotoPickerActivity extends AppCompatActivity {
             }
         };
         mBottomSheetView.setOutlineProvider(viewOutlineProvider);
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event){
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            if (mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+
+                Rect outRect = new Rect();
+                mBottomSheetView.getGlobalVisibleRect(outRect);
+
+                if (!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
+                    mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                }
+            }
+        }
+        return super.dispatchTouchEvent(event);
     }
 
     @Override

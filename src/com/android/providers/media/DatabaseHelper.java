@@ -1865,12 +1865,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         createLatestViews(db);
         createLatestTriggers(db);
 
-        // Always change the UUID when we are upgrading to new version. This is
-        // useful when we revert back to the same version(because of upgrade +
-        // downgrade) with major reset in database. Changing the UUID during
-        // upgrade will ensure MediaStore#getVersion is different after the
-        // reset
-        resetAndGetUuid(db);
+        getOrCreateUuid(db);
 
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
         if (mSchemaListener != null) {
@@ -1900,7 +1895,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      */
     public static @NonNull String getOrCreateUuid(@NonNull SQLiteDatabase db) {
         try {
-            return getUuid(db);
+            return new String(Os.getxattr(db.getPath(), XATTR_UUID));
         } catch (ErrnoException e) {
             if (e.errno == OsConstants.ENODATA) {
                 // Doesn't exist yet, so generate and persist a UUID
@@ -1909,11 +1904,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    @VisibleForTesting
-    static @NonNull String getUuid(@NonNull SQLiteDatabase db) throws ErrnoException {
-        return new String(Os.getxattr(db.getPath(), XATTR_UUID));
     }
 
     private static @NonNull String resetAndGetUuid(SQLiteDatabase db) {

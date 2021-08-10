@@ -169,7 +169,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void setTitle(CharSequence title) {
         super.setTitle(title);
         getSupportActionBar().setTitle(title);
-        updateToolbar(TextUtils.isEmpty(title), /* isLightBackgroundMode= */ true);
+        updateCommonLayouts(/* shouldShowTabChips */ TextUtils.isEmpty(title),
+                /* isPreview */ false);
     }
 
     /**
@@ -338,58 +339,74 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     /**
-     * Update the icons and show/hide the tab chips with {@code shouldShowTabChips}.
+     * Updates the common views such as Toolbar, Navigation bar, status bar and bottom sheet
+     * behavior
      *
-     * When the tab chips are shown, picker is always in light background mode.
-     * When the tab chips are not shown, whether picker is in light background mode or dark
-     * background mode depends on {@code isLightBackgroundMode}.
-     *
-     * @param shouldShowTabChips {@code true}, show the tab chips and show close icon. Otherwise,
-     *                           hide the tab chips and show back icon
-     * @param isLightBackgroundMode {@code true}, show light background and dark icon.
-     *                              Otherwise, show dark background and light icon.
-     *
+     * @param shouldShowTabChips {@code true} if tab chips for Photos/Albums tab should be shown,
+     *                                       {@code false} otherwise
+     * @param isPreview {@code true} if common views should be customized for Preview mode,
+     *                              {@code false} otherwise
      */
-    public void updateToolbar(boolean shouldShowTabChips, boolean isLightBackgroundMode) {
-        if (shouldShowTabChips) {
-            getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_close);
-            getSupportActionBar().setBackgroundDrawable(
-                    new ColorDrawable(getColor(R.color.picker_background_color)));
-            mTabChipContainer.setVisibility(View.VISIBLE);
-            // In show tab chips case, picker is always in lightBackground mode in light theme.
-            updateStatusBarAndNavBar(/* isLightBackgroundMode= */ true);
-        } else {
-            final Drawable icon = getDrawable(R.drawable.ic_arrow_back);
-            if (isLightBackgroundMode) {
-                icon.setTint(getColor(R.color.picker_toolbar_icon_color));
-                getSupportActionBar().setBackgroundDrawable(
-                        new ColorDrawable(getColor(R.color.picker_background_color)));
-            } else {
-                icon.setTint(Color.WHITE);
-                getSupportActionBar().setBackgroundDrawable(
-                        new ColorDrawable(getColor(R.color.preview_default_black)));
-            }
-            updateStatusBarAndNavBar(isLightBackgroundMode);
-            getSupportActionBar().setHomeAsUpIndicator(icon);
-            mTabChipContainer.setVisibility(View.GONE);
-        }
+    public void updateCommonLayouts(boolean shouldShowTabChips, boolean isPreview) {
+        updateToolbar(shouldShowTabChips, isPreview);
+        updateStatusBarAndNavigationBar(isPreview);
+        updateBottomSheetBehavior(isPreview);
     }
 
-    private void updateStatusBarAndNavBar(boolean isLightBackgroundMode) {
-        final int backgroundColor;
-        final boolean isPreview = !isLightBackgroundMode;
-        if (isLightBackgroundMode) {
-            backgroundColor = getColor(R.color.picker_background_color);
+    /**
+     * Updates the icons and show/hide the tab chips with {@code shouldShowTabChips}.
+     *
+     * @param shouldShowTabChips {@code true}, show the tab chips and show close icon. Otherwise,
+     *                                       hide the tab chips and show back icon.
+     * @param isPreview {@code true} sets the toolbar based on Preview Mode, {@code false} sets
+     *                              the toolbar based on value of {@code shouldShowTabChips}
+     */
+    private void updateToolbar(boolean shouldShowTabChips, boolean isPreview) {
+        // 1. Set the tabChip visibility
+        mTabChipContainer.setVisibility(shouldShowTabChips ? View.VISIBLE : View.GONE);
+
+        // 2. Set the toolbar color
+        final ColorDrawable toolbarColor;
+        if (isPreview && !shouldShowTabChips) {
+            // Preview defaults to black color irrespective of if it should show tab chips or not
+            toolbarColor = new ColorDrawable(getColor(R.color.preview_default_black));
         } else {
-            backgroundColor = getColor(R.color.preview_default_black);
+            toolbarColor = new ColorDrawable(getColor(R.color.picker_background_color));
         }
-        getWindow().setNavigationBarColor(backgroundColor);
-        getWindow().setStatusBarColor(isPreview ? backgroundColor : android.R.color.transparent);
+        getSupportActionBar().setBackgroundDrawable(toolbarColor);
+
+        // 3. Set the toolbar icon.
+        final Drawable icon;
+        if (shouldShowTabChips) {
+            icon = getDrawable(R.drawable.ic_close);
+        } else {
+            icon = getDrawable(R.drawable.ic_arrow_back);
+            // Preview mode has dark background, hence icons will be WHITE in color
+            icon.setTint(isPreview ? Color.WHITE : getColor(R.color.picker_toolbar_icon_color));
+        }
+        getSupportActionBar().setHomeAsUpIndicator(icon);
+    }
+
+    /**
+     * Updates status bar and navigation bar
+     *
+     * @param isPreview {@code true} to set the status bar and navigation bar according to preview
+     *                              mode, {@code false} to set status bar and navigation bar
+     *                              according to Photos or Category mode.
+     */
+    private void updateStatusBarAndNavigationBar(boolean isPreview) {
+        final int navigationBarColor = isPreview ? getColor(R.color.preview_default_black) :
+                getColor(R.color.picker_background_color);
+        getWindow().setNavigationBarColor(navigationBarColor);
+
+        final int statusBarColor = isPreview ? getColor(R.color.preview_default_black) :
+                getColor(android.R.color.transparent);
+        getWindow().setStatusBarColor(statusBarColor);
 
         // Update the system bar appearance
         final int mask = WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
         int appearance = 0;
-        if (isLightBackgroundMode) {
+        if (!isPreview) {
             final int uiModeNight =
                     getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
 
@@ -399,20 +416,28 @@ public class PhotoPickerActivity extends AppCompatActivity {
             }
         }
         getWindow().getInsetsController().setSystemBarsAppearance(appearance, mask);
+    }
 
+    /**
+     * Updates the bottom sheet behavior
+     *
+     * @param isPreview {@code true} sets the bottom sheet behavior for preview mode, {@code false}
+     *                              sets the bottom sheet behavior for non-preview mode.
+     */
+    private void updateBottomSheetBehavior(boolean isPreview) {
         if (mBottomSheetView != null) {
             mBottomSheetView.setClipToOutline(!isPreview);
             // TODO(b/185800839): downward swipe for bottomsheet should go back to photos grid
             mBottomSheetBehavior.setDraggable(!isPreview);
         }
-    }
-
-    /**
-     * Set full screen if the state is not full screen
-     */
-    public void setFullScreen() {
-        if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
-            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        if (isPreview) {
+            if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+                // Sets bottom sheet behavior state to STATE_EXPANDED if it's not already expanded.
+                // This is useful when user goes to Preview mode which is always Full screen.
+                // TODO(b/185800839): Add animation preview to full screen and back transition to
+                // partial screen
+                mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            }
         }
     }
 }

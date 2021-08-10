@@ -183,7 +183,7 @@ public class PickerViewModel extends AndroidViewModel {
 
         try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
                 /* limit */ -1, mMimeTypeFilter, userId)) {
-            if (cursor == null) {
+            if (cursor == null || cursor.getCount() == 0) {
                 return items;
             }
 
@@ -294,7 +294,7 @@ public class PickerViewModel extends AndroidViewModel {
         final List<Category> categoryList = new ArrayList<>();
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId)) {
-            if (cursor == null) {
+            if (cursor == null || cursor.getCount() == 0) {
                 return categoryList;
             }
 

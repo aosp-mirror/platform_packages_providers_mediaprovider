@@ -23,6 +23,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.util.Log;
@@ -30,6 +31,7 @@ import android.util.Log;
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.util.CrossProfileUtils;
 
 import java.util.List;
 
@@ -99,6 +101,26 @@ public interface UserIdManager {
     boolean isManagedUserId();
 
     /**
+     * Whether the current user is allowed to access other profile data.
+     */
+    boolean isCrossProfileAllowed();
+
+    /**
+     * Whether cross profile access is blocked by admin for the current user.
+     */
+    boolean isBlockedByAdmin();
+
+    /**
+     * Whether the work profile corresponding to the current user is turned off.
+     */
+    boolean isWorkProfileOff();
+
+    /**
+     * Set intent to check for device admin policy.
+     */
+    void setIntentAndCheckRestrictions(Intent intent);
+
+    /**
      * Creates an implementation of {@link UserIdManager}.
      */
     static UserIdManager create(Context context) {
@@ -124,6 +146,13 @@ public interface UserIdManager {
 
         @GuardedBy("mLock")
         private UserId mCurrentUserProfile = null;
+
+        private Intent mIntent = null;
+        // Set default values to negative case, only set as false if checks pass.
+        @GuardedBy("mLock")
+        private boolean mIsBlockedByAdmin = true;
+        @GuardedBy("mLock")
+        private boolean mIsWorkProfileOff = true;
 
         private final BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
 
@@ -192,6 +221,14 @@ public interface UserIdManager {
             setCurrentUserProfileId(getPersonalUserId());
         }
 
+        @Override
+        public void setIntentAndCheckRestrictions(Intent intent) {
+            mIntent = intent;
+            synchronized (mLock) {
+                setCrossProfileValues();
+            }
+        }
+
         public boolean isCurrentUserSelected() {
             synchronized (mLock) {
                 return mCurrentUserProfile.equals(UserId.CURRENT_USER);
@@ -217,6 +254,7 @@ public interface UserIdManager {
         private void setUserIds() {
             synchronized (mLock) {
                 setUserIdsInternal();
+                setCrossProfileValues();
             }
         }
 
@@ -264,6 +302,51 @@ public interface UserIdManager {
                     }
                 }
             }
+        }
+
+        @Override
+        public boolean isCrossProfileAllowed() {
+            return (!isWorkProfileOff() && !isBlockedByAdmin());
+        }
+
+        @Override
+        public boolean isWorkProfileOff() {
+            synchronized (mLock) {
+                return mIsWorkProfileOff;
+            }
+        }
+
+        @Override
+        public boolean isBlockedByAdmin() {
+            synchronized (mLock) {
+                return mIsBlockedByAdmin;
+            }
+        }
+
+        @GuardedBy("mLock")
+        private void setCrossProfileValues() {
+            final PackageManager packageManager = mContext.getPackageManager();
+            // 1. Check if PICK_IMAGES intent is allowed by admin to show cross user content
+            if (mIntent == null) {
+                Log.e(TAG, "No intent specified to check if cross profile forwarding is"
+                        + " allowed.");
+                return;
+            }
+            if (!CrossProfileUtils.isIntentAllowedCrossProfileAccess(mIntent, packageManager)) {
+                mIsBlockedByAdmin = true;
+                return;
+            }
+            mIsBlockedByAdmin = false;
+
+            // 2. Check if work profile is off
+            if (!isManagedUserSelected()) {
+                final UserId managedUserProfileId = getManagedUserId();
+                if (!CrossProfileUtils.isMediaProviderAvailable(managedUserProfileId, mContext)) {
+                    mIsWorkProfileOff = true;
+                    return;
+                }
+            }
+            mIsWorkProfileOff = false;
         }
     }
 }

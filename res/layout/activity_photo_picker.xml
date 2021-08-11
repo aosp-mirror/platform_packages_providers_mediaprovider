@@ -45,7 +45,8 @@
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="?android:attr/colorBackground">
+                android:background="?android:attr/colorBackground"
+                app:titleTextColor="@color/picker_toolbar_title_color">
 
                 <LinearLayout
                     android:id="@+id/chip_container"

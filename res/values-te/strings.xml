@@ -27,8 +27,8 @@
     <string name="root_documents" msgid="3829103301363849237">"డాక్యుమెంట్‌లు"</string>
     <string name="permission_required" msgid="1460820436132943754">"ఈ అంశాన్ని మార్చడానికి లేదా తొలగించడానికి అనుమతి అవసరం."</string>
     <string name="permission_required_action" msgid="706370952366113539">"కొనసాగించు"</string>
-    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"అనుమతించు"</string>
-    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"తిరస్కరించు"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"అనుమతించండి"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"తిరస్కరించండి"</string>
     <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
       <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
       <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
@@ -37,18 +37,18 @@
       <item quantity="other">దానితో పాటు, <xliff:g id="COUNT_1">^1</xliff:g> అదనపు అంశాలు</item>
       <item quantity="one">దానితో పాటు, <xliff:g id="COUNT_0">^1</xliff:g> అదనపు అంశం</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"తాత్కాలిక యాప్ ఫైల్‌లను క్లియర్ చేయండి"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"తాత్కాలిక యాప్ ఫైళ్లను క్లియర్ చేయండి"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"కొన్ని తాత్కాలిక ఫైల్స్‌ను క్లియర్ చేయడానికి <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> అనుమతి కోరుతోంది. దీని వలన బ్యాటరీ లేదా సెల్యూలార్ డేటా వినియోగం పెరగవచ్చు."</string>
-    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"తాత్కాలిక యాప్ ఫైల్‌లను క్లియర్ చేస్తోంది…"</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"తాత్కాలిక యాప్ ఫైళ్లను క్లియర్ చేస్తోంది…"</string>
     <string name="clear" msgid="5524638938415865915">"క్లియర్ చేయండి"</string>
-    <string name="allow" msgid="8885707816848569619">"అనుమతించు"</string>
+    <string name="allow" msgid="8885707816848569619">"అనుమతించండి"</string>
     <string name="deny" msgid="6040983710442068936">"నిరాకరించు"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైల్‌లను సవరించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను సవరించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
       <item quantity="one">ఈ ఆడియో ఫైల్‌ను సవరించడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ఆడియో ఫైల్‌లను సవరిస్తోంది…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ఆడియో ఫైళ్లను సవరిస్తోంది…</item>
       <item quantity="one">ఆడియో ఫైల్‌ను సవరిస్తోంది…</item>
     </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
@@ -76,11 +76,11 @@
       <item quantity="one">ఐటెమ్‌ను సవరిస్తోంది…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైల్‌లను ట్రాష్‌కు తరలించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను ట్రాష్‌కు తరలించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
       <item quantity="one">ఈ ఆడియో ఫైల్‌ను ట్రాష్‌కు తరలించడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ఆడియో ఫైల్‌లను ట్రాష్‌కు తరలిస్తోంది…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ఆడియో ఫైళ్లను ట్రాష్‌కు తరలిస్తోంది…</item>
       <item quantity="one">ఆడియో ఫైల్‌ను ట్రాష్‌కు తరలిస్తోంది…</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
@@ -108,11 +108,11 @@
       <item quantity="one">ఐటెమ్‌ను ట్రాష్‌కు తరలిస్తోంది…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైల్‌లను ట్రాష్ నుండి బయటకు తీయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను ట్రాష్ నుండి బయటకు తీయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
       <item quantity="one">ఈ ఆడియో ఫైల్‌ను ట్రాష్ నుండి బయటకు తీయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ఆడియో ఫైల్‌లను ట్రాష్ నుండి బయటకు తరలిస్తోంది…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ఆడియో ఫైళ్లను ట్రాష్ నుండి బయటకు తరలిస్తోంది…</item>
       <item quantity="one">ఆడియో ఫైల్‌ను ట్రాష్ నుండి బయటకు తరలిస్తోంది…</item>
     </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
@@ -140,11 +140,11 @@
       <item quantity="one">ఐటెమ్‌ను ట్రాష్ నుండి బయటకు తరలిస్తోంది…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైల్‌లను తొలగించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను తొలగించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
       <item quantity="one">ఈ ఆడియో ఫైల్‌ను తొలగించడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ఆడియో ఫైల్‌లను తొలగిస్తోంది…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ఆడియో ఫైళ్లను తొలగిస్తోంది…</item>
       <item quantity="one">ఆడియో ఫైల్‌ను తొలగిస్తోంది…</item>
     </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
@@ -171,7 +171,7 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ఐటెమ్‌లను తొలగిస్తోంది…</item>
       <item quantity="one">ఐటెమ్‌ను తొలగిస్తోంది…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> మీడియా ఫైల్‌లను ప్రాసెస్ చేయదు"</string>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> మీడియా ఫైళ్లను ప్రాసెస్ చేయదు"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"మీడియా ప్రాసెసింగ్ రద్దు చేయబడింది"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"మీడియా ప్రాసెసింగ్‌లో ఎర్రర్ ఏర్పడింది"</string>
     <string name="transcode_processing_success" msgid="447288876429730122">"మీడియా ప్రాసెసింగ్ విజయవంతమైంది"</string>

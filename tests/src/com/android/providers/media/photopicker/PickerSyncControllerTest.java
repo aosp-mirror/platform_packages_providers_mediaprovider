@@ -92,12 +92,12 @@ public class PickerSyncControllerTest {
         mCloudSecondaryMediaGenerator.setVersion(VERSION_1);
 
         mContext = InstrumentationRegistry.getTargetContext();
-        mFacade = new PickerDbFacade(mContext);
+        mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY);
         mController = new PickerSyncController(mContext, mFacade, LOCAL_PROVIDER_AUTHORITY,
                 /* syncDelay */ 0);
 
-        mFacade.resetMedia(/* isLocal */ true);
-        mFacade.resetMedia(/* isLocal */ false);
+        mFacade.resetMedia(LOCAL_PROVIDER_AUTHORITY);
+        mFacade.resetMedia(null);
     }
 
     @After
@@ -289,23 +289,51 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testSetCloudProvider() {
+        //1. Get local provider assertion out of the way
         assertThat(mController.getLocalProvider()).isEqualTo(LOCAL_PROVIDER_AUTHORITY);
 
-        // Can set cloud provider
+        // Assert that no cloud provider set on facade
+        assertThat(mFacade.getCloudProvider()).isNull();
+
+        // 2. Can set cloud provider
         assertThat(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
         assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
-        // Can clear cloud provider
+        // Assert that setting cloud provider clears facade cloud provider
+        // And after syncing, the latest provider is set on the facade
+        assertThat(mFacade.getCloudProvider()).isNull();
+        mController.syncPicker();
+        assertThat(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // 3. Can clear cloud provider
         assertThat(mController.setCloudProvider(null)).isTrue();
         assertThat(mController.getCloudProvider()).isNull();
 
-        // Can set cloud proivder
+        // Assert that setting cloud provider clears facade cloud provider
+        // And after syncing, the latest provider is set on the facade
+        assertThat(mFacade.getCloudProvider()).isNull();
+        mController.syncPicker();
+        assertThat(mFacade.getCloudProvider()).isNull();
+
+        // 4. Can set cloud proivder
         assertThat(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
         assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Assert that setting cloud provider clears facade cloud provider
+        // And after syncing, the latest provider is set on the facade
+        assertThat(mFacade.getCloudProvider()).isNull();
+        mController.syncPicker();
+        assertThat(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         // Invalid cloud provider is ignored
         assertThat(mController.setCloudProvider(LOCAL_PROVIDER_AUTHORITY)).isFalse();
         assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Assert that unsuccessfully setting cloud provider doesn't clear facade cloud provider
+        // And after syncing, nothing changes
+        assertThat(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mController.syncPicker();
+        assertThat(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
     }
 
     @Test

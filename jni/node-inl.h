@@ -324,9 +324,9 @@ class node {
         return should_invalidate_;
     }
 
-    void SetShouldInvalidate() {
+    void SetName(std::string name) {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
-        should_invalidate_ = true;
+        name_ = std::move(name);
     }
 
     bool HasRedactedCache() const {

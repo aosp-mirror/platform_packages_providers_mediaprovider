@@ -528,23 +528,20 @@ public class DatabaseHelperTest {
     }
 
     /**
-     * Test that database upgrade or database downgrade will always change UUID saved in the
-     * database file.
+     * Test that database downgrade changed the UUID saved in database file.
      */
     @Test
-    public void testUpgradeAndDowngradeChangeUUID() throws Exception {
+    public void testDowngradeChangesUUID() throws Exception {
         Class<? extends DatabaseHelper> dbVersionHigher = DatabaseHelperS.class;
         Class<? extends DatabaseHelper> dbVersionLower = DatabaseHelperR.class;
-        String uuidOriginal;
+        String originalUUID;
         int originalVersion;
-        String uuidAfterUpgrade;
-        String uuidAfterDowngrade;
 
         // Create the database with database version = dbVersionLower
         try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
                 .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
             SQLiteDatabase db = helper.getWritableDatabaseForTest();
-            uuidOriginal = DatabaseHelper.getUuid(db);
+            originalUUID = DatabaseHelper.getOrCreateUuid(db);
             originalVersion = db.getVersion();
             // Verify that original version of the database is dbVersionLower.
             assertWithMessage("Current database version")
@@ -561,11 +558,9 @@ public class DatabaseHelperTest {
             // Verify that upgrade resulted in database version same as latest version.
             assertWithMessage("Current database version after upgrade")
                     .that(db.getVersion()).isEqualTo(VERSION_LATEST);
-            // Verify that upgrade changed UUID
-            uuidAfterUpgrade = DatabaseHelper.getUuid(db);
+            // Verify that upgrade didn't change UUID
             assertWithMessage("Current database UUID after upgrade")
-                    .that(uuidAfterUpgrade).isNotEqualTo(uuidOriginal);
-
+                    .that(DatabaseHelper.getOrCreateUuid(db)).isEqualTo(originalUUID);
         }
 
         // Downgrade the database by changing the version to dbVersionLower
@@ -576,41 +571,8 @@ public class DatabaseHelperTest {
             assertWithMessage("Current database version after downgrade")
                     .that(db.getVersion()).isEqualTo(originalVersion);
             // Verify that downgrade changed UUID
-            uuidAfterDowngrade = DatabaseHelper.getUuid(db);
             assertWithMessage("Current database UUID after downgrade")
-                    .that(uuidAfterDowngrade).isNotEqualTo(uuidOriginal);
-            assertWithMessage("Current database UUID after downgrade")
-                    .that(uuidAfterDowngrade).isNotEqualTo(uuidAfterUpgrade);
-        }
-    }
-
-    /**
-     * Test that database uuid doesn't change when we call open() on the same database.
-     */
-    @Test
-    public void testDatabaseUUIDDoesntChange() throws Exception {
-        Class<? extends DatabaseHelper> dbVersion1 = DatabaseHelperS.class;
-        Class<? extends DatabaseHelper> dbVersion2 = DatabaseHelperS.class;
-        String uuid1;
-
-        try (DatabaseHelper helper1 = dbVersion1.getConstructor(Context.class, String.class)
-                .newInstance(sIsolatedContext, TEST_CLEAN_DB)) {
-            SQLiteDatabase db1 = helper1.getWritableDatabaseForTest();
-            uuid1 = DatabaseHelper.getUuid(db1);
-            assertWithMessage("Current database version")
-                    .that(db1.getVersion()).isEqualTo(VERSION_LATEST);
-        }
-
-        try (DatabaseHelper helper2 = dbVersion2.getConstructor(Context.class, String.class)
-                .newInstance(sIsolatedContext, TEST_CLEAN_DB)) {
-            SQLiteDatabase db2 = helper2.getWritableDatabaseForTest();
-            String uuid2 = DatabaseHelper.getUuid(db2);
-            // Verify that database version is same
-            assertWithMessage("Current database version")
-                    .that(db2.getVersion()).isEqualTo(VERSION_LATEST);
-            // Verify that UUID hasn't changed.
-            assertWithMessage("Current UUID is same as")
-                    .that(uuid1).isEqualTo(uuid2);
+                    .that(DatabaseHelper.getOrCreateUuid(db)).isNotEqualTo(originalUUID);
         }
     }
 

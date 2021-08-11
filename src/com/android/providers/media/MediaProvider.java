@@ -924,7 +924,7 @@ public class MediaProvider extends ContentProvider {
                 false, false, false, Column.class,
                 Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
 
-        mTranscodeHelper = new TranscodeHelper(context, this);
+        mTranscodeHelper = new TranscodeHelperImpl(context, this);
 
         // Create dir for redacted URI's path.
         new File("/storage/emulated/" + UserHandle.myUserId(), REDACTED_URI_DIR).mkdirs();
@@ -9407,7 +9407,7 @@ public class MediaProvider extends ContentProvider {
 
     private DatabaseHelper mInternalDatabase;
     private DatabaseHelper mExternalDatabase;
-    private TranscodeHelper mTranscodeHelper;
+    private TranscodeHelperImpl mTranscodeHelper;
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;

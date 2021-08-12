@@ -930,7 +930,11 @@ public class MediaProvider extends ContentProvider {
                 false, false, false, Column.class,
                 Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
 
-        mTranscodeHelper = new TranscodeHelper(context, this);
+        if (SdkLevel.isAtLeastS()) {
+            mTranscodeHelper = new TranscodeHelperImpl(context, this);
+        } else {
+            mTranscodeHelper = new TranscodeHelperNoOp();
+        }
 
         // Create dir for redacted URI's path.
         new File("/storage/emulated/" + UserHandle.myUserId(), REDACTED_URI_DIR).mkdirs();

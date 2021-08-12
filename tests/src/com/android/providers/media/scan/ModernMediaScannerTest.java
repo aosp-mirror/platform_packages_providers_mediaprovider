@@ -435,11 +435,13 @@ public class ModernMediaScannerTest {
     }
 
     /**
-     * b/168830497: Test that default folders and Camera folder are always visible
+     * b/168830497: Test that root folder, default folders and Camera folder are always visible
      */
     @Test
     public void testVisibleDefaultFolders() throws Exception {
         final File root = new File("storage/emulated/0");
+
+        assertVisibleFolder(root);
 
         // Top level directories should always be visible
         for (String dirName : FileUtils.DEFAULT_FOLDER_NAMES) {
@@ -450,6 +452,29 @@ public class ModernMediaScannerTest {
         // DCIM/Camera should always be visible
         final File cameraDir = new File(root, Environment.DIRECTORY_DCIM + "/" + "Camera");
         assertVisibleFolder(cameraDir);
+    }
+
+    /**
+     *  b/192799231: Test that root folder which has .nomedia directory is always visible
+     */
+    @Test
+    public void testVisibleRootWithNoMediaDirectory() throws Exception {
+        final File root = new File("storage/emulated/0");
+        final File nomediaDir = new File(root, ".nomedia");
+        final File file = new File(nomediaDir, "test.jpg");
+
+        try {
+            if (!nomediaDir.exists()) {
+                executeShellCommand("mkdir -p " + nomediaDir.getAbsolutePath());
+            }
+            if (!file.exists()) {
+                executeShellCommand("touch " + file.getAbsolutePath());
+                assertTrue(file.exists());
+            }
+            assertShouldScanPathAndIsPathHidden(true, false, root);
+        } finally {
+            executeShellCommand("rm -rf " + nomediaDir.getAbsolutePath());
+        }
     }
 
     private static void assertShouldScanDirectory(File file) {
@@ -1203,7 +1228,7 @@ public class ModernMediaScannerTest {
         firstDirScan.dumpResults();
 
         // Time taken : preVisitDirectory
-        Timer noOpDirScan = new Timer("noOpDirScan");
+        Timer noOpDirScan = new Timer("noOpDirScan1");
         for (int i = 0; i < COUNT_REPEAT; i++) {
             noOpDirScan.start();
             mModern.scanDirectory(mDir, REASON_UNKNOWN);
@@ -1213,23 +1238,21 @@ public class ModernMediaScannerTest {
         assertThat(noOpDirScan.getMaxDurationMillis()).isLessThan(
                 firstDirScan.getMaxDurationMillis());
 
-        // renaming directory for non-M_E_S apps does a scan of the directory as well;
-        // so subsequent scans should be noOp as the directory is not dirty.
-        File renamedTestDir = new File(mIsolatedContext.getExternalMediaDirs()[0],
-                "renamed_test_" + System.nanoTime());
-        assertThat(mDir.renameTo(renamedTestDir)).isTrue();
+        // Creating new file in the nomedia dir by a non-M_E_S app should not set nomedia dir dirty.
+        File file = new File(mDir, "file_" + System.nanoTime());
+        assertThat(file.createNewFile()).isTrue();
 
-        Timer renamedDirScan = new Timer("renamedDirScan");
-        renamedDirScan.start();
+        // The dir should not be dirty and subsequest scans should not scan the entire directory.
         // Time taken : preVisitDirectory
-        mModern.scanDirectory(renamedTestDir, REASON_UNKNOWN);
-        renamedDirScan.stop();
-        renamedDirScan.dumpResults();
-        assertThat(renamedDirScan.getMaxDurationMillis()).isLessThan(
+        noOpDirScan = new Timer("noOpDirScan2");
+        for (int i = 0; i < COUNT_REPEAT; i++) {
+            noOpDirScan.start();
+            mModern.scanDirectory(mDir, REASON_UNKNOWN);
+            noOpDirScan.stop();
+        }
+        noOpDirScan.dumpResults();
+        assertThat(noOpDirScan.getMaxDurationMillis()).isLessThan(
                 firstDirScan.getMaxDurationMillis());
-
-        // This is essential for folder cleanup in tearDown
-        mDir = renamedTestDir;
     }
 
     @Test

@@ -23,9 +23,6 @@ import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
-import static android.content.pm.PackageManager.MATCH_ANY_USER;
-import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
-import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.MediaStore.MATCH_DEFAULT;
@@ -76,8 +73,10 @@ import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
+import static com.android.providers.media.util.FileUtils.isCrossUserEnabled;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
 import static com.android.providers.media.util.FileUtils.isDownload;
+import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
 import static com.android.providers.media.util.FileUtils.isObbOrChildPath;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.Logging.LOGV;
@@ -360,10 +359,6 @@ public class MediaProvider extends ContentProvider {
     // Stolen from: UserHandle#getUserId
     private static final int PER_USER_RANGE = 100000;
     private static final int MY_UID = android.os.Process.myUid();
-    private static final boolean PROP_CROSS_USER_ALLOWED =
-            SystemProperties.getBoolean("external_storage.cross_user.enabled", false);
-    private static final String PROP_CROSS_USER_ROOT =
-            SystemProperties.get("external_storage.cross_user.root", null);
 
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
@@ -476,8 +471,8 @@ public class MediaProvider extends ContentProvider {
             if (active) {
                 // TODO moltmann: Set correct featureId
                 mCachedCallingIdentity.put(uid,
-                        LocalCallingIdentity.fromExternal(getContext(), uid, packageName,
-                                null));
+                        LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid,
+                            packageName, null));
             } else {
                 mCachedCallingIdentity.remove(uid);
             }
@@ -496,9 +491,6 @@ public class MediaProvider extends ContentProvider {
     private OnOpChangedListener mModeListener =
             (op, packageName) -> invalidateLocalCallingIdentityCache(packageName, "op " + op);
 
-    @GuardedBy("mNonWorkProfileUsers")
-    private final List<Integer> mNonWorkProfileUsers = new ArrayList<>();
-
     /**
      * Retrieves a cached calling identity or creates a new one. Also, always sets the app-op
      * description for the calling identity.
@@ -508,7 +500,7 @@ public class MediaProvider extends ContentProvider {
             PermissionUtils.setOpDescription("via FUSE");
             LocalCallingIdentity identity = mCachedCallingIdentityForFuse.get(uid);
             if (identity == null) {
-               identity = LocalCallingIdentity.fromExternal(getContext(), uid);
+               identity = LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid);
                if (uid / PER_USER_RANGE == sUserId) {
                    mCachedCallingIdentityForFuse.put(uid, identity);
                } else {
@@ -828,11 +820,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static boolean isCrossUserEnabled() {
-        return ((PROP_CROSS_USER_ALLOWED && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) ||
-                SdkLevel.isAtLeastS());
-    }
-
     /**
      * Ensure that default folders are created on mounted primary storage
      * devices. We only do this once per volume so we don't annoy the user if
@@ -937,7 +924,11 @@ public class MediaProvider extends ContentProvider {
                 false, false, false, Column.class,
                 Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
 
-        mTranscodeHelper = new TranscodeHelper(context, this);
+        if (SdkLevel.isAtLeastS()) {
+            mTranscodeHelper = new TranscodeHelperImpl(context, this);
+        } else {
+            mTranscodeHelper = new TranscodeHelperNoOp();
+        }
 
         // Create dir for redacted URI's path.
         new File("/storage/emulated/" + UserHandle.myUserId(), REDACTED_URI_DIR).mkdirs();
@@ -1309,16 +1300,23 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isAppCloneUserPair(int userId1, int userId2) {
-        try {
-            UserHandle user1 = UserHandle.of(userId1);
-            UserHandle user2 = UserHandle.of(userId2);
-
-            if (SdkLevel.isAtLeastS() && (mUserCache.userSharesMediaWithParent(user1)
-                    || mUserCache.userSharesMediaWithParent(user2))) {
+        UserHandle user1 = UserHandle.of(userId1);
+        UserHandle user2 = UserHandle.of(userId2);
+        if (SdkLevel.isAtLeastS()) {
+            if (mUserCache.userSharesMediaWithParent(user1)
+                    || mUserCache.userSharesMediaWithParent(user2)) {
                 return true;
             }
+            if (Build.VERSION.DEVICE_INITIAL_SDK_INT >= Build.VERSION_CODES.S) {
+                // If we're on S or higher, and we shipped with S or higher, only allow the new
+                // app cloning functionality
+                return false;
+            }
+            // else, fall back to deprecated solution below on updating devices
+        }
+        try {
             Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
-                    int.class, int.class);
+                int.class, int.class);
             return (Boolean) isAppCloneUserPair.invoke(mStorageManager, userId1, userId2);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             Log.w(TAG, "isAppCloneUserPair failed. Users: " + userId1 + " and " + userId2);
@@ -1368,7 +1366,7 @@ public class MediaProvider extends ContentProvider {
             return false;
         }
 
-        if (isWorkProfile(callingUserId) || isWorkProfile(pathUserId)) {
+        if (mUserCache.isWorkProfile(callingUserId) || mUserCache.isWorkProfile(pathUserId)) {
             // Cross-user lookup not allowed if one user in the pair has a profile owner app
             Log.w(TAG, "CrossUser work profile check failed. Users: " + callingUserId + " and "
                     + pathUserId);
@@ -1384,33 +1382,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         return result;
-    }
-
-    private boolean isWorkProfile(int userId) {
-        synchronized (mNonWorkProfileUsers) {
-            if (mNonWorkProfileUsers.contains(userId)) {
-                return false;
-            }
-            if (userId == 0) {
-                mNonWorkProfileUsers.add(userId);
-                // user 0 cannot have a profile owner
-                return false;
-            }
-        }
-
-        List<Integer> uids = new ArrayList<>();
-        for (ApplicationInfo ai : mPackageManager.getInstalledApplications(MATCH_DIRECT_BOOT_AWARE
-                        | MATCH_DIRECT_BOOT_UNAWARE | MATCH_ANY_USER)) {
-            if (((ai.uid / PER_USER_RANGE) == userId)
-                    && mDevicePolicyManager.isProfileOwnerApp(ai.packageName)) {
-                return true;
-            }
-        }
-
-        synchronized (mNonWorkProfileUsers) {
-            mNonWorkProfileUsers.add(userId);
-            return false;
-        }
     }
 
     /**
@@ -2615,7 +2586,7 @@ public class MediaProvider extends ContentProvider {
     public int checkUriPermission(@NonNull Uri uri, int uid,
             /* @Intent.AccessUriMode */ int modeFlags) {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
-                LocalCallingIdentity.fromExternal(getContext(), uid));
+                LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid));
 
         if(isRedactedUri(uri)) {
             if((modeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
@@ -3306,18 +3277,9 @@ public class MediaProvider extends ContentProvider {
 
             // Next, consider allowing based on allowed primary directory
             final String[] relativePath = values.getAsString(MediaColumns.RELATIVE_PATH).split("/");
-            final String primary = (relativePath.length > 0) ? relativePath[0] : null;
+            final String primary = extractTopLevelDir(relativePath);
             if (!validPath) {
                 validPath = containsIgnoreCase(allowedPrimary, primary);
-                if (!validPath) {
-                    // Some app-clone implementations use a subdirectory of the main user's root
-                    // to store app clone files; allow these as well.
-                    if (isCrossUserEnabled() && primary != null &&
-                        primary.equals(PROP_CROSS_USER_ROOT) && relativePath.length >= 2) {
-                        final String crossUserPrimary = relativePath[1];
-                        validPath = containsIgnoreCase(allowedPrimary, crossUserPrimary);
-                    }
-                }
             }
 
             // Next, consider allowing paths when referencing a related item
@@ -5724,49 +5686,6 @@ public class MediaProvider extends ContentProvider {
                 res.putParcelable(MediaStore.EXTRA_RESULT, pi);
                 return res;
             }
-            case MediaStore.GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL: {
-                ParcelFileDescriptor inputPfd =
-                        extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR);
-                try {
-                    File file = getFileFromFileDescriptor(inputPfd);
-                    if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
-                        // Return an empty bundle instead of throwing an exception in the special
-                        // case where the file does not support transcode. This avoids a misleading
-                        // warning in android.database.DatabaseUtils#writeExceptionToParcel
-                        //
-                        // Note that we should be checking if a file is a modern format and not just
-                        // that it supports transcoding, unfortunately, checking modern format
-                        // requires either a db query or media scan which can lead to ANRs if apps
-                        // or the system implicitly call this method as part of a
-                        // MediaPlayer#setDataSource.
-                        return new Bundle();
-                    }
-
-                    FuseDaemon fuseDaemon = getFuseDaemonForFile(file);
-                    String outputPath = fuseDaemon.getOriginalMediaFormatFilePath(inputPfd);
-                    if (TextUtils.isEmpty(outputPath)) {
-                        throw new IllegalArgumentException(
-                                "Invalid path for original media format file");
-                    }
-
-                    int posixMode = Os.fcntlInt(inputPfd.getFileDescriptor(), F_GETFL,
-                            0 /* args */);
-                    int modeBits = FileUtils.translateModePosixToPfd(posixMode);
-                    int uid = Binder.getCallingUid();
-
-                    ParcelFileDescriptor outputPfd = openWithFuse(outputPath, uid,
-                            0 /* mediaCapabilitiesUid */, modeBits, true /* shouldRedact */,
-                            false /* shouldTranscode */, 0 /* transcodeReason */);
-                    Bundle res = new Bundle();
-                    res.putParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR, outputPfd);
-                    return res;
-                } catch (IOException e) {
-                    throw new IllegalStateException(e);
-                } catch (ErrnoException e) {
-                    throw new IllegalStateException(
-                            "Failed to fetch access mode for file descriptor", e);
-                }
-            }
             case MediaStore.IS_SYSTEM_GALLERY_CALL:
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
                 try {
@@ -5782,6 +5701,44 @@ public class MediaProvider extends ContentProvider {
                 }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
+        }
+    }
+
+    private AssetFileDescriptor getOriginalMediaFormatFileDescriptor(Bundle extras)
+            throws FileNotFoundException {
+        try (ParcelFileDescriptor inputPfd =
+                extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR)) {
+            final File file = getFileFromFileDescriptor(inputPfd);
+            if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
+                // Note that we should be checking if a file is a modern format and not just
+                // that it supports transcoding, unfortunately, checking modern format
+                // requires either a db query or media scan which can lead to ANRs if apps
+                // or the system implicitly call this method as part of a
+                // MediaPlayer#setDataSource.
+                throw new FileNotFoundException("Input file descriptor is already original");
+            }
+
+            FuseDaemon fuseDaemon = getFuseDaemonForFile(file);
+            String outputPath = fuseDaemon.getOriginalMediaFormatFilePath(inputPfd);
+            if (TextUtils.isEmpty(outputPath)) {
+                throw new FileNotFoundException("Invalid path for original media format file");
+            }
+
+            int posixMode = Os.fcntlInt(inputPfd.getFileDescriptor(), F_GETFL,
+                    0 /* args */);
+            int modeBits = FileUtils.translateModePosixToPfd(posixMode);
+            int uid = Binder.getCallingUid();
+
+            ParcelFileDescriptor pfd = openWithFuse(outputPath, uid, 0 /* mediaCapabilitiesUid */,
+                    modeBits, true /* shouldRedact */, false /* shouldTranscode */,
+                    0 /* transcodeReason */);
+            return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to fetch original file descriptor", e);
+            throw new FileNotFoundException("Failed to fetch original file descriptor");
+        } catch (ErrnoException e) {
+            Log.w(TAG, "Failed to fetch access mode for file descriptor", e);
+            throw new FileNotFoundException("Failed to fetch access mode for file descriptor");
         }
     }
 
@@ -7162,6 +7119,21 @@ public class MediaProvider extends ContentProvider {
             Bundle opts, CancellationSignal signal) throws FileNotFoundException {
         uri = safeUncanonicalize(uri);
 
+        if (opts != null && opts.containsKey(MediaStore.EXTRA_FILE_DESCRIPTOR)) {
+            // This is called as part of MediaStore#getOriginalMediaFormatFileDescriptor
+            // We don't need to use the |uri| because the input fd already identifies the file and
+            // we actually don't have a valid URI, we are going to identify the file via the fd.
+            // While identifying the file, we also perform the following security checks.
+            // 1. Find the FUSE file with the associated inode
+            // 2. Verify that the binder caller opened it
+            // 3. Verify the access level the fd is opened with (r/w)
+            // 4. Open the original (non-transcoded) file *with* redaction enabled and the access
+            // level from #3
+            // 5. Return the fd from #4 to the app or throw an exception if any of the conditions
+            // are not met
+            return getOriginalMediaFormatFileDescriptor(opts);
+        }
+
         // TODO: enforce that caller has access to this uri
 
         // Offer thumbnail of media, when requested
@@ -7769,10 +7741,9 @@ public class MediaProvider extends ContentProvider {
             return false;
         }
 
-        final String relativePath = extractRelativePath(path);
         // Android/media is not considered private, because it contains media that is explicitly
         // scanned and shared by other apps
-        if (relativePath.startsWith("Android/media")) {
+        if (isExternalMediaDirectory(path)) {
             return false;
         }
         return !isUidAllowedAccessToDataOrObbPathForFuse(mCallingIdentity.get().uid, path);
@@ -8348,14 +8319,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private boolean isExternalMediaDirectory(@NonNull String path) {
-        final String relativePath = extractRelativePath(path);
-        if (relativePath != null) {
-            return relativePath.startsWith("Android/media");
-        }
-        return false;
-    }
-
     private Uri insertFileForFuse(@NonNull String path, @NonNull Uri uri, @NonNull String mimeType,
             boolean useData) {
         ContentValues values = new ContentValues();
@@ -8914,6 +8877,10 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
+        if (!canReadDeviceConfig(key, defaultValue)) {
+            return defaultValue;
+        }
+
         final long token = Binder.clearCallingIdentity();
         try {
             return DeviceConfig.getBoolean(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
@@ -8925,6 +8892,10 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     public int getIntDeviceConfig(String key, int defaultValue) {
+        if (!canReadDeviceConfig(key, defaultValue)) {
+            return defaultValue;
+        }
+
         final long token = Binder.clearCallingIdentity();
         try {
             return DeviceConfig.getInt(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
@@ -8936,6 +8907,10 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     public String getStringDeviceConfig(String key, String defaultValue) {
+        if (!canReadDeviceConfig(key, defaultValue)) {
+            return defaultValue;
+        }
+
         final long token = Binder.clearCallingIdentity();
         try {
             return DeviceConfig.getString(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
@@ -8945,8 +8920,23 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private static <T> boolean canReadDeviceConfig(String key, T defaultValue) {
+        if (SdkLevel.isAtLeastS()) {
+            return true;
+        }
+
+        Log.w(TAG, "Cannot read device config before Android S. Returning defaultValue: "
+                + defaultValue + " for key: " + key);
+        return false;
+    }
+
     @VisibleForTesting
     public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
+        if (!SdkLevel.isAtLeastS()) {
+            Log.w(TAG, "Cannot add device config changed listener before Android S");
+            return;
+        }
+
         DeviceConfig.addOnPropertiesChangedListener(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 BackgroundThread.getExecutor(), listener);
     }
@@ -9274,6 +9264,9 @@ public class MediaProvider extends ContentProvider {
                 }
             }
             if (!volumeAttached) {
+                // Dump some more debug info
+                Log.e(TAG, "Volume " + volumeName + " not found, calling identity: "
+                        + user + ", attached volumes: " + mAttachedVolumes);
                 throw new VolumeNotFoundException(volumeName);
             }
         }
@@ -9365,6 +9358,12 @@ public class MediaProvider extends ContentProvider {
             detachVolume(getVolume(volumeName));
         } catch (FileNotFoundException e) {
             Log.e(TAG, "Couldn't find volume for URI " + uri, e) ;
+        }
+    }
+
+    public boolean isVolumeAttached(MediaVolume volume) {
+        synchronized (mAttachedVolumes) {
+            return mAttachedVolumes.contains(volume);
         }
     }
 
@@ -9741,6 +9740,12 @@ public class MediaProvider extends ContentProvider {
         synchronized (mAttachedVolumes) {
             writer.println("mAttachedVolumes=" + mAttachedVolumes);
         }
+        writer.println();
+
+        mVolumeCache.dump(writer);
+        writer.println();
+
+        mUserCache.dump(writer);
         writer.println();
 
         mTranscodeHelper.dump(writer);

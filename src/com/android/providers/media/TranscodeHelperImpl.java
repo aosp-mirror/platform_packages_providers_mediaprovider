@@ -54,10 +54,10 @@ import android.database.Cursor;
 import android.media.ApplicationMediaCapabilities;
 import android.media.MediaFeature;
 import android.media.MediaFormat;
-import android.media.MediaTranscodeManager;
-import android.media.MediaTranscodeManager.VideoTranscodingRequest;
-import android.media.MediaTranscodeManager.TranscodingRequest.VideoFormatResolver;
-import android.media.MediaTranscodeManager.TranscodingSession;
+import android.media.MediaTranscodingManager;
+import android.media.MediaTranscodingManager.VideoTranscodingRequest;
+import android.media.MediaTranscodingManager.TranscodingRequest.VideoFormatResolver;
+import android.media.MediaTranscodingManager.TranscodingSession;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -1122,8 +1122,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     private TranscodingSession enqueueTranscodingSession(String src, String dst, int uid,
             final CountDownLatch latch) throws UnsupportedOperationException, IOException {
         // Fetch the service lazily to improve memory usage
-        final MediaTranscodeManager mediaTranscodeManager =
-                mContext.getSystemService(MediaTranscodeManager.class);
+        final MediaTranscodingManager mediaTranscodeManager =
+                mContext.getSystemService(MediaTranscodingManager.class);
         File file = new File(src);
         File transcodeFile = new File(dst);
 
@@ -1839,17 +1839,17 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         private final SparseArray<Long> mSessionStartTimes = new SparseArray<>();
 
         // Call this only in foreground thread.
-        private long getSessionStartTime(MediaTranscodeManager.TranscodingSession session) {
+        private long getSessionStartTime(MediaTranscodingManager.TranscodingSession session) {
             return mSessionStartTimes.get(session.getSessionId());
         }
 
-        private void logSessionStart(MediaTranscodeManager.TranscodingSession session) {
+        private void logSessionStart(MediaTranscodingManager.TranscodingSession session) {
             ForegroundThread.getHandler().post(
                     () -> mSessionStartTimes.append(session.getSessionId(),
                             System.currentTimeMillis()));
         }
 
-        private void logSessionEnd(MediaTranscodeManager.TranscodingSession session) {
+        private void logSessionEnd(MediaTranscodingManager.TranscodingSession session) {
             ForegroundThread.getHandler().post(
                     () -> mSessionStartTimes.remove(session.getSessionId()));
         }

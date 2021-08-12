@@ -23,9 +23,6 @@ import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
-import static android.content.pm.PackageManager.MATCH_ANY_USER;
-import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
-import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.MediaStore.MATCH_DEFAULT;
@@ -493,9 +490,6 @@ public class MediaProvider extends ContentProvider {
 
     private OnOpChangedListener mModeListener =
             (op, packageName) -> invalidateLocalCallingIdentityCache(packageName, "op " + op);
-
-    @GuardedBy("mNonWorkProfileUsers")
-    private final List<Integer> mNonWorkProfileUsers = new ArrayList<>();
 
     /**
      * Retrieves a cached calling identity or creates a new one. Also, always sets the app-op
@@ -1372,7 +1366,7 @@ public class MediaProvider extends ContentProvider {
             return false;
         }
 
-        if (isWorkProfile(callingUserId) || isWorkProfile(pathUserId)) {
+        if (mUserCache.isWorkProfile(callingUserId) || mUserCache.isWorkProfile(pathUserId)) {
             // Cross-user lookup not allowed if one user in the pair has a profile owner app
             Log.w(TAG, "CrossUser work profile check failed. Users: " + callingUserId + " and "
                     + pathUserId);
@@ -1388,33 +1382,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         return result;
-    }
-
-    private boolean isWorkProfile(int userId) {
-        synchronized (mNonWorkProfileUsers) {
-            if (mNonWorkProfileUsers.contains(userId)) {
-                return false;
-            }
-            if (userId == 0) {
-                mNonWorkProfileUsers.add(userId);
-                // user 0 cannot have a profile owner
-                return false;
-            }
-        }
-
-        List<Integer> uids = new ArrayList<>();
-        for (ApplicationInfo ai : mPackageManager.getInstalledApplications(MATCH_DIRECT_BOOT_AWARE
-                        | MATCH_DIRECT_BOOT_UNAWARE | MATCH_ANY_USER)) {
-            if (((ai.uid / PER_USER_RANGE) == userId)
-                    && mDevicePolicyManager.isProfileOwnerApp(ai.packageName)) {
-                return true;
-            }
-        }
-
-        synchronized (mNonWorkProfileUsers) {
-            mNonWorkProfileUsers.add(userId);
-            return false;
-        }
     }
 
     /**

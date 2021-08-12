@@ -29,6 +29,7 @@
     <color name="picker_message_text_color">#5F6368</color>
     <color name="picker_toolbar_icon_color">#3C4043</color>
     <color name="picker_toolbar_chip_text_color">#5F6368</color>
+    <color name="picker_toolbar_title_color">#3C4043</color>
     <color name="photos_item_gradient_color">#42000000</color>
 
 

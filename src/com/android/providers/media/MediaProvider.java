@@ -23,9 +23,6 @@ import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
-import static android.content.pm.PackageManager.MATCH_ANY_USER;
-import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
-import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.MediaStore.MATCH_DEFAULT;
@@ -502,9 +499,6 @@ public class MediaProvider extends ContentProvider {
     private OnOpChangedListener mModeListener =
             (op, packageName) -> invalidateLocalCallingIdentityCache(packageName, "op " + op);
 
-    @GuardedBy("mNonWorkProfileUsers")
-    private final List<Integer> mNonWorkProfileUsers = new ArrayList<>();
-
     /**
      * Retrieves a cached calling identity or creates a new one. Also, always sets the app-op
      * description for the calling identity.
@@ -955,7 +949,12 @@ public class MediaProvider extends ContentProvider {
         mExternalDbFacade = new ExternalDbFacade(mExternalDatabase);
         mPickerDbFacade = new PickerDbFacade(context);
         mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
-        mTranscodeHelper = new TranscodeHelper(context, this);
+
+        if (SdkLevel.isAtLeastS()) {
+            mTranscodeHelper = new TranscodeHelperImpl(context, this);
+        } else {
+            mTranscodeHelper = new TranscodeHelperNoOp();
+        }
 
         // Create dir for redacted URI's path.
         new File("/storage/emulated/" + UserHandle.myUserId(), REDACTED_URI_DIR).mkdirs();
@@ -1393,7 +1392,7 @@ public class MediaProvider extends ContentProvider {
             return false;
         }
 
-        if (isWorkProfile(callingUserId) || isWorkProfile(pathUserId)) {
+        if (mUserCache.isWorkProfile(callingUserId) || mUserCache.isWorkProfile(pathUserId)) {
             // Cross-user lookup not allowed if one user in the pair has a profile owner app
             Log.w(TAG, "CrossUser work profile check failed. Users: " + callingUserId + " and "
                     + pathUserId);
@@ -1409,33 +1408,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         return result;
-    }
-
-    private boolean isWorkProfile(int userId) {
-        synchronized (mNonWorkProfileUsers) {
-            if (mNonWorkProfileUsers.contains(userId)) {
-                return false;
-            }
-            if (userId == 0) {
-                mNonWorkProfileUsers.add(userId);
-                // user 0 cannot have a profile owner
-                return false;
-            }
-        }
-
-        List<Integer> uids = new ArrayList<>();
-        for (ApplicationInfo ai : mPackageManager.getInstalledApplications(MATCH_DIRECT_BOOT_AWARE
-                        | MATCH_DIRECT_BOOT_UNAWARE | MATCH_ANY_USER)) {
-            if (((ai.uid / PER_USER_RANGE) == userId)
-                    && mDevicePolicyManager.isProfileOwnerApp(ai.packageName)) {
-                return true;
-            }
-        }
-
-        synchronized (mNonWorkProfileUsers) {
-            mNonWorkProfileUsers.add(userId);
-            return false;
-        }
     }
 
     /**
@@ -2786,6 +2758,15 @@ public class MediaProvider extends ContentProvider {
             MatrixCursor c = new MatrixCursor(new String[] {"version"});
             c.addRow(new Integer[] {DatabaseHelper.getDatabaseVersion(getContext())});
             return c;
+        }
+
+        // TODO(b/195008831): Add test to verify that apps can't access
+        if (table == PICKER_INTERNAL) {
+            final int limit = queryArgs.getInt(MediaStore.QUERY_ARG_LIMIT, -1);
+            final int sizeBytes = queryArgs.getInt(MediaStore.QUERY_ARG_SIZE_BYTES, -1);
+            final String mimeType =queryArgs.getString(MediaStore.QUERY_ARG_MIME_TYPE, null);
+
+            return mPickerDbFacade.queryMediaAll(limit, mimeType, sizeBytes);
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
@@ -5763,6 +5744,17 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
+            case MediaStore.SET_CLOUD_PROVIDER_CALL:
+                // TODO(b/190713331): Remove after initial development
+                final String cloudProvider = extras.getString(PickerDbFacade.KEY_CLOUD_PROVIDER);
+                Log.i(TAG, "Developer initiated cloud provider switch: " + cloudProvider);
+                mPickerSyncController.setCloudProvider(cloudProvider);
+                // fall through
+            case MediaStore.SYNC_PROVIDERS_CALL:
+                // TODO(b/190713331): Remove after initial development
+                Log.i(TAG, "Developer initiated provider sync");
+                mPickerSyncController.syncPicker();
+                return new Bundle();
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
@@ -7106,7 +7098,7 @@ public class MediaProvider extends ContentProvider {
     private boolean isPickerUri(Uri uri) {
         // TODO(b/188394433): move this method to PickerResolver in the spirit of not
         // adding picker logic to MediaProvider
-        final int match = matchUri(uri, /* allowHidden */ false);
+        final int match = matchUri(uri, /* allowHidden */ isCallingPackageAllowedHidden());
         return match == PICKER_ID;
     }
 
@@ -9557,6 +9549,7 @@ public class MediaProvider extends ContentProvider {
 
     static final int PICKER = 900;
     static final int PICKER_ID = 901;
+    static final int PICKER_INTERNAL = 902;
 
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
             Arrays.asList(AUDIO_MEDIA_ID, IMAGES_MEDIA_ID, VIDEO_MEDIA_ID, FILES_ID, DOWNLOADS_ID));
@@ -9652,6 +9645,7 @@ public class MediaProvider extends ContentProvider {
             // NOTE: technically hidden, since Uri is never exposed
             mPublic.addURI(auth, "*/version", VERSION);
 
+            mHidden.addURI(auth, "picker_internal", PICKER_INTERNAL);
             mHidden.addURI(auth, "*", VOLUMES_ID);
             mHidden.addURI(auth, null, VOLUMES);
 

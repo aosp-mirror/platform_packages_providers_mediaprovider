@@ -23,6 +23,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
@@ -80,6 +81,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private static final String EXTRA_TAB_CHIP_TYPE = "tab_chip_type";
     private static final int TAB_CHIP_TYPE_PHOTOS = 0;
     private static final int TAB_CHIP_TYPE_ALBUMS = 1;
+    private int mToolbarHeight = 0;
 
     @IntDef(prefix = { "TAB_CHIP_TYPE" }, value = {
             TAB_CHIP_TYPE_PHOTOS,
@@ -97,6 +99,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private int mSelectedTabChipType;
     private BottomSheetBehavior mBottomSheetBehavior;
     private View mBottomSheetView;
+    private View mFragmentContainerView;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -106,6 +109,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        final int[] attrs = new int[] {R.attr.actionBarSize};
+        final TypedArray ta = obtainStyledAttributes(attrs);
+        // Save toolbar height so that we can use it as padding for FragmentContainerView
+        mToolbarHeight = ta.getDimensionPixelSize(0, -1);
+        ta.recycle();
 
         mPickerViewModel = new ViewModelProvider(this).get(PickerViewModel.class);
         try {
@@ -121,11 +130,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
         restoreState(savedInstanceState);
 
         mUserIdManager = mPickerViewModel.getUserIdManager();
-        final Switch profileSwitch = findViewById(R.id.workprofile);
         if (mUserIdManager.isMultiUserProfiles()) {
-            profileSwitch.setVisibility(View.VISIBLE);
-            setUpWorkProfileToggleSwitch(profileSwitch);
+            setUpWorkProfileToggleSwitch(findViewById(R.id.workprofile));
         }
+
+        // Save the fragment container layout so that we can adjust the padding based on preview or
+        // non-preview mode.
+        mFragmentContainerView = findViewById(R.id.fragment_container);
     }
 
     @Override
@@ -295,6 +306,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void setUpWorkProfileToggleSwitch(Switch profileSwitch) {
+        // Enable the work profile switch button
+        profileSwitch.setVisibility(View.VISIBLE);
+
+        // Adjust the padding to make the profile switch button appear below toolbar
+        profileSwitch.setPadding(profileSwitch.getPaddingLeft(), mToolbarHeight,
+                profileSwitch.getPaddingRight(), profileSwitch.getPaddingBottom());
+
         if (mUserIdManager.isManagedUserId()) {
             profileSwitch.setChecked(true);
         }
@@ -382,6 +400,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         updateToolbar(shouldShowTabChips, isPreview);
         updateStatusBarAndNavigationBar(isPreview);
         updateBottomSheetBehavior(isPreview);
+        updateFragmentContainerViewPadding(isPreview);
     }
 
     /**
@@ -400,7 +419,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final ColorDrawable toolbarColor;
         if (isPreview && !shouldShowTabChips) {
             // Preview defaults to black color irrespective of if it should show tab chips or not
-            toolbarColor = new ColorDrawable(getColor(R.color.preview_default_black));
+            toolbarColor = new ColorDrawable(getColor(android.R.color.transparent));
         } else {
             toolbarColor = new ColorDrawable(getColor(R.color.picker_background_color));
         }
@@ -469,6 +488,27 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 // partial screen
                 mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             }
+        }
+    }
+
+    /**
+     * Updates the FragmentContainerView padding.
+     * <p>
+     * For Preview mode, toolbar overlaps the Fragment content, hence the padding will be set to 0.
+     * For Non-Preview mode, toolbar doesn't overlap the contents of the fragment, hence we set the
+     * padding as the height of the toolbar.
+     */
+    private void updateFragmentContainerViewPadding(boolean isPreview) {
+        if (mFragmentContainerView == null) return;
+
+        if (isPreview) {
+            mFragmentContainerView.setPadding(mFragmentContainerView.getPaddingLeft(), 0,
+                    mFragmentContainerView.getPaddingRight(),
+                    mFragmentContainerView.getPaddingBottom());
+        } else {
+            mFragmentContainerView.setPadding(mFragmentContainerView.getPaddingLeft(),
+                    mToolbarHeight, mFragmentContainerView.getPaddingRight(),
+                    mFragmentContainerView.getPaddingBottom());
         }
     }
 }

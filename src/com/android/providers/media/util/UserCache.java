@@ -16,7 +16,12 @@
 
 package com.android.providers.media.util;
 
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
+
+import android.app.admin.DevicePolicyManager;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Process;
 import android.os.UserHandle;
@@ -50,6 +55,8 @@ public class UserCache {
 
     @GuardedBy("mLock")
     final LongSparseArray<Context> mUserContexts = new LongSparseArray<>();
+    @GuardedBy("mLock")
+    final LongSparseArray<Boolean> mUserIsWorkProfile = new LongSparseArray<>();
 
     @GuardedBy("mLock")
     final ArrayList<UserHandle> mUsers = new ArrayList<>();
@@ -95,6 +102,37 @@ public class UserCache {
         synchronized (mLock) {
             return (List<UserHandle>) mUsers.clone();
         }
+    }
+
+    public boolean isWorkProfile(int userId) {
+        if (userId == 0) {
+            // Owner user can not have a work profile
+            return false;
+        }
+        synchronized (mLock) {
+            int index = mUserIsWorkProfile.indexOfKey(userId);
+            if (index >= 0) {
+                return mUserIsWorkProfile.valueAt(index);
+            }
+        }
+
+        Context userContext = getContextForUser(UserHandle.of(userId));
+        PackageManager packageManager = userContext.getPackageManager();
+        DevicePolicyManager policyManager = userContext.getSystemService(
+                DevicePolicyManager.class);
+        boolean isWorkProfile = false;
+        for (ApplicationInfo ai : packageManager.getInstalledApplications(
+                MATCH_DIRECT_BOOT_AWARE | MATCH_DIRECT_BOOT_UNAWARE)) {
+            if (policyManager.isProfileOwnerApp(ai.packageName)) {
+                isWorkProfile = true;
+            }
+        }
+
+        synchronized (mLock) {
+            mUserIsWorkProfile.put(userId, isWorkProfile);
+        }
+
+        return isWorkProfile;
     }
 
     public @NonNull Context getContextForUser(@NonNull UserHandle user) {

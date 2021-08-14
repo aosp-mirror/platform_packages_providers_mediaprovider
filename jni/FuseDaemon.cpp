@@ -1439,8 +1439,10 @@ static void pf_write_buf(fuse_req_t req,
     if (size < 0)
         fuse_reply_err(req, -size);
     else {
-        fuse_reply_write(req, size);
+        // Execute Record *before* fuse_reply_write to avoid the following ordering:
+        // fuse_reply_write -> pf_release (destroy handle) -> Record (use handle after free)
         fuse->fadviser.Record(h->fd, size);
+        fuse_reply_write(req, size);
     }
 }
 // Haven't tested this one. Not sure what calls it.
@@ -1774,9 +1776,7 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
                 false /* redact */, false /* log_transforms_metrics */);
         if (!result) {
             status = EFAULT;
-        }
-
-        if (result->status) {
+        } else if (result->status) {
             status = EACCES;
         }
     }

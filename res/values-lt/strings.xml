@@ -53,11 +53,23 @@
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failo?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failų?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="one">Keičiamas <xliff:g id="COUNT">^1</xliff:g> garso failas…</item>
+      <item quantity="few">Keičiami <xliff:g id="COUNT">^1</xliff:g> garso failai…</item>
+      <item quantity="many">Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failo…</item>
+      <item quantity="other">Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failų…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašą?</item>
       <item quantity="few">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašus?</item>
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašo?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašų?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="one">Keičiamas <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašas…</item>
+      <item quantity="few">Keičiami <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašai…</item>
+      <item quantity="many">Keičiama <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašo…</item>
+      <item quantity="other">Keičiama <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašų…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> nuotrauką?</item>
@@ -65,11 +77,23 @@
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> nuotraukos?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> nuotraukų?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="one">Keičiama <xliff:g id="COUNT">^1</xliff:g> nuotrauka…</item>
+      <item quantity="few">Keičiamos <xliff:g id="COUNT">^1</xliff:g> nuotraukos…</item>
+      <item quantity="many">Keičiama <xliff:g id="COUNT">^1</xliff:g> nuotraukos…</item>
+      <item quantity="other">Keičiama <xliff:g id="COUNT">^1</xliff:g> nuotraukų…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> elementą?</item>
       <item quantity="few">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> elementus?</item>
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> elemento?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> elementų?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="one">Keičiamas <xliff:g id="COUNT">^1</xliff:g> elementas…</item>
+      <item quantity="few">Keičiami <xliff:g id="COUNT">^1</xliff:g> elementai…</item>
+      <item quantity="many">Keičiama <xliff:g id="COUNT">^1</xliff:g> elemento…</item>
+      <item quantity="other">Keičiama <xliff:g id="COUNT">^1</xliff:g> elementų…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> garso failą į šiukšliadėžę?</item>
@@ -77,11 +101,23 @@
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> garso failo į šiukšliadėžę?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> garso failų į šiukšliadėžę?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="one">Perkeliamas <xliff:g id="COUNT">^1</xliff:g> garso failas į šiukšliadėžę…</item>
+      <item quantity="few">Perkeliami <xliff:g id="COUNT">^1</xliff:g> garso failai į šiukšliadėžę…</item>
+      <item quantity="many">Perkeliama <xliff:g id="COUNT">^1</xliff:g> garso failo į šiukšliadėžę…</item>
+      <item quantity="other">Perkeliama <xliff:g id="COUNT">^1</xliff:g> garso failų į šiukšliadėžę…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašą į šiukšliadėžę?</item>
       <item quantity="few">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašus į šiukšliadėžę?</item>
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašo į šiukšliadėžę?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašų į šiukšliadėžę?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="one">Perkeliamas <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašas į šiukšliadėžę…</item>
+      <item quantity="few">Perkeliami <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašai į šiukšliadėžę…</item>
+      <item quantity="many">Perkeliama <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašo į šiukšliadėžę…</item>
+      <item quantity="other">Perkeliama <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašų į šiukšliadėžę…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> nuotrauką į šiukšliadėžę?</item>
@@ -89,11 +125,23 @@
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> nuotraukos į šiukšliadėžę?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> nuotraukų į šiukšliadėžę?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="one">Perkeliama <xliff:g id="COUNT">^1</xliff:g> nuotrauka į šiukšliadėžę…</item>
+      <item quantity="few">Perkeliamos <xliff:g id="COUNT">^1</xliff:g> nuotraukos į šiukšliadėžę…</item>
+      <item quantity="many">Perkeliama <xliff:g id="COUNT">^1</xliff:g> nuotraukos į šiukšliadėžę…</item>
+      <item quantity="other">Perkeliama <xliff:g id="COUNT">^1</xliff:g> nuotraukų į šiukšliadėžę…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> elementą į šiukšliadėžę?</item>
       <item quantity="few">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> elementus į šiukšliadėžę?</item>
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> elemento į šiukšliadėžę?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> elementų į šiukšliadėžę?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="one">Perkeliamas <xliff:g id="COUNT">^1</xliff:g> elementas į šiukšliadėžę…</item>
+      <item quantity="few">Perkeliami <xliff:g id="COUNT">^1</xliff:g> elementai į šiukšliadėžę…</item>
+      <item quantity="many">Perkeliama <xliff:g id="COUNT">^1</xliff:g> elemento į šiukšliadėžę…</item>
+      <item quantity="other">Perkeliama <xliff:g id="COUNT">^1</xliff:g> elementų į šiukšliadėžę…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> garso failą iš šiukšliadėžės?</item>
@@ -101,11 +149,23 @@
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> garso failo iš šiukšliadėžės?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> garso failų iš šiukšliadėžės?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="one">Perkeliamas <xliff:g id="COUNT">^1</xliff:g> garso failas iš šiukšliadėžės…</item>
+      <item quantity="few">Perkeliami <xliff:g id="COUNT">^1</xliff:g> garso failai iš šiukšliadėžės…</item>
+      <item quantity="many">Perkeliama <xliff:g id="COUNT">^1</xliff:g> garso failo iš šiukšliadėžės…</item>
+      <item quantity="other">Perkeliama <xliff:g id="COUNT">^1</xliff:g> garso failų iš šiukšliadėžės…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašą iš šiukšliadėžės?</item>
       <item quantity="few">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašus iš šiukšliadėžės?</item>
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašo iš šiukšliadėžės?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašų iš šiukšliadėžės?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="one">Perkeliamas <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašas iš šiukšliadėžės…</item>
+      <item quantity="few">Perkeliami <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašai iš šiukšliadėžės…</item>
+      <item quantity="many">Perkeliama <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašo iš šiukšliadėžės…</item>
+      <item quantity="other">Perkeliama <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašų iš šiukšliadėžės…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> nuotrauką iš šiukšliadėžės?</item>
@@ -113,11 +173,23 @@
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> nuotraukos iš šiukšliadėžės?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> nuotraukų iš šiukšliadėžės?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="one">Perkeliama <xliff:g id="COUNT">^1</xliff:g> nuotrauka iš šiukšliadėžės…</item>
+      <item quantity="few">Perkeliamos <xliff:g id="COUNT">^1</xliff:g> nuotraukos iš šiukšliadėžės…</item>
+      <item quantity="many">Perkeliama <xliff:g id="COUNT">^1</xliff:g> nuotraukos iš šiukšliadėžės…</item>
+      <item quantity="other">Perkeliama <xliff:g id="COUNT">^1</xliff:g> nuotraukų iš šiukšliadėžės…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> elementą iš šiukšliadėžės?</item>
       <item quantity="few">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> elementus iš šiukšliadėžės?</item>
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> elemento iš šiukšliadėžės?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ perkelti <xliff:g id="COUNT">^2</xliff:g> elementų iš šiukšliadėžės?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="one">Perkeliamas <xliff:g id="COUNT">^1</xliff:g> elementas iš šiukšliadėžės…</item>
+      <item quantity="few">Perkeliami <xliff:g id="COUNT">^1</xliff:g> elementai iš šiukšliadėžės…</item>
+      <item quantity="many">Perkeliama <xliff:g id="COUNT">^1</xliff:g> elemento iš šiukšliadėžės…</item>
+      <item quantity="other">Perkeliama <xliff:g id="COUNT">^1</xliff:g> elementų iš šiukšliadėžės…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="one">Leisti „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> garso failą?</item>
@@ -125,11 +197,23 @@
       <item quantity="many">Leisti „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> garso failo?</item>
       <item quantity="other">Leisti „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> garso failų?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="one">Ištrinamas <xliff:g id="COUNT">^1</xliff:g> garso failas…</item>
+      <item quantity="few">Ištrinami <xliff:g id="COUNT">^1</xliff:g> garso failai…</item>
+      <item quantity="many">Ištrinama <xliff:g id="COUNT">^1</xliff:g> garso failo…</item>
+      <item quantity="other">Ištrinama <xliff:g id="COUNT">^1</xliff:g> garso failų…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašą?</item>
       <item quantity="few">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašus?</item>
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašo?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašų?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="one">Ištrinamas <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašas…</item>
+      <item quantity="few">Ištrinami <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašai…</item>
+      <item quantity="many">Ištrinama <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašo…</item>
+      <item quantity="other">Ištrinama <xliff:g id="COUNT">^1</xliff:g> vaizdo įrašų…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> nuotrauką?</item>
@@ -137,10 +221,30 @@
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> nuotraukos?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> nuotraukų?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="one">Ištrinama <xliff:g id="COUNT">^1</xliff:g> nuotrauka…</item>
+      <item quantity="few">Ištrinamos <xliff:g id="COUNT">^1</xliff:g> nuotraukos…</item>
+      <item quantity="many">Ištrinama <xliff:g id="COUNT">^1</xliff:g> nuotraukos…</item>
+      <item quantity="other">Ištrinama <xliff:g id="COUNT">^1</xliff:g> nuotraukų…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> elementą?</item>
       <item quantity="few">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> elementus?</item>
       <item quantity="many">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> elemento?</item>
       <item quantity="other">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ ištrinti <xliff:g id="COUNT">^2</xliff:g> elementų?</item>
     </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="one">Ištrinamas <xliff:g id="COUNT">^1</xliff:g> elementas…</item>
+      <item quantity="few">Ištrinami <xliff:g id="COUNT">^1</xliff:g> elementai…</item>
+      <item quantity="many">Ištrinama <xliff:g id="COUNT">^1</xliff:g> elemento…</item>
+      <item quantity="other">Ištrinama <xliff:g id="COUNT">^1</xliff:g> elementų…</item>
+    </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"Programa „<xliff:g id="APP_NAME">%s</xliff:g>“ negali apdoroti medijos failų"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Medija apdorojimas atšauktas"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Medija apdorojimo klaida"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Medija apdorojimas sėkmingas"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Pradedama apdoroti mediją"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Medija apdorojama…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Atšaukti"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Palaukti"</string>
 </resources>

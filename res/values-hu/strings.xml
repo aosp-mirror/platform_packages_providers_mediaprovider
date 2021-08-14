@@ -47,64 +47,136 @@
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> hangfájl módosítását?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a hangfájlnak a módosítását?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> audiofájl módosítása folyamatban van…</item>
+      <item quantity="one">Az audiofájl módosítása folyamatban van…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> videó módosítását?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a videónak a módosítását?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> videó módosítása folyamatban van…</item>
+      <item quantity="one">A videó módosítása folyamatban van…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> fotó módosítását?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a fotónak a módosítását?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> fotó módosítása folyamatban van…</item>
+      <item quantity="one">A fotó módosítása folyamatban van…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> elem módosítását?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek az elemnek a módosítását?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> elem módosítása folyamatban van…</item>
+      <item quantity="one">Az elem módosítása folyamatban van…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> hangfájlnak a kukába helyezését?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a hangfájlnak a kukába helyezését?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> audiofájl áthelyezése a kukába…</item>
+      <item quantity="one">Az audiofájl áthelyezése a kukába…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> videónak a kukába helyezését?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a videónak a kukába helyezését?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> videó áthelyezése a kukába…</item>
+      <item quantity="one">Videó áthelyezése a kukába…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> fotónak a kukába helyezését?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a fotónak a kukába helyezését?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> fotó áthelyezése a kukába…</item>
+      <item quantity="one">Fotó áthelyezése a kukába…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> elemnek a kukába helyezését?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek az elemnek a kukába helyezését?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> elem áthelyezése a kukába…</item>
+      <item quantity="one">Az elem áthelyezése a kukába…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> hangfájlnak a kukából való visszaállítását?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a hangfájlnak a kukából való visszaállítását?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> audiofájl visszaállítása a kukából…</item>
+      <item quantity="one">Audiofájl visszaállítása a kukából…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> videónak a kukából való visszaállítását?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a videónak a kukából való visszaállítását?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> videó visszaállítása a kukából…</item>
+      <item quantity="one">Videó visszaállítása a kukából…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> fotónak a kukából való visszaállítását?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a fotónak a kukából való visszaállítását?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> fotó visszaállítása a kukából…</item>
+      <item quantity="one">Fotó visszaállítása a kukából…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> elemnek a kukából való visszaállítását?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek az elemnek a kukából való visszaállítását?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> elem visszaállítása a kukából…</item>
+      <item quantity="one">Elem visszaállítása a kukából…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> audiofájl törlését?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek az audiofájlnak a törlését?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> audiofájl törlése folyamatban van…</item>
+      <item quantity="one">Az audiofájl törlése folyamatban van…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> videó törlését?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a videónak a törlését?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> videó törlése folyamatban van…</item>
+      <item quantity="one">A videó törlése folyamatban van…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> fotó törlését?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a fotónak a törlését?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> fotó törlése folyamatban van…</item>
+      <item quantity="one">A fotó törlése folyamatban van…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> elem törlését?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek az elemnek a törlését?</item>
     </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> elem törlése folyamatban van…</item>
+      <item quantity="one">Az elem törlése folyamatban van…</item>
+    </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"A(z) <xliff:g id="APP_NAME">%s</xliff:g> nem tudja feldolgozni a médiafájlokat"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Mediatartalom feldolgozása megszakítva"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Médiatartalom-feldolgozási hiba"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Médiatartalom feldolgozása sikeres"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Médiatartalom feldolgozása megkezdődött"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Médiatartalom feldolgozása…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Mégse"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Várakozás"</string>
 </resources>

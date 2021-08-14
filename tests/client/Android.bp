@@ -11,7 +11,7 @@ android_test {
     name: "MediaProviderClientTests",
     test_suites: [
         "device-tests",
-        "mts",
+        "mts-mediaprovider",
     ],
     compile_multilib: "both",
 
@@ -19,6 +19,7 @@ android_test {
 
     srcs: [
         "src/**/*.java",
+        ":mediaprovider-testutils",
     ],
 
     libs: [

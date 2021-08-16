@@ -185,7 +185,7 @@ public class ExternalDbFacadeTest {
             assertThat(facade.onFileUpdated(OLD_ID1,
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ true, /* newIsTrashed */ false,
-                            /* oldIsPending */ false, /* newIsPending */ false)).isFalse();
+                            /* oldIsPending */ false, /* newIsPending */ false)).isTrue();
             assertDeletedMediaEmpty(facade);
 
             // Was not trashed but is now trashed
@@ -213,7 +213,7 @@ public class ExternalDbFacadeTest {
             assertThat(facade.onFileUpdated(OLD_ID1,
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
-                            /* oldIsPending */ true, /* newIsPending */ false)).isFalse();
+                            /* oldIsPending */ true, /* newIsPending */ false)).isTrue();
             assertDeletedMediaEmpty(facade);
 
             // Was not pending but is now pending

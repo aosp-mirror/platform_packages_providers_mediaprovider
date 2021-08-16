@@ -45,6 +45,8 @@ public class Item {
         public static String DATE_TAKEN = MediaStore.MediaColumns.DATE_TAKEN;
         public static String DATE_MODIFIED = MediaStore.MediaColumns.DATE_MODIFIED;
         public static String DURATION = MediaStore.MediaColumns.DURATION;
+        public static String SIZE = MediaStore.MediaColumns.SIZE;
+        public static String AUTHORITY = "authority";
 
         private static final String[] ALL_COLUMNS = {
                 ID,

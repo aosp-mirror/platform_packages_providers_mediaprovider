@@ -242,6 +242,8 @@ public final class MediaStore {
     public static final String SYNC_PROVIDERS_CALL = "sync_providers";
     /** {@hide} */
     public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";
+    /** {@hide} */
+    public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
 
     /** {@hide} */
     public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;

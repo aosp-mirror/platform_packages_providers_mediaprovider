@@ -5841,7 +5841,7 @@ public class MediaProvider extends ContentProvider {
                 }
             case MediaStore.SET_CLOUD_PROVIDER_CALL:
                 // TODO(b/190713331): Remove after initial development
-                final String cloudProvider = extras.getString(PickerDbFacade.KEY_CLOUD_PROVIDER);
+                final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);
                 Log.i(TAG, "Developer initiated cloud provider switch: " + cloudProvider);
                 mPickerSyncController.setCloudProvider(cloudProvider);
                 // fall through

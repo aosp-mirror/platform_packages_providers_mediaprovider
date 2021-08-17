@@ -16,15 +16,6 @@
 
 package com.android.providers.media.photopicker.data;
 
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_DATE_TAKEN_MS;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_DURATION_MS;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_ID;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_IS_VISIBLE;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_MIME_TYPE;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_SIZE_BYTES;
-
 import static com.google.common.truth.Truth.assertThat;
 
 import android.Manifest;
@@ -39,6 +30,7 @@ import android.os.Bundle;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import java.io.File;
@@ -81,7 +73,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS + 1);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS + 1);
         }
 
         // Test updating the same row
@@ -90,7 +82,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS + 2);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS + 2);
         }
     }
 
@@ -103,7 +95,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS);
+            assertCursor(cr, CLOUD_ID, DATE_TAKEN_MS);
         }
     }
 
@@ -119,7 +111,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, CLOUD_ID, /* localId */ null, DATE_TAKEN_MS + 1);
+            assertCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 1);
         }
 
         // Test updating the same row
@@ -128,7 +120,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, CLOUD_ID, /* localId */ null, DATE_TAKEN_MS + 2);
+            assertCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 2);
         }
     }
 
@@ -143,7 +135,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
     }
 
@@ -158,7 +150,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS + 1);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS + 1);
         }
     }
 
@@ -191,8 +183,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID);
-            assertThat(cr.getString(1)).isNull();
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
         assertThat(mFacade.removeMedia(getDeletedMediaCursor(LOCAL_ID), 0, LOCAL_PROVIDER))
@@ -201,8 +192,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID);
-            assertThat(cr.getString(1)).isEqualTo(CLOUD_ID);
+            assertCursor(cr, CLOUD_ID, DATE_TAKEN_MS);
         }
     }
 
@@ -226,8 +216,8 @@ public class PickerDbFacadeTest {
 
     @Test
     public void testRemoveCloud_promote() throws Exception {
-        Cursor cloudCursor1 = getMediaCursor(CLOUD_ID + "1", DATE_TAKEN_MS);
-        Cursor cloudCursor2 = getMediaCursor(CLOUD_ID + "2", DATE_TAKEN_MS);
+        Cursor cloudCursor1 = getMediaCursor(CLOUD_ID + "1", DATE_TAKEN_MS + 1);
+        Cursor cloudCursor2 = getMediaCursor(CLOUD_ID + "2", DATE_TAKEN_MS + 2);
 
         assertThat(mFacade.addMedia(cloudCursor1, CLOUD_PROVIDER)).isEqualTo(1);
         assertThat(mFacade.addMedia(cloudCursor2, CLOUD_PROVIDER)).isEqualTo(1);
@@ -235,8 +225,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID);
-            assertThat(cr.getString(1)).isEqualTo(CLOUD_ID + 1);
+            assertCursor(cr, CLOUD_ID + "1", DATE_TAKEN_MS + 1);
         }
 
         assertThat(mFacade.removeMedia(getDeletedMediaCursor(CLOUD_ID + "1"), 0, CLOUD_PROVIDER))
@@ -245,8 +234,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID);
-            assertThat(cr.getString(1)).isEqualTo(CLOUD_ID + "2");
+            assertCursor(cr, CLOUD_ID + "2", DATE_TAKEN_MS + 2);
         }
     }
 
@@ -261,8 +249,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID);
-            assertThat(cr.getString(1)).isNull();
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
         assertThat(mFacade.removeMedia(getDeletedMediaCursor(CLOUD_ID), 0, CLOUD_PROVIDER))
@@ -271,8 +258,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID);
-            assertThat(cr.getString(1)).isNull();
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
     }
 
@@ -288,7 +274,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS + 2);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS + 2);
         }
 
         assertThat(mFacade.removeMedia(getDeletedMediaCursor(LOCAL_ID), 0, LOCAL_PROVIDER))
@@ -310,7 +296,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS + 2);
+            assertCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 2);
         }
 
         assertThat(mFacade.removeMedia(getDeletedMediaCursor(CLOUD_ID), 0, CLOUD_PROVIDER))
@@ -334,7 +320,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
         assertThat(mFacade.removeMedia(getDeletedMediaCursor(LOCAL_ID), 0, LOCAL_PROVIDER))
@@ -343,7 +329,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS + 2);
+            assertCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 2);
         }
 
         assertThat(mFacade.removeMedia(getDeletedMediaCursor(CLOUD_ID), 0, CLOUD_PROVIDER))
@@ -369,7 +355,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
         assertThat(mFacade.resetMedia(LOCAL_PROVIDER)).isEqualTo(1);
@@ -395,7 +381,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
         assertThat(mFacade.resetMedia(CLOUD_PROVIDER)).isEqualTo(1);
@@ -403,7 +389,7 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
     }
 
@@ -448,7 +434,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID + "1");
+            assertCursor(cr, LOCAL_ID + "1", DATE_TAKEN_MS);
         }
 
         try (Cursor cr = mFacade.queryMediaAfter(DATE_TAKEN_MS,
@@ -457,7 +443,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID + "2");
+            assertCursor(cr, LOCAL_ID + "2", DATE_TAKEN_MS);
         }
     }
 
@@ -480,7 +466,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID + "3");
+            assertCursor(cr, LOCAL_ID + "3", DATE_TAKEN_MS);
         }
 
         try (Cursor cr = mFacade.queryMediaAfter(DATE_TAKEN_MS - 1, /* id */ 0,
@@ -489,7 +475,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID + "3");
+            assertCursor(cr, LOCAL_ID + "3", DATE_TAKEN_MS);
         }
 
         try (Cursor cr = mFacade.queryMediaAll(/* limit */ 1, /* mimeTypeFilter */ null,
@@ -497,7 +483,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID + "3");
+            assertCursor(cr, LOCAL_ID + "3", DATE_TAKEN_MS);
         }
     }
 
@@ -521,7 +507,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID);
+            assertCursor(cr, LOCAL_ID);
         }
 
         // Verify after
@@ -536,7 +522,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID);
+            assertCursor(cr, LOCAL_ID);
         }
 
         // Verify before
@@ -551,7 +537,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID);
+            assertCursor(cr, LOCAL_ID);
         }
     }
 
@@ -575,7 +561,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertThat(cr.getString(1)).isEqualTo(CLOUD_ID);
+            assertCursor(cr, CLOUD_ID, DATE_TAKEN_MS);
         }
 
         // Verify after
@@ -588,7 +574,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertThat(cr.getString(0)).isEqualTo(LOCAL_ID);
+            assertCursor(cr, LOCAL_ID);
         }
 
         // Verify before
@@ -601,7 +587,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertThat(cr.getString(1)).isEqualTo(CLOUD_ID);
+            assertCursor(cr, CLOUD_ID, DATE_TAKEN_MS);
         }
     }
 
@@ -640,18 +626,11 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(2);
 
-            Bundle bundle = cr.getExtras();
-            String localProvider = bundle.getString(PickerDbFacade.KEY_LOCAL_PROVIDER);
-            String cloudProvider = bundle.getString(PickerDbFacade.KEY_CLOUD_PROVIDER);
-
-            assertThat(localProvider).isEqualTo(LOCAL_PROVIDER);
-            assertThat(cloudProvider).isEqualTo(CLOUD_PROVIDER);
-
             cr.moveToFirst();
-            assertCursor(cr, CLOUD_ID, /* localId */ null, DATE_TAKEN_MS);
+            assertCursor(cr, CLOUD_ID, DATE_TAKEN_MS);
 
             cr.moveToNext();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
         // Clearing the cloud provider hides cloud media
@@ -660,15 +639,8 @@ public class PickerDbFacadeTest {
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(1);
 
-            Bundle bundle = cr.getExtras();
-            String localProvider = bundle.getString(PickerDbFacade.KEY_LOCAL_PROVIDER);
-            String cloudProvider = bundle.getString(PickerDbFacade.KEY_CLOUD_PROVIDER);
-
-            assertThat(localProvider).isEqualTo(LOCAL_PROVIDER);
-            assertThat(cloudProvider).isNull();
-
             cr.moveToFirst();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
         // Setting the cloud provider unhides cloud media
@@ -678,10 +650,10 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(2);
 
             cr.moveToFirst();
-            assertCursor(cr, CLOUD_ID, /* localId */ null, DATE_TAKEN_MS);
+            assertCursor(cr, CLOUD_ID, DATE_TAKEN_MS);
 
             cr.moveToNext();
-            assertCursor(cr, /* cloudId */ null, LOCAL_ID, DATE_TAKEN_MS);
+            assertCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
     }
 
@@ -728,13 +700,22 @@ public class PickerDbFacadeTest {
         return getMediaCursor(id, dateTakenMs, MEDIA_STORE_URI, SIZE_BYTES, MIME_TYPE);
     }
 
-    private static void assertCursor(Cursor cursor, String cloudId, String localId,
-            long dateTakenMs) {
-        assertThat(cursor.getString(cursor.getColumnIndex(KEY_LOCAL_ID))).isEqualTo(localId);
-        assertThat(cursor.getString(cursor.getColumnIndex(KEY_CLOUD_ID))).isEqualTo(cloudId);
-        assertThat(cursor.getLong(cursor.getColumnIndex(KEY_DATE_TAKEN_MS))).isEqualTo(dateTakenMs);
-        assertThat(cursor.getLong(cursor.getColumnIndex(KEY_SIZE_BYTES))).isEqualTo(SIZE_BYTES);
-        assertThat(cursor.getLong(cursor.getColumnIndex(KEY_DURATION_MS))).isEqualTo(DURATION_MS);
-        assertThat(cursor.getString(cursor.getColumnIndex(KEY_MIME_TYPE))).isEqualTo(MIME_TYPE);
+    private static void assertCursor(Cursor cursor, String id) {
+        assertThat(cursor.getString(cursor.getColumnIndex(Item.ItemColumns.ID)))
+                .isEqualTo(id);
+        assertThat(cursor.getString(cursor.getColumnIndex(Item.ItemColumns.AUTHORITY)))
+                .isEqualTo(id.startsWith(LOCAL_ID) ? LOCAL_PROVIDER : CLOUD_PROVIDER);
+    }
+
+    private static void assertCursor(Cursor cursor, String id, long dateTakenMs) {
+        assertCursor(cursor, id);
+        assertThat(cursor.getString(cursor.getColumnIndex(Item.ItemColumns.MIME_TYPE)))
+                .isEqualTo(MIME_TYPE);
+        assertThat(cursor.getLong(cursor.getColumnIndex(Item.ItemColumns.DATE_TAKEN)))
+                .isEqualTo(dateTakenMs);
+        assertThat(cursor.getLong(cursor.getColumnIndex(Item.ItemColumns.SIZE)))
+                .isEqualTo(SIZE_BYTES);
+        assertThat(cursor.getLong(cursor.getColumnIndex(Item.ItemColumns.DURATION)))
+                .isEqualTo(DURATION_MS);
     }
 }

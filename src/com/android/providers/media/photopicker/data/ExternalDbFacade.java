@@ -108,10 +108,12 @@ public class ExternalDbFacade {
 
         if (!oldIsVisibleMedia && newIsVisibleMedia) {
             // Was not visible media and is now visible media
-            return removeDeletedMedia(oldId);
+            removeDeletedMedia(oldId);
+            return true;
         } else if (oldIsVisibleMedia && !newIsVisibleMedia) {
             // Was visible media and is now not visible media
-            return addDeletedMedia(oldId);
+            addDeletedMedia(oldId);
+            return true;
         }
 
         // Do nothing, not an interesting change for deleted_media
@@ -130,7 +132,8 @@ public class ExternalDbFacade {
             return false;
         }
 
-        return addDeletedMedia(id);
+        addDeletedMedia(id);
+        return true;
     }
 
     /**

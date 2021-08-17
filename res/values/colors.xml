@@ -37,4 +37,8 @@
     <color name="preview_default_blue">#8AB4F8</color>
     <color name="preview_default_grey">#202124</color>
     <color name="preview_default_black">@android:color/black</color>
+
+    <!-- PhotoPicker Preview -->
+    <color name="picker_profile_button_text_and_icon_color">#0B57D0</color>
+    <color name="picker_profile_button_background">#E8F0FE</color>
 </resources>

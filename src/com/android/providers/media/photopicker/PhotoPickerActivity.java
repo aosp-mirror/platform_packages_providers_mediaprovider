@@ -20,8 +20,6 @@ import static com.android.providers.media.photopicker.data.PickerResult.getPicke
 
 import android.annotation.IntDef;
 import android.app.Activity;
-import android.content.Context;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -41,9 +39,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.WindowInsetsController;
-import android.widget.CompoundButton;
-import android.widget.Switch;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -51,14 +46,11 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
-import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.AlbumsTabFragment;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
 import com.android.providers.media.photopicker.ui.PreviewFragment;
-import com.android.providers.media.photopicker.util.CrossProfileUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -91,7 +83,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
     @interface TabChipType {}
 
     private PickerViewModel mPickerViewModel;
-    private UserIdManager mUserIdManager;
     private ViewGroup mTabChipContainer;
     private Chip mPhotosTabChip;
     private Chip mAlbumsTabChip;
@@ -128,11 +119,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         initTabChips();
         initBottomSheetBehavior();
         restoreState(savedInstanceState);
-
-        mUserIdManager = mPickerViewModel.getUserIdManager();
-        if (mUserIdManager.isMultiUserProfiles()) {
-            setUpWorkProfileToggleSwitch(findViewById(R.id.workprofile));
-        }
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
@@ -303,67 +289,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
             mAlbumsTabChip.setSelected(true);
             AlbumsTabFragment.show(getSupportFragmentManager());
         }
-    }
-
-    private void setUpWorkProfileToggleSwitch(Switch profileSwitch) {
-        // Enable the work profile switch button
-        profileSwitch.setVisibility(View.VISIBLE);
-
-        // Adjust the padding to make the profile switch button appear below toolbar
-        profileSwitch.setPadding(profileSwitch.getPaddingLeft(), mToolbarHeight,
-                profileSwitch.getPaddingRight(), profileSwitch.getPaddingBottom());
-
-        if (mUserIdManager.isManagedUserId()) {
-            profileSwitch.setChecked(true);
-        }
-
-        final Context context = this;
-        profileSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    Toast.makeText(PhotoPickerActivity.this, "Switching to work profile",
-                            Toast.LENGTH_SHORT).show();
-                    // TODO(b/190024747): Add caching for performance before switching data to and
-                    //  fro work profile
-                    mUserIdManager.setManagedAsCurrentUserProfile();
-
-                } else {
-                    Toast.makeText(PhotoPickerActivity.this, "Switching to personal profile",
-                            Toast.LENGTH_SHORT).show();
-                    // TODO(b/190024747): Add caching for performance before switching data to and
-                    //  fro work profile
-                    mUserIdManager.setPersonalAsCurrentUserProfile();
-                }
-
-                // Cross user checks
-                if (!mUserIdManager.isCurrentUserSelected()) {
-                    final PackageManager packageManager = context.getPackageManager();
-                    // 1. Check if PICK_IMAGES intent is allowed by admin to show cross user content
-                    if (!CrossProfileUtils.isPickImagesIntentAllowedCrossProfileAccess(
-                            packageManager)) {
-                        Log.i(TAG, "Device admin restricts PhotoPicker to show cross profile "
-                                + "content for current user: " + UserId.CURRENT_USER);
-                        // TODO (b/190727775): Show informative error message to the user in UI.
-                        return;
-                    }
-
-                    // 2. Check if work profile is off
-                    if (mUserIdManager.isManagedUserSelected()) {
-                        final UserId currentUserProfileId =
-                                mUserIdManager.getCurrentUserProfileId();
-                        if (!CrossProfileUtils.isMediaProviderAvailable(currentUserProfileId,
-                                    context)) {
-                            Log.i(TAG, "Work Profile is off, please turn work profile on to "
-                                    + "access work profile content");
-                            // TODO (b/190727775): Show work profile turned off, please turn on.
-                            return;
-                        }
-                    }
-                }
-                mPickerViewModel.updateItems();
-            }
-        });
     }
 
     public void setResultAndFinishSelf() {

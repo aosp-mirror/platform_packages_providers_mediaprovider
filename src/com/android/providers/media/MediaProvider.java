@@ -8914,33 +8914,12 @@ public class MediaProvider extends ContentProvider {
      * Returns any uri that is granted from the set of Uris passed.
      */
     private @Nullable Uri getPermissionGrantedUri(@NonNull List<Uri> uris, boolean forWrite) {
-        if (SdkLevel.isAtLeastS()) {
-            int[] res = checkUriPermissions(uris, mCallingIdentity.get().pid,
-                    mCallingIdentity.get().uid, forWrite);
-            if (res.length != uris.size()) {
-                return null;
-            }
-            for (int i = 0; i < uris.size(); i++) {
-                if (res[i] == PERMISSION_GRANTED) {
-                    return uris.get(i);
-                }
-            }
-        } else {
-            for (Uri uri : uris) {
-                if (isUriPermissionGranted(uri, forWrite)) {
-                    return uri;
-                }
+        for (Uri uri : uris) {
+            if (isUriPermissionGranted(uri, forWrite)) {
+                return uri;
             }
         }
         return null;
-    }
-
-    @RequiresApi(Build.VERSION_CODES.S)
-    private int[] checkUriPermissions(@NonNull List<Uri> uris, int pid, int uid, boolean forWrite) {
-        final int modeFlags = forWrite
-                ? Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                : Intent.FLAG_GRANT_READ_URI_PERMISSION;
-        return getContext().checkUriPermissions(uris, pid, uid, modeFlags);
     }
 
     private boolean isUriPermissionGranted(Uri uri, boolean forWrite) {

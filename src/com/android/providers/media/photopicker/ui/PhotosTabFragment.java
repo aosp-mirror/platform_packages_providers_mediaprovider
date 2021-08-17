@@ -118,7 +118,9 @@ public class PhotosTabFragment extends TabFragment {
 
         if (mIsDefaultCategory) {
             getActivity().setTitle(/* title= */ "");
+            hideProfileButton(/* hide */ false);
         } else {
+            hideProfileButton(/* hide */ true);
             final String categoryName = Category.getCategoryName(getContext(), mCategoryType);
 
             if (TextUtils.isEmpty(categoryName)) {

@@ -229,7 +229,7 @@ public class PickerViewModelTest {
     }
 
     @Test
-    public void getCategoryItems() throws Exception {
+    public void testGetCategoryItems() throws Exception {
         final int itemCount = 3;
         mItemsProvider.setItems(generateFakeImageItemList(itemCount));
         mPickerViewModel.updateCategoryItems(CATEGORY_DOWNLOADS);
@@ -254,6 +254,39 @@ public class PickerViewModelTest {
         final Item thirdDateItem = itemList.get(4);
         assertThat(thirdDateItem.isDate()).isTrue();
         assertThat(thirdDateItem.getDateTaken()).isGreaterThan(secondDateItem.getDateTaken());
+    }
+
+    @Test
+    public void testGetCategoryItems_dataIsUpdated() throws Exception {
+        final int itemCount = 3;
+        mItemsProvider.setItems(generateFakeImageItemList(itemCount));
+        mPickerViewModel.updateCategoryItems(CATEGORY_DOWNLOADS);
+        // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
+        // thread idle
+        ForegroundThread.waitForIdle();
+
+        final List<Item> itemList = mPickerViewModel.getCategoryItems(
+                CATEGORY_DOWNLOADS).getValue();
+
+        // Original item count + 3 date items
+        assertThat(itemList.size()).isEqualTo(itemCount + 3);
+
+        final int updatedItemCount = 5;
+        mItemsProvider.setItems(generateFakeImageItemList(updatedItemCount));
+
+        // trigger updateCategoryItems in getCategoryItems first and wait the idle
+        mPickerViewModel.getCategoryItems(CATEGORY_DOWNLOADS).getValue();
+
+        // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
+        // thread idle
+        ForegroundThread.waitForIdle();
+
+        // Get the result again to check the result is as expected
+        final List<Item> updatedItemList = mPickerViewModel.getCategoryItems(
+                CATEGORY_DOWNLOADS).getValue();
+
+        // Original item count + 5 date items
+        assertThat(updatedItemList.size()).isEqualTo(updatedItemCount + 5);
     }
 
     @Test

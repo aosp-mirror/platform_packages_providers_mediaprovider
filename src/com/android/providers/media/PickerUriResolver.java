@@ -31,8 +31,8 @@ import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
 import android.provider.MediaStore;
+import android.provider.CloudMediaProviderContract;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -48,8 +48,14 @@ public class PickerUriResolver {
     private Context mContext;
 
     /** A uri with prefix "content://media/picker" is considered as a picker uri */
-    public static final @NonNull Uri URI_PREFIX = MediaStore.AUTHORITY_URI.buildUpon().
+    public static final Uri PICKER_URI = MediaStore.AUTHORITY_URI.buildUpon().
             appendPath("picker").build();
+    /**
+     * Internal picker URI with prefix "content://media/picker_internal" to retrieve merged
+     * and deduped cloud and local items.
+     */
+    public static final Uri PICKER_INTERNAL_URI = MediaStore.AUTHORITY_URI.buildUpon().
+            appendPath("picker_internal").build();
 
     PickerUriResolver(Context context) {
         mContext = context;
@@ -103,6 +109,22 @@ public class PickerUriResolver {
         } finally {
             Binder.restoreCallingIdentity(token);
         }
+    }
+
+
+    public static Uri getMediaUri(String authority) {
+        return Uri.parse("content://" + authority + "/"
+                + CloudMediaProviderContract.URI_PATH_MEDIA);
+    }
+
+    public static Uri getDeletedMediaUri(String authority) {
+        return Uri.parse("content://" + authority + "/"
+                + CloudMediaProviderContract.URI_PATH_DELETED_MEDIA);
+    }
+
+    public static Uri getMediaInfoUri(String authority) {
+        return Uri.parse("content://" + authority + "/"
+                + CloudMediaProviderContract.URI_PATH_MEDIA_INFO);
     }
 
     /**

@@ -94,11 +94,8 @@ import java.util.regex.Pattern;
 public class MediaProviderTest {
     static final String TAG = "MediaProviderTest";
 
-    /**
-     * To confirm behaviors, we need to pick an app installed on all devices
-     * which has no permissions, and the best candidate is the "Easter Egg" app.
-     */
-    static final String PERMISSIONLESS_APP = "com.android.egg";
+    // The test app without permissions
+    static final String PERMISSIONLESS_APP = "com.android.providers.media.testapp.withoutperms";
 
     private static Context sIsolatedContext;
     private static ContentResolver sIsolatedResolver;

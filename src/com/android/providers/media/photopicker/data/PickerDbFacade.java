@@ -27,12 +27,14 @@ import android.net.Uri;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore.MediaColumns;
 import android.os.Bundle;
+import android.os.SystemProperties;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.data.model.Item;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,9 +69,6 @@ public class PickerDbFacade {
     private static final int SUCCESS = 1;
     private static final int FAIL = -1;
 
-    public static final String KEY_LOCAL_PROVIDER = "local_provider";
-    public static final String KEY_CLOUD_PROVIDER = "cloud_provider";
-
     private static final String TABLE_MEDIA = "media";
 
     @VisibleForTesting
@@ -88,6 +87,21 @@ public class PickerDbFacade {
     public static final String KEY_DURATION_MS = "duration_ms";
     @VisibleForTesting
     public static final String KEY_MIME_TYPE = "mime_type";
+
+    // We prefer cloud_id first and it only matters for cloud+local items. For those, the row
+    // will already be associated with a cloud authority, see #getProjectionAuthorityLocked.
+    // Note that hidden cloud+local items will not be returned in the query, so there's no concern
+    // of preferring the cloud_id in a cloud+local item over the local_id in a local-only item.
+    private static final String PROJECTION_ID = String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
+            KEY_LOCAL_ID, Item.ItemColumns.ID);
+    private static final String PROJECTION_DATE_TAKEN = String.format("%s AS %s", KEY_DATE_TAKEN_MS,
+            Item.ItemColumns.DATE_TAKEN);
+    private static final String PROJECTION_SIZE = String.format("%s AS %s", KEY_SIZE_BYTES,
+            Item.ItemColumns.SIZE);
+    private static final String PROJECTION_DURATION = String.format("%s AS %s", KEY_DURATION_MS,
+            Item.ItemColumns.DURATION);
+    private static final String PROJECTION_MIME_TYPE = String.format("%s AS %s", KEY_MIME_TYPE,
+            Item.ItemColumns.MIME_TYPE);
 
     private static final String WHERE_ID = KEY_ID + " = ?";
     private static final String WHERE_LOCAL_ID = KEY_LOCAL_ID + " = ?";
@@ -443,42 +457,44 @@ public class PickerDbFacade {
         return queryMedia(qb, selectArgs, limit);
     }
 
+    public static boolean isPickerDbEnabled() {
+        return SystemProperties.getBoolean("sys.photopicker.pickerdb.enabled", false);
+    }
+
     private Cursor queryMedia(SQLiteQueryBuilder qb, String[] selectionArgs, int limit) {
-        final String[] projection = new String[] {
-            KEY_LOCAL_ID,
-            KEY_CLOUD_ID,
-            KEY_DATE_TAKEN_MS,
-            KEY_SIZE_BYTES,
-            KEY_DURATION_MS,
-            KEY_MIME_TYPE
-        };
-
-        final String orderBy = "date_taken_ms DESC,_id DESC";
+        // Use the <table>.<column> form to order _id to avoid ordering against the projection '_id'
+        final String orderBy = "date_taken_ms DESC," + TABLE_MEDIA + "._id DESC";
         final String limitStr = String.valueOf(limit);
-
-        final Cursor cursor;
-        final Bundle bundle = new Bundle();
-        bundle.putString(KEY_LOCAL_PROVIDER, mLocalProvider);
 
         // Hold lock while checking the cloud provider and querying so that cursor extras containing
         // the cloud provider is consistent with the cursor results and doesn't race with
         // #setCloudProvider
         synchronized (mLock) {
             if (mCloudProvider == null) {
-                // If cloud provider is null, avoid all cloud items in the picker db
+                // If cloud provider is null, skip all cloud items in the picker db
                 qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
-            } else {
-                // If cloud provider is not null, return the current cloud provider as part of the
-                // cursor result
-                bundle.putString(KEY_CLOUD_PROVIDER, mCloudProvider);
             }
 
-            cursor = qb.query(mDatabase, projection, /* selection */ null, selectionArgs,
+            final String[] projection = new String[] {
+                getProjectionAuthorityLocked(),
+                PROJECTION_ID,
+                PROJECTION_DATE_TAKEN,
+                PROJECTION_SIZE,
+                PROJECTION_DURATION,
+                PROJECTION_MIME_TYPE
+            };
+
+            return qb.query(mDatabase, projection, /* selection */ null, selectionArgs,
                     /* groupBy */ null, /* having */ null, orderBy, limitStr);
         }
+    }
 
-        cursor.setExtras(bundle);
-        return cursor;
+    private String getProjectionAuthorityLocked() {
+        if (mCloudProvider == null) {
+            return String.format("'%s' AS %s", mLocalProvider, Item.ItemColumns.AUTHORITY);
+        }
+        return String.format("IIF(%s IS NULL, '%s', '%s') AS %s",
+                KEY_CLOUD_ID, mLocalProvider, mCloudProvider, Item.ItemColumns.AUTHORITY);
     }
 
     private static ContentValues cursorToContentValue(Cursor cursor, boolean isLocal) {

@@ -5746,15 +5746,22 @@ public class MediaProvider extends ContentProvider {
                 }
             case MediaStore.SET_CLOUD_PROVIDER_CALL:
                 // TODO(b/190713331): Remove after initial development
-                final String cloudProvider = extras.getString(PickerDbFacade.KEY_CLOUD_PROVIDER);
+                final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);
                 Log.i(TAG, "Developer initiated cloud provider switch: " + cloudProvider);
                 mPickerSyncController.setCloudProvider(cloudProvider);
                 // fall through
             case MediaStore.SYNC_PROVIDERS_CALL:
-                // TODO(b/190713331): Remove after initial development
-                Log.i(TAG, "Developer initiated provider sync");
-                mPickerSyncController.syncPicker();
-                return new Bundle();
+                // Clear the binder calling identity so that we can sync the unexported
+                // local_provider while running as MediaProvider
+                final long t = Binder.clearCallingIdentity();
+                try {
+                    // TODO(b/190713331): Remove after initial development
+                    Log.i(TAG, "Developer initiated provider sync");
+                    mPickerSyncController.syncPicker();
+                    return new Bundle();
+                } finally {
+                    Binder.restoreCallingIdentity(t);
+                }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }

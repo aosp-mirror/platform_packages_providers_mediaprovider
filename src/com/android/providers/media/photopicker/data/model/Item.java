@@ -28,6 +28,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.Arrays;
@@ -45,6 +46,8 @@ public class Item {
         public static String DATE_TAKEN = MediaStore.MediaColumns.DATE_TAKEN;
         public static String DATE_MODIFIED = MediaStore.MediaColumns.DATE_MODIFIED;
         public static String DURATION = MediaStore.MediaColumns.DURATION;
+        public static String SIZE = MediaStore.MediaColumns.SIZE;
+        public static String AUTHORITY = "authority";
 
         private static final String[] ALL_COLUMNS = {
                 ID,
@@ -72,8 +75,8 @@ public class Item {
 
     private Item() {}
 
-    public Item(@NonNull Cursor cursor, String authority, @NonNull UserId userId) {
-        updateFromCursor(cursor, authority, userId);
+    public Item(@NonNull Cursor cursor, @NonNull UserId userId) {
+        updateFromCursor(cursor, userId);
     }
 
     @VisibleForTesting
@@ -126,9 +129,9 @@ public class Item {
         return mDateTaken;
     }
 
-    public static Item fromCursor(Cursor cursor, String authority, UserId userId) {
+    public static Item fromCursor(Cursor cursor, UserId userId) {
         assert(cursor != null);
-        final Item item = new Item(cursor, authority, userId);
+        final Item item = new Item(cursor, userId);
         return item;
     }
 
@@ -156,10 +159,12 @@ public class Item {
 
     /**
      * Update the item based on the cursor
+     *
      * @param cursor the cursor to update the data
+     * @param userId the user id to create an {@link Item} for
      */
-    public void updateFromCursor(@NonNull Cursor cursor, @NonNull String authority,
-            @NonNull UserId userId) {
+    public void updateFromCursor(@NonNull Cursor cursor, @NonNull UserId userId) {
+        final String authority = getCursorString(cursor, ItemColumns.AUTHORITY);
         mId = getCursorString(cursor, ItemColumns.ID);
         mMimeType = getCursorString(cursor, ItemColumns.MIME_TYPE);
         mDateTaken = getCursorLong(cursor, ItemColumns.DATE_TAKEN);

@@ -103,7 +103,7 @@ public class PickerResultTest {
     }
 
     private void assertPickerUri(Uri uri) {
-        final String pickerUriPrefix = PickerUriResolver.URI_PREFIX.toString();
+        final String pickerUriPrefix = PickerUriResolver.PICKER_URI.toString();
         assertThat(uri.toString().startsWith(pickerUriPrefix)).isTrue();
     }
 

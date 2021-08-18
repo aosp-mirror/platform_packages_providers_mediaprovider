@@ -28,11 +28,13 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
+import com.android.providers.media.util.ForegroundThread;
 
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
@@ -74,10 +76,6 @@ public abstract class TabFragment extends Fragment {
 
         mProfileButton = view.findViewById(R.id.profile_button);
         mUserIdManager = mPickerViewModel.getUserIdManager();
-        if (mUserIdManager.isMultiUserProfiles()) {
-            mProfileButton.setVisibility(View.VISIBLE);
-            setUpProfileButton();
-        }
 
         final boolean canSelectMultiple = mPickerViewModel.canSelectMultiple();
         if (canSelectMultiple) {
@@ -107,25 +105,69 @@ public abstract class TabFragment extends Fragment {
                 mRecyclerView.setPadding(0, 0, 0, dimen);
 
                 if (mUserIdManager.isMultiUserProfiles()) {
-                    if (selectedItemList.size() > 0) {
-                        mProfileButton.hide();
+                    if (shouldShowProfileButton()) {
+                        mProfileButton.show();
                     } else {
-                        if (!mHideProfileButton) {
-                            mProfileButton.show();
-                        }
+                        mProfileButton.hide();
                     }
                 }
             });
         }
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        updateProfileButtonAsync();
+    }
+
+    private void updateProfileButtonAsync() {
+        ForegroundThread.getExecutor().execute(() -> {
+            mUserIdManager.updateCrossProfileValues();
+
+            getActivity().runOnUiThread(() -> setUpProfileButton());
+        });
+    }
+
     private void setUpProfileButton() {
-        // TODO(b/190727775): Update profile button values onResume(). also re-check cross-profile
-        //  restrictions.
+        if (!mUserIdManager.isMultiUserProfiles()) {
+            if (mProfileButton.getVisibility() == View.VISIBLE) {
+                mProfileButton.setVisibility(View.GONE);
+                mRecyclerView.clearOnScrollListeners();
+            }
+            return;
+        }
+
+        if (shouldShowProfileButton()) {
+            mProfileButton.setVisibility(View.VISIBLE);
+
+            // TODO(b/199473568): Set up listeners for profile button only once for a fragment or
+            // when the value of isMultiUserProfile changes to true
+            mProfileButton.setOnClickListener(v -> onClickProfileButton());
+            mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                    super.onScrolled(recyclerView, dx, dy);
+                    if (dy > 0) {
+                        mProfileButton.hide();
+                    } else {
+                        if (shouldShowProfileButton()) {
+                            mProfileButton.show();
+                        }
+                    }
+                }
+            });
+        }
+
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
         updateProfileButtonColor(/* isDisabled */ !mUserIdManager.isCrossProfileAllowed());
+    }
 
-        mProfileButton.setOnClickListener(v -> onClickProfileButton());
+    private boolean shouldShowProfileButton() {
+        return (!mPickerViewModel.canSelectMultiple() ||
+                mPickerViewModel.getSelectedItems().getValue().size() == 0) &&
+                !mHideProfileButton;
     }
 
     private void onClickProfileButton() {
@@ -190,13 +232,11 @@ public abstract class TabFragment extends Fragment {
     }
 
     protected void hideProfileButton(boolean hide) {
+        mHideProfileButton = hide;
         if (hide) {
             mProfileButton.hide();
-            mHideProfileButton = true;
-        } else if (!hide && mUserIdManager.isMultiUserProfiles()
-                && mPickerViewModel.getSelectedItems().getValue().size() == 0) {
+        } else if (mUserIdManager.isMultiUserProfiles() && shouldShowProfileButton()) {
             mProfileButton.show();
-            mHideProfileButton = false;
         }
     }
 

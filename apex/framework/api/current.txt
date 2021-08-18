@@ -107,7 +107,6 @@ package android.provider {
     field public static final String EXTRA_MEDIA_TITLE = "android.intent.extra.title";
     field public static final String EXTRA_OUTPUT = "output";
     field public static final String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
-    field public static final String EXTRA_PICK_IMAGES_MIN = "android.provider.extra.PICK_IMAGES_MIN";
     field public static final String EXTRA_SCREEN_ORIENTATION = "android.intent.extra.screenOrientation";
     field public static final String EXTRA_SHOW_ACTION_ICONS = "android.intent.extra.showActionIcons";
     field public static final String EXTRA_SIZE_LIMIT = "android.intent.extra.sizeLimit";

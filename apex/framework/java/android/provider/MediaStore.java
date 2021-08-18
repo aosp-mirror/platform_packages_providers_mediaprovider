@@ -671,9 +671,12 @@ public final class MediaStore {
      * {@link Intent#EXTRA_ALLOW_MULTIPLE} to indicate this. When multiple
      * selection is enabled, callers can also constrain number of selection
      * {@link MediaStore#EXTRA_PICK_IMAGES_MAX}.
-     * When there is no constraint on number of items, all of the user selected
-     * items are returned. TODO(b/185782624): Add constraint on maximum items
-     * picker can return.
+     * <p>
+     * When the caller requests {@link Intent#EXTRA_ALLOW_MULTIPLE}, and
+     * doesn't request {@link MediaStore#EXTRA_PICK_IMAGES_MAX} or value of
+     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} exceeds the default maximum,
+     * then number of selection will be restricted to a default maximum of 100
+     * items.
      * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
      */

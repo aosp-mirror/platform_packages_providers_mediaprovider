@@ -87,6 +87,8 @@ public class PickerDbFacade {
     public static final String KEY_DURATION_MS = "duration_ms";
     @VisibleForTesting
     public static final String KEY_MIME_TYPE = "mime_type";
+    @VisibleForTesting
+    public static final String KEY_IS_FAVORITE = "is_favorite";
 
     // We prefer cloud_id first and it only matters for cloud+local items. For those, the row
     // will already be associated with a cloud authority, see #getProjectionAuthorityLocked.
@@ -110,6 +112,7 @@ public class PickerDbFacade {
     private static final String WHERE_NOT_NULL_CLOUD_ID = KEY_CLOUD_ID + " IS NOT NULL";
     private static final String WHERE_IS_VISIBLE = KEY_IS_VISIBLE + " = 1";
     private static final String WHERE_MIME_TYPE = KEY_MIME_TYPE + " LIKE ? ";
+    private static final String WHERE_IS_FAVORITE = KEY_IS_FAVORITE + " = 1";
     private static final String WHERE_SIZE_BYTES = KEY_SIZE_BYTES + " <= ?";
     private static final String WHERE_DATE_TAKEN_MS_AFTER =
             String.format("%s > ? OR (%s = ? AND %s > ?)",
@@ -408,15 +411,17 @@ public class PickerDbFacade {
         private final long id;
         private final long sizeBytes;
         private final String mimeType;
+        private final boolean isFavorite;
 
         private QueryFilter(int limit, long dateTakenBeforeMs, long dateTakenAfterMs, long id,
-                long sizeBytes, String mimeType) {
+                long sizeBytes, String mimeType, boolean isFavorite) {
             this.limit = limit;
             this.dateTakenBeforeMs = dateTakenBeforeMs;
             this.dateTakenAfterMs = dateTakenAfterMs;
             this.id = id;
             this.sizeBytes = sizeBytes;
             this.mimeType = mimeType;
+            this.isFavorite = isFavorite;
         }
     }
 
@@ -424,6 +429,8 @@ public class PickerDbFacade {
     public static class QueryFilterBuilder {
         public static final long LONG_DEFAULT = -1;
         public static final String STRING_DEFAULT = null;
+        public static final boolean BOOLEAN_DEFAULT = false;
+
         public static final int LIMIT_DEFAULT = 1000;
 
         private final int limit;
@@ -432,6 +439,7 @@ public class PickerDbFacade {
         private long id = LONG_DEFAULT;
         private long sizeBytes = LONG_DEFAULT;
         private String mimeType = STRING_DEFAULT;
+        private boolean isFavorite = BOOLEAN_DEFAULT;
 
         public QueryFilterBuilder(int limit) {
             this.limit = limit;
@@ -474,9 +482,19 @@ public class PickerDbFacade {
             return this;
         }
 
+        /**
+         * If {@code isFavorite} is {@code true}, the {@link QueryFilter} returns only
+         * favorited items, however, if it is {@code false}, it returns all items including
+         * favorited and non-favorited items.
+         */
+        public QueryFilterBuilder setIsFavorite(boolean isFavorite) {
+            this.isFavorite = isFavorite;
+            return this;
+        }
+
         public QueryFilter build() {
             return new QueryFilter(limit, dateTakenBeforeMs, dateTakenAfterMs, id, sizeBytes,
-                    mimeType);
+                    mimeType, isFavorite);
         }
     }
 
@@ -569,6 +587,11 @@ public class PickerDbFacade {
                 case CloudMediaProviderContract.MediaColumns.DURATION_MS:
                     values.put(KEY_DURATION_MS, cursor.getLong(index));
                     break;
+                case CloudMediaProviderContract.MediaColumns.IS_FAVORITE:
+                    values.put(KEY_IS_FAVORITE, cursor.getInt(index));
+                    break;
+                default:
+                    Log.w(TAG, "Unexpected cursor key: " + key);
             }
         }
 
@@ -601,6 +624,10 @@ public class PickerDbFacade {
         if (query.mimeType != null) {
             qb.appendWhereStandalone(WHERE_MIME_TYPE);
             selectArgs.add(query.mimeType.replace('*', '%'));
+        }
+
+        if (query.isFavorite) {
+            qb.appendWhereStandalone(WHERE_IS_FAVORITE);
         }
 
         if (selectArgs.isEmpty()) {

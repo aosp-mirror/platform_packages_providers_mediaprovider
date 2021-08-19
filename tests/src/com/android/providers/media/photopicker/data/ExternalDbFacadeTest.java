@@ -51,6 +51,7 @@ public class ExternalDbFacadeTest {
     private static final long SIZE = 8000;
     private static final String MIME_TYPE = "video/mp4";
     private static final long DURATION_MS = 5;
+    private static final int IS_FAVORITE = 0;
 
     private static Context sIsolatedContext;
 
@@ -402,6 +403,24 @@ public class ExternalDbFacadeTest {
     }
 
     @Test
+    public void testQueryMediaId_withFavorite() throws Exception {
+        try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
+
+            ContentValues cv = getContentValues(DATE_TAKEN_MS1, GENERATION_MODIFIED1);
+            cv.put(MediaColumns.IS_FAVORITE, 1);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            try (Cursor cursor = facade.queryMediaId(OLD_ID1)) {
+                assertThat(cursor.getCount()).isEqualTo(1);
+
+                cursor.moveToFirst();
+                assertMediaColumns(facade, cursor, OLD_ID1, DATE_TAKEN_MS1, /* isFavorite */ 1);
+            }
+        }
+    }
+
+    @Test
     public void testGetMediaInfo() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
             ExternalDbFacade facade = new ExternalDbFacade(helper);
@@ -455,18 +474,25 @@ public class ExternalDbFacadeTest {
 
     private static void assertMediaColumns(ExternalDbFacade facade, Cursor cursor, long id,
             long dateTakenMs) {
+        assertMediaColumns(facade, cursor, id, dateTakenMs, IS_FAVORITE);
+    }
+
+    private static void assertMediaColumns(ExternalDbFacade facade, Cursor cursor, long id,
+            long dateTakenMs, int isFavorite) {
         // TODO(b/190713331): Use CloudMediaProviderContract#MediaColumns
         int idIndex = cursor.getColumnIndex("id");
         int dateTakenIndex = cursor.getColumnIndex("date_taken_ms");
         int sizeIndex = cursor.getColumnIndex("size_bytes");
         int mimeTypeIndex = cursor.getColumnIndex("mime_type");
         int durationIndex = cursor.getColumnIndex("duration_ms");
+        int isFavoriteIndex = cursor.getColumnIndex("is_favorite");
 
         assertThat(cursor.getLong(idIndex)).isEqualTo(id);
         assertThat(cursor.getLong(dateTakenIndex)).isEqualTo(dateTakenMs);
         assertThat(cursor.getLong(sizeIndex)).isEqualTo(SIZE);
         assertThat(cursor.getString(mimeTypeIndex)).isEqualTo(MIME_TYPE);
         assertThat(cursor.getLong(durationIndex)).isEqualTo(DURATION_MS);
+        assertThat(cursor.getInt(isFavoriteIndex)).isEqualTo(isFavorite);
     }
 
     private static void assertMediaInfo(ExternalDbFacade facade, Cursor cursor,

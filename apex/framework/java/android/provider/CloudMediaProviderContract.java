@@ -126,6 +126,14 @@ public final class CloudMediaProviderContract {
          * Type: LONG
          */
         public static final String DURATION_MS = "duration_ms";
+
+        /**
+         * Whether the item has been favourited in the media collection. If {@code non-zero}, this
+         * media item will appear in the favourites category in the Photo Picker.
+         * <p>
+         * Type: INTEGER
+         */
+        public static final String IS_FAVORITE = "is_favorite";
     }
 
     /** Constants related to an album item, including {@link Cursor} column names */
@@ -301,20 +309,6 @@ public final class CloudMediaProviderContract {
      * Type: LONG
      */
     public static final String EXTRA_GENERATION = "android.provider.extra.GENERATION";
-
-    /**
-     * Limits the query results to only favourited media items in the media collection.
-     *
-     * If the provider handled the favourites filter, they must also add the
-     * {@link #EXTRA_FILTER_FAVOURITES} key to the array of
-     * {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned {@link Cursor#setExtras}
-     * {@link Bundle}.
-     *
-     * @see CloudMediaProvider#onQueryMedia
-     * <p>
-     * Type: BOOLEAN
-     */
-    public static final String EXTRA_FILTER_FAVOURITES = "android.provider.extra.FILTER_FAVOURITES";
 
     /**
      * Limits the query results to only media items matching the given album id.

@@ -28,7 +28,6 @@ package android.provider {
 
   public final class CloudMediaProviderContract {
     field public static final String EXTRA_FILTER_ALBUM = "android.provider.extra.FILTER_ALBUM";
-    field public static final String EXTRA_FILTER_FAVOURITES = "android.provider.extra.FILTER_FAVOURITES";
     field public static final String EXTRA_FILTER_MIMETYPE = "android.provider.extra.FILTER_MIMETYPE";
     field public static final String EXTRA_FILTER_SIZE_BYTES = "android.provider.extra.FILTER_SIZE_BYTES";
     field public static final String EXTRA_GENERATION = "android.provider.extra.GENERATION";
@@ -49,6 +48,7 @@ package android.provider {
     field public static final String DATE_TAKEN_MS = "date_taken_ms";
     field public static final String DURATION_MS = "duration_ms";
     field public static final String ID = "id";
+    field public static final String IS_FAVORITE = "is_favorite";
     field public static final String MEDIA_STORE_URI = "media_store_uri";
     field public static final String MIME_TYPE = "mime_type";
     field public static final String SIZE_BYTES = "size_bytes";

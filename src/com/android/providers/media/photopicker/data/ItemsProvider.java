@@ -163,7 +163,7 @@ public class ItemsProvider {
 
         return new String[] {
                 category, // category name
-                getMediaStoreUriForItem(c.getString(0)).toString(), // coverUri
+                getItemsUri(c.getString(0), MediaStore.AUTHORITY, userId).toString(), // coverUri
                 String.valueOf(c.getCount()), // item count
                 category // category type
         };
@@ -235,10 +235,6 @@ public class ItemsProvider {
             // Do nothing, return null.
         }
         return null;
-    }
-
-    private static Uri getMediaStoreUriForItem(String id) {
-        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, Long.parseLong(id));
     }
 
     private static String replaceMatchAnyChar(@NonNull String mimeType) {

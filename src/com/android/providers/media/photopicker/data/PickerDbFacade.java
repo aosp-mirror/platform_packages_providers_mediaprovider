@@ -112,9 +112,11 @@ public class PickerDbFacade {
     private static final String WHERE_MIME_TYPE = KEY_MIME_TYPE + " LIKE ? ";
     private static final String WHERE_SIZE_BYTES = KEY_SIZE_BYTES + " <= ?";
     private static final String WHERE_DATE_TAKEN_MS_AFTER =
-            "date_taken_ms > ? OR (date_taken_ms = ? AND _id > ?)";
+            String.format("%s > ? OR (%s = ? AND %s > ?)",
+                    KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
     private static final String WHERE_DATE_TAKEN_MS_BEFORE =
-            "date_taken_ms < ? OR (date_taken_ms = ? AND _id < ?)";
+            String.format("%s < ? OR (%s = ? AND %s < ?)",
+                    KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
 
     // Matches all media including cloud+local, cloud-only and local-only
     private static final SQLiteQueryBuilder QB_MATCH_ALL = createMediaQueryBuilder();
@@ -398,21 +400,84 @@ public class PickerDbFacade {
                 /* columnIndex */ 0);
     }
 
-    /*
-     * Returns sorted and deduped cloud and local media items from the picker db.
-     *
-     * Returns a {@link Cursor} containing the most recent picker db media rows sorted in reverse
-     * chronological order, i.e. newest first, up to a maximum of {@code limit}.
-     *
-     * The results can be further filtered with the {@code mimeTypeFilter} and {@code sizeBytesMax}
-     * filters.
-     */
-    public Cursor queryMediaAll(int limit, String mimeTypeFilter, long sizeBytesMax) {
-        final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
-        final String[] selectionArgs = buildSelectionArgs(qb, /* isQueryAfter */ false,
-                /* dateTakenMs */ 0, /* id */ 0, mimeTypeFilter, sizeBytesMax);
+    /** Filter for {@link #queryMedia} to modify returned results */
+    public static class QueryFilter {
+        private final int limit;
+        private final long dateTakenBeforeMs;
+        private final long dateTakenAfterMs;
+        private final long id;
+        private final long sizeBytes;
+        private final String mimeType;
 
-        return queryMedia(qb, selectionArgs, limit);
+        private QueryFilter(int limit, long dateTakenBeforeMs, long dateTakenAfterMs, long id,
+                long sizeBytes, String mimeType) {
+            this.limit = limit;
+            this.dateTakenBeforeMs = dateTakenBeforeMs;
+            this.dateTakenAfterMs = dateTakenAfterMs;
+            this.id = id;
+            this.sizeBytes = sizeBytes;
+            this.mimeType = mimeType;
+        }
+    }
+
+    /** Builder for {@link Query} filter. */
+    public static class QueryFilterBuilder {
+        public static final long LONG_DEFAULT = -1;
+        public static final String STRING_DEFAULT = null;
+        public static final int LIMIT_DEFAULT = 1000;
+
+        private final int limit;
+        private long dateTakenBeforeMs = LONG_DEFAULT;
+        private long dateTakenAfterMs = LONG_DEFAULT;
+        private long id = LONG_DEFAULT;
+        private long sizeBytes = LONG_DEFAULT;
+        private String mimeType = STRING_DEFAULT;
+
+        public QueryFilterBuilder(int limit) {
+            this.limit = limit;
+        }
+
+        public QueryFilterBuilder setDateTakenBeforeMs(long dateTakenBeforeMs) {
+            this.dateTakenBeforeMs = dateTakenBeforeMs;
+            return this;
+        }
+
+        public QueryFilterBuilder setDateTakenAfterMs(long dateTakenAfterMs) {
+            this.dateTakenAfterMs = dateTakenAfterMs;
+            return this;
+        }
+
+        /**
+         * The {@code id} helps break ties with db rows having the same {@code dateTakenAfterMs} or
+         * {@code dateTakenBeforeMs}.
+         *
+         * If {@code dateTakenAfterMs} is specified, all returned items are either strictly more
+         * recent than {@code dateTakenAfterMs} or have a picker db id strictly greater than
+         * {@code id} for ties.
+         *
+         * If {@code dateTakenBeforeMs} is specified, all returned items are either strictly older
+         * than {@code dateTakenBeforeMs} or have a picker db id strictly less than {@code id}
+         * for ties.
+         */
+        public QueryFilterBuilder setId(long id) {
+            this.id = id;
+            return this;
+        }
+
+        public QueryFilterBuilder setSizeBytes(long sizeBytes) {
+            this.sizeBytes = sizeBytes;
+            return this;
+        }
+
+        public QueryFilterBuilder setMimeType(String mimeType) {
+            this.mimeType = mimeType;
+            return this;
+        }
+
+        public QueryFilter build() {
+            return new QueryFilter(limit, dateTakenBeforeMs, dateTakenAfterMs, id, sizeBytes,
+                    mimeType);
+        }
     }
 
     /*
@@ -421,40 +486,13 @@ public class PickerDbFacade {
      * Returns a {@link Cursor} containing picker db media rows sorted in reverse chronological
      * order, i.e. newest first, up to a maximum of {@code limit}.
      *
-     * All returned items are either strictly more recent than {@code dateTakenMs} or if
-     * they were captured at the same time, have a picker db id strictly greater than {@code id}.
-     *
-     * The results can be further filtered with the {@code mimeTypeFilter} and {@code sizeBytesMax}
-     * filters.
+     * The results can be filtered with {@code query}.
      */
-    public Cursor queryMediaAfter(long dateTakenMs, long id, int limit, String mimeTypeFilter,
-            long sizeBytesMax) {
+    public Cursor queryMedia(QueryFilter query) {
         final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
-        final String[] selectArgs = buildSelectionArgs(qb, /* isQueryAfter */ true, dateTakenMs, id,
-                mimeTypeFilter, sizeBytesMax);
+        final String[] selectionArgs = buildSelectionArgs(qb, query);
 
-        return queryMedia(qb, selectArgs, limit);
-    }
-
-    /*
-     * Returns sorted and deduped cloud and local media items from the picker db.
-     *
-     * Returns a {@link Cursor} containing picker db media rows sorted in reverse chronological
-     * order, i.e. newest first, up to a maximum of {@code limit}.
-     *
-     * All returned items are either strictly older than {@code dateTakenMs} or if
-     * they were captured at the same time, have a picker db id strictly less than {@code id}.
-     *
-     * The results can be further filtered with the {@code mimeTypeFilter} and {@code sizeBytesMax}
-     * filters.
-     */
-    public Cursor queryMediaBefore(long dateTakenMs, long id, int limit, String mimeTypeFilter,
-            long sizeBytesMax) {
-        SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
-        String[] selectArgs = buildSelectionArgs(qb, /* isQueryAfter */ false, dateTakenMs, id,
-                mimeTypeFilter, sizeBytesMax);
-
-        return queryMedia(qb, selectArgs, limit);
+        return queryMedia(qb, selectionArgs, query.limit);
     }
 
     public static boolean isPickerDbEnabled() {
@@ -537,29 +575,32 @@ public class PickerDbFacade {
         return values;
     }
 
-    private static String[] buildSelectionArgs(SQLiteQueryBuilder qb, boolean isQueryAfter,
-            long dateTakenMs, long id, String mimeTypeFilter, long sizeBytesMax) {
+    private static String[] buildSelectionArgs(SQLiteQueryBuilder qb, QueryFilter query) {
         List<String> selectArgs = new ArrayList<>();
 
-        if (id > 0) {
-            if (isQueryAfter) {
+        if (query.id >= 0) {
+            if (query.dateTakenAfterMs >= 0) {
                 qb.appendWhereStandalone(WHERE_DATE_TAKEN_MS_AFTER);
+                // Add date args twice because the sql statement evaluates date twice
+                selectArgs.add(String.valueOf(query.dateTakenAfterMs));
+                selectArgs.add(String.valueOf(query.dateTakenAfterMs));
             } else {
                 qb.appendWhereStandalone(WHERE_DATE_TAKEN_MS_BEFORE);
+                // Add date args twice because the sql statement evaluates date twice
+                selectArgs.add(String.valueOf(query.dateTakenBeforeMs));
+                selectArgs.add(String.valueOf(query.dateTakenBeforeMs));
             }
-            selectArgs.add(String.valueOf(dateTakenMs));
-            selectArgs.add(String.valueOf(dateTakenMs));
-            selectArgs.add(String.valueOf(id));
+            selectArgs.add(String.valueOf(query.id));
         }
 
-        if (sizeBytesMax > 0) {
+        if (query.sizeBytes >= 0) {
             qb.appendWhereStandalone(WHERE_SIZE_BYTES);
-            selectArgs.add(String.valueOf(sizeBytesMax));
+            selectArgs.add(String.valueOf(query.sizeBytes));
         }
 
-        if (mimeTypeFilter != null) {
+        if (query.mimeType != null) {
             qb.appendWhereStandalone(WHERE_MIME_TYPE);
-            selectArgs.add(mimeTypeFilter.replace('*', '%'));
+            selectArgs.add(query.mimeType.replace('*', '%'));
         }
 
         if (selectArgs.isEmpty()) {

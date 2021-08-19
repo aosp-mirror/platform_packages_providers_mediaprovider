@@ -2762,11 +2762,18 @@ public class MediaProvider extends ContentProvider {
 
         // TODO(b/195008831): Add test to verify that apps can't access
         if (table == PICKER_INTERNAL) {
-            final int limit = queryArgs.getInt(MediaStore.QUERY_ARG_LIMIT, -1);
-            final int sizeBytes = queryArgs.getInt(MediaStore.QUERY_ARG_SIZE_BYTES, -1);
-            final String mimeType =queryArgs.getString(MediaStore.QUERY_ARG_MIME_TYPE, null);
+            final int limit = queryArgs.getInt(MediaStore.QUERY_ARG_LIMIT,
+                    PickerDbFacade.QueryFilterBuilder.LIMIT_DEFAULT);
+            final long sizeBytes = queryArgs.getLong(MediaStore.QUERY_ARG_SIZE_BYTES,
+                    PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT);
+            final String mimeType = queryArgs.getString(MediaStore.QUERY_ARG_MIME_TYPE,
+                    PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT);
 
-            return mPickerDbFacade.queryMediaAll(limit, mimeType, sizeBytes);
+            PickerDbFacade.QueryFilterBuilder qfb = new PickerDbFacade.QueryFilterBuilder(limit);
+            qfb.setSizeBytes(sizeBytes);
+            qfb.setMimeType(mimeType);
+
+            return mPickerDbFacade.queryMedia(qfb.build());
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);

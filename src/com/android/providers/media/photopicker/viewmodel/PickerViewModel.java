@@ -78,8 +78,6 @@ public class PickerViewModel extends AndroidViewModel {
     // Show max label text view if and only if caller sets acceptable value for
     // {@link MediaStore#EXTRA_PICK_IMAGES_MAX}
     private boolean mShowMaxLabel = false;
-    @CategoryType
-    private String mCurrentCategoryType;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -258,10 +256,7 @@ public class PickerViewModel extends AndroidViewModel {
      *         {@link #mCategoryItemList}
      */
     public LiveData<List<Item>> getCategoryItems(@NonNull @CategoryType String category) {
-        if (mCategoryItemList == null || !TextUtils.equals(category, mCurrentCategoryType)) {
-            mCurrentCategoryType = category;
-            updateCategoryItems(category);
-        }
+        updateCategoryItems(category);
         return mCategoryItemList;
     }
 

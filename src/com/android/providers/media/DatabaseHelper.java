@@ -141,7 +141,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     public interface OnSchemaChangeListener {
         public void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
-                long itemCount, long durationMillis);
+                long itemCount, long durationMillis, String databaseUuid);
     }
 
     public interface OnFilesChangeListener {
@@ -715,6 +715,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     @VisibleForTesting
     static void makePristineSchema(SQLiteDatabase db) {
+        // We are dropping all tables and recreating new schema. This
+        // is a clear indication of major change in MediaStore version.
+        // Hence reset the Uuid whenever we change the schema.
+        resetAndGetUuid(db);
+
         // drop all triggers
         Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'trigger'",
                 null, null, null, null);
@@ -1822,7 +1827,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
         if (mSchemaListener != null) {
             mSchemaListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
-                    getItemCount(db), elapsedMillis);
+                    getItemCount(db), elapsedMillis, getOrCreateUuid(db));
         }
     }
 
@@ -1835,7 +1840,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
         if (mSchemaListener != null) {
             mSchemaListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
-                    getItemCount(db), elapsedMillis);
+                    getItemCount(db), elapsedMillis, getOrCreateUuid(db));
         }
     }
 
@@ -1851,17 +1856,21 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         } catch (ErrnoException e) {
             if (e.errno == OsConstants.ENODATA) {
                 // Doesn't exist yet, so generate and persist a UUID
-                final String uuid = UUID.randomUUID().toString();
-                try {
-                    Os.setxattr(db.getPath(), XATTR_UUID, uuid.getBytes(), 0);
-                } catch (ErrnoException e2) {
-                    throw new RuntimeException(e);
-                }
-                return uuid;
+                return resetAndGetUuid(db);
             } else {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    private static @NonNull String resetAndGetUuid(SQLiteDatabase db) {
+        final String uuid = UUID.randomUUID().toString();
+        try {
+            Os.setxattr(db.getPath(), XATTR_UUID, uuid.getBytes(), 0);
+        } catch (ErrnoException e) {
+            throw new RuntimeException(e);
+        }
+        return uuid;
     }
 
     private static final long PASSTHROUGH_WAIT_TIMEOUT = 10 * DateUtils.SECOND_IN_MILLIS;

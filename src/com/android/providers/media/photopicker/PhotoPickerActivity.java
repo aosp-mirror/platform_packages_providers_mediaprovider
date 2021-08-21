@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker;
 
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
+import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
 import android.annotation.IntDef;
 import android.app.Activity;
@@ -30,9 +31,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.SystemProperties;
 import android.provider.MediaStore;
-import android.text.TextUtils;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -51,6 +50,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.AlbumsTabFragment;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
 import com.android.providers.media.photopicker.ui.PreviewFragment;
+import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -151,8 +151,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void setTitle(CharSequence title) {
         super.setTitle(title);
         getSupportActionBar().setTitle(title);
-        updateCommonLayouts(/* shouldShowTabChips */ TextUtils.isEmpty(title),
-                /* isPreview */ false);
     }
 
     /**
@@ -191,7 +189,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         } else {
             // This is the first launch, set the default behavior. Hide the title, show the chips
             // and show the PhotosTabFragment
-            setTitle("");
+            updateCommonLayouts(MODE_PHOTOS_TAB, /* title */ "");
             onTabChipClick(mPhotosTabChip);
         }
     }
@@ -313,30 +311,32 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     /**
-     * Updates the common views such as Toolbar, Navigation bar, status bar and bottom sheet
+     * Updates the common views such as Title, Toolbar, Navigation bar, status bar and bottom sheet
      * behavior
      *
-     * @param shouldShowTabChips {@code true} if tab chips for Photos/Albums tab should be shown,
-     *                                       {@code false} otherwise
-     * @param isPreview {@code true} if common views should be customized for Preview mode,
-     *                              {@code false} otherwise
+     * @param mode {@link LayoutModeUtils.Mode} which describes the layout mode to update.
+     * @param title the title to set for the Activity
      */
-    public void updateCommonLayouts(boolean shouldShowTabChips, boolean isPreview) {
-        updateToolbar(shouldShowTabChips, isPreview);
-        updateStatusBarAndNavigationBar(isPreview);
-        updateBottomSheetBehavior(isPreview);
-        updateFragmentContainerViewPadding(isPreview);
+    public void updateCommonLayouts(LayoutModeUtils.Mode mode, String title) {
+        updateTitle(title);
+        updateToolbar(mode);
+        updateStatusBarAndNavigationBar(mode);
+        updateBottomSheetBehavior(mode);
+        updateFragmentContainerViewPadding(mode);
+    }
+
+    private void updateTitle(String title) {
+        setTitle(title);
     }
 
     /**
      * Updates the icons and show/hide the tab chips with {@code shouldShowTabChips}.
      *
-     * @param shouldShowTabChips {@code true}, show the tab chips and show close icon. Otherwise,
-     *                                       hide the tab chips and show back icon.
-     * @param isPreview {@code true} sets the toolbar based on Preview Mode, {@code false} sets
-     *                              the toolbar based on value of {@code shouldShowTabChips}
+     * @param mode {@link LayoutModeUtils.Mode} which describes the layout mode to update.
      */
-    private void updateToolbar(boolean shouldShowTabChips, boolean isPreview) {
+    private void updateToolbar(@NonNull LayoutModeUtils.Mode mode) {
+        final boolean isPreview = mode.isPreview;
+        final boolean shouldShowTabChips = mode.shouldShowTabChips;
         // 1. Set the tabChip visibility
         mTabChipContainer.setVisibility(shouldShowTabChips ? View.VISIBLE : View.GONE);
 
@@ -365,11 +365,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
     /**
      * Updates status bar and navigation bar
      *
-     * @param isPreview {@code true} to set the status bar and navigation bar according to preview
-     *                              mode, {@code false} to set status bar and navigation bar
-     *                              according to Photos or Category mode.
+     * @param mode {@link LayoutModeUtils.Mode} which describes the layout mode to update.
      */
-    private void updateStatusBarAndNavigationBar(boolean isPreview) {
+    private void updateStatusBarAndNavigationBar(@NonNull LayoutModeUtils.Mode mode) {
+        final boolean isPreview = mode.isPreview;
         final int navigationBarColor = isPreview ? getColor(R.color.preview_default_black) :
                 getColor(R.color.picker_background_color);
         getWindow().setNavigationBarColor(navigationBarColor);
@@ -396,10 +395,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
     /**
      * Updates the bottom sheet behavior
      *
-     * @param isPreview {@code true} sets the bottom sheet behavior for preview mode, {@code false}
-     *                              sets the bottom sheet behavior for non-preview mode.
+     * @param mode {@link LayoutModeUtils.Mode} which describes the layout mode to update.
      */
-    private void updateBottomSheetBehavior(boolean isPreview) {
+    private void updateBottomSheetBehavior(@NonNull LayoutModeUtils.Mode mode) {
+        final boolean isPreview = mode.isPreview;
         if (mBottomSheetView != null) {
             mBottomSheetView.setClipToOutline(!isPreview);
             // TODO(b/185800839): downward swipe for bottomsheet should go back to photos grid
@@ -423,10 +422,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
      * For Non-Preview mode, toolbar doesn't overlap the contents of the fragment, hence we set the
      * padding as the height of the toolbar.
      */
-    private void updateFragmentContainerViewPadding(boolean isPreview) {
+    private void updateFragmentContainerViewPadding(@NonNull LayoutModeUtils.Mode mode) {
         if (mFragmentContainerView == null) return;
 
-        if (isPreview) {
+        if (mode.isPreview) {
             mFragmentContainerView.setPadding(mFragmentContainerView.getPaddingLeft(), 0,
                     mFragmentContainerView.getPaddingRight(),
                     mFragmentContainerView.getPaddingBottom());

@@ -27,7 +27,9 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.util.LayoutModeUtils;
 
 /**
  * Albums tab fragment for showing the albums
@@ -63,7 +65,8 @@ public class AlbumsTabFragment extends TabFragment {
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setTitle("");
+        ((PhotoPickerActivity) getActivity()).updateCommonLayouts(LayoutModeUtils.MODE_ALBUMS_TAB,
+                /* title */ "");
     }
 
     private void onItemClick(@NonNull View view) {

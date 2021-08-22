@@ -33,6 +33,7 @@ import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.provider.CloudMediaProviderContract;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -98,19 +99,18 @@ public class PickerUriResolver {
             int callingPid, int callingUid) {
         checkUriPermission(uri, callingPid, callingUid);
 
-        final ContentResolver resolver = getContentResolverForUserId(uri);
-        final long token = Binder.clearCallingIdentity();
-        try {
-            // Support query similar to as we support for redacted mediastore file uris.
-            // TODO(b/191362529): Restrict projection values when we start querying picker db. Add
-            // PickerColumns and add checks for projection.
-            return resolver.query(getRedactedFileUriFromPickerUri(uri, resolver), projection,
-                    queryArgs, signal);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
+        return queryInternal(uri, projection, queryArgs, signal);
     }
 
+    public String getType(@NonNull Uri uri) {
+        try (Cursor cursor = queryInternal(uri, new String[]{MediaStore.MediaColumns.MIME_TYPE},
+                /* queryArgs */ null, /* signal */ null)) {
+            if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
+                return cursor.getString(0);
+            }
+        }
+        throw new IllegalArgumentException("Failed to getType for uri: " + uri);
+    }
 
     public static Uri getMediaUri(String authority) {
         return Uri.parse("content://" + authority + "/"
@@ -125,6 +125,21 @@ public class PickerUriResolver {
     public static Uri getMediaInfoUri(String authority) {
         return Uri.parse("content://" + authority + "/"
                 + CloudMediaProviderContract.URI_PATH_MEDIA_INFO);
+    }
+
+    private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
+            CancellationSignal signal) {
+        final ContentResolver resolver = getContentResolverForUserId(uri);
+        final long token = Binder.clearCallingIdentity();
+        try {
+            // Support query similar to as we support for redacted mediastore file uris.
+            // TODO(b/191362529): Restrict projection values when we start querying picker db. Add
+            // PickerColumns and add checks for projection.
+            return resolver.query(getRedactedFileUriFromPickerUri(uri, resolver), projection,
+                    queryArgs, signal);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
     }
 
     /**

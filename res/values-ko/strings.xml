@@ -54,10 +54,8 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"선택 항목 보기"</string>
     <string name="picker_photos" msgid="7415035516411087392">"사진"</string>
     <string name="picker_albums" msgid="4822511902115299142">"앨범"</string>
-    <!-- no translation found for picker_work_profile (2083221066869141576) -->
-    <skip />
-    <!-- no translation found for picker_personal_profile (639484258397758406) -->
-    <skip />
+    <string name="picker_work_profile" msgid="2083221066869141576">"직장으로 전환"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"개인으로 전환"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other">항목 <xliff:g id="COUNT_1">^1</xliff:g>개</item>
       <item quantity="one">항목 <xliff:g id="COUNT_0">^1</xliff:g>개</item>

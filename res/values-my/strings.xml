@@ -54,10 +54,8 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"ပြသမှုကို ရွေးချယ်ထားသည်"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ဓာတ်ပုံများ"</string>
     <string name="picker_albums" msgid="4822511902115299142">"အယ်လ်ဘမ်များ"</string>
-    <!-- no translation found for picker_work_profile (2083221066869141576) -->
-    <skip />
-    <!-- no translation found for picker_personal_profile (639484258397758406) -->
-    <skip />
+    <string name="picker_work_profile" msgid="2083221066869141576">"အလုပ်သို့ ပြောင်းပါ"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"ပုဂ္ဂိုလ်ရေးသီးသန့်အဖြစ် ပြောင်းပါ"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other">ဖိုင် <xliff:g id="COUNT_1">^1</xliff:g> ခု</item>
       <item quantity="one">ဖိုင် <xliff:g id="COUNT_0">^1</xliff:g> ခု</item>

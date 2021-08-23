@@ -134,6 +134,15 @@ public final class CloudMediaProviderContract {
          * Type: INTEGER
          */
         public static final String IS_FAVORITE = "is_favorite";
+
+        /**
+         * Authority of the media item
+         * <p>
+         * Type: STRING
+         *
+         * @hide
+         */
+        public static final String AUTHORITY = "authority";
     }
 
     /** Constants related to an album item, including {@link Cursor} column names */

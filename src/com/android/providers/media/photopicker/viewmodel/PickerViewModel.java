@@ -295,7 +295,7 @@ public class PickerViewModel extends AndroidViewModel {
             }
 
             while (cursor.moveToNext()) {
-                final Category category = Category.fromCursor(cursor);
+                final Category category = Category.fromCursor(cursor, userId);
                 categoryList.add(category);
             }
 

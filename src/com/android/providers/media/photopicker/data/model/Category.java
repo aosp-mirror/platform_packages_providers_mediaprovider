@@ -24,6 +24,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
+import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.util.ArrayMap;
@@ -33,6 +34,8 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.model.Item.ItemColumns;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -156,23 +159,23 @@ public class Category {
     private Category() {}
 
     @VisibleForTesting
-    Category(@NonNull Cursor cursor) {
-        updateFromCursor(cursor);
+    Category(@NonNull Cursor cursor, @NonNull UserId userId) {
+        updateFromCursor(cursor, userId);
     }
 
     /**
      * Defines category columns for each category
      */
     public static class CategoryColumns {
-        public static String NAME = "name";
-        public static String COVER_URI = "cover_uri";
-        public static String NUMBER_OF_ITEMS = "number_of_items";
-        public static String CATEGORY_TYPE = "category_type";
+        public static String NAME = CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME;
+        public static String COVER_ID = CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID;
+        public static String NUMBER_OF_ITEMS = CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT;
+        public static String CATEGORY_TYPE = CloudMediaProviderContract.AlbumColumns.ID;
 
         public static String[] getAllColumns() {
             return new String[] {
                     NAME,
-                    COVER_URI,
+                    COVER_ID,
                     NUMBER_OF_ITEMS,
                     CATEGORY_TYPE,
             };
@@ -242,8 +245,8 @@ public class Category {
     /**
      * @return {@link Category} from the given {@code cursor}
      */
-    public static Category fromCursor(@NonNull Cursor cursor) {
-        final Category category = new Category(cursor);
+    public static Category fromCursor(@NonNull Cursor cursor, @NonNull UserId userId) {
+        final Category category = new Category(cursor, userId);
         return category;
     }
 
@@ -252,9 +255,12 @@ public class Category {
      *
      * @param cursor the cursor to update the data
      */
-    public void updateFromCursor(@NonNull Cursor cursor) {
+    public void updateFromCursor(@NonNull Cursor cursor, @NonNull UserId userId) {
+        final String authority = getCursorString(cursor, ItemColumns.AUTHORITY);
+
         mCategoryName = getCursorString(cursor, CategoryColumns.NAME);
-        mCoverUri = Uri.parse(getCursorString(cursor, CategoryColumns.COVER_URI));
+        mCoverUri = ItemsProvider.getItemsUri(getCursorString(cursor, CategoryColumns.COVER_ID),
+                authority, userId);
         mItemCount = getCursorInt(cursor, CategoryColumns.NUMBER_OF_ITEMS);
         mCategoryType = getCursorString(cursor, CategoryColumns.CATEGORY_TYPE);
     }

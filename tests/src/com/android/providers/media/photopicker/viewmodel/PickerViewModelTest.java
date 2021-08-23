@@ -60,7 +60,7 @@ public class PickerViewModelTest {
 
     private static final String FAKE_IMAGE_MIME_TYPE = "image/jpg";
     private static final String FAKE_CATEGORY_NAME = "testCategoryName";
-    private static final Uri FAKE_URI = Uri.parse("testUri");
+    private static final String FAKE_ID = "5";
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
@@ -294,9 +294,10 @@ public class PickerViewModelTest {
         final int categoryCount = 2;
         try (final Cursor fakeCursor = generateCursorForFakeCategories(categoryCount)) {
             fakeCursor.moveToFirst();
-            final Category fakeFirstCategory = Category.fromCursor(fakeCursor);
+            final Category fakeFirstCategory = Category.fromCursor(fakeCursor, UserId.CURRENT_USER);
             fakeCursor.moveToNext();
-            final Category fakeSecondCategory = Category.fromCursor(fakeCursor);
+            final Category fakeSecondCategory = Category.fromCursor(fakeCursor,
+                    UserId.CURRENT_USER);
             mItemsProvider.setCategoriesCursor(fakeCursor);
             // move the cursor to original position
             fakeCursor.moveToPosition(-1);
@@ -489,7 +490,7 @@ public class PickerViewModelTest {
         for (int i = 0; i < num; i++) {
             cursor.addRow(new Object[]{
                     FAKE_CATEGORY_NAME + i,
-                    FAKE_URI.buildUpon().appendPath(String.valueOf(i)),
+                    FAKE_ID + String.valueOf(i),
                     itemCount + i,
                     CATEGORY_DOWNLOADS});
         }
@@ -509,7 +510,7 @@ public class PickerViewModelTest {
         public Cursor getItems(@Nullable @Category.CategoryType String category, int offset,
                 int limit, @Nullable String mimeType, @Nullable UserId userId) throws
                 IllegalArgumentException, IllegalStateException {
-            final String[] columns = Item.ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]);
+            final String[] columns = Item.ItemColumns.ALL_COLUMNS;
             final MatrixCursor c = new MatrixCursor(columns);
 
             for (Item item : mItemList) {

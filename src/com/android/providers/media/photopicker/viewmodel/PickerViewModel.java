@@ -339,6 +339,8 @@ public class PickerViewModel extends AndroidViewModel {
      * Parse values from {@code intent} and set corresponding fields
      */
     public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
+        mUserIdManager.setIntentAndCheckRestrictions(intent);
+
         mSelectMultiple = intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
 
         final String mimeType = intent.getType();

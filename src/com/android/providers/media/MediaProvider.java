@@ -9761,11 +9761,13 @@ public class MediaProvider extends ContentProvider {
             // it. It finds the first best child match and proceeds the match from there without
             // looking at other siblings.
             mPublic.addURI(auth, "picker", PICKER);
+            // TODO(b/195009139): Remove after switching picker URI to new format
             // content://media/picker/<user-id>/<media-id>
             mPublic.addURI(auth, "picker/#/#", PICKER_ID);
+            // content://media/picker/<user-id>/<authority>/media/<media-id>
+            mPublic.addURI(auth, "picker/#/*/media/*", PICKER_ID);
             // content://media/picker/unreliable/<media_id>
             mPublic.addURI(auth, "picker/unreliable/#", PICKER_UNRELIABLE_VOLUME);
-
             mPublic.addURI(auth, "*/images/media", IMAGES_MEDIA);
             mPublic.addURI(auth, "*/images/media/#", IMAGES_MEDIA_ID);
             mPublic.addURI(auth, "*/images/media/#/thumbnail", IMAGES_MEDIA_ID_THUMBNAIL);

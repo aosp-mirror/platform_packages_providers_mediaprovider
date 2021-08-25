@@ -40,6 +40,7 @@ import com.google.common.io.ByteStreams;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -90,12 +91,14 @@ public class UnreliableVolumeTest {
     }
 
     @Test
+    @Ignore("Enable after b/197816987 is fixed")
     public void testUnreliableVolumeSimple() throws Exception {
         assertEquals(sVolumeName, sVolumeCache.getUnreliableVolumePath().get(0).getName());
         assertEquals(sVolumePath, sVolumeCache.getUnreliableVolumePath().get(0).getPath());
     }
 
     @Test
+    @Ignore("Enable after b/197816987 is fixed")
     public void testDBisCreated() throws Exception {
         String[] projection = new String[] {
                 UnreliableVolumeDatabaseHelper.MediaColumns.SIZE_BYTES,

@@ -51,6 +51,7 @@ import com.android.providers.media.util.IsoInterface;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -85,6 +86,7 @@ public class PhotoPickerSingleSelectTest {
     }
 
     @Test
+    @Ignore("Enable this test after b/197725036 is fixed")
     public void testSimple_image() throws Exception {
         createImages(1);
 
@@ -112,6 +114,7 @@ public class PhotoPickerSingleSelectTest {
     }
 
     @Test
+    @Ignore("Enable this test after b/197725036 is fixed")
     public void testSimple_video() throws Exception {
         createVideos(1);
 
@@ -140,6 +143,7 @@ public class PhotoPickerSingleSelectTest {
     }
 
     @Test
+    @Ignore("Enable this test after b/197725036 is fixed")
     public void testSimple_gif() throws Exception {
         createGifs(1);
 

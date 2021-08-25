@@ -376,8 +376,7 @@ public class PickerSyncControllerTest {
     }
 
     private Cursor queryMedia() {
-        return mFacade.queryMediaAll(/* limit */ 1000, /* mimeTypeFilter */ null,
-                /* sizeBytesMax */ 0);
+        return mFacade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build());
     }
 
     private void assertEmptyCursor() {

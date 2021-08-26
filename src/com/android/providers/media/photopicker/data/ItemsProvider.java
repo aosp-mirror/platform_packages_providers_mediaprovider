@@ -163,7 +163,7 @@ public class ItemsProvider {
 
         return new String[] {
                 category, // category name
-                getItemsUri(c.getString(0), MediaStore.AUTHORITY, userId).toString(), // coverUri
+                getItemsUri(c.getString(0), /* authority */ null, userId).toString(), // coverUri
                 String.valueOf(c.getCount()), // item count
                 category // category type
         };

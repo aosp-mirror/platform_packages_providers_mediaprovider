@@ -16,10 +16,8 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,17 +25,17 @@ import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.UserIdManager;
-import com.android.providers.media.photopicker.data.model.UserId;
-import com.android.providers.media.photopicker.util.CrossProfileUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -123,65 +121,83 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void setUpProfileButton() {
-        updateProfileIconAndText(mUserIdManager.isManagedUserSelected());
+        // TODO(b/190727775): Update profile button values onResume(). also re-check cross-profile
+        //  restrictions.
+        updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
+        updateProfileButtonColor(/* isDisabled */ !mUserIdManager.isCrossProfileAllowed());
 
-        final Context context = getContext();
-        mProfileButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                // Cross user checks
-                if (mUserIdManager.isCurrentUserSelected()) {
-                    final PackageManager packageManager = context.getPackageManager();
-                    // 1. Check if PICK_IMAGES intent is allowed by admin to show cross user content
-                    if (!CrossProfileUtils.isPickImagesIntentAllowedCrossProfileAccess(
-                            packageManager)) {
-                        // TODO (b/190727775): Show informative error message to the user in UI.
-                        return;
-                    }
-
-                    // 2. Check if work profile is off
-                    if (!mUserIdManager.isManagedUserSelected()) {
-                        final UserId managedUserProfileId =
-                                mUserIdManager.getManagedUserId();
-                        if (!CrossProfileUtils.isMediaProviderAvailable(managedUserProfileId,
-                                context)) {
-                            Log.i(TAG, "Work Profile is off, please turn work profile on to "
-                                    + "access work profile content");
-                            // TODO (b/190727775): Show work profile turned off, please turn on.
-                            return;
-                        }
-                    }
-                }
-
-                if (mUserIdManager.isManagedUserSelected()) {
-                    // TODO(b/190024747): Add caching for performance before switching data to and
-                    //  fro work profile
-                    mUserIdManager.setPersonalAsCurrentUserProfile();
-
-                } else {
-                    // TODO(b/190024747): Add caching for performance before switching data to and
-                    //  fro work profile
-                    mUserIdManager.setManagedAsCurrentUserProfile();
-                }
-
-                updateProfileIconAndText(mUserIdManager.isManagedUserSelected());
-
-                mPickerViewModel.updateItems();
-                mPickerViewModel.updateCategories();
-            }
-        });
+        mProfileButton.setOnClickListener(v -> onClickProfileButton(v));
     }
 
-    private void updateProfileIconAndText(boolean isManagedUserSelected) {
-        if (isManagedUserSelected) {
-            mProfileButton.setIconResource(R.drawable.ic_personal_mode);
-            mProfileButton.setText(R.string.picker_personal_profile);
+    private void onClickProfileButton(View v) {
+        if (!mUserIdManager.isCrossProfileAllowed()) {
+            onClickShowErrorDialog(v);
         } else {
-            mProfileButton.setIconResource(R.drawable.ic_work_outline);
-            mProfileButton.setText(R.string.picker_work_profile);
+            onClickChangeProfile();
         }
-        mProfileButton.setIconTintResource(R.color.picker_profile_button_text_and_icon_color);
+    }
+
+    private void onClickShowErrorDialog(View v) {
+        if (mUserIdManager.isBlockedByAdmin()) {
+            //TODO(b/190727775): launch dialog
+            Snackbar.make(v, "Blocked by your admin", Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+        if (mUserIdManager.isWorkProfileOff()) {
+            //TODO(b/190727775): launch dialog
+            Snackbar.make(v, "Turn on work apps?", Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+        return;
+    }
+
+    private void onClickChangeProfile() {
+        if (mUserIdManager.isManagedUserSelected()) {
+            // TODO(b/190024747): Add caching for performance before switching data to and fro
+            // work profile
+            mUserIdManager.setPersonalAsCurrentUserProfile();
+
+        } else {
+            // TODO(b/190024747): Add caching for performance before switching data to and fro
+            // work profile
+            mUserIdManager.setManagedAsCurrentUserProfile();
+        }
+
+        updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
+
+        mPickerViewModel.updateItems();
+        mPickerViewModel.updateCategories();
+    }
+
+    private void updateProfileButtonContent(boolean isManagedUserSelected) {
+        final int iconResId;
+        final int textResId;
+        if (isManagedUserSelected) {
+            iconResId = R.drawable.ic_personal_mode;
+            textResId = R.string.picker_personal_profile;
+        } else {
+            iconResId = R.drawable.ic_work_outline;
+            textResId = R.string.picker_work_profile;
+        }
+        mProfileButton.setIconResource(iconResId);
+        mProfileButton.setText(textResId);
+    }
+
+    private void updateProfileButtonColor(boolean isDisabled) {
+        final int textAndIconResId;
+        final int backgroundTintResId;
+        if (isDisabled) {
+            textAndIconResId = R.color.picker_profile_disabled_button_content_color;
+            backgroundTintResId = R.color.picker_profile_disabled_button_background_color;
+        } else {
+            textAndIconResId = R.color.picker_profile_button_content_color;
+            backgroundTintResId = R.color.picker_profile_button_background_color;
+        }
+        mProfileButton.setTextColor(AppCompatResources.getColorStateList(getContext(),
+                textAndIconResId));
+        mProfileButton.setIconTintResource(textAndIconResId);
+        mProfileButton.setBackgroundTintList(AppCompatResources.getColorStateList(getContext(),
+                backgroundTintResId));
     }
 
     protected int getBottomGapForRecyclerView(int bottomBarSize) {

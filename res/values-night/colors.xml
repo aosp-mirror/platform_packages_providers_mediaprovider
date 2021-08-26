@@ -28,7 +28,11 @@
     <color name="picker_toolbar_chip_text_color">#E8EAED</color>
     <color name="picker_toolbar_title_color">#FFFFFF</color>
     <color name="picker_message_text_color">#9AA0A6</color>
-    <color name="picker_profile_button_text_and_icon_color">#A8C7FA</color>
-    <color name="picker_profile_button_background">#1F1F1F</color>
+
+    <!-- PhotoPicker Profile Button -->
+    <color name="picker_profile_button_content_color">#A8C7FA</color>
+    <color name="picker_profile_button_background_color">#1F1F1F</color>
+    <color name="picker_profile_disabled_button_content_color">#E3E3E3</color>
+    <color name="picker_profile_disabled_button_background_color">#DADADA</color>
 
 </resources>

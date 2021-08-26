@@ -52,7 +52,8 @@ public class ExternalDbFacade {
                     "* 1000) AS " + "date_taken_ms",
         MediaColumns.SIZE + " AS " + "size_bytes",
         MediaColumns.MIME_TYPE + " AS " + "mime_type",
-        MediaColumns.DURATION + " AS " + "duration_ms"
+        MediaColumns.DURATION + " AS " + "duration_ms",
+        MediaColumns.IS_FAVORITE + " AS " + "is_favorite"
     };
     private static final String[] PROJECTION_MEDIA_INFO = new String[] {
         "COUNT(" + MediaColumns.GENERATION_MODIFIED + ")" + " AS " + "media_count",

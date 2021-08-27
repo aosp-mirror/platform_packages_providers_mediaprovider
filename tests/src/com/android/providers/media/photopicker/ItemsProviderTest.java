@@ -27,9 +27,11 @@ import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
@@ -582,7 +584,7 @@ public class ItemsProviderTest {
     }
 
     private void assertGetCategoriesMatchSingle(String expectedCategoryName,
-            int expectedNumberOfItems) {
+            int expectedNumberOfItems) throws Exception {
         if (expectedNumberOfItems == 0) {
             assertCategoriesNoMatch(expectedCategoryName);
             return;
@@ -597,12 +599,23 @@ public class ItemsProviderTest {
         final int nameColumnIndex = c.getColumnIndexOrThrow(Category.CategoryColumns.NAME);
         final int numOfItemsColumnIndex = c.getColumnIndexOrThrow(
                 Category.CategoryColumns.NUMBER_OF_ITEMS);
+        final int coverUriIndex = c.getColumnIndexOrThrow(Category.CategoryColumns.COVER_URI);
 
         final String categoryName = c.getString(nameColumnIndex);
         final int numOfItems = c.getInt(numOfItemsColumnIndex);
+        final Uri coverUri = Uri.parse(c.getString(coverUriIndex));
 
         assertThat(categoryName).isEqualTo(expectedCategoryName);
         assertThat(numOfItems).isEqualTo(expectedNumberOfItems);
+        assertCategoryUriIsValid(coverUri);
+    }
+
+    private void assertCategoryUriIsValid(Uri uri) throws Exception {
+        final AssetFileDescriptor fd1 = sIsolatedResolver.openTypedAssetFile(uri, "image/*", null,
+                null);
+        assertThat(fd1).isNotNull();
+        final ParcelFileDescriptor fd2 = sIsolatedResolver.openFileDescriptor(uri, "r");
+        assertThat(fd2).isNotNull();
     }
 
     private void assertCategoriesNoMatch(String expectedCategoryName) {

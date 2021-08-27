@@ -40,7 +40,6 @@ import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -84,7 +83,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_CAMERA}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_camera() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -105,7 +103,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_CAMERA}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_not_camera() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -125,7 +122,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_VIDEOS}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_videos() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -146,7 +142,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_VIDEOS}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_not_videos() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -166,7 +161,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_SCREENSHOTS}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_screenshots() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -187,7 +181,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_SCREENSHOTS}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_not_screenshots() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -207,7 +200,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_FAVORITES}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_favorites() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -228,7 +220,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_FAVORITES}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_not_favorites() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -248,7 +239,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_DOWNLOADS}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_downloads() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -269,7 +259,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_DOWNLOADS}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_not_downloads() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -289,7 +278,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_CAMERA} and {@link Category#CATEGORY_VIDEOS}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_camera_and_videos() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -312,7 +300,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_SCREENSHOTS} and {@link Category#CATEGORY_FAVORITES}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_screenshots_and_favorites() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -337,7 +324,6 @@ public class ItemsProviderTest {
      * {@link Category#CATEGORY_DOWNLOADS} and {@link Category#CATEGORY_FAVORITES}.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetCategories_downloads_and_favorites() throws Exception {
         Cursor c = sItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -362,7 +348,6 @@ public class ItemsProviderTest {
      * images and videos.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetItems() throws Exception {
         Cursor res = sItemsProvider.getItems(/* category */ null, /* offset */ 0,
                 /* limit */ -1, /* mimeType */ null, /* userId */ null);
@@ -395,7 +380,6 @@ public class ItemsProviderTest {
      * return hidden images/videos.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetItems_nonMedia() throws Exception {
         Cursor res = sItemsProvider.getItems(/* category */ null, /* offset */ 0,
                 /* limit */ -1, /* mimeType */ null, /* userId */ null);
@@ -427,7 +411,6 @@ public class ItemsProviderTest {
      * images and videos based on the mimeType. Image mimeType should only return images.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetItemsImages() throws Exception {
         Cursor res = sItemsProvider.getItems(/* category */ null, /* offset */ 0,
                 /* limit */ -1, /* mimeType */ "image/*", /* userId */ null);
@@ -460,7 +443,6 @@ public class ItemsProviderTest {
      * images and videos based on the mimeType. Image mimeType should only return images.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetItemsImages_png() throws Exception {
         Cursor res = sItemsProvider.getItems(/* category */ null, /* offset */ 0,
                 /* limit */ -1, /* mimeType */ "image/png", /* userId */ null);
@@ -486,7 +468,6 @@ public class ItemsProviderTest {
      * hidden images/videos.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetItemsImages_nonMedia() throws Exception {
         Cursor res = sItemsProvider.getItems(/* category */ null, /* offset */ 0,
                 /* limit */ -1, /* mimeType */ "image/*", /* userId */ null);
@@ -518,7 +499,6 @@ public class ItemsProviderTest {
      * images and videos based on the mimeType. Video mimeType should only return videos.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetItemsVideos() throws Exception {
         Cursor res = sItemsProvider.getItems(/* category */ null, /* offset */ 0,
                 /* limit */ -1,  /* mimeType */ "video/*", /* userId */ null);
@@ -551,7 +531,6 @@ public class ItemsProviderTest {
      * images and videos based on the mimeType. Image mimeType should only return images.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetItemsVideos_mp4() throws Exception {
         Cursor res = sItemsProvider.getItems(/* category */ null, /* offset */ 0,
                 /* limit */ -1, /* mimeType */ "video/mp4", /* userId */ null);
@@ -577,7 +556,6 @@ public class ItemsProviderTest {
      * hidden images/videos.
      */
     @Test
-    @Ignore("Re-enable the test once b/195114824 is fixed")
     public void testGetItemsVideos_nonMedia() throws Exception {
         Cursor res = sItemsProvider.getItems(/* category */ null, /* offset */ 0,
                 /* limit */ -1, /* mimeType */ "video/*", /* userId */ null);

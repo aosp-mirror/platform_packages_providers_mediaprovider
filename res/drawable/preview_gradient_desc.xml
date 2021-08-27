@@ -16,8 +16,8 @@
 
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient
-        android:startColor="@color/picker_item_gradient_color"
-        android:endColor="@android:color/transparent"
+        android:startColor="@color/preview_gradient_color_dark"
+        android:endColor="@color/preview_gradient_color_light"
         android:angle="270">
     </gradient>
 </shape>

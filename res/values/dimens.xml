@@ -65,6 +65,8 @@
     <!-- PhotoPicker Preview text -->
     <dimen name="preview_add_text_size">14sp</dimen>
     <dimen name="preview_deselect_text_size">16sp</dimen>
+    <dimen name="preview_toolbar_scrim_height">96dp</dimen>
+    <dimen name="preview_deselect_scrim_height">240dp</dimen>
     <!-- PhotoPicker Work Profile -->
     <dimen name="picker_profile_button_margin_bottom">32dp</dimen>
 </resources>

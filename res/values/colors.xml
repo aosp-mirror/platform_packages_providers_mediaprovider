@@ -30,8 +30,11 @@
     <color name="picker_toolbar_icon_color">#3C4043</color>
     <color name="picker_toolbar_chip_text_color">#5F6368</color>
     <color name="picker_toolbar_title_color">#3C4043</color>
-    <color name="photos_item_gradient_color">#42000000</color>
 
+    <!-- PhotoPicker gradient colors -->
+    <color name="picker_item_gradient_color">#42000000</color>
+    <color name="preview_gradient_color_light">@android:color/transparent</color>
+    <color name="preview_gradient_color_dark">#80202124</color>
 
     <!-- PhotoPicker Preview -->
     <color name="preview_default_blue">#8AB4F8</color>

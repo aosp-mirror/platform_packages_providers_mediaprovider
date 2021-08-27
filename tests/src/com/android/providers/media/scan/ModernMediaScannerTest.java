@@ -38,6 +38,7 @@ import static com.android.providers.media.util.FileUtils.isDirectoryHidden;
 import static com.android.providers.media.util.FileUtils.isFileHidden;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -384,7 +385,13 @@ public class ModernMediaScannerTest {
 
     private static void assertShouldScanPathAndIsPathHidden(boolean isScannable, boolean isHidden,
         File dir) {
-        assertEquals(Pair.create(isScannable, isHidden), shouldScanPathAndIsPathHidden(dir));
+        Pair<Boolean, Boolean> actual = shouldScanPathAndIsPathHidden(dir);
+        assertWithMessage("assert should scan for dir: " + dir.getAbsolutePath())
+            .that(actual.first)
+            .isEqualTo(isScannable);
+        assertWithMessage("assert is hidden for dir: " + dir.getAbsolutePath())
+            .that(actual.second)
+            .isEqualTo(isHidden);
     }
 
     @Test
@@ -421,12 +428,16 @@ public class ModernMediaScannerTest {
         final File nomediaFile = new File(dir, ".nomedia");
 
         if (!nomediaFile.getParentFile().exists()) {
-            assertTrue(nomediaFile.getParentFile().mkdirs());
+            assertWithMessage("cannot create dir: " + nomediaFile.getParentFile().getAbsolutePath())
+                .that(nomediaFile.getParentFile().mkdirs())
+                .isTrue();
         }
         try {
             if (!nomediaFile.exists()) {
                 executeShellCommand("touch " + nomediaFile.getAbsolutePath());
-                assertTrue(nomediaFile.exists());
+                assertWithMessage("cannot create nomedia file: " + nomediaFile.getAbsolutePath())
+                    .that(nomediaFile.exists())
+                    .isTrue();
             }
             assertShouldScanPathAndIsPathHidden(true, false, dir);
         } finally {

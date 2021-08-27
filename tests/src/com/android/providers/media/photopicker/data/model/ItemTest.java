@@ -22,6 +22,8 @@ import static com.google.common.truth.Truth.assertThat;
 
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.net.Uri;
+import android.os.UserHandle;
 import android.provider.MediaStore;
 
 import androidx.test.runner.AndroidJUnit4;
@@ -47,6 +49,32 @@ public class ItemTest {
         assertThat(item.getDateTaken()).isEqualTo(dateTaken);
         assertThat(item.getMimeType()).isEqualTo(mimeType);
         assertThat(item.getDuration()).isEqualTo(duration);
+        assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://media/external/file/1"));
+
+        assertThat(item.isMessage()).isFalse();
+        assertThat(item.isDate()).isFalse();
+        assertThat(item.isImage()).isTrue();
+        assertThat(item.isVideo()).isFalse();
+        assertThat(item.isGif()).isFalse();
+    }
+
+    @Test
+    public void testConstructor_differentUser() {
+        final String id = "1";
+        final long dateTaken = 12345678l;
+        final String mimeType = "image/png";
+        final long duration = 1000;
+        final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, duration);
+        cursor.moveToFirst();
+        final UserId userId = UserId.of(UserHandle.of(10));
+
+        final Item item = new Item(cursor, userId);
+
+        assertThat(item.getId()).isEqualTo(id);
+        assertThat(item.getDateTaken()).isEqualTo(dateTaken);
+        assertThat(item.getMimeType()).isEqualTo(mimeType);
+        assertThat(item.getDuration()).isEqualTo(duration);
+        assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://10@media/external/file/1"));
 
         assertThat(item.isMessage()).isFalse();
         assertThat(item.isDate()).isFalse();

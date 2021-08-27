@@ -946,7 +946,7 @@ public class MediaProvider extends ContentProvider {
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false,
                 Column.class, Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER,
                 mIdGenerator);
-        mExternalDbFacade = new ExternalDbFacade(mExternalDatabase);
+        mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase);
         mPickerDbFacade = new PickerDbFacade(context);
         mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
 
@@ -9767,8 +9767,8 @@ public class MediaProvider extends ContentProvider {
         return builder.build();
     }
 
-    public DatabaseHelper getExternalDatabaseHelper() {
-        return mExternalDatabase;
+    public ExternalDbFacade getExternalDbFacade() {
+        return mExternalDbFacade;
     }
 
     public PickerSyncController getPickerSyncController() {

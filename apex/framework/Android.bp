@@ -12,6 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+package {
+    // See: http://go/android-license-faq
+    // A large-scale-change added 'default_applicable_licenses' to import
+    // all of the 'license_kinds' from "packages_providers_MediaProvider_license"
+    // to get the below license kinds:
+    //   SPDX-license-identifier-Apache-2.0
+    default_applicable_licenses: ["packages_providers_MediaProvider_license"],
+}
+
 java_sdk_library {
     name: "framework-mediaprovider",
     defaults: ["framework-module-defaults"],
@@ -27,7 +36,8 @@ java_sdk_library {
     installable: true,
 
     libs: [
-        "framework_mediaprovider_annotation",
+        "androidx.annotation_annotation",
+        "framework-media.stubs.module_lib",
         "unsupportedappusage",
     ],
 
@@ -48,11 +58,4 @@ filegroup {
         "java/**/*.java",
     ],
     path: "java",
-}
-
-java_library {
-    name: "framework_mediaprovider_annotation",
-    srcs: [":framework-mediaprovider-annotation-sources"],
-    installable: false,
-    sdk_version: "core_current",
 }

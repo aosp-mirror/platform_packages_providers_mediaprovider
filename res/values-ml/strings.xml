@@ -21,7 +21,7 @@
     <string name="app_label" msgid="9035307001052716210">"മീഡിയ സ്റ്റോറേജ്"</string>
     <string name="artist_label" msgid="8105600993099120273">"ആർട്ടിസ്‌റ്റ്"</string>
     <string name="unknown" msgid="2059049215682829375">"അജ്ഞാതം"</string>
-    <string name="root_images" msgid="5861633549189045666">"Images"</string>
+    <string name="root_images" msgid="5861633549189045666">"ചിത്രങ്ങൾ"</string>
     <string name="root_videos" msgid="8792703517064649453">"വീഡിയോകൾ"</string>
     <string name="root_audio" msgid="3505830755201326018">"ഓഡിയോ"</string>
     <string name="root_documents" msgid="3829103301363849237">"ഡോക്യുമെന്റുകൾ"</string>

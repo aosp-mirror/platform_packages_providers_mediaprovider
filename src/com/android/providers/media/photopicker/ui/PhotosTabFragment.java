@@ -30,9 +30,11 @@ import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.android.providers.media.R;
 
+import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryType;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.util.LayoutModeUtils;
 
 import com.google.android.material.snackbar.Snackbar;
 
@@ -117,17 +119,18 @@ public class PhotosTabFragment extends TabFragment {
         super.onResume();
 
         if (mIsDefaultCategory) {
-            getActivity().setTitle(/* title= */ "");
+            ((PhotoPickerActivity) getActivity()).updateCommonLayouts(
+                    LayoutModeUtils.MODE_PHOTOS_TAB, /* title */ "");
             hideProfileButton(/* hide */ false);
         } else {
             hideProfileButton(/* hide */ true);
-            final String categoryName = Category.getCategoryName(getContext(), mCategoryType);
+            String categoryName = Category.getCategoryName(getContext(), mCategoryType);
 
             if (TextUtils.isEmpty(categoryName)) {
-                getActivity().setTitle(mCategoryName);
-            } else {
-                getActivity().setTitle(categoryName);
+                categoryName = mCategoryName;
             }
+            ((PhotoPickerActivity) getActivity()).updateCommonLayouts(
+                    LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB, categoryName);
         }
     }
 

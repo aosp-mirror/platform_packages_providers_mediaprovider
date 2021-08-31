@@ -101,8 +101,7 @@ public class ItemsProvider {
                     + "category: " + category);
         }
 
-        final String[] projection = ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]);
-        return query(projection, category, mimeType, offset, limit, userId);
+        return query(ItemColumns.PROJECTION, category, mimeType, offset, limit, userId);
     }
 
     /**
@@ -119,7 +118,7 @@ public class ItemsProvider {
      * @return {@link Cursor} for each category would contain the following columns in
      * their relative order:
      * categoryName: {@link CategoryColumns#NAME} The name of the category,
-     * categoryCoverUri: {@link CategoryColumns#COVER_URI} The Uri for the cover of
+     * categoryCoverId: {@link CategoryColumns#COVER_ID} The id for the cover of
      *                   the category. By default this will be the most recent image/video in that
      *                   category,
      * categoryNumberOfItems: {@link CategoryColumns#NUMBER_OF_ITEMS} number of image/video items
@@ -163,7 +162,7 @@ public class ItemsProvider {
 
         return new String[] {
                 category, // category name
-                getItemsUri(c.getString(0), /* authority */ null, userId).toString(), // coverUri
+                c.getString(0), // coverId
                 String.valueOf(c.getCount()), // item count
                 category // category type
         };

@@ -59,7 +59,7 @@ public class UnreliableVolumeTest {
     private static final long POLLING_SLEEP_MILLIS = 100;
     private static final String TAG = "UnreliableVolumeTest";
 
-    static final String UNRELIABLE_VOLUME_TABLE = "files";
+    static final String UNRELIABLE_VOLUME_TABLE = "media";
 
     private static final long SIZE_BYTES = 7000;
     private static final String DISPLAY_NAME = "first day of school";

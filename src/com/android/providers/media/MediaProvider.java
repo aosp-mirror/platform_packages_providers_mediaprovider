@@ -7102,6 +7102,11 @@ public class MediaProvider extends ContentProvider {
         return match == PICKER_ID;
     }
 
+    public boolean isPickerUnreliableVolumeUri(Uri uri, boolean allowHidden) {
+        final int match = matchUri(uri, allowHidden);
+        return match == PICKER_UNRELIABLE_VOLUME;
+    }
+
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
         return openFileCommon(uri, mode, /*signal*/ null, /*opts*/ null);
@@ -9529,6 +9534,7 @@ public class MediaProvider extends ContentProvider {
     static final int PICKER = 900;
     static final int PICKER_ID = 901;
     static final int PICKER_INTERNAL = 902;
+    static final int PICKER_UNRELIABLE_VOLUME = 903;
 
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
             Arrays.asList(AUDIO_MEDIA_ID, IMAGES_MEDIA_ID, VIDEO_MEDIA_ID, FILES_ID, DOWNLOADS_ID));
@@ -9579,6 +9585,8 @@ public class MediaProvider extends ContentProvider {
             mPublic.addURI(auth, "picker", PICKER);
             // content://media/picker/<user-id>/<media-id>
             mPublic.addURI(auth, "picker/#/#", PICKER_ID);
+            // content://media/picker/unreliable/<media_id>
+            mPublic.addURI(auth, "picker/unreliable/#", PICKER_UNRELIABLE_VOLUME);
 
             mPublic.addURI(auth, "*/images/media", IMAGES_MEDIA);
             mPublic.addURI(auth, "*/images/media/#", IMAGES_MEDIA_ID);

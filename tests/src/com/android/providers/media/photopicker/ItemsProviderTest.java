@@ -599,11 +599,12 @@ public class ItemsProviderTest {
         final int nameColumnIndex = c.getColumnIndexOrThrow(Category.CategoryColumns.NAME);
         final int numOfItemsColumnIndex = c.getColumnIndexOrThrow(
                 Category.CategoryColumns.NUMBER_OF_ITEMS);
-        final int coverUriIndex = c.getColumnIndexOrThrow(Category.CategoryColumns.COVER_URI);
+        final int coverIdIndex = c.getColumnIndexOrThrow(Category.CategoryColumns.COVER_ID);
 
         final String categoryName = c.getString(nameColumnIndex);
         final int numOfItems = c.getInt(numOfItemsColumnIndex);
-        final Uri coverUri = Uri.parse(c.getString(coverUriIndex));
+        final Uri coverUri = ItemsProvider.getItemsUri(c.getString(coverIdIndex),
+                /* authority */ null, UserId.CURRENT_USER);
 
         assertThat(categoryName).isEqualTo(expectedCategoryName);
         assertThat(numOfItems).isEqualTo(expectedNumberOfItems);

@@ -35,6 +35,8 @@ import android.net.Uri;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.photopicker.data.ItemsProvider;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -47,17 +49,18 @@ public class CategoryTest {
     public void testConstructor() {
         final int itemCount = 10;
         final String categoryName = "Album";
-        final Uri coverUri = Uri.parse("fakeCoverUri");
+        final String coverId = "52";
         final String categoryType = CATEGORY_SCREENSHOTS;
-        final Cursor cursor = generateCursorForCategory(categoryName, coverUri, itemCount,
+        final Cursor cursor = generateCursorForCategory(categoryName, coverId, itemCount,
                 categoryType);
         cursor.moveToFirst();
 
-        final Category category = new Category(cursor);
+        final Category category = new Category(cursor, UserId.CURRENT_USER);
 
         assertThat(category.getCategoryName(/* context= */ null)).isEqualTo(categoryName);
         assertThat(category.getItemCount()).isEqualTo(itemCount);
-        assertThat(category.getCoverUri()).isEqualTo(coverUri);
+        assertThat(category.getCoverUri()).isEqualTo(ItemsProvider.getItemsUri(coverId,
+                        /* authority */ null, UserId.CURRENT_USER));
         assertThat(category.getCategoryType()).isEqualTo(categoryType);
     }
 
@@ -131,10 +134,10 @@ public class CategoryTest {
         assertThat(categoryList.get(4)).isEqualTo(CATEGORY_DOWNLOADS);
     }
 
-    private static Cursor generateCursorForCategory(String categoryName, Uri coverUri,
+    private static Cursor generateCursorForCategory(String categoryName, String coverId,
             int itemCount, @CategoryType String categoryType) {
         final MatrixCursor cursor = new MatrixCursor(CategoryColumns.getAllColumns());
-        cursor.addRow(new Object[] {categoryName, coverUri, itemCount, categoryType});
+        cursor.addRow(new Object[] {categoryName, coverId, itemCount, categoryType});
         return cursor;
     }
 }

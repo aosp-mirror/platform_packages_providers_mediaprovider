@@ -95,15 +95,15 @@ public class PickerDbFacade {
     // Note that hidden cloud+local items will not be returned in the query, so there's no concern
     // of preferring the cloud_id in a cloud+local item over the local_id in a local-only item.
     private static final String PROJECTION_ID = String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
-            KEY_LOCAL_ID, Item.ItemColumns.ID);
+            KEY_LOCAL_ID, CloudMediaProviderContract.MediaColumns.ID);
     private static final String PROJECTION_DATE_TAKEN = String.format("%s AS %s", KEY_DATE_TAKEN_MS,
-            Item.ItemColumns.DATE_TAKEN);
+            CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS);
     private static final String PROJECTION_SIZE = String.format("%s AS %s", KEY_SIZE_BYTES,
-            Item.ItemColumns.SIZE);
+            CloudMediaProviderContract.MediaColumns.SIZE_BYTES);
     private static final String PROJECTION_DURATION = String.format("%s AS %s", KEY_DURATION_MS,
-            Item.ItemColumns.DURATION);
+            CloudMediaProviderContract.MediaColumns.DURATION_MS);
     private static final String PROJECTION_MIME_TYPE = String.format("%s AS %s", KEY_MIME_TYPE,
-            Item.ItemColumns.MIME_TYPE);
+            CloudMediaProviderContract.MediaColumns.MIME_TYPE);
 
     private static final String WHERE_ID = KEY_ID + " = ?";
     private static final String WHERE_LOCAL_ID = KEY_LOCAL_ID + " = ?";
@@ -547,10 +547,12 @@ public class PickerDbFacade {
 
     private String getProjectionAuthorityLocked() {
         if (mCloudProvider == null) {
-            return String.format("'%s' AS %s", mLocalProvider, Item.ItemColumns.AUTHORITY);
+            return String.format("'%s' AS %s", mLocalProvider,
+                    CloudMediaProviderContract.MediaColumns.AUTHORITY);
         }
         return String.format("IIF(%s IS NULL, '%s', '%s') AS %s",
-                KEY_CLOUD_ID, mLocalProvider, mCloudProvider, Item.ItemColumns.AUTHORITY);
+                KEY_CLOUD_ID, mLocalProvider, mCloudProvider,
+                CloudMediaProviderContract.MediaColumns.AUTHORITY);
     }
 
     private static ContentValues cursorToContentValue(Cursor cursor, boolean isLocal) {

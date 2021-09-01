@@ -151,8 +151,7 @@ public class ItemTest {
 
     private static Cursor generateCursorForItem(String id, String mimeType, long dateTaken,
             long duration) {
-        final MatrixCursor cursor = new MatrixCursor(
-                ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]));
+        final MatrixCursor cursor = new MatrixCursor(ItemColumns.ALL_COLUMNS);
         cursor.addRow(new Object[] {id, mimeType, dateTaken, /* dateModified */ dateTaken,
                 duration});
         return cursor;

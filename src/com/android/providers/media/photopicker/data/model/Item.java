@@ -21,6 +21,7 @@ import static com.android.providers.media.photopicker.util.CursorUtils.getCursor
 
 import android.database.Cursor;
 import android.net.Uri;
+import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
@@ -41,23 +42,31 @@ import java.util.List;
 public class Item {
 
     public static class ItemColumns {
-        public static String ID = MediaStore.MediaColumns._ID;
-        public static String MIME_TYPE = MediaStore.MediaColumns.MIME_TYPE;
-        public static String DATE_TAKEN = MediaStore.MediaColumns.DATE_TAKEN;
+        public static String ID = CloudMediaProviderContract.MediaColumns.ID;
+        public static String MIME_TYPE = CloudMediaProviderContract.MediaColumns.MIME_TYPE;
+        public static String DATE_TAKEN = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS;
+        // TODO(b/195009139): Remove after fully switching to picker db
         public static String DATE_MODIFIED = MediaStore.MediaColumns.DATE_MODIFIED;
-        public static String DURATION = MediaStore.MediaColumns.DURATION;
-        public static String SIZE = MediaStore.MediaColumns.SIZE;
-        public static String AUTHORITY = "authority";
+        public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MS;
+        public static String SIZE = CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
+        public static String AUTHORITY = CloudMediaProviderContract.MediaColumns.AUTHORITY;
 
-        private static final String[] ALL_COLUMNS = {
+        public static final String[] ALL_COLUMNS = {
                 ID,
                 MIME_TYPE,
                 DATE_TAKEN,
                 DATE_MODIFIED,
                 DURATION,
         };
-        public static List<String> ALL_COLUMNS_LIST = Collections.unmodifiableList(
-                Arrays.asList(ALL_COLUMNS));
+
+        // TODO(b/195009139): Remove after fully switching to picker db
+        public static final String[] PROJECTION = {
+            MediaStore.MediaColumns._ID + " AS " + ID,
+            MediaStore.MediaColumns.MIME_TYPE + " AS " + MIME_TYPE,
+            MediaStore.MediaColumns.DATE_TAKEN + " AS " + DATE_TAKEN,
+            MediaStore.MediaColumns.DATE_MODIFIED + " AS " + DATE_MODIFIED,
+            MediaStore.MediaColumns.DURATION +  " AS " + DURATION,
+        };
     }
 
     private static final String MIME_TYPE_GIF = "image/gif";

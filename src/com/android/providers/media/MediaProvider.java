@@ -193,6 +193,7 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
@@ -201,7 +202,6 @@ import com.android.providers.media.metrics.PulledMetrics;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
-import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -242,6 +242,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -5551,7 +5553,15 @@ public class MediaProvider extends ContentProvider {
             }
             case MediaStore.WAIT_FOR_IDLE_CALL: {
                 ForegroundThread.waitForIdle();
-                BackgroundThread.waitForIdle();
+                final CountDownLatch latch = new CountDownLatch(1);
+                BackgroundThread.getExecutor().execute(() -> {
+                    latch.countDown();
+                });
+                try {
+                    latch.await(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    throw new IllegalStateException(e);
+                }
                 return null;
             }
             case MediaStore.SCAN_FILE_CALL:

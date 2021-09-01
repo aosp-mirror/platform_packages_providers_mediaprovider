@@ -26,8 +26,8 @@ import android.util.StatsEvent;
 
 import androidx.annotation.NonNull;
 
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.fuse.FuseDaemon;
-import com.android.providers.media.util.BackgroundThread;
 
 import java.util.List;
 

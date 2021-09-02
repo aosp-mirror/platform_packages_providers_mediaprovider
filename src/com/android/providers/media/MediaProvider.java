@@ -2109,12 +2109,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (retryUpdateWithReplace) {
-            // We are replacing file in newPath with file in oldPath. If calling package has
-            // write permission for newPath, delete existing database entry and retry update.
-            final Uri uriNewPath = FileUtils.getContentUriForPath(oldPath);
-            final SQLiteQueryBuilder qbForDelete = getQueryBuilder(TYPE_DELETE,
-                    matchUri(uriNewPath, allowHidden), uriNewPath, qbExtras, null);
-            if (qbForDelete.delete(helper, selection, new String[] {newPath}) == 1) {
+            if (deleteForFuseRename(helper, oldPath, newPath, qbExtras, selection, allowHidden)) {
                 Log.i(TAG, "Retrying database update after deleting conflicting entry");
                 count = qbForUpdate.update(helper, values, selection, new String[]{oldPath});
             } else {
@@ -2122,6 +2117,30 @@ public class MediaProvider extends ContentProvider {
             }
         }
         return count == 1;
+    }
+
+    private boolean deleteForFuseRename(DatabaseHelper helper, String oldPath,
+            String newPath, Bundle qbExtras, String selection, boolean allowHidden) {
+        // We are replacing file in newPath with file in oldPath. If calling package has
+        // write permission for newPath, delete existing database entry and retry update.
+        final Uri uriNewPath = FileUtils.getContentUriForPath(oldPath);
+        final SQLiteQueryBuilder qbForDelete = getQueryBuilder(TYPE_DELETE,
+                matchUri(uriNewPath, allowHidden), uriNewPath, qbExtras, null);
+        if (qbForDelete.delete(helper, selection, new String[] {newPath}) == 1) {
+            return true;
+        }
+        // Check if delete can be done using other URI grants
+        final String[] projection = new String[] {
+                FileColumns.MEDIA_TYPE,
+                FileColumns.DATA,
+                FileColumns._ID,
+                FileColumns.IS_DOWNLOAD,
+                FileColumns.MIME_TYPE,
+        };
+        return
+            deleteWithOtherUriGrants(
+                    FileUtils.getContentUriForPath(newPath),
+                    helper, projection, selection, new String[] {newPath}, qbExtras) == 1;
     }
 
     /**

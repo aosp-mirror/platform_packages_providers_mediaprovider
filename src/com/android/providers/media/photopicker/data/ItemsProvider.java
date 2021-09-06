@@ -26,18 +26,20 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.RemoteException;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.util.Log;
 
 import com.android.providers.media.PickerUriResolver;
-import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryColumns;
 import com.android.providers.media.photopicker.data.model.Item.ItemColumns;
 import com.android.providers.media.photopicker.data.model.UserId;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -48,6 +50,7 @@ public class ItemsProvider {
     private static final String IMAGES_VIDEOS_WHERE_CLAUSE = "( " +
             FileColumns.MEDIA_TYPE + " = " + FileColumns.MEDIA_TYPE_IMAGE + " OR "
             + FileColumns.MEDIA_TYPE + " = " + FileColumns.MEDIA_TYPE_VIDEO + " )";
+    private static final String TAG = ItemsProvider.class.getSimpleName();
 
     private final Context mContext;
 
@@ -196,6 +199,15 @@ public class ItemsProvider {
     private Cursor queryMediaStore(@NonNull String[] projection,
             @Nullable String selection, @Nullable String[] selectionArgs, int offset,
             int limit, @NonNull UserId userId) throws IllegalStateException {
+
+        if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            // If external storage is not ready, we can't load any items from MediaStore.
+            // This shouldn't happen in real world use case. This may happen in tests because test
+            // instrumentation kills the target package before starting the test.
+            Log.w(TAG, "Couldn't query items because external storage is not ready");
+            return null;
+        }
+
         final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
@@ -213,10 +225,14 @@ public class ItemsProvider {
             }
 
             return client.query(contentUri, projection, extras, null);
-        } catch (RemoteException ignored) {
+        } catch (RemoteException e) {
             // Do nothing, return null.
+            Log.e(TAG, "RemoteException while querying MediaStore for items with"
+                    + " selection = " + selection
+                    + " selectionArgs = " + Arrays.toString(selectionArgs)
+                    + " limit = " + limit + " offset = " + offset + " userId = " + userId, e);
+            return null;
         }
-        return null;
     }
 
     @Nullable
@@ -230,10 +246,13 @@ public class ItemsProvider {
 
             return client.query(PickerUriResolver.PICKER_INTERNAL_URI, /* projection */ null,
                     extras, /* cancellationSignal */ null);
-        } catch (RemoteException ignored) {
+        } catch (RemoteException e) {
             // Do nothing, return null.
+            Log.e(TAG, "RemoteException while querying picker database for items with"
+                            + " mimeType filter = " + mimeType
+                            + " limit = " + limit + " userId = " + userId, e);
+            return null;
         }
-        return null;
     }
 
     private static String replaceMatchAnyChar(@NonNull String mimeType) {

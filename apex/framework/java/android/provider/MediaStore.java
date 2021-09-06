@@ -218,6 +218,8 @@ public final class MediaStore {
     public static final String GET_REDACTED_MEDIA_URI_LIST_CALL = "get_redacted_media_uri_list";
     /** {@hide} */
     public static final String EXTRA_URI_LIST = "uri_list";
+    /** {@hide} */
+    public static final String QUERY_ARG_REDACTED_URI = "android:query-arg-redacted-uri";
 
     /** {@hide} */
     public static final String EXTRA_URI = "uri";
@@ -275,7 +277,13 @@ public final class MediaStore {
     /** {@hide} */
     public static final String PARAM_LIMIT = "limit";
 
-    private static final int DEFAULT_USER_ID = UserHandle.myUserId();
+    /** {@hide} */
+    private static final int MY_USER_ID = UserHandle.myUserId();
+    /** {@hide} */
+    public static final int MY_UID = android.os.Process.myUid();
+    // Stolen from: UserHandle#getUserId
+    /** {@hide} */
+    public static final int PER_USER_RANGE = 100000;
 
     /**
      * Activity Action: Launch a music player.
@@ -4317,7 +4325,7 @@ public final class MediaStore {
 
     private static int getUserIdFromUri(Uri uri) {
         final String userId = uri.getUserInfo();
-        return userId == null ? DEFAULT_USER_ID : Integer.parseInt(userId);
+        return userId == null ? MY_USER_ID : Integer.parseInt(userId);
     }
 
     private static Uri maybeAddUserId(@NonNull Uri uri, String userId) {

@@ -16,6 +16,7 @@
 
 package com.android.providers.media.util;
 
+import static com.android.providers.media.util.SyntheticPathUtils.extractSyntheticRelativePathSegements;
 import static com.android.providers.media.util.SyntheticPathUtils.getPickerRelativePath;
 import static com.android.providers.media.util.SyntheticPathUtils.getRedactedRelativePath;
 import static com.android.providers.media.util.SyntheticPathUtils.getSyntheticRelativePath;
@@ -105,5 +106,33 @@ public class SyntheticPathUtilsTest {
                 .isFalse();
         assertThat(isPickerPath("/storage/emulated/0/synthetic/picker/foo", /* userId */ 0))
                 .isFalse();
+    }
+
+    @Test
+    public void testExtractSyntheticRelativePathSegments() throws Exception {
+        assertThat(extractSyntheticRelativePathSegements(
+                        "/storage/emulated/10/.transforms/synthetic/picker",
+                        /* userId */ 0)).isEmpty();
+        assertThat(extractSyntheticRelativePathSegements(
+                        "/storage/emulated/0/.transforms/synthetic",
+                        /* userId */ 0)).isEmpty();
+
+        assertThat(extractSyntheticRelativePathSegements(
+                        "/storage/emulated/0/.transforms/synthetic/picker",
+                        /* userId */ 0)).containsExactly("picker").inOrder();
+        assertThat(extractSyntheticRelativePathSegements(
+                        "/storage/emulated/0/.transforms/synthetic/picker/",
+                        /* userId */ 0)).containsExactly("picker").inOrder();
+
+        assertThat(extractSyntheticRelativePathSegements(
+                        "/storage/emulated/0/.transforms/synthetic/picker/foo",
+                        /* userId */ 0)).containsExactly("picker", "foo").inOrder();
+        assertThat(extractSyntheticRelativePathSegements(
+                        "/storage/emulated/0/.transforms/synthetic/picker//foo/",
+                        /* userId */ 0)).containsExactly("picker", "foo").inOrder();
+
+        assertThat(extractSyntheticRelativePathSegements(
+                        "/storage/emulated/0/.transforms/synthetic/picker/foo/com.bar",
+                        /* userId */ 0)).containsExactly("picker", "foo", "com.bar").inOrder();
     }
 }

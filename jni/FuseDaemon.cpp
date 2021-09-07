@@ -496,13 +496,13 @@ static std::unique_ptr<mediaprovider::fuse::FileLookupResult> validate_node_path
     if (!file_lookup_result) {
         // Fail lookup if we can't fetch FileLookupResult for path
         LOG(WARNING) << "Failed to fetch FileLookupResult for " << path;
-        *error_code = ENOENT;
+        *error_code = EFAULT;
         return nullptr;
     }
 
     const string& io_path = file_lookup_result->io_path;
-    // Update size with io_path size if io_path is not same as path
-    if (!io_path.empty() && (io_path != path) && (lstat(io_path.c_str(), &e->attr) < 0)) {
+    // Update size with io_path iff there's an io_path
+    if (!io_path.empty() && (lstat(io_path.c_str(), &e->attr) < 0)) {
         *error_code = errno;
         return nullptr;
     }

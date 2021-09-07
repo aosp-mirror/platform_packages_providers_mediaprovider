@@ -38,13 +38,18 @@ namespace fuse {
 
 /** Represents file open result from MediaProvider */
 struct FileOpenResult {
-    FileOpenResult(const int status, const int uid, uid_t transforms_uid,
+    FileOpenResult(const int status, const int uid, const uid_t transforms_uid, const int fd,
                    const RedactionInfo* redaction_info)
-        : status(status), uid(uid), transforms_uid(transforms_uid), redaction_info(redaction_info) {}
+        : status(status),
+          uid(uid),
+          transforms_uid(transforms_uid),
+          fd(fd),
+          redaction_info(redaction_info) {}
 
     const int status;
     const int uid;
     const uid_t transforms_uid;
+    const int fd;
     std::unique_ptr<const RedactionInfo> redaction_info;
 };
 
@@ -280,6 +285,7 @@ class MediaProviderWrapper final {
     jfieldID fid_file_open_uid_;
     jfieldID fid_file_open_transforms_uid_;
     jfieldID fid_file_open_redaction_ranges_;
+    jfieldID fid_file_open_fd_;
 
     /**
      * Auxiliary for caching MediaProvider methods.

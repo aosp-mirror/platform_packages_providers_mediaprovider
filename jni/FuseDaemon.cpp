@@ -1317,10 +1317,16 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    const int fd = open(io_path.c_str(), open_info.flags);
-    if (fd < 0) {
-        fuse_reply_err(req, errno);
-        return;
+    int fd = -1;
+    if (result->fd >= 0) {
+        fd = result->fd;
+        TRACE_NODE(node, req) << "opened in Java";
+    } else {
+        fd = open(io_path.c_str(), open_info.flags);
+        if (fd < 0) {
+            fuse_reply_err(req, errno);
+            return;
+        }
     }
 
     int keep_cache = 1;

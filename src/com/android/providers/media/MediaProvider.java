@@ -86,8 +86,11 @@ import static com.android.providers.media.util.FileUtils.isObbOrChildPath;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_PREFIX;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
+import static com.android.providers.media.util.SyntheticPathUtils.createSparseFile;
+import static com.android.providers.media.util.SyntheticPathUtils.extractSyntheticRelativePathSegements;
 import static com.android.providers.media.util.SyntheticPathUtils.getPickerRelativePath;
 import static com.android.providers.media.util.SyntheticPathUtils.getRedactedRelativePath;
+import static com.android.providers.media.util.SyntheticPathUtils.isPickerPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isRedactedPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isSyntheticPath;
 import static com.android.providers.media.util.Logging.LOGV;
@@ -163,6 +166,7 @@ import android.os.storage.StorageManager.StorageVolumeCallback;
 import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
+import android.provider.CloudMediaProviderContract;
 import android.provider.Column;
 import android.provider.DeviceConfig;
 import android.provider.DeviceConfig.OnPropertiesChangedListener;
@@ -284,6 +288,9 @@ public class MediaProvider extends ContentProvider {
 
     /** File access by uid is a synthetic path corresponding to a redacted URI */
     private static final int FLAG_TRANSFORM_REDACTION = 1 << 1;
+
+    /** File access by uid is a synthetic path corresponding to a picker URI */
+    private static final int FLAG_TRANSFORM_PICKER = 1 << 2;
 
     /**
      * These directory names aren't declared in Environment as final variables, and so we need to
@@ -1537,40 +1544,54 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public FileLookupResult onFileLookupForFuse(String path, int uid, int tid) {
         uid = getBinderUidForFuse(uid, tid);
-        if (isSyntheticPath(path, uidToUserId(uid))) {
-            return getFileLookupResultsForRedactedUriPath(uid, path);
+        final int userId = uidToUserId(uid);
+
+        if (isSyntheticPath(path, userId)) {
+            if (isRedactedPath(path, userId)) {
+                return handleRedactedFileLookup(uid, path);
+            } else if (isPickerPath(path, userId)) {
+                return handlePickerFileLookup(userId, uid, path);
+            }
+
+            throw new IllegalStateException("Unexpected synthetic path: " + path);
         }
 
-        String ioPath = "";
-        boolean transformsComplete = true;
-        boolean transformsSupported = mTranscodeHelper.supportsTranscode(path);
-        int transforms = 0;
-        int transformsReason = 0;
-
-        if (transformsSupported) {
-            PendingOpenInfo info = null;
-            synchronized (mPendingOpenInfo) {
-                info = mPendingOpenInfo.get(tid);
-            }
-
-            if (info != null && info.uid == uid) {
-                transformsReason = info.transcodeReason;
-            } else {
-                transformsReason = mTranscodeHelper.shouldTranscode(path, uid, null /* bundle */);
-            }
-
-            if (transformsReason > 0) {
-                ioPath = mTranscodeHelper.getIoPath(path, uid);
-                transformsComplete = mTranscodeHelper.isTranscodeFileCached(path, ioPath);
-                transforms = FLAG_TRANSFORM_TRANSCODING;
-            }
+        if (mTranscodeHelper.supportsTranscode(path)) {
+            return handleTranscodedFileLookup(path, uid, tid);
         }
 
-        return new FileLookupResult(transforms, transformsReason, uid, transformsComplete,
-                transformsSupported, ioPath);
+        return new FileLookupResult(/* transforms */ 0, uid, /* ioPath */ "");
     }
 
-    private FileLookupResult getFileLookupResultsForRedactedUriPath(int uid, @NonNull String path) {
+    private FileLookupResult handleTranscodedFileLookup(String path, int uid, int tid) {
+        String ioPath = "";
+        boolean transformsComplete = true;
+        int transformsReason = 0;
+
+        PendingOpenInfo info = null;
+        synchronized (mPendingOpenInfo) {
+            info = mPendingOpenInfo.get(tid);
+        }
+
+        if (info != null && info.uid == uid) {
+            transformsReason = info.transcodeReason;
+        } else {
+            transformsReason = mTranscodeHelper.shouldTranscode(path, uid, null /* bundle */);
+        }
+
+        if (transformsReason > 0) {
+            ioPath = mTranscodeHelper.getIoPath(path, uid);
+            transformsComplete = mTranscodeHelper.isTranscodeFileCached(path, ioPath);
+
+            final long maxFileSize = (long) (new File(path).length() * 2);
+            createSparseFile(new File(ioPath), maxFileSize);
+        }
+
+        return new FileLookupResult(FLAG_TRANSFORM_TRANSCODING, transformsReason, uid,
+                transformsComplete, /* transformsSupported */ true, ioPath);
+    }
+
+    private FileLookupResult handleRedactedFileLookup(int uid, @NonNull String path) {
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         final String fileName = extractFileName(path);
 
@@ -1585,15 +1606,82 @@ public class MediaProvider extends ContentProvider {
                 (db) -> db.query("files", new String[]{MediaColumns.DATA},
                         FileColumns.REDACTED_URI_ID + "=?", new String[]{fileName}, null, null,
                         null))) {
-            if (!c.moveToFirst()) {
-                return new FileLookupResult(FLAG_TRANSFORM_REDACTION, 0, uid, false, true, null);
+            if (c.moveToFirst()) {
+                return new FileLookupResult(FLAG_TRANSFORM_REDACTION, uid, c.getString(0));
             }
 
-            return new FileLookupResult(FLAG_TRANSFORM_REDACTION, 0, uid, true, true,
-                    c.getString(0));
+            throw new IllegalStateException("Failed to fetch synthetic redacted path: " + path);
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    private FileLookupResult handlePickerFileLookup(int userId, int uid, @NonNull String path) {
+        final File file = new File(path);
+        final List<String> syntheticRelativePathSegments =
+                extractSyntheticRelativePathSegements(path, userId);
+        final int segmentCount = syntheticRelativePathSegments.size();
+
+        if (segmentCount < 1 || segmentCount > 4) {
+            throw new IllegalStateException("Unexpected synthetic picker path: " + file);
+        }
+
+        final String lastSegment = syntheticRelativePathSegments.get(segmentCount - 1);
+
+        boolean result = false;
+        switch (segmentCount) {
+            case 1:
+                // .../picker
+                if (lastSegment.equals("picker")) {
+                    result = file.exists() || file.mkdir();
+                }
+                break;
+            case 2:
+                // .../picker/<authority>
+                result = preparePickerAuthorityPathSegment(file, lastSegment, uid);
+                break;
+            case 3:
+                // .../picker/<authority>/media
+                if (lastSegment.equals("media")) {
+                    result = file.exists() || file.mkdir();
+                }
+                break;
+            case 4:
+                // .../picker/<authority>/media/<media-id.extension>
+                final String authority = syntheticRelativePathSegments.get(1);
+                result = preparePickerMediaIdPathSegment(file, authority, lastSegment);
+                break;
+        }
+
+        if (result) {
+            return new FileLookupResult(FLAG_TRANSFORM_PICKER, uid, path);
+        }
+        throw new IllegalStateException("Failed to prepare synthetic picker path: " + file);
+    }
+
+    private boolean preparePickerAuthorityPathSegment(File file, String authority, int uid) {
+        if (mPickerSyncController.isProviderEnabled(authority)) {
+            return file.mkdir();
+        }
+
+        return false;
+    }
+
+    private boolean preparePickerMediaIdPathSegment(File file, String authority, String fileName) {
+        final String mediaId = extractFileName(fileName);
+
+        try (Cursor cursor = mPickerDbFacade.queryMediaId(authority, mediaId)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                final int sizeBytesIdx = cursor.getColumnIndex(
+                        CloudMediaProviderContract.MediaColumns.SIZE_BYTES);
+
+                if (sizeBytesIdx != -1) {
+                    return createSparseFile(file, cursor.getLong(sizeBytesIdx));
+                }
+            }
+        }
+
+        return false;
     }
 
     public int getBinderUidForFuse(int uid, int tid) {

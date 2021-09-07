@@ -238,12 +238,21 @@ public class PickerSyncController {
     }
 
     public String getCloudProvider() {
-        return mCloudProvider;
+        synchronized (mLock) {
+            return mCloudProvider;
+        }
     }
 
     public String getLocalProvider() {
         return mLocalProvider;
     }
+
+    public boolean isProviderEnabled(String authority) {
+        synchronized (mLock) {
+            return authority.equals(mLocalProvider) || authority.equals(mCloudProvider);
+        }
+    }
+
 
     /**
      * Notifies about media events like inserts/updates/deletes from cloud and local providers and

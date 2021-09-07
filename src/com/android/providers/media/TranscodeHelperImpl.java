@@ -105,7 +105,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.time.LocalDateTime;
@@ -547,17 +546,6 @@ public class TranscodeHelperImpl implements TranscodeHelper {
             // The transcode file doesn't exist but db row is marked as TRANSCODE_COMPLETE,
             // update db row to TRANSCODE_EMPTY so that cache state remains valid.
             updateTranscodeStatus(path, TRANSCODE_EMPTY);
-        }
-
-        final File file = new File(path);
-        long maxFileSize = (long) (file.length() * 2);
-        mTranscodeDirectory.mkdirs();
-        try (RandomAccessFile raf = new RandomAccessFile(transcodeFile, "rw")) {
-            raf.setLength(maxFileSize);
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to initialise transcoding for file " + path, e);
-            transcodeFile.delete();
-            return transcodePath;
         }
 
         return transcodePath;

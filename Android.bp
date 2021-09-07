@@ -21,6 +21,7 @@ android_app {
     manifest: "AndroidManifest.xml",
 
     static_libs: [
+        "modules-utils-backgroundthread",
         "androidx.appcompat_appcompat",
         "androidx.core_core",
         "guava",
@@ -87,7 +88,6 @@ filegroup {
     srcs: [
         "src/**/*.aidl",
         "src/**/*.java",
-        ":mediaprovider-database-sources",
         ":statslog-mediaprovider-java-gen",
     ],
 }
@@ -95,18 +95,28 @@ filegroup {
 // This is defined to give LegacyMediaProvider the bare minimum it needs
 // to keep the legacy database schema working while also building
 // against "system_current"
-filegroup {
-    name: "mediaprovider-database-sources",
+java_library {
+    name: "mediaprovider-database",
     srcs: [
         "src/com/android/providers/media/DatabaseHelper.java",
-        "src/com/android/providers/media/util/BackgroundThread.java",
         "src/com/android/providers/media/util/DatabaseUtils.java",
         "src/com/android/providers/media/util/FileUtils.java",
         "src/com/android/providers/media/util/ForegroundThread.java",
-        "src/com/android/providers/media/util/HandlerExecutor.java",
         "src/com/android/providers/media/util/Logging.java",
         "src/com/android/providers/media/util/MimeUtils.java",
         "src/com/android/providers/media/playlist/*.java",
+    ],
+    sdk_version: "module_current",
+    min_sdk_version: "30",
+    static_libs: [
+        "modules-utils-backgroundthread",
+        "modules-utils-build",
+        "guava",
+    ],
+    libs: [
+        "androidx.annotation_annotation",
+        "framework-annotations-lib",
+        "framework-mediaprovider",
     ],
 }
 

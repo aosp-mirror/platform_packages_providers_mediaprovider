@@ -119,6 +119,7 @@ android_test {
 
     static_libs: [
         "androidx.appcompat_appcompat",
+        "modules-utils-backgroundthread",
         "androidx.core_core",
         "androidx.test.rules",
         "guava",

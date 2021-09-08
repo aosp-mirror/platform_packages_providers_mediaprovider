@@ -36,6 +36,7 @@ public class UnreliableVolumeDatabaseHelper extends SQLiteOpenHelper implements 
 
     public static final class MediaColumns {
         private MediaColumns() {}
+        public static final String _ID = "_id";
         public static final String DISPLAY_NAME = "display_name";
         public static final String _DATA = "_data";
         public static final String DATE_MODIFIED = "date_modified";
@@ -96,7 +97,7 @@ public class UnreliableVolumeDatabaseHelper extends SQLiteOpenHelper implements 
     private void createSchema(SQLiteDatabase db) {
         makePristineSchema(db);
 
-        db.execSQL("CREATE TABLE files (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        db.execSQL("CREATE TABLE media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "date_modified INTEGER NOT NULL CHECK(date_modified >= 0),"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "display_name TEXT NOT NULL,"
@@ -107,10 +108,10 @@ public class UnreliableVolumeDatabaseHelper extends SQLiteOpenHelper implements 
     private void createIndexes(SQLiteDatabase db) {
         makePristineIndexes(db);
 
-        db.execSQL("CREATE INDEX path_index on files(_data)");
-        db.execSQL("CREATE INDEX display_name_index on files(display_name)");
-        db.execSQL("CREATE INDEX date_modified_index on files(date_modified)");
-        db.execSQL("CREATE INDEX size_index on files(size_bytes)");
-        db.execSQL("CREATE INDEX mime_type_index on files(mime_type)");
+        db.execSQL("CREATE INDEX path_index on media(_data)");
+        db.execSQL("CREATE INDEX display_name_index on media(display_name)");
+        db.execSQL("CREATE INDEX date_modified_index on media(date_modified)");
+        db.execSQL("CREATE INDEX size_index on media(size_bytes)");
+        db.execSQL("CREATE INDEX mime_type_index on media(mime_type)");
     }
 }

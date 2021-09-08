@@ -51,7 +51,6 @@ public class ItemTest {
         assertThat(item.getDuration()).isEqualTo(duration);
         assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://media/external/file/1"));
 
-        assertThat(item.isMessage()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isTrue();
         assertThat(item.isVideo()).isFalse();
@@ -76,7 +75,6 @@ public class ItemTest {
         assertThat(item.getDuration()).isEqualTo(duration);
         assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://10@media/external/file/1"));
 
-        assertThat(item.isMessage()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isTrue();
         assertThat(item.isVideo()).isFalse();
@@ -92,7 +90,6 @@ public class ItemTest {
         final Item item = generateItem(id, mimeType, dateTaken, duration);
 
         assertThat(item.isImage()).isTrue();
-        assertThat(item.isMessage()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
         assertThat(item.isGif()).isFalse();
@@ -107,7 +104,6 @@ public class ItemTest {
         final Item item = generateItem(id, mimeType, dateTaken, duration);
 
         assertThat(item.isVideo()).isTrue();
-        assertThat(item.isMessage()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isFalse();
         assertThat(item.isGif()).isFalse();
@@ -122,7 +118,6 @@ public class ItemTest {
         final Item item = generateItem(id, mimeType, dateTaken, duration);
 
         assertThat(item.isGif()).isTrue();
-        assertThat(item.isMessage()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isFalse();
         assertThat(item.isVideo()).isFalse();
@@ -136,17 +131,6 @@ public class ItemTest {
 
         assertThat(item.getDateTaken()).isEqualTo(dateTaken);
         assertThat(item.isDate()).isTrue();
-    }
-
-    @Test
-    public void testCreateMessageItem() {
-        final Item item = Item.createMessageItem();
-
-        assertThat(item.isMessage()).isTrue();
-        assertThat(item.isDate()).isFalse();
-        assertThat(item.isImage()).isFalse();
-        assertThat(item.isVideo()).isFalse();
-        assertThat(item.isGif()).isFalse();
     }
 
     private static Cursor generateCursorForItem(String id, String mimeType, long dateTaken,

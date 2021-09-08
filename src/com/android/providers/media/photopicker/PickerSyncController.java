@@ -44,8 +44,8 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.util.BackgroundThread;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

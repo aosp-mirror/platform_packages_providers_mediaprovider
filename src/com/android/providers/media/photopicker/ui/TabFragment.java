@@ -35,7 +35,6 @@ import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -126,32 +125,18 @@ public abstract class TabFragment extends Fragment {
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
         updateProfileButtonColor(/* isDisabled */ !mUserIdManager.isCrossProfileAllowed());
 
-        mProfileButton.setOnClickListener(v -> onClickProfileButton(v));
+        mProfileButton.setOnClickListener(v -> onClickProfileButton());
     }
 
-    private void onClickProfileButton(View v) {
+    private void onClickProfileButton() {
         if (!mUserIdManager.isCrossProfileAllowed()) {
-            onClickShowErrorDialog(v);
+            ProfileDialogFragment.show(getActivity().getSupportFragmentManager());
         } else {
-            onClickChangeProfile();
+            changeProfile();
         }
     }
 
-    private void onClickShowErrorDialog(View v) {
-        if (mUserIdManager.isBlockedByAdmin()) {
-            //TODO(b/190727775): launch dialog
-            Snackbar.make(v, "Blocked by your admin", Snackbar.LENGTH_SHORT).show();
-            return;
-        }
-        if (mUserIdManager.isWorkProfileOff()) {
-            //TODO(b/190727775): launch dialog
-            Snackbar.make(v, "Turn on work apps?", Snackbar.LENGTH_SHORT).show();
-            return;
-        }
-        return;
-    }
-
-    private void onClickChangeProfile() {
+    private void changeProfile() {
         if (mUserIdManager.isManagedUserSelected()) {
             // TODO(b/190024747): Add caching for performance before switching data to and fro
             // work profile

@@ -58,7 +58,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.providers.media.util.BackgroundThread;
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;

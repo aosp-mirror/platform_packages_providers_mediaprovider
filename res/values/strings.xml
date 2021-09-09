@@ -106,9 +106,25 @@
     <!-- The text of the albums chip on the toolbar for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="picker_albums">Albums</string>
 
-    <!-- The text of the switching work/personal profile in PhotoPicker. [CHAR LIMIT=30] -->
+    <!-- The text of the switching work/personal profile in PhotoPicker. [CHAR LIMIT=80] -->
     <string name="picker_work_profile">Switch to work</string>
+    <!-- The text of the switching work/personal profile in PhotoPicker. [CHAR LIMIT=80] -->
     <string name="picker_personal_profile">Switch to personal</string>
+    <!-- The title for error dialog in PhotoPicker when the admin blocks cross user interaction for
+    the intent. [CHAR LIMIT=100] -->
+    <string name="picker_profile_admin_title">Blocked by your admin</string>
+    <!-- The message for error dialog in PhotoPicker when the admin blocks cross user interaction
+    for the intent. [CHAR LIMIT=NONE] -->
+    <string name="picker_profile_admin_msg_from_personal">Accessing work data from a personal app is not permitted</string>
+    <!-- The message for error dialog in PhotoPicker when the admin blocks cross user interaction
+    for the intent. [CHAR LIMIT=NONE] -->
+    <string name="picker_profile_admin_msg_from_work">Accessing personal data from a work app is not permitted</string>
+    <!-- The title of the error dialog in PhotoPicker when the user tries to switch to work content,
+     but work profile is off. [CHAR LIMIT=80] -->
+    <string name="picker_profile_work_title">Turn on work apps?</string>
+    <!-- The message of the error dialog in PhotoPicker when the user tries to switch to work
+    content, but work profile is off. [CHAR LIMIT=NONE] -->
+    <string name="picker_profile_work_msg">Your work apps are currently paused, turn on work apps to access your photos</string>
 
     <!-- Text shown on the album item in PhotoPicker. [CHAR LIMIT=30]  -->
     <plurals name="picker_album_item_count">

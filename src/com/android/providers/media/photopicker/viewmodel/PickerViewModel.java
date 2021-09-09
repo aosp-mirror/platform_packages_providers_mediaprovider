@@ -78,6 +78,7 @@ public class PickerViewModel extends AndroidViewModel {
     // Show max label text view if and only if caller sets acceptable value for
     // {@link MediaStore#EXTRA_PICK_IMAGES_MAX}
     private boolean mShowMaxLabel = false;
+    private int mBottomSheetState;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -384,5 +385,19 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public boolean isSelectionAllowed() {
         return mIsSelectionAllowed;
+    }
+
+    /**
+     * Set BottomSheet state
+     */
+    public void setBottomSheetState(int state) {
+        mBottomSheetState = state;
+    }
+
+    /**
+     * @return BottomSheet state
+     */
+    public int getBottomSheetState() {
+        return mBottomSheetState;
     }
 }

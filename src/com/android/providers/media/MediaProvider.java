@@ -191,6 +191,7 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
@@ -202,7 +203,6 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
-import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -246,6 +246,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -5589,7 +5591,15 @@ public class MediaProvider extends ContentProvider {
             }
             case MediaStore.WAIT_FOR_IDLE_CALL: {
                 ForegroundThread.waitForIdle();
-                BackgroundThread.waitForIdle();
+                final CountDownLatch latch = new CountDownLatch(1);
+                BackgroundThread.getExecutor().execute(() -> {
+                    latch.countDown();
+                });
+                try {
+                    latch.await(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    throw new IllegalStateException(e);
+                }
                 return null;
             }
             case MediaStore.SCAN_FILE_CALL:
@@ -7133,6 +7143,11 @@ public class MediaProvider extends ContentProvider {
         // adding picker logic to MediaProvider
         final int match = matchUri(uri, /* allowHidden */ isCallingPackageAllowedHidden());
         return match == PICKER_ID;
+    }
+
+    public boolean isPickerUnreliableVolumeUri(Uri uri, boolean allowHidden) {
+        final int match = matchUri(uri, allowHidden);
+        return match == PICKER_UNRELIABLE_VOLUME;
     }
 
     @Override
@@ -9562,6 +9577,7 @@ public class MediaProvider extends ContentProvider {
     static final int PICKER = 900;
     static final int PICKER_ID = 901;
     static final int PICKER_INTERNAL = 902;
+    static final int PICKER_UNRELIABLE_VOLUME = 903;
 
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
             Arrays.asList(AUDIO_MEDIA_ID, IMAGES_MEDIA_ID, VIDEO_MEDIA_ID, FILES_ID, DOWNLOADS_ID));
@@ -9612,6 +9628,8 @@ public class MediaProvider extends ContentProvider {
             mPublic.addURI(auth, "picker", PICKER);
             // content://media/picker/<user-id>/<media-id>
             mPublic.addURI(auth, "picker/#/#", PICKER_ID);
+            // content://media/picker/unreliable/<media_id>
+            mPublic.addURI(auth, "picker/unreliable/#", PICKER_UNRELIABLE_VOLUME);
 
             mPublic.addURI(auth, "*/images/media", IMAGES_MEDIA);
             mPublic.addURI(auth, "*/images/media/#", IMAGES_MEDIA_ID);

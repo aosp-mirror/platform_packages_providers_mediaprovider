@@ -705,6 +705,7 @@ public class ModernMediaScannerTest {
         redNomedia.createNewFile();
         mModern.scanDirectory(mDir, REASON_UNKNOWN);
         assertQueryCount(1, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        assertThat(FileUtils.readString(redNomedia)).isEqualTo(Optional.of(redDir.getPath()));
 
         // Unhide, rescan, and confirm visible again
         redNomedia.delete();

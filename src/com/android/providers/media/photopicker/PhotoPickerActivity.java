@@ -38,6 +38,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.WindowInsetsController;
+import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -69,7 +70,6 @@ import java.util.List;
 public class PhotoPickerActivity extends AppCompatActivity {
 
     private static final String TAG =  "PhotoPickerActivity";
-    private static final String EXTRA_BOTTOM_SHEET_STATE = "bottom_sheet_state";
     private static final String EXTRA_TAB_CHIP_TYPE = "tab_chip_type";
     private static final int TAB_CHIP_TYPE_PHOTOS = 0;
     private static final int TAB_CHIP_TYPE_ALBUMS = 1;
@@ -162,7 +162,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void onSaveInstanceState(Bundle state) {
         super.onSaveInstanceState(state);
         state.putInt(EXTRA_TAB_CHIP_TYPE, mSelectedTabChipType);
-        state.putInt(EXTRA_BOTTOM_SHEET_STATE, mBottomSheetBehavior.getState());
+        saveBottomSheetState();
     }
 
     private void restoreState(Bundle savedInstanceState) {
@@ -185,12 +185,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
                     mAlbumsTabChip.setSelected(true);
                 }
             }
-            restoreBottomSheetState(savedInstanceState.getInt(EXTRA_BOTTOM_SHEET_STATE));
+            restoreBottomSheetState();
         } else {
             // This is the first launch, set the default behavior. Hide the title, show the chips
             // and show the PhotosTabFragment
             updateCommonLayouts(MODE_PHOTOS_TAB, /* title */ "");
             onTabChipClick(mPhotosTabChip);
+            saveBottomSheetState();
         }
     }
 
@@ -208,28 +209,29 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private void initBottomSheetBehavior() {
         mBottomSheetView = findViewById(R.id.bottom_sheet);
         mBottomSheetBehavior = BottomSheetBehavior.from(mBottomSheetView);
-        if (mPickerViewModel.canSelectMultiple()) {
-            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-            mBottomSheetBehavior.setSkipCollapsed(true);
-        } else {
-            //TODO(b/185800839): Compute this dynamically such that 2 photos rows is shown
-            mBottomSheetBehavior.setPeekHeight(1200);
-            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-        }
+        initStateForBottomSheet();
 
-        mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetCallback() {
+        mBottomSheetBehavior.addBottomSheetCallback(bottomSheetCallBack());
+        setRoundedCornersForBottomSheet();
+    }
+
+    private BottomSheetCallback bottomSheetCallBack() {
+        return new BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
                     finish();
                 }
+                saveBottomSheetState();
             }
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
             }
-        });
+        };
+    }
 
+    private void setRoundedCornersForBottomSheet() {
         final float cornerRadius =
                 getResources().getDimensionPixelSize(R.dimen.picker_top_corner_radius);
         final ViewOutlineProvider viewOutlineProvider = new ViewOutlineProvider() {
@@ -242,11 +244,46 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mBottomSheetView.setOutlineProvider(viewOutlineProvider);
     }
 
-    private void restoreBottomSheetState(int savedState) {
-        if (savedState == BottomSheetBehavior.STATE_COLLAPSED ||
-                savedState == BottomSheetBehavior.STATE_EXPANDED) {
+    private void initStateForBottomSheet() {
+        if (!mPickerViewModel.canSelectMultiple() && !isOrientationLandscape()) {
+            final WindowManager windowManager = getSystemService(WindowManager.class);
+            final Rect displayBounds = windowManager.getCurrentWindowMetrics().getBounds();
+            final int peekHeight = (int) (displayBounds.height() * 0.60);
+            mBottomSheetBehavior.setPeekHeight(peekHeight);
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        } else {
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            mBottomSheetBehavior.setSkipCollapsed(true);
+        }
+    }
+
+    private void restoreBottomSheetState() {
+        // BottomSheet is always EXPANDED for landscape
+        if (isOrientationLandscape()) {
+            return;
+        }
+        final int savedState = mPickerViewModel.getBottomSheetState();
+        if (isValidBottomSheetState(savedState)) {
             mBottomSheetBehavior.setState(savedState);
         }
+    }
+
+    private void saveBottomSheetState() {
+        // Do not save state for landscape or preview mode. This is because they are always in
+        // STATE_EXPANDED state.
+        if (isOrientationLandscape() || !mBottomSheetView.getClipToOutline()) {
+            return;
+        }
+        mPickerViewModel.setBottomSheetState(mBottomSheetBehavior.getState());
+    }
+
+    private boolean isValidBottomSheetState(int state) {
+        return state == BottomSheetBehavior.STATE_COLLAPSED ||
+                state == BottomSheetBehavior.STATE_EXPANDED;
+    }
+
+    private boolean isOrientationLandscape() {
+        return getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
     }
 
     private void initPhotosTabChip() {
@@ -401,17 +438,20 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final boolean isPreview = mode.isPreview;
         if (mBottomSheetView != null) {
             mBottomSheetView.setClipToOutline(!isPreview);
-            // TODO(b/185800839): downward swipe for bottomsheet should go back to photos grid
+            // TODO(b/197241815): Add animation downward swipe for preview should go back to
+            // the photo in photos grid
             mBottomSheetBehavior.setDraggable(!isPreview);
         }
         if (isPreview) {
             if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
                 // Sets bottom sheet behavior state to STATE_EXPANDED if it's not already expanded.
                 // This is useful when user goes to Preview mode which is always Full screen.
-                // TODO(b/185800839): Add animation preview to full screen and back transition to
-                // partial screen
+                // TODO(b/197241815): Add animation preview to full screen and back transition to
+                // partial screen. This is similar to long press animation.
                 mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             }
+        } else {
+            restoreBottomSheetState();
         }
     }
 

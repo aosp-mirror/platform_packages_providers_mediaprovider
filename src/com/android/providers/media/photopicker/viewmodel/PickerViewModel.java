@@ -60,14 +60,17 @@ public class PickerViewModel extends AndroidViewModel {
     private static final int RECENT_MINIMUM_COUNT = 12;
     public static final int DEFAULT_MAX_SELECTION_LIMIT = 100;
 
-    // TODO(b/193857982): we keep these four data sets now, we may find a way to reduce the data
-    // set to reduce memories.
-    // the list of Items with all photos and videos
+    // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
+    // data set to reduce memories.
+    // The list of Items with all photos and videos
     private MutableLiveData<List<Item>> mItemList;
-    // the list of Items with all photos and videos in category
+    // The list of Items with all photos and videos in category
     private MutableLiveData<List<Item>> mCategoryItemList;
+    // The list of selected items.
     private MutableLiveData<Map<Uri, Item>> mSelectedItemList = new MutableLiveData<>();
+    // The list of categories.
     private MutableLiveData<List<Category>> mCategoryList;
+
     private ItemsProvider mItemsProvider;
     private final UserIdManager mUserIdManager;
     private boolean mSelectMultiple = false;
@@ -184,6 +187,8 @@ public class PickerViewModel extends AndroidViewModel {
         try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
                 /* limit */ -1, mMimeTypeFilter, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
+                Log.d(TAG, "Didn't receive any items for " + category
+                        + ", either cursor is null or cursor count is zero");
                 return items;
             }
 
@@ -292,6 +297,8 @@ public class PickerViewModel extends AndroidViewModel {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
+                Log.d(TAG, "Didn't receive any categories, either cursor is null or"
+                        + " cursor count is zero");
                 return categoryList;
             }
 

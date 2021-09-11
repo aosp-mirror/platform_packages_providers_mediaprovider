@@ -3075,6 +3075,9 @@ public class MediaProvider extends ContentProvider {
                 return Video.Media.CONTENT_TYPE;
             case DOWNLOADS:
                 return Downloads.CONTENT_TYPE;
+
+            case PICKER_ID:
+                return mPickerUriResolver.getType(url);
         }
         throw new IllegalStateException("Unknown URL : " + url);
     }

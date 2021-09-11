@@ -21,6 +21,7 @@ import static com.android.compatibility.common.util.SystemUtil.runShellCommand;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import android.content.ClipData;
@@ -69,7 +70,8 @@ public class PickerResultTest {
             final Intent intent = PickerResult.getPickerResponseIntent(mContext, items);
 
             final Uri result = intent.getData();
-            assertUriPermission(result);
+            assertPickerUri(result);
+            assertThat(mContext.getContentResolver().getType(result)).isEqualTo("image/jpeg");
         } finally {
             deleteFiles(items);
         }
@@ -91,15 +93,11 @@ public class PickerResultTest {
             final int count = clipData.getItemCount();
             assertThat(count).isEqualTo(itemCount);
             for (int i = 0; i < count; i++) {
-                assertUriPermission(clipData.getItemAt(i).getUri());
+                assertPickerUri(clipData.getItemAt(i).getUri());
             }
         } finally {
             deleteFiles(items);
         }
-    }
-
-    private void assertUriPermission(Uri uri) throws Exception {
-        assertPickerUri(uri);
     }
 
     private void assertPickerUri(Uri uri) {
@@ -129,11 +127,9 @@ public class PickerResultTest {
 
         // Create an item for the selection, since PickerResult only uses Item#getContentUri(),
         // no need to create actual item, and can mock the class.
-        final String id = "1";
-        final long dateTaken = 12345678l;
-        final String mimeType = "image/gif";
-        final long duration = 1000;
-        final Item imageItem = ItemTest.generateItem(id, mimeType, dateTaken, duration);
+        final Item imageItem = mock(Item.class);
+        when(imageItem.getContentUri()).thenReturn(imageUri);
+        when(imageItem.getId()).thenReturn(imageUri.getLastPathSegment());
 
         return imageItem;
     }
@@ -152,7 +148,7 @@ public class PickerResultTest {
         // To help avoid flaky tests, give ourselves a unique nonce to be used for
         // all filesystem paths, so that we don't risk conflicting with previous
         // test runs.
-        return String.format(IMAGE_FILE_NAME, System.nanoTime());
+        return IMAGE_FILE_NAME + System.nanoTime() + ".jpeg";
     }
 
     private File getDownloadsDir() {

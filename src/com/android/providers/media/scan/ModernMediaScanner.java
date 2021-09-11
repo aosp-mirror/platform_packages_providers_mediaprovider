@@ -658,6 +658,8 @@ public class ModernMediaScanner implements MediaScanner {
             synchronized (mPendingCleanDirectories) {
                 if (mIsDirectoryTreeDirty) {
                     // Directory tree is dirty, continue scanning subtree.
+                } else if (FileUtils.getTopLevelNoMedia(dir.toFile()) == null) {
+                  // No nomedia file found, continue scanning.
                 } else if (FileUtils.isDirectoryDirty(FileUtils.getTopLevelNoMedia(dir.toFile()))) {
                     // Track the directory dirty status for directory tree in mIsDirectoryDirty.
                     // This removes additional dirty state check for subdirectories of nomedia

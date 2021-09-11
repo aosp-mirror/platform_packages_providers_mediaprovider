@@ -26,7 +26,7 @@
     <string name="root_audio" msgid="3505830755201326018">"ఆడియో"</string>
     <string name="root_documents" msgid="3829103301363849237">"డాక్యుమెంట్‌లు"</string>
     <string name="permission_required" msgid="1460820436132943754">"ఈ అంశాన్ని మార్చడానికి లేదా తొలగించడానికి అనుమతి అవసరం."</string>
-    <string name="permission_required_action" msgid="706370952366113539">"కొనసాగించు"</string>
+    <string name="permission_required_action" msgid="706370952366113539">"కొనసాగించండి"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"అనుమతించండి"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"తిరస్కరించండి"</string>
     <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">

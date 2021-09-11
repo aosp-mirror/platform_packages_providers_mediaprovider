@@ -68,6 +68,11 @@
     <string name="picker_albums" msgid="4822511902115299142">"الألبومات"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"التبديل إلى الملف الشخصي للعمل"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"التبديل إلى الملف الشخصي"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"حظر المشرف هذه الميزة"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"غير مسموح بالوصول إلى بيانات العمل من تطبيق شخصي."</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"غير مسموح بالوصول إلى البيانات الشخصية من تطبيق عمل."</string>
+    <string name="picker_profile_work_title" msgid="2871219486292993005">"هل تريد تفعيل تطبيقات العمل؟"</string>
+    <string name="picker_profile_work_msg" msgid="9043813554421265846">"تطبيقات العمل متوقفة مؤقتًا حاليًا، عليك تفعيل تطبيقات العمل للوصول إلى الصور."</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="zero"><xliff:g id="COUNT_1">^1</xliff:g> عنصر</item>
       <item quantity="two">عنصران (<xliff:g id="COUNT_1">^1</xliff:g>)</item>

@@ -56,6 +56,11 @@
     <string name="picker_albums" msgid="4822511902115299142">"Άλμπουμ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Μετάβαση σε προφίλ εργασίας"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Μετάβαση σε προσωπικό προφίλ"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Αποκλείστηκε από τον διαχειριστή σας"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Δεν επιτρέπεται η πρόσβαση στα δεδομένα εργασίας από μια προσωπική εφαρμογή."</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Δεν επιτρέπεται η πρόσβαση στα προσωπικά δεδομένα από μια εφαρμογή εργασιών."</string>
+    <string name="picker_profile_work_title" msgid="2871219486292993005">"Ενεργοποίηση εφαρμογών εργασιών;"</string>
+    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Οι εφαρμογές εργασιών έχουν τεθεί σε παύση. Ενεργοποιήστε τις εφαρμογές εργασιών για πρόσβαση στις φωτογραφίες σας."</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> στοιχεία</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> στοιχείο</item>

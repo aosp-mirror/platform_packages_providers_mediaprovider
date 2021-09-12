@@ -56,6 +56,11 @@
     <string name="picker_albums" msgid="4822511902115299142">"Album"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Beralih kepada kerja"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Beralih kepada peribadi"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Disekat oleh pentadbir anda"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Pengaksesan data kerja daripada apl peribadi tidak dibenarkan"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Pengaksesan data peribadi daripada apl kerja tidak dibenarkan"</string>
+    <string name="picker_profile_work_title" msgid="2871219486292993005">"Hidupkan apl kerja?"</string>
+    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Apl kerja anda dijeda pada masa ini, hidupkan apl kerja untuk mengakses foto anda"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> item</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> item</item>

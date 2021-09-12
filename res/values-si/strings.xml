@@ -56,6 +56,11 @@
     <string name="picker_albums" msgid="4822511902115299142">"ඇල්බම"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"කාර්යාලය වෙත මාරු වන්න"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"පුද්ගලික වෙත මාරු වන්න"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"ඔබගේ පරිපාලක විසින් අවහිර කර ඇත"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"පුද්ගලික යෙදුමකින් කාර්යාල දත්තවලට ප්‍රවේශ වීමට අවසර නොදේ"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"කාර්යාල යෙදුමකින් පුද්ගලික දත්තවලට ප්‍රවේශ වීමට අවසර නොදේ"</string>
+    <string name="picker_profile_work_title" msgid="2871219486292993005">"කාර්යාල යෙදුම් ක්‍රියාත්මක කරන්නද?"</string>
+    <string name="picker_profile_work_msg" msgid="9043813554421265846">"ඔබගේ කාර්යාල යෙදුම් දැනට විරාම කර ඇත, ඔබගේ ඡායාරූපවලට ප්‍රවේශ වීම සඳහා කාර්යාල යෙදුම් ක්‍රියාත්මක කරන්න"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="one">අයිතම <xliff:g id="COUNT_1">^1</xliff:g></item>
       <item quantity="other">අයිතම <xliff:g id="COUNT_1">^1</xliff:g></item>

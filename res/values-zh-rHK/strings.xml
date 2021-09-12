@@ -56,6 +56,11 @@
     <string name="picker_albums" msgid="4822511902115299142">"專輯"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"切換至工作設定檔"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"切換至個人設定檔"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"管理員已禁止此操作"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"個人應用程式不得存取工作資料"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"工作應用程式不得存取個人資料"</string>
+    <string name="picker_profile_work_title" msgid="2871219486292993005">"要開啟工作應用程式嗎？"</string>
+    <string name="picker_profile_work_msg" msgid="9043813554421265846">"工作應用程式目前已暫停，請開啟工作應用程式以存取相片"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> 個項目</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> 個項目</item>

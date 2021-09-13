@@ -56,6 +56,11 @@
     <string name="picker_albums" msgid="4822511902115299142">"एल्बम"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"वर्क प्रोफ़ाइल पर जाएं"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"निजी प्रोफ़ाइल पर जाएं"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"आपके एडमिन ने रोक लगाई है"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ऑफ़िस के काम से जुड़े डेटा को निजी ऐप्लिकेशन से ऐक्सेस करने की अनुमति नहीं है"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"निजी डेटा को ऑफ़िस के काम से जुड़े ऐप्लिकेशन से ऐक्सेस करने की अनुमति नहीं है"</string>
+    <string name="picker_profile_work_title" msgid="2871219486292993005">"क्या आप ऑफ़िस के काम से जुड़े ऐप्लिकेशन चालू करना चाहते हैं?"</string>
+    <string name="picker_profile_work_msg" msgid="9043813554421265846">"ऑफ़िस के काम से जुड़े आपके ऐप्लिकेशन फ़िलहाल बंद हैं. फ़ोटो ऐक्सेस करने के लिए इन्हें चालू करें"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> आइटम</item>
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> आइटम</item>

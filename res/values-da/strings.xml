@@ -56,6 +56,11 @@
     <string name="picker_albums" msgid="4822511902115299142">"Album"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Skift til arbejdsprofil"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Skift til personlig profil"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokeret af din administrator"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Det er ikke tilladt at tilgå arbejdsrelaterede data fra en personlig app"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Det er ikke tilladt at tilgå personoplysninger fra en arbejdsapp"</string>
+    <string name="picker_profile_work_title" msgid="2871219486292993005">"Vil du aktivere arbejdsapps?"</string>
+    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Dine arbejdsapps er i øjeblikket sat på pause. Aktivér arbejdsapps for at få adgang til dine billeder"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> element</item>
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> elementer</item>

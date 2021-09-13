@@ -56,6 +56,11 @@
     <string name="picker_albums" msgid="4822511902115299142">"ஆல்பங்கள்"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"பணிச் சுயவிவரத்திற்கு மாறு"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"தனிப்பட்ட சுயவிவரத்திற்கு மாறு"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"உங்கள் நிர்வாகி தடைசெய்துள்ளார்"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"தனிப்பட்ட ஆப்ஸிலிருந்து பணித் தரவை அணுக அனுமதியில்லை"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"பணி ஆப்ஸிலிருந்து தனிப்பட்ட தரவை அணுக அனுமதியில்லை"</string>
+    <string name="picker_profile_work_title" msgid="2871219486292993005">"பணி ஆப்ஸை இயக்கவா?"</string>
+    <string name="picker_profile_work_msg" msgid="9043813554421265846">"உங்கள் பணி ஆப்ஸ் தற்போது இடைநிறுத்தப்பட்டுள்ளன, உங்கள் படங்களை அணுக பணி ஆப்ஸை இயக்கவும்"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> படங்கள்</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> படம்</item>

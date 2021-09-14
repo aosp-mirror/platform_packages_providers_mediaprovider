@@ -120,6 +120,7 @@ const std::regex PATTERN_OWNED_PATH(
 
 static constexpr char TRANSFORM_SYNTHETIC_DIR[] = "synthetic";
 static constexpr char TRANSFORM_TRANSCODE_DIR[] = "transcode";
+static constexpr char PRIMARY_VOLUME_PREFIX[] = "/storage/emulated";
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -261,7 +262,7 @@ struct fuse {
     inline bool IsRoot(const node* node) const { return node == root; }
 
     inline string GetEffectiveRootPath() {
-        if (android::base::StartsWith(path, "/storage/emulated")) {
+        if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
             return path + "/" + MY_USER_ID_STRING;
         }
         return path;
@@ -335,6 +336,12 @@ struct fuse {
     const std::vector<string> supported_transcoding_relative_paths;
 };
 
+struct OpenInfo {
+    int flags;
+    bool for_write;
+    bool direct_io;
+};
+
 enum class FuseOp { lookup, readdir, mknod, mkdir, create };
 
 static inline string get_name(node* n) {
@@ -346,7 +353,7 @@ static inline string get_name(node* n) {
     return "?";
 }
 
-static inline __u64 ptr_to_id(void* ptr) {
+static inline __u64 ptr_to_id(const void* ptr) {
     return (__u64)(uintptr_t) ptr;
 }
 
@@ -592,10 +599,6 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     return node;
 }
 
-static inline bool is_requesting_write(int flags) {
-    return flags & (O_WRONLY | O_RDWR);
-}
-
 namespace mediaprovider {
 namespace fuse {
 
@@ -666,7 +669,7 @@ static bool is_app_accessible_path(MediaProviderWrapper* mp, const string& path,
         return true;
     }
 
-    if (path == "/storage/emulated") {
+    if (path == PRIMARY_VOLUME_PREFIX) {
         // Apps should never refer to /storage/emulated - they should be using the user-spcific
         // subdirs, eg /storage/emulated/0
         return false;
@@ -680,7 +683,7 @@ static bool is_app_accessible_path(MediaProviderWrapper* mp, const string& path,
         if (pkg == ".nomedia") {
             return true;
         }
-        if (android::base::StartsWith(path, "/storage/emulated")) {
+        if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
             // Emulated storage bind-mounts app-private data directories, and so these
             // should not be accessible through FUSE anyway.
             LOG(WARNING) << "Rejected access to app-private dir on FUSE: " << path
@@ -1174,7 +1177,7 @@ static void pf_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t new_parent,
 
 static handle* create_handle_for_node(struct fuse* fuse, const string& path, int fd, uid_t uid,
                                       uid_t transforms_uid, node* node, const RedactionInfo* ri,
-                                      int* keep_cache) {
+                                      const bool open_info_direct_io, int* keep_cache) {
     std::lock_guard<std::recursive_mutex> guard(fuse->lock);
 
     bool redaction_needed = ri->isRedactionNeeded();
@@ -1195,7 +1198,7 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
         // arbitrary bytes the first time around. However, if we ensure that transforms are
         // completed, then it's safe to use passthrough. Additionally, transcoded nodes never
         // require redaction so (2) implies (1)
-        handle = new struct handle(fd, ri, true /* cached */,
+        handle = new struct handle(fd, ri, !open_info_direct_io /* cached */,
                                    !redaction_needed && transforms_complete /* passthrough */, uid,
                                    transforms_uid);
     } else {
@@ -1216,7 +1219,8 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
         bool is_redaction_change =
                 (redaction_needed && !has_redacted) || (!redaction_needed && has_redacted);
         bool is_cached_file_open = node->HasCachedHandle();
-        bool direct_io = (is_cached_file_open && is_redaction_change) || is_file_locked(fd, path);
+        bool direct_io = open_info_direct_io || (is_cached_file_open && is_redaction_change) ||
+                         is_file_locked(fd, path);
 
         if (!is_cached_file_open && is_redaction_change) {
             node->SetRedactedCache(redaction_needed);
@@ -1233,7 +1237,7 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
     return handle;
 }
 
-bool do_passthrough_enable(fuse_req_t req, struct fuse_file_info* fi, unsigned int fd) {
+static bool do_passthrough_enable(fuse_req_t req, struct fuse_file_info* fi, unsigned int fd) {
     int passthrough_fh = fuse_passthrough_enable(req, fd);
 
     if (passthrough_fh <= 0) {
@@ -1242,6 +1246,45 @@ bool do_passthrough_enable(fuse_req_t req, struct fuse_file_info* fi, unsigned i
 
     fi->passthrough_fh = passthrough_fh;
     return true;
+}
+
+static OpenInfo parse_open_flags(const string& path, const int in_flags) {
+    const bool for_write = in_flags & (O_WRONLY | O_RDWR);
+    int out_flags = in_flags;
+    bool direct_io = false;
+
+    if (in_flags & O_DIRECT) {
+        // Set direct IO on the FUSE fs file
+        direct_io = true;
+
+        if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
+            // Remove O_DIRECT because there are strict alignment requirements for direct IO and
+            // there were some historical bugs affecting encrypted block devices.
+            // Hence, this is only supported on public volumes.
+            out_flags &= ~O_DIRECT;
+        }
+    }
+    if (in_flags & O_WRONLY) {
+        // Replace O_WRONLY with O_RDWR because even if the FUSE fd is opened write-only, the FUSE
+        // driver might issue reads on the lower fs ith the writeback cache enabled
+        out_flags &= ~O_WRONLY;
+        out_flags |= O_RDWR;
+    }
+    if (in_flags & O_APPEND) {
+        // Remove O_APPEND because passing it to the lower fs can lead to file corruption when
+        // multiple FUSE threads race themselves reading. With writeback cache enabled, the FUSE
+        // driver already handles the O_APPEND
+        out_flags &= ~O_APPEND;
+    }
+
+    return {.flags = out_flags, .for_write = for_write, .direct_io = direct_io};
+}
+
+static void fill_fuse_file_info(const handle* handle, const OpenInfo* open_info,
+                                const int keep_cache, struct fuse_file_info* fi) {
+    fi->fh = ptr_to_id(handle);
+    fi->keep_cache = keep_cache;
+    fi->direct_io = !handle->cached;
 }
 
 static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
@@ -1260,25 +1303,21 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    bool for_write = is_requesting_write(fi->flags);
+    const OpenInfo open_info = parse_open_flags(io_path, fi->flags);
 
-    if (for_write && node->GetTransforms()) {
+    if (open_info.for_write && node->GetTransforms()) {
         TRACE_NODE(node, req) << "write with transforms";
     } else {
-        TRACE_NODE(node, req) << (for_write ? "write" : "read");
-    }
-
-    if (fi->flags & O_DIRECT) {
-        fi->flags &= ~O_DIRECT;
-        fi->direct_io = true;
+        TRACE_NODE(node, req) << (open_info.for_write ? "write" : "read");
     }
 
     // Force permission check with the build path because the MediaProvider database might not be
     // aware of the io_path
     // We don't redact if the caller was granted write permission for this file
     std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
-            build_path, io_path, ctx->uid, ctx->pid, node->GetTransformsReason(), for_write,
-            !for_write /* redact */, true /* log_transforms_metrics */);
+            build_path, io_path, ctx->uid, ctx->pid, node->GetTransformsReason(),
+            open_info.for_write, !open_info.for_write /* redact */,
+            true /* log_transforms_metrics */);
     if (!result) {
         fuse_reply_err(req, EFAULT);
         return;
@@ -1289,41 +1328,26 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    // With the writeback cache enabled, FUSE may generate READ requests even for files that
-    // were opened O_WRONLY; so make sure we open it O_RDWR instead.
-    int open_flags = fi->flags;
-    if (open_flags & O_WRONLY) {
-        open_flags &= ~O_WRONLY;
-        open_flags |= O_RDWR;
-    }
-
-    if (open_flags & O_APPEND) {
-        open_flags &= ~O_APPEND;
-    }
-
-    const int fd = open(io_path.c_str(), open_flags);
+    const int fd = open(io_path.c_str(), open_info.flags);
     if (fd < 0) {
         fuse_reply_err(req, errno);
         return;
     }
 
     int keep_cache = 1;
-    handle* h = create_handle_for_node(fuse, io_path, fd, result->uid, result->transforms_uid, node,
-                                       result->redaction_info.release(), &keep_cache);
-    fi->fh = ptr_to_id(h);
-    fi->keep_cache = keep_cache;
-    fi->direct_io = !h->cached;
+    const handle* h = create_handle_for_node(fuse, io_path, fd, result->uid, result->transforms_uid,
+                                             node, result->redaction_info.release(),
+                                             open_info.direct_io, &keep_cache);
+    fill_fuse_file_info(h, &open_info, keep_cache, fi);
 
     // TODO(b/173190192) ensuring that h->cached must be enabled in order to
     // user FUSE passthrough is a conservative rule and might be dropped as
     // soon as demonstrated its correctness.
-    if (h->passthrough) {
-        if (!do_passthrough_enable(req, fi, fd)) {
-            // TODO: Should we crash here so we can find errors easily?
-            PLOG(ERROR) << "Passthrough OPEN failed for " << io_path;
-            fuse_reply_err(req, EFAULT);
-            return;
-        }
+    if (h->passthrough && !do_passthrough_enable(req, fi, fd)) {
+        // TODO: Should we crash here so we can find errors easily?
+        PLOG(ERROR) << "Passthrough OPEN failed for " << io_path;
+        fuse_reply_err(req, EFAULT);
+        return;
     }
 
     fuse_reply_open(req, fi);
@@ -1749,7 +1773,7 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
         return;
     }
     const string path = node->BuildPath();
-    if (path != "/storage/emulated" && !is_app_accessible_path(fuse->mp, path, req->ctx.uid)) {
+    if (path != PRIMARY_VOLUME_PREFIX && !is_app_accessible_path(fuse->mp, path, req->ctx.uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1773,7 +1797,7 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
     bool for_write = mask & W_OK;
     bool is_directory = S_ISDIR(stat.st_mode);
     if (is_directory) {
-        if (path == "/storage/emulated" && mask == X_OK) {
+        if (path == PRIMARY_VOLUME_PREFIX && mask == X_OK) {
             // Special case for this path: apps should be allowed to enter it,
             // but not list directory contents (which would be user numbers).
             int res = access(path.c_str(), X_OK);
@@ -1823,26 +1847,16 @@ static void pf_create(fuse_req_t req,
 
     const string child_path = parent_path + "/" + name;
 
+    const OpenInfo open_info = parse_open_flags(child_path, fi->flags);
+
     int mp_return_code = fuse->mp->InsertFile(child_path.c_str(), req->ctx.uid);
     if (mp_return_code) {
         fuse_reply_err(req, mp_return_code);
         return;
     }
 
-    // With the writeback cache enabled, FUSE may generate READ requests even for files that
-    // were opened O_WRONLY; so make sure we open it O_RDWR instead.
-    int open_flags = fi->flags;
-    if (open_flags & O_WRONLY) {
-        open_flags &= ~O_WRONLY;
-        open_flags |= O_RDWR;
-    }
-
-    if (open_flags & O_APPEND) {
-        open_flags &= ~O_APPEND;
-    }
-
     mode = (mode & (~0777)) | 0664;
-    int fd = open(child_path.c_str(), open_flags, mode);
+    int fd = open(child_path.c_str(), open_info.flags, mode);
     if (fd < 0) {
         int error_code = errno;
         // We've already inserted the file into the MP database before the
@@ -1871,21 +1885,18 @@ static void pf_create(fuse_req_t req,
     // to the file before all the EXIF content is written. We could special case reads before the
     // first close after a file has just been created.
     int keep_cache = 1;
-    handle* h = create_handle_for_node(fuse, child_path, fd, req->ctx.uid, 0 /* transforms_uid */,
-                                       node, new RedactionInfo(), &keep_cache);
-    fi->fh = ptr_to_id(h);
-    fi->keep_cache = keep_cache;
-    fi->direct_io = !h->cached;
+    const handle* h =
+            create_handle_for_node(fuse, child_path, fd, req->ctx.uid, 0 /* transforms_uid */, node,
+                                   new RedactionInfo(), open_info.direct_io, &keep_cache);
+    fill_fuse_file_info(h, &open_info, keep_cache, fi);
 
     // TODO(b/173190192) ensuring that h->cached must be enabled in order to
     // user FUSE passthrough is a conservative rule and might be dropped as
     // soon as demonstrated its correctness.
-    if (h->passthrough) {
-        if (!do_passthrough_enable(req, fi, fd)) {
-            PLOG(ERROR) << "Passthrough CREATE failed for " << child_path;
-            fuse_reply_err(req, EFAULT);
-            return;
-        }
+    if (h->passthrough && !do_passthrough_enable(req, fi, fd)) {
+        PLOG(ERROR) << "Passthrough CREATE failed for " << child_path;
+        fuse_reply_err(req, EFAULT);
+        return;
     }
 
     fuse_reply_create(req, &e, fi);

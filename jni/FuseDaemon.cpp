@@ -1136,6 +1136,11 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     // TODO(b/145663158): Lookups can go out of sync if file/directory is actually moved but
     // EFAULT/EIO is reported due to JNI exception.
     if (res == 0) {
+        // Mark any existing destination nodes as deleted. This fixes the following edge case:
+        // 1. New destination node is forgotten
+        // 2. Old destination node is not forgotten because there's still an open fd ref to it
+        // 3. Lookup for |new_name| returns old destination node with stale metadata
+        new_parent_node->SetDeletedForChild(new_name);
         // TODO(b/169306422): Log each renamed node
         old_parent_node->RenameChild(name, new_name, new_parent_node);
     }

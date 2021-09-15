@@ -1565,7 +1565,8 @@ public class FileUtils {
     }
 
     /**
-     * @return {@code true} if {@code dir} is dirty and should be scanned, {@code false} otherwise.
+     * @return {@code true} if {@code dir} has nomedia and it is dirty directory, so it should be
+     * scanned. Returns {@code false} otherwise.
      */
     public static boolean isDirectoryDirty(File dir) {
         File nomedia = new File(dir, ".nomedia");
@@ -1580,7 +1581,7 @@ public class FileUtils {
                 Log.w(TAG, "Failed to read directory dirty" + dir);
             }
         }
-        return true;
+        return false;
     }
 
     /**

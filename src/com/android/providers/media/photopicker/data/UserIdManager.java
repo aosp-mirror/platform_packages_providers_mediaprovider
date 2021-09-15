@@ -19,6 +19,7 @@ package com.android.providers.media.photopicker.data;
 import static androidx.core.util.Preconditions.checkNotNull;
 
 import android.annotation.Nullable;
+import android.annotation.WorkerThread;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -121,6 +122,12 @@ public interface UserIdManager {
     void setIntentAndCheckRestrictions(Intent intent);
 
     /**
+     * Updates cross profile restrictions values
+     */
+    @WorkerThread
+    void updateCrossProfileValues();
+
+    /**
      * Creates an implementation of {@link UserIdManager}.
      */
     static UserIdManager create(Context context) {
@@ -149,9 +156,7 @@ public interface UserIdManager {
 
         private Intent mIntent = null;
         // Set default values to negative case, only set as false if checks pass.
-        @GuardedBy("mLock")
         private boolean mIsBlockedByAdmin = true;
-        @GuardedBy("mLock")
         private boolean mIsWorkProfileOff = true;
 
         private final BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
@@ -224,9 +229,7 @@ public interface UserIdManager {
         @Override
         public void setIntentAndCheckRestrictions(Intent intent) {
             mIntent = intent;
-            synchronized (mLock) {
-                setCrossProfileValues();
-            }
+            updateCrossProfileValues();
         }
 
         public boolean isCurrentUserSelected() {
@@ -253,8 +256,7 @@ public interface UserIdManager {
 
         private void setUserIds() {
             synchronized (mLock) {
-                setUserIdsInternal();
-                setCrossProfileValues();
+                setUserIdsInternalLocked();
             }
         }
 
@@ -265,7 +267,7 @@ public interface UserIdManager {
         }
 
         @GuardedBy("mLock")
-        private void setUserIdsInternal() {
+        private void setUserIdsInternalLocked() {
             UserManager userManager =  mContext.getSystemService(UserManager.class);
             if (userManager == null) {
                 Log.e(TAG, "Cannot obtain user manager");
@@ -311,19 +313,21 @@ public interface UserIdManager {
 
         @Override
         public boolean isWorkProfileOff() {
-            synchronized (mLock) {
-                return mIsWorkProfileOff;
-            }
+            return mIsWorkProfileOff;
         }
 
         @Override
         public boolean isBlockedByAdmin() {
-            synchronized (mLock) {
-                return mIsBlockedByAdmin;
-            }
+            return mIsBlockedByAdmin;
         }
 
-        @GuardedBy("mLock")
+        @Override
+        @WorkerThread
+        public void updateCrossProfileValues() {
+            setCrossProfileValues();
+        }
+
+        @WorkerThread
         private void setCrossProfileValues() {
             final PackageManager packageManager = mContext.getPackageManager();
             // 1. Check if PICK_IMAGES intent is allowed by admin to show cross user content

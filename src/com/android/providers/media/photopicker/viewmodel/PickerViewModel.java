@@ -78,9 +78,6 @@ public class PickerViewModel extends AndroidViewModel {
     private int mMaxSelectionLimit = DEFAULT_MAX_SELECTION_LIMIT;
     // This is set to false when max selection limit is reached.
     private boolean mIsSelectionAllowed = true;
-    // Show max label text view if and only if caller sets acceptable value for
-    // {@link MediaStore#EXTRA_PICK_IMAGES_MAX}
-    private boolean mShowMaxLabel = false;
     private int mBottomSheetState;
 
     public PickerViewModel(@NonNull Application application) {
@@ -199,10 +196,6 @@ public class PickerViewModel extends AndroidViewModel {
 
             int recentSize = 0;
             long currentDateTaken = 0;
-            // add max label message header item
-            if (mShowMaxLabel) {
-                items.add(Item.createMessageItem());
-            }
 
             if (showRecent) {
                 // add Recent date header
@@ -372,7 +365,6 @@ public class PickerViewModel extends AndroidViewModel {
             if (extraMax <= DEFAULT_MAX_SELECTION_LIMIT) {
                 mMaxSelectionLimit = extraMax;
             }
-            mShowMaxLabel = true;
         }
     }
 

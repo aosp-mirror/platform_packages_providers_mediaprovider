@@ -121,10 +121,10 @@
     <string name="picker_profile_admin_msg_from_work">Accessing personal data from a work app is not permitted</string>
     <!-- The title of the error dialog in PhotoPicker when the user tries to switch to work content,
      but work profile is off. [CHAR LIMIT=80] -->
-    <string name="picker_profile_work_title">Turn on work apps?</string>
+    <string name="picker_profile_work_paused_title">Work apps are paused</string>
     <!-- The message of the error dialog in PhotoPicker when the user tries to switch to work
     content, but work profile is off. [CHAR LIMIT=NONE] -->
-    <string name="picker_profile_work_msg">Your work apps are currently paused, turn on work apps to access your photos</string>
+    <string name="picker_profile_work_paused_msg">To open work photos, turn on your work apps then try again</string>
 
     <!-- Text shown on the album item in PhotoPicker. [CHAR LIMIT=30]  -->
     <plurals name="picker_album_item_count">

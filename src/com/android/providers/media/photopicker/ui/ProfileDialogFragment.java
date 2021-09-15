@@ -53,12 +53,12 @@ public class ProfileDialogFragment extends DialogFragment {
             builder.setPositiveButton(android.R.string.ok, null);
         } else if (userIdManager.isWorkProfileOff()) {
             builder.setIcon(R.drawable.ic_work_outline);
-            builder.setTitle(getString(R.string.picker_profile_work_title));
-            builder.setMessage(getString(R.string.picker_profile_work_msg));
+            builder.setTitle(getString(R.string.picker_profile_work_paused_title));
+            builder.setMessage(getString(R.string.picker_profile_work_paused_msg));
             // TODO(b/197199728): Add listener to turn on apps. This maybe a bit tricky because
             // after turning on Work profile, work profile MediaProvider may not be available
             // immediately.
-            builder.setNegativeButton(android.R.string.cancel, null);
+            builder.setPositiveButton(android.R.string.ok, null);
         } else {
             Log.e(TAG, "Unknown error for profile dialog");
             return null;

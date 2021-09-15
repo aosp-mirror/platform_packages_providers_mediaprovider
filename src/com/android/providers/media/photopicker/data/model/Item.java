@@ -80,7 +80,6 @@ public class Item {
     private boolean mIsVideo;
     private boolean mIsGif;
     private boolean mIsDate;
-    private boolean mIsMessage;
 
     private Item() {}
 
@@ -118,10 +117,6 @@ public class Item {
         return mIsDate;
     }
 
-    public boolean isMessage() {
-        return mIsMessage;
-    }
-
     public Uri getContentUri() {
         return mUri;
     }
@@ -141,15 +136,6 @@ public class Item {
     public static Item fromCursor(Cursor cursor, UserId userId) {
         assert(cursor != null);
         final Item item = new Item(cursor, userId);
-        return item;
-    }
-
-    /**
-     * Return a message item.
-     */
-    public static Item createMessageItem() {
-        final Item item = new Item();
-        item.mIsMessage = true;
         return item;
     }
 

@@ -70,7 +70,7 @@ public abstract class TabFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         mImageLoader = new ImageLoader(getContext());
-        mRecyclerView = view.findViewById(R.id.photo_list);
+        mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
         mRecyclerView.setHasFixedSize(true);
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
 

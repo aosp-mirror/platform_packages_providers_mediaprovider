@@ -9339,6 +9339,10 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    public List<String> getSupportedTranscodingRelativePaths() {
+        return mTranscodeHelper.getSupportedRelativePaths();
+    }
+
     /**
      * Creating a new method for Transcoding to avoid any merge conflicts.
      * TODO(b/170465810): Remove this when the code is refactored.

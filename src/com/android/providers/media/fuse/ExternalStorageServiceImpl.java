@@ -70,8 +70,10 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 // We only use the upperFileSystemPath because the media process is mounted as
                 // REMOUNT_MODE_PASS_THROUGH which guarantees that all /storage paths are bind
                 // mounts of the lower filesystem.
+                final String[] supportedTranscodingRelativePaths =
+                        mediaProvider.getSupportedTranscodingRelativePaths().toArray(new String[0]);
                 FuseDaemon daemon = new FuseDaemon(mediaProvider, this, deviceFd, sessionId,
-                        upperFileSystemPath.getPath());
+                        upperFileSystemPath.getPath(), supportedTranscodingRelativePaths);
                 daemon.start();
                 sFuseDaemons.put(sessionId, daemon);
             }

@@ -2083,12 +2083,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (retryUpdateWithReplace) {
-            // We are replacing file in newPath with file in oldPath. If calling package has
-            // write permission for newPath, delete existing database entry and retry update.
-            final Uri uriNewPath = FileUtils.getContentUriForPath(oldPath);
-            final SQLiteQueryBuilder qbForDelete = getQueryBuilder(TYPE_DELETE,
-                    matchUri(uriNewPath, allowHidden), uriNewPath, qbExtras, null);
-            if (qbForDelete.delete(helper, selection, new String[] {newPath}) == 1) {
+            if (deleteForFuseRename(helper, oldPath, newPath, qbExtras, selection, allowHidden)) {
                 Log.i(TAG, "Retrying database update after deleting conflicting entry");
                 count = qbForUpdate.update(helper, values, selection, new String[]{oldPath});
             } else {
@@ -2096,6 +2091,30 @@ public class MediaProvider extends ContentProvider {
             }
         }
         return count == 1;
+    }
+
+    private boolean deleteForFuseRename(DatabaseHelper helper, String oldPath,
+            String newPath, Bundle qbExtras, String selection, boolean allowHidden) {
+        // We are replacing file in newPath with file in oldPath. If calling package has
+        // write permission for newPath, delete existing database entry and retry update.
+        final Uri uriNewPath = FileUtils.getContentUriForPath(oldPath);
+        final SQLiteQueryBuilder qbForDelete = getQueryBuilder(TYPE_DELETE,
+                matchUri(uriNewPath, allowHidden), uriNewPath, qbExtras, null);
+        if (qbForDelete.delete(helper, selection, new String[] {newPath}) == 1) {
+            return true;
+        }
+        // Check if delete can be done using other URI grants
+        final String[] projection = new String[] {
+                FileColumns.MEDIA_TYPE,
+                FileColumns.DATA,
+                FileColumns._ID,
+                FileColumns.IS_DOWNLOAD,
+                FileColumns.MIME_TYPE,
+        };
+        return
+            deleteWithOtherUriGrants(
+                    FileUtils.getContentUriForPath(newPath),
+                    helper, projection, selection, new String[] {newPath}, qbExtras) == 1;
     }
 
     /**
@@ -2622,15 +2641,41 @@ public class MediaProvider extends ContentProvider {
             try (Cursor c = qb.query(helper,
                     new String[] { BaseColumns._ID }, null, null, null, null, null, null, null)) {
                 if (c.getCount() == 1) {
-                    return PackageManager.PERMISSION_GRANTED;
+                    c.moveToFirst();
+                    final long cursorId = c.getLong(0);
+
+                    long uriId = -1;
+                    try {
+                        uriId = ContentUris.parseId(uri);
+                    } catch (NumberFormatException ignored) {
+                        // if the id is not a number, the uri doesn't have a valid ID at the end of
+                        // the uri, (i.e., uri is uri of the table not of the item/row)
+                    }
+
+                    if (uriId != -1 && cursorId == uriId) {
+                        return PackageManager.PERMISSION_GRANTED;
+                    }
                 }
             }
 
-            try {
-                if (ContentUris.parseId(uri) != -1) {
+            // For the uri with id cases, if it isn't returned in above query section, the result
+            // isn't as expected. Don't grant the permission.
+            switch (table) {
+                case AUDIO_MEDIA_ID:
+                case IMAGES_MEDIA_ID:
+                case VIDEO_MEDIA_ID:
+                case DOWNLOADS_ID:
+                case FILES_ID:
+                case AUDIO_MEDIA_ID_GENRES_ID:
+                case AUDIO_GENRES_ID:
+                case AUDIO_PLAYLISTS_ID:
+                case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
+                case AUDIO_ARTISTS_ID:
+                case AUDIO_ALBUMS_ID:
                     return PackageManager.PERMISSION_DENIED;
-                }
-            } catch (NumberFormatException ignored) { }
+                default:
+                    // continue below
+            }
 
             // If the uri is a valid content uri and doesn't have a valid ID at the end of the uri,
             // (i.e., uri is uri of the table not of the item/row), and app doesn't request prefix
@@ -2640,9 +2685,6 @@ public class MediaProvider extends ContentProvider {
             if ((modeFlags & Intent.FLAG_GRANT_PREFIX_URI_PERMISSION) == 0) {
                 return PackageManager.PERMISSION_GRANTED;
             }
-
-            // For prefix grant on the uri with content uri without id, we don't allow apps to
-            // grant access as they might end up granting access to all files.
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -8822,6 +8864,26 @@ public class MediaProvider extends ContentProvider {
                 if (mCallingIdentity.get().isOwned(id)) {
                     return true;
                 }
+                break;
+            default:
+                // continue below
+        }
+
+        // Check whether the uri is a specific table or not. Don't allow the global access to these
+        // table uris
+        switch (table) {
+            case AUDIO_MEDIA:
+            case IMAGES_MEDIA:
+            case VIDEO_MEDIA:
+            case DOWNLOADS:
+            case FILES:
+            case AUDIO_ALBUMS:
+            case AUDIO_ARTISTS:
+            case AUDIO_GENRES:
+            case AUDIO_PLAYLISTS:
+                return false;
+            default:
+                // continue below
         }
 
         // Outstanding grant means they get access

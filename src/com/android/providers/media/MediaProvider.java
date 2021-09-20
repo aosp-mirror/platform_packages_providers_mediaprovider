@@ -6479,7 +6479,7 @@ public class MediaProvider extends ContentProvider {
             } else if (!Objects.equals(beforeVolume, probeVolume)) {
                 throw new IllegalArgumentException("Changing volume from " + beforePath + " to "
                         + probePath + " not allowed");
-            } else if (!Objects.equals(beforeOwner, probeOwner)) {
+            } else if (!isUpdateAllowedForOwnedPath(beforeOwner, probeOwner)) {
                 throw new IllegalArgumentException("Changing ownership from " + beforePath + " to "
                         + probePath + " not allowed");
             } else {
@@ -6663,6 +6663,29 @@ public class MediaProvider extends ContentProvider {
         }
 
         return count;
+    }
+
+    private boolean isUpdateAllowedForOwnedPath(@Nullable String srcOwner,
+            @Nullable String destOwner) {
+        // Allow update from srcPath if the source is not a owned path or calling package is the
+        // owner of the source path or calling package shares the UID with the owner of the source
+        // path
+        // update() from /sdcard/DCIM/Foo.jpeg - Allowed
+        // update() from /sdcard/Android/media/com.foo/image.jpeg - Allowed for
+        // callingPackage=com.foo, not allowed for callingPackage=com.bar
+        final boolean isSrcUpdateAllowed = srcOwner == null
+                || isCallingIdentitySharedPackageName(srcOwner);
+
+        // Allow update to dstPath if the destination is not a owned path or calling package is the
+        // owner of the destination path or calling package shares the UID with the owner of the
+        // destination path
+        // update() to /sdcard/Pictures/image.jpeg - Allowed
+        // update() to /sdcard/Android/media/com.foo/image.jpeg - Allowed for
+        // callingPackage=com.foo, not allowed for callingPackage=com.bar
+        final boolean isDestUpdateAllowed = destOwner == null
+                || isCallingIdentitySharedPackageName(destOwner);
+
+        return isSrcUpdateAllowed && isDestUpdateAllowed;
     }
 
     private void notifyTranscodeHelperOnUriPublished(Uri uri) {

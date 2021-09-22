@@ -284,8 +284,7 @@ class MediaProviderWrapper final {
     /**
      * Auxiliary for caching MediaProvider methods.
      */
-    jmethodID CacheMethod(JNIEnv* env, const char method_name[], const char signature[],
-                          bool is_static);
+    jmethodID CacheMethod(JNIEnv* env, const char method_name[], const char signature[]);
 
     // Attaches the current thread (if necessary) and returns the JNIEnv
     // associated with it.

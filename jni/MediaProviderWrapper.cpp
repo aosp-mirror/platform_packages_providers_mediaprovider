@@ -271,6 +271,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     fid_file_open_transforms_uid_ = CacheField(env, file_open_result_class_, "transformsUid", "I");
     fid_file_open_redaction_ranges_ =
             CacheField(env, file_open_result_class_, "redactionRanges", "[J");
+    fid_file_open_fd_ = CacheField(env, file_open_result_class_, "nativeFd", "I");
 }
 
 MediaProviderWrapper::~MediaProviderWrapper() {
@@ -305,7 +306,8 @@ std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& p
                                                                  bool log_transforms_metrics) {
     JNIEnv* env = MaybeAttachCurrentThread();
     if (shouldBypassMediaProvider(uid)) {
-        return std::make_unique<FileOpenResult>(0, uid, 0 /* transforms_uid */, new RedactionInfo());
+        return std::make_unique<FileOpenResult>(0, uid, /* transforms_uid */ 0, /* nativeFd */ -1,
+                                                new RedactionInfo());
     }
 
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
@@ -319,10 +321,11 @@ std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& p
         return nullptr;
     }
 
-    int status = env->GetIntField(j_res_file_open_object.get(), fid_file_open_status_);
-    int original_uid = env->GetIntField(j_res_file_open_object.get(), fid_file_open_uid_);
-    int transforms_uid =
+    const int status = env->GetIntField(j_res_file_open_object.get(), fid_file_open_status_);
+    const int original_uid = env->GetIntField(j_res_file_open_object.get(), fid_file_open_uid_);
+    const int transforms_uid =
             env->GetIntField(j_res_file_open_object.get(), fid_file_open_transforms_uid_);
+    const int fd = env->GetIntField(j_res_file_open_object.get(), fid_file_open_fd_);
 
     if (redact) {
         ScopedLocalRef<jlongArray> redaction_ranges_local_ref(
@@ -340,9 +343,10 @@ std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& p
             // No ranges to redact
             ri = std::make_unique<RedactionInfo>();
         }
-        return std::make_unique<FileOpenResult>(status, original_uid, transforms_uid, ri.release());
+        return std::make_unique<FileOpenResult>(status, original_uid, transforms_uid, fd,
+                                                ri.release());
     } else {
-        return std::make_unique<FileOpenResult>(status, original_uid, transforms_uid,
+        return std::make_unique<FileOpenResult>(status, original_uid, transforms_uid, fd,
                                                 new RedactionInfo());
     }
 }

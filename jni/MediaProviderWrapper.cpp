@@ -223,35 +223,24 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     media_provider_class_ = reinterpret_cast<jclass>(env->NewGlobalRef(media_provider_class_));
 
     // Cache methods - Before calling a method, make sure you cache it here
-    mid_insert_file_ = CacheMethod(env, "insertFileIfNecessary", "(Ljava/lang/String;I)I",
-                                   /*is_static*/ false);
-    mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
+    mid_insert_file_ = CacheMethod(env, "insertFileIfNecessary", "(Ljava/lang/String;I)I");
+    mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I");
     mid_on_file_open_ = CacheMethod(env, "onFileOpen",
                                     "(Ljava/lang/String;Ljava/lang/String;IIIZZZ)Lcom/android/"
-                                    "providers/media/FileOpenResult;",
-                                    /*is_static*/ false);
-    mid_is_diraccess_allowed_ = CacheMethod(env, "isDirAccessAllowed", "(Ljava/lang/String;II)I",
-                                            /*is_static*/ false);
+                                    "providers/media/FileOpenResult;");
+    mid_is_diraccess_allowed_ = CacheMethod(env, "isDirAccessAllowed", "(Ljava/lang/String;II)I");
     mid_get_files_in_dir_ =
-            CacheMethod(env, "getFilesInDirectory", "(Ljava/lang/String;I)[Ljava/lang/String;",
-                        /*is_static*/ false);
-    mid_rename_ = CacheMethod(env, "rename", "(Ljava/lang/String;Ljava/lang/String;I)I",
-                              /*is_static*/ false);
+            CacheMethod(env, "getFilesInDirectory", "(Ljava/lang/String;I)[Ljava/lang/String;");
+    mid_rename_ = CacheMethod(env, "rename", "(Ljava/lang/String;Ljava/lang/String;I)I");
     mid_is_uid_allowed_access_to_data_or_obb_path_ =
-            CacheMethod(env, "isUidAllowedAccessToDataOrObbPath", "(ILjava/lang/String;)Z",
-                        /*is_static*/ false);
-    mid_on_file_created_ = CacheMethod(env, "onFileCreated", "(Ljava/lang/String;)V",
-                                       /*is_static*/ false);
-    mid_should_allow_lookup_ = CacheMethod(env, "shouldAllowLookup", "(II)Z",
-                                           /*is_static*/ false);
-    mid_is_app_clone_user_ = CacheMethod(env, "isAppCloneUser", "(I)Z",
-                                         /*is_static*/ false);
-    mid_transform_ = CacheMethod(env, "transform", "(Ljava/lang/String;Ljava/lang/String;IIIII)Z",
-                                 /*is_static*/ false);
+            CacheMethod(env, "isUidAllowedAccessToDataOrObbPath", "(ILjava/lang/String;)Z");
+    mid_on_file_created_ = CacheMethod(env, "onFileCreated", "(Ljava/lang/String;)V");
+    mid_should_allow_lookup_ = CacheMethod(env, "shouldAllowLookup", "(II)Z");
+    mid_is_app_clone_user_ = CacheMethod(env, "isAppCloneUser", "(I)Z");
+    mid_transform_ = CacheMethod(env, "transform", "(Ljava/lang/String;Ljava/lang/String;IIIII)Z");
     mid_file_lookup_ =
             CacheMethod(env, "onFileLookup",
-                        "(Ljava/lang/String;II)Lcom/android/providers/media/FileLookupResult;",
-                        /*is_static*/ false);
+                        "(Ljava/lang/String;II)Lcom/android/providers/media/FileLookupResult;");
 
     // FileLookupResult
     file_lookup_result_class_ = env->FindClass("com/android/providers/media/FileLookupResult");
@@ -282,6 +271,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     fid_file_open_transforms_uid_ = CacheField(env, file_open_result_class_, "transformsUid", "I");
     fid_file_open_redaction_ranges_ =
             CacheField(env, file_open_result_class_, "redactionRanges", "[J");
+    fid_file_open_fd_ = CacheField(env, file_open_result_class_, "nativeFd", "I");
 }
 
 MediaProviderWrapper::~MediaProviderWrapper() {
@@ -316,7 +306,8 @@ std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& p
                                                                  bool log_transforms_metrics) {
     JNIEnv* env = MaybeAttachCurrentThread();
     if (shouldBypassMediaProvider(uid)) {
-        return std::make_unique<FileOpenResult>(0, uid, 0 /* transforms_uid */, new RedactionInfo());
+        return std::make_unique<FileOpenResult>(0, uid, /* transforms_uid */ 0, /* nativeFd */ -1,
+                                                new RedactionInfo());
     }
 
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
@@ -330,10 +321,11 @@ std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& p
         return nullptr;
     }
 
-    int status = env->GetIntField(j_res_file_open_object.get(), fid_file_open_status_);
-    int original_uid = env->GetIntField(j_res_file_open_object.get(), fid_file_open_uid_);
-    int transforms_uid =
+    const int status = env->GetIntField(j_res_file_open_object.get(), fid_file_open_status_);
+    const int original_uid = env->GetIntField(j_res_file_open_object.get(), fid_file_open_uid_);
+    const int transforms_uid =
             env->GetIntField(j_res_file_open_object.get(), fid_file_open_transforms_uid_);
+    const int fd = env->GetIntField(j_res_file_open_object.get(), fid_file_open_fd_);
 
     if (redact) {
         ScopedLocalRef<jlongArray> redaction_ranges_local_ref(
@@ -351,9 +343,10 @@ std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& p
             // No ranges to redact
             ri = std::make_unique<RedactionInfo>();
         }
-        return std::make_unique<FileOpenResult>(status, original_uid, transforms_uid, ri.release());
+        return std::make_unique<FileOpenResult>(status, original_uid, transforms_uid, fd,
+                                                ri.release());
     } else {
-        return std::make_unique<FileOpenResult>(status, original_uid, transforms_uid,
+        return std::make_unique<FileOpenResult>(status, original_uid, transforms_uid, fd,
                                                 new RedactionInfo());
     }
 }
@@ -524,15 +517,12 @@ bool MediaProviderWrapper::Transform(const std::string& src, const std::string& 
  * Finds MediaProvider method and adds it to methods map so it can be quickly called later.
  */
 jmethodID MediaProviderWrapper::CacheMethod(JNIEnv* env, const char method_name[],
-                                            const char signature[], bool is_static) {
+                                            const char signature[]) {
     jmethodID mid;
     string actual_method_name(method_name);
     actual_method_name.append("ForFuse");
-    if (is_static) {
-        mid = env->GetStaticMethodID(media_provider_class_, actual_method_name.c_str(), signature);
-    } else {
-        mid = env->GetMethodID(media_provider_class_, actual_method_name.c_str(), signature);
-    }
+    mid = env->GetMethodID(media_provider_class_, actual_method_name.c_str(), signature);
+
     if (!mid) {
         LOG(FATAL) << "Error caching method: " << method_name << signature;
     }

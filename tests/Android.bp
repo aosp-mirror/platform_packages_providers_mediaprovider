@@ -46,6 +46,7 @@ android_test {
         "guava",
         "mockito-target",
         "truth-prebuilt",
+        "modules-utils-backgroundthread",
     ],
 
     certificate: "media",

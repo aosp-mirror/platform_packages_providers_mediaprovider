@@ -60,11 +60,13 @@
     <dimen name="preview_buttons_margin_horizontal">16dp</dimen>
     <dimen name="preview_buttons_margin_bottom">10dp</dimen>
     <dimen name="preview_deselect_padding_start">2dp</dimen>
+    <dimen name="preview_viewpager_margin">20dp</dimen>
     <!-- PhotoPicker Preview text -->
     <dimen name="preview_add_text_size">14sp</dimen>
     <dimen name="preview_deselect_text_size">16sp</dimen>
     <dimen name="preview_toolbar_scrim_height">96dp</dimen>
     <dimen name="preview_deselect_scrim_height">240dp</dimen>
+
     <!-- PhotoPicker Work Profile -->
     <dimen name="picker_profile_button_margin_bottom">32dp</dimen>
     <dimen name="picker_profile_dialog_radius">8dp</dimen>

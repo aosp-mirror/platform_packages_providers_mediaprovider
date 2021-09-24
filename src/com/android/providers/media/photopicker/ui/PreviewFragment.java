@@ -31,6 +31,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.MarginPageTransformer;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
@@ -97,6 +98,8 @@ public class PreviewFragment extends Fragment {
         // Initialize ViewPager2 to swipe between multiple pictures/videos in preview
         mViewPager = view.findViewById(R.id.preview_viewPager);
         mViewPager.setAdapter(mAdapter);
+        mViewPager.setPageTransformer(new MarginPageTransformer(
+                getResources().getDimensionPixelSize(R.dimen.preview_viewpager_margin)));
 
         Button selectButton = view.findViewById(R.id.preview_select_button);
 

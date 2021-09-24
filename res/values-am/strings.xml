@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"በእርስዎ አስተዳዳሪ ታግዷል"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"የስራ ውሂብን ከግል መተግበሪያ መድረስ አይፈቀድም"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"የግል ውሂብን ከሥራ መተግበሪያ መድረስ አይፈቀድም"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"የሥራ መተግበሪያዎች ይብሩ?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"የሥራ መተግበሪያዎችዎ በአሁኑ ጊዜ ባሉበት ቆመዋል፣ ፎቶዎችዎን ለመድረስ የሥራ መተግበሪያዎችን ያብሩ"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"የስራ መተግበሪያዎች ባሉበት ቆመዋል"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"የሥራ ፎቶዎችን ለመክፈት የሥራ መተግበሪያዎችዎን ያብሩ እና እንደገና ይሞክሩ"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> ንጥሎች</item>
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> ንጥሎች</item>

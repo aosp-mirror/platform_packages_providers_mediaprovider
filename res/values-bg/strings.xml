@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано от администратора ви"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Достъпът до служебни данни от лично приложение не е разрешен"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Достъпът до лични данни от служебно приложение не е разрешен"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"Да се включат ли служебните приложения?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Понастоящем служебните ви приложения са поставени на пауза. Включете ги, за да осъществите достъп до снимките си."</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Служебните приложения са поставени на пауза"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"За да отворите служебни снимки, включете служебните си приложения и опитайте отново"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> елемента</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> елемент</item>

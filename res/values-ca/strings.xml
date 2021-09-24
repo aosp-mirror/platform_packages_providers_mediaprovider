@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloquejat per l\'administrador"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"No està permès accedir a les dades de treball des d\'una aplicació personal"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"No està permès accedir a les dades personals des d\'una aplicació de treball"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"Vols activar les aplicacions de treball?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Les teves aplicacions de treball estan actualment en pausa, activa-les per accedir a les fotos"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Les aplicacions de treball estan en pausa"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Per obrir les fotos de treball, activa les aplicacions de treball i torna-ho a provar"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> elements</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> element</item>

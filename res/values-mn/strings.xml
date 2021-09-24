@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Танай админ блоклосон"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Хувийн аппаас ажлын өгөгдөлд хандахыг зөвшөөрдөггүй"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Ажлын аппаас хувийн өгөгдөлд хандахыг зөвшөөрдөггүй"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"Ажлын аппуудыг асаах уу?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Таны ажлын аппуудыг одоогоор түр зогсоосон байна. Зурагтаа хандахын тулд ажлын аппуудаа асаана уу"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ажлын аппуудыг түр зогсоосон"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ажлын зургуудаа нээхийн тулд ажлын аппуудaa асааж, дараа нь дахин оролдоно уу"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> зүйл</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> зүйл</item>

@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bị quản trị viên của bạn chặn"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Bạn không được phép truy cập dữ liệu công việc từ một ứng dụng cá nhân"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Bạn không được phép truy cập dữ liệu cá nhân từ một ứng dụng công việc"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"Bật các ứng dụng công việc?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Hiện các ứng dụng công việc của bạn đã tạm dừng. Hãy bật các ứng dụng đó để truy cập vào ảnh của bạn"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ứng dụng công việc đã tạm dừng"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Để mở ảnh trong hồ sơ công việc, hãy bật ứng dụng công việc rồi thử lại"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> mục</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> mục</item>

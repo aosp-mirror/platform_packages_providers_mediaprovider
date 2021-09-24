@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloqueado por tu administrador"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"No se puede acceder a datos de trabajo desde una aplicación personal"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"No se puede acceder a datos personales desde una aplicación de trabajo"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"¿Activar aplicaciones de trabajo?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Tus aplicaciones de trabajo están pausadas; actívalas para acceder a tus fotos"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Las aplicaciones de trabajo están en pausa"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Para abrir fotos del trabajo, activa tus aplicaciones de trabajo e inténtalo de nuevo"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> elementos</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> elemento</item>

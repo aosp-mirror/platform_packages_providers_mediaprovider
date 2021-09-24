@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"ผู้ดูแลระบบบล็อกไว้"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ไม่อนุญาตให้เข้าถึงข้อมูลงานจากแอปส่วนตัว"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ไม่อนุญาตให้เข้าถึงข้อมูลส่วนตัวจากแอปงาน"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"เปิดแอปงานไหม"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"แอปงานของคุณหยุดอยู่ชั่วคราวในขณะนี้ โปรดเปิดแอปงานเพื่อเข้าถึงรูปภาพ"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"แอปงานหยุดชั่วคราว"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"หากต้องการเปิดรูปภาพงาน ให้เปิดแอปงานแล้วลองอีกครั้ง"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> รายการ</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> รายการ</item>

@@ -62,8 +62,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокира администратор"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Приступ подацима о послу из личне апликације није дозвољен"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Приступ личним подацима из пословне апликације није дозвољен"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"Желите да укључите пословне апликације?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Пословне апликације су тренутно паузиране. Укључите пословне апликације да бисте приступали сликама"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Пословне апликације су паузиране"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Да бисте отворили пословне слике, укључите пословне апликације, па пробајте поново"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> ставка</item>
       <item quantity="few"><xliff:g id="COUNT_1">^1</xliff:g> ставке</item>

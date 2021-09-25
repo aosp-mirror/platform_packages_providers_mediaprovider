@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"আপনার অ্যাডমিন ব্লক করে দিয়েছে"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ব্যক্তিগত অ্যাপ থেকে অফিসের ডেটা অ্যাক্সেস করার অনুমতি নেই"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"অফিস অ্যাপ থেকে ব্যক্তিগত ডেটা অ্যাক্সেস করার অনুমতি নেই"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"অফিস অ্যাপ চালু করবেন?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"আপনার অফিসের অ্যাপ বর্তমানে পজ করা আছে, তাই আপনার ফটো অ্যাক্সেস করতে অফিস অ্যাপ চালু করুন"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"অফিসের অ্যাপ পজ করা আছে"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"অফিস প্রোফাইলের ফটো দেখতে, অফিসের অ্যাপ চালু করে আবার চেষ্টা করুন"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম</item>
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম</item>

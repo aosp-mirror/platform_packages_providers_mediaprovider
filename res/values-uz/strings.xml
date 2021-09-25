@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Administratoringiz tomonidan bloklangan"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Shaxsiy ilovadan ishga oid maʼlumotlarga kirish taqiqlangan"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Ishga oid ilovadan shaxsiy maʼlumotlarga kirish taqiqlangan"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"Ishga oid ilovalar yoqilsinmi?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Ishga oid ilovalar hozirda pauza qilingan, suratlaringizga kiris huchun ishga oid ilovalarni yoqing"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ishga oid ilovalar pauza qilingan"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ishga oid suratlarni ochish uchun ishga oid ilovalarni yoqib, keyin qaytadan urining"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> ta narsa</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> ta narsa</item>

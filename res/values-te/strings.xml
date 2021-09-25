@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"మీ అడ్మిన్ బ్లాక్ చేశారు"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"వ్యక్తిగత యాప్ నుండి వర్క్ డేటాను యాక్సెస్ చేయడం అనుమతించబడదు"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"వర్క్ యాప్ నుండి వ్యక్తిగత డేటాను యాక్సెస్ చేయడం అనుమతించబడదు"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"వర్క్ యాప్‌లను ఆన్ చేయాలా?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"ప్రస్తుతం మీ వర్క్ యాప్‌లు పాజ్ చేయబడ్డాయి, మీ ఫోటోలను యాక్సెస్ చేయడానికి వర్క్ యాప్‌లను ఆన్ చేయండి"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"వర్క్ యాప్‌లు పాజ్ చేయబడ్డాయి"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"వర్క్ ఫోటోలను తెరవడానికి, మీ వర్క్ యాప్‌లను ఆన్ చేసి, ఆపై మళ్లీ ట్రై చేయండి"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> ఐటెమ్‌లు</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> ఐటెమ్</item>

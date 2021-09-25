@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Администраторуңуз бөгөттөп койгон"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Жумушка байланыштуу маалыматка жеке колдонмодон кирүүгө тыюу салынат"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Жеке маалыматка жумуш колдонмосунан кирүүгө тыюу салынат"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"Жумуш колдонмолорун күйгүзөсүзбү?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Учурда жумуш колдонмолоруңуз тындырылды. Cүрөттөрүңүзгө кирүү үчүн жумуш колдонмолорун күйгүзүңүз"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Жумуш колдонмолору тындырылды"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Жумуш сүрөттөрүн ачуу үчүн жумуш колдонмолорун иштетип, кайра аракет кылыңыз"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> нерсе</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> нерсе</item>

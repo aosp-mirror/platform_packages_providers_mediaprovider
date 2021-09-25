@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"បានទប់ស្កាត់ដោយអ្នកគ្រប់គ្រងរបស់អ្នក"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ការចូលប្រើទិន្នន័យការងារពីកម្មវិធី​ផ្ទាល់ខ្លួនមិនត្រូវបានអនុញ្ញាតទេ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ការចូលប្រើទិន្នន័យផ្ទាល់ខ្លួនពីកម្មវិធី​ការងារមិនត្រូវបានអនុញ្ញាតទេ"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"បើក​កម្មវិធី​ការងារឬ?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"បច្ចុប្បន្ន កម្មវិធី​ការងាររបស់អ្នកត្រូវបានផ្អាក សូមបើកកម្មវិធី​ការងារ ដើម្បីចូលប្រើរូបថតរបស់អ្នក"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"កម្មវិធី​ការងារ​ត្រូវបានផ្អាក"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ដើម្បីបើក​រូបថតការងារ សូមបើក​កម្មវិធីការងារ​របស់អ្នក រួចព្យាយាម​ម្ដងទៀត"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other">ធាតុ <xliff:g id="COUNT_1">^1</xliff:g></item>
       <item quantity="one">ធាតុ <xliff:g id="COUNT_0">^1</xliff:g></item>

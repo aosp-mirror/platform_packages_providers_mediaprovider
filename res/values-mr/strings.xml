@@ -56,16 +56,11 @@
     <string name="picker_albums" msgid="4822511902115299142">"अल्बम"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ऑफिसवर स्विच करा"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"वैयक्तिकवर स्विच करा"</string>
-    <!-- no translation found for picker_profile_admin_title (4172022376418293777) -->
-    <skip />
-    <!-- no translation found for picker_profile_admin_msg_from_personal (1941639895084555723) -->
-    <skip />
-    <!-- no translation found for picker_profile_admin_msg_from_work (8048524337462790110) -->
-    <skip />
-    <!-- no translation found for picker_profile_work_title (2871219486292993005) -->
-    <skip />
-    <!-- no translation found for picker_profile_work_msg (9043813554421265846) -->
-    <skip />
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"तुमच्या ॲडमिनने ब्लॉक केले"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"वैयक्तिक ॲपवरून कामाशी संबंधित डेटा अ‍ॅक्सेस करण्याची परवानगी नाही"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"कामाशी संबंधित ॲपवरून वैयक्तिक डेटा अ‍ॅक्सेस करण्याची परवानगी नाही"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"कामाशी संबंधित अ‍ॅप्स थांबवली आहेत"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"कामाशी संबंधित फोटो उघडण्यासाठी, कामाशी संबंधित अ‍ॅप्स सुरू करा त्यानंतर पुन्हा प्रयत्न करा"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g>आयटम</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> आयटम</item>

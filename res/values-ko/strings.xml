@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"관리자가 차단함"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"개인 앱에서는 업무 데이터에 액세스할 수 없습니다."</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"직장 앱에서는 개인 데이터에 액세스할 수 없습니다."</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"직장 앱을 사용 설정하시겠습니까?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"직장 앱이 일시중지된 상태입니다. 사진에 액세스하려면 직장 앱을 사용 설정하세요."</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"직장 앱이 일시중지됨"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"직장 사진을 열려면 직장 앱을 사용 설정한 후 다시 시도하세요."</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other">항목 <xliff:g id="COUNT_1">^1</xliff:g>개</item>
       <item quantity="one">항목 <xliff:g id="COUNT_0">^1</xliff:g>개</item>

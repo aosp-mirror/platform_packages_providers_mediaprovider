@@ -56,16 +56,11 @@
     <string name="picker_albums" msgid="4822511902115299142">"এলবাম"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"কৰ্মস্থানৰ প্ৰ’ফাইললৈ সলনি কৰক"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ব্যক্তিগত প্ৰ’ফাইললৈ সলনি কৰক"</string>
-    <!-- no translation found for picker_profile_admin_title (4172022376418293777) -->
-    <skip />
-    <!-- no translation found for picker_profile_admin_msg_from_personal (1941639895084555723) -->
-    <skip />
-    <!-- no translation found for picker_profile_admin_msg_from_work (8048524337462790110) -->
-    <skip />
-    <!-- no translation found for picker_profile_work_title (2871219486292993005) -->
-    <skip />
-    <!-- no translation found for picker_profile_work_msg (9043813554421265846) -->
-    <skip />
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"আপোনাৰ প্ৰশাসকে অৱৰোধ কৰিছে"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ব্যক্তিগত এপৰ পৰা কৰ্মস্থানৰ ডেটা এক্সেছ কৰাৰ অনুমতি নাই"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"কাম সম্পর্কীয় এপৰ পৰা ব্যক্তিগত ডেটা এক্সেছ কৰাৰ অনুমতি নাই"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"কাম সম্পর্কীয় এপ্‌সমূহ পজ কৰা আছে"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"কৰ্মস্থানৰ ফট’ খুলিবলৈ আপোনাৰ কাম সম্পর্কীয় এপ্‌সমূহ অন কৰক তাৰ পাছত পুনৰ চেষ্টা কৰক"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> টা বস্তু</item>
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> টা বস্তু</item>

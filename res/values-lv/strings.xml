@@ -62,8 +62,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloķējis jūsu administrators"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Piekļuve darba datiem no personīgās lietotnes nav atļauta."</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Piekļuve personīgajiem datiem no darba lietotnes nav atļauta."</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"Vai ieslēgt darba lietotnes?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Jūsu darba lietotnes pašlaik ir apturētas. Ieslēdziet darba lietotnes, lai piekļūtu saviem fotoattēliem."</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Darba lietotnes ir apturētas"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Lai atvērtu darba fotoattēlus, ieslēdziet savas darba lietotnes un pēc tam mēģiniet vēlreiz."</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="zero"><xliff:g id="COUNT_1">^1</xliff:g> vienumu</item>
       <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> vienums</item>

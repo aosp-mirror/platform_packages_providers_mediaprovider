@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"သင့်စီမံခန့်ခွဲသူက ပိတ်ထားသည်"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ကိုယ်ရေးသုံးအက်ပ်ဖြင့် အလုပ်ဒေတာများ သုံးခွင့်မရှိပါ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"အလုပ်သုံးအက်ပ်ဖြင့် ကိုယ်ပိုင်ဒေတာများ သုံးခွင့်မရှိပါ"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"အလုပ်သုံးအက်ပ်များ ဖွင့်မလား။"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"လောလောဆယ် အလုပ်သုံးအက်ပ်များ ခဏရပ်ထားသည်၊ ဓာတ်ပုံများသုံးရန် အလုပ်သုံးအက်ပ်ဖွင့်ပါ"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"အလုပ်သုံးအက်ပ်များကို ခေတ္တရပ်ထားသည်"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"အလုပ်ဓာတ်ပုံများဖွင့်ရန် သင့်အလုပ်သုံးအက်ပ်များကိုဖွင့်ပြီး ထပ်စမ်းကြည့်ပါ"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other">ဖိုင် <xliff:g id="COUNT_1">^1</xliff:g> ခု</item>
       <item quantity="one">ဖိုင် <xliff:g id="COUNT_0">^1</xliff:g> ခု</item>

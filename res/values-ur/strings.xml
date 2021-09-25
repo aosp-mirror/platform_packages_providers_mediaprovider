@@ -56,16 +56,11 @@
     <string name="picker_albums" msgid="4822511902115299142">"البمز"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"کام پر سوئچ کریں"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ذاتی پروفائل پر سوئچ کریں"</string>
-    <!-- no translation found for picker_profile_admin_title (4172022376418293777) -->
-    <skip />
-    <!-- no translation found for picker_profile_admin_msg_from_personal (1941639895084555723) -->
-    <skip />
-    <!-- no translation found for picker_profile_admin_msg_from_work (8048524337462790110) -->
-    <skip />
-    <!-- no translation found for picker_profile_work_title (2871219486292993005) -->
-    <skip />
-    <!-- no translation found for picker_profile_work_msg (9043813554421265846) -->
-    <skip />
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"آپ کے منتظم کے ذریعے مسدود کردہ ہے"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ذاتی ایپ سے دفتری ڈیٹا تک رسائی کی اجازت نہیں ہے"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ورک ایپ سے ذاتی ڈیٹا تک رسائی کی اجازت نہیں ہے"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ورک ایپس موقوف ہیں"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"کام کی تصاویر کھولنے کے لیے اپنی ورک ایپس آن کریں، پھر دوبارہ کوشش کریں"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> آئٹمز</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> آئٹم</item>

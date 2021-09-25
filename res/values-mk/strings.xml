@@ -59,8 +59,8 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано од вашиот администратор"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Не е дозволено пристапување до работни податоци од лична апликација"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Не е дозволено пристапување до лични податоци од работна апликација"</string>
-    <string name="picker_profile_work_title" msgid="2871219486292993005">"Да се вклучат работните апликации?"</string>
-    <string name="picker_profile_work_msg" msgid="9043813554421265846">"Вашите работни апликации се паузирани во моментов, вклучете ги за да пристапите до фотографиите"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Работните апликации се паузирани"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"За да ги отворите работните фотографии, вклучете ги работните апликации, па обидете се повторно"</string>
     <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
       <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> ставка</item>
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> ставки</item>

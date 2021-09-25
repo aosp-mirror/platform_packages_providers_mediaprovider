@@ -80,32 +80,32 @@
       <item quantity="one">இந்த ஆடியோ ஃபைலை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ கோப்புகளை ‘நீக்கியவை’ கோப்புறைக்கு நகர்த்துகிறது…</item>
-      <item quantity="one">ஆடியோ ஃபைலை ‘நீக்கியவை’ கோப்புறைக்கு நகர்த்துகிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ கோப்புகளை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
+      <item quantity="one">ஆடியோ ஃபைலை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> வீடியோக்களை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
       <item quantity="one">இந்த வீடியோவை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> வீடியோக்களை ‘நீக்கியவை’ கோப்புறைக்கு நகர்த்துகிறது…</item>
-      <item quantity="one">வீடியோவை ‘நீக்கியவை’ கோப்புறைக்கு நகர்த்துகிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> வீடியோக்களை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
+      <item quantity="one">வீடியோவை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> படங்களை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
       <item quantity="one">இந்தப் படத்தை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> படங்களை ‘நீக்கியவை’ கோப்புறைக்கு நகர்த்துகிறது…</item>
-      <item quantity="one">படத்தை ‘நீக்கியவை’ கோப்புறைக்கு நகர்த்துகிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> படங்களை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
+      <item quantity="one">படத்தை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
     </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஃபைல்களை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
       <item quantity="one">இந்த ஃபைலை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆவணங்களை ‘நீக்கியவை’ கோப்புறைக்கு நகர்த்துகிறது…</item>
-      <item quantity="one">ஆவணத்தை ‘நீக்கியவை’ கோப்புறைக்கு நகர்த்துகிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆவணங்களை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
+      <item quantity="one">ஆவணத்தை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களை நீக்கியவற்றில் இருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>

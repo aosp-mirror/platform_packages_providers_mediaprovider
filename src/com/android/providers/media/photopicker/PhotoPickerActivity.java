@@ -341,16 +341,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void setResultAndFinishSelf() {
         final List<Item> selectedItemList = new ArrayList<>(
                 mPickerViewModel.getSelectedItems().getValue().values());
-        // "persist.sys.photopicker.usepickeruri" property is used to indicate if picker uris should
-        // be returned for all intent actions.
-        // TODO(b/168001592): Remove this system property when intent-filter for ACTION_GET_CONTENT
-        // is removed or when we don't have to send redactedUris any more.
-        final boolean usePickerUriByDefault =
-                SystemProperties.getBoolean("persist.sys.photopicker.usepickeruri", false);
-        final boolean shouldReturnPickerUris = usePickerUriByDefault ||
-                MediaStore.ACTION_PICK_IMAGES.equals(getIntent().getAction());
-        setResult(Activity.RESULT_OK, getPickerResponseIntent(this, selectedItemList,
-                shouldReturnPickerUris));
+
+        setResult(Activity.RESULT_OK, getPickerResponseIntent(mPickerViewModel.canSelectMultiple(),
+                selectedItemList));
         finish();
     }
 

@@ -21,8 +21,10 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
@@ -32,6 +34,7 @@ import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.provider.CloudMediaProviderContract;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -41,20 +44,17 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.io.FileNotFoundException;
+import java.util.List;
 
 /**
  * Utility class for Picker Uris, it handles (includes permission checks, incoming args
  * validations etc) and redirects picker URIs to the correct resolver.
  */
 public class PickerUriResolver {
-    private Context mContext;
-
+    private static final String TAG = PickerUriResolver.class.getSimpleName();
     private static final String PICKER_SEGMENT = "picker";
     private static final String PICKER_INTERNAL_SEGMENT = "picker_internal";
-
     /** A uri with prefix "content://media/picker" is considered as a picker uri */
     public static final Uri PICKER_URI = MediaStore.AUTHORITY_URI.buildUpon().
             appendPath(PICKER_SEGMENT).build();
@@ -64,6 +64,8 @@ public class PickerUriResolver {
      */
     public static final Uri PICKER_INTERNAL_URI = MediaStore.AUTHORITY_URI.buildUpon().
             appendPath(PICKER_INTERNAL_SEGMENT).build();
+
+    private Context mContext;
 
     PickerUriResolver(Context context) {
         mContext = context;
@@ -119,7 +121,12 @@ public class PickerUriResolver {
             int callingPid, int callingUid) {
         checkUriPermission(uri, callingPid, callingUid);
 
-        return queryInternal(uri, projection, queryArgs, signal);
+        try {
+            return queryInternal(uri, projection, queryArgs, signal);
+        } catch (FileNotFoundException e) {
+            Log.d(TAG, "File not found for uri: " + uri, e);
+            return new MatrixCursor(projection == null ? new String[] {} : projection);
+        }
     }
 
     public String getType(@NonNull Uri uri) {
@@ -128,6 +135,8 @@ public class PickerUriResolver {
             if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
                 return cursor.getString(0);
             }
+        } catch (FileNotFoundException e) {
+            throw new IllegalArgumentException(e.getMessage());
         }
         throw new IllegalArgumentException("Failed to getType for uri: " + uri);
     }
@@ -148,7 +157,7 @@ public class PickerUriResolver {
     }
 
     private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
-            CancellationSignal signal) {
+            CancellationSignal signal) throws FileNotFoundException {
         final ContentResolver resolver = getContentResolverForUserId(uri);
         final long token = Binder.clearCallingIdentity();
         try {
@@ -212,18 +221,19 @@ public class PickerUriResolver {
     /**
      * @return {@link MediaStore.Files} Uri that always redacts sensitive data
      */
-    private static Uri getRedactedFileUriFromPickerUri(Uri uri, ContentResolver contentResolver) {
+    private Uri getRedactedFileUriFromPickerUri(Uri uri, ContentResolver contentResolver) {
         // content://media/picker/<user-id>/<media-id>
         final long id = Long.parseLong(uri.getPathSegments().get(2));
         final Uri res = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id);
         return getRedactedUri(contentResolver, res);
     }
 
-    private static Uri getRedactedUri(ContentResolver contentResolver, Uri uri) {
+    @VisibleForTesting
+    Uri getRedactedUri(ContentResolver contentResolver, Uri uri) {
         if (SdkLevel.isAtLeastS()) {
             return getRedactedUriFromMediaStoreAPI(contentResolver, uri);
         } else {
-            // TODO (b/168783994): directly call redacted uri code logic or explore other solution.
+            // TODO (b/201994830): directly call redacted uri code logic or explore other solution.
             // Devices running on Android R cannot call getRedacted() as the API is added in
             // Android S.
             return uri;
@@ -235,7 +245,8 @@ public class PickerUriResolver {
         return MediaStore.getRedactedUri(contentResolver, uri);
     }
 
-    private static UserId getUserId(Uri uri) {
+    @VisibleForTesting
+    static UserId getUserId(Uri uri) {
         // content://media/picker/<user-id>/<media-id>
         final int user = Integer.parseInt(uri.getPathSegments().get(1));
         return UserId.of(UserHandle.of(user));
@@ -249,8 +260,14 @@ public class PickerUriResolver {
         }
     }
 
-    private ContentResolver getContentResolverForUserId(Uri uri) {
+    @VisibleForTesting
+    ContentResolver getContentResolverForUserId(Uri uri) throws FileNotFoundException {
         final UserId userId = getUserId(uri);
-        return userId.getContentResolver(mContext);
+        try {
+            return userId.getContentResolver(mContext);
+        } catch (NameNotFoundException e) {
+            throw new FileNotFoundException("File not found due to unavailable content resolver "
+                    + "for uri: " + uri + " ; error: " + e);
+        }
     }
 }

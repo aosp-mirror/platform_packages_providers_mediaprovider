@@ -87,7 +87,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     @VisibleForTesting
-    void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
+    public void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
         mItemsProvider = itemsProvider;
     }
 

@@ -41,6 +41,7 @@ import android.view.WindowInsetsController;
 import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
@@ -107,7 +108,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mToolbarHeight = ta.getDimensionPixelSize(0, -1);
         ta.recycle();
 
-        mPickerViewModel = new ViewModelProvider(this).get(PickerViewModel.class);
+        mPickerViewModel = createViewModel();
+
         try {
             mPickerViewModel.parseValuesFromIntent(getIntent());
         } catch (IllegalArgumentException e) {
@@ -123,6 +125,16 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
         mFragmentContainerView = findViewById(R.id.fragment_container);
+    }
+
+    /**
+     * Warning: This method is needed for tests, we are not customizing anything here.
+     * Allowing ourselves to control ViewModel creation helps us mock the ViewModel for test.
+     */
+    @VisibleForTesting
+    @NonNull
+    protected PickerViewModel createViewModel() {
+        return new ViewModelProvider(this).get(PickerViewModel.class);
     }
 
     @Override

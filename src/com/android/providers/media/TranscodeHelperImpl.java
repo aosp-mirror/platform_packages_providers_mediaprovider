@@ -32,6 +32,7 @@ import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED;
+import static com.android.providers.media.util.SyntheticPathUtils.createSparseFile;
 
 import android.annotation.IntRange;
 import android.annotation.LongDef;
@@ -522,7 +523,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
      * @param uid app requesting IO
      *
      */
-    public String getIoPath(String path, int uid) {
+    public String prepareIoPath(String path, int uid) {
         // This can only happen when we are in a version that supports transcoding.
         // So, no need to check for the SDK version here.
 
@@ -548,7 +549,12 @@ public class TranscodeHelperImpl implements TranscodeHelper {
             updateTranscodeStatus(path, TRANSCODE_EMPTY);
         }
 
-        return transcodePath;
+        final long maxFileSize = (long) (new File(path).length() * 2);
+        if (createSparseFile(transcodeFile, maxFileSize)) {
+            return transcodePath;
+        }
+
+        return "";
     }
 
     private static int getMediaCapabilitiesUid(int uid, Bundle bundle) {
@@ -1177,6 +1183,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
                         .setSourceFileDescriptor(srcPfd)
                         .setDestinationFileDescriptor(dstPfd)
                         .build();
+
         TranscodingSession session = mediaTranscodeManager.enqueueRequest(request,
                 ForegroundThread.getExecutor(),
                 s -> {

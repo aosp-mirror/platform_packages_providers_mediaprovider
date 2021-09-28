@@ -1564,11 +1564,9 @@ public class MediaProvider extends ContentProvider {
     }
 
     private FileLookupResult handleTranscodedFileLookup(String path, int uid, int tid) {
-        String ioPath = "";
-        boolean transformsComplete = true;
-        int transformsReason = 0;
+        final int transformsReason;
+        final PendingOpenInfo info;
 
-        PendingOpenInfo info = null;
         synchronized (mPendingOpenInfo) {
             info = mPendingOpenInfo.get(tid);
         }
@@ -1580,15 +1578,15 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (transformsReason > 0) {
-            ioPath = mTranscodeHelper.getIoPath(path, uid);
-            transformsComplete = mTranscodeHelper.isTranscodeFileCached(path, ioPath);
+            final String ioPath = mTranscodeHelper.prepareIoPath(path, uid);
+            final boolean transformsComplete = mTranscodeHelper.isTranscodeFileCached(path, ioPath);
 
-            final long maxFileSize = (long) (new File(path).length() * 2);
-            createSparseFile(new File(ioPath), maxFileSize);
+            return new FileLookupResult(FLAG_TRANSFORM_TRANSCODING, transformsReason, uid,
+                    transformsComplete, /* transformsSupported */ true, ioPath);
         }
 
-        return new FileLookupResult(FLAG_TRANSFORM_TRANSCODING, transformsReason, uid,
-                transformsComplete, /* transformsSupported */ true, ioPath);
+        return new FileLookupResult(/* transforms */ 0, transformsReason, uid,
+                /* transformsComplete */ true, /* transformsSupported */ true, "");
     }
 
     private FileLookupResult handleRedactedFileLookup(int uid, @NonNull String path) {

@@ -35,7 +35,7 @@ public class TranscodeHelperNoOp implements TranscodeHelper {
         return false;
     }
 
-    public String getIoPath(String path, int uid) {
+    public String prepareIoPath(String path, int uid) {
         return null;
     }
 

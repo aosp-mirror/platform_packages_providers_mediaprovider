@@ -22,6 +22,7 @@ import static com.android.providers.media.util.MimeUtils.isImageMimeType;
 import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import android.Manifest;
 import android.content.ContentResolver;
@@ -38,6 +39,7 @@ import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
@@ -45,6 +47,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ItemsProviderTest {
 
@@ -370,6 +375,50 @@ public class ItemsProviderTest {
         } finally {
             imageFile.delete();
             videoFile.delete();
+        }
+    }
+
+    @Test
+    public void testGetItems_sortOrder() throws Exception {
+        try {
+            final long timeNow = System.nanoTime() / 1000;
+            final Uri imageFileDateNowUri
+                    = createFileAndGet(getDcimDir(), IMAGE_FILE_NAME, timeNow);
+            final Uri videoFileDateNowUri
+                    = createFileAndGet(getCameraDir(), VIDEO_FILE_NAME, timeNow);
+            final Uri imageFileDateNowPlus1Uri = createFileAndGet(getDownloadsDir(),
+                    "latest_" + IMAGE_FILE_NAME, timeNow + 1000);
+
+            // This is the list of uris based on the expected sort order of items returned by
+            // ItemsProvider#getItems
+            List<Uri> uris = new ArrayList<>();
+            // This is the latest image file
+            uris.add(imageFileDateNowPlus1Uri);
+            // Video file was scanned after image file, hence has higher _id than image file
+            uris.add(videoFileDateNowUri);
+            uris.add(imageFileDateNowUri);
+
+            try (Cursor cursor = mItemsProvider.getItems(/* category */ null, /* offset */ 0,
+                    /* limit */ -1, /* mimeType */ null, /* userId */ null)) {
+                assertThat(cursor).isNotNull();
+
+                final int expectedCount = uris.size();
+                assertThat(cursor.getCount()).isEqualTo(expectedCount);
+
+                int rowNum = 0;
+                assertThat(cursor.moveToFirst()).isTrue();
+                final int idColumnIndex = cursor.getColumnIndexOrThrow(Item.ItemColumns.ID);
+                while (rowNum < expectedCount) {
+                    assertWithMessage("id at row:" + rowNum + " is expected to be"
+                            + " same as id in " + uris.get(rowNum))
+                            .that(String.valueOf(cursor.getLong(idColumnIndex)))
+                            .isEqualTo(uris.get(rowNum).getLastPathSegment());
+                    cursor.moveToNext();
+                    rowNum++;
+                }
+            }
+        } finally {
+            deleteAllFilesNoThrow();
         }
     }
 
@@ -736,5 +785,30 @@ public class ItemsProviderTest {
         MediaStore.scanFile(mIsolatedResolver, nomedia);
 
         return dir;
+    }
+
+    private void deleteAllFilesNoThrow() {
+        try (Cursor c = mIsolatedResolver.query(
+                MediaStore.Files.getContentUri(VOLUME_EXTERNAL),
+                new String[] {MediaStore.MediaColumns.DATA}, null, null)) {
+            while(c.moveToNext()) {
+                (new File(c.getString(
+                        c.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)))).delete();
+            }
+        }
+
+    }
+
+    private Uri createFileAndGet(File parent, String fileName, long lastModifiedTime)
+            throws IOException {
+        final File file = new File(parent, fileName);
+        assertWithMessage("Create new file " + file)
+                .that(file.createNewFile()).isTrue();
+        assertWithMessage("Set last modified for " + file)
+                .that(file.setLastModified(lastModifiedTime)).isTrue();
+        final Uri uri = MediaStore.scanFile(mIsolatedResolver, file);
+        assertWithMessage("Uri obtained by scanning file " + file)
+                .that(uri).isNotNull();
+        return uri;
     }
 }

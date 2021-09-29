@@ -28,7 +28,7 @@ public interface TranscodeHelper {
 
     public boolean transcode(String src, String dst, int uid, int reason);
 
-    public String getIoPath(String path, int uid);
+    public String prepareIoPath(String path, int uid);
 
     public int shouldTranscode(String path, int uid, Bundle bundle);
 

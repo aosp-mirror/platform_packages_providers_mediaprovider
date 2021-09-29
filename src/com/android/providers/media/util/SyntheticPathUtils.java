@@ -21,10 +21,19 @@ import static com.android.providers.media.util.FileUtils.buildPrimaryVolumeFile;
 import static com.android.providers.media.util.FileUtils.extractFileName;
 
 import androidx.annotation.VisibleForTesting;
+import android.text.TextUtils;
+import android.util.Log;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public final class SyntheticPathUtils {
+    private static final String TAG = "SyntheticPathUtils";
+
     private static final String TRANSFORMS_DIR = ".transforms";
     private static final String SYNTHETIC_DIR = "synthetic";
     private static final String REDACTED_DIR = "redacted";
@@ -68,6 +77,41 @@ public final class SyntheticPathUtils {
                 .getAbsolutePath();
 
         return path != null && startsWith(path, syntheticDir);
+    }
+
+    public static List<String> extractSyntheticRelativePathSegements(String path, int userId) {
+        final List<String> segments = new ArrayList<>();
+        final String syntheticDir = buildPrimaryVolumeFile(userId, getSyntheticRelativePath())
+                .getAbsolutePath();
+
+        if (path.toLowerCase(Locale.ROOT).indexOf(syntheticDir.toLowerCase(Locale.ROOT)) < 0) {
+            return segments;
+        }
+
+        final String[] segmentArray = path.substring(syntheticDir.length()).split("/");
+        for (String segment : segmentArray) {
+            if (TextUtils.isEmpty(segment)) {
+                continue;
+            }
+            segments.add(segment);
+        }
+
+        return segments;
+    }
+
+    public static boolean createSparseFile(File file, long size) {
+        if (size < 0) {
+            return false;
+        }
+
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+            raf.setLength(size);
+            return true;
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to create sparse file: " + file, e);
+            file.delete();
+            return false;
+        }
     }
 
     @VisibleForTesting

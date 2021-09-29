@@ -513,6 +513,26 @@ public class PickerDbFacade {
         return queryMedia(qb, selectionArgs, query.limit);
     }
 
+    public Cursor queryMediaId(String authority, String mediaId) {
+        final String[] selectionArgs = new String[] { mediaId };
+        final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
+        if (isLocal(authority)) {
+            qb.appendWhereStandalone(WHERE_LOCAL_ID);
+        } else {
+            qb.appendWhereStandalone(WHERE_CLOUD_ID);
+        }
+
+        synchronized (mLock) {
+            if (authority.equals(mLocalProvider) || authority.equals(mCloudProvider)) {
+                return qb.query(mDatabase, getProjectionLocked(), /* selection */ null,
+                        selectionArgs, /* groupBy */ null, /* having */ null, /* orderBy */ null,
+                        /* limitStr */ null);
+            }
+        }
+
+        return null;
+    }
+
     public static boolean isPickerDbEnabled() {
         return SystemProperties.getBoolean("sys.photopicker.pickerdb.enabled", false);
     }
@@ -531,18 +551,20 @@ public class PickerDbFacade {
                 qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
             }
 
-            final String[] projection = new String[] {
-                getProjectionAuthorityLocked(),
-                PROJECTION_ID,
-                PROJECTION_DATE_TAKEN,
-                PROJECTION_SIZE,
-                PROJECTION_DURATION,
-                PROJECTION_MIME_TYPE
-            };
-
-            return qb.query(mDatabase, projection, /* selection */ null, selectionArgs,
+            return qb.query(mDatabase, getProjectionLocked(), /* selection */ null, selectionArgs,
                     /* groupBy */ null, /* having */ null, orderBy, limitStr);
         }
+    }
+
+    private String[] getProjectionLocked() {
+        return new String[] {
+            getProjectionAuthorityLocked(),
+            PROJECTION_ID,
+            PROJECTION_DATE_TAKEN,
+            PROJECTION_SIZE,
+            PROJECTION_DURATION,
+            PROJECTION_MIME_TYPE
+        };
     }
 
     private String getProjectionAuthorityLocked() {

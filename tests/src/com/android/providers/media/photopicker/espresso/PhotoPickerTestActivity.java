@@ -26,6 +26,7 @@ public class PhotoPickerTestActivity extends PhotoPickerActivity {
         PickerViewModel pickerViewModel = super.createViewModel();
         pickerViewModel.setItemsProvider(new ItemsProvider(
                 PhotoPickerBaseTest.getIsolatedContext()));
+        pickerViewModel.setUserIdManager(PhotoPickerBaseTest.getMockUserIdManager());
         return pickerViewModel;
     }
 }

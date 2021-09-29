@@ -71,7 +71,7 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Category>> mCategoryList;
 
     private ItemsProvider mItemsProvider;
-    private final UserIdManager mUserIdManager;
+    private UserIdManager mUserIdManager;
     private boolean mSelectMultiple = false;
     private String mMimeTypeFilter = null;
     private int mMaxSelectionLimit = 1;
@@ -89,6 +89,11 @@ public class PickerViewModel extends AndroidViewModel {
     @VisibleForTesting
     public void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
         mItemsProvider = itemsProvider;
+    }
+
+    @VisibleForTesting
+    public void setUserIdManager(@NonNull UserIdManager userIdManager) {
+        mUserIdManager = userIdManager;
     }
 
     /**

@@ -20,6 +20,10 @@ import static androidx.test.InstrumentationRegistry.getTargetContext;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import android.Manifest;
 import android.content.Intent;
 import android.net.Uri;
@@ -33,6 +37,8 @@ import androidx.core.util.Supplier;
 import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import org.junit.AfterClass;
@@ -78,6 +84,7 @@ public class PhotoPickerBaseTest {
     private static final long POLLING_SLEEP_MILLIS = 200;
 
     private static IsolatedContext sIsolatedContext;
+    private static UserIdManager sUserIdManager;
 
     public static Intent getSingleSelectionIntent() {
         return sSingleSelectIntent;
@@ -91,6 +98,9 @@ public class PhotoPickerBaseTest {
         return sIsolatedContext;
     }
 
+    public static UserIdManager getMockUserIdManager() {
+        return sUserIdManager;
+    }
 
     @BeforeClass
     public static void setupClass() throws Exception {
@@ -105,6 +115,9 @@ public class PhotoPickerBaseTest {
 
         sIsolatedContext = new IsolatedContext(getTargetContext(), "modern",
                 /* asFuseThread */ false);
+
+        sUserIdManager = mock(UserIdManager.class);
+        when(sUserIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
 
         createFiles();
     }
@@ -162,5 +175,59 @@ public class PhotoPickerBaseTest {
         final Uri uri = MediaStore.scanFile(getIsolatedContext().getContentResolver(), file);
         assertThat(uri).isNotNull();
 
+    }
+
+    /**
+     * Mock UserIdManager class such that the profile button is active and the user is in personal
+     * profile.
+     */
+    static void setUpActiveProfileButton() {
+        when(sUserIdManager.isMultiUserProfiles()).thenReturn(true);
+        when(sUserIdManager.isBlockedByAdmin()).thenReturn(false);
+        when(sUserIdManager.isWorkProfileOff()).thenReturn(false);
+        when(sUserIdManager.isCrossProfileAllowed()).thenReturn(true);
+        when(sUserIdManager.isManagedUserSelected()).thenReturn(false);
+
+        // setPersonalAsCurrentUserProfile() is called onClick of Active Profile Button to change
+        // profiles
+        doAnswer(invocation -> {
+            updateIsManagedUserSelected(/* isManagedUserSelected */ false);
+            return null;
+        }).when(sUserIdManager).setPersonalAsCurrentUserProfile();
+
+        // setManagedAsCurrentUserProfile() is called onClick of Active Profile Button to change
+        // profiles
+        doAnswer(invocation -> {
+            updateIsManagedUserSelected(/* isManagedUserSelected */ true);
+            return null;
+        }).when(sUserIdManager).setManagedAsCurrentUserProfile();
+    }
+
+    /**
+     * Mock UserIdManager class such that the user is in personal profile and work apps are
+     * turned off
+     */
+    static void setUpWorkAppsOffProfileButton() {
+        when(sUserIdManager.isMultiUserProfiles()).thenReturn(true);
+        when(sUserIdManager.isBlockedByAdmin()).thenReturn(false);
+        when(sUserIdManager.isWorkProfileOff()).thenReturn(true);
+        when(sUserIdManager.isCrossProfileAllowed()).thenReturn(false);
+        when(sUserIdManager.isManagedUserSelected()).thenReturn(false);
+    }
+
+    /**
+     * Mock UserIdManager class such that the user is in work profile and accessing personal
+     * profile content is blocked by admin
+     */
+    static void setUpBlockedByAdminProfileButton() {
+        when(sUserIdManager.isMultiUserProfiles()).thenReturn(true);
+        when(sUserIdManager.isBlockedByAdmin()).thenReturn(true);
+        when(sUserIdManager.isWorkProfileOff()).thenReturn(false);
+        when(sUserIdManager.isCrossProfileAllowed()).thenReturn(false);
+        when(sUserIdManager.isManagedUserSelected()).thenReturn(true);
+    }
+
+    private static void updateIsManagedUserSelected(boolean isManagedUserSelected) {
+        when(sUserIdManager.isManagedUserSelected()).thenReturn(isManagedUserSelected);
     }
 }

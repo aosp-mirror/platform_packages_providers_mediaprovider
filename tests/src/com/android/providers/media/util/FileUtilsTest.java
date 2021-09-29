@@ -44,7 +44,9 @@ import static com.android.providers.media.util.FileUtils.extractRelativePath;
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
+import static com.android.providers.media.util.FileUtils.fromFuseFile;
 import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
+import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.FileUtils.translateModeAccessToPosix;
 import static com.android.providers.media.util.FileUtils.translateModePfdToPosix;
 import static com.android.providers.media.util.FileUtils.translateModePosixToPfd;
@@ -944,5 +946,27 @@ public class FileUtilsTest {
             assertTrue(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "AppClone"));
             assertFalse(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "NotAppClone"));
         }
+    }
+
+    @Test
+    public void testToAndFromFuseFile() throws Exception {
+        final File fuseFilePrimary = new File("/mnt/user/0/emulated/0/foo");
+        final File fuseFileSecondary = new File("/mnt/user/0/0000-0000/foo");
+
+        final File lowerFsFilePrimary = new File("/storage/emulated/0/foo");
+        final File lowerFsFileSecondary = new File("/storage/0000-0000/foo");
+
+        final File unexpectedFile = new File("/mnt/pass_through/0/emulated/0/foo");
+
+        assertThat(fromFuseFile(fuseFilePrimary)).isEqualTo(lowerFsFilePrimary);
+        assertThat(fromFuseFile(fuseFileSecondary)).isEqualTo(lowerFsFileSecondary);
+        assertThat(fromFuseFile(lowerFsFilePrimary)).isEqualTo(lowerFsFilePrimary);
+
+        assertThat(toFuseFile(lowerFsFilePrimary)).isEqualTo(fuseFilePrimary);
+        assertThat(toFuseFile(lowerFsFileSecondary)).isEqualTo(fuseFileSecondary);
+        assertThat(toFuseFile(fuseFilePrimary)).isEqualTo(fuseFilePrimary);
+
+        assertThat(toFuseFile(unexpectedFile)).isEqualTo(unexpectedFile);
+        assertThat(fromFuseFile(unexpectedFile)).isEqualTo(unexpectedFile);
     }
 }

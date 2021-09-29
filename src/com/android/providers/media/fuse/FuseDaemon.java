@@ -23,6 +23,7 @@ import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.GuardedBy;
 import com.android.providers.media.MediaProvider;
+import com.android.providers.media.util.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -99,7 +100,7 @@ public final class FuseDaemon extends Thread {
                 Log.e(TAG, "initializeDeviceId failed, FUSE daemon unavailable");
                 return;
             }
-            String path = mMediaProvider.getFuseFile(new File(mPath)).getAbsolutePath();
+            String path = FileUtils.toFuseFile(new File(mPath)).getAbsolutePath();
             native_initialize_device_id(mPtr, path);
         }
     }

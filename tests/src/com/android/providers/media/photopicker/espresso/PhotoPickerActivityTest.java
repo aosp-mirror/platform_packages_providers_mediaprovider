@@ -29,7 +29,14 @@ import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
+
+import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
+
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.hamcrest.Matchers.allOf;
+
+import android.app.Activity;
 
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
@@ -54,58 +61,56 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         onView(withId(R.id.toolbar)).check(matches(isDisplayed()));
         onView(withId(R.id.fragment_container)).check(matches(isDisplayed()));
         onView(withContentDescription("Navigate up")).perform(click());
+        assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
+                Activity.RESULT_CANCELED);
     }
 
     @Test
     public void testToolbarLayout() {
         onView(withId(R.id.toolbar)).check(matches(isDisplayed()));
 
-        final int chipContainerId = R.id.chip_container;
-        final int stringPickerPhotos = R.string.picker_photos;
-        final int stringPickerAlbums = R.string.picker_albums;
+        onView(withId(CHIP_CONTAINER_ID)).check(matches(isDisplayed()));
+        onView(withId(CHIP_CONTAINER_ID)).check(matches(hasChildCount(2)));
 
-        onView(withId(chipContainerId)).check(matches(isDisplayed()));
-        onView(withId(chipContainerId)).check(matches(hasChildCount(2)));
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID),
+                isDescendantOfA(withId(CHIP_CONTAINER_ID)))).check(matches(isDisplayed()));
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID),
+                isDescendantOfA(withId(CHIP_CONTAINER_ID)))).check(matches(isClickable()));
 
-        onView(allOf(withText(stringPickerPhotos),
-                isDescendantOfA(withId(chipContainerId)))).check(matches(isDisplayed()));
-        onView(allOf(withText(stringPickerPhotos),
-                isDescendantOfA(withId(chipContainerId)))).check(matches(isClickable()));
-
-        onView(allOf(withText(stringPickerAlbums),
-                isDescendantOfA(withId(chipContainerId)))).check(matches(isDisplayed()));
-        onView(allOf(withText(stringPickerAlbums),
-                isDescendantOfA(withId(chipContainerId)))).check(matches(isClickable()));
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID),
+                isDescendantOfA(withId(CHIP_CONTAINER_ID)))).check(matches(isDisplayed()));
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID),
+                isDescendantOfA(withId(CHIP_CONTAINER_ID)))).check(matches(isClickable()));
 
         // TODO(b/200513333): Check close icon
     }
 
     @Test
     public void testTabChipNavigation() {
-        final int chipContainerId = R.id.chip_container;
-        final int stringPickerPhotos = R.string.picker_photos;
-        final int stringPickerAlbums = R.string.picker_albums;
-
-        onView(withId(chipContainerId)).check(matches(isDisplayed()));
+        onView(withId(CHIP_CONTAINER_ID)).check(matches(isDisplayed()));
 
         // On clicking albums tab, we should see albums tab
-        onView(allOf(withText(stringPickerAlbums), withParent(withId(chipContainerId))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
                 .perform(click());
-        onView(allOf(withText(stringPickerAlbums), withParent(withId(chipContainerId))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
                 .check(matches(isSelected()));
-        onView(allOf(withText(stringPickerPhotos), withParent(withId(chipContainerId))))
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
                 .check(matches(isNotSelected()));
-        // TODO(b/200513638): Also check respective tab is shown when we click on a particular
-        // tab chip
+        // Verify Camera album is shown, we are in albums tab
+        onView(allOf(withText(R.string.picker_category_camera),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(matches(isDisplayed()));
 
-        // On clicking photos tab chip, we should see all photos tab
-        onView(allOf(withText(stringPickerPhotos), withParent(withId(chipContainerId))))
+
+        // On clicking photos tab chip, we should see photos tab
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
                 .perform(click());
-        onView(allOf(withText(stringPickerPhotos), withParent(withId(chipContainerId))))
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
                 .check(matches(isSelected()));
-        onView(allOf(withText(stringPickerAlbums), withParent(withId(chipContainerId))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
                 .check(matches(isNotSelected()));
-        // TODO(b/200513638): Also check respective tab is shown when we click on a particular
-        // tab chip
+        // Verify first item is recent header, we are in photos tab
+        onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
+                .atPositionOnView(0, R.id.date_header_title))
+                .check(matches(withText(R.string.recent)));
     }
 }

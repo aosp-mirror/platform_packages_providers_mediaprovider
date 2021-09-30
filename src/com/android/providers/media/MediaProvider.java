@@ -1514,11 +1514,9 @@ public class MediaProvider extends ContentProvider {
     }
 
     private FileLookupResult handleTranscodedFileLookup(String path, int uid, int tid) {
-        String ioPath = "";
-        boolean transformsComplete = true;
-        int transformsReason = 0;
+        final int transformsReason;
+        final PendingOpenInfo info;
 
-        PendingOpenInfo info = null;
         synchronized (mPendingOpenInfo) {
             info = mPendingOpenInfo.get(tid);
         }
@@ -1530,15 +1528,15 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (transformsReason > 0) {
-            ioPath = mTranscodeHelper.getIoPath(path, uid);
-            transformsComplete = mTranscodeHelper.isTranscodeFileCached(path, ioPath);
+            final String ioPath = mTranscodeHelper.prepareIoPath(path, uid);
+            final boolean transformsComplete = mTranscodeHelper.isTranscodeFileCached(path, ioPath);
 
-            final long maxFileSize = (long) (new File(path).length() * 2);
-            createSparseFile(new File(ioPath), maxFileSize);
+            return new FileLookupResult(FLAG_TRANSFORM_TRANSCODING, transformsReason, uid,
+                    transformsComplete, /* transformsSupported */ true, ioPath);
         }
 
-        return new FileLookupResult(FLAG_TRANSFORM_TRANSCODING, transformsReason, uid,
-                transformsComplete, /* transformsSupported */ true, ioPath);
+        return new FileLookupResult(/* transforms */ 0, transformsReason, uid,
+                /* transformsComplete */ true, /* transformsSupported */ true, "");
     }
 
     private FileLookupResult handleRedactedFileLookup(int uid, @NonNull String path) {
@@ -9763,11 +9761,13 @@ public class MediaProvider extends ContentProvider {
             // it. It finds the first best child match and proceeds the match from there without
             // looking at other siblings.
             mPublic.addURI(auth, "picker", PICKER);
+            // TODO(b/195009139): Remove after switching picker URI to new format
             // content://media/picker/<user-id>/<media-id>
             mPublic.addURI(auth, "picker/#/#", PICKER_ID);
+            // content://media/picker/<user-id>/<authority>/media/<media-id>
+            mPublic.addURI(auth, "picker/#/*/media/*", PICKER_ID);
             // content://media/picker/unreliable/<media_id>
             mPublic.addURI(auth, "picker/unreliable/#", PICKER_UNRELIABLE_VOLUME);
-
             mPublic.addURI(auth, "*/images/media", IMAGES_MEDIA);
             mPublic.addURI(auth, "*/images/media/#", IMAGES_MEDIA_ID);
             mPublic.addURI(auth, "*/images/media/#/thumbnail", IMAGES_MEDIA_ID_THUMBNAIL);

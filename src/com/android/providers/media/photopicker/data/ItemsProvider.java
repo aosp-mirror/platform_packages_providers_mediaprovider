@@ -266,7 +266,10 @@ public class ItemsProvider {
                     Long.parseLong(id));
         } else {
             // We only have authority after querying the picker db
-            uri = PickerUriResolver.getMediaUri(authority).buildUpon().appendPath(id).build();
+            final Uri providerUri = PickerUriResolver.getMediaUri(authority).buildUpon()
+                    .appendPath(id).build();
+            uri = PickerUriResolver.wrapProviderUri(providerUri,
+                    userId.getUserHandle().getIdentifier());
         }
 
         if (userId.equals(UserId.CURRENT_USER)) {

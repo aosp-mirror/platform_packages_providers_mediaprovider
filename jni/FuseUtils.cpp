@@ -26,7 +26,7 @@ using std::string;
 namespace mediaprovider {
 namespace fuse {
 
-bool containsMount(const string& path, const string& userid) {
+bool containsMount(const string& path) {
     // This method is called from lookup, so it's called rather frequently.
     // Hence, we avoid concatenating the strings and we use 3 separate suffixes.
 
@@ -35,16 +35,17 @@ bool containsMount(const string& path, const string& userid) {
         return false;
     }
 
-    const string& rest_of_path = path.substr(prefix.length());
-    if (!android::base::StartsWithIgnoreCase(rest_of_path, userid)) {
+    size_t pos = path.find_first_of("/", prefix.length());
+    if (pos == std::string::npos) {
         return false;
     }
+
+    const string& path_suffix = path.substr(pos);
 
     static const string android_suffix = "/Android";
     static const string data_suffix = "/Android/data";
     static const string obb_suffix = "/Android/obb";
 
-    const string& path_suffix = rest_of_path.substr(userid.length());
     return android::base::EqualsIgnoreCase(path_suffix, android_suffix) ||
            android::base::EqualsIgnoreCase(path_suffix, data_suffix) ||
            android::base::EqualsIgnoreCase(path_suffix, obb_suffix);

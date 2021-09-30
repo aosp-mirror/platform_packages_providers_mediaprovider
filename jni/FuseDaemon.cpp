@@ -399,7 +399,7 @@ static bool is_package_owned_path(const string& path, const string& fuse_path) {
 // deadlocking the kernel
 static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child_ino,
                        const string& child_name, const string& path) {
-    if (mediaprovider::fuse::containsMount(path, MY_USER_ID_STRING)) {
+    if (mediaprovider::fuse::containsMount(path)) {
         LOG(WARNING) << "Ignoring attempt to invalidate dentry for FUSE mounts";
         return;
     }
@@ -543,7 +543,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         ino_t ino = e->attr.st_ino;
         node = ::node::Create(parent, name, io_path, should_invalidate, transforms_complete,
                               transforms, transforms_reason, &fuse->lock, ino, &fuse->tracker);
-    } else if (!mediaprovider::fuse::containsMount(path, std::to_string(getuid() / PER_USER_RANGE))) {
+    } else if (!mediaprovider::fuse::containsMount(path)) {
         // Only invalidate a path if it does not contain mount and |name| != node->GetName.
         // Invalidate both names to ensure there's no dentry left in the kernel after the following
         // operations:

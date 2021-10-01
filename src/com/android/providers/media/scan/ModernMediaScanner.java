@@ -101,6 +101,7 @@ import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
+import com.android.providers.media.util.SpecialFormatDetector;
 import com.android.providers.media.util.XmpInterface;
 
 import java.io.File;
@@ -1306,6 +1307,8 @@ public class ModernMediaScanner implements MediaScanner {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
         withGenericValues(op, file, attrs, mimeType, mediaType);
 
+        op.withValue(FileColumns._SPECIAL_FORMAT, SpecialFormatDetector.detect());
+
         op.withValue(MediaColumns.ARTIST, UNKNOWN_STRING);
         op.withValue(MediaColumns.ALBUM, file.getParentFile().getName());
         op.withValue(VideoColumns.COLOR_STANDARD, null);
@@ -1354,6 +1357,8 @@ public class ModernMediaScanner implements MediaScanner {
             String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
         withGenericValues(op, file, attrs, mimeType, mediaType);
+
+        op.withValue(FileColumns._SPECIAL_FORMAT, SpecialFormatDetector.detect());
 
         op.withValue(ImageColumns.DESCRIPTION, null);
 

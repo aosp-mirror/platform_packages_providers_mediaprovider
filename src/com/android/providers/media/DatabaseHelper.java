@@ -851,7 +851,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "_transcode_status INTEGER DEFAULT 0, _video_codec_type TEXT DEFAULT NULL,"
                 + "_modifier INTEGER DEFAULT 0, is_recording INTEGER DEFAULT 0,"
                 + "redacted_uri_id TEXT DEFAULT NULL, _user_id INTEGER DEFAULT "
-                + UserHandle.myUserId() + ")");
+                + UserHandle.myUserId() + ", _special_format INTEGER DEFAULT 0)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         db.execSQL("CREATE TABLE deleted_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
@@ -1507,6 +1507,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("ALTER TABLE files ADD COLUMN _transcode_status INTEGER DEFAULT 0;");
     }
 
+    private static void updateAddSpecialFormat(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN _special_format INTEGER DEFAULT 0;");
+        // TODO(b/199522401): Update column value for existing files.
+    }
 
     private static void updateAddVideoCodecType(SQLiteDatabase db) {
         db.execSQL("ALTER TABLE files ADD COLUMN _video_codec_type TEXT DEFAULT NULL;");
@@ -1670,7 +1674,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_S = 1209;
     // Leave some gaps in database version tagging to allow S schema changes
     // to go independent of T schema changes.
-    static final int VERSION_T = 1301;
+    static final int VERSION_T = 1302;
     public static final int VERSION_LATEST = VERSION_T;
 
     /**
@@ -1847,6 +1851,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1301) {
                 updateAddDeletedMediaTable(db);
+            }
+            if (fromVersion < 1302) {
+                updateAddSpecialFormat(db);
             }
 
             // If this is the legacy database, it's not worth recomputing data

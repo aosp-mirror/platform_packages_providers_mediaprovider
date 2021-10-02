@@ -32,6 +32,7 @@ import android.system.Os;
 import androidx.core.util.Supplier;
 import androidx.test.InstrumentationRegistry;
 
+import com.android.providers.media.R;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import org.junit.AfterClass;
@@ -45,6 +46,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class PhotoPickerBaseTest {
+    protected static final int PICKER_TAB_RECYCLERVIEW_ID = R.id.picker_tab_recyclerview;
+    protected static final int CHIP_CONTAINER_ID = R.id.chip_container;
+    protected static final int PICKER_PHOTOS_STRING_ID = R.string.picker_photos;
+    protected static final int PICKER_ALBUMS_STRING_ID = R.string.picker_albums;
+
     private static final Intent sSingleSelectIntent;
     static {
         sSingleSelectIntent = new Intent(MediaStore.ACTION_PICK_IMAGES);

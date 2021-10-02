@@ -13,6 +13,14 @@
         <activity android:name="com.android.providers.media.GetResultActivity" />
         <activity android:name="com.android.providers.media.PermissionActivity" />
         <activity android:name="com.android.providers.media.CacheClearingActivity" />
+        <activity android:name="com.android.providers.media.photopicker.PhotoPickerActivity"
+                  android:theme="@style/PickerDefaultTheme"
+                  android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.provider.action.PICK_IMAGES" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

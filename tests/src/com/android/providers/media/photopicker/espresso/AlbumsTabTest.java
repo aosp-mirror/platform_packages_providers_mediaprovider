@@ -21,13 +21,15 @@ import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
-import static org.hamcrest.Matchers.allOf;
 
 import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
+
+import static org.hamcrest.Matchers.allOf;
 
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
@@ -40,7 +42,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class AlbumsTabTest extends PhotoPickerBaseTest {
-    private static final int PICKER_TAB_RECYCLERVIEW = R.id.picker_tab_recyclerview;
 
     // TODO(b/192304192): We need to use multi selection mode to go into full screen to check all
     // the categories. Remove this when we can change BottomSheet behavior from test.
@@ -54,35 +55,51 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
         onView(allOf(withText(R.string.picker_albums), withParent(withId(R.id.chip_container))))
                 .perform(click());
 
-        onView(withId(PICKER_TAB_RECYCLERVIEW)).check(matches(isDisplayed()));
+        // Verify that toolbar has correct components
+        onView(withId(CHIP_CONTAINER_ID)).check(matches((isDisplayed())));
+        // Photos chip
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .check(matches((isDisplayed())));
+        // Albums chip
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .check(matches((isDisplayed())));
+        // Navigate up button
+        onView(withContentDescription("Navigate up")).check(matches((isDisplayed())));
 
-        final int numOfItems = 3;
-        onView(withId(PICKER_TAB_RECYCLERVIEW))
-                .check(new RecyclerViewItemCountAssertion(numOfItems));
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW, /* position */ 0, R.id.album_name);
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW, /* position */ 0, R.id.item_count);
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW, /* position */ 0, R.id.icon_thumbnail);
+        final int expectedAlbumCount = 3;
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID))
+                .check(new RecyclerViewItemCountAssertion(expectedAlbumCount));
 
-        // Verify we have all three categories listed
-        onView(allOf(withText(R.string.picker_category_camera),
-                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW)))).check(matches(isDisplayed()));
-        onView(allOf(withText(R.string.picker_category_videos),
-                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW)))).check(matches(isDisplayed()));
-        onView(allOf(withText(R.string.picker_category_downloads),
-               isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW)))).check(matches(isDisplayed()));
-
-        // Verify the position of the album names
-        onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW)
-                .atPositionOnView(/* position */ 0, R.id.album_name))
-                .check(matches(withText(R.string.picker_category_camera)));
-        onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW)
-                .atPositionOnView(/* position */ 1, R.id.album_name))
-                .check(matches(withText(R.string.picker_category_videos)));
-        onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW)
-                .atPositionOnView(/* position */ 2, R.id.album_name))
-                .check(matches(withText(R.string.picker_category_downloads)));
+        // First album is Camera
+        assertItemContentInAlbumList(/* position */ 0, R.string.picker_category_camera);
+        // Second album is Videos
+        assertItemContentInAlbumList(/* position */ 1, R.string.picker_category_videos);
+        // Third album is Downloads
+        assertItemContentInAlbumList(/* position */ 2, R.string.picker_category_downloads);
 
         // TODO(b/200513628): Check the bitmap of the album covers
+    }
+
+    private void assertItemContentInAlbumList(int position, int albumNameResId) {
+        // Verify the components are shown on the album item
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.album_name);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.item_count);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.icon_thumbnail);
+
+        // Verify we have the album in the list
+        onView(allOf(withText(albumNameResId), isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID))))
+                .check(matches(isDisplayed()));
+
+        // Verify the position of the album name matches the correct order
+        onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
+                .atPositionOnView(position, R.id.album_name))
+                .check(matches(withText(albumNameResId)));
+
+        // Verify the item count is correct
+        onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
+                .atPositionOnView(position, R.id.item_count))
+                .check(matches(withText("1 item")));
     }
 }

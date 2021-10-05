@@ -50,6 +50,8 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.InstallSourceInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.Property;
+import android.content.res.Resources;
+import android.content.res.Resources.NotFoundException;
 import android.content.res.XmlResourceParser;
 import android.database.Cursor;
 import android.media.ApplicationMediaCapabilities;
@@ -109,7 +111,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -225,6 +230,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     private final StorageManager mStorageManager;
     private final ActivityManager mActivityManager;
     private final File mTranscodeDirectory;
+    private final List<String> mSupportedRelativePaths;
     @GuardedBy("mLock")
     private UUID mTranscodeVolumeUuid;
 
@@ -276,6 +282,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
                         MAX_TRANSCODE_DURATION_MS);
         mTranscodeDenialController = new TranscodeDenialController(mActivityManager,
                 mTranscodingUiNotifier, maxTranscodeDurationMs);
+        mSupportedRelativePaths = verifySupportedRelativePaths(getStringArrayConfig(
+                        R.array.config_supported_transcoding_relative_paths));
 
         parseTranscodeCompatManifest();
         // The storage namespace is a boot namespace so we actually don't expect this to be changed
@@ -797,14 +805,48 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     }
 
     public boolean supportsTranscode(String path) {
-        File file = new File(path);
-        String name = file.getName();
-        final String cameraRelativePath =
-                String.format("%s/%s/", Environment.DIRECTORY_DCIM, DIRECTORY_CAMERA);
+        final File file = new File(path);
+        final String name = file.getName();
+        final String relativePath = FileUtils.extractRelativePath(path);
 
-        return !isTranscodeFile(path) && name.toLowerCase(Locale.ROOT).endsWith(".mp4")
-                && path.startsWith("/storage/emulated/")
-                && cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
+        if (isTranscodeFile(path) || !name.toLowerCase(Locale.ROOT).endsWith(".mp4")
+                || !path.startsWith("/storage/emulated/")) {
+            return false;
+        }
+
+        for (String supportedRelativePath : mSupportedRelativePaths) {
+            if (supportedRelativePath.equalsIgnoreCase(relativePath)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static List<String> verifySupportedRelativePaths(List<String> relativePaths) {
+        final List<String> verifiedPaths = new ArrayList<>();
+        final String lowerCaseDcimDir = Environment.DIRECTORY_DCIM.toLowerCase(Locale.ROOT) + "/";
+
+        for (String path : relativePaths) {
+            if (path.toLowerCase(Locale.ROOT).startsWith(lowerCaseDcimDir) && path.endsWith("/")) {
+                verifiedPaths.add(path);
+            } else {
+                Log.w(TAG, "Transcoding relative path must be a descendant of DCIM/ and end with"
+                        + " '/'. Ignoring: " + path);
+            }
+        }
+
+        return verifiedPaths;
+    }
+
+    private List<String> getStringArrayConfig(int resId) {
+        final Resources res = mContext.getResources();
+        try {
+            final String[] configValue = res.getStringArray(resId);
+            return Arrays.asList(configValue);
+        } catch (NotFoundException e) {
+            return new ArrayList<String>();
+        }
     }
 
     private Optional<Boolean> checkAppCompatSupport(int uid, int fileFlags) {
@@ -1453,9 +1495,14 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         synchronized (mLock) {
             writer.println("mAppCompatMediaCapabilities=" + mAppCompatMediaCapabilities);
             writer.println("mStorageTranscodingSessions=" + mStorageTranscodingSessions);
+            writer.println("mSupportedTranscodingRelativePaths=" + mSupportedRelativePaths);
 
             dumpFinishedSessions(writer);
         }
+    }
+
+    public List<String> getSupportedRelativePaths() {
+        return mSupportedRelativePaths;
     }
 
     private void dumpFinishedSessions(PrintWriter writer) {

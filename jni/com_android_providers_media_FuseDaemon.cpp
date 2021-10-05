@@ -17,6 +17,7 @@
 // Need to use LOGE_EX.
 #define LOG_TAG "FuseDaemonJNI"
 
+#include <nativehelper/scoped_local_ref.h>
 #include <nativehelper/scoped_utf_chars.h>
 
 #include <string>
@@ -32,14 +33,39 @@ namespace {
 constexpr const char* CLASS_NAME = "com/android/providers/media/fuse/FuseDaemon";
 static jclass gFuseDaemonClass;
 
+static std::vector<std::string> get_supported_transcoding_relative_paths(
+        JNIEnv* env, jobjectArray java_supported_transcoding_relative_paths) {
+    ScopedLocalRef<jobjectArray> j_transcoding_relative_paths(
+            env, java_supported_transcoding_relative_paths);
+    std::vector<std::string> transcoding_relative_paths;
+
+    const int transcoding_relative_paths_count =
+            env->GetArrayLength(j_transcoding_relative_paths.get());
+    for (int i = 0; i < transcoding_relative_paths_count; i++) {
+        ScopedLocalRef<jstring> j_ref_relative_path(
+                env, (jstring)env->GetObjectArrayElement(j_transcoding_relative_paths.get(), i));
+        ScopedUtfChars j_utf_relative_path(env, j_ref_relative_path.get());
+        const char* relative_path = j_utf_relative_path.c_str();
+
+        if (relative_path) {
+            transcoding_relative_paths.push_back(relative_path);
+        } else {
+            LOG(ERROR) << "Error reading supported transcoding relative path at index: " << i;
+        }
+    }
+
+    return transcoding_relative_paths;
+}
+
 jlong com_android_providers_media_FuseDaemon_new(JNIEnv* env, jobject self,
                                                  jobject media_provider) {
     LOG(DEBUG) << "Creating the FUSE daemon...";
     return reinterpret_cast<jlong>(new fuse::FuseDaemon(env, media_provider));
 }
 
-void com_android_providers_media_FuseDaemon_start(JNIEnv* env, jobject self, jlong java_daemon,
-                                                  jint fd, jstring java_path) {
+void com_android_providers_media_FuseDaemon_start(
+        JNIEnv* env, jobject self, jlong java_daemon, jint fd, jstring java_path,
+        jobjectArray java_supported_transcoding_relative_paths) {
     LOG(DEBUG) << "Starting the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
 
@@ -50,7 +76,11 @@ void com_android_providers_media_FuseDaemon_start(JNIEnv* env, jobject self, jlo
         return;
     }
 
-    daemon->Start(std::move(ufd), utf_chars_path.c_str());
+    const std::vector<std::string>& transcoding_relative_paths =
+            get_supported_transcoding_relative_paths(env,
+                    java_supported_transcoding_relative_paths);
+
+    daemon->Start(std::move(ufd), utf_chars_path.c_str(), transcoding_relative_paths);
 }
 
 bool com_android_providers_media_FuseDaemon_is_started(JNIEnv* env, jobject self,
@@ -127,7 +157,7 @@ bool com_android_providers_media_FuseDaemon_is_fuse_thread(JNIEnv* env, jclass c
 const JNINativeMethod methods[] = {
         {"native_new", "(Lcom/android/providers/media/MediaProvider;)J",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_new)},
-        {"native_start", "(JILjava/lang/String;)V",
+        {"native_start", "(JILjava/lang/String;[Ljava/lang/String;)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_start)},
         {"native_delete", "(J)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete)},

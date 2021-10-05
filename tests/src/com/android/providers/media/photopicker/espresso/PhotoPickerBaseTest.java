@@ -33,6 +33,7 @@ import android.provider.MediaStore;
 import android.system.ErrnoException;
 import android.system.Os;
 
+import androidx.annotation.NonNull;
 import androidx.core.util.Supplier;
 import androidx.test.InstrumentationRegistry;
 
@@ -85,6 +86,12 @@ public class PhotoPickerBaseTest {
 
     private static IsolatedContext sIsolatedContext;
     private static UserIdManager sUserIdManager;
+
+    public static Intent getSingleSelectMimeTypeFilterIntent(String mimeTypeFilter) {
+        final Intent intent = new Intent(sSingleSelectIntent);
+        intent.setType(mimeTypeFilter);
+        return intent;
+    }
 
     public static Intent getSingleSelectionIntent() {
         return sSingleSelectIntent;

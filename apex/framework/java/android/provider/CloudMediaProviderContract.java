@@ -143,6 +143,15 @@ public final class CloudMediaProviderContract {
          * @hide
          */
         public static final String AUTHORITY = "authority";
+
+        /**
+         * File path of the media item
+         * <p>
+         * Type: STRING
+         *
+         * @hide
+         */
+        public static final String DATA = "data";
     }
 
     /** Constants related to an album item, including {@link Cursor} column names */

@@ -278,7 +278,7 @@ public final class MediaStore {
     public static final String PARAM_LIMIT = "limit";
 
     /** {@hide} */
-    private static final int MY_USER_ID = UserHandle.myUserId();
+    public static final int MY_USER_ID = UserHandle.myUserId();
     /** {@hide} */
     public static final int MY_UID = android.os.Process.myUid();
     // Stolen from: UserHandle#getUserId

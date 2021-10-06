@@ -35,6 +35,8 @@ import com.android.providers.media.MediaProvider;
 import com.android.providers.media.MediaService;
 import com.android.providers.media.MediaVolume;
 
+import com.android.providers.media.util.BackgroundThread;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -70,8 +72,10 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 // We only use the upperFileSystemPath because the media process is mounted as
                 // REMOUNT_MODE_PASS_THROUGH which guarantees that all /storage paths are bind
                 // mounts of the lower filesystem.
+                final String[] supportedTranscodingRelativePaths =
+                        mediaProvider.getSupportedTranscodingRelativePaths().toArray(new String[0]);
                 FuseDaemon daemon = new FuseDaemon(mediaProvider, this, deviceFd, sessionId,
-                        upperFileSystemPath.getPath());
+                        upperFileSystemPath.getPath(), supportedTranscodingRelativePaths);
                 daemon.start();
                 sFuseDaemons.put(sessionId, daemon);
             }
@@ -89,6 +93,8 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 MediaVolume volume = MediaVolume.fromStorageVolume(vol);
                 mediaProvider.attachVolume(volume, /* validate */ false);
                 MediaService.queueVolumeScan(mediaProvider.getContext(), volume, REASON_MOUNTED);
+                BackgroundThread.getExecutor().execute(() ->
+                        mediaProvider.getPickerSyncController().syncPicker());
                 break;
             case Environment.MEDIA_UNMOUNTED:
             case Environment.MEDIA_EJECTING:

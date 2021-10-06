@@ -25,6 +25,7 @@ android_app {
         "androidx.appcompat_appcompat",
         "androidx.core_core",
         "guava",
+        "modules-utils-build",
     ],
 
     libs: [
@@ -32,6 +33,7 @@ android_app {
         "app-compat-annotations",
         "framework-annotations-lib",
         "framework-mediaprovider.impl",
+        "framework-media.stubs.module_lib",
         "framework-statsd",
     ],
 
@@ -56,8 +58,9 @@ android_app {
         "error_prone_mediaprovider",
     ],
 
-    min_sdk_version: "30",
     sdk_version: "module_current",
+    min_sdk_version: "30",
+    target_sdk_version: "30",
 
     certificate: "media",
     privileged: true,
@@ -75,6 +78,8 @@ android_app {
             "-Xep:MediaProviderMimeType:ERROR",
         ],
     },
+
+    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
 }
 
 // Used by MediaProvider and MediaProviderTests
@@ -99,11 +104,14 @@ java_library {
         "src/com/android/providers/media/util/ForegroundThread.java",
         "src/com/android/providers/media/util/Logging.java",
         "src/com/android/providers/media/util/MimeUtils.java",
+        "src/com/android/providers/media/playlist/*.java",
     ],
     sdk_version: "module_current",
     min_sdk_version: "30",
     static_libs: [
         "modules-utils-backgroundthread",
+        "modules-utils-build",
+        "guava",
     ],
     libs: [
         "androidx.annotation_annotation",
@@ -125,3 +133,10 @@ genrule {
          " --minApiLevel 30",
     out: ["com/android/providers/media/MediaProviderStatsLog.java"],
 }
+
+prebuilt_etc {
+      name: "preinstalled-packages-com.android.providers.media.module.xml",
+      src: "preinstalled-packages-com.android.providers.media.module.xml",
+      sub_dir: "sysconfig",
+}
+

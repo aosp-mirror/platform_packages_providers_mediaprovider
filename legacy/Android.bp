@@ -16,7 +16,6 @@ android_app {
         "mediaprovider-database",
         "androidx.appcompat_appcompat",
         "androidx.core_core",
-        "guava",
     ],
 
     libs: [
@@ -29,7 +28,7 @@ android_app {
         "src/**/*.java",
     ],
 
+    platform_apis: true,
     certificate: "media",
     privileged: true,
-    sdk_version: "module_current",
 }

@@ -101,6 +101,25 @@ void com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache(JNIEnv*
     // TODO(b/145741152): Throw exception
 }
 
+jstring com_android_providers_media_FuseDaemon_get_original_media_format_file_path(
+        JNIEnv* env, jobject self, jlong java_daemon, jint fd) {
+    fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
+    const std::string path = daemon->GetOriginalMediaFormatFilePath(fd);
+    return env->NewStringUTF(path.c_str());
+}
+
+void com_android_providers_media_FuseDaemon_initialize_device_id(JNIEnv* env, jobject self,
+                                                                 jlong java_daemon,
+                                                                 jstring java_path) {
+    fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
+    ScopedUtfChars utf_chars_path(env, java_path);
+    if (!utf_chars_path.c_str()) {
+        LOG(WARNING) << "Couldn't initialise FUSE device id";
+        return;
+    }
+    daemon->InitializeDeviceId(utf_chars_path.c_str());
+}
+
 bool com_android_providers_media_FuseDaemon_is_fuse_thread(JNIEnv* env, jclass clazz) {
     return pthread_getspecific(fuse::MediaProviderWrapper::gJniEnvKey) != nullptr;
 }
@@ -120,7 +139,12 @@ const JNINativeMethod methods[] = {
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_is_started)},
         {"native_invalidate_fuse_dentry_cache", "(JLjava/lang/String;)V",
          reinterpret_cast<void*>(
-                 com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache)}};
+                 com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache)},
+        {"native_get_original_media_format_file_path", "(JI)Ljava/lang/String;",
+         reinterpret_cast<void*>(
+                 com_android_providers_media_FuseDaemon_get_original_media_format_file_path)},
+        {"native_initialize_device_id", "(JLjava/lang/String;)V",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_initialize_device_id)}};
 }  // namespace
 
 void register_android_providers_media_FuseDaemon(JavaVM* vm, JNIEnv* env) {

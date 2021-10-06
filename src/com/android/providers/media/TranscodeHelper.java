@@ -19,6 +19,7 @@ package com.android.providers.media;
 import android.net.Uri;
 import android.os.Bundle;
 import java.io.PrintWriter;
+import java.util.List;
 
 /** Interface over MediaTranscodeManager access */
 public interface TranscodeHelper {
@@ -43,4 +44,6 @@ public interface TranscodeHelper {
     public boolean deleteCachedTranscodeFile(long rowId);
 
     public void dump(PrintWriter writer);
+
+    public List<String> getSupportedRelativePaths();
 }

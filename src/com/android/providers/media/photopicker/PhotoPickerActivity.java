@@ -18,32 +18,52 @@ package com.android.providers.media.photopicker;
 
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 
+import android.annotation.IntDef;
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.Outline;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.SystemProperties;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
+import android.view.WindowInsetsController;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
-
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.ui.AlbumsTabFragment;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
-import com.android.providers.media.photopicker.utils.CrossProfileUtils;
+import com.android.providers.media.photopicker.ui.PreviewFragment;
+import com.android.providers.media.photopicker.util.CrossProfileUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback;
+import com.google.android.material.chip.Chip;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,40 +72,194 @@ import java.util.List;
  * app does not get access to all photos/videos.
  */
 public class PhotoPickerActivity extends AppCompatActivity {
+
     private static final String TAG =  "PhotoPickerActivity";
+    private static final String EXTRA_TAB_CHIP_TYPE = "tab_chip_type";
+    private static final int TAB_CHIP_TYPE_PHOTOS = 0;
+    private static final int TAB_CHIP_TYPE_ALBUMS = 1;
+
+    @IntDef(prefix = { "TAB_CHIP_TYPE" }, value = {
+            TAB_CHIP_TYPE_PHOTOS,
+            TAB_CHIP_TYPE_ALBUMS
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    @interface TabChipType {}
 
     private PickerViewModel mPickerViewModel;
     private UserIdManager mUserIdManager;
+    private ViewGroup mTabChipContainer;
+    private Chip mPhotosTabChip;
+    private Chip mAlbumsTabChip;
+    @TabChipType
+    private int mSelectedTabChipType;
+    private BottomSheetBehavior mBottomSheetBehavior;
+    private View mBottomSheetView;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photo_picker);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        final Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        // TODO (b/185801192): remove this and add tabs Photos and Albums
-        getSupportActionBar().setTitle("Photos & Videos");
-
-        final boolean canSelectMultiple = getIntent().getBooleanExtra(
-                Intent.EXTRA_ALLOW_MULTIPLE, false);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         mPickerViewModel = new ViewModelProvider(this).get(PickerViewModel.class);
-        mPickerViewModel.setSelectMultiple(canSelectMultiple);
-
-        // only add the fragment when the activity is created at first time
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                    .setReorderingAllowed(true)
-                    .add(R.id.fragment_container, PhotosTabFragment.class, null)
-                    .commitNow();
+        try {
+            mPickerViewModel.parseValuesFromIntent(getIntent());
+        } catch (IllegalArgumentException e) {
+            Log.w(TAG, "Finish activity due to: " + e);
+            setCancelledResultAndFinishSelf();
         }
+
+        mTabChipContainer = findViewById(R.id.chip_container);
+        initTabChips();
+        restoreState(savedInstanceState);
 
         mUserIdManager = mPickerViewModel.getUserIdManager();
         final Switch profileSwitch = findViewById(R.id.workprofile);
         if (mUserIdManager.isMultiUserProfiles()) {
             profileSwitch.setVisibility(View.VISIBLE);
             setUpWorkProfileToggleSwitch(profileSwitch);
+        }
+        mBottomSheetView = findViewById(R.id.bottom_sheet);
+        mBottomSheetBehavior = BottomSheetBehavior.from(mBottomSheetView);
+        if (mPickerViewModel.canSelectMultiple()) {
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            mBottomSheetBehavior.setSkipCollapsed(true);
+        } else {
+            //TODO(b/185800839): Compute this dynamically such that 2 photos rows is shown
+            mBottomSheetBehavior.setPeekHeight(1200);
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        }
+
+        mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                if (newState == BottomSheetBehavior.STATE_HIDDEN) {
+                    finish();
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+            }
+        });
+
+        final float cornerRadiusDP = getResources().getDimension(R.dimen.picker_top_corner_radius);
+        final float cornerRadius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX,
+                cornerRadiusDP, getResources().getDisplayMetrics());
+        final ViewOutlineProvider viewOutlineProvider = new ViewOutlineProvider() {
+            @Override
+            public void getOutline(final View view, final Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(),
+                        (int)(view.getHeight() + cornerRadius), cornerRadius);
+            }
+        };
+        mBottomSheetView.setOutlineProvider(viewOutlineProvider);
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
+    }
+
+    @Override
+    public void setTitle(CharSequence title) {
+        super.setTitle(title);
+        getSupportActionBar().setTitle(title);
+        updateCommonLayouts(/* shouldShowTabChips */ TextUtils.isEmpty(title),
+                /* isPreview */ false);
+    }
+
+    /**
+     * Called when owning activity is saving state to be used to restore state during creation.
+     *
+     * @param state Bundle to save state
+     */
+    @Override
+    public void onSaveInstanceState(Bundle state) {
+        super.onSaveInstanceState(state);
+        state.putInt(EXTRA_TAB_CHIP_TYPE, mSelectedTabChipType);
+    }
+
+    private void restoreState(Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            final int tabChipType = savedInstanceState.getInt(EXTRA_TAB_CHIP_TYPE,
+                    TAB_CHIP_TYPE_PHOTOS);
+            mSelectedTabChipType = tabChipType;
+            if (tabChipType == TAB_CHIP_TYPE_PHOTOS) {
+                if (PreviewFragment.get(getSupportFragmentManager()) == null) {
+                    onTabChipClick(mPhotosTabChip);
+                } else {
+                    // PreviewFragment is shown
+                    mPhotosTabChip.setSelected(true);
+                }
+            } else { // CHIP_TYPE_ALBUMS
+                if (PhotosTabFragment.get(getSupportFragmentManager()) == null) {
+                    onTabChipClick(mAlbumsTabChip);
+                } else {
+                    // PreviewFragment or PhotosTabFragment with category is shown
+                    mAlbumsTabChip.setSelected(true);
+                }
+            }
+        } else {
+            // This is the first launch, set the default behavior. Hide the title, show the chips
+            // and show the PhotosTabFragment
+            setTitle("");
+            onTabChipClick(mPhotosTabChip);
+        }
+    }
+
+    private static Chip generateTabChip(LayoutInflater inflater, ViewGroup parent, String title) {
+        final Chip chip = (Chip) inflater.inflate(R.layout.picker_chip_tab_header, parent, false);
+        chip.setText(title);
+        return chip;
+    }
+
+    private void initTabChips() {
+        initPhotosTabChip();
+        initAlbumsTabChip();
+    }
+
+    private void initPhotosTabChip() {
+        if (mPhotosTabChip == null) {
+            mPhotosTabChip = generateTabChip(getLayoutInflater(), mTabChipContainer,
+                    getString(R.string.picker_photos));
+            mTabChipContainer.addView(mPhotosTabChip);
+            mPhotosTabChip.setOnClickListener(this::onTabChipClick);
+            mPhotosTabChip.setTag(TAB_CHIP_TYPE_PHOTOS);
+        }
+    }
+
+    private void initAlbumsTabChip() {
+        if (mAlbumsTabChip == null) {
+            mAlbumsTabChip = generateTabChip(getLayoutInflater(), mTabChipContainer,
+                    getString(R.string.picker_albums));
+            mTabChipContainer.addView(mAlbumsTabChip);
+            mAlbumsTabChip.setOnClickListener(this::onTabChipClick);
+            mAlbumsTabChip.setTag(TAB_CHIP_TYPE_ALBUMS);
+        }
+    }
+
+    private void onTabChipClick(@NonNull View view) {
+        final int chipType = (int) view.getTag();
+        mSelectedTabChipType = chipType;
+
+        // Check whether the tabChip is already selected or not. If it is selected, do nothing
+        if (view.isSelected()) {
+            return;
+        }
+
+        if (chipType == TAB_CHIP_TYPE_PHOTOS) {
+            mPhotosTabChip.setSelected(true);
+            mAlbumsTabChip.setSelected(false);
+            PhotosTabFragment.show(getSupportFragmentManager(), Category.getDefaultCategory());
+        } else { // CHIP_TYPE_ALBUMS
+            mPhotosTabChip.setSelected(false);
+            mAlbumsTabChip.setSelected(true);
+            AlbumsTabFragment.show(getSupportFragmentManager());
         }
     }
 
@@ -157,5 +331,113 @@ public class PhotoPickerActivity extends AppCompatActivity {
         setResult(Activity.RESULT_OK, getPickerResponseIntent(this, selectedItemList,
                 shouldReturnPickerUris));
         finish();
+    }
+
+    private void setCancelledResultAndFinishSelf() {
+        setResult(Activity.RESULT_CANCELED);
+        finish();
+    }
+
+    /**
+     * Updates the common views such as Toolbar, Navigation bar, status bar and bottom sheet
+     * behavior
+     *
+     * @param shouldShowTabChips {@code true} if tab chips for Photos/Albums tab should be shown,
+     *                                       {@code false} otherwise
+     * @param isPreview {@code true} if common views should be customized for Preview mode,
+     *                              {@code false} otherwise
+     */
+    public void updateCommonLayouts(boolean shouldShowTabChips, boolean isPreview) {
+        updateToolbar(shouldShowTabChips, isPreview);
+        updateStatusBarAndNavigationBar(isPreview);
+        updateBottomSheetBehavior(isPreview);
+    }
+
+    /**
+     * Updates the icons and show/hide the tab chips with {@code shouldShowTabChips}.
+     *
+     * @param shouldShowTabChips {@code true}, show the tab chips and show close icon. Otherwise,
+     *                                       hide the tab chips and show back icon.
+     * @param isPreview {@code true} sets the toolbar based on Preview Mode, {@code false} sets
+     *                              the toolbar based on value of {@code shouldShowTabChips}
+     */
+    private void updateToolbar(boolean shouldShowTabChips, boolean isPreview) {
+        // 1. Set the tabChip visibility
+        mTabChipContainer.setVisibility(shouldShowTabChips ? View.VISIBLE : View.GONE);
+
+        // 2. Set the toolbar color
+        final ColorDrawable toolbarColor;
+        if (isPreview && !shouldShowTabChips) {
+            // Preview defaults to black color irrespective of if it should show tab chips or not
+            toolbarColor = new ColorDrawable(getColor(R.color.preview_default_black));
+        } else {
+            toolbarColor = new ColorDrawable(getColor(R.color.picker_background_color));
+        }
+        getSupportActionBar().setBackgroundDrawable(toolbarColor);
+
+        // 3. Set the toolbar icon.
+        final Drawable icon;
+        if (shouldShowTabChips) {
+            icon = getDrawable(R.drawable.ic_close);
+        } else {
+            icon = getDrawable(R.drawable.ic_arrow_back);
+            // Preview mode has dark background, hence icons will be WHITE in color
+            icon.setTint(isPreview ? Color.WHITE : getColor(R.color.picker_toolbar_icon_color));
+        }
+        getSupportActionBar().setHomeAsUpIndicator(icon);
+    }
+
+    /**
+     * Updates status bar and navigation bar
+     *
+     * @param isPreview {@code true} to set the status bar and navigation bar according to preview
+     *                              mode, {@code false} to set status bar and navigation bar
+     *                              according to Photos or Category mode.
+     */
+    private void updateStatusBarAndNavigationBar(boolean isPreview) {
+        final int navigationBarColor = isPreview ? getColor(R.color.preview_default_black) :
+                getColor(R.color.picker_background_color);
+        getWindow().setNavigationBarColor(navigationBarColor);
+
+        final int statusBarColor = isPreview ? getColor(R.color.preview_default_black) :
+                getColor(android.R.color.transparent);
+        getWindow().setStatusBarColor(statusBarColor);
+
+        // Update the system bar appearance
+        final int mask = WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+        int appearance = 0;
+        if (!isPreview) {
+            final int uiModeNight =
+                    getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+
+            if (uiModeNight == Configuration.UI_MODE_NIGHT_NO) {
+                // If the system is not in Dark theme, set the system bars to light mode.
+                appearance = mask;
+            }
+        }
+        getWindow().getInsetsController().setSystemBarsAppearance(appearance, mask);
+    }
+
+    /**
+     * Updates the bottom sheet behavior
+     *
+     * @param isPreview {@code true} sets the bottom sheet behavior for preview mode, {@code false}
+     *                              sets the bottom sheet behavior for non-preview mode.
+     */
+    private void updateBottomSheetBehavior(boolean isPreview) {
+        if (mBottomSheetView != null) {
+            mBottomSheetView.setClipToOutline(!isPreview);
+            // TODO(b/185800839): downward swipe for bottomsheet should go back to photos grid
+            mBottomSheetBehavior.setDraggable(!isPreview);
+        }
+        if (isPreview) {
+            if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+                // Sets bottom sheet behavior state to STATE_EXPANDED if it's not already expanded.
+                // This is useful when user goes to Preview mode which is always Full screen.
+                // TODO(b/185800839): Add animation preview to full screen and back transition to
+                // partial screen
+                mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            }
+        }
     }
 }

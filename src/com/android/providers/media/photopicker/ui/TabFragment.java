@@ -15,7 +15,9 @@
  */
 package com.android.providers.media.photopicker.ui;
 
+import android.content.Context;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,11 +27,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
+
+import java.text.NumberFormat;
+import java.util.Locale;
 
 /**
  * The base abstract Tab fragment
@@ -38,7 +42,7 @@ public abstract class TabFragment extends Fragment {
 
     protected PickerViewModel mPickerViewModel;
     protected ImageLoader mImageLoader;
-    protected RecyclerView mRecyclerView;
+    protected AutoFitRecyclerView mRecyclerView;
     private int mBottomBarSize;
 
     @Override
@@ -78,7 +82,7 @@ public abstract class TabFragment extends Fragment {
                     bottomBar.setVisibility(View.GONE);
                 } else {
                     bottomBar.setVisibility(View.VISIBLE);
-                    addButton.setText(getString(R.string.add) + " (" + size + ")" );
+                    addButton.setText(generateAddButtonString(getContext(), size));
                     dimen = getBottomGapForRecyclerView(mBottomBarSize);
                 }
                 mRecyclerView.setPadding(0, 0, 0, dimen);
@@ -88,5 +92,11 @@ public abstract class TabFragment extends Fragment {
 
     protected int getBottomGapForRecyclerView(int bottomBarSize) {
         return bottomBarSize;
+    }
+
+    private static String generateAddButtonString(Context context, int size) {
+        final String sizeString = NumberFormat.getInstance(Locale.getDefault()).format(size);
+        final String template = context.getString(R.string.picker_add_button_multi_select);
+        return TextUtils.expandTemplate(template, sizeString).toString();
     }
 }

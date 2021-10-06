@@ -17,12 +17,13 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
-
 import android.text.format.DateUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -32,16 +33,17 @@ import com.android.providers.media.photopicker.data.model.Item;
  */
 public class PhotoGridHolder extends BaseViewHolder {
 
-    private final Context mContext;
     private final ImageLoader mImageLoader;
     private final ImageView mIconThumb;
     private final ImageView mIconGif;
     private final ImageView mIconVideo;
     private final View mVideoBadgeContainer;
     private final TextView mVideoDuration;
+    private final View mOverlayGradient;
+    private final boolean mCanSelectMultiple;
 
-    public PhotoGridHolder(Context context, ViewGroup parent, ImageLoader imageLoader,
-            boolean canSelectMultiple) {
+    public PhotoGridHolder(@NonNull Context context, @NonNull ViewGroup parent,
+            @NonNull ImageLoader imageLoader, boolean canSelectMultiple) {
         super(context, parent, R.layout.item_photo_grid);
 
         mIconThumb = itemView.findViewById(R.id.icon_thumbnail);
@@ -49,10 +51,11 @@ public class PhotoGridHolder extends BaseViewHolder {
         mVideoBadgeContainer = itemView.findViewById(R.id.video_container);
         mIconVideo = mVideoBadgeContainer.findViewById(R.id.icon_video);
         mVideoDuration = mVideoBadgeContainer.findViewById(R.id.video_duration);
-        mContext = context;
+        mOverlayGradient = itemView.findViewById(R.id.overlay_gradient);
         mImageLoader = imageLoader;
         final ImageView iconCheck = itemView.findViewById(R.id.icon_check);
-        if (canSelectMultiple) {
+        mCanSelectMultiple = canSelectMultiple;
+        if (mCanSelectMultiple) {
             iconCheck.setVisibility(View.VISIBLE);
         } else {
             iconCheck.setVisibility(View.GONE);
@@ -76,5 +79,15 @@ public class PhotoGridHolder extends BaseViewHolder {
         } else {
             mVideoBadgeContainer.setVisibility(View.GONE);
         }
+
+        if (showShowOverlayGradient(item)) {
+            mOverlayGradient.setVisibility(View.VISIBLE);
+        } else {
+            mOverlayGradient.setVisibility(View.GONE);
+        }
+    }
+
+    private boolean showShowOverlayGradient(@NonNull Item item) {
+        return mCanSelectMultiple || item.isGif() || item.isVideo();
     }
 }

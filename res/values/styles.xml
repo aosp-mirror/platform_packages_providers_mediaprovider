@@ -52,15 +52,15 @@
 
     <style name="PickerDefaultTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Color section -->
-        <item name="android:colorBackground">@color/picker_background_color</item>
         <item name="android:colorAccent">@color/picker_primary_color</item>
+        <item name="android:colorBackground">@color/picker_background_color</item>
 
         <!-- System | Widget section -->
-        <item name="android:statusBarColor">?android:colorBackground</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">?android:colorBackground</item>
-        <item name="android:windowBackground">?android:colorBackground</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
     </style>
 
 </resources>

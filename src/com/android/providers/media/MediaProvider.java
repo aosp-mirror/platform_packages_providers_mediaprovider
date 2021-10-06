@@ -195,6 +195,9 @@ import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.metrics.PulledMetrics;
+import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.data.ExternalDbFacade;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
@@ -657,7 +660,7 @@ public class MediaProvider extends ContentProvider {
     private final OnFilesChangeListener mFilesListener = new OnFilesChangeListener() {
         @Override
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int mediaType, boolean isDownload) {
+                int mediaType, boolean isDownload, boolean isPending) {
             handleInsertedRowForFuse(id);
             acceptWithExpansion(helper::notifyInsert, volumeName, id, mediaType, isDownload);
 
@@ -670,6 +673,10 @@ public class MediaProvider extends ContentProvider {
 
                 // Tell our SAF provider so it knows when views are no longer empty
                 MediaDocumentsProvider.onMediaStoreInsert(getContext(), volumeName, mediaType, id);
+
+                if (mExternalDbFacade.onFileInserted(mediaType, isPending)) {
+                    mPickerSyncController.notifyMediaEvent();
+                }
             });
         }
 
@@ -677,6 +684,8 @@ public class MediaProvider extends ContentProvider {
         public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
                 long oldId, int oldMediaType, boolean oldIsDownload,
                 long newId, int newMediaType, boolean newIsDownload,
+                boolean oldIsTrashed, boolean newIsTrashed,
+                boolean oldIsPending, boolean newIsPending,
                 String oldOwnerPackage, String newOwnerPackage, String oldPath) {
             final boolean isDownload = oldIsDownload || newIsDownload;
             final Uri fileUri = MediaStore.Files.getContentUri(volumeName, oldId);
@@ -688,6 +697,11 @@ public class MediaProvider extends ContentProvider {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
                     updateQuotaTypeForUri(fileUri, newMediaType);
+                }
+
+                if (mExternalDbFacade.onFileUpdated(oldId, oldMediaType, newMediaType, oldIsTrashed,
+                                newIsTrashed, oldIsPending, newIsPending)) {
+                    mPickerSyncController.notifyMediaEvent();
                 }
             });
 
@@ -709,7 +723,6 @@ public class MediaProvider extends ContentProvider {
             acceptWithExpansion(helper::notifyDelete, volumeName, id, mediaType, isDownload);
             // Remove cached transcoded file if any
             mTranscodeHelper.deleteCachedTranscodeFile(id);
-
 
             helper.postBackground(() -> {
                 // Item no longer exists, so revoke all access to it
@@ -735,6 +748,10 @@ public class MediaProvider extends ContentProvider {
 
                 // Tell our SAF provider so it can revoke too
                 MediaDocumentsProvider.onMediaStoreDelete(getContext(), volumeName, mediaType, id);
+
+                if (mExternalDbFacade.onFileDeleted(id, mediaType)) {
+                    mPickerSyncController.notifyMediaEvent();
+                }
             });
         }
     };
@@ -925,6 +942,9 @@ public class MediaProvider extends ContentProvider {
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false,
                 Column.class, Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER,
                 mIdGenerator);
+        mExternalDbFacade = new ExternalDbFacade(mExternalDatabase);
+        mPickerDbFacade = new PickerDbFacade(context);
+        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
 
         if (SdkLevel.isAtLeastS()) {
             mTranscodeHelper = new TranscodeHelperImpl(context, this);
@@ -9581,6 +9601,9 @@ public class MediaProvider extends ContentProvider {
 
     private DatabaseHelper mInternalDatabase;
     private DatabaseHelper mExternalDatabase;
+    private PickerDbFacade mPickerDbFacade;
+    private ExternalDbFacade mExternalDbFacade;
+    private PickerSyncController mPickerSyncController;
     private TranscodeHelper mTranscodeHelper;
 
     // name of the volume currently being scanned by the media scanner (or null)
@@ -9862,6 +9885,14 @@ public class MediaProvider extends ContentProvider {
             builder.appendPath(basePath.get(i));
         }
         return builder.build();
+    }
+
+    public DatabaseHelper getExternalDatabaseHelper() {
+        return mExternalDatabase;
+    }
+
+    public PickerSyncController getPickerSyncController() {
+        return mPickerSyncController;
     }
 
     private boolean isCallingPackageSystemGallery() {

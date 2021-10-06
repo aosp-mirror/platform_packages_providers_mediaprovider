@@ -17,19 +17,15 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
-
-import android.graphics.Bitmap;
-import android.graphics.ImageDecoder;
-import android.graphics.drawable.BitmapDrawable;
-import android.util.Log;
-import android.util.Size;
+import android.net.Uri;
 import android.widget.ImageView;
 
-import com.android.providers.media.R;
+import androidx.annotation.NonNull;
+
+import com.bumptech.glide.Glide;
+
+import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
-
-import java.io.IOException;
-
 
 /**
  * A class to assist with loading and managing the Images (i.e. thumbnails and preview) associated
@@ -37,40 +33,60 @@ import java.io.IOException;
  */
 public class ImageLoader {
 
-    private static final String TAG = "ImageLoader";
     private final Context mContext;
 
     public ImageLoader(Context context) {
         mContext = context;
     }
 
-    public void loadPhotoThumbnail(Item item, ImageView imageView) {
-        int thumbSize = getThumbSize();
-        final Size size = new Size(thumbSize, thumbSize);
-        try {
-            Bitmap bitmap = mContext.getContentResolver().loadThumbnail(item.getContentUri(),
-                    size, null);
-            imageView.setImageDrawable(new BitmapDrawable(mContext.getResources(), bitmap));
-        } catch (IOException ex) {
-            Log.d(TAG, "Loading icon failed", ex);
-            imageView.setImageDrawable(null);
-        }
+    /**
+     * Load the thumbnail of the {@code category} and set it on the {@code imageView}
+     *
+     * @param category the album
+     * @param imageView the imageView shows the thumbnail
+     */
+    public void loadAlbumThumbnail(@NonNull Category category, @NonNull ImageView imageView) {
+        loadThumbnail(category.getCoverUri(), imageView);
     }
 
-    public void loadImagePreview(Item item, ImageView imageView) {
-       // TODO(b/185801129): Use Glide for image loading
-       // TODO(b/185801129): Load image in background thread. Loading the image blocks loading the
-       // layout now.
-        try {
-            imageView.setImageBitmap(ImageDecoder.decodeBitmap(ImageDecoder.createSource(
-                    mContext.getContentResolver(), item.getContentUri())));
-        } catch (IOException e) {
-            Log.d(TAG, "Failed loading image for uri " + item.getContentUri(), e);
-            imageView.setImageBitmap(null);
-        }
+    /**
+     * Load the thumbnail of the photo item {@code item} and set it on the {@code imageView}
+     *
+     * @param item the photo item
+     * @param imageView the imageView shows the thumbnail
+     */
+    public void loadPhotoThumbnail(@NonNull Item item, @NonNull ImageView imageView) {
+        loadThumbnail(item.getContentUri(), imageView);
     }
 
-    private int getThumbSize() {
-        return mContext.getResources().getDimensionPixelSize(R.dimen.picker_photo_size);
+    /**
+     * Load the image of the photo item {@code item} and set it on the {@code imageView}
+     *
+     * @param item the photo item
+     * @param imageView the imageView shows the image
+     */
+    public void loadImagePreview(@NonNull Item item, @NonNull ImageView imageView) {
+        if (item.isGif()) {
+            Glide.with(mContext)
+                    .load(item.getContentUri())
+                    .into(imageView);
+            return;
+        }
+        // Preview as bitmap image for all other image types
+        Glide.with(mContext)
+                .asBitmap()
+                .load(item.getContentUri())
+                .into(imageView);
+    }
+
+    private void loadThumbnail(@NonNull Uri uri, @NonNull ImageView imageView) {
+        // Always show all thumbnails as bitmap images instead of drawables
+        // This is to ensure that we do not animate any thumbnail (for eg GIF)
+        // TODO(b/194285082): Use drawable instead of bitmap, as it saves memory.
+        Glide.with(mContext)
+                .asBitmap()
+                .load(uri)
+                .thumbnail()
+                .into(imageView);
     }
 }

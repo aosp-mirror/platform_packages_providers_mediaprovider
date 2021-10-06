@@ -20,8 +20,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.recyclerview.widget.RecyclerView
-
+    <com.android.providers.media.photopicker.ui.AutoFitRecyclerView
         android:id="@+id/photo_list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -43,11 +42,12 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_marginHorizontal="@dimen/picker_bottom_bar_horizontal_gap"
-            android:layout_gravity="left"
+            android:layout_gravity="start"
             android:paddingVertical="@dimen/picker_bottom_bar_vertical_gap"
-            android:drawableLeft="@drawable/ic_view_selected"
+            android:drawableLeft="@drawable/ic_collections"
             android:text="@string/picker_view_selected"
             android:textAllCaps="false"
+            android:textColor="?android:attr/colorAccent"
             app:iconPadding="@dimen/picker_bottom_bar_vertical_gap"
             style="?attr/borderlessButtonStyle"/>
 
@@ -56,10 +56,11 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_marginHorizontal="@dimen/picker_bottom_bar_horizontal_gap"
-            android:layout_gravity="right"
+            android:layout_gravity="end"
             android:paddingVertical="@dimen/picker_bottom_bar_vertical_gap"
             android:text="@string/add"
             android:textAllCaps="false"
+            android:backgroundTint="?android:attr/colorAccent"
             style="?attr/materialButtonStyle"/>
 
     </FrameLayout>

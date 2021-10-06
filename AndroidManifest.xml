@@ -38,6 +38,12 @@
     <!-- Permissions required to check if an app is in the foreground or not during IO -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
 
+    <!-- Permission required to access CloudMediaProviders. Declared by us -->
+    <uses-permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS" />
+
+    <permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+                android:protectionLevel="signature" />
+
     <application
             android:name="com.android.providers.media.MediaApplication"
             android:label="@string/app_label"
@@ -64,6 +70,11 @@
                 <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
             </intent-filter>
         </provider>
+
+        <provider
+            android:name="com.android.providers.media.photopicker.PhotoPickerProvider"
+            android:authorities="com.android.providers.media.photopicker"
+            android:exported="false" />
 
         <!-- Handles database upgrades after OTAs, then disables itself -->
         <receiver android:name="com.android.providers.media.MediaUpgradeReceiver"
@@ -146,6 +157,12 @@
                 android:exported="true"
                 android:excludeFromRecents="true"
                 android:priority="100" >
+            <intent-filter>
+                <action android:name="android.provider.action.PICK_IMAGES" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.provider.action.PICK_IMAGES" />
                 <category android:name="android.intent.category.DEFAULT" />

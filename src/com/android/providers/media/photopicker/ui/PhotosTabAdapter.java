@@ -36,6 +36,7 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public static final int ITEM_TYPE_DATE_HEADER = 0;
     private static final int ITEM_TYPE_PHOTO = 1;
+    private static final int ITEM_TYPE_MESSAGE = 2;
 
     public static final int COLUMN_COUNT = 3;
 
@@ -44,8 +45,8 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private View.OnClickListener mOnClickListener;
     private PickerViewModel mPickerViewModel;
 
-    public PhotosTabAdapter(PickerViewModel pickerViewModel, ImageLoader imageLoader,
-            View.OnClickListener listener) {
+    public PhotosTabAdapter(@NonNull PickerViewModel pickerViewModel,
+            @NonNull ImageLoader imageLoader, @NonNull View.OnClickListener listener) {
         mImageLoader = imageLoader;
         mPickerViewModel = pickerViewModel;
         mOnClickListener = listener;
@@ -56,6 +57,10 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     public BaseViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
         if (viewType == ITEM_TYPE_DATE_HEADER) {
             return new DateHeaderHolder(viewGroup.getContext(), viewGroup);
+        }
+        if (viewType == ITEM_TYPE_MESSAGE) {
+            return new MessageHolder(viewGroup.getContext(), viewGroup,
+                    mPickerViewModel.getMaxSelectionLimit());
         }
         return new PhotoGridHolder(viewGroup.getContext(), viewGroup, mImageLoader,
                 mPickerViewModel.canSelectMultiple());
@@ -83,29 +88,36 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     @Override
     public int getItemViewType(int position) {
+        if (getItem(position).isMessage()) {
+            return ITEM_TYPE_MESSAGE;
+        }
         if (getItem(position).isDate()) {
             return ITEM_TYPE_DATE_HEADER;
         }
         return ITEM_TYPE_PHOTO;
     }
 
+    @NonNull
     public Item getItem(int position) {
         return mItemList.get(position);
     }
 
-    public void updateItemList(List<Item> itemList) {
+    public void updateItemList(@NonNull List<Item> itemList) {
         mItemList = itemList;
         notifyDataSetChanged();
     }
 
-    public GridLayoutManager.SpanSizeLookup createSpanSizeLookup() {
+    @NonNull
+    public GridLayoutManager.SpanSizeLookup createSpanSizeLookup(
+            @NonNull GridLayoutManager layoutManager) {
         return new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {
-                // Make layout whitespace span the grid. This has the effect of breaking
-                // grid rows whenever layout whitespace is encountered.
-                if (getItemViewType(position) == ITEM_TYPE_DATE_HEADER) {
-                    return COLUMN_COUNT;
+                final int itemViewType = getItemViewType(position);
+                // For the item view type is ITEM_TYPE_DATE_HEADER or ITEM_TYPE_MESSAGE, it is full
+                // span, return the span count of the layoutManager.
+                if (itemViewType == ITEM_TYPE_DATE_HEADER || itemViewType == ITEM_TYPE_MESSAGE) {
+                    return layoutManager.getSpanCount();
                 } else {
                     return 1;
                 }

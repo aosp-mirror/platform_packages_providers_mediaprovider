@@ -33,7 +33,8 @@ import androidx.annotation.VisibleForTesting;
  */
 public class PickerDatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private static final String TAG = "PickerDatabaseHelper";
-    private static final String PICKER_DATABASE_NAME = "picker.db";
+    @VisibleForTesting
+    static final String PICKER_DATABASE_NAME = "picker.db";
 
     final Context mContext;
     final String mName;
@@ -93,16 +94,13 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper implements AutoClosea
         makePristineSchema(db);
 
         db.execSQL("CREATE TABLE media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "local_id INTEGER,cloud_id TEXT UNIQUE,is_local_verified INTEGER DEFAULT 0,"
+                + "local_id TEXT,cloud_id TEXT UNIQUE,is_visible INTEGER CHECK(is_visible == 1),"
                 + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
-                + "local_dedupe_key TEXT,"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "duration_ms INTEGER CHECK(duration_ms >= 0),"
                 + "mime_type TEXT NOT NULL,"
-                + "CHECK((is_local_verified = 0 AND cloud_id IS NOT NULL) OR "
-                + "(is_local_verified != 0 AND local_id IS NOT NULL AND "
-                + "local_dedupe_key IS NOT NULL)),"
-                + "UNIQUE(local_id, local_dedupe_key))");
+                + "CHECK(local_id IS NOT NULL OR cloud_id IS NOT NULL),"
+                + "UNIQUE(local_id, is_visible))");
     }
 
     private static void createLatestIndexes(SQLiteDatabase db) {
@@ -110,7 +108,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper implements AutoClosea
 
         db.execSQL("CREATE INDEX local_id_index on media(local_id)");
         db.execSQL("CREATE INDEX cloud_id_index on media(cloud_id)");
-        db.execSQL("CREATE INDEX local_dedupe_key_index on media(local_dedupe_key)");
+        db.execSQL("CREATE INDEX is_visible_index on media(is_visible)");
         db.execSQL("CREATE INDEX date_taken_index on media(date_taken_ms)");
         db.execSQL("CREATE INDEX size_index on media(size_bytes)");
         db.execSQL("CREATE INDEX mime_type_index on media(mime_type)");

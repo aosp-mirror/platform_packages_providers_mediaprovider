@@ -248,14 +248,16 @@ class FAdviser {
 
 /* Single FUSE mount */
 struct fuse {
-    explicit fuse(const std::string& _path, ino_t _ino)
+    explicit fuse(const std::string& _path, const ino_t _ino,
+                  const std::vector<string>& _supported_transcoding_relative_paths)
         : path(_path),
           tracker(mediaprovider::fuse::NodeTracker(&lock)),
           root(node::CreateRoot(_path, &lock, _ino, &tracker)),
           mp(0),
           zero_addr(0),
           disable_dentry_cache(false),
-          passthrough(false) {}
+          passthrough(false),
+          supported_transcoding_relative_paths(_supported_transcoding_relative_paths) {}
 
     inline bool IsRoot(const node* node) const { return node == root; }
 
@@ -288,6 +290,22 @@ struct fuse {
         return node::ToInode(node);
     }
 
+    inline bool IsTranscodeSupportedPath(const string& path) {
+        // Keep in sync with MediaProvider#supportsTranscode
+        if (!android::base::EndsWithIgnoreCase(path, ".mp4")) {
+            return false;
+        }
+
+        const std::string& base_path = GetEffectiveRootPath() + "/";
+        for (const std::string& relative_path : supported_transcoding_relative_paths) {
+            if (android::base::StartsWithIgnoreCase(path, base_path + relative_path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     std::recursive_mutex lock;
     const string path;
     // The Inode tracker associated with this FUSE instance.
@@ -315,6 +333,7 @@ struct fuse {
     std::atomic_bool passthrough;
     // FUSE device id.
     std::atomic_uint dev;
+    const std::vector<string> supported_transcoding_relative_paths;
 };
 
 struct OpenInfo {
@@ -444,13 +463,6 @@ static inline bool is_synthetic_path(const string& path, struct fuse* fuse) {
             path, fuse->GetTransformsDir() + "/" + TRANSFORM_SYNTHETIC_DIR);
 }
 
-static inline bool is_transcode_supported_path(const string& path, struct fuse* fuse) {
-    // Keep in sync with MediaProvider#supportsTranscode
-    return android::base::EndsWithIgnoreCase(path, ".mp4") &&
-           android::base::StartsWithIgnoreCase(path,
-                                               fuse->GetEffectiveRootPath() + "/dcim/camera/");
-}
-
 static inline bool is_transforms_dir_path(const string& path, struct fuse* fuse) {
     return android::base::StartsWithIgnoreCase(path, fuse->GetTransformsDir());
 }
@@ -491,7 +503,7 @@ static std::unique_ptr<mediaprovider::fuse::FileLookupResult> validate_node_path
         return std::make_unique<mediaprovider::fuse::FileLookupResult>(0, 0, 0, true, false, "");
     }
 
-    if (!synthetic_path && !is_transcode_supported_path(path, fuse)) {
+    if (!synthetic_path && !fuse->IsTranscodeSupportedPath(path)) {
         // Transforms are only supported for synthetic or transcode-supported paths
         return std::make_unique<mediaprovider::fuse::FileLookupResult>(0, 0, 0, true, false, "");
     }
@@ -2058,7 +2070,8 @@ bool FuseDaemon::IsStarted() const {
     return active.load(std::memory_order_acquire);
 }
 
-void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
+void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
+                       const std::vector<std::string>& supported_transcoding_relative_paths) {
     android::base::SetDefaultTag(LOG_TAG);
 
     struct fuse_args args;
@@ -2083,7 +2096,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
         return;
     }
 
-    struct fuse fuse_default(path, stat.st_ino);
+    struct fuse fuse_default(path, stat.st_ino, supported_transcoding_relative_paths);
     fuse_default.mp = &mp;
     // fuse_default is stack allocated, but it's safe to save it as an instance variable because
     // this method blocks and FuseDaemon#active tells if we are currently blocking

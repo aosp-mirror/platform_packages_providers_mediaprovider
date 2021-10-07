@@ -19,6 +19,7 @@ package com.android.providers.media;
 import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 
 import static com.android.providers.media.DatabaseHelper.VERSION_LATEST;
+import static com.android.providers.media.DatabaseHelper.VERSION_S;
 import static com.android.providers.media.DatabaseHelper.makePristineSchema;
 import static com.android.providers.media.DatabaseHelper.TEST_RECOMPUTE_DB;
 import static com.android.providers.media.DatabaseHelper.TEST_UPGRADE_DB;
@@ -572,11 +573,10 @@ public class DatabaseHelperTest {
      */
     @Test
     public void testDowngradeChangesUUID() throws Exception {
-        Class<? extends DatabaseHelper> dbVersionHigher = DatabaseHelperS.class;
-        Class<? extends DatabaseHelper> dbVersionLower = DatabaseHelperR.class;
+        Class<? extends DatabaseHelper> dbVersionHigher = DatabaseHelperT.class;
+        Class<? extends DatabaseHelper> dbVersionLower = DatabaseHelperS.class;
         String originalUUID;
         int originalVersion;
-
         // Create the database with database version = dbVersionLower
         try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
                 .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
@@ -585,9 +585,8 @@ public class DatabaseHelperTest {
             originalVersion = db.getVersion();
             // Verify that original version of the database is dbVersionLower.
             assertWithMessage("Current database version")
-                    .that(db.getVersion()).isEqualTo(DatabaseHelper.VERSION_R);
+                    .that(db.getVersion()).isEqualTo(VERSION_S);
         }
-
         // Upgrade the database by changing the version to dbVersionHigher
         try (DatabaseHelper helper = dbVersionHigher.getConstructor(Context.class, String.class)
                 .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
@@ -597,12 +596,11 @@ public class DatabaseHelperTest {
                     .that(db.getVersion()).isNotEqualTo(originalVersion);
             // Verify that upgrade resulted in database version same as latest version.
             assertWithMessage("Current database version after upgrade")
-                    .that(db.getVersion()).isEqualTo(VERSION_LATEST);
+                    .that(db.getVersion()).isEqualTo(DatabaseHelper.VERSION_T);
             // Verify that upgrade didn't change UUID
             assertWithMessage("Current database UUID after upgrade")
                     .that(DatabaseHelper.getOrCreateUuid(db)).isEqualTo(originalUUID);
         }
-
         // Downgrade the database by changing the version to dbVersionLower
         try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
                 .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {

@@ -7,12 +7,64 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.UPDATE_APP_OPS_STATS" />
+    <uses-permission android:name="android.permission.MANAGE_USERS" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
     <application android:label="MediaProvider Tests">
         <uses-library android:name="android.test.runner" />
 
         <activity android:name="com.android.providers.media.GetResultActivity" />
         <activity android:name="com.android.providers.media.PermissionActivity" />
         <activity android:name="com.android.providers.media.CacheClearingActivity" />
+        <activity android:name="com.android.providers.media.photopicker.PhotoPickerActivity"
+                  android:theme="@style/PickerDefaultTheme"
+                  android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.provider.action.PICK_IMAGES" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.provider.action.PICK_IMAGES" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <provider android:name="com.android.providers.media.photopicker.LocalProvider"
+            android:authorities="com.android.providers.media.photopicker.tests.local"
+            android:exported="false" />
+
+        <provider android:name="com.android.providers.media.cloudproviders.CloudProviderPrimary"
+                  android:authorities="com.android.providers.media.photopicker.tests.cloud_primary"
+                  android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+                  android:exported="true">
+          <intent-filter>
+            <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
+          </intent-filter>
+        </provider>
+
+        <provider android:name="com.android.providers.media.cloudproviders.CloudProviderSecondary"
+                  android:authorities="com.android.providers.media.photopicker.tests.cloud_secondary"
+                  android:readPermission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+                  android:exported="true">
+          <intent-filter>
+            <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
+          </intent-filter>
+        </provider>
+
+        <provider android:name="com.android.providers.media.cloudproviders.CloudProviderNoPermission"
+                  android:authorities="com.android.providers.media.photopicker.tests.cloud_no_permission"
+                  android:exported="true">
+          <intent-filter>
+            <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
+          </intent-filter>
+        </provider>
+
+        <provider android:name="com.android.providers.media.cloudproviders.CloudProviderNoIntentFilter"
+                  android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+                  android:authorities="com.android.providers.media.photopicker.tests.cloud_no_intent_filter"
+                  android:exported="true">
+        </provider>
     </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

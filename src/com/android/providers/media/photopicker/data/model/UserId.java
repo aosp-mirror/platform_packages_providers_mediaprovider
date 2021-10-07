@@ -21,7 +21,7 @@ import static androidx.core.util.Preconditions.checkNotNull;
 import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -58,23 +58,19 @@ public final class UserId {
      * Returns the given context if the user is the current user or unspecified. Otherwise, returns
      * an "android" package context as the user.
      *
-     * @throws IllegalStateException if android package of the other user does not exist
+     * @throws NameNotFoundException if android package of the other user does not exist
      */
-    Context asContext(Context context) {
+    Context asContext(Context context) throws NameNotFoundException {
         if (CURRENT_USER.equals(this)) {
             return context;
         }
-        try {
-            return context.createPackageContextAsUser("android", /* flags= */ 0, mUserHandle);
-        } catch (PackageManager.NameNotFoundException e) {
-            throw new IllegalStateException("android package not found.");
-        }
+        return context.createPackageContextAsUser("android", /* flags= */ 0, mUserHandle);
     }
 
     /**
      * Return a content resolver instance of this user.
      */
-    public ContentResolver getContentResolver(Context context) {
+    public ContentResolver getContentResolver(Context context) throws NameNotFoundException {
         return asContext(context).getContentResolver();
     }
 

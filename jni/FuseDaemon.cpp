@@ -247,14 +247,16 @@ class FAdviser {
 
 /* Single FUSE mount */
 struct fuse {
-    explicit fuse(const std::string& _path, ino_t _ino)
+    explicit fuse(const std::string& _path, const ino_t _ino,
+                  const std::vector<string>& _supported_transcoding_relative_paths)
         : path(_path),
           tracker(mediaprovider::fuse::NodeTracker(&lock)),
           root(node::CreateRoot(_path, &lock, _ino, &tracker)),
           mp(0),
           zero_addr(0),
           disable_dentry_cache(false),
-          passthrough(false) {}
+          passthrough(false),
+          supported_transcoding_relative_paths(_supported_transcoding_relative_paths) {}
 
     inline bool IsRoot(const node* node) const { return node == root; }
 
@@ -287,6 +289,22 @@ struct fuse {
         return node::ToInode(node);
     }
 
+    inline bool IsTranscodeSupportedPath(const string& path) {
+        // Keep in sync with MediaProvider#supportsTranscode
+        if (!android::base::EndsWithIgnoreCase(path, ".mp4")) {
+            return false;
+        }
+
+        const std::string& base_path = GetEffectiveRootPath() + "/";
+        for (const std::string& relative_path : supported_transcoding_relative_paths) {
+            if (android::base::StartsWithIgnoreCase(path, base_path + relative_path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     std::recursive_mutex lock;
     const string path;
     // The Inode tracker associated with this FUSE instance.
@@ -314,6 +332,7 @@ struct fuse {
     std::atomic_bool passthrough;
     // FUSE device id.
     std::atomic_uint dev;
+    const std::vector<string> supported_transcoding_relative_paths;
 };
 
 enum class FuseOp { lookup, readdir, mknod, mkdir, create };
@@ -392,7 +411,7 @@ static bool is_package_owned_path(const string& path, const string& fuse_path) {
 // deadlocking the kernel
 static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child_ino,
                        const string& child_name, const string& path) {
-    if (mediaprovider::fuse::containsMount(path, MY_USER_ID_STRING)) {
+    if (mediaprovider::fuse::containsMount(path)) {
         LOG(WARNING) << "Ignoring attempt to invalidate dentry for FUSE mounts";
         return;
     }
@@ -437,13 +456,6 @@ static inline bool is_synthetic_path(const string& path, struct fuse* fuse) {
             path, fuse->GetTransformsDir() + "/" + TRANSFORM_SYNTHETIC_DIR);
 }
 
-static inline bool is_transcode_supported_path(const string& path, struct fuse* fuse) {
-    // Keep in sync with MediaProvider#supportsTranscode
-    return android::base::EndsWithIgnoreCase(path, ".mp4") &&
-           android::base::StartsWithIgnoreCase(path,
-                                               fuse->GetEffectiveRootPath() + "/dcim/camera/");
-}
-
 static inline bool is_transforms_dir_path(const string& path, struct fuse* fuse) {
     return android::base::StartsWithIgnoreCase(path, fuse->GetTransformsDir());
 }
@@ -484,7 +496,7 @@ static std::unique_ptr<mediaprovider::fuse::FileLookupResult> validate_node_path
         return std::make_unique<mediaprovider::fuse::FileLookupResult>(0, 0, 0, true, false, "");
     }
 
-    if (!synthetic_path && !is_transcode_supported_path(path, fuse)) {
+    if (!synthetic_path && !fuse->IsTranscodeSupportedPath(path)) {
         // Transforms are only supported for synthetic or transcode-supported paths
         return std::make_unique<mediaprovider::fuse::FileLookupResult>(0, 0, 0, true, false, "");
     }
@@ -536,7 +548,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         ino_t ino = e->attr.st_ino;
         node = ::node::Create(parent, name, io_path, should_invalidate, transforms_complete,
                               transforms, transforms_reason, &fuse->lock, ino, &fuse->tracker);
-    } else if (!mediaprovider::fuse::containsMount(path, std::to_string(getuid() / PER_USER_RANGE))) {
+    } else if (!mediaprovider::fuse::containsMount(path)) {
         // Only invalidate a path if it does not contain mount.
         // Invalidate both names to ensure there's no dentry left in the kernel after the following
         // operations:
@@ -1135,6 +1147,11 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     // TODO(b/145663158): Lookups can go out of sync if file/directory is actually moved but
     // EFAULT/EIO is reported due to JNI exception.
     if (res == 0) {
+        // Mark any existing destination nodes as deleted. This fixes the following edge case:
+        // 1. New destination node is forgotten
+        // 2. Old destination node is not forgotten because there's still an open fd ref to it
+        // 3. Lookup for |new_name| returns old destination node with stale metadata
+        new_parent_node->SetDeletedForChild(new_name);
         // TODO(b/169306422): Log each renamed node
         old_parent_node->RenameChild(name, new_name, new_parent_node);
     }
@@ -2035,7 +2052,8 @@ bool FuseDaemon::IsStarted() const {
     return active.load(std::memory_order_acquire);
 }
 
-void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
+void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
+                       const std::vector<std::string>& supported_transcoding_relative_paths) {
     android::base::SetDefaultTag(LOG_TAG);
 
     struct fuse_args args;
@@ -2060,7 +2078,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
         return;
     }
 
-    struct fuse fuse_default(path, stat.st_ino);
+    struct fuse fuse_default(path, stat.st_ino, supported_transcoding_relative_paths);
     fuse_default.mp = &mp;
     // fuse_default is stack allocated, but it's safe to save it as an instance variable because
     // this method blocks and FuseDaemon#active tells if we are currently blocking

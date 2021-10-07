@@ -125,7 +125,13 @@ android_test {
         "mockito-target",
         "modules-utils-build",
         "truth-prebuilt",
+        "com.google.android.material_material",
         "cts-install-lib",
+        "androidx.test.espresso.core",
+        "androidx.test.espresso.contrib",
+        "androidx.test.core",
+        "androidx.arch.core_core-runtime",
+        "glide-prebuilt",
     ],
 
     certificate: "media",

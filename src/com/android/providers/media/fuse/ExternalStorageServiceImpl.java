@@ -18,6 +18,7 @@ package com.android.providers.media.fuse;
 
 import static com.android.providers.media.scan.MediaScanner.REASON_MOUNTED;
 
+import android.annotation.BytesLong;
 import android.content.ContentProviderClient;
 import android.os.Environment;
 import android.os.OperationCanceledException;
@@ -32,11 +33,16 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.MediaService;
+import com.android.providers.media.MediaVolume;
+
+import com.android.providers.media.util.BackgroundThread;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Handles filesystem I/O from other apps.
@@ -48,9 +54,14 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
     private static final Map<String, FuseDaemon> sFuseDaemons = new HashMap<>();
 
     @Override
-    public void onStartSession(String sessionId, /* @SessionFlag */ int flag,
+    public void onStartSession(@NonNull String sessionId, /* @SessionFlag */ int flag,
             @NonNull ParcelFileDescriptor deviceFd, @NonNull File upperFileSystemPath,
             @NonNull File lowerFileSystemPath) {
+        Objects.requireNonNull(sessionId);
+        Objects.requireNonNull(deviceFd);
+        Objects.requireNonNull(upperFileSystemPath);
+        Objects.requireNonNull(lowerFileSystemPath);
+
         MediaProvider mediaProvider = getMediaProvider();
 
         synchronized (sLock) {
@@ -61,8 +72,10 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 // We only use the upperFileSystemPath because the media process is mounted as
                 // REMOUNT_MODE_PASS_THROUGH which guarantees that all /storage paths are bind
                 // mounts of the lower filesystem.
+                final String[] supportedTranscodingRelativePaths =
+                        mediaProvider.getSupportedTranscodingRelativePaths().toArray(new String[0]);
                 FuseDaemon daemon = new FuseDaemon(mediaProvider, this, deviceFd, sessionId,
-                        upperFileSystemPath.getPath());
+                        upperFileSystemPath.getPath(), supportedTranscodingRelativePaths);
                 daemon.start();
                 sFuseDaemons.put(sessionId, daemon);
             }
@@ -70,22 +83,27 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
     }
 
     @Override
-    public void onVolumeStateChanged(StorageVolume vol) throws IOException {
+    public void onVolumeStateChanged(@NonNull StorageVolume vol) throws IOException {
+        Objects.requireNonNull(vol);
+
         MediaProvider mediaProvider = getMediaProvider();
-        String volumeName = vol.getMediaStoreVolumeName();
 
         switch(vol.getState()) {
             case Environment.MEDIA_MOUNTED:
-                mediaProvider.attachVolume(volumeName, /* validate */ false);
+                MediaVolume volume = MediaVolume.fromStorageVolume(vol);
+                mediaProvider.attachVolume(volume, /* validate */ false);
+                MediaService.queueVolumeScan(mediaProvider.getContext(), volume, REASON_MOUNTED);
+                BackgroundThread.getExecutor().execute(() ->
+                        mediaProvider.getPickerSyncController().syncPicker());
                 break;
             case Environment.MEDIA_UNMOUNTED:
             case Environment.MEDIA_EJECTING:
             case Environment.MEDIA_REMOVED:
             case Environment.MEDIA_BAD_REMOVAL:
-                mediaProvider.detachVolume(volumeName);
+                mediaProvider.detachVolume(MediaVolume.fromStorageVolume(vol));
                 break;
             default:
-                Log.i(TAG, "Ignoring volume state for vol:" + volumeName
+                Log.i(TAG, "Ignoring volume state for vol:" + vol.getMediaStoreVolumeName()
                         + ". State: " + vol.getState());
         }
         // Check for invalidation of cached volumes
@@ -93,7 +111,9 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
     }
 
     @Override
-    public void onEndSession(String sessionId) {
+    public void onEndSession(@NonNull String sessionId) {
+        Objects.requireNonNull(sessionId);
+
         FuseDaemon daemon = onExitSession(sessionId);
 
         if (daemon == null) {
@@ -108,7 +128,24 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
         }
     }
 
-    public FuseDaemon onExitSession(String sessionId) {
+    @Override
+    public void onFreeCache(@NonNull UUID volumeUuid, @BytesLong long bytes) throws IOException {
+        Objects.requireNonNull(volumeUuid);
+
+        Log.i(TAG, "Free cache requested for " + bytes + " bytes");
+        getMediaProvider().freeCache(bytes);
+    }
+
+    @Override
+    public void onAnrDelayStarted(@NonNull String packageName, int uid, int tid, int reason) {
+        Objects.requireNonNull(packageName);
+
+        getMediaProvider().onAnrDelayStarted(packageName, uid, tid, reason);
+    }
+
+    public FuseDaemon onExitSession(@NonNull String sessionId) {
+        Objects.requireNonNull(sessionId);
+
         Log.i(TAG, "Exiting session for id: " + sessionId);
         synchronized (sLock) {
             return sFuseDaemons.remove(sessionId);

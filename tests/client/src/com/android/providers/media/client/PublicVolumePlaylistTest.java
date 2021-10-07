@@ -42,6 +42,7 @@ import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -63,6 +64,8 @@ public class PublicVolumePlaylistTest {
      * Test that playlist query doesn't return audio files of ejected volume.
      */
     @Test
+    // TODO(b/180910871) fix side effects
+    @Ignore
     public void testEjectedVolume() throws Exception {
         ContentValues values = new ContentValues();
         values.clear();

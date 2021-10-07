@@ -33,6 +33,7 @@ import android.app.AppOpsManager;
 import android.app.PendingIntent;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.ClipData;
+import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -60,6 +61,7 @@ import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
 import android.os.Parcelable;
 import android.os.RemoteException;
+import android.os.UserHandle;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.text.TextUtils;
@@ -201,10 +203,6 @@ public final class MediaStore {
     public static final String FINISH_LEGACY_MIGRATION_CALL = "finish_legacy_migration";
 
     /** {@hide} */
-    public static final String GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL =
-            "get_original_media_format_file_descriptor";
-
-    /** {@hide} */
     @Deprecated
     public static final String EXTERNAL_STORAGE_PROVIDER_AUTHORITY =
             "com.android.externalstorage.documents";
@@ -232,7 +230,6 @@ public final class MediaStore {
     public static final String EXTRA_CONTENT_VALUES = "content_values";
     /** {@hide} */
     public static final String EXTRA_RESULT = "result";
-
     /** {@hide} */
     public static final String EXTRA_FILE_DESCRIPTOR = "file_descriptor";
 
@@ -242,6 +239,20 @@ public final class MediaStore {
     public static final String EXTRA_IS_SYSTEM_GALLERY_UID = "is_system_gallery_uid";
     /** {@hide} */
     public static final String EXTRA_IS_SYSTEM_GALLERY_RESPONSE = "is_system_gallery_response";
+
+    /** {@hide} */
+    public static final String SYNC_PROVIDERS_CALL = "sync_providers";
+    /** {@hide} */
+    public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";
+    /** {@hide} */
+    public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
+
+    /** {@hide} */
+    public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
+    /** {@hide} */
+    public static final String QUERY_ARG_MIME_TYPE = "android:query-arg-mime_type";
+    /** {@hide} */
+    public static final String QUERY_ARG_SIZE_BYTES = "android:query-arg-size_bytes";
 
     /**
      * This is for internal use by the media scanner only.
@@ -263,6 +274,8 @@ public final class MediaStore {
     public static final String PARAM_REQUIRE_ORIGINAL = "requireOriginal";
     /** {@hide} */
     public static final String PARAM_LIMIT = "limit";
+
+    private static final int DEFAULT_USER_ID = UserHandle.myUserId();
 
     /**
      * Activity Action: Launch a music player.
@@ -638,6 +651,48 @@ public final class MediaStore {
     public final static String EXTRA_OUTPUT = "output";
 
     /**
+     * Activity Action: Allow the user to select images or videos provided by
+     * system and return it. This is different than {@link Intent#ACTION_PICK}
+     * and {@link Intent#ACTION_GET_CONTENT} in that
+     * <ul>
+     * <li> the data for this action is provided by system
+     * <li> this action is only used for picking images and videos
+     * <li> caller gets read access to user picked items even without storage
+     * permissions
+     * </ul>
+     * <p>
+     * Callers can optionally specify MIME type (such as {@code image/*} or
+     * {@code video/*}), resulting in a range of content selection that the
+     * caller is interested in. The optional MIME type can be requested with
+     * {@link Intent#setType(String)}.
+     * <p>
+     * If the caller needs multiple returned items (or caller wants to allow
+     * multiple selection), then it can specify
+     * {@link Intent#EXTRA_ALLOW_MULTIPLE} to indicate this. When multiple
+     * selection is enabled, callers can also constrain number of selection
+     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX}.
+     * <p>
+     * When the caller requests {@link Intent#EXTRA_ALLOW_MULTIPLE}, and
+     * doesn't request {@link MediaStore#EXTRA_PICK_IMAGES_MAX} or value of
+     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} exceeds the default maximum,
+     * then number of selection will be restricted to a default maximum of 100
+     * items.
+     * <p>
+     * Output: MediaStore content URI(s) of the item(s) that was picked.
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
+
+    /**
+     * The name of an optional intent-extra used to constrain maximum number of
+     * items that can be returned by {@link MediaStore#ACTION_PICK_IMAGES},
+     * action may still return nothing (0 items) if the user chooses to cancel.
+     * The value of this intext-extra should be a non-negative integer greater
+     * than or equal to 1, the value is ignored otherwise.
+     */
+    public final static String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
+
+    /**
      * Specify that the caller wants to receive the original media format without transcoding.
      *
      * <b>Caution: using this flag can cause app
@@ -930,19 +985,9 @@ public final class MediaStore {
             @NonNull ParcelFileDescriptor fileDescriptor) throws IOException {
         Bundle input = new Bundle();
         input.putParcelable(EXTRA_FILE_DESCRIPTOR, fileDescriptor);
-        ParcelFileDescriptor pfd;
-        try {
-            Bundle output = context.getContentResolver().call(AUTHORITY,
-                    GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL, null, input);
-            pfd = output.getParcelable(EXTRA_FILE_DESCRIPTOR);
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
 
-        if (pfd == null) {
-            throw new IOException("Input file descriptor already original");
-        }
-        return pfd;
+        return context.getContentResolver().openTypedAssetFileDescriptor(Files.EXTERNAL_CONTENT_URI,
+                "*/*", input).getParcelFileDescriptor();
     }
 
     /**
@@ -1189,11 +1234,7 @@ public final class MediaStore {
          * {@link ContentResolver#openFileDescriptor(Uri, String)} API is recommended for better
          * performance.
          *
-         * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-         *             may not update the value of this column. However they may read the file path
-         *             value from this column and use in file operations.
          */
-        @Deprecated
         @Column(Cursor.FIELD_TYPE_STRING)
         public static final String DATA = "_data";
 
@@ -2629,12 +2670,7 @@ public final class MediaStore {
              *
              * As of {@link android.os.Build.VERSION_CODES#Q}, this thumbnail
              * has correct rotation, don't need to rotate it again.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -3186,12 +3222,7 @@ public final class MediaStore {
 
             /**
              * Path to the playlist file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -3604,12 +3635,7 @@ public final class MediaStore {
         public static class Thumbnails implements BaseColumns {
             /**
              * Path to the thumbnail file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -3941,12 +3967,7 @@ public final class MediaStore {
 
             /**
              * Path to the thumbnail file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -4278,6 +4299,48 @@ public final class MediaStore {
         return out.getBoolean(EXTRA_IS_SYSTEM_GALLERY_RESPONSE);
     }
 
+    private static Uri maybeRemoveUserId(@NonNull Uri uri) {
+        if (uri.getUserInfo() == null) return uri;
+
+        Uri.Builder builder = uri.buildUpon();
+        builder.authority(uri.getHost());
+        return builder.build();
+    }
+
+    private static List<Uri> maybeRemoveUserId(@NonNull List<Uri> uris) {
+        List<Uri> newUriList = new ArrayList<>();
+        for (Uri uri : uris) {
+            newUriList.add(maybeRemoveUserId(uri));
+        }
+        return newUriList;
+    }
+
+    private static int getUserIdFromUri(Uri uri) {
+        final String userId = uri.getUserInfo();
+        return userId == null ? DEFAULT_USER_ID : Integer.parseInt(userId);
+    }
+
+    private static Uri maybeAddUserId(@NonNull Uri uri, String userId) {
+        if (userId == null) {
+            return uri;
+        }
+
+        return ContentProvider.createContentUriForUser(uri,
+            UserHandle.of(Integer.parseInt(userId)));
+    }
+
+    private static List<Uri> maybeAddUserId(@NonNull List<Uri> uris, String userId) {
+        if (userId == null) {
+            return uris;
+        }
+
+        List<Uri> newUris = new ArrayList<>();
+        for (Uri uri : uris) {
+            newUris.add(maybeAddUserId(uri, userId));
+        }
+        return newUris;
+    }
+
     /**
      * Returns an EXIF redacted version of {@code uri} i.e. a {@link Uri} with metadata such as
      * location, GPS datestamp etc. redacted from the EXIF headers.
@@ -4300,13 +4363,30 @@ public final class MediaStore {
      */
     @Nullable
     public static Uri getRedactedUri(@NonNull ContentResolver resolver, @NonNull Uri uri) {
-        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+        final String authority = uri.getAuthority();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(authority)) {
             final Bundle in = new Bundle();
-            in.putParcelable(EXTRA_URI, uri);
+            final String userId = uri.getUserInfo();
+            // NOTE: The user-id in URI authority is ONLY required to find the correct MediaProvider
+            // process. Once in the correct process, the field is no longer required and may cause
+            // breakage in MediaProvider code. This is because per process logic is agnostic of
+            // user-id. Hence strip away the user ids from URI, if present.
+            in.putParcelable(EXTRA_URI, maybeRemoveUserId(uri));
             final Bundle out = client.call(GET_REDACTED_MEDIA_URI_CALL, null, in);
-            return out.getParcelable(EXTRA_URI);
+            // Add the user-id back to the URI if we had striped it earlier.
+            return maybeAddUserId((Uri) out.getParcelable(EXTRA_URI), userId);
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    private static void verifyUrisBelongToSingleUserId(@NonNull List<Uri> uris) {
+        final int userId = getUserIdFromUri(uris.get(0));
+        for (Uri uri : uris) {
+            if (userId != getUserIdFromUri(uri)) {
+                throw new IllegalArgumentException(
+                    "All the uris should belong to a single user-id");
+            }
         }
     }
 
@@ -4330,16 +4410,26 @@ public final class MediaStore {
      * when the corresponding {@link Uri} could not be found or is unsupported
      * @throws SecurityException if the caller doesn't have the read access to all the elements
      * in {@code uris}
+     * @throws IllegalArgumentException if all the uris in {@code uris} don't belong to same user id
      * @see #getRedactedUri(ContentResolver, Uri)
      */
     @NonNull
     public static List<Uri> getRedactedUri(@NonNull ContentResolver resolver,
             @NonNull List<Uri> uris) {
-        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+        verifyUrisBelongToSingleUserId(uris);
+        final String authority = uris.get(0).getAuthority();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(authority)) {
+            final String userId = uris.get(0).getUserInfo();
             final Bundle in = new Bundle();
-            in.putParcelableArrayList(EXTRA_URI_LIST, (ArrayList<? extends Parcelable>) uris);
+            // NOTE: The user-id in URI authority is ONLY required to find the correct MediaProvider
+            // process. Once in the correct process, the field is no longer required and may cause
+            // breakage in MediaProvider code. This is because per process logic is agnostic of
+            // user-id. Hence strip away the user ids from URIs, if present.
+            in.putParcelableArrayList(EXTRA_URI_LIST,
+                (ArrayList<? extends Parcelable>) maybeRemoveUserId(uris));
             final Bundle out = client.call(GET_REDACTED_MEDIA_URI_LIST_CALL, null, in);
-            return out.getParcelableArrayList(EXTRA_URI_LIST);
+            // Add the user-id back to the URI if we had striped it earlier.
+            return maybeAddUserId(out.getParcelableArrayList(EXTRA_URI_LIST), userId);
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
         }

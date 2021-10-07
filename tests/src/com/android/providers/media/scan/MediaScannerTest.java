@@ -49,6 +49,7 @@ import com.android.providers.media.MediaDocumentsProvider;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.R;
 import com.android.providers.media.util.FileUtils;
+import com.android.providers.media.photopicker.PickerSyncController;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -118,6 +119,14 @@ public class MediaScannerTest {
             mResolver.addProvider(MediaDocumentsProvider.AUTHORITY, mDocumentsProvider);
 
             mResolver.addProvider(Settings.AUTHORITY, new MockContentProvider() {
+                @Override
+                public Bundle call(String method, String request, Bundle args) {
+                    return Bundle.EMPTY;
+                }
+            });
+
+            mResolver.addProvider(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                    new MockContentProvider() {
                 @Override
                 public Bundle call(String method, String request, Bundle args) {
                     return Bundle.EMPTY;

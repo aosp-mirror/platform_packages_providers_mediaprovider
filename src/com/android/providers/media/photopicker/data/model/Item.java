@@ -21,6 +21,7 @@ import static com.android.providers.media.photopicker.util.CursorUtils.getCursor
 
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
@@ -159,7 +160,7 @@ public class Item {
      * @param userId the user id to create an {@link Item} for
      */
     public void updateFromCursor(@NonNull Cursor cursor, @NonNull UserId userId) {
-        final String authority = getCursorString(cursor, ItemColumns.AUTHORITY);
+        final String authority = extractAuthority(cursor);
         mId = getCursorString(cursor, ItemColumns.ID);
         mMimeType = getCursorString(cursor, ItemColumns.MIME_TYPE);
         mDateTaken = getCursorLong(cursor, ItemColumns.DATE_TAKEN);
@@ -199,5 +200,14 @@ public class Item {
         } else {
             return mId.compareTo(anotherItem.getId());
         }
+    }
+
+    private String extractAuthority(Cursor cursor) {
+        final String authority = getCursorString(cursor, ItemColumns.AUTHORITY);
+        if (authority == null) {
+            final Bundle bundle = cursor.getExtras();
+            return bundle.getString(ItemColumns.AUTHORITY);
+        }
+        return authority;
     }
 }

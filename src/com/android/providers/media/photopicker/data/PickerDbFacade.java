@@ -137,7 +137,8 @@ public class PickerDbFacade {
         CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
         CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME,
         CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
-        CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID
+        CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID,
+        CloudMediaProviderContract.AlbumColumns.TYPE
     };
 
     private static final String[] PROJECTION_ALBUM_DB = new String[] {
@@ -317,6 +318,10 @@ public class PickerDbFacade {
         synchronized (mLock) {
             return mCloudProvider;
         }
+    }
+
+    public String getLocalProvider() {
+        return mLocalProvider;
     }
 
     private boolean isLocal(String authority) {
@@ -591,7 +596,8 @@ public class PickerDbFacade {
             getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS),
             Category.getCategoryName(mContext, Category.CATEGORY_FAVORITES),
             String.valueOf(count),
-            getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID)
+            getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
+            CloudMediaProviderContract.AlbumColumns.TYPE_FAVORITES
         };
         c.addRow(projectionValue);
         return c;

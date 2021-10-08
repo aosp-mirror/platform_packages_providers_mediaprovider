@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ContentProvider;
@@ -258,10 +260,6 @@ public class ItemsProvider {
             Log.e(TAG, "Unable to get content resolver for the given userId: " + userId, e);
             return null;
         }
-    }
-
-    private static String replaceMatchAnyChar(@NonNull String mimeType) {
-        return mimeType.replace('*', '%');
     }
 
     public static Uri getItemsUri(String id, String authority, UserId userId) {

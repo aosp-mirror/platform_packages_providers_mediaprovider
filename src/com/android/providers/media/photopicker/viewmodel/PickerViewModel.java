@@ -58,7 +58,6 @@ public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
 
     private static final int RECENT_MINIMUM_COUNT = 12;
-    public static final int DEFAULT_MAX_SELECTION_LIMIT = 100;
 
     // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
     // data set to reduce memories.
@@ -72,10 +71,10 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Category>> mCategoryList;
 
     private ItemsProvider mItemsProvider;
-    private final UserIdManager mUserIdManager;
+    private UserIdManager mUserIdManager;
     private boolean mSelectMultiple = false;
     private String mMimeTypeFilter = null;
-    private int mMaxSelectionLimit = DEFAULT_MAX_SELECTION_LIMIT;
+    private int mMaxSelectionLimit = 1;
     // This is set to false when max selection limit is reached.
     private boolean mIsSelectionAllowed = true;
     private int mBottomSheetState;
@@ -88,8 +87,13 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     @VisibleForTesting
-    void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
+    public void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
         mItemsProvider = itemsProvider;
+    }
+
+    @VisibleForTesting
+    public void setUserIdManager(@NonNull UserIdManager userIdManager) {
+        mUserIdManager = userIdManager;
     }
 
     /**
@@ -342,8 +346,6 @@ public class PickerViewModel extends AndroidViewModel {
     public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
         mUserIdManager.setIntentAndCheckRestrictions(intent);
 
-        mSelectMultiple = intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
-
         final String mimeType = intent.getType();
         if (isMimeTypeMedia(mimeType)) {
             mMimeTypeFilter = mimeType;
@@ -352,19 +354,32 @@ public class PickerViewModel extends AndroidViewModel {
         final Bundle extras = intent.getExtras();
         final boolean isExtraPickImagesMaxSet =
                 extras != null && extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_MAX);
-        // 1. Check EXTRA_PICK_IMAGES_MAX only if EXTRA_ALLOW_MULTIPLE is set.
-        // 2. Do not show "Set up to max items" message if EXTRA_PICK_IMAGES_MAX is not set
-        if (mSelectMultiple && isExtraPickImagesMaxSet) {
+
+        // Support Intent.EXTRA_ALLOW_MULTIPLE flag only for ACTION_GET_CONTENT
+        if (intent.getAction() != null && intent.getAction().equals(Intent.ACTION_GET_CONTENT)) {
+            if (isExtraPickImagesMaxSet) {
+                throw new IllegalArgumentException("EXTRA_PICK_IMAGES_MAX is not supported for "
+                        + "ACTION_GET_CONTENT");
+            }
+
+            mSelectMultiple = intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+            if (mSelectMultiple) {
+                mMaxSelectionLimit = MediaStore.getPickImagesMaxLimit();
+            }
+            return;
+        }
+
+        // Check EXTRA_PICK_IMAGES_MAX value only if the flag is set.
+        if (isExtraPickImagesMaxSet) {
             final int extraMax = intent.getIntExtra(MediaStore.EXTRA_PICK_IMAGES_MAX,
                     /* defaultValue */ -1);
-            // Multi selection max limit should always be greater than 0
-            if (extraMax <= 0) {
+            // Multi selection max limit should always be greater than 1 and less than or equal
+            // to PICK_IMAGES_MAX_LIMIT.
+            if (extraMax <= 1 || extraMax > MediaStore.getPickImagesMaxLimit()) {
                 throw new IllegalArgumentException("Invalid EXTRA_PICK_IMAGES_MAX value");
             }
-            // Multi selection limit should always be less than global max values allowed to select.
-            if (extraMax <= DEFAULT_MAX_SELECTION_LIMIT) {
-                mMaxSelectionLimit = extraMax;
-            }
+            mSelectMultiple = true;
+            mMaxSelectionLimit = extraMax;
         }
     }
 

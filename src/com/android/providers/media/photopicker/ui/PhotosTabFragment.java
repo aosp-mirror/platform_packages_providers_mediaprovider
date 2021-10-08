@@ -46,6 +46,7 @@ import java.util.Locale;
  */
 public class PhotosTabFragment extends TabFragment {
 
+    private static final int MINIMUM_SPAN_COUNT = 3;
     private static final String FRAGMENT_TAG = "PhotosTabFragment";
     private static final String EXTRA_CATEGORY_TYPE = "category_type";
     private static final String EXTRA_CATEGORY_NAME = "category_name";
@@ -97,6 +98,7 @@ public class PhotosTabFragment extends TabFragment {
         final int spacing = getResources().getDimensionPixelSize(R.dimen.picker_photo_item_spacing);
         final int photoSize = getResources().getDimensionPixelSize(R.dimen.picker_photo_size);
         mRecyclerView.setColumnWidth(photoSize + spacing);
+        mRecyclerView.setMinimumSpanCount(MINIMUM_SPAN_COUNT);
 
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setAdapter(adapter);

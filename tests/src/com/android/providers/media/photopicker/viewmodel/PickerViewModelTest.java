@@ -329,34 +329,100 @@ public class PickerViewModelTest {
     }
 
     @Test
-    public void testParseValuesFromIntent_allowMultiple() throws Exception {
+    public void testParseValuesFromIntent_allowMultipleNotSupported() throws Exception {
         final Intent intent = new Intent();
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
+        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
+    }
+
+    @Test
+    public void testParseValuesFromIntent_setDefaultFalseForAllowMultiple() throws Exception {
+        final Intent intent = new Intent();
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
+    }
+
+    @Test
+    public void testParseValuesFromIntent_validMaxSelectionLimit() throws Exception {
+        final int maxLimit = MediaStore.getPickImagesMaxLimit() - 1;
+        final Intent intent = new Intent();
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
         assertThat(mPickerViewModel.canSelectMultiple()).isTrue();
+        assertThat(mPickerViewModel.getMaxSelectionLimit()).isEqualTo(maxLimit);
     }
 
     @Test
-    public void testParseValuesFromIntent_noAllowMultiple()
+    public void testParseValuesFromIntent_negativeMaxSelectionLimit_throwsException()
             throws Exception {
         final Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, -1);
 
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
+        try {
+            mPickerViewModel.parseValuesFromIntent(intent);
+            fail("The maximum selection limit is not allowed to be negative");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
     }
 
     @Test
-    public void testParseValuesFromIntent_setDefaultFalseForAllowMultiple()
+    public void testParseValuesFromIntent_tooLargeMaxSelectionLimit_throwsException()
+            throws Exception {
+        final Intent intent = new Intent();
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit() + 1);
+
+        try {
+            mPickerViewModel.parseValuesFromIntent(intent);
+            fail("The maximum selection limit should not be greater than "
+                    + "MediaStore.getPickImagesMaxLimit()");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testParseValuesFromIntent_actionGetContent() throws Exception {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.canSelectMultiple()).isTrue();
+        assertThat(mPickerViewModel.getMaxSelectionLimit())
+                .isEqualTo(MediaStore.getPickImagesMaxLimit());
+    }
+
+    @Test
+    public void testParseValuesFromIntent_actionGetContent_doesNotRespectExtraPickImagesMax()
+            throws Exception {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 5);
+
+        try {
+            mPickerViewModel.parseValuesFromIntent(intent);
+            fail("EXTRA_PICK_IMAGES_MAX is not supported for ACTION_GET_CONTENT");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testParseValuesFromIntent_noMimeType_defaultFalse()
             throws Exception {
         final Intent intent = new Intent();
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
-        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
+        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
     }
 
     @Test
@@ -379,70 +445,6 @@ public class PickerViewModelTest {
         mPickerViewModel.parseValuesFromIntent(intent);
 
         assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
-    }
-
-    @Test
-    public void testParseValuesFromIntent_noMimeType_defaultFalse()
-            throws Exception {
-        final Intent intent = new Intent();
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
-    }
-
-    @Test
-    public void testParseValuesFromIntent_noAllowMultiple_defaultLimit()
-            throws Exception {
-        final int maxLimit = 20;
-        final Intent intent = new Intent();
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
-        assertThat(mPickerViewModel.getMaxSelectionLimit()).isNotEqualTo(maxLimit);
-    }
-
-    @Test
-    public void testParseValuesFromIntent_validMaxSelectionLimit() throws Exception {
-        final int maxLimit = 20;
-        final Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.getMaxSelectionLimit()).isEqualTo(maxLimit);
-    }
-
-    @Test
-    public void testParseValuesFromIntent_negativeMaxSelectionLimit_throwsException()
-            throws Exception {
-        final int maxLimit = -1;
-        final Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
-
-        try {
-            mPickerViewModel.parseValuesFromIntent(intent);
-            fail("The maximum selection limit is not allowed to be negative");
-        } catch (Exception expected) {
-            // expected
-        }
-    }
-
-    @Test
-    public void testParseValuesFromIntent_tooLargeMaxSelectionLimit_defaultValue()
-            throws Exception {
-        final int maxLimit = 10000;
-        final Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.getMaxSelectionLimit()).isNotEqualTo(maxLimit);
     }
 
     @Test

@@ -218,6 +218,8 @@ public final class MediaStore {
     public static final String GET_REDACTED_MEDIA_URI_LIST_CALL = "get_redacted_media_uri_list";
     /** {@hide} */
     public static final String EXTRA_URI_LIST = "uri_list";
+    /** {@hide} */
+    public static final String QUERY_ARG_REDACTED_URI = "android:query-arg-redacted-uri";
 
     /** {@hide} */
     public static final String EXTRA_URI = "uri";
@@ -275,7 +277,15 @@ public final class MediaStore {
     /** {@hide} */
     public static final String PARAM_LIMIT = "limit";
 
-    private static final int DEFAULT_USER_ID = UserHandle.myUserId();
+    /** {@hide} */
+    private static final int MY_USER_ID = UserHandle.myUserId();
+    /** {@hide} */
+    public static final int MY_UID = android.os.Process.myUid();
+    // Stolen from: UserHandle#getUserId
+    /** {@hide} */
+    public static final int PER_USER_RANGE = 100000;
+
+    private static final int PICK_IMAGES_MAX_LIMIT = 100;
 
     /**
      * Activity Action: Launch a music player.
@@ -668,15 +678,13 @@ public final class MediaStore {
      * <p>
      * If the caller needs multiple returned items (or caller wants to allow
      * multiple selection), then it can specify
-     * {@link Intent#EXTRA_ALLOW_MULTIPLE} to indicate this. When multiple
-     * selection is enabled, callers can also constrain number of selection
-     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX}.
+     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} to indicate this.
      * <p>
-     * When the caller requests {@link Intent#EXTRA_ALLOW_MULTIPLE}, and
-     * doesn't request {@link MediaStore#EXTRA_PICK_IMAGES_MAX} or value of
-     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} exceeds the default maximum,
-     * then number of selection will be restricted to a default maximum of 100
-     * items.
+     * When the caller requests multiple selection, the value of
+     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} must be a positive integer
+     * greater than 1 and less than or equal to
+     * {@link MediaStore#getPickImagesMaxLimit}, otherwise
+     * {@link Activity#RESULT_CANCELED} is returned.
      * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
      */
@@ -684,13 +692,26 @@ public final class MediaStore {
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
 
     /**
-     * The name of an optional intent-extra used to constrain maximum number of
-     * items that can be returned by {@link MediaStore#ACTION_PICK_IMAGES},
-     * action may still return nothing (0 items) if the user chooses to cancel.
-     * The value of this intext-extra should be a non-negative integer greater
-     * than or equal to 1, the value is ignored otherwise.
+     * The name of an optional intent-extra used to allow multiple selection of
+     * items and constrain maximum number of items that can be returned by
+     * {@link MediaStore#ACTION_PICK_IMAGES}, action may still return nothing
+     * (0 items) if the user chooses to cancel.
+     * <p>
+     * The value of this intent-extra should be a positive integer greater
+     * than 1 and less than or equal to
+     * {@link MediaStore#getPickImagesMaxLimit}, otherwise
+     * {@link Activity#RESULT_CANCELED} is returned.
      */
     public final static String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
+
+    /**
+     * The maximum limit for the number of items that can be selected using
+     * {@link MediaStore#ACTION_PICK_IMAGES} when launched in multiple selection mode.
+     * This can be used as a constant value for {@link MediaStore#EXTRA_PICK_IMAGES_MAX}.
+     */
+    public static int getPickImagesMaxLimit() {
+        return PICK_IMAGES_MAX_LIMIT;
+    }
 
     /**
      * Specify that the caller wants to receive the original media format without transcoding.
@@ -4317,7 +4338,7 @@ public final class MediaStore {
 
     private static int getUserIdFromUri(Uri uri) {
         final String userId = uri.getUserInfo();
-        return userId == null ? DEFAULT_USER_ID : Integer.parseInt(userId);
+        return userId == null ? MY_USER_ID : Integer.parseInt(userId);
     }
 
     private static Uri maybeAddUserId(@NonNull Uri uri, String userId) {

@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker;
 
+import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
 
 import android.content.ContentProviderClient;
@@ -125,7 +126,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     }
 
     private static long extractGeneration(@Nullable Bundle extras) {
-        return extras == null ? 0 : extras.getLong(MediaInfo.MEDIA_GENERATION, 0);
+        return extras == null ? 0 : extras.getLong(EXTRA_GENERATION, 0);
     }
 
     private static String extractAlbum(@Nullable Bundle extras) {

@@ -21,7 +21,7 @@
     android:layout_height="match_parent">
 
     <com.android.providers.media.photopicker.ui.AutoFitRecyclerView
-        android:id="@+id/photo_list"
+        android:id="@+id/picker_tab_recyclerview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"

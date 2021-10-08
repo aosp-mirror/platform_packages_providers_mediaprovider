@@ -16,15 +16,24 @@
 
 package com.android.providers.media.photopicker;
 
+import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_CLOUD;
+import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_FAVORITES;
+import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_LOCAL;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
-
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 import static com.google.common.truth.Truth.assertThat;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.os.Bundle;
 import android.os.SystemClock;
+import android.provider.CloudMediaProviderContract.AlbumColumns;
+import android.provider.CloudMediaProviderContract.MediaColumns;
+import android.provider.MediaStore;
 import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
@@ -33,9 +42,11 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -68,6 +79,12 @@ public class PickerSyncControllerTest {
     private static final String CLOUD_ID_1 = "1";
     private static final String CLOUD_ID_2 = "2";
 
+    private static final String ALBUM_ID_1 = "1";
+    private static final String ALBUM_ID_2 = "2";
+
+    private static final String MIME_TYPE_DEFAULT = STRING_DEFAULT;
+    private static final long SIZE_BYTES_DEFAULT = LONG_DEFAULT;
+
     private static final Pair<String, String> LOCAL_ONLY_1 = Pair.create(LOCAL_ID_1, null);
     private static final Pair<String, String> LOCAL_ONLY_2 = Pair.create(LOCAL_ID_2, null);
     private static final Pair<String, String> CLOUD_ONLY_1 = Pair.create(null, CLOUD_ID_1);
@@ -77,6 +94,10 @@ public class PickerSyncControllerTest {
 
     private static final String VERSION_1 = "1";
     private static final String VERSION_2 = "2";
+
+    private static final String IMAGE_MIME_TYPE = "image/jpeg";
+    private static final String VIDEO_MIME_TYPE = "video/mp4";
+    private static final long SIZE_BYTES = 50;
 
     private static final long SYNC_DELAY_MS = 1000;
 
@@ -381,8 +402,41 @@ public class PickerSyncControllerTest {
         }
     }
 
+    private static Bundle buildDefaultQueryArgs() {
+        return buildQueryArgs(MIME_TYPE_DEFAULT, SIZE_BYTES_DEFAULT);
+    }
+
+    private static Bundle buildQueryArgs(String mimeType, long sizeBytes) {
+        final Bundle queryArgs = new Bundle();
+
+        queryArgs.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+        queryArgs.putLong(MediaStore.QUERY_ARG_SIZE_BYTES, sizeBytes);
+
+        return queryArgs;
+    }
+
+    private static Bundle buildQueryArgs(String albumId, String albumType, String mimeType,
+            long sizeBytes) {
+        final Bundle queryArgs = buildQueryArgs(mimeType, sizeBytes);
+
+        queryArgs.putString(MediaStore.QUERY_ARG_ALBUM_ID, albumId);
+        queryArgs.putString(MediaStore.QUERY_ARG_ALBUM_TYPE, albumType);
+
+        if (Objects.equals(albumType, ALBUM_COLUMN_TYPE_CLOUD)) {
+            queryArgs.putString(MediaStore.EXTRA_CLOUD_PROVIDER,
+                    CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+
+        return queryArgs;
+    }
+
     private static void addMedia(MediaGenerator generator, Pair<String, String> media) {
         generator.addMedia(media.first, media.second);
+    }
+
+    private static void addMedia(MediaGenerator generator, Pair<String, String> media,
+            String albumId, String mimeType, long sizeBytes, boolean isFavorite) {
+        generator.addMedia(media.first, media.second, albumId, mimeType, sizeBytes, isFavorite);
     }
 
     private static void deleteMedia(MediaGenerator generator, Pair<String, String> media) {
@@ -399,11 +453,30 @@ public class PickerSyncControllerTest {
         }
     }
 
-    private static void assertCursor(Cursor cursor, String id, String authority) {
+    private static void assertAlbumCursor(Cursor cursor, String id, String type) {
         cursor.moveToNext();
-        assertThat(cursor.getString(cursor.getColumnIndex(Item.ItemColumns.ID)))
+        assertThat(cursor.getString(cursor.getColumnIndex(AlbumColumns.ID)))
                 .isEqualTo(id);
-        assertThat(cursor.getString(cursor.getColumnIndex(Item.ItemColumns.AUTHORITY)))
-                .isEqualTo(authority);
+        assertThat(cursor.getString(cursor.getColumnIndex(AlbumColumns.TYPE)))
+                .isEqualTo(type);
+    }
+
+    private static void assertCursor(Cursor cursor, String id, String expectedAuthority) {
+        cursor.moveToNext();
+        assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.ID)))
+                .isEqualTo(id);
+
+        final int authorityIdx = cursor.getColumnIndex(MediaColumns.AUTHORITY);
+        final String authority;
+        if (authorityIdx >= 0) {
+            // Cursor from picker db has authority as a column
+            authority = cursor.getString(authorityIdx);
+        } else {
+            // Cursor from provider directly doesn't have an authority column but will
+            // have the authority set as an extra
+            final Bundle bundle = cursor.getExtras();
+            authority = bundle.getString(MediaColumns.AUTHORITY);
+        }
+        assertThat(authority).isEqualTo(expectedAuthority);
     }
 }

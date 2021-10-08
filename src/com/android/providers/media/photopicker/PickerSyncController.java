@@ -19,9 +19,14 @@ package com.android.providers.media.photopicker;
 import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
+import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.PickerUriResolver.getDeletedMediaUri;
 import static com.android.providers.media.PickerUriResolver.getMediaInfoUri;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LIMIT_DEFAULT;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
 import android.annotation.IntDef;
 import android.content.ContentResolver;
@@ -34,20 +39,15 @@ import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.provider.CloudMediaProvider;
 import android.provider.CloudMediaProviderContract;
 import android.text.TextUtils;
 import android.util.Log;
-
+import androidx.annotation.GuardedBy;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
-
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
@@ -91,9 +91,9 @@ public class PickerSyncController {
     private final SharedPreferences mPrefs;
     private final String mLocalProvider;
     private final long mSyncDelayMs;
-    private final PickerHandler mHandler;
 
     // TODO(b/190713331): Listen for package_removed
+    @GuardedBy("mLock")
     private String mCloudProvider;
 
     public PickerSyncController(Context context, PickerDbFacade dbFacade) {
@@ -108,26 +108,7 @@ public class PickerSyncController {
         mDbFacade = dbFacade;
         mLocalProvider = localProvider;
         mCloudProvider = mPrefs.getString(PREFS_KEY_CLOUD_PROVIDER, /* default */ null);
-        mHandler = new PickerHandler(BackgroundThread.get().getLooper());
         mSyncDelayMs = syncDelayMs;
-    }
-
-    private class PickerHandler extends Handler {
-        public PickerHandler(Looper looper) {
-            super(looper);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case H_SYNC_PICKER: {
-                    syncPicker();
-                    break;
-                }
-                default:
-                    Log.w(TAG, "Unexpected handler message: " + msg);
-            }
-        }
     }
 
     /**
@@ -263,8 +244,8 @@ public class PickerSyncController {
      * notifications.
      */
     public void notifyMediaEvent() {
-        mHandler.removeMessages(H_SYNC_PICKER);
-        mHandler.sendEmptyMessageDelayed(H_SYNC_PICKER, mSyncDelayMs);
+        BackgroundThread.getHandler().removeCallbacks(this::syncPicker);
+        BackgroundThread.getHandler().postDelayed(this::syncPicker, mSyncDelayMs);
     }
 
     // TODO(b/190713331): Check extra_pages and extra_honored_args
@@ -363,9 +344,14 @@ public class PickerSyncController {
     }
 
     private Bundle getLatestMediaInfo(String authority) {
-        return mContext.getContentResolver().call(getMediaInfoUri(authority),
-                CloudMediaProviderContract.METHOD_GET_MEDIA_INFO, /* arg */ null,
-                /* extras */ null);
+        try {
+            return mContext.getContentResolver().call(getMediaInfoUri(authority),
+                    CloudMediaProviderContract.METHOD_GET_MEDIA_INFO, /* arg */ null,
+                    /* extras */ null);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to fetch latest media info from authority: " + authority, e);
+            return Bundle.EMPTY;
+        }
     }
 
     @SyncType

@@ -211,6 +211,44 @@ public final class CloudMediaProviderContract {
          * Type: LONG
          */
         public static final String MEDIA_COUNT = "album_media_count";
+
+        /**
+         * Type of album: {@link #TYPE_LOCAL}, {@link TYPE_CLOUD}, {@link TYPE_FAVORITES},
+         * {@link TYPE_UNRELIABLE_VOLUME}
+         * <p>
+         * Type: STRING
+         *
+         * @hide
+         */
+        public static final String TYPE = "type";
+
+        /**
+         * Constant representing a type of album from a local provider except favorites
+         *
+         * @hide
+         */
+        public static final String TYPE_LOCAL = "LOCAL";
+
+        /**
+         * Constant representing a type of album from a cloud provider
+         *
+         * @hide
+         */
+        public static final String TYPE_CLOUD = null;
+
+        /**
+         * Constant representing a type of album from merged favorites of a local and cloud provider
+         *
+         * @hide
+         */
+        public static final String TYPE_FAVORITES = "FAVORITES";
+
+        /**
+         * Constant representing a type of album from an unreliable volume
+         *
+         * @hide
+         */
+        public static final String TYPE_UNRELIABLE_VOLUME = "UNRELIABLE_VOLUME";
     }
 
     /** Constants related to the entire media collection */

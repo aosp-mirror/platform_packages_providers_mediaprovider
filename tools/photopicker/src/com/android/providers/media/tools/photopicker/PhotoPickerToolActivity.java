@@ -48,6 +48,7 @@ public class PhotoPickerToolActivity extends Activity {
     private static final String TAG = "PhotoPickerToolActivity";
     private static final String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
     private static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
+    private static final int PICK_IMAGES_MAX_LIMIT = 100;
     private static final int REQUEST_CODE = 42;
 
     private int mMaxCount = 10;
@@ -169,7 +170,7 @@ public class PhotoPickerToolActivity extends Activity {
         }
 
         if (mAllowMultipleCheckBox.isChecked()) {
-            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            intent.putExtra(EXTRA_PICK_IMAGES_MAX, PICK_IMAGES_MAX_LIMIT);
         }
 
         if (mSetImageOnlyCheckBox.isChecked()) {

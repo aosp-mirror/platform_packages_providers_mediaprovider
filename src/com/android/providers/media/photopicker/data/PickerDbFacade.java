@@ -16,10 +16,15 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
+import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
+
 import android.content.ContentValues;
 import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
@@ -34,6 +39,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import java.util.ArrayList;
@@ -46,19 +52,19 @@ import java.util.List;
  */
 public class PickerDbFacade {
     private final Object mLock = new Object();
+    private final Context mContext;
     private final SQLiteDatabase mDatabase;
     private final String mLocalProvider;
     private String mCloudProvider;
 
     public PickerDbFacade(Context context) {
-        final PickerDatabaseHelper databaseHelper = new PickerDatabaseHelper(context);
-        mDatabase = databaseHelper.getWritableDatabase();
-        mLocalProvider = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
+        this(context, PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
     }
 
     @VisibleForTesting
     public PickerDbFacade(Context context, String localProvider) {
         final PickerDatabaseHelper databaseHelper = new PickerDatabaseHelper(context);
+        mContext = context;
         mDatabase = databaseHelper.getWritableDatabase();
         mLocalProvider = localProvider;
     }
@@ -120,6 +126,22 @@ public class PickerDbFacade {
     private static final String WHERE_DATE_TAKEN_MS_BEFORE =
             String.format("%s < ? OR (%s = ? AND %s < ?)",
                     KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
+
+    private static final String[] PROJECTION_ALBUM_CURSOR = new String[] {
+        CloudMediaProviderContract.AlbumColumns.ID,
+        CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
+        CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME,
+        CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
+        CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID
+    };
+
+    private static final String[] PROJECTION_ALBUM_DB = new String[] {
+        "COUNT(" + KEY_ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
+        "MAX(" + KEY_DATE_TAKEN_MS + ") AS "
+        + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
+        String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
+                KEY_LOCAL_ID, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID)
+    };
 
     // Matches all media including cloud+local, cloud-only and local-only
     private static final SQLiteQueryBuilder QB_MATCH_ALL = createMediaQueryBuilder();
@@ -533,6 +555,43 @@ public class PickerDbFacade {
         return null;
     }
 
+    /** Returns {@code null} if there are no favorited items matching {@code query} */
+    public Cursor getFavoriteAlbum(QueryFilter query) {
+        final String[] selectionArgs;
+        final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
+        qb.appendWhereStandalone(WHERE_IS_FAVORITE);
+        if (query.mimeType != null) {
+            qb.appendWhereStandalone(WHERE_MIME_TYPE);
+            selectionArgs = new String [] { query.mimeType.replace('*', '%') };
+        } else {
+            selectionArgs = null;
+        }
+
+        Cursor cursor = qb.query(mDatabase, PROJECTION_ALBUM_DB, /* selection */ null,
+                selectionArgs, /* groupBy */ null, /* having */ null,
+                /* orderBy */ null, /* limit */ null);
+
+        if (cursor == null || !cursor.moveToFirst()) {
+            return null;
+        }
+
+        long count = getCursorLong(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT);
+        if (count == 0) {
+            return null;
+        }
+
+        final MatrixCursor c = new MatrixCursor(PROJECTION_ALBUM_CURSOR);
+        final String[] projectionValue = new String[] {
+            Category.CATEGORY_FAVORITES,
+            getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS),
+            Category.getCategoryName(mContext, Category.CATEGORY_FAVORITES),
+            String.valueOf(count),
+            getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID)
+        };
+        c.addRow(projectionValue);
+        return c;
+    }
+
     public static boolean isPickerDbEnabled() {
         return SystemProperties.getBoolean("sys.photopicker.pickerdb.enabled", false);
     }
@@ -647,7 +706,7 @@ public class PickerDbFacade {
 
         if (query.mimeType != null) {
             qb.appendWhereStandalone(WHERE_MIME_TYPE);
-            selectArgs.add(query.mimeType.replace('*', '%'));
+            selectArgs.add(replaceMatchAnyChar(query.mimeType));
         }
 
         if (query.isFavorite) {

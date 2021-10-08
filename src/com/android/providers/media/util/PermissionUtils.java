@@ -41,6 +41,7 @@ import android.app.AppOpsManager;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.UserHandle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -61,7 +62,7 @@ public class PermissionUtils {
     public static void clearOpDescription() { sOpDescription.set(null); }
 
     public static boolean checkPermissionSelf(@NonNull Context context, int pid, int uid) {
-        return android.os.Process.myUid() == uid;
+        return UserHandle.getAppId(android.os.Process.myUid()) == UserHandle.getAppId(uid);
     }
 
     public static boolean checkPermissionShell(@NonNull Context context, int pid, int uid) {

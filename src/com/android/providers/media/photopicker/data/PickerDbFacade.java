@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
+
 import android.content.ContentValues;
 import android.content.ContentUris;
 import android.content.Context;
@@ -647,7 +649,7 @@ public class PickerDbFacade {
 
         if (query.mimeType != null) {
             qb.appendWhereStandalone(WHERE_MIME_TYPE);
-            selectArgs.add(query.mimeType.replace('*', '%'));
+            selectArgs.add(replaceMatchAnyChar(query.mimeType));
         }
 
         if (query.isFavorite) {

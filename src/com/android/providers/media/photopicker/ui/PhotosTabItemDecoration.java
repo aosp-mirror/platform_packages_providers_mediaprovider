@@ -29,8 +29,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.android.providers.media.R;
 
 /**
- * The ItemDecoration layouts offset to specific item views from the adapter's data set
- * for the {@link RecyclerView} on Photos tab.
+ * The ItemDecoration that allows to add layout offsets to specific item views from the adapter's
+ * data set for the {@link RecyclerView} on Photos tab.
  */
 public class PhotosTabItemDecoration extends RecyclerView.ItemDecoration {
 

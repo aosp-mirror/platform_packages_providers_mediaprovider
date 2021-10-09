@@ -16,8 +16,12 @@
 
 package com.android.providers.media.photopicker.data.model;
 
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
+
 import android.database.Cursor;
 import android.net.Uri;
+import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
@@ -25,6 +29,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.Arrays;
@@ -37,33 +42,39 @@ import java.util.List;
 public class Item {
 
     public static class ItemColumns {
-        public static String ID = MediaStore.MediaColumns._ID;
-        public static String MIME_TYPE = MediaStore.MediaColumns.MIME_TYPE;
-        public static String DISPLAY_NAME = MediaStore.MediaColumns.DISPLAY_NAME;
-        public static String VOLUME_NAME = MediaStore.MediaColumns.VOLUME_NAME;
-        public static String DATE_TAKEN = MediaStore.MediaColumns.DATE_TAKEN;
-        public static String DURATION = MediaStore.MediaColumns.DURATION;
+        public static String ID = CloudMediaProviderContract.MediaColumns.ID;
+        public static String MIME_TYPE = CloudMediaProviderContract.MediaColumns.MIME_TYPE;
+        public static String DATE_TAKEN = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS;
+        // TODO(b/195009139): Remove after fully switching to picker db
+        public static String DATE_MODIFIED = MediaStore.MediaColumns.DATE_MODIFIED;
+        public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MS;
+        public static String SIZE = CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
+        public static String AUTHORITY = CloudMediaProviderContract.MediaColumns.AUTHORITY;
 
-        private static final String[] ALL_COLUMNS = {
+        public static final String[] ALL_COLUMNS = {
                 ID,
                 MIME_TYPE,
-                DISPLAY_NAME,
-                VOLUME_NAME,
                 DATE_TAKEN,
+                DATE_MODIFIED,
                 DURATION,
         };
-        public static List<String> ALL_COLUMNS_LIST = Collections.unmodifiableList(
-                Arrays.asList(ALL_COLUMNS));
+
+        // TODO(b/195009139): Remove after fully switching to picker db
+        public static final String[] PROJECTION = {
+            MediaStore.MediaColumns._ID + " AS " + ID,
+            MediaStore.MediaColumns.MIME_TYPE + " AS " + MIME_TYPE,
+            MediaStore.MediaColumns.DATE_TAKEN + " AS " + DATE_TAKEN,
+            MediaStore.MediaColumns.DATE_MODIFIED + " AS " + DATE_MODIFIED,
+            MediaStore.MediaColumns.DURATION +  " AS " + DURATION,
+        };
     }
 
     private static final String MIME_TYPE_GIF = "image/gif";
 
-    private long mId;
+    private String mId;
     private long mDateTaken;
     private long mDuration;
-    private String mDisplayName;
     private String mMimeType;
-    private String mVolumeName;
     private Uri mUri;
     private boolean mIsImage;
     private boolean mIsVideo;
@@ -77,19 +88,16 @@ public class Item {
     }
 
     @VisibleForTesting
-    public Item(long id, String mimeType, String displayName, String volumeName, long dateTaken,
-            long duration, Uri uri) {
+    public Item(String id, String mimeType, long dateTaken, long duration, Uri uri) {
         mId = id;
         mMimeType = mimeType;
-        mDisplayName = displayName;
-        mVolumeName = volumeName;
         mDateTaken = dateTaken;
         mDuration = duration;
         mUri = uri;
         parseMimeType();
     }
 
-    public long getId() {
+    public String getId() {
         return mId;
     }
 
@@ -113,10 +121,6 @@ public class Item {
         return mUri;
     }
 
-    public String getDisplayName() {
-        return mDisplayName;
-    }
-
     public long getDuration() {
         return mDuration;
     }
@@ -127,10 +131,6 @@ public class Item {
 
     public long getDateTaken() {
         return mDateTaken;
-    }
-
-    public String getVolumeName() {
-        return mVolumeName;
     }
 
     public static Item fromCursor(Cursor cursor, UserId userId) {
@@ -154,19 +154,24 @@ public class Item {
 
     /**
      * Update the item based on the cursor
+     *
      * @param cursor the cursor to update the data
+     * @param userId the user id to create an {@link Item} for
      */
     public void updateFromCursor(@NonNull Cursor cursor, @NonNull UserId userId) {
-        mId = getCursorLong(cursor, ItemColumns.ID);
+        final String authority = getCursorString(cursor, ItemColumns.AUTHORITY);
+        mId = getCursorString(cursor, ItemColumns.ID);
         mMimeType = getCursorString(cursor, ItemColumns.MIME_TYPE);
-        mDisplayName = getCursorString(cursor, ItemColumns.DISPLAY_NAME);
         mDateTaken = getCursorLong(cursor, ItemColumns.DATE_TAKEN);
-        mVolumeName = getCursorString(cursor, ItemColumns.VOLUME_NAME);
+        if (mDateTaken < 0) {
+            // Convert DATE_MODIFIED to millis
+            mDateTaken = getCursorLong(cursor, ItemColumns.DATE_MODIFIED) * 1000;
+        }
         mDuration = getCursorLong(cursor, ItemColumns.DURATION);
 
         // TODO (b/188867567): Currently, we only has local data source,
         //  get the uri from provider
-        mUri = ItemsProvider.getItemsUri(mId, userId);
+        mUri = ItemsProvider.getItemsUri(mId, authority, userId);
 
         parseMimeType();
     }
@@ -179,51 +184,5 @@ public class Item {
         } else if (MimeUtils.isVideoMimeType(mMimeType)) {
             mIsVideo = true;
         }
-    }
-
-    @Nullable
-    private static String getCursorString(Cursor cursor, String columnName) {
-        if (cursor == null) {
-            return null;
-        }
-        final int index = cursor.getColumnIndex(columnName);
-        return (index != -1) ? cursor.getString(index) : null;
-    }
-
-    /**
-     * Missing or null values are returned as -1.
-     */
-    private static long getCursorLong(Cursor cursor, String columnName) {
-        if (cursor == null) {
-            return -1;
-        }
-
-        final int index = cursor.getColumnIndex(columnName);
-        if (index == -1) {
-            return -1;
-        }
-
-        final String value = cursor.getString(index);
-        if (value == null) {
-            return -1;
-        }
-
-        try {
-            return Long.parseLong(value);
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
-
-    /**
-     * Missing or null values are returned as 0.
-     */
-    private static int getCursorInt(Cursor cursor, String columnName) {
-        if (cursor == null) {
-            return 0;
-        }
-
-        final int index = cursor.getColumnIndex(columnName);
-        return (index != -1) ? cursor.getInt(index) : 0;
     }
 }

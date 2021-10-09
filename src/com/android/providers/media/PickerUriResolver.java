@@ -31,13 +31,18 @@ import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
 import android.provider.MediaStore;
+import android.provider.CloudMediaProviderContract;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.io.FileNotFoundException;
 
 /**
@@ -47,9 +52,18 @@ import java.io.FileNotFoundException;
 public class PickerUriResolver {
     private Context mContext;
 
+    private static final String PICKER_SEGMENT = "picker";
+    private static final String PICKER_INTERNAL_SEGMENT = "picker_internal";
+
     /** A uri with prefix "content://media/picker" is considered as a picker uri */
-    public static final @NonNull Uri URI_PREFIX = MediaStore.AUTHORITY_URI.buildUpon().
-            appendPath("picker").build();
+    public static final Uri PICKER_URI = MediaStore.AUTHORITY_URI.buildUpon().
+            appendPath(PICKER_SEGMENT).build();
+    /**
+     * Internal picker URI with prefix "content://media/picker_internal" to retrieve merged
+     * and deduped cloud and local items.
+     */
+    public static final Uri PICKER_INTERNAL_URI = MediaStore.AUTHORITY_URI.buildUpon().
+            appendPath(PICKER_INTERNAL_SEGMENT).build();
 
     PickerUriResolver(Context context) {
         mContext = context;
@@ -67,7 +81,14 @@ public class PickerUriResolver {
         final ContentResolver resolver = getContentResolverForUserId(uri);
         final long token = Binder.clearCallingIdentity();
         try {
-            return resolver.openFile(getRedactedFileUriFromPickerUri(uri, resolver), "r", signal);
+            if (PickerDbFacade.isPickerDbEnabled()) {
+                // TODO(b/195009143): Redact before returning fd
+                uri = unwrapProviderUri(uri);
+            } else {
+                uri = getRedactedFileUriFromPickerUri(uri, resolver);
+            }
+
+            return resolver.openFile(uri, "r", signal);
         } finally {
             Binder.restoreCallingIdentity(token);
         }
@@ -75,14 +96,20 @@ public class PickerUriResolver {
 
     public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts,
             CancellationSignal signal, int callingPid, int callingUid)
-            throws FileNotFoundException{
+            throws FileNotFoundException {
         checkUriPermission(uri, callingPid, callingUid);
 
         final ContentResolver resolver = getContentResolverForUserId(uri);
         final long token = Binder.clearCallingIdentity();
         try {
-            return resolver.openTypedAssetFile(getRedactedFileUriFromPickerUri(uri, resolver),
-                    mimeTypeFilter, opts, signal);
+            if (PickerDbFacade.isPickerDbEnabled()) {
+                // TODO(b/195009143): Redact before returning fd
+                uri = unwrapProviderUri(uri);
+            } else {
+                uri = getRedactedFileUriFromPickerUri(uri, resolver);
+            }
+
+            return resolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal);
         } finally {
             Binder.restoreCallingIdentity(token);
         }
@@ -92,6 +119,36 @@ public class PickerUriResolver {
             int callingPid, int callingUid) {
         checkUriPermission(uri, callingPid, callingUid);
 
+        return queryInternal(uri, projection, queryArgs, signal);
+    }
+
+    public String getType(@NonNull Uri uri) {
+        try (Cursor cursor = queryInternal(uri, new String[]{MediaStore.MediaColumns.MIME_TYPE},
+                /* queryArgs */ null, /* signal */ null)) {
+            if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
+                return cursor.getString(0);
+            }
+        }
+        throw new IllegalArgumentException("Failed to getType for uri: " + uri);
+    }
+
+    public static Uri getMediaUri(String authority) {
+        return Uri.parse("content://" + authority + "/"
+                + CloudMediaProviderContract.URI_PATH_MEDIA);
+    }
+
+    public static Uri getDeletedMediaUri(String authority) {
+        return Uri.parse("content://" + authority + "/"
+                + CloudMediaProviderContract.URI_PATH_DELETED_MEDIA);
+    }
+
+    public static Uri getMediaInfoUri(String authority) {
+        return Uri.parse("content://" + authority + "/"
+                + CloudMediaProviderContract.URI_PATH_MEDIA_INFO);
+    }
+
+    private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
+            CancellationSignal signal) {
         final ContentResolver resolver = getContentResolverForUserId(uri);
         final long token = Binder.clearCallingIdentity();
         try {
@@ -103,6 +160,53 @@ public class PickerUriResolver {
         } finally {
             Binder.restoreCallingIdentity(token);
         }
+    }
+
+    public static Uri wrapProviderUri(Uri uri, int userId) {
+        final List<String> segments = uri.getPathSegments();
+        if (segments.size() != 2) {
+            throw new IllegalArgumentException("Unexpected provider URI: " + uri);
+        }
+
+        Uri.Builder builder = initializeUriBuilder(MediaStore.AUTHORITY);
+        builder.appendPath(PICKER_SEGMENT);
+        builder.appendPath(String.valueOf(userId));
+        builder.appendPath(uri.getHost());
+
+        for (int i = 0; i < segments.size(); i++) {
+            builder.appendPath(segments.get(i));
+        }
+
+        return builder.build();
+    }
+
+    @VisibleForTesting
+    static Uri unwrapProviderUri(Uri uri) {
+        List<String> segments = uri.getPathSegments();
+        if (segments.size() != 5) {
+            throw new IllegalArgumentException("Unexpected picker provider URI: " + uri);
+        }
+
+
+        // segments.get(0) == 'picker'
+        final String userId = segments.get(1);
+        final String host = segments.get(2);
+        segments = segments.subList(3, segments.size());
+
+        Uri.Builder builder = initializeUriBuilder(userId + "@" + host);
+
+        for (int i = 0; i < segments.size(); i++) {
+            builder.appendPath(segments.get(i));
+        }
+        return builder.build();
+    }
+
+    private static Uri.Builder initializeUriBuilder(String authority) {
+        final Uri.Builder builder = Uri.EMPTY.buildUpon();
+        builder.scheme("content");
+        builder.encodedAuthority(authority);
+
+        return builder;
     }
 
     /**

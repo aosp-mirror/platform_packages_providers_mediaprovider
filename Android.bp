@@ -29,6 +29,10 @@ android_app {
         "com.google.android.material_material",
         "guava",
         "modules-utils-build",
+        "glide-prebuilt",
+        "glide-gifdecoder-prebuilt",
+        "glide-disklrucache-prebuilt",
+        "glide-annotation-and-compiler-prebuilt",
     ],
 
     libs: [
@@ -59,6 +63,7 @@ android_app {
     plugins: [
         "java_api_finder",
         "error_prone_mediaprovider",
+        "glide-annotation-processor",
     ],
 
     sdk_version: "module_current",

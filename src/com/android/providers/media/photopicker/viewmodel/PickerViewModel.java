@@ -16,22 +16,35 @@
 
 package com.android.providers.media.photopicker.viewmodel;
 
-import android.annotation.NonNull;
+import static com.android.providers.media.util.MimeUtils.isImageMimeType;
+import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
+
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
+import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.android.providers.media.photopicker.DateTimeUtils;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.data.model.Category.CategoryType;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.util.DateTimeUtils;
+import com.android.providers.media.util.ForegroundThread;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,11 +59,25 @@ public class PickerViewModel extends AndroidViewModel {
 
     private static final int RECENT_MINIMUM_COUNT = 12;
 
+    // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
+    // data set to reduce memories.
+    // The list of Items with all photos and videos
     private MutableLiveData<List<Item>> mItemList;
+    // The list of Items with all photos and videos in category
+    private MutableLiveData<List<Item>> mCategoryItemList;
+    // The list of selected items.
     private MutableLiveData<Map<Uri, Item>> mSelectedItemList = new MutableLiveData<>();
-    private final ItemsProvider mItemsProvider;
-    private final UserIdManager mUserIdManager;
+    // The list of categories.
+    private MutableLiveData<List<Category>> mCategoryList;
+
+    private ItemsProvider mItemsProvider;
+    private UserIdManager mUserIdManager;
     private boolean mSelectMultiple = false;
+    private String mMimeTypeFilter = null;
+    private int mMaxSelectionLimit = 1;
+    // This is set to false when max selection limit is reached.
+    private boolean mIsSelectionAllowed = true;
+    private int mBottomSheetState;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -59,8 +86,18 @@ public class PickerViewModel extends AndroidViewModel {
         mUserIdManager = UserIdManager.create(context);
     }
 
+    @VisibleForTesting
+    public void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
+        mItemsProvider = itemsProvider;
+    }
+
+    @VisibleForTesting
+    public void setUserIdManager(@NonNull UserIdManager userIdManager) {
+        mUserIdManager = userIdManager;
+    }
+
     /**
-     * @return the Map of selected Item.
+     * @return the {@link LiveData} of selected items {@link #mSelectedItemList}.
      */
     public LiveData<Map<Uri, Item>> getSelectedItems() {
         if (mSelectedItemList.getValue() == null) {
@@ -71,7 +108,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Add the selected Item.
+     * Add the selected {@code item} into {@link #mSelectedItemList}.
      */
     public void addSelectedItem(Item item) {
         if (mSelectedItemList.getValue() == null) {
@@ -80,10 +117,12 @@ public class PickerViewModel extends AndroidViewModel {
         }
         mSelectedItemList.getValue().put(item.getContentUri(), item);
         mSelectedItemList.postValue(mSelectedItemList.getValue());
+
+        updateSelectionAllowed();
     }
 
     /**
-     * Clear the selected Item list.
+     * Clear the selected Item list {@link #mSelectedItemList}.
      */
     public void clearSelectedItems() {
         if (mSelectedItemList.getValue() == null) {
@@ -94,7 +133,9 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Delete the selected Item.
+     * Delete the selected {@code item} from the selected item list {@link #mSelectedItemList}.
+     *
+     * @param item the item to be deleted from the selected item list
      */
     public void deleteSelectedItem(Item item) {
         if (mSelectedItemList.getValue() == null) {
@@ -102,6 +143,25 @@ public class PickerViewModel extends AndroidViewModel {
         }
         mSelectedItemList.getValue().remove(item.getContentUri());
         mSelectedItemList.postValue(mSelectedItemList.getValue());
+        updateSelectionAllowed();
+    }
+
+    private void updateSelectionAllowed() {
+        if (!mSelectMultiple) {
+            return;
+        }
+
+        final int size = mSelectedItemList.getValue().size();
+        if (size >= mMaxSelectionLimit) {
+            if (mIsSelectionAllowed) {
+                mIsSelectionAllowed = false;
+            }
+        } else {
+            // size < mMaxSelectionLimit
+            if (!mIsSelectionAllowed) {
+                mIsSelectionAllowed = true;
+            }
+        }
     }
 
     /**
@@ -112,7 +172,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * @return the list of Items with all photos and videos on the device.
+     * @return the list of Items with all photos and videos {@link #mItemList} on the device.
      */
     public LiveData<List<Item>> getItems() {
         if (mItemList == null) {
@@ -121,64 +181,237 @@ public class PickerViewModel extends AndroidViewModel {
         return mItemList;
     }
 
-    private List<Item> loadItems() {
+    private List<Item> loadItems(@Nullable @CategoryType String category) {
         final List<Item> items = new ArrayList<>();
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
-        // TODO(b/168001592) call getItems() from worker thread.
-        Cursor cursor = mItemsProvider.getItems(null, 0, -1, null, userId);
-        if (cursor == null) {
-            return items;
-        }
 
-        int recentSize = 0;
-        long currentDateTaken = 0;
-        // add Recent date header
-        items.add(Item.createDateItem(0));
-        while (cursor.moveToNext()) {
-            // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
-            //  here again.
-            final Item item = Item.fromCursor(cursor, userId);
-            final long dateTaken = item.getDateTaken();
-            // the minimum count of items in recent is not reached
-            if (recentSize < RECENT_MINIMUM_COUNT) {
-                recentSize++;
-                currentDateTaken = dateTaken;
+        try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
+                /* limit */ -1, mMimeTypeFilter, userId)) {
+            if (cursor == null || cursor.getCount() == 0) {
+                Log.d(TAG, "Didn't receive any items for " + category
+                        + ", either cursor is null or cursor count is zero");
+                return items;
             }
 
-            // The date taken of these two images are not on the
-            // same day, add the new date header.
-            if (!DateTimeUtils.isSameDate(currentDateTaken, dateTaken)) {
-                items.add(Item.createDateItem(dateTaken));
-                currentDateTaken = dateTaken;
+            // We only add the RECENT header on the PhotosTabFragment with CATEGORY_DEFAULT. In this
+            // case, we call this method {loadItems} with null category. When the category is not
+            // empty, we don't show the RECENT header.
+            final boolean showRecent = TextUtils.isEmpty(category);
+
+            int recentSize = 0;
+            long currentDateTaken = 0;
+
+            if (showRecent) {
+                // add Recent date header
+                items.add(Item.createDateItem(0));
             }
-            items.add(item);
+            while (cursor.moveToNext()) {
+                // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
+                // here again.
+                final Item item = Item.fromCursor(cursor, userId);
+                final long dateTaken = item.getDateTaken();
+                // the minimum count of items in recent is not reached
+                if (showRecent && recentSize < RECENT_MINIMUM_COUNT) {
+                    recentSize++;
+                    currentDateTaken = dateTaken;
+                }
+
+                // The date taken of these two images are not on the
+                // same day, add the new date header.
+                if (!DateTimeUtils.isSameDate(currentDateTaken, dateTaken)) {
+                    items.add(Item.createDateItem(dateTaken));
+                    currentDateTaken = dateTaken;
+                }
+                items.add(item);
+            }
         }
 
-        Log.d(TAG, "Loaded " + items.size() + " items for user " + userId.toString());
+        if (TextUtils.isEmpty(category)) {
+            Log.d(TAG, "Loaded " + items.size() + " items for user " + userId.toString());
+        } else {
+            Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
+                    + userId.toString());
+        }
         return items;
     }
 
+    private void loadItemsAsync() {
+        ForegroundThread.getExecutor().execute(() -> {
+            mItemList.postValue(loadItems(/* category= */ null));
+        });
+    }
+
     /**
-     * Update the item List
+     * Update the item List {@link #mItemList}
      */
     public void updateItems() {
         if (mItemList == null) {
             mItemList = new MutableLiveData<>();
         }
-        mItemList.postValue(loadItems());
+        loadItemsAsync();
     }
 
     /**
-     * Return whether supports multiple select or not
+     * Get the list of all photos and videos with the specific {@code category} on the device.
+     *
+     * @param category the category we want to be queried
+     * @return the list of all photos and videos with the specific {@code category}
+     *         {@link #mCategoryItemList}
+     */
+    public LiveData<List<Item>> getCategoryItems(@NonNull @CategoryType String category) {
+        updateCategoryItems(category);
+        return mCategoryItemList;
+    }
+
+    private void loadCategoryItemsAsync(@NonNull @CategoryType String category) {
+        ForegroundThread.getExecutor().execute(() -> {
+            mCategoryItemList.postValue(loadItems(category));
+        });
+    }
+
+    /**
+     * Update the item List with the {@code category} {@link #mCategoryItemList}
+     */
+    public void updateCategoryItems(@NonNull @CategoryType String category) {
+        if (mCategoryItemList == null) {
+            mCategoryItemList = new MutableLiveData<>();
+        }
+        loadCategoryItemsAsync(category);
+    }
+
+    /**
+     * @return the list of Categories {@link #mCategoryList}
+     */
+    public LiveData<List<Category>> getCategories() {
+        if (mCategoryList == null) {
+            updateCategories();
+        }
+        return mCategoryList;
+    }
+
+    private List<Category> loadCategories() {
+        final List<Category> categoryList = new ArrayList<>();
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
+        try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId)) {
+            if (cursor == null || cursor.getCount() == 0) {
+                Log.d(TAG, "Didn't receive any categories, either cursor is null or"
+                        + " cursor count is zero");
+                return categoryList;
+            }
+
+            while (cursor.moveToNext()) {
+                final Category category = Category.fromCursor(cursor, userId);
+                categoryList.add(category);
+            }
+
+            Log.d(TAG,
+                    "Loaded " + categoryList.size() + " categories for user " + userId.toString());
+        }
+        return categoryList;
+    }
+
+    private void loadCategoriesAsync() {
+        ForegroundThread.getExecutor().execute(() -> {
+            mCategoryList.postValue(loadCategories());
+        });
+    }
+
+    /**
+     * Update the category List {@link #mCategoryList}
+     */
+    public void updateCategories() {
+        if (mCategoryList == null) {
+            mCategoryList = new MutableLiveData<>();
+        }
+        loadCategoriesAsync();
+    }
+
+    /**
+     * Return whether supports multiple select {@link #mSelectMultiple} or not
      */
     public boolean canSelectMultiple() {
         return mSelectMultiple;
     }
 
     /**
-     * Set the value for whether supports multiple select or not
+     * Return whether the {@link #mMimeTypeFilter} is {@code null} or not
      */
-    public void setSelectMultiple(boolean allowMultiple) {
-        mSelectMultiple = allowMultiple;
+    public boolean hasMimeTypeFilter() {
+        return !TextUtils.isEmpty(mMimeTypeFilter);
+    }
+
+    /**
+     * Parse values from {@code intent} and set corresponding fields
+     */
+    public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
+        mUserIdManager.setIntentAndCheckRestrictions(intent);
+
+        final String mimeType = intent.getType();
+        if (isMimeTypeMedia(mimeType)) {
+            mMimeTypeFilter = mimeType;
+        }
+
+        final Bundle extras = intent.getExtras();
+        final boolean isExtraPickImagesMaxSet =
+                extras != null && extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_MAX);
+
+        // Support Intent.EXTRA_ALLOW_MULTIPLE flag only for ACTION_GET_CONTENT
+        if (intent.getAction() != null && intent.getAction().equals(Intent.ACTION_GET_CONTENT)) {
+            if (isExtraPickImagesMaxSet) {
+                throw new IllegalArgumentException("EXTRA_PICK_IMAGES_MAX is not supported for "
+                        + "ACTION_GET_CONTENT");
+            }
+
+            mSelectMultiple = intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+            if (mSelectMultiple) {
+                mMaxSelectionLimit = MediaStore.getPickImagesMaxLimit();
+            }
+            return;
+        }
+
+        // Check EXTRA_PICK_IMAGES_MAX value only if the flag is set.
+        if (isExtraPickImagesMaxSet) {
+            final int extraMax = intent.getIntExtra(MediaStore.EXTRA_PICK_IMAGES_MAX,
+                    /* defaultValue */ -1);
+            // Multi selection max limit should always be greater than 1 and less than or equal
+            // to PICK_IMAGES_MAX_LIMIT.
+            if (extraMax <= 1 || extraMax > MediaStore.getPickImagesMaxLimit()) {
+                throw new IllegalArgumentException("Invalid EXTRA_PICK_IMAGES_MAX value");
+            }
+            mSelectMultiple = true;
+            mMaxSelectionLimit = extraMax;
+        }
+    }
+
+    private static boolean isMimeTypeMedia(@Nullable String mimeType) {
+        return isImageMimeType(mimeType) || isVideoMimeType(mimeType);
+    }
+
+    /**
+     * Return maximum limit of items that can be selected
+     */
+    public int getMaxSelectionLimit() {
+        return mMaxSelectionLimit;
+    }
+
+    /**
+     * Return whether more items can be selected or not.
+     */
+    public boolean isSelectionAllowed() {
+        return mIsSelectionAllowed;
+    }
+
+    /**
+     * Set BottomSheet state
+     */
+    public void setBottomSheetState(int state) {
+        mBottomSheetState = state;
+    }
+
+    /**
+     * @return BottomSheet state
+     */
+    public int getBottomSheetState() {
+        return mBottomSheetState;
     }
 }

@@ -21,6 +21,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 /**
@@ -28,18 +29,43 @@ import androidx.recyclerview.widget.RecyclerView;
  */
 public abstract class BaseViewHolder extends RecyclerView.ViewHolder {
 
-    public BaseViewHolder(Context context, ViewGroup parent, int layout) {
+    public BaseViewHolder(@NonNull Context context, @NonNull ViewGroup parent, int layout) {
         this(context, inflateLayout(context, parent, layout));
     }
 
-    public BaseViewHolder(Context context, View view) {
+    public BaseViewHolder(@NonNull Context context, @NonNull View view) {
         super(view);
     }
 
-    private static <V extends View> V inflateLayout(Context context, ViewGroup parent, int layout) {
+    private static <V extends View> V inflateLayout(@NonNull Context context,
+            @NonNull ViewGroup parent, int layout) {
         final LayoutInflater inflater = LayoutInflater.from(context);
         return (V) inflater.inflate(layout, parent, false);
     }
 
     public abstract void bind();
+
+    /**
+     * Called when view in this {@code RecyclerView.ViewHolder} has been recycled.
+     * <p>
+     * Optional method for BaseViewHolder subclasses to implement if they have additional actions to
+     * take on {@link RecyclerView.Adapter#onViewRecycled}
+     */
+    public void onViewRecycled() {};
+
+    /**
+     * Called when a view in this {@code RecyclerView.ViewHolder} has been attached to a window.
+     * <p>
+     * Optional method for BaseViewHolder subclasses to implement if they have additional actions to
+     * take on {@link RecyclerView.Adapter#onViewAttachedToWindow}
+     */
+    public void onViewAttachedToWindow() {};
+
+    /**
+     * Called when a view in this {@code RecyclerView.ViewHolder} has been detached from its window.
+     * <p>
+     * Optional method for BaseViewHolder subclasses to implement if they have additional actions to
+     * take on {@link RecyclerView.Adapter#onViewDetachedFromWindow}
+     */
+    public void onViewDetachedFromWindow() {};
 }

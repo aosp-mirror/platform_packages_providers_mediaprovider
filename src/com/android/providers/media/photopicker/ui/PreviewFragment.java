@@ -16,7 +16,9 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import android.content.Context;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,15 +31,19 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.MarginPageTransformer;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Displays a selected items in one up view. Supports deselecting items.
@@ -48,13 +54,12 @@ public class PreviewFragment extends Fragment {
     private PickerViewModel mPickerViewModel;
     private ViewPager2 mViewPager;
     private PreviewAdapter mAdapter;
+    private ViewPager2.OnPageChangeCallback mOnPageChangeCallBack;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
             Bundle savedInstanceState) {
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
-        // TODO(b/185801129): Add handler for back button to go back to previous fragment/activity
-        // instead of exiting the activity.
         return inflater.inflate(R.layout.fragment_preview, parent, /* attachToRoot */ false);
     }
 
@@ -64,6 +69,7 @@ public class PreviewFragment extends Fragment {
         // We are creating a new ArrayList with selected items, this list used as data for the
         // adapter. If activity gets killed and recreated, we will lose items that were deselected.
         // TODO(b/185801129): Save the deselection state instead of making a copy of selected items.
+        // TODO(b/185801129): Sort images/videos on based on date_taken
         final List<Item> selectedItemList = new ArrayList<>(
                 mPickerViewModel.getSelectedItems().getValue().values());
 
@@ -92,14 +98,15 @@ public class PreviewFragment extends Fragment {
         // Initialize ViewPager2 to swipe between multiple pictures/videos in preview
         mViewPager = view.findViewById(R.id.preview_viewPager);
         mViewPager.setAdapter(mAdapter);
-        // TODO(b/185801129) We should set the last saved position instead of zero
-        mViewPager.setCurrentItem(0);
+        mViewPager.setPageTransformer(new MarginPageTransformer(
+                getResources().getDimensionPixelSize(R.dimen.preview_viewpager_margin)));
 
         Button selectButton = view.findViewById(R.id.preview_select_button);
 
         // Update the select icon and text according to the state of selection while swiping
         // between photos
-        mViewPager.registerOnPageChangeCallback(new OnPageChangeCallBack(selectButton));
+        mOnPageChangeCallBack = new OnPageChangeCallBack(selectButton);
+        mViewPager.registerOnPageChangeCallback(mOnPageChangeCallBack);
 
         // Adjust the layout based on Single/Multi select and add appropriate onClick listeners
         if (!mPickerViewModel.canSelectMultiple()) {
@@ -111,12 +118,34 @@ public class PreviewFragment extends Fragment {
         } else {
             // Update add button text to include number of items selected.
             mPickerViewModel.getSelectedItems().observe(this, selectedItems -> {
-                final int size = selectedItems.size();
-                addButton.setText(getString(R.string.add) + " (" + size + ")");
+                addButton.setText(generateAddButtonString(getContext(), selectedItems.size()));
             });
             selectButton.setOnClickListener(v -> {
                 onClickSelect(selectButton);
             });
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        // TODO(185801129): Change the layout of the toolbar or add new toolbar that can overlap
+        // with image/video preview if necessary
+        ((PhotoPickerActivity) getActivity()).updateCommonLayouts(LayoutModeUtils.MODE_PREVIEW,
+                /* title */"");
+
+        // This is necessary to ensure we call ViewHolder#bind() onResume()
+        if (mAdapter != null) {
+            mAdapter.notifyDataSetChanged();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mOnPageChangeCallBack != null && mViewPager != null) {
+            mViewPager.unregisterOnPageChangeCallback(mOnPageChangeCallBack);
         }
     }
 
@@ -165,8 +194,23 @@ public class PreviewFragment extends Fragment {
 
         final PreviewFragment fragment = new PreviewFragment();
         fm.beginTransaction()
-                .setReorderingAllowed(true)
                 .replace(R.id.fragment_container, fragment, TAG)
-                .commitNow();
+                .addToBackStack(TAG)
+                .commitAllowingStateLoss();
+    }
+
+    /**
+     * Get the fragment in the FragmentManager
+     * @param fm the fragment manager
+     */
+    public static Fragment get(FragmentManager fm) {
+        return fm.findFragmentByTag(TAG);
+    }
+
+    // TODO: There is a same method in TabFragment. To find a way to reuse it.
+    private static String generateAddButtonString(Context context, int size) {
+        final String sizeString = NumberFormat.getInstance(Locale.getDefault()).format(size);
+        final String template = context.getString(R.string.picker_add_button_multi_select);
+        return TextUtils.expandTemplate(template, sizeString).toString();
     }
 }

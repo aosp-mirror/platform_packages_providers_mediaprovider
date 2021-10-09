@@ -41,13 +41,19 @@
                 android:scaleType="centerCrop"
                 android:contentDescription="@null"/>
 
+            <FrameLayout
+                android:id="@+id/overlay_gradient"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/picker_item_gradient_height"
+                android:background="@drawable/picker_item_gradient"/>
+
             <ImageView
                 android:id="@+id/icon_gif"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end|top"
-                android:layout_marginEnd="@dimen/picker_item_badge_margin"
-                android:layout_marginTop="@dimen/picker_item_badge_margin"
+                android:layout_marginEnd="@dimen/picker_item_gif_badge_margin"
+                android:layout_marginTop="@dimen/picker_item_gif_badge_margin"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_gif"
                 android:contentDescription="@null"/>

@@ -88,6 +88,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -1644,5 +1645,9 @@ public class FileUtils {
         }
 
         return null;
+    }
+
+    public static File buildPrimaryVolumeFile(int userId, String... segments) {
+        return buildPath(new File("/storage/emulated/" + userId), segments);
     }
 }

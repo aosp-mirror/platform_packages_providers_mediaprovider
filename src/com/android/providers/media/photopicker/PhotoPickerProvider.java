@@ -25,6 +25,7 @@ import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Point;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
@@ -33,6 +34,7 @@ import android.provider.CloudMediaProvider;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
+import com.android.providers.media.LocalCallingIdentity;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 
@@ -66,7 +68,8 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     @Override
     public Cursor onQueryMedia(@Nullable Bundle extras) {
         // TODO(b/190713331): Handle extra_page
-        return mDbFacade.queryMediaGeneration(extractGeneration(extras), extractAlbum(extras));
+        return mDbFacade.queryMediaGeneration(extractGeneration(extras), extractAlbum(extras),
+                extractMimeType(extras));
     }
 
     @Override
@@ -76,22 +79,33 @@ public class PhotoPickerProvider extends CloudMediaProvider {
 
     @Override
     public Cursor onQueryAlbums(@Nullable Bundle extras) {
-        return mDbFacade.queryAlbums();
+        return mDbFacade.queryAlbums(extractMimeType(extras));
     }
 
     @Override
     public AssetFileDescriptor onOpenThumbnail(@NonNull String mediaId, @NonNull Point size,
             @NonNull CancellationSignal signal) throws FileNotFoundException {
-        Bundle opts = new Bundle();
+        final Bundle opts = new Bundle();
         opts.putParcelable(ContentResolver.EXTRA_SIZE, size);
-        return mMediaProvider.openTypedAssetFile(fromMediaId(mediaId), "image/*", opts);
+
+        final LocalCallingIdentity token = mMediaProvider.clearLocalCallingIdentity();
+        try {
+            return mMediaProvider.openTypedAssetFile(fromMediaId(mediaId), "image/*", opts);
+        } finally {
+            mMediaProvider.restoreLocalCallingIdentity(token);
+        }
     }
 
     @Override
     public ParcelFileDescriptor onOpenMedia(@NonNull String mediaId,
             @NonNull CancellationSignal signal)
             throws FileNotFoundException {
-        return mMediaProvider.openFile(fromMediaId(mediaId), "r");
+        final LocalCallingIdentity token = mMediaProvider.clearLocalCallingIdentity();
+        try {
+            return mMediaProvider.openFile(fromMediaId(mediaId), "r");
+        } finally {
+            mMediaProvider.restoreLocalCallingIdentity(token);
+        }
     }
 
     @Override
@@ -130,7 +144,12 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     }
 
     private static String extractAlbum(@Nullable Bundle extras) {
-        return extras == null ? null : extras.getString(
-                CloudMediaProviderContract.EXTRA_FILTER_ALBUM);
+        return extras == null
+                ? null : extras.getString(CloudMediaProviderContract.EXTRA_FILTER_ALBUM);
+    }
+
+    private static String extractMimeType(@Nullable Bundle extras) {
+        return extras == null
+                ? null : extras.getString(CloudMediaProviderContract.EXTRA_FILTER_MIMETYPE);
     }
 }

@@ -47,64 +47,136 @@
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଅଡିଓ ଫାଇଲ୍ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…</item>
+      <item quantity="one">ଅଡିଓ ଫାଇଲ୍ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଭିଡିଓକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଭିଡିଓକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଭିଡିଓ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…</item>
+      <item quantity="one">ଭିଡିଓ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଫଟୋ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଫଟୋକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଫଟୋ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…</item>
+      <item quantity="one">ଫଟୋ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଆଇଟମକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଆଇଟମକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଆଇଟମ୍ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…</item>
+      <item quantity="one">ଆଇଟମ୍ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ଟ୍ରାସକୁ ମୁଭ୍ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଅଡିଓ ଫାଇଲକୁ ଟ୍ରାସକୁ ମୁଭ୍ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଅଡିଓ ଫାଇଲ୍ ଟ୍ରାସକୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଅଡିଓ ଫାଇଲ୍ ଟ୍ରାସକୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଭିଡିଓକୁ ଟ୍ରାସକୁ ମୁଭ୍ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଭିଡିଓକୁ ଟ୍ରାସକୁ ମୁଭ୍ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଭିଡିଓ ଟ୍ରାସକୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଭିଡିଓ ଟ୍ରାସକୁ ମୁଭ୍ କରାଯାଉଛି…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଫଟୋକୁ ଟ୍ରାସକୁ ମୁଭ୍ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଫଟୋକୁ ଟାସକୁ ମୁଭ୍ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଫଟୋ ଟ୍ରାସକୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଫଟୋ ଟ୍ରାସକୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଆଇଟମକୁ ଟ୍ରାସକୁ ମୁଭ୍ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଆଇଟମକୁ ଟ୍ରାସକୁ ମୁଭ୍ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଆଇଟମ୍ ଟ୍ରାସକୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଆଇଟମ୍ ଟ୍ରାସକୁ ମୁଭ୍ କରାଯାଉଛି…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ଟ୍ରାସରୁ ବାହାର କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଅଡିଓ ଫାଇଲକୁ ଟ୍ରାସରୁ ବାହାର କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ଟ୍ରାସରୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଅଡିଓ ଫାଇଲକୁ ଟ୍ରାସରୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଭିଡିଓକୁ ଟ୍ରାସରୁ ବାହାର କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଭିଡିଓକୁ ଟ୍ରାସରୁ ବାହାର କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଭିଡିଓକୁ ଟ୍ରାସରୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଭିଡିଓକୁ ଟ୍ରାସରୁ ମୁଭ୍ କରାଯାଉଛି…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଫଟୋକୁ ଟ୍ରାସରୁ ବାହାର କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଫଟୋକୁ ଟ୍ରାସରୁ ବାହାର କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଫଟୋକୁ ଟ୍ରାସରୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଫଟୋକୁ ଟ୍ରାସରୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଆଇଟମକୁ ଟ୍ରାସରୁ ବାହାର କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଆଇଟମକୁ ଟ୍ରାସରୁ ବାହାର କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଆଇଟମକୁ ଟ୍ରାସରୁ ମୁଭ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଆଇଟମକୁ ଟ୍ରାସରୁ ମୁଭ୍ କରାଯାଉଛି…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ଡିଲିଟ୍ କରିବାକୁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଅଡିଓ ଫାଇଲକୁ ଡିଲିଟ୍ କରିବାକୁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଅଡିଓ ଫାଇଲ୍ ଡିଲିଟ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଅଡିଓ ଫାଇଲ୍ ଡିଲିଟ୍ କରାଯାଉଛି…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଭିଡିଓକୁ ଡିଲିଟ୍ କରିବାକୁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଭିଡିଓକୁ ଡିଲିଟ୍ କରିବାକୁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଭିଡିଓ ଡିଲିଟ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଭିଡିଓ ଡିଲିଟ୍ କରାଯାଉଛି…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଫଟୋକୁ ଡିଲିଟ୍ କରିବାକୁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଫଟୋକୁ ଡିଲିଟ୍ କରିବାକୁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଫଟୋ ଡିଲିଟ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଫଟୋ ଡିଲିଟ୍ କରାଯାଉଛି…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଆଇଟମକୁ ଡିଲିଟ୍ କରିବାକୁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଆଇଟମକୁ ଡିଲିଟ୍ କରିବାକୁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
     </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g>ଟି ଆଇଟମ୍ ଡିଲିଟ୍ କରାଯାଉଛି…</item>
+      <item quantity="one">ଆଇଟମ୍ ଡିଲିଟ୍ କରାଯାଉଛି…</item>
+    </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> ମିଡିଆ ଫାଇଲଗୁଡ଼ିକୁ ପ୍ରକ୍ରିୟାନ୍ୱିତ କରିପାରିବ ନାହିଁ"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ବାତିଲ୍ କରାଯାଇଛି"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ତ୍ରୁଟି"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ସଫଳ ହୋଇଛି"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ଆରମ୍ଭ କରାଯାଇଛି"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ କରାଯାଉଛି…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"ବାତିଲ୍ କରନ୍ତୁ"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"ଅପେକ୍ଷା କରନ୍ତୁ"</string>
 </resources>

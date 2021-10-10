@@ -93,6 +93,24 @@ const node* node::LookupAbsolutePath(const node* root, const std::string& absolu
     return node;
 }
 
+const node* node::LookupInode(const node* root, ino_t ino) {
+    CHECK(root);
+
+    std::lock_guard<std::recursive_mutex> guard(*root->lock_);
+
+    if ((root->ino_ == ino) && !root->deleted_ && !(root->handles_.empty())) {
+        return root;
+    }
+
+    for (node* child : root->children_) {
+        const node* node = LookupInode(child, ino);
+        if (node) {
+            return node;
+        }
+    }
+    return nullptr;
+}
+
 void node::DeleteTree(node* tree) {
     std::lock_guard<std::recursive_mutex> guard(*tree->lock_);
 

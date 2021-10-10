@@ -59,6 +59,26 @@ function sqlite3-trigger-upgrade () {
     adb shell am force-stop $package
 }
 
+function get-id-from-data () {
+    adb root
+    path="$1"
+    package=$(get-package)
+    dir="/data/user/0/$package/databases/external.db"
+    clause="\"select _id from files where _data='$path';\""
+    echo $clause
+    adb shell sqlite3 $dir $clause
+}
+
+function get-data-from-id () {
+    adb root
+    _id="$1"
+    package=$(get-package)
+    dir="/data/user/0/$package/databases/external.db"
+    clause="\"select _data from files where _id='$_id';\""
+    echo $clause
+    adb shell sqlite3 $dir $clause
+}
+
 function get-package() {
     if [ -z "$(adb shell pm list package com.android.providers.media.module)" ]
     then

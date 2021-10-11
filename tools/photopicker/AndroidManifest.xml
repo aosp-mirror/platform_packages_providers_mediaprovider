@@ -2,6 +2,7 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.android.providers.media.tools.photopicker">
+    <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="30"/>
 
     <application android:label="PhotoPickerTool">
         <activity android:name=".PhotoPickerToolActivity"

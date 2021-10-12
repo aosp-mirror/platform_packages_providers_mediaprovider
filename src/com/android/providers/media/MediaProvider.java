@@ -6706,7 +6706,8 @@ public class MediaProvider extends ContentProvider {
             } else if (!Objects.equals(beforeVolume, probeVolume)) {
                 throw new IllegalArgumentException("Changing volume from " + beforePath + " to "
                         + probePath + " not allowed");
-            } else if (!isUpdateAllowedForOwnedPath(beforeOwner, probeOwner)) {
+            } else if (!isUpdateAllowedForOwnedPath(beforeOwner, probeOwner, beforePath,
+                    probePath)) {
                 throw new IllegalArgumentException("Changing ownership from " + beforePath + " to "
                         + probePath + " not allowed");
             } else {
@@ -6893,8 +6894,22 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isUpdateAllowedForOwnedPath(@Nullable String srcOwner,
-            @Nullable String destOwner) {
-        // Allow update from srcPath if the source is not a owned path or calling package is the
+            @Nullable String destOwner, @NonNull String srcPath, @NonNull String destPath) {
+        // 1. Allow if the update is within owned path
+        // update() from /sdcard/Android/media/com.foo/ABC/image.jpeg to
+        // /sdcard/Android/media/com.foo/XYZ/image.jpeg - Allowed
+        if(Objects.equals(srcOwner, destOwner)) {
+            return true;
+        }
+
+        // 2. Check if the calling package is a special app which has global access
+        if (isCallingPackageManager() ||
+                (canAccessMediaFile(srcPath, /* allowLegacy */ false) &&
+                        (canAccessMediaFile(destPath, /* allowLegacy */ false)))) {
+            return true;
+        }
+
+        // 3. Allow update from srcPath if the source is not a owned path or calling package is the
         // owner of the source path or calling package shares the UID with the owner of the source
         // path
         // update() from /sdcard/DCIM/Foo.jpeg - Allowed
@@ -6903,8 +6918,8 @@ public class MediaProvider extends ContentProvider {
         final boolean isSrcUpdateAllowed = srcOwner == null
                 || isCallingIdentitySharedPackageName(srcOwner);
 
-        // Allow update to dstPath if the destination is not a owned path or calling package is the
-        // owner of the destination path or calling package shares the UID with the owner of the
+        // 4. Allow update to dstPath if the destination is not a owned path or calling package is
+        // the owner of the destination path or calling package shares the UID with the owner of the
         // destination path
         // update() to /sdcard/Pictures/image.jpeg - Allowed
         // update() to /sdcard/Android/media/com.foo/image.jpeg - Allowed for

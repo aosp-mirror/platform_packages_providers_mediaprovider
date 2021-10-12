@@ -27,7 +27,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Trace;
+import android.os.UserHandle;
+import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
 import android.util.Log;
 
@@ -40,6 +43,21 @@ import java.io.IOException;
 
 public class MediaService extends JobIntentService {
     private static final int JOB_ID = -300;
+
+    private static final String ACTION_SCAN_VOLUME
+            = "com.android.providers.media.action.SCAN_VOLUME";
+
+    private static final String EXTRA_MEDIAVOLUME = "MediaVolume";
+
+    private static final String EXTRA_SCAN_REASON = "scan_reason";
+
+
+    public static void queueVolumeScan(Context context, MediaVolume volume, int reason) {
+        Intent intent = new Intent(ACTION_SCAN_VOLUME);
+        intent.putExtra(EXTRA_MEDIAVOLUME, volume) ;
+        intent.putExtra(EXTRA_SCAN_REASON, reason);
+        enqueueWork(context, intent);
+    }
 
     public static void enqueueWork(Context context, Intent work) {
         enqueueWork(context, MediaService.class, JOB_ID, work);
@@ -68,7 +86,13 @@ public class MediaService extends JobIntentService {
                     break;
                 }
                 case Intent.ACTION_MEDIA_MOUNTED: {
-                    onScanVolume(this, intent.getData(), REASON_MOUNTED);
+                    onMediaMountedBroadcast(this, intent);
+                    break;
+                }
+                case ACTION_SCAN_VOLUME: {
+                    final MediaVolume volume = intent.getParcelableExtra(EXTRA_MEDIAVOLUME);
+                    int reason = intent.getIntExtra(EXTRA_SCAN_REASON, REASON_DEMAND);
+                    onScanVolume(this, volume, reason);
                     break;
                 }
                 default: {
@@ -100,21 +124,42 @@ public class MediaService extends JobIntentService {
         }
     }
 
-    private static void onScanVolume(Context context, Uri uri, int reason)
+    private static void onMediaMountedBroadcast(Context context, Intent intent)
             throws IOException {
-        final File file = new File(uri.getPath()).getCanonicalFile();
-        final String volumeName = FileUtils.getVolumeName(context, file);
-
-        onScanVolume(context, volumeName, reason);
+        final StorageVolume volume = intent.getParcelableExtra(StorageVolume.EXTRA_STORAGE_VOLUME);
+        if (volume != null) {
+            MediaVolume mediaVolume = MediaVolume.fromStorageVolume(volume);
+            try (ContentProviderClient cpc = context.getContentResolver()
+                    .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+                if (!((MediaProvider)cpc.getLocalContentProvider()).isVolumeAttached(mediaVolume)) {
+                    // This can happen on some legacy app clone implementations, where the
+                    // framework is modified to send MEDIA_MOUNTED broadcasts for clone volumes
+                    // to u0 MediaProvider; these volumes are not reported through the usual
+                    // volume attach events, so we need to scan them here if they weren't
+                    // attached previously
+                    onScanVolume(context, mediaVolume, REASON_MOUNTED);
+                } else {
+                    Log.i(TAG, "Volume " + mediaVolume + " already attached");
+                }
+            }
+        } else {
+            Log.e(TAG, "Couldn't retrieve StorageVolume from intent");
+        }
     }
 
-    public static void onScanVolume(Context context, String volumeName, int reason)
+    public static void onScanVolume(Context context, MediaVolume volume, int reason)
             throws IOException {
+        final String volumeName = volume.getName();
+        UserHandle owner = volume.getUser();
+        if (owner == null) {
+            // Can happen for the internal volume
+            owner = context.getUser();
+        }
         // If we're about to scan any external storage, scan internal first
         // to ensure that we have ringtones ready to roll before a possibly very
         // long external storage scan
         if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
-            onScanVolume(context, MediaStore.VOLUME_INTERNAL, reason);
+            onScanVolume(context, MediaVolume.fromInternal(), reason);
             RingtoneManager.ensureDefaultRingtones(context);
         }
 
@@ -123,7 +168,7 @@ public class MediaService extends JobIntentService {
         // in the situation where a volume is ejected mid-scan
         final Uri broadcastUri;
         if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
-            broadcastUri = Uri.fromFile(FileUtils.getVolumePath(context, volumeName));
+            broadcastUri = Uri.fromFile(volume.getPath());
         } else {
             broadcastUri = null;
         }
@@ -131,7 +176,7 @@ public class MediaService extends JobIntentService {
         try (ContentProviderClient cpc = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
             final MediaProvider provider = ((MediaProvider) cpc.getLocalContentProvider());
-            provider.attachVolume(volumeName, /* validate */ true);
+            provider.attachVolume(volume, /* validate */ true);
 
             final ContentResolver resolver = ContentResolver.wrap(cpc.getLocalContentProvider());
 
@@ -140,20 +185,24 @@ public class MediaService extends JobIntentService {
             Uri scanUri = resolver.insert(MediaStore.getMediaScannerUri(), values);
 
             if (broadcastUri != null) {
-                context.sendBroadcast(
-                        new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, broadcastUri));
+                context.sendBroadcastAsUser(
+                        new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, broadcastUri), owner);
             }
 
-            for (File dir : FileUtils.getVolumeScanPaths(context, volumeName)) {
-                provider.scanDirectory(dir, reason);
+            if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
+                for (File dir : FileUtils.getVolumeScanPaths(context, volumeName)) {
+                    provider.scanDirectory(dir, reason);
+                }
+            } else {
+                provider.scanDirectory(volume.getPath(), reason);
             }
 
             resolver.delete(scanUri, null, null);
 
         } finally {
             if (broadcastUri != null) {
-                context.sendBroadcast(
-                        new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, broadcastUri));
+                context.sendBroadcastAsUser(
+                        new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, broadcastUri), owner);
             }
         }
     }

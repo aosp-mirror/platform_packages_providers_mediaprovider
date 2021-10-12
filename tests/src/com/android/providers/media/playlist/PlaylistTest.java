@@ -16,6 +16,8 @@
 
 package com.android.providers.media.playlist;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 
 import androidx.test.runner.AndroidJUnit4;
@@ -128,7 +130,31 @@ public class PlaylistTest {
         assertPlaylistEquals(GREEN);
     }
 
+    @Test
+    public void testRemoveMultiple() throws Exception {
+        playlist.add(0, RED);
+        playlist.add(1, GREEN);
+        playlist.add(2, BLUE);
+        assertPlaylistEquals(RED, GREEN, BLUE);
+
+        // Unlike #remove, #removeMultiple ignores out of bounds indexes
+        assertEquals(0, playlist.removeMultiple(100));
+        assertPlaylistEquals(RED, GREEN, BLUE);
+
+        assertEquals(2, playlist.removeMultiple(0, 2));
+        assertPlaylistEquals(GREEN);
+
+        assertEquals(1, playlist.removeMultiple(0));
+        assertPlaylistEmpty();
+    }
+
+
+
     private void assertPlaylistEquals(Path... items) {
         assertEquals(items, playlist.asList().toArray());
+    }
+
+    private void assertPlaylistEmpty() {
+        assertThat(playlist.asList()).isEmpty();
     }
 }

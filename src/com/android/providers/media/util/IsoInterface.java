@@ -177,14 +177,25 @@ public class IsoInterface {
                 return null;
             }
 
-            box.data = new byte[(int) (len - box.headerSize)];
+            try {
+                box.data = new byte[(int) (len - box.headerSize)];
+            } catch (OutOfMemoryError e) {
+                Log.w(TAG, "Couldn't read large uuid box", e);
+                return null;
+            }
             Os.read(fd, box.data, 0, box.data.length);
         } else if (type == BOX_XMP) {
             if (len > Integer.MAX_VALUE) {
                 Log.w(TAG, "Skipping abnormally large xmp box");
                 return null;
             }
-            box.data = new byte[(int) (len - box.headerSize)];
+
+            try {
+                box.data = new byte[(int) (len - box.headerSize)];
+            } catch (OutOfMemoryError e) {
+                Log.w(TAG, "Couldn't read large xmp box", e);
+                return null;
+            }
             Os.read(fd, box.data, 0, box.data.length);
         } else if (type == BOX_META && len != headerSize) {
             // The format of this differs in ISO and QT encoding:

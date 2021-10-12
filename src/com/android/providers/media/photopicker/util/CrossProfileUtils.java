@@ -42,9 +42,10 @@ public class CrossProfileUtils {
      * {@link MediaStore#ACTION_PICK_IMAGES} intent, please modify the logic if we want to check
      * for multiple intents.
      */
-    public static boolean isPickImagesIntentAllowedCrossProfileAccess(
+    public static boolean isIntentAllowedCrossProfileAccess(Intent intent,
             PackageManager packageManager) {
-        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.setComponent(null);
+        intent.setPackage(null);
         for (ResolveInfo info : packageManager.queryIntentActivities(intent,
                 PackageManager.MATCH_DEFAULT_ONLY)) {
             if (info != null && info.isCrossProfileIntentForwarderActivity()) {

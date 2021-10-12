@@ -32,6 +32,7 @@ import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED;
+import static com.android.providers.media.util.SyntheticPathUtils.createSparseFile;
 
 import android.annotation.IntRange;
 import android.annotation.LongDef;
@@ -105,7 +106,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.time.LocalDateTime;
@@ -523,7 +523,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
      * @param uid app requesting IO
      *
      */
-    public String getIoPath(String path, int uid) {
+    public String prepareIoPath(String path, int uid) {
         // This can only happen when we are in a version that supports transcoding.
         // So, no need to check for the SDK version here.
 
@@ -549,18 +549,12 @@ public class TranscodeHelperImpl implements TranscodeHelper {
             updateTranscodeStatus(path, TRANSCODE_EMPTY);
         }
 
-        final File file = new File(path);
-        long maxFileSize = (long) (file.length() * 2);
-        mTranscodeDirectory.mkdirs();
-        try (RandomAccessFile raf = new RandomAccessFile(transcodeFile, "rw")) {
-            raf.setLength(maxFileSize);
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to initialise transcoding for file " + path, e);
-            transcodeFile.delete();
+        final long maxFileSize = (long) (new File(path).length() * 2);
+        if (createSparseFile(transcodeFile, maxFileSize)) {
             return transcodePath;
         }
 
-        return transcodePath;
+        return "";
     }
 
     private static int getMediaCapabilitiesUid(int uid, Bundle bundle) {
@@ -1189,6 +1183,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
                         .setSourceFileDescriptor(srcPfd)
                         .setDestinationFileDescriptor(dstPfd)
                         .build();
+
         TranscodingSession session = mediaTranscodeManager.enqueueRequest(request,
                 ForegroundThread.getExecutor(),
                 s -> {

@@ -26,16 +26,20 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.RemoteException;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.util.Log;
 
+import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryColumns;
 import com.android.providers.media.photopicker.data.model.Item.ItemColumns;
 import com.android.providers.media.photopicker.data.model.UserId;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -46,6 +50,7 @@ public class ItemsProvider {
     private static final String IMAGES_VIDEOS_WHERE_CLAUSE = "( " +
             FileColumns.MEDIA_TYPE + " = " + FileColumns.MEDIA_TYPE_IMAGE + " OR "
             + FileColumns.MEDIA_TYPE + " = " + FileColumns.MEDIA_TYPE_VIDEO + " )";
+    private static final String TAG = ItemsProvider.class.getSimpleName();
 
     private final Context mContext;
 
@@ -99,8 +104,7 @@ public class ItemsProvider {
                     + "category: " + category);
         }
 
-        final String[] projection = ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]);
-        return query(projection, category, mimeType, offset, limit, userId);
+        return query(ItemColumns.PROJECTION, category, mimeType, offset, limit, userId);
     }
 
     /**
@@ -117,7 +121,7 @@ public class ItemsProvider {
      * @return {@link Cursor} for each category would contain the following columns in
      * their relative order:
      * categoryName: {@link CategoryColumns#NAME} The name of the category,
-     * categoryCoverUri: {@link CategoryColumns#COVER_URI} The Uri for the cover of
+     * categoryCoverId: {@link CategoryColumns#COVER_ID} The id for the cover of
      *                   the category. By default this will be the most recent image/video in that
      *                   category,
      * categoryNumberOfItems: {@link CategoryColumns#NUMBER_OF_ITEMS} number of image/video items
@@ -161,7 +165,7 @@ public class ItemsProvider {
 
         return new String[] {
                 category, // category name
-                getMediaStoreUriForItem(c.getString(0)).toString(), // coverUri
+                c.getString(0), // coverId
                 String.valueOf(c.getCount()), // item count
                 category // category type
         };
@@ -182,6 +186,12 @@ public class ItemsProvider {
             selection += " AND (" + MediaColumns.MIME_TYPE + " LIKE ? )";
             selectionArgs = new String[] {replaceMatchAnyChar(mimeType)};
         }
+
+        if (PickerDbFacade.isPickerDbEnabled() && category == null) {
+            // The picker db doesn't yet support categories, so only serve non-category queries
+            // from the picker db
+            return queryPickerDb(limit, mimeType, userId);
+        }
         return queryMediaStore(projection, selection, selectionArgs, offset, limit, userId);
     }
 
@@ -189,6 +199,15 @@ public class ItemsProvider {
     private Cursor queryMediaStore(@NonNull String[] projection,
             @Nullable String selection, @Nullable String[] selectionArgs, int offset,
             int limit, @NonNull UserId userId) throws IllegalStateException {
+
+        if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            // If external storage is not ready, we can't load any items from MediaStore.
+            // This shouldn't happen in real world use case. This may happen in tests because test
+            // instrumentation kills the target package before starting the test.
+            Log.w(TAG, "Couldn't query items because external storage is not ready");
+            return null;
+        }
+
         final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
@@ -198,22 +217,43 @@ public class ItemsProvider {
             // DATE_TAKEN is time in milliseconds, whereas DATE_MODIFIED is time in seconds.
             // Sort by DATE_MODIFIED if DATE_TAKEN is NULL
             extras.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
-                    "COALESCE(" + MediaColumns.DATE_TAKEN + "," + MediaColumns.DATE_MODIFIED +
-                    "* 1000) DESC");
+                    "COALESCE(" + MediaColumns.DATE_TAKEN + ","
+                            + MediaColumns.DATE_MODIFIED + "* 1000) DESC, "
+                            + MediaColumns._ID + " DESC");
             extras.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
             if (limit != -1) {
                 extras.putInt(ContentResolver.QUERY_ARG_LIMIT, limit);
             }
 
             return client.query(contentUri, projection, extras, null);
-        } catch (RemoteException ignored) {
+        } catch (RemoteException e) {
             // Do nothing, return null.
+            Log.e(TAG, "RemoteException while querying MediaStore for items with"
+                    + " selection = " + selection
+                    + " selectionArgs = " + Arrays.toString(selectionArgs)
+                    + " limit = " + limit + " offset = " + offset + " userId = " + userId, e);
+            return null;
         }
-        return null;
     }
 
-    private static Uri getMediaStoreUriForItem(String id) {
-        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, Long.parseLong(id));
+    @Nullable
+    private Cursor queryPickerDb(int limit, @Nullable String mimeType, @NonNull UserId userId)
+            throws IllegalStateException {
+        try (ContentProviderClient client = userId.getContentResolver(mContext)
+                .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
+            final Bundle extras = new Bundle();
+            extras.putInt(MediaStore.QUERY_ARG_LIMIT, limit);
+            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+
+            return client.query(PickerUriResolver.PICKER_INTERNAL_URI, /* projection */ null,
+                    extras, /* cancellationSignal */ null);
+        } catch (RemoteException e) {
+            // Do nothing, return null.
+            Log.e(TAG, "RemoteException while querying picker database for items with"
+                            + " mimeType filter = " + mimeType
+                            + " limit = " + limit + " userId = " + userId, e);
+            return null;
+        }
     }
 
     private static String replaceMatchAnyChar(@NonNull String mimeType) {
@@ -221,8 +261,18 @@ public class ItemsProvider {
     }
 
     public static Uri getItemsUri(String id, String authority, UserId userId) {
-        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
-                Long.parseLong(id));
+        final Uri uri;
+        if (authority == null) {
+            uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
+                    Long.parseLong(id));
+        } else {
+            // We only have authority after querying the picker db
+            final Uri providerUri = PickerUriResolver.getMediaUri(authority).buildUpon()
+                    .appendPath(id).build();
+            uri = PickerUriResolver.wrapProviderUri(providerUri,
+                    userId.getUserHandle().getIdentifier());
+        }
+
         if (userId.equals(UserId.CURRENT_USER)) {
             return uri;
         } else {

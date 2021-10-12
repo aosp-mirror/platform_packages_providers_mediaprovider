@@ -21,6 +21,7 @@ import static com.android.providers.media.photopicker.util.CursorUtils.getCursor
 
 import android.database.Cursor;
 import android.net.Uri;
+import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
@@ -28,6 +29,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.Arrays;
@@ -40,21 +42,31 @@ import java.util.List;
 public class Item {
 
     public static class ItemColumns {
-        public static String ID = MediaStore.MediaColumns._ID;
-        public static String MIME_TYPE = MediaStore.MediaColumns.MIME_TYPE;
-        public static String DATE_TAKEN = MediaStore.MediaColumns.DATE_TAKEN;
+        public static String ID = CloudMediaProviderContract.MediaColumns.ID;
+        public static String MIME_TYPE = CloudMediaProviderContract.MediaColumns.MIME_TYPE;
+        public static String DATE_TAKEN = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS;
+        // TODO(b/195009139): Remove after fully switching to picker db
         public static String DATE_MODIFIED = MediaStore.MediaColumns.DATE_MODIFIED;
-        public static String DURATION = MediaStore.MediaColumns.DURATION;
+        public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MS;
+        public static String SIZE = CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
+        public static String AUTHORITY = CloudMediaProviderContract.MediaColumns.AUTHORITY;
 
-        private static final String[] ALL_COLUMNS = {
+        public static final String[] ALL_COLUMNS = {
                 ID,
                 MIME_TYPE,
                 DATE_TAKEN,
                 DATE_MODIFIED,
                 DURATION,
         };
-        public static List<String> ALL_COLUMNS_LIST = Collections.unmodifiableList(
-                Arrays.asList(ALL_COLUMNS));
+
+        // TODO(b/195009139): Remove after fully switching to picker db
+        public static final String[] PROJECTION = {
+            MediaStore.MediaColumns._ID + " AS " + ID,
+            MediaStore.MediaColumns.MIME_TYPE + " AS " + MIME_TYPE,
+            MediaStore.MediaColumns.DATE_TAKEN + " AS " + DATE_TAKEN,
+            MediaStore.MediaColumns.DATE_MODIFIED + " AS " + DATE_MODIFIED,
+            MediaStore.MediaColumns.DURATION +  " AS " + DURATION,
+        };
     }
 
     private static final String MIME_TYPE_GIF = "image/gif";
@@ -68,12 +80,11 @@ public class Item {
     private boolean mIsVideo;
     private boolean mIsGif;
     private boolean mIsDate;
-    private boolean mIsMessage;
 
     private Item() {}
 
-    public Item(@NonNull Cursor cursor, String authority, @NonNull UserId userId) {
-        updateFromCursor(cursor, authority, userId);
+    public Item(@NonNull Cursor cursor, @NonNull UserId userId) {
+        updateFromCursor(cursor, userId);
     }
 
     @VisibleForTesting
@@ -106,10 +117,6 @@ public class Item {
         return mIsDate;
     }
 
-    public boolean isMessage() {
-        return mIsMessage;
-    }
-
     public Uri getContentUri() {
         return mUri;
     }
@@ -126,18 +133,9 @@ public class Item {
         return mDateTaken;
     }
 
-    public static Item fromCursor(Cursor cursor, String authority, UserId userId) {
+    public static Item fromCursor(Cursor cursor, UserId userId) {
         assert(cursor != null);
-        final Item item = new Item(cursor, authority, userId);
-        return item;
-    }
-
-    /**
-     * Return a message item.
-     */
-    public static Item createMessageItem() {
-        final Item item = new Item();
-        item.mIsMessage = true;
+        final Item item = new Item(cursor, userId);
         return item;
     }
 
@@ -156,10 +154,12 @@ public class Item {
 
     /**
      * Update the item based on the cursor
+     *
      * @param cursor the cursor to update the data
+     * @param userId the user id to create an {@link Item} for
      */
-    public void updateFromCursor(@NonNull Cursor cursor, @NonNull String authority,
-            @NonNull UserId userId) {
+    public void updateFromCursor(@NonNull Cursor cursor, @NonNull UserId userId) {
+        final String authority = getCursorString(cursor, ItemColumns.AUTHORITY);
         mId = getCursorString(cursor, ItemColumns.ID);
         mMimeType = getCursorString(cursor, ItemColumns.MIME_TYPE);
         mDateTaken = getCursorLong(cursor, ItemColumns.DATE_TAKEN);

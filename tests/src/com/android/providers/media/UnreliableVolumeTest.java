@@ -17,21 +17,30 @@
 package com.android.providers.media;
 
 import static androidx.test.InstrumentationRegistry.getContext;
+
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.*;
 
 import android.app.UiAutomation;
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Environment;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
 import androidx.test.InstrumentationRegistry;
 
+import com.android.providers.media.photopicker.data.UnreliableVolumeDatabaseHelper;
+import com.android.providers.media.scan.MediaScannerTest;
 import com.android.providers.media.util.UserCache;
 import com.google.common.io.ByteStreams;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -51,14 +60,25 @@ public class UnreliableVolumeTest {
     private static final long POLLING_SLEEP_MILLIS = 100;
     private static final String TAG = "UnreliableVolumeTest";
 
+    static final String UNRELIABLE_VOLUME_TABLE = "media";
+
+    private static final long SIZE_BYTES = 7000;
+    private static final String DISPLAY_NAME = "first day of school";
+    private static final long DATE_MODIFIED = 1623852851911L;
+    private static final String MIME_TYPE = "image/jpg";
+    private static String _DATA = "/foo/bar/internship.jpeg";
+
+    private static Context sIsolatedContext;
+
     @BeforeClass
     public static void setUp() throws Exception {
         createRemovableVolume();
         final Context context = getContext();
         UserCache mUserCache = new UserCache(context);
+        sIsolatedContext = new MediaScannerTest.IsolatedContext(context, TAG,
+                /*asFuseThread*/ false);
         sVolumeCache = new VolumeCache(context, mUserCache);
         sVolumeCache.update();
-
         sVolumeName = getCurrentPublicVolumeString();
         sVolumePath = "/mnt/media_rw/" + sVolumeName;
     }
@@ -71,9 +91,51 @@ public class UnreliableVolumeTest {
     }
 
     @Test
+    @Ignore("Enable after b/197816987 is fixed")
     public void testUnreliableVolumeSimple() throws Exception {
         assertEquals(sVolumeName, sVolumeCache.getUnreliableVolumePath().get(0).getName());
         assertEquals(sVolumePath, sVolumeCache.getUnreliableVolumePath().get(0).getPath());
+    }
+
+    @Test
+    @Ignore("Enable after b/197816987 is fixed")
+    public void testDBisCreated() throws Exception {
+        String[] projection = new String[] {
+                UnreliableVolumeDatabaseHelper.MediaColumns.SIZE_BYTES,
+                UnreliableVolumeDatabaseHelper.MediaColumns.DISPLAY_NAME,
+                UnreliableVolumeDatabaseHelper.MediaColumns.DATE_MODIFIED,
+                UnreliableVolumeDatabaseHelper.MediaColumns.MIME_TYPE,
+                UnreliableVolumeDatabaseHelper.MediaColumns._DATA
+        };
+
+        try (UnreliableVolumeDatabaseHelper helper =
+                     new UnreliableVolumeDatabaseHelper(sIsolatedContext)) {
+            SQLiteDatabase db = helper.getWritableDatabase();
+            ContentValues values = generateAndGetContentValues();
+            assertThat(db.insert(UNRELIABLE_VOLUME_TABLE, null, values)).isNotEqualTo(-1);
+
+            try (Cursor cr = db.query(UNRELIABLE_VOLUME_TABLE, projection, null, null, null,
+                    null, null)) {
+                assertThat(cr.getCount()).isEqualTo(1);
+                while (cr.moveToNext()) {
+                    assertThat(cr.getLong(0)).isEqualTo(SIZE_BYTES);
+                    assertThat(cr.getString(1)).isEqualTo(DISPLAY_NAME);
+                    assertThat(cr.getLong(2)).isEqualTo(DATE_MODIFIED);
+                    assertThat(cr.getString(3)).isEqualTo(MIME_TYPE);
+                    assertThat(cr.getString(4)).isEqualTo(_DATA);
+                }
+            }
+        }
+    }
+
+    private static ContentValues generateAndGetContentValues() {
+        ContentValues values = new ContentValues();
+        values.put(UnreliableVolumeDatabaseHelper.MediaColumns.SIZE_BYTES, SIZE_BYTES);
+        values.put(UnreliableVolumeDatabaseHelper.MediaColumns.DISPLAY_NAME, DISPLAY_NAME);
+        values.put(UnreliableVolumeDatabaseHelper.MediaColumns.DATE_MODIFIED, DATE_MODIFIED);
+        values.put(UnreliableVolumeDatabaseHelper.MediaColumns.MIME_TYPE, MIME_TYPE);
+        values.put(UnreliableVolumeDatabaseHelper.MediaColumns._DATA, _DATA);
+        return values;
     }
 
     /**

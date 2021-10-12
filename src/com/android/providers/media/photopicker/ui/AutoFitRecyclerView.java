@@ -27,7 +27,9 @@ import androidx.recyclerview.widget.RecyclerView;
  * The AutoFitRecyclerView auto fits the column width to decide the span count
  */
 public class AutoFitRecyclerView extends RecyclerView {
+
     private int mColumnWidth = -1;
+    private int mMinimumSpanCount = 2;
     private boolean mIsGridLayout;
 
     public AutoFitRecyclerView(Context context) {
@@ -47,7 +49,7 @@ public class AutoFitRecyclerView extends RecyclerView {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
         if (mIsGridLayout && mColumnWidth > 0) {
-            final int spanCount = Math.max(1, getMeasuredWidth() / mColumnWidth);
+            final int spanCount = Math.max(mMinimumSpanCount, getMeasuredWidth() / mColumnWidth);
             ((GridLayoutManager) getLayoutManager()).setSpanCount(spanCount);
         }
     }
@@ -62,5 +64,13 @@ public class AutoFitRecyclerView extends RecyclerView {
 
     public void setColumnWidth(int columnWidth) {
         mColumnWidth = columnWidth;
+    }
+
+    /**
+     * Set the minimum span count for the recyclerView.
+     * @param minimumSpanCount The default value is 2.
+     */
+    public void setMinimumSpanCount(int minimumSpanCount) {
+        mMinimumSpanCount = minimumSpanCount;
     }
 }

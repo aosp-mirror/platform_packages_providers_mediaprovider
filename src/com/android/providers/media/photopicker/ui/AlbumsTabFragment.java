@@ -27,12 +27,16 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.util.LayoutModeUtils;
 
 /**
  * Albums tab fragment for showing the albums
  */
 public class AlbumsTabFragment extends TabFragment {
+
+    private static final int MINIMUM_SPAN_COUNT = 2;
 
     private int mBottomBarGap;
 
@@ -54,6 +58,7 @@ public class AlbumsTabFragment extends TabFragment {
         final int spacing = getResources().getDimensionPixelSize(R.dimen.picker_album_item_spacing);
         final int albumSize = getResources().getDimensionPixelSize(R.dimen.picker_album_size);
         mRecyclerView.setColumnWidth(albumSize + spacing);
+        mRecyclerView.setMinimumSpanCount(MINIMUM_SPAN_COUNT);
 
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setAdapter(adapter);
@@ -63,7 +68,8 @@ public class AlbumsTabFragment extends TabFragment {
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setTitle("");
+        ((PhotoPickerActivity) getActivity()).updateCommonLayouts(LayoutModeUtils.MODE_ALBUMS_TAB,
+                /* title */ "");
     }
 
     private void onItemClick(@NonNull View view) {

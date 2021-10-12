@@ -20,6 +20,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import java.io.PrintWriter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * No-op transcode helper to avoid loading MediaTranscodeManager classes in Android R
  */
@@ -32,7 +35,7 @@ public class TranscodeHelperNoOp implements TranscodeHelper {
         return false;
     }
 
-    public String getIoPath(String path, int uid) {
+    public String prepareIoPath(String path, int uid) {
         return null;
     }
 
@@ -57,4 +60,8 @@ public class TranscodeHelperNoOp implements TranscodeHelper {
     }
 
     public void dump(PrintWriter writer) {}
+
+    public List<String> getSupportedRelativePaths() {
+        return new ArrayList<String>();
+    }
 }

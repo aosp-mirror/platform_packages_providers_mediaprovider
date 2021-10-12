@@ -31,11 +31,13 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.MarginPageTransformer;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import java.text.NumberFormat;
@@ -96,6 +98,8 @@ public class PreviewFragment extends Fragment {
         // Initialize ViewPager2 to swipe between multiple pictures/videos in preview
         mViewPager = view.findViewById(R.id.preview_viewPager);
         mViewPager.setAdapter(mAdapter);
+        mViewPager.setPageTransformer(new MarginPageTransformer(
+                getResources().getDimensionPixelSize(R.dimen.preview_viewpager_margin)));
 
         Button selectButton = view.findViewById(R.id.preview_select_button);
 
@@ -128,9 +132,8 @@ public class PreviewFragment extends Fragment {
 
         // TODO(185801129): Change the layout of the toolbar or add new toolbar that can overlap
         // with image/video preview if necessary
-        getActivity().setTitle("");
-        ((PhotoPickerActivity) getActivity()).updateCommonLayouts(/* shouldShowTabChips */ false,
-                /* isPreview */ true);
+        ((PhotoPickerActivity) getActivity()).updateCommonLayouts(LayoutModeUtils.MODE_PREVIEW,
+                /* title */"");
 
         // This is necessary to ensure we call ViewHolder#bind() onResume()
         if (mAdapter != null) {

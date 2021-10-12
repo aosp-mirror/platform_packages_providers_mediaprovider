@@ -21,12 +21,28 @@
     android:layout_height="match_parent">
 
     <com.android.providers.media.photopicker.ui.AutoFitRecyclerView
-        android:id="@+id/photo_list"
+        android:id="@+id/picker_tab_recyclerview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:drawSelectorOnTop="true"
         android:overScrollMode="never"/>
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/profile_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/picker_profile_button_margin_bottom"
+        android:layout_gravity="bottom|center"
+        android:textAppearance="@style/PickerProfileButton"
+        android:textColor="@color/picker_profile_button_content_color"
+        android:text="@string/picker_work_profile"
+        android:visibility="gone"
+        app:backgroundTint="@color/picker_profile_button_background_color"
+        app:borderWidth="0dp"
+        app:elevation="3dp"
+        app:icon="@drawable/ic_work_outline"
+    />
 
     <FrameLayout
         android:id="@+id/picker_bottom_bar"

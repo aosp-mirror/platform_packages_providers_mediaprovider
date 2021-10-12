@@ -16,7 +16,9 @@
 
 package com.android.providers.media.cloudproviders;
 
+import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
+
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
 import android.content.res.AssetFileDescriptor;
@@ -26,7 +28,7 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProvider;
-import com.android.providers.media.MediaProvider;
+
 import com.android.providers.media.PickerProviderMediaGenerator;
 
 import java.io.FileNotFoundException;
@@ -85,6 +87,6 @@ public class CloudProviderSecondary extends CloudMediaProvider {
     }
 
     private static long getGeneration(Bundle extras) {
-        return extras == null ? 0 : extras.getLong(MediaInfo.MEDIA_GENERATION, 0);
+        return extras == null ? 0 : extras.getLong(EXTRA_GENERATION, 0);
     }
 }

@@ -43,6 +43,35 @@
     <string name="clear" msgid="5524638938415865915">"ଖାଲି କରନ୍ତୁ"</string>
     <string name="allow" msgid="8885707816848569619">"ଅନୁମତି ଦିଅନ୍ତୁ"</string>
     <string name="deny" msgid="6040983710442068936">"ଅଗ୍ରାହ୍ୟ କରନ୍ତୁ"</string>
+    <string name="add" msgid="2894574044585549298">"ଯୋଗ କରନ୍ତୁ"</string>
+    <string name="deselect" msgid="4297825044827769490">"ଅଚୟନ କରନ୍ତୁ"</string>
+    <string name="select" msgid="2704765470563027689">"ଚୟନ କରନ୍ତୁ"</string>
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g>ଟି ପର୍ଯ୍ୟନ୍ତ ଆଇଟମ୍ ଚୟନ କରନ୍ତୁ</item>
+      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g>ଟି ପର୍ଯ୍ୟନ୍ତ ଆଇଟମ୍ ଚୟନ କରନ୍ତୁ</item>
+    </plurals>
+    <string name="recent" msgid="6694613584743207874">"ବର୍ତ୍ତମାନର"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"ଚୟନିତଗୁଡ଼ିକୁ ଦେଖନ୍ତୁ"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"ଫଟୋ"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"ଆଲବମ୍"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"ୱାର୍କକୁ ସ୍ୱିଚ୍ କରନ୍ତୁ"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"ବ୍ୟକ୍ତିଗତକୁ ସ୍ୱିଚ୍ କରନ୍ତୁ"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"ଆପଣଙ୍କ ଆଡମିନଙ୍କ ଦ୍ୱାରା ବ୍ଲକ୍ କରାଯାଇଛି"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"କୌଣସି ବ୍ୟକ୍ତିଗତ ଆପରୁ ୱାର୍କ ଡାଟାକୁ ଆକ୍ସେସ୍ କରିବା ପାଇଁ ଅନୁମତି ଦିଆଯାଇନାହିଁ"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"କୌଣସି ୱାର୍କ ଆପରୁ ବ୍ୟକ୍ତିଗତ ଡାଟାକୁ ଆକ୍ସେସ୍ କରିବା ପାଇଁ ଅନୁମତି ଦିଆଯାଇନାହିଁ"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ୱାର୍କ ଆପଗୁଡ଼ିକୁ ବିରତ କରାଯାଇଛି"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ୱାର୍କ ଫଟୋଗୁଡ଼ିକୁ ଖୋଲିବାକୁ, ଆପଣଙ୍କ ୱାର୍କ ଆପଗୁଡ଼ିକୁ ଚାଲୁ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
+    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g>ଟି ଆଇଟମ୍</item>
+      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g>ଟି ଆଇଟମ୍</item>
+    </plurals>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>)ଟି ଯୋଗ କରନ୍ତୁ"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"କ୍ୟାମେରା"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"ଡାଉନଲୋଡଗୁଡ଼ିକ"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"ପସନ୍ଦଗୁଡ଼ିକ"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"ସ୍କ୍ରିନସଟଗୁଡ଼ିକ"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>

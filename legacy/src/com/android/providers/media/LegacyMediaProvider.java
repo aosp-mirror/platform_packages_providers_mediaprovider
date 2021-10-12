@@ -79,10 +79,10 @@ public class LegacyMediaProvider extends ContentProvider {
         final File persistentDir = context.getDir("logs", Context.MODE_PRIVATE);
         Logging.initPersistent(persistentDir);
 
-        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
-                true, false, true, null, null, null, null, null);
-        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
-                false, false, true, null, null, null, null, null);
+        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false, true, null,
+                null, null, null, null);
+        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, true, null,
+                null, null, null, null);
 
         return true;
     }

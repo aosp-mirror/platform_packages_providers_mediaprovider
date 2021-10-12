@@ -132,12 +132,14 @@ public class ExternalDbFacade {
     }
 
     /**
+     * Adds or removes media to the deleted_media tables
+     *
      * Returns {@code true} if the PhotoPicker should be notified of this change, {@code false}
      * otherwise
      */
     public boolean onFileUpdated(long oldId, int oldMediaType, int newMediaType,
             boolean oldIsTrashed, boolean newIsTrashed, boolean oldIsPending,
-            boolean newIsPending) {
+            boolean newIsPending, boolean oldIsFavorite, boolean newIsFavorite) {
         if (!mDatabaseHelper.isExternal()) {
             return false;
         }
@@ -161,11 +163,18 @@ public class ExternalDbFacade {
             return true;
         }
 
-        // Do nothing, not an interesting change for deleted_media
+        if (newIsVisibleMedia) {
+            return oldIsFavorite != newIsFavorite;
+        }
+
+
+        // Do nothing, not an interesting change
         return false;
     }
 
     /**
+     * Adds or removes media to the deleted_media tables
+     *
      * Returns {@code true} if the PhotoPicker should be notified of this change, {@code false}
      * otherwise
      */

@@ -160,6 +160,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 long newId, int newMediaType, boolean newIsDownload,
                 boolean oldIsTrashed, boolean newIsTrashed,
                 boolean oldIsPending, boolean newIsPending,
+                boolean oldIsFavorite, boolean newIsFavorite,
                 String oldOwnerPackage, String newOwnerPackage, String oldPath);
         public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload, String ownerPackage, String path);
@@ -295,7 +296,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_UPDATE", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":", 14);
+                final String[] split = arg.split(":", 16);
                 final String volumeName = split[0];
                 final long oldId = Long.parseLong(split[1]);
                 final int oldMediaType = Integer.parseInt(split[2]);
@@ -307,16 +308,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final boolean newIsTrashed = Integer.parseInt(split[8]) != 0;
                 final boolean oldIsPending = Integer.parseInt(split[9]) != 0;
                 final boolean newIsPending = Integer.parseInt(split[10]) != 0;
-                final String oldOwnerPackage = split[11];
-                final String newOwnerPackage = split[12];
-                final String oldPath = split[13];
+                final boolean oldIsFavorite = Integer.parseInt(split[11]) != 0;
+                final boolean newIsFavorite = Integer.parseInt(split[12]) != 0;
+                final String oldOwnerPackage = split[13];
+                final String newOwnerPackage = split[14];
+                final String oldPath = split[15];
 
                 Trace.beginSection("_UPDATE");
                 try {
                     mFilesListener.onUpdate(DatabaseHelper.this, volumeName, oldId,
                             oldMediaType, oldIsDownload, newId, newMediaType, newIsDownload,
                             oldIsTrashed, newIsTrashed, oldIsPending, newIsPending,
-                            oldOwnerPackage, newOwnerPackage, oldPath);
+                            oldIsFavorite, newIsFavorite, oldOwnerPackage, newOwnerPackage,
+                            oldPath);
                 } finally {
                     Trace.endSection();
                 }
@@ -1333,6 +1337,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
                         + "||':'||old.is_trashed||':'||new.is_trashed"
                         + "||':'||old.is_pending||':'||new.is_pending"
+                        + "||':'||old.is_favorite||':'||new.is_favorite"
                         + "||':'||ifnull(old.owner_package_name,'null')"
                         + "||':'||ifnull(new.owner_package_name,'null')||':'||old._data";
         final String deleteArg =
@@ -1674,7 +1679,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_S = 1209;
     // Leave some gaps in database version tagging to allow S schema changes
     // to go independent of T schema changes.
-    static final int VERSION_T = 1302;
+    static final int VERSION_T = 1303;
     public static final int VERSION_LATEST = VERSION_T;
 
     /**
@@ -1854,6 +1859,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1302) {
                 updateAddSpecialFormat(db);
+                // Empty version bump to ensure views are recreated
+            }
+            if (fromVersion < 1303) {
+                // Empty version bump to ensure views are recreated
             }
 
             // If this is the legacy database, it's not worth recomputing data

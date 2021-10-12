@@ -47,64 +47,136 @@
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Audiodateien ändern?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> diese Audiodatei ändern?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Audiodateien werden geändert…</item>
+      <item quantity="one">Audiodatei wird geändert…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Videos ändern?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Video ändern?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Videos werden geändert…</item>
+      <item quantity="one">Video wird geändert…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Fotos ändern?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Foto ändern?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Fotos werden geändert…</item>
+      <item quantity="one">Foto wird geändert…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Elemente ändern?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Element ändern?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Elemente werden geändert…</item>
+      <item quantity="one">Element wird geändert…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Audiodateien in den Papierkorb verschieben?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> diese Audiodatei in den Papierkorb verschieben?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Audiodateien werden in den Papierkorb verschoben…</item>
+      <item quantity="one">Audiodatei wird in den Papierkorb verschoben…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Videos in den Papierkorb verschieben?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Video in den Papierkorb verschieben?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Videos werden in den Papierkorb verschoben…</item>
+      <item quantity="one">Video wird in den Papierkorb verschoben…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Fotos in den Papierkorb verschieben?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Foto in den Papierkorb verschieben?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Fotos werden in den Papierkorb verschoben…</item>
+      <item quantity="one">Foto wird in den Papierkorb verschoben…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Elemente in den Papierkorb verschieben?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Element in den Papierkorb verschieben?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Elemente werden in den Papierkorb verschoben…</item>
+      <item quantity="one">Element wird in den Papierkorb verschoben…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Audiodateien aus dem Papierkorb verschieben?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> diese Audiodatei aus dem Papierkorb verschieben?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Audiodateien werden aus dem Papierkorb verschoben…</item>
+      <item quantity="one">Audiodatei wird aus dem Papierkorb verschoben…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Videos aus dem Papierkorb verschieben?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Video aus dem Papierkorb verschieben?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Videos werden aus dem Papierkorb verschoben…</item>
+      <item quantity="one">Video wird aus dem Papierkorb verschoben…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Fotos aus dem Papierkorb verschieben?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Foto aus dem Papierkorb verschieben?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Fotos werden aus dem Papierkorb verschoben…</item>
+      <item quantity="one">Foto wird aus dem Papierkorb verschoben…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Elemente aus dem Papierkorb wiederherstellen?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Element aus dem Papierkorb verschieben?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Elemente werden aus dem Papierkorb verschoben…</item>
+      <item quantity="one">Element wird aus dem Papierkorb verschoben…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Audiodateien löschen?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> diese Audiodatei löschen?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Audiodateien werden gelöscht…</item>
+      <item quantity="one">Audiodatei wird gelöscht…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Videos löschen?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Video löschen?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Videos werden gelöscht…</item>
+      <item quantity="one">Video wird gelöscht…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Fotos löschen?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Foto löschen?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Fotos werden gelöscht…</item>
+      <item quantity="one">Foto wird gelöscht…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Elemente löschen?</item>
       <item quantity="one">Darf <xliff:g id="APP_NAME_0">^1</xliff:g> dieses Element löschen?</item>
     </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Elemente werden gelöscht…</item>
+      <item quantity="one">Element wird gelöscht…</item>
+    </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"Die App „<xliff:g id="APP_NAME">%s</xliff:g>“ kann Mediendateien nicht verarbeiten"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Medienverarbeitung abgebrochen"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Fehler bei Medienverarbeitung"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Medienverarbeitung erfolgreich"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Medienverarbeitung gestartet"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Medien werden verarbeitet…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Abbrechen"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Warten"</string>
 </resources>

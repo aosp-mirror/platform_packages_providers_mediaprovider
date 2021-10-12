@@ -18,7 +18,7 @@ package com.android.providers.media.scan;
 
 import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
-import static com.android.providers.media.scan.ModernMediaScanner.shouldScanPathAndIsPathHidden;
+import static com.android.providers.media.scan.ModernMediaScanner.MAX_EXCLUDE_DIRS;
 import static com.android.providers.media.scan.ModernMediaScanner.isFileAlbumArt;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptional;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDate;
@@ -33,8 +33,11 @@ import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalT
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalVideoResolution;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalYear;
 import static com.android.providers.media.scan.ModernMediaScanner.shouldScanDirectory;
+import static com.android.providers.media.scan.ModernMediaScanner.shouldScanPathAndIsPathHidden;
 import static com.android.providers.media.util.FileUtils.isDirectoryHidden;
 import static com.android.providers.media.util.FileUtils.isFileHidden;
+
+import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -55,19 +58,23 @@ import android.graphics.Bitmap;
 import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
-import android.provider.MediaStore.Files.FileColumns;
+import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.R;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
+import com.android.providers.media.tests.utils.Timer;
 import com.android.providers.media.util.FileUtils;
 
 import com.google.common.io.ByteStreams;
@@ -83,6 +90,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.util.Locale;
 import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
@@ -90,6 +98,11 @@ public class ModernMediaScannerTest {
     // TODO: scan directory-vs-files and confirm identical results
 
     private static final String TAG = "ModernMediaScannerTest";
+    /**
+     * Number of times we should repeat an operation to get an average/max.
+     */
+    private static final int COUNT_REPEAT = 5;
+
     private File mDir;
 
     private Context mIsolatedContext;
@@ -102,7 +115,8 @@ public class ModernMediaScannerTest {
         final Context context = InstrumentationRegistry.getTargetContext();
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
-                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
+                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
+                        Manifest.permission.INTERACT_ACROSS_USERS);
 
         mDir = new File(context.getExternalMediaDirs()[0], "test_" + System.nanoTime());
         mDir.mkdirs();
@@ -136,21 +150,10 @@ public class ModernMediaScannerTest {
         assertTrue(parseOptionalMimeType("image/png", "image/x-shiny").isPresent());
         assertEquals("image/x-shiny",
                 parseOptionalMimeType("image/png", "image/x-shiny").get());
-    }
 
-    @Test
-    public void testOverrideMimeType_148316354() throws Exception {
         // Radical file type shifting isn't allowed
         assertEquals(Optional.empty(),
                 parseOptionalMimeType("video/mp4", "audio/mpeg"));
-
-        // One specific narrow type of shift (mp4 -> m4a) is allowed
-        assertEquals(Optional.of("audio/mp4"),
-                parseOptionalMimeType("video/mp4", "audio/mp4"));
-
-        // The other direction isn't allowed
-        assertEquals(Optional.empty(),
-                parseOptionalMimeType("audio/mp4", "video/mp4"));
     }
 
     @Test
@@ -228,7 +231,12 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testParseOptionalDate() throws Exception {
-        assertEquals(1577836800000L, (long) parseOptionalDate("20200101T000000").get());
+        assertThat(parseOptionalDate("20200101T000000")).isEqualTo(Optional.of(1577836800000L));
+        assertThat(parseOptionalDate("20200101T211205")).isEqualTo(Optional.of(1577913125000L));
+        assertThat(parseOptionalDate("20200101T211205.000Z"))
+                .isEqualTo(Optional.of(1577913125000L));
+        assertThat(parseOptionalDate("20200101T211205.123Z"))
+                .isEqualTo(Optional.of(1577913125123L));
     }
 
     @Test
@@ -383,15 +391,11 @@ public class ModernMediaScannerTest {
     public void testShouldScanPathAndIsPathHidden() {
         for (String prefix : new String[] {
                 "/storage/emulated/0",
-                "/storage/emulated/0/Android/sandbox/com.example",
                 "/storage/0000-0000",
-                "/storage/0000-0000/Android/sandbox/com.example",
         }) {
             assertShouldScanPathAndIsPathHidden(true, false, new File(prefix));
             assertShouldScanPathAndIsPathHidden(true, false, new File(prefix + "/meow"));
             assertShouldScanPathAndIsPathHidden(true, false, new File(prefix + "/Android/meow"));
-            assertShouldScanPathAndIsPathHidden(true, false,
-                    new File(prefix + "/Android/sandbox/meow"));
 
             assertShouldScanPathAndIsPathHidden(true, true, new File(prefix + "/.meow/dir"));
 
@@ -407,6 +411,9 @@ public class ModernMediaScannerTest {
                     new File(prefix + "/Movies/.thumbnails/meow"));
             assertShouldScanPathAndIsPathHidden(false, false,
                     new File(prefix + "/Music/.thumbnails/meow"));
+
+            assertShouldScanPathAndIsPathHidden(false, false,
+                    new File(prefix + "/.transforms/transcode"));
         }
     }
 
@@ -457,26 +464,24 @@ public class ModernMediaScannerTest {
     public void testShouldScanDirectory() throws Exception {
         for (String prefix : new String[] {
                 "/storage/emulated/0",
-                "/storage/emulated/0/Android/sandbox/com.example",
                 "/storage/0000-0000",
-                "/storage/0000-0000/Android/sandbox/com.example",
         }) {
             assertShouldScanDirectory(new File(prefix));
             assertShouldScanDirectory(new File(prefix + "/meow"));
             assertShouldScanDirectory(new File(prefix + "/Android"));
             assertShouldScanDirectory(new File(prefix + "/Android/meow"));
-            assertShouldScanDirectory(new File(prefix + "/Android/sandbox"));
-            assertShouldScanDirectory(new File(prefix + "/Android/sandbox/meow"));
             assertShouldScanDirectory(new File(prefix + "/.meow"));
 
             assertShouldntScanDirectory(new File(prefix + "/Android/data"));
             assertShouldntScanDirectory(new File(prefix + "/Android/obb"));
+            assertShouldntScanDirectory(new File(prefix + "/Android/sandbox"));
 
             assertShouldntScanDirectory(new File(prefix + "/Pictures/.thumbnails"));
             assertShouldntScanDirectory(new File(prefix + "/Movies/.thumbnails"));
             assertShouldntScanDirectory(new File(prefix + "/Music/.thumbnails"));
 
             assertShouldScanDirectory(new File(prefix + "/DCIM/.thumbnails"));
+            assertShouldntScanDirectory(new File(prefix + "/.transforms"));
         }
     }
 
@@ -492,9 +497,7 @@ public class ModernMediaScannerTest {
     public void testIsDirectoryHidden() throws Exception {
         for (String prefix : new String[] {
                 "/storage/emulated/0",
-                "/storage/emulated/0/Android/sandbox/com.example",
                 "/storage/0000-0000",
-                "/storage/0000-0000/Android/sandbox/com.example",
         }) {
             assertDirectoryNotHidden(new File(prefix));
             assertDirectoryNotHidden(new File(prefix + "/meow"));
@@ -542,104 +545,6 @@ public class ModernMediaScannerTest {
         assertTrue(ModernMediaScanner.isZero("0"));
         assertTrue(ModernMediaScanner.isZero("00"));
         assertTrue(ModernMediaScanner.isZero("000"));
-    }
-
-    @Test
-    public void testPlaylistM3u() throws Exception {
-        doPlaylist(R.raw.test_m3u, "test.m3u");
-    }
-
-    @Test
-    public void testPlaylistPls() throws Exception {
-        doPlaylist(R.raw.test_pls, "test.pls");
-    }
-
-    @Test
-    public void testPlaylistWpl() throws Exception {
-        doPlaylist(R.raw.test_wpl, "test.wpl");
-    }
-
-    @Test
-    public void testPlaylistXspf() throws Exception {
-        doPlaylist(R.raw.test_xspf, "test.xspf");
-    }
-
-    private void doPlaylist(int res, String name) throws Exception {
-        final File music = new File(mDir, "Music");
-        music.mkdirs();
-        stage(R.raw.test_audio, new File(music, "001.mp3"));
-        stage(R.raw.test_audio, new File(music, "002.mp3"));
-        stage(R.raw.test_audio, new File(music, "003.mp3"));
-        stage(R.raw.test_audio, new File(music, "004.mp3"));
-        stage(R.raw.test_audio, new File(music, "005.mp3"));
-        stage(res, new File(music, name));
-
-        mModern.scanDirectory(mDir, REASON_UNKNOWN);
-
-        // We should see a new playlist with all three items as members
-        final long playlistId;
-        try (Cursor cursor = mIsolatedContext.getContentResolver().query(
-                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
-                new String[] { FileColumns._ID },
-                FileColumns.MEDIA_TYPE + "=" + FileColumns.MEDIA_TYPE_PLAYLIST, null, null)) {
-            assertTrue(cursor.moveToFirst());
-            playlistId = cursor.getLong(0);
-        }
-
-        final Uri membersUri = MediaStore.Audio.Playlists.Members
-                .getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId);
-        try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
-                MediaColumns.DISPLAY_NAME
-        }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
-            assertEquals(5, cursor.getCount());
-            cursor.moveToNext();
-            assertEquals("001.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("002.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("003.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("004.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("005.mp3", cursor.getString(0));
-        }
-
-        // Delete one of the media files and rescan
-        new File(music, "002.mp3").delete();
-        new File(music, name).setLastModified(10L);
-        mModern.scanDirectory(mDir, REASON_UNKNOWN);
-
-        try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
-                MediaColumns.DISPLAY_NAME
-        }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
-            assertEquals(4, cursor.getCount());
-            cursor.moveToNext();
-            assertEquals("001.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("003.mp3", cursor.getString(0));
-        }
-
-        // Replace media file in a completely different location, which normally
-        // wouldn't match the exact playlist path, but we're willing to perform
-        // a relaxed search
-        final File soundtracks = new File(mDir, "Soundtracks");
-        soundtracks.mkdirs();
-        stage(R.raw.test_audio, new File(soundtracks, "002.mp3"));
-        stage(res, new File(music, name));
-
-        mModern.scanDirectory(mDir, REASON_UNKNOWN);
-
-        try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
-                MediaColumns.DISPLAY_NAME
-        }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
-            assertEquals(5, cursor.getCount());
-            cursor.moveToNext();
-            assertEquals("001.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("002.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("003.mp3", cursor.getString(0));
-        }
     }
 
     @Test
@@ -735,13 +640,24 @@ public class ModernMediaScannerTest {
     }
 
     @Test
+    public void testScan_missingDir() throws Exception {
+        File newDir = new File(mDir, "new-dir");
+        // Below shouldn't crash
+        mModern.scanDirectory(newDir, REASON_UNKNOWN);
+
+        newDir = new File(Environment.getStorageDirectory(), "new-dir");
+        // Below shouldn't crash
+        mModern.scanDirectory(newDir, REASON_UNKNOWN);
+    }
+
+    @Test
     public void testScan_Nomedia_Dir() throws Exception {
-        final File red = new File(mDir, "red");
-        final File blue = new File(mDir, "blue");
-        red.mkdirs();
-        blue.mkdirs();
-        stage(R.raw.test_image, new File(red, "red.jpg"));
-        stage(R.raw.test_image, new File(blue, "blue.jpg"));
+        final File redDir = new File(mDir, "red");
+        final File blueDir = new File(mDir, "blue");
+        redDir.mkdirs();
+        blueDir.mkdirs();
+        stage(R.raw.test_image, new File(redDir, "red.jpg"));
+        stage(R.raw.test_image, new File(blueDir, "blue.jpg"));
 
         mModern.scanDirectory(mDir, REASON_UNKNOWN);
 
@@ -749,7 +665,7 @@ public class ModernMediaScannerTest {
         assertQueryCount(2, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
         // Hide one directory, rescan, and confirm hidden
-        final File redNomedia = new File(red, ".nomedia");
+        final File redNomedia = new File(redDir, ".nomedia");
         redNomedia.createNewFile();
         mModern.scanDirectory(mDir, REASON_UNKNOWN);
         assertQueryCount(1, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
@@ -758,6 +674,35 @@ public class ModernMediaScannerTest {
         redNomedia.delete();
         mModern.scanDirectory(mDir, REASON_UNKNOWN);
         assertQueryCount(2, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    }
+
+    @Test
+    public void testScan_MaxExcludeNomediaDirs_DoesNotThrowException() throws Exception {
+        // Create MAX_EXCLUDE_DIRS + 50 nomedia dirs in mDir
+        // (Need to add 50 as MAX_EXCLUDE_DIRS is a safe limit;
+        // 499 would have been too close to the exception limit)
+        // Mark them as non-dirty so that they are excluded from scans
+        for (int i = 0 ; i < (MAX_EXCLUDE_DIRS + 50) ; i++) {
+            createCleanNomediaDir(mDir);
+        }
+
+        final File redDir = new File(mDir, "red");
+        redDir.mkdirs();
+        stage(R.raw.test_image, new File(redDir, "red.jpg"));
+
+        assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+        assertQueryCount(1, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    }
+
+    private void createCleanNomediaDir(File dir) throws Exception {
+        final File nomediaDir = new File(dir, "test_" + System.nanoTime());
+        nomediaDir.mkdirs();
+        final File nomedia = new File(nomediaDir, ".nomedia");
+        nomedia.createNewFile();
+
+        FileUtils.setDirectoryDirty(nomediaDir, false);
+        assertThat(FileUtils.isDirectoryDirty(nomediaDir)).isFalse();
     }
 
     @Test
@@ -780,6 +725,15 @@ public class ModernMediaScannerTest {
         nomedia.createNewFile();
         assertNotNull(mModern.scanFile(image, REASON_UNKNOWN));
         assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    }
+
+    @Test
+    public void testScan_missingFile() throws Exception {
+        File image = new File(mDir, "image.jpg");
+        assertThat(mModern.scanFile(image, REASON_UNKNOWN)).isNull();
+
+        image = new File(Environment.getStorageDirectory(), "image.jpg");
+        assertThat(mModern.scanFile(image, REASON_UNKNOWN)).isNull();
     }
 
     @Test
@@ -847,6 +801,26 @@ public class ModernMediaScannerTest {
         }
     }
 
+    @Test
+    @SdkSuppress(minSdkVersion = 31, codeName = "S")
+    public void testScan_audio_recording() throws Exception {
+        final File music = new File(mDir, "Recordings");
+        final File audio = new File(music, "audio.mp3");
+
+        music.mkdirs();
+        stage(R.raw.test_audio, audio);
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals(1, cursor.getInt(cursor.getColumnIndex(AudioColumns.IS_RECORDING)));
+            assertEquals(0, cursor.getInt(cursor.getColumnIndex(AudioColumns.IS_MUSIC)));
+        }
+    }
+
     /**
      * Verify a narrow exception where we allow an {@code mp4} video file on
      * disk to be indexed as an {@code m4a} audio file.
@@ -861,8 +835,34 @@ public class ModernMediaScannerTest {
                 .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
             assertEquals(1, cursor.getCount());
             cursor.moveToFirst();
-            assertEquals("audio/mp4",
-                    cursor.getString(cursor.getColumnIndex(MediaColumns.MIME_TYPE)));
+            assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.MIME_TYPE)))
+                    .isEqualTo("audio/mp4");
+            assertThat(cursor.getString(cursor.getColumnIndex(AudioColumns.IS_MUSIC)))
+                    .isEqualTo("1");
+
+        }
+    }
+
+    @Test
+    public void testScan_audioMp4_notRescanIfUnchanged() throws Exception {
+        final File file = new File(mDir, "176522651.m4a");
+        stage(R.raw.test_m4a, file);
+
+        // We trigger a scan twice, but we expect the second scan to be skipped since there were
+        // no changes.
+        mModern.scanFile(file, REASON_UNKNOWN);
+        mModern.scanFile(file, REASON_UNKNOWN);
+
+        try (Cursor cursor =
+                     mIsolatedResolver.query(
+                             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                             null, null, null, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+            cursor.moveToFirst();
+            String added = cursor.getString(cursor.getColumnIndex(MediaColumns.GENERATION_ADDED));
+            String modified =
+                    cursor.getString(cursor.getColumnIndex(MediaColumns.GENERATION_MODIFIED));
+            assertThat(modified).isEqualTo(added);
         }
     }
 
@@ -925,6 +925,227 @@ public class ModernMediaScannerTest {
         }
     }
 
+    @Test
+    public void testScan_BitmapFile() throws Exception {
+        final File bmp = new File(mDir, "image.bmp");
+        stage(R.raw.test_bmp, bmp);
+
+        final Uri uri = mModern.scanFile(bmp, REASON_UNKNOWN);
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals(1280,
+                    cursor.getInt(cursor.getColumnIndex(MediaColumns.WIDTH)));
+            assertEquals(720,
+                    cursor.getInt(cursor.getColumnIndex(MediaColumns.HEIGHT)));
+        }
+    }
+
+    @Test
+    public void testScan_deleteStaleRowWithExpiredPendingFile() throws Exception {
+        final String displayName = "audio.mp3";
+        final long dateExpires = (System.currentTimeMillis() - 5 * DateUtils.DAY_IN_MILLIS) / 1000;
+        final String expiredName = String.format(
+                Locale.US, ".%s-%d-%s", FileUtils.PREFIX_PENDING, dateExpires, displayName);
+        final File audio = new File(mDir, expiredName);
+        stage(R.raw.test_audio, audio);
+
+        // files should exist
+        assertThat(audio.exists()).isTrue();
+
+        // scan file, row is added
+        mModern.scanFile(audio, REASON_UNKNOWN);
+        final Bundle queryArgs = new Bundle();
+        queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        // Delete the pending file to make the row is stale
+        executeShellCommand("rm " + audio.getAbsolutePath());
+        assertThat(audio.exists()).isFalse();
+
+        // the row still exists
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        // ScanFile above deleted stale expired pending row, hence we shouldn't see
+        // the pending row in query result
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testScan_keepStaleRowWithNonExpiredPendingFile() throws Exception {
+        final String displayName = "audio.mp3";
+        final long dateExpires = (System.currentTimeMillis() + 2 * DateUtils.DAY_IN_MILLIS) / 1000;
+        final String expiredName = String.format(
+                Locale.US, ".%s-%d-%s", FileUtils.PREFIX_PENDING, dateExpires, displayName);
+        final File audio = new File(mDir, expiredName);
+        stage(R.raw.test_audio, audio);
+
+        // file should exist
+        assertThat(audio.exists()).isTrue();
+
+        // scan file, row is added
+        mModern.scanFile(audio, REASON_UNKNOWN);
+        final Bundle queryArgs = new Bundle();
+        queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        // Delete the pending file to make the row is stale
+        executeShellCommand("rm " + audio.getAbsolutePath());
+        assertThat(audio.exists()).isFalse();
+
+        // the row still exists
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        // ScanFile above didn't delete stale pending row which is not expired, hence
+        // we still see the pending row in query result
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    public void testScan_deleteStaleRowWithExpiredTrashedFile() throws Exception {
+        final String displayName = "audio.mp3";
+        final long dateExpires = (System.currentTimeMillis() - 5 * DateUtils.DAY_IN_MILLIS) / 1000;
+        final String expiredName = String.format(
+                Locale.US, ".%s-%d-%s", FileUtils.PREFIX_TRASHED, dateExpires, displayName);
+        final File audio = new File(mDir, expiredName);
+        stage(R.raw.test_audio, audio);
+
+        // file should exist
+        assertThat(audio.exists()).isTrue();
+
+        // scan file, row is added
+        mModern.scanFile(audio, REASON_UNKNOWN);
+        final Bundle queryArgs = new Bundle();
+        queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
+
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        // Delete the trashed file to make the row is stale
+        executeShellCommand("rm " + audio.getAbsolutePath());
+        assertThat(audio.exists()).isFalse();
+
+        // the row still exists
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        // ScanFile above deleted stale expired trashed row, hence we shouldn't see
+        // the trashed row in query result
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testScan_deleteStaleRowWithNonExpiredTrashedFile() throws Exception {
+        final String displayName = "audio.mp3";
+        final long dateExpires = (System.currentTimeMillis() + 2 * DateUtils.DAY_IN_MILLIS) / 1000;
+        final String expiredName = String.format(
+                Locale.US, ".%s-%d-%s", FileUtils.PREFIX_TRASHED, dateExpires, displayName);
+        final File audio = new File(mDir, expiredName);
+        stage(R.raw.test_audio, audio);
+
+        // file should exist
+        assertThat(audio.exists()).isTrue();
+
+        // scan file, row is added
+        mModern.scanFile(audio, REASON_UNKNOWN);
+        final Bundle queryArgs = new Bundle();
+        queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
+
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        // Delete the trashed file to make the row is stale
+        executeShellCommand("rm " + audio.getAbsolutePath());
+        assertThat(audio.exists()).isFalse();
+
+        // the row still exists
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        // ScanFile above deleted stale trashed row that is not expired, hence we
+        // shouldn't see the trashed row in query result
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testScan_deleteStaleRow() throws Exception {
+        final String displayName = "audio.mp3";
+        final File audio = new File(mDir, displayName);
+        stage(R.raw.test_audio, audio);
+
+        // file should exist
+        assertThat(audio.exists()).isTrue();
+
+        // scan file, row is added
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, null, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        // Delete the file to make the row is stale
+        executeShellCommand("rm " + audio.getAbsolutePath());
+        assertThat(audio.exists()).isFalse();
+
+        // the row still exists
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, null, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        // ScanFile above deleted stale row, hence we shouldn't see the row in query result
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, null, null)) {
+            assertThat(cursor.getCount()).isEqualTo(0);
+        }
+    }
+
     /**
      * Executes a shell command.
      */
@@ -947,6 +1168,94 @@ public class ModernMediaScannerTest {
         try (FileInputStream output = new FileInputStream(
                 uiAutomation.executeShellCommand(cmd).getFileDescriptor())) {
             return new String(ByteStreams.toByteArray(output));
+        }
+    }
+
+    @Test
+    public void testScan_largeXmpData() throws Exception {
+        final File image = new File(mDir, "large_xmp.mp4");
+        stage(R.raw.large_xmp, image);
+        assertTrue(image.exists());
+
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                new String[] { MediaColumns.XMP }, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals(0, cursor.getBlob(0).length);
+        }
+    }
+
+    @Test
+    public void testNoOpScan_NoMediaDirs() throws Exception {
+        File nomedia = new File(mDir, ".nomedia");
+        assertThat(nomedia.createNewFile()).isTrue();
+        for (int i = 0; i < 100; i++) {
+            File file = new File(mDir, "file_" + System.nanoTime());
+            assertThat(file.createNewFile()).isTrue();
+        }
+        Timer firstDirScan = new Timer("firstDirScan");
+        firstDirScan.start();
+        // Time taken : preVisitDirectory + 100 visitFiles
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+        firstDirScan.stop();
+        firstDirScan.dumpResults();
+
+        // Time taken : preVisitDirectory
+        Timer noOpDirScan = new Timer("noOpDirScan1");
+        for (int i = 0; i < COUNT_REPEAT; i++) {
+            noOpDirScan.start();
+            mModern.scanDirectory(mDir, REASON_UNKNOWN);
+            noOpDirScan.stop();
+        }
+        noOpDirScan.dumpResults();
+        assertThat(noOpDirScan.getMaxDurationMillis()).isLessThan(
+                firstDirScan.getMaxDurationMillis());
+
+        // Creating new file in the nomedia dir by a non-M_E_S app should not set nomedia dir dirty.
+        File file = new File(mDir, "file_" + System.nanoTime());
+        assertThat(file.createNewFile()).isTrue();
+
+        // The dir should not be dirty and subsequest scans should not scan the entire directory.
+        // Time taken : preVisitDirectory
+        noOpDirScan = new Timer("noOpDirScan2");
+        for (int i = 0; i < COUNT_REPEAT; i++) {
+            noOpDirScan.start();
+            mModern.scanDirectory(mDir, REASON_UNKNOWN);
+            noOpDirScan.stop();
+        }
+        noOpDirScan.dumpResults();
+        assertThat(noOpDirScan.getMaxDurationMillis()).isLessThan(
+                firstDirScan.getMaxDurationMillis());
+    }
+
+    @Test
+    public void testScan_TrackNumber() throws Exception {
+        final File music = new File(mDir, "Music");
+        final File audio = new File(music, "audio.mp3");
+
+        music.mkdirs();
+        stage(R.raw.test_audio, audio);
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals(2, cursor.getInt(cursor.getColumnIndex(AudioColumns.TRACK)));
+        }
+
+        stage(R.raw.test_audio_empty_track_number, audio);
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertThat(cursor.getString(cursor.getColumnIndex(AudioColumns.TRACK))).isNull();
         }
     }
 }

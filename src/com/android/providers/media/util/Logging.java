@@ -23,7 +23,9 @@ import android.os.SystemProperties;
 import android.text.format.DateUtils;
 import android.util.Log;
 
+import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,16 +52,26 @@ public class Logging {
     private static final int PERSISTENT_SIZE = 32 * 1024;
     private static final int PERSISTENT_COUNT = 4;
     private static final long PERSISTENT_AGE = DateUtils.WEEK_IN_MILLIS;
+    private static final SimpleDateFormat DATE_FORMAT =
+            new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    private static final Object LOCK = new Object();
 
+    @GuardedBy("LOCK")
     private static Path sPersistentDir;
-    private static SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    @GuardedBy("LOCK")
+    private static Path sPersistentFile;
+    @GuardedBy("LOCK")
+    private static Writer sWriter;
 
     /**
      * Initialize persistent logging which is then available through
      * {@link #logPersistent(String)} and {@link #dumpPersistent(PrintWriter)}.
      */
     public static void initPersistent(@NonNull File persistentDir) {
-        sPersistentDir = persistentDir.toPath();
+        synchronized (LOCK) {
+            sPersistentDir = persistentDir.toPath();
+            closeWriterAndUpdatePathLocked(null);
+        }
     }
 
     /**
@@ -68,28 +80,68 @@ public class Logging {
     public static void logPersistent(@NonNull String msg) {
         Log.i(TAG, msg);
 
-        if (sPersistentDir == null) return;
-        try (Writer w = Files.newBufferedWriter(resolveCurrentPersistentFile(), CREATE, APPEND)) {
-            w.write(sDateFormat.format(new Date()) + " " + msg + "\n");
-        } catch (IOException e) {
-            Log.w(TAG, "Failed to persist: " + e);
+        synchronized (LOCK) {
+            if (sPersistentDir == null) return;
+
+            try {
+                Path path = resolveCurrentPersistentFileLocked();
+                if (!path.equals(sPersistentFile)) {
+                    closeWriterAndUpdatePathLocked(path);
+                }
+
+                if (sWriter == null) {
+                    sWriter = Files.newBufferedWriter(path, CREATE, APPEND);
+                }
+
+                sWriter.write(DATE_FORMAT.format(new Date()) + " " + msg + "\n");
+                // Flush to guarantee that all our writes have been sent to the filesystem
+                sWriter.flush();
+            } catch (IOException e) {
+                closeWriterAndUpdatePathLocked(null);
+                Log.w(TAG, "Failed to write: " + sPersistentFile, e);
+            }
         }
+    }
+
+    @GuardedBy("LOCK")
+    private static void closeWriterAndUpdatePathLocked(@Nullable Path newPath) {
+        if (sWriter != null) {
+            try {
+                sWriter.close();
+            } catch (IOException ignored) {
+                Log.w(TAG, "Failed to close: " + sPersistentFile, ignored);
+            }
+            sWriter = null;
+        }
+        sPersistentFile = newPath;
     }
 
     /**
      * Trim any persistent logs, typically called during idle maintenance.
      */
     public static void trimPersistent() {
-        if (sPersistentDir == null) return;
-        FileUtils.deleteOlderFiles(sPersistentDir.toFile(), PERSISTENT_COUNT, PERSISTENT_AGE);
+        File persistentDir = null;
+        synchronized (LOCK) {
+            if (sPersistentDir == null) return;
+            persistentDir = sPersistentDir.toFile();
+
+            closeWriterAndUpdatePathLocked(sPersistentFile);
+        }
+
+        FileUtils.deleteOlderFiles(persistentDir, PERSISTENT_COUNT, PERSISTENT_AGE);
     }
 
     /**
      * Dump any persistent logs.
      */
     public static void dumpPersistent(@NonNull PrintWriter pw) {
-        if (sPersistentDir == null) return;
-        try (Stream<Path> stream = Files.list(sPersistentDir)) {
+        Path persistentDir = null;
+        synchronized (LOCK) {
+            if (sPersistentDir == null) return;
+            persistentDir = sPersistentDir;
+        }
+
+        try (Stream<Path> stream = Files.list(persistentDir)) {
             stream.sorted().forEach((path) -> {
                 dumpPersistentFile(path, pw);
             });
@@ -117,14 +169,12 @@ public class Logging {
      * starts new files when the current file is larger than
      * {@link #PERSISTENT_SIZE}.
      */
-    private static @NonNull Path resolveCurrentPersistentFile() throws IOException {
-        try (Stream<Path> stream = Files.list(sPersistentDir)) {
-            Optional<Path> latest = stream.max(Comparator.naturalOrder());
-            if (latest.isPresent() && latest.get().toFile().length() < PERSISTENT_SIZE) {
-                return latest.get();
-            } else {
-                return sPersistentDir.resolve(String.valueOf(System.currentTimeMillis()));
-            }
+    @GuardedBy("LOCK")
+    private static @NonNull Path resolveCurrentPersistentFileLocked() throws IOException {
+        if (sPersistentFile != null && sPersistentFile.toFile().length() < PERSISTENT_SIZE) {
+            return sPersistentFile;
         }
+
+        return sPersistentDir.resolve(String.valueOf(System.currentTimeMillis()));
     }
 }

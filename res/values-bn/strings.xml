@@ -43,6 +43,35 @@
     <string name="clear" msgid="5524638938415865915">"সরান"</string>
     <string name="allow" msgid="8885707816848569619">"অনুমতি দিন"</string>
     <string name="deny" msgid="6040983710442068936">"বাতিল করুন"</string>
+    <string name="add" msgid="2894574044585549298">"যোগ করুন"</string>
+    <string name="deselect" msgid="4297825044827769490">"টিক চিহ্নটি সরিয়ে দিন"</string>
+    <string name="select" msgid="2704765470563027689">"বেছে নিন"</string>
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="one">সর্বাধিক <xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম বেছে নিন</item>
+      <item quantity="other">সর্বাধিক <xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম বেছে নিন</item>
+    </plurals>
+    <string name="recent" msgid="6694613584743207874">"সাম্প্রতিক"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"ভিউ বেছে নেওয়া হয়েছে"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"ফটো"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"অ্যালবাম"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"অফিস প্রোফাইলে সুইচ করুন"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"ব্যক্তিগত প্রোফাইলে সুইচ করুন"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"আপনার অ্যাডমিন ব্লক করে দিয়েছে"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ব্যক্তিগত অ্যাপ থেকে অফিসের ডেটা অ্যাক্সেস করার অনুমতি নেই"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"অফিস অ্যাপ থেকে ব্যক্তিগত ডেটা অ্যাক্সেস করার অনুমতি নেই"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"অফিসের অ্যাপ পজ করা আছে"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"অফিস প্রোফাইলের ফটো দেখতে, অফিসের অ্যাপ চালু করে আবার চেষ্টা করুন"</string>
+    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
+      <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম</item>
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম</item>
+    </plurals>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>)টি যোগ করুন"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"ক্যামেরা"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"ডাউনলোড করা আইটেম"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"পছন্দসই আইটেম"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"স্ক্রিনশট"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>-কে <xliff:g id="COUNT">^2</xliff:g>টি অডিও ফাইল পরিবর্তন করার অনুমতি দিতে চান?</item>
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>-কে <xliff:g id="COUNT">^2</xliff:g>টি অডিও ফাইল পরিবর্তন করার অনুমতি দিতে চান?</item>

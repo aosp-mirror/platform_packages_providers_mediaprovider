@@ -37,6 +37,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryType;
@@ -57,28 +58,26 @@ public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
 
     private static final int RECENT_MINIMUM_COUNT = 12;
-    public static final int DEFAULT_MAX_SELECTION_LIMIT = 100;
 
-    // TODO(b/193857982): we keep these four data sets now, we may find a way to reduce the data
-    // set to reduce memories.
-    // the list of Items with all photos and videos
+    // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
+    // data set to reduce memories.
+    // The list of Items with all photos and videos
     private MutableLiveData<List<Item>> mItemList;
-    // the list of Items with all photos and videos in category
+    // The list of Items with all photos and videos in category
     private MutableLiveData<List<Item>> mCategoryItemList;
+    // The list of selected items.
     private MutableLiveData<Map<Uri, Item>> mSelectedItemList = new MutableLiveData<>();
+    // The list of categories.
     private MutableLiveData<List<Category>> mCategoryList;
+
     private ItemsProvider mItemsProvider;
-    private final UserIdManager mUserIdManager;
+    private UserIdManager mUserIdManager;
     private boolean mSelectMultiple = false;
     private String mMimeTypeFilter = null;
-    private int mMaxSelectionLimit = DEFAULT_MAX_SELECTION_LIMIT;
+    private int mMaxSelectionLimit = 1;
     // This is set to false when max selection limit is reached.
     private boolean mIsSelectionAllowed = true;
-    // Show max label text view if and only if caller sets acceptable value for
-    // {@link MediaStore#EXTRA_PICK_IMAGES_MAX}
-    private boolean mShowMaxLabel = false;
-    @CategoryType
-    private String mCurrentCategoryType;
+    private int mBottomSheetState;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -88,8 +87,13 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     @VisibleForTesting
-    void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
+    public void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
         mItemsProvider = itemsProvider;
+    }
+
+    @VisibleForTesting
+    public void setUserIdManager(@NonNull UserIdManager userIdManager) {
+        mUserIdManager = userIdManager;
     }
 
     /**
@@ -184,6 +188,8 @@ public class PickerViewModel extends AndroidViewModel {
         try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
                 /* limit */ -1, mMimeTypeFilter, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
+                Log.d(TAG, "Didn't receive any items for " + category
+                        + ", either cursor is null or cursor count is zero");
                 return items;
             }
 
@@ -194,10 +200,6 @@ public class PickerViewModel extends AndroidViewModel {
 
             int recentSize = 0;
             long currentDateTaken = 0;
-            // add max label message header item
-            if (mShowMaxLabel) {
-                items.add(Item.createMessageItem());
-            }
 
             if (showRecent) {
                 // add Recent date header
@@ -206,7 +208,7 @@ public class PickerViewModel extends AndroidViewModel {
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
                 // here again.
-                final Item item = Item.fromCursor(cursor, MediaStore.AUTHORITY, userId);
+                final Item item = Item.fromCursor(cursor, userId);
                 final long dateTaken = item.getDateTaken();
                 // the minimum count of items in recent is not reached
                 if (showRecent && recentSize < RECENT_MINIMUM_COUNT) {
@@ -257,10 +259,7 @@ public class PickerViewModel extends AndroidViewModel {
      *         {@link #mCategoryItemList}
      */
     public LiveData<List<Item>> getCategoryItems(@NonNull @CategoryType String category) {
-        if (mCategoryItemList == null || !TextUtils.equals(category, mCurrentCategoryType)) {
-            mCurrentCategoryType = category;
-            updateCategoryItems(category);
-        }
+        updateCategoryItems(category);
         return mCategoryItemList;
     }
 
@@ -295,11 +294,13 @@ public class PickerViewModel extends AndroidViewModel {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
+                Log.d(TAG, "Didn't receive any categories, either cursor is null or"
+                        + " cursor count is zero");
                 return categoryList;
             }
 
             while (cursor.moveToNext()) {
-                final Category category = Category.fromCursor(cursor);
+                final Category category = Category.fromCursor(cursor, userId);
                 categoryList.add(category);
             }
 
@@ -343,7 +344,7 @@ public class PickerViewModel extends AndroidViewModel {
      * Parse values from {@code intent} and set corresponding fields
      */
     public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
-        mSelectMultiple = intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+        mUserIdManager.setIntentAndCheckRestrictions(intent);
 
         final String mimeType = intent.getType();
         if (isMimeTypeMedia(mimeType)) {
@@ -353,20 +354,32 @@ public class PickerViewModel extends AndroidViewModel {
         final Bundle extras = intent.getExtras();
         final boolean isExtraPickImagesMaxSet =
                 extras != null && extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_MAX);
-        // 1. Check EXTRA_PICK_IMAGES_MAX only if EXTRA_ALLOW_MULTIPLE is set.
-        // 2. Do not show "Set up to max items" message if EXTRA_PICK_IMAGES_MAX is not set
-        if (mSelectMultiple && isExtraPickImagesMaxSet) {
+
+        // Support Intent.EXTRA_ALLOW_MULTIPLE flag only for ACTION_GET_CONTENT
+        if (intent.getAction() != null && intent.getAction().equals(Intent.ACTION_GET_CONTENT)) {
+            if (isExtraPickImagesMaxSet) {
+                throw new IllegalArgumentException("EXTRA_PICK_IMAGES_MAX is not supported for "
+                        + "ACTION_GET_CONTENT");
+            }
+
+            mSelectMultiple = intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+            if (mSelectMultiple) {
+                mMaxSelectionLimit = MediaStore.getPickImagesMaxLimit();
+            }
+            return;
+        }
+
+        // Check EXTRA_PICK_IMAGES_MAX value only if the flag is set.
+        if (isExtraPickImagesMaxSet) {
             final int extraMax = intent.getIntExtra(MediaStore.EXTRA_PICK_IMAGES_MAX,
                     /* defaultValue */ -1);
-            // Multi selection max limit should always be greater than 0
-            if (extraMax <= 0) {
+            // Multi selection max limit should always be greater than 1 and less than or equal
+            // to PICK_IMAGES_MAX_LIMIT.
+            if (extraMax <= 1 || extraMax > MediaStore.getPickImagesMaxLimit()) {
                 throw new IllegalArgumentException("Invalid EXTRA_PICK_IMAGES_MAX value");
             }
-            // Multi selection limit should always be less than global max values allowed to select.
-            if (extraMax <= DEFAULT_MAX_SELECTION_LIMIT) {
-                mMaxSelectionLimit = extraMax;
-            }
-            mShowMaxLabel = true;
+            mSelectMultiple = true;
+            mMaxSelectionLimit = extraMax;
         }
     }
 
@@ -386,5 +399,19 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public boolean isSelectionAllowed() {
         return mIsSelectionAllowed;
+    }
+
+    /**
+     * Set BottomSheet state
+     */
+    public void setBottomSheetState(int state) {
+        mBottomSheetState = state;
+    }
+
+    /**
+     * @return BottomSheet state
+     */
+    public int getBottomSheetState() {
+        return mBottomSheetState;
     }
 }

@@ -22,6 +22,8 @@ import static com.google.common.truth.Truth.assertThat;
 
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.net.Uri;
+import android.os.UserHandle;
 import android.provider.MediaStore;
 
 import androidx.test.runner.AndroidJUnit4;
@@ -41,14 +43,38 @@ public class ItemTest {
         final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, duration);
         cursor.moveToFirst();
 
-        final Item item = new Item(cursor, MediaStore.AUTHORITY, UserId.CURRENT_USER);
+        final Item item = new Item(cursor, UserId.CURRENT_USER);
 
         assertThat(item.getId()).isEqualTo(id);
         assertThat(item.getDateTaken()).isEqualTo(dateTaken);
         assertThat(item.getMimeType()).isEqualTo(mimeType);
         assertThat(item.getDuration()).isEqualTo(duration);
+        assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://media/external/file/1"));
 
-        assertThat(item.isMessage()).isFalse();
+        assertThat(item.isDate()).isFalse();
+        assertThat(item.isImage()).isTrue();
+        assertThat(item.isVideo()).isFalse();
+        assertThat(item.isGif()).isFalse();
+    }
+
+    @Test
+    public void testConstructor_differentUser() {
+        final String id = "1";
+        final long dateTaken = 12345678l;
+        final String mimeType = "image/png";
+        final long duration = 1000;
+        final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, duration);
+        cursor.moveToFirst();
+        final UserId userId = UserId.of(UserHandle.of(10));
+
+        final Item item = new Item(cursor, userId);
+
+        assertThat(item.getId()).isEqualTo(id);
+        assertThat(item.getDateTaken()).isEqualTo(dateTaken);
+        assertThat(item.getMimeType()).isEqualTo(mimeType);
+        assertThat(item.getDuration()).isEqualTo(duration);
+        assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://10@media/external/file/1"));
+
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isTrue();
         assertThat(item.isVideo()).isFalse();
@@ -64,7 +90,6 @@ public class ItemTest {
         final Item item = generateItem(id, mimeType, dateTaken, duration);
 
         assertThat(item.isImage()).isTrue();
-        assertThat(item.isMessage()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
         assertThat(item.isGif()).isFalse();
@@ -79,7 +104,6 @@ public class ItemTest {
         final Item item = generateItem(id, mimeType, dateTaken, duration);
 
         assertThat(item.isVideo()).isTrue();
-        assertThat(item.isMessage()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isFalse();
         assertThat(item.isGif()).isFalse();
@@ -94,7 +118,6 @@ public class ItemTest {
         final Item item = generateItem(id, mimeType, dateTaken, duration);
 
         assertThat(item.isGif()).isTrue();
-        assertThat(item.isMessage()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isFalse();
         assertThat(item.isVideo()).isFalse();
@@ -110,21 +133,9 @@ public class ItemTest {
         assertThat(item.isDate()).isTrue();
     }
 
-    @Test
-    public void testCreateMessageItem() {
-        final Item item = Item.createMessageItem();
-
-        assertThat(item.isMessage()).isTrue();
-        assertThat(item.isDate()).isFalse();
-        assertThat(item.isImage()).isFalse();
-        assertThat(item.isVideo()).isFalse();
-        assertThat(item.isGif()).isFalse();
-    }
-
     private static Cursor generateCursorForItem(String id, String mimeType, long dateTaken,
             long duration) {
-        final MatrixCursor cursor = new MatrixCursor(
-                ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]));
+        final MatrixCursor cursor = new MatrixCursor(ItemColumns.ALL_COLUMNS);
         cursor.addRow(new Object[] {id, mimeType, dateTaken, /* dateModified */ dateTaken,
                 duration});
         return cursor;

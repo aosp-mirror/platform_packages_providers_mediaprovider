@@ -16,10 +16,6 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <style name="PickerMessage" parent="@android:style/TextAppearance.Material.Caption">
-        <item name="android:textColor">@color/picker_message_text_color</item>
-    </style>
-
     <style name="PickerDateHeader" parent="@android:style/TextAppearance.Material.Title">
         <item name="android:textColor">@color/picker_date_header_text_color</item>
         <item name="android:textSize">16sp</item>
@@ -27,6 +23,22 @@
 
     <style name="PickerChipText" parent="@android:style/TextAppearance.Material.Title">
         <item name="android:textSize">@dimen/picker_chip_text_size</item>
+    </style>
+
+    <style name="PickerProfileButton" parent="@android:style/TextAppearance.Material.Button">
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="PickerProfileDialogTitle"
+           parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">@color/picker_profile_dialog_text_color</item>
+        <item name="android:textSize">@dimen/picker_profile_dialog_title_text_size</item>
+    </style>
+
+    <style name="PickerProfileDialogBody" parent="@android:style/TextAppearance.Material.Body2">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">@color/picker_profile_dialog_text_color</item>
     </style>
 
 </resources>

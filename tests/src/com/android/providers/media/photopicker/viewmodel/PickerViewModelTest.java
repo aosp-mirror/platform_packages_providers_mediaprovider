@@ -60,7 +60,7 @@ public class PickerViewModelTest {
 
     private static final String FAKE_IMAGE_MIME_TYPE = "image/jpg";
     private static final String FAKE_CATEGORY_NAME = "testCategoryName";
-    private static final Uri FAKE_URI = Uri.parse("testUri");
+    private static final String FAKE_ID = "5";
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
@@ -229,7 +229,7 @@ public class PickerViewModelTest {
     }
 
     @Test
-    public void getCategoryItems() throws Exception {
+    public void testGetCategoryItems() throws Exception {
         final int itemCount = 3;
         mItemsProvider.setItems(generateFakeImageItemList(itemCount));
         mPickerViewModel.updateCategoryItems(CATEGORY_DOWNLOADS);
@@ -257,13 +257,47 @@ public class PickerViewModelTest {
     }
 
     @Test
+    public void testGetCategoryItems_dataIsUpdated() throws Exception {
+        final int itemCount = 3;
+        mItemsProvider.setItems(generateFakeImageItemList(itemCount));
+        mPickerViewModel.updateCategoryItems(CATEGORY_DOWNLOADS);
+        // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
+        // thread idle
+        ForegroundThread.waitForIdle();
+
+        final List<Item> itemList = mPickerViewModel.getCategoryItems(
+                CATEGORY_DOWNLOADS).getValue();
+
+        // Original item count + 3 date items
+        assertThat(itemList.size()).isEqualTo(itemCount + 3);
+
+        final int updatedItemCount = 5;
+        mItemsProvider.setItems(generateFakeImageItemList(updatedItemCount));
+
+        // trigger updateCategoryItems in getCategoryItems first and wait the idle
+        mPickerViewModel.getCategoryItems(CATEGORY_DOWNLOADS).getValue();
+
+        // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
+        // thread idle
+        ForegroundThread.waitForIdle();
+
+        // Get the result again to check the result is as expected
+        final List<Item> updatedItemList = mPickerViewModel.getCategoryItems(
+                CATEGORY_DOWNLOADS).getValue();
+
+        // Original item count + 5 date items
+        assertThat(updatedItemList.size()).isEqualTo(updatedItemCount + 5);
+    }
+
+    @Test
     public void testGetCategories() throws Exception {
         final int categoryCount = 2;
         try (final Cursor fakeCursor = generateCursorForFakeCategories(categoryCount)) {
             fakeCursor.moveToFirst();
-            final Category fakeFirstCategory = Category.fromCursor(fakeCursor);
+            final Category fakeFirstCategory = Category.fromCursor(fakeCursor, UserId.CURRENT_USER);
             fakeCursor.moveToNext();
-            final Category fakeSecondCategory = Category.fromCursor(fakeCursor);
+            final Category fakeSecondCategory = Category.fromCursor(fakeCursor,
+                    UserId.CURRENT_USER);
             mItemsProvider.setCategoriesCursor(fakeCursor);
             // move the cursor to original position
             fakeCursor.moveToPosition(-1);
@@ -295,34 +329,100 @@ public class PickerViewModelTest {
     }
 
     @Test
-    public void testParseValuesFromIntent_allowMultiple() throws Exception {
+    public void testParseValuesFromIntent_allowMultipleNotSupported() throws Exception {
         final Intent intent = new Intent();
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
+        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
+    }
+
+    @Test
+    public void testParseValuesFromIntent_setDefaultFalseForAllowMultiple() throws Exception {
+        final Intent intent = new Intent();
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
+    }
+
+    @Test
+    public void testParseValuesFromIntent_validMaxSelectionLimit() throws Exception {
+        final int maxLimit = MediaStore.getPickImagesMaxLimit() - 1;
+        final Intent intent = new Intent();
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
         assertThat(mPickerViewModel.canSelectMultiple()).isTrue();
+        assertThat(mPickerViewModel.getMaxSelectionLimit()).isEqualTo(maxLimit);
     }
 
     @Test
-    public void testParseValuesFromIntent_noAllowMultiple()
+    public void testParseValuesFromIntent_negativeMaxSelectionLimit_throwsException()
             throws Exception {
         final Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, -1);
 
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
+        try {
+            mPickerViewModel.parseValuesFromIntent(intent);
+            fail("The maximum selection limit is not allowed to be negative");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
     }
 
     @Test
-    public void testParseValuesFromIntent_setDefaultFalseForAllowMultiple()
+    public void testParseValuesFromIntent_tooLargeMaxSelectionLimit_throwsException()
+            throws Exception {
+        final Intent intent = new Intent();
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit() + 1);
+
+        try {
+            mPickerViewModel.parseValuesFromIntent(intent);
+            fail("The maximum selection limit should not be greater than "
+                    + "MediaStore.getPickImagesMaxLimit()");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testParseValuesFromIntent_actionGetContent() throws Exception {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.canSelectMultiple()).isTrue();
+        assertThat(mPickerViewModel.getMaxSelectionLimit())
+                .isEqualTo(MediaStore.getPickImagesMaxLimit());
+    }
+
+    @Test
+    public void testParseValuesFromIntent_actionGetContent_doesNotRespectExtraPickImagesMax()
+            throws Exception {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 5);
+
+        try {
+            mPickerViewModel.parseValuesFromIntent(intent);
+            fail("EXTRA_PICK_IMAGES_MAX is not supported for ACTION_GET_CONTENT");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testParseValuesFromIntent_noMimeType_defaultFalse()
             throws Exception {
         final Intent intent = new Intent();
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
-        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
+        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
     }
 
     @Test
@@ -345,70 +445,6 @@ public class PickerViewModelTest {
         mPickerViewModel.parseValuesFromIntent(intent);
 
         assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
-    }
-
-    @Test
-    public void testParseValuesFromIntent_noMimeType_defaultFalse()
-            throws Exception {
-        final Intent intent = new Intent();
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
-    }
-
-    @Test
-    public void testParseValuesFromIntent_noAllowMultiple_defaultLimit()
-            throws Exception {
-        final int maxLimit = 20;
-        final Intent intent = new Intent();
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
-        assertThat(mPickerViewModel.getMaxSelectionLimit()).isNotEqualTo(maxLimit);
-    }
-
-    @Test
-    public void testParseValuesFromIntent_validMaxSelectionLimit() throws Exception {
-        final int maxLimit = 20;
-        final Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.getMaxSelectionLimit()).isEqualTo(maxLimit);
-    }
-
-    @Test
-    public void testParseValuesFromIntent_negativeMaxSelectionLimit_throwsException()
-            throws Exception {
-        final int maxLimit = -1;
-        final Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
-
-        try {
-            mPickerViewModel.parseValuesFromIntent(intent);
-            fail("The maximum selection limit is not allowed to be negative");
-        } catch (Exception expected) {
-            // expected
-        }
-    }
-
-    @Test
-    public void testParseValuesFromIntent_tooLargeMaxSelectionLimit_defaultValue()
-            throws Exception {
-        final int maxLimit = 10000;
-        final Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.getMaxSelectionLimit()).isNotEqualTo(maxLimit);
     }
 
     @Test
@@ -456,7 +492,7 @@ public class PickerViewModelTest {
         for (int i = 0; i < num; i++) {
             cursor.addRow(new Object[]{
                     FAKE_CATEGORY_NAME + i,
-                    FAKE_URI.buildUpon().appendPath(String.valueOf(i)),
+                    FAKE_ID + String.valueOf(i),
                     itemCount + i,
                     CATEGORY_DOWNLOADS});
         }
@@ -476,7 +512,7 @@ public class PickerViewModelTest {
         public Cursor getItems(@Nullable @Category.CategoryType String category, int offset,
                 int limit, @Nullable String mimeType, @Nullable UserId userId) throws
                 IllegalArgumentException, IllegalStateException {
-            final String[] columns = Item.ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]);
+            final String[] columns = Item.ItemColumns.ALL_COLUMNS;
             final MatrixCursor c = new MatrixCursor(columns);
 
             for (Item item : mItemList) {

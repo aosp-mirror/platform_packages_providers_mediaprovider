@@ -698,6 +698,7 @@ public class MediaProvider extends ContentProvider {
                 long newId, int newMediaType, boolean newIsDownload,
                 boolean oldIsTrashed, boolean newIsTrashed,
                 boolean oldIsPending, boolean newIsPending,
+                boolean oldIsFavorite, boolean newIsFavorite,
                 String oldOwnerPackage, String newOwnerPackage, String oldPath) {
             final boolean isDownload = oldIsDownload || newIsDownload;
             final Uri fileUri = MediaStore.Files.getContentUri(volumeName, oldId);
@@ -712,7 +713,8 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 if (mExternalDbFacade.onFileUpdated(oldId, oldMediaType, newMediaType, oldIsTrashed,
-                                newIsTrashed, oldIsPending, newIsPending)) {
+                                newIsTrashed, oldIsPending, newIsPending, oldIsFavorite,
+                                newIsFavorite)) {
                     mPickerSyncController.notifyMediaEvent();
                 }
             });

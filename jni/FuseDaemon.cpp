@@ -549,12 +549,16 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     const int transforms = file_lookup_result->transforms;
     const int transforms_reason = file_lookup_result->transforms_reason;
     const string& io_path = file_lookup_result->io_path;
+    if (transforms) {
+        // If the node requires transforms, we MUST never cache it in the VFS
+        CHECK(should_invalidate);
+    }
 
     node = parent->LookupChildByName(name, true /* acquire */, transforms);
     if (!node) {
         ino_t ino = e->attr.st_ino;
-        node = ::node::Create(parent, name, io_path, should_invalidate, transforms_complete,
-                              transforms, transforms_reason, &fuse->lock, ino, &fuse->tracker);
+        node = ::node::Create(parent, name, io_path, transforms_complete, transforms,
+                              transforms_reason, &fuse->lock, ino, &fuse->tracker);
     } else if (!mediaprovider::fuse::containsMount(path)) {
         // Only invalidate a path if it does not contain mount and |name| != node->GetName.
         // Invalidate both names to ensure there's no dentry left in the kernel after the following

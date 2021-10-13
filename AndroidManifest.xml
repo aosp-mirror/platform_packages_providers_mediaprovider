@@ -157,6 +157,7 @@
 
         <activity
                 android:name="com.android.providers.media.photopicker.PhotoPickerActivity"
+                android:process=":PhotoPicker"
                 android:theme="@style/PickerDefaultTheme"
                 android:exported="true"
                 android:excludeFromRecents="true"

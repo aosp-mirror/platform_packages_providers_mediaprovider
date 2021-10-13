@@ -16,12 +16,15 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
@@ -80,13 +83,12 @@ public class ItemsProvider {
      * if there are no such images/videos. The Cursor for each item contains {@link ItemColumns}
      *
      * @throws IllegalArgumentException thrown if unsupported values for {@code category} is passed.
-     * @throws IllegalStateException thrown if unsupported value for {@code userId} is passed.
      *
      */
     @Nullable
     public Cursor getItems(@Nullable @Category.CategoryType String category, int offset,
             int limit, @Nullable String mimeType, @Nullable UserId userId) throws
-            IllegalArgumentException, IllegalStateException {
+            IllegalArgumentException {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
@@ -97,7 +99,7 @@ public class ItemsProvider {
     @Nullable
     private Cursor getItemsInternal(@Nullable @Category.CategoryType String category,
             int offset, int limit, @Nullable String mimeType, @NonNull UserId userId) throws
-            IllegalArgumentException, IllegalStateException {
+            IllegalArgumentException {
         // Validate incoming params
         if (category != null && !Category.isValidCategory(category)) {
             throw new IllegalArgumentException("ItemsProvider does not support the given "
@@ -150,8 +152,7 @@ public class ItemsProvider {
     }
 
     private String[] getCategoryColumns(@Category.CategoryType String category,
-            @Nullable String mimeType, @NonNull UserId userId) throws IllegalArgumentException,
-            IllegalStateException {
+            @Nullable String mimeType, @NonNull UserId userId) throws IllegalArgumentException {
         if (!Category.isValidCategory(category)) {
             throw new IllegalArgumentException("Category type not supported");
         }
@@ -174,7 +175,7 @@ public class ItemsProvider {
     @Nullable
     private Cursor query(@NonNull String[] projection,
             @Nullable @Category.CategoryType String category, @Nullable String mimeType, int offset,
-            int limit, @NonNull UserId userId) throws IllegalStateException {
+            int limit, @NonNull UserId userId) {
         String selection = IMAGES_VIDEOS_WHERE_CLAUSE;
         String[] selectionArgs = null;
 
@@ -198,7 +199,7 @@ public class ItemsProvider {
     @Nullable
     private Cursor queryMediaStore(@NonNull String[] projection,
             @Nullable String selection, @Nullable String[] selectionArgs, int offset,
-            int limit, @NonNull UserId userId) throws IllegalStateException {
+            int limit, @NonNull UserId userId) {
 
         if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
             // If external storage is not ready, we can't load any items from MediaStore.
@@ -233,12 +234,14 @@ public class ItemsProvider {
                     + " selectionArgs = " + Arrays.toString(selectionArgs)
                     + " limit = " + limit + " offset = " + offset + " userId = " + userId, e);
             return null;
+        } catch (NameNotFoundException e) {
+            Log.e(TAG, "Unable to get content resolver for the given userId: " + userId, e);
+            return null;
         }
     }
 
     @Nullable
-    private Cursor queryPickerDb(int limit, @Nullable String mimeType, @NonNull UserId userId)
-            throws IllegalStateException {
+    private Cursor queryPickerDb(int limit, @Nullable String mimeType, @NonNull UserId userId) {
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
             final Bundle extras = new Bundle();
@@ -253,11 +256,10 @@ public class ItemsProvider {
                             + " mimeType filter = " + mimeType
                             + " limit = " + limit + " userId = " + userId, e);
             return null;
+        } catch (NameNotFoundException e) {
+            Log.e(TAG, "Unable to get content resolver for the given userId: " + userId, e);
+            return null;
         }
-    }
-
-    private static String replaceMatchAnyChar(@NonNull String mimeType) {
-        return mimeType.replace('*', '%');
     }
 
     public static Uri getItemsUri(String id, String authority, UserId userId) {

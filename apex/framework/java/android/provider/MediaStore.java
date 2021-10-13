@@ -665,7 +665,7 @@ public final class MediaStore {
      * system and return it. This is different than {@link Intent#ACTION_PICK}
      * and {@link Intent#ACTION_GET_CONTENT} in that
      * <ul>
-     * <li> the data for this action is provided by system
+     * <li> the data for this action is provided by the system
      * <li> this action is only used for picking images and videos
      * <li> caller gets read access to user picked items even without storage
      * permissions

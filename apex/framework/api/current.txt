@@ -47,6 +47,7 @@ package android.provider {
   public static final class CloudMediaProviderContract.MediaColumns {
     field public static final String DATE_TAKEN_MS = "date_taken_ms";
     field public static final String DURATION_MS = "duration_ms";
+    field public static final String GENERATION_MODIFIED = "generation_modified";
     field public static final String ID = "id";
     field public static final String IS_FAVORITE = "is_favorite";
     field public static final String MEDIA_STORE_URI = "media_store_uri";

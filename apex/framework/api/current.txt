@@ -3,6 +3,7 @@ package android.provider {
 
   public final class MediaStore {
     ctor public MediaStore();
+    method public static boolean canManageMedia(@NonNull android.content.Context);
     method @NonNull public static android.app.PendingIntent createDeleteRequest(@NonNull android.content.ContentResolver, @NonNull java.util.Collection<android.net.Uri>);
     method @NonNull public static android.app.PendingIntent createFavoriteRequest(@NonNull android.content.ContentResolver, @NonNull java.util.Collection<android.net.Uri>, boolean);
     method @NonNull public static android.app.PendingIntent createTrashRequest(@NonNull android.content.ContentResolver, @NonNull java.util.Collection<android.net.Uri>, boolean);
@@ -12,11 +13,15 @@ package android.provider {
     method public static long getGeneration(@NonNull android.content.Context, @NonNull String);
     method public static android.net.Uri getMediaScannerUri();
     method @Nullable public static android.net.Uri getMediaUri(@NonNull android.content.Context, @NonNull android.net.Uri);
+    method @NonNull public static android.os.ParcelFileDescriptor getOriginalMediaFormatFileDescriptor(@NonNull android.content.Context, @NonNull android.os.ParcelFileDescriptor) throws java.io.IOException;
     method @NonNull public static java.util.Set<java.lang.String> getRecentExternalVolumeNames(@NonNull android.content.Context);
+    method @Nullable public static android.net.Uri getRedactedUri(@NonNull android.content.ContentResolver, @NonNull android.net.Uri);
+    method @NonNull public static java.util.List<android.net.Uri> getRedactedUri(@NonNull android.content.ContentResolver, @NonNull java.util.List<android.net.Uri>);
     method public static boolean getRequireOriginal(@NonNull android.net.Uri);
     method @NonNull public static String getVersion(@NonNull android.content.Context);
     method @NonNull public static String getVersion(@NonNull android.content.Context, @NonNull String);
     method @NonNull public static String getVolumeName(@NonNull android.net.Uri);
+    method public static boolean isCurrentSystemGallery(@NonNull android.content.ContentResolver, int, @NonNull String);
     method @Deprecated @NonNull public static android.net.Uri setIncludePending(@NonNull android.net.Uri);
     method @NonNull public static android.net.Uri setRequireOriginal(@NonNull android.net.Uri);
     field public static final String ACTION_IMAGE_CAPTURE = "android.media.action.IMAGE_CAPTURE";
@@ -26,15 +31,18 @@ package android.provider {
     field public static final String ACTION_VIDEO_CAPTURE = "android.media.action.VIDEO_CAPTURE";
     field public static final String AUTHORITY = "media";
     field @NonNull public static final android.net.Uri AUTHORITY_URI;
+    field public static final String EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT = "android.provider.extra.ACCEPT_ORIGINAL_MEDIA_FORMAT";
     field public static final String EXTRA_BRIGHTNESS = "android.provider.extra.BRIGHTNESS";
     field public static final String EXTRA_DURATION_LIMIT = "android.intent.extra.durationLimit";
     field public static final String EXTRA_FINISH_ON_COMPLETION = "android.intent.extra.finishOnCompletion";
     field public static final String EXTRA_FULL_SCREEN = "android.intent.extra.fullScreen";
     field public static final String EXTRA_MEDIA_ALBUM = "android.intent.extra.album";
     field public static final String EXTRA_MEDIA_ARTIST = "android.intent.extra.artist";
+    field public static final String EXTRA_MEDIA_CAPABILITIES = "android.provider.extra.MEDIA_CAPABILITIES";
+    field public static final String EXTRA_MEDIA_CAPABILITIES_UID = "android.provider.extra.MEDIA_CAPABILITIES_UID";
     field public static final String EXTRA_MEDIA_FOCUS = "android.intent.extra.focus";
     field public static final String EXTRA_MEDIA_GENRE = "android.intent.extra.genre";
-    field public static final String EXTRA_MEDIA_PLAYLIST = "android.intent.extra.playlist";
+    field @Deprecated public static final String EXTRA_MEDIA_PLAYLIST = "android.intent.extra.playlist";
     field public static final String EXTRA_MEDIA_RADIO_CHANNEL = "android.intent.extra.radio_channel";
     field public static final String EXTRA_MEDIA_TITLE = "android.intent.extra.title";
     field public static final String EXTRA_OUTPUT = "output";
@@ -58,6 +66,7 @@ package android.provider {
     field public static final String MEDIA_SCANNER_VOLUME = "volume";
     field public static final String META_DATA_REVIEW_GALLERY_PREWARM_SERVICE = "android.media.review_gallery_prewarm_service";
     field public static final String META_DATA_STILL_IMAGE_CAMERA_PREWARM_SERVICE = "android.media.still_image_camera_preview_service";
+    field public static final String QUERY_ARG_INCLUDE_RECENTLY_UNMOUNTED_VOLUMES = "android:query-arg-recently-unmounted-volumes";
     field public static final String QUERY_ARG_MATCH_FAVORITE = "android:query-arg-match-favorite";
     field public static final String QUERY_ARG_MATCH_PENDING = "android:query-arg-match-pending";
     field public static final String QUERY_ARG_MATCH_TRASHED = "android:query-arg-match-trashed";
@@ -114,7 +123,7 @@ package android.provider {
     field public static final android.net.Uri INTERNAL_CONTENT_URI;
   }
 
-  public static final class MediaStore.Audio.Artists.Albums implements android.provider.MediaStore.Audio.AlbumColumns {
+  public static final class MediaStore.Audio.Artists.Albums implements android.provider.BaseColumns android.provider.MediaStore.Audio.AlbumColumns {
     ctor public MediaStore.Audio.Artists.Albums();
     method public static android.net.Uri getContentUri(String, long);
   }
@@ -133,6 +142,7 @@ package android.provider {
     field public static final String IS_MUSIC = "is_music";
     field public static final String IS_NOTIFICATION = "is_notification";
     field public static final String IS_PODCAST = "is_podcast";
+    field public static final String IS_RECORDING = "is_recording";
     field public static final String IS_RINGTONE = "is_ringtone";
     field @Deprecated public static final String TITLE_KEY = "title_key";
     field public static final String TITLE_RESOURCE_URI = "title_resource_uri";
@@ -178,33 +188,33 @@ package android.provider {
     field public static final String RECORD_SOUND_ACTION = "android.provider.MediaStore.RECORD_SOUND";
   }
 
-  public static final class MediaStore.Audio.Playlists implements android.provider.BaseColumns android.provider.MediaStore.Audio.PlaylistsColumns {
-    ctor public MediaStore.Audio.Playlists();
-    method public static android.net.Uri getContentUri(String);
-    field public static final String CONTENT_TYPE = "vnd.android.cursor.dir/playlist";
-    field public static final String DEFAULT_SORT_ORDER = "name";
-    field public static final String ENTRY_CONTENT_TYPE = "vnd.android.cursor.item/playlist";
-    field public static final android.net.Uri EXTERNAL_CONTENT_URI;
-    field public static final android.net.Uri INTERNAL_CONTENT_URI;
+  @Deprecated public static final class MediaStore.Audio.Playlists implements android.provider.BaseColumns android.provider.MediaStore.Audio.PlaylistsColumns {
+    ctor @Deprecated public MediaStore.Audio.Playlists();
+    method @Deprecated public static android.net.Uri getContentUri(String);
+    field @Deprecated public static final String CONTENT_TYPE = "vnd.android.cursor.dir/playlist";
+    field @Deprecated public static final String DEFAULT_SORT_ORDER = "name";
+    field @Deprecated public static final String ENTRY_CONTENT_TYPE = "vnd.android.cursor.item/playlist";
+    field @Deprecated public static final android.net.Uri EXTERNAL_CONTENT_URI;
+    field @Deprecated public static final android.net.Uri INTERNAL_CONTENT_URI;
   }
 
-  public static final class MediaStore.Audio.Playlists.Members implements android.provider.MediaStore.Audio.AudioColumns {
-    ctor public MediaStore.Audio.Playlists.Members();
-    method public static android.net.Uri getContentUri(String, long);
-    method public static boolean moveItem(android.content.ContentResolver, long, int, int);
-    field public static final String AUDIO_ID = "audio_id";
-    field public static final String CONTENT_DIRECTORY = "members";
-    field public static final String DEFAULT_SORT_ORDER = "play_order";
-    field public static final String PLAYLIST_ID = "playlist_id";
-    field public static final String PLAY_ORDER = "play_order";
-    field public static final String _ID = "_id";
+  @Deprecated public static final class MediaStore.Audio.Playlists.Members implements android.provider.MediaStore.Audio.AudioColumns {
+    ctor @Deprecated public MediaStore.Audio.Playlists.Members();
+    method @Deprecated public static android.net.Uri getContentUri(String, long);
+    method @Deprecated public static boolean moveItem(android.content.ContentResolver, long, int, int);
+    field @Deprecated public static final String AUDIO_ID = "audio_id";
+    field @Deprecated public static final String CONTENT_DIRECTORY = "members";
+    field @Deprecated public static final String DEFAULT_SORT_ORDER = "play_order";
+    field @Deprecated public static final String PLAYLIST_ID = "playlist_id";
+    field @Deprecated public static final String PLAY_ORDER = "play_order";
+    field @Deprecated public static final String _ID = "_id";
   }
 
-  public static interface MediaStore.Audio.PlaylistsColumns extends android.provider.MediaStore.MediaColumns {
+  @Deprecated public static interface MediaStore.Audio.PlaylistsColumns extends android.provider.MediaStore.MediaColumns {
     field @Deprecated public static final String DATA = "_data";
-    field public static final String DATE_ADDED = "date_added";
-    field public static final String DATE_MODIFIED = "date_modified";
-    field public static final String NAME = "name";
+    field @Deprecated public static final String DATE_ADDED = "date_added";
+    field @Deprecated public static final String DATE_MODIFIED = "date_modified";
+    field @Deprecated public static final String NAME = "name";
   }
 
   public static final class MediaStore.Audio.Radio {
@@ -236,7 +246,7 @@ package android.provider {
     field public static final int MEDIA_TYPE_DOCUMENT = 6; // 0x6
     field public static final int MEDIA_TYPE_IMAGE = 1; // 0x1
     field public static final int MEDIA_TYPE_NONE = 0; // 0x0
-    field public static final int MEDIA_TYPE_PLAYLIST = 4; // 0x4
+    field @Deprecated public static final int MEDIA_TYPE_PLAYLIST = 4; // 0x4
     field public static final int MEDIA_TYPE_SUBTITLE = 5; // 0x5
     field public static final int MEDIA_TYPE_VIDEO = 3; // 0x3
     field public static final String MIME_TYPE = "mime_type";

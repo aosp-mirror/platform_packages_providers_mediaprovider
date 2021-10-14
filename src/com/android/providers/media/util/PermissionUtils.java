@@ -16,13 +16,19 @@
 
 package com.android.providers.media.util;
 
+import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
+import static android.Manifest.permission.ACCESS_MTP;
 import static android.Manifest.permission.BACKUP;
+import static android.Manifest.permission.INSTALL_PACKAGES;
 import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
+import static android.Manifest.permission.MANAGE_MEDIA;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.UPDATE_DEVICE_STATS;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
+import static android.app.AppOpsManager.OPSTR_REQUEST_INSTALL_PACKAGES;
 import static android.app.AppOpsManager.OPSTR_LEGACY_STORAGE;
+import static android.app.AppOpsManager.OPSTR_NO_ISOLATED_STORAGE;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_AUDIO;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_IMAGES;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_VIDEO;
@@ -41,8 +47,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 public class PermissionUtils {
-
-    public static final String OPSTR_NO_ISOLATED_STORAGE = "android:no_isolated_storage";
 
     // Callers must hold both the old and new permissions, so that we can
     // handle obscure cases like when an app targets Q but was installed on
@@ -76,13 +80,9 @@ public class PermissionUtils {
      */
     public static boolean checkPermissionManager(@NonNull Context context, int pid,
             int uid, @NonNull String packageName, @Nullable String attributionTag) {
-        if (checkPermissionForDataDelivery(context, MANAGE_EXTERNAL_STORAGE, pid, uid,
+        return checkPermissionForDataDelivery(context, MANAGE_EXTERNAL_STORAGE, pid, uid,
                 packageName, attributionTag,
-                generateAppOpMessage(packageName,sOpDescription.get()))) {
-            return true;
-        }
-        // Fallback to OPSTR_NO_ISOLATED_STORAGE app op.
-        return checkNoIsolatedStorageGranted(context, uid, packageName, attributionTag);
+                generateAppOpMessage(packageName,sOpDescription.get()));
     }
 
     /**
@@ -116,10 +116,34 @@ public class PermissionUtils {
                 generateAppOpMessage(packageName,sOpDescription.get()));
     }
 
-    public static boolean checkIsLegacyStorageGranted(
-            @NonNull Context context, int uid, String packageName) {
-        return context.getSystemService(AppOpsManager.class)
-                .unsafeCheckOp(OPSTR_LEGACY_STORAGE, uid, packageName) == MODE_ALLOWED;
+    /**
+     * Check if the given package has been granted the
+     * android.Manifest.permission#ACCESS_MEDIA_LOCATION permission.
+     */
+    public static boolean checkPermissionAccessMediaLocation(@NonNull Context context, int pid,
+            int uid, @NonNull String packageName, @Nullable String attributionTag) {
+        return checkPermissionForDataDelivery(context, ACCESS_MEDIA_LOCATION, pid, uid, packageName,
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
+    }
+
+    /**
+     * Check if the given package has been granted the
+     * android.Manifest.permission#MANAGE_MEDIA permission.
+     */
+    public static boolean checkPermissionManageMedia(@NonNull Context context, int pid, int uid,
+            @NonNull String packageName, @Nullable String attributionTag) {
+        return checkPermissionForDataDelivery(context, MANAGE_MEDIA, pid, uid, packageName,
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
+    }
+
+    public static boolean checkIsLegacyStorageGranted(@NonNull Context context, int uid,
+            String packageName, @Nullable String attributionTag) {
+        if (context.getSystemService(AppOpsManager.class)
+                .unsafeCheckOp(OPSTR_LEGACY_STORAGE, uid, packageName) == MODE_ALLOWED) {
+            return true;
+        }
+        // Check OPSTR_NO_ISOLATED_STORAGE app op.
+        return checkNoIsolatedStorageGranted(context, uid, packageName, attributionTag);
     }
 
     public static boolean checkPermissionReadAudio(@NonNull Context context, int pid, int uid,
@@ -185,6 +209,18 @@ public class PermissionUtils {
                 generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
+    public static boolean checkPermissionInstallPackages(@NonNull Context context, int pid, int uid,
+        @NonNull String packageName, @Nullable String attributionTag) {
+        return checkPermissionForDataDelivery(context, INSTALL_PACKAGES, pid,
+                uid, packageName, attributionTag, null);
+    }
+
+    public static boolean checkPermissionAccessMtp(@NonNull Context context, int pid, int uid,
+        @NonNull String packageName, @Nullable String attributionTag) {
+        return checkPermissionForDataDelivery(context, ACCESS_MTP, pid,
+                uid, packageName, attributionTag, null);
+    }
+
     /**
      * Returns {@code true} if the given package has write images or write video app op, which
      * indicates the package is a system gallery.
@@ -197,6 +233,20 @@ public class PermissionUtils {
                 || checkAppOp(
                         context, OPSTR_WRITE_MEDIA_VIDEO, uid, packageName, attributionTag,
                 generateAppOpMessage(packageName, sOpDescription.get()));
+    }
+
+    /**
+     * Returns {@code true} if any package for the given uid has request_install_packages app op.
+     */
+    public static boolean checkAppOpRequestInstallPackagesForSharedUid(@NonNull Context context,
+            int uid, @NonNull String[] sharedPackageNames, @Nullable String attributionTag) {
+        for (String packageName : sharedPackageNames) {
+            if (checkAppOp(context, OPSTR_REQUEST_INSTALL_PACKAGES, uid, packageName,
+                    attributionTag, generateAppOpMessage(packageName, sOpDescription.get()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @VisibleForTesting
@@ -379,6 +429,7 @@ public class PermissionUtils {
     private static boolean isAppOpPermission(String permission) {
         switch (permission) {
             case MANAGE_EXTERNAL_STORAGE:
+            case MANAGE_MEDIA:
                 return true;
         }
         return false;
@@ -386,6 +437,7 @@ public class PermissionUtils {
 
     private static boolean isRuntimePermission(String permission) {
         switch (permission) {
+            case ACCESS_MEDIA_LOCATION:
             case READ_EXTERNAL_STORAGE:
             case WRITE_EXTERNAL_STORAGE:
                 return true;

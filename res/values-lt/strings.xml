@@ -50,8 +50,36 @@
     <string name="add" msgid="2894574044585549298">"Pridėti"</string>
     <string name="deselect" msgid="4297825044827769490">"Panaikinti pasirinkimą"</string>
     <string name="select" msgid="2704765470563027689">"Pasirinkti"</string>
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="one">Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elemento</item>
+      <item quantity="few">Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elementų</item>
+      <item quantity="many">Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elemento</item>
+      <item quantity="other">Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elementų</item>
+    </plurals>
     <string name="recent" msgid="6694613584743207874">"Naujausios"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Žiūrėti pasirinktus"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"Nuotraukos"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"Albumai"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Perjungti į darbo profilį"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Perjungti į asmeninį profilį"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Užblokavo jūsų administratorius"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Neleidžiama pasiekti darbo duomenų iš asmeninės programos"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Neleidžiama pasiekti asmens duomenų iš darbo programos"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Darbo programos pristabdytos"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Norėdami atidaryti darbo nuotraukas, įjunkite darbo programas ir bandykite dar kartą"</string>
+    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
+      <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> elementas</item>
+      <item quantity="few"><xliff:g id="COUNT_1">^1</xliff:g> elementai</item>
+      <item quantity="many"><xliff:g id="COUNT_1">^1</xliff:g> elemento</item>
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> elementų</item>
+    </plurals>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Pridėti (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"Vaizdo kamera"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"Atsisiuntimai"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"Mėgstamiausi"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"Ekrano kopijos"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failą?</item>
       <item quantity="few">Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failus?</item>

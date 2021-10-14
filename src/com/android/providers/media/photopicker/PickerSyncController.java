@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker;
 
+import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
@@ -238,12 +239,21 @@ public class PickerSyncController {
     }
 
     public String getCloudProvider() {
-        return mCloudProvider;
+        synchronized (mLock) {
+            return mCloudProvider;
+        }
     }
 
     public String getLocalProvider() {
         return mLocalProvider;
     }
+
+    public boolean isProviderEnabled(String authority) {
+        synchronized (mLock) {
+            return authority.equals(mLocalProvider) || authority.equals(mCloudProvider);
+        }
+    }
+
 
     /**
      * Notifies about media events like inserts/updates/deletes from cloud and local providers and
@@ -275,7 +285,7 @@ public class PickerSyncController {
             // Sync media
             final Bundle queryArgs = new Bundle();
             final long cachedGeneration = cachedMediaInfo.getLong(MediaInfo.MEDIA_GENERATION);
-            queryArgs.putLong(MediaInfo.MEDIA_GENERATION, cachedGeneration);
+            queryArgs.putLong(EXTRA_GENERATION, cachedGeneration);
 
             try (Cursor cursor = query(getMediaUri(authority), queryArgs)) {
                 result = mDbFacade.addMedia(cursor, authority);
@@ -285,7 +295,7 @@ public class PickerSyncController {
 
             // Sync deleted_media
             final Bundle queryDeletedArgs = new Bundle();
-            queryDeletedArgs.putLong(MediaInfo.MEDIA_GENERATION, cachedGeneration);
+            queryDeletedArgs.putLong(EXTRA_GENERATION, cachedGeneration);
 
             try (Cursor cursor = query(getDeletedMediaUri(authority), queryDeletedArgs)) {
                 final int idIndex = cursor.getColumnIndex(MediaColumns.ID);

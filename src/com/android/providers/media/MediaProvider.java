@@ -29,10 +29,13 @@ import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
+import static android.provider.MediaStore.MY_UID;
+import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
+import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
@@ -63,6 +66,7 @@ import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.FileUtils.DEFAULT_FOLDER_NAMES;
 import static com.android.providers.media.util.FileUtils.PATTERN_PENDING_FILEPATH_FOR_SQL;
+import static com.android.providers.media.util.FileUtils.buildPrimaryVolumeFile;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileExtension;
 import static com.android.providers.media.util.FileUtils.extractFileName;
@@ -79,6 +83,14 @@ import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
 import static com.android.providers.media.util.FileUtils.isObbOrChildPath;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
+import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_PREFIX;
+import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
+import static com.android.providers.media.util.SyntheticPathUtils.createSparseFile;
+import static com.android.providers.media.util.SyntheticPathUtils.extractSyntheticRelativePathSegements;
+import static com.android.providers.media.util.SyntheticPathUtils.getRedactedRelativePath;
+import static com.android.providers.media.util.SyntheticPathUtils.isPickerPath;
+import static com.android.providers.media.util.SyntheticPathUtils.isRedactedPath;
+import static com.android.providers.media.util.SyntheticPathUtils.isSyntheticPath;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 
@@ -143,7 +155,6 @@ import android.os.Parcelable;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
-import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -152,6 +163,7 @@ import android.os.storage.StorageManager.StorageVolumeCallback;
 import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
+import android.provider.CloudMediaProviderContract;
 import android.provider.Column;
 import android.provider.DeviceConfig;
 import android.provider.DeviceConfig.OnPropertiesChangedListener;
@@ -274,6 +286,9 @@ public class MediaProvider extends ContentProvider {
     /** File access by uid is a synthetic path corresponding to a redacted URI */
     private static final int FLAG_TRANSFORM_REDACTION = 1 << 1;
 
+    /** File access by uid is a synthetic path corresponding to a picker URI */
+    private static final int FLAG_TRANSFORM_PICKER = 1 << 2;
+
     /**
      * These directory names aren't declared in Environment as final variables, and so we need to
      * have the same values in separate final variables in order to have them considered constant
@@ -298,11 +313,6 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_MEDIA = "media";
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
     private static final List<String> PRIVATE_SUBDIRECTORIES_ANDROID = Arrays.asList("data", "obb");
-    private static final String REDACTED_URI_ID_PREFIX = "RUID";
-    private static final String TRANSFORMS_SYNTHETIC_DIR = ".transforms/synthetic";
-    private static final String REDACTED_URI_DIR = TRANSFORMS_SYNTHETIC_DIR + "/redacted";
-    public static final int REDACTED_URI_ID_SIZE = 36;
-    private static final String QUERY_ARG_REDACTED_URI = "android:query-arg-redacted-uri";
 
     /**
      * Hard-coded filename where the current value of
@@ -358,10 +368,6 @@ public class MediaProvider extends ContentProvider {
     @ChangeId
     @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.R)
     static final long ENABLE_INCLUDE_ALL_VOLUMES = 182734110L;
-
-    // Stolen from: UserHandle#getUserId
-    private static final int PER_USER_RANGE = 100000;
-    private static final int MY_UID = android.os.Process.myUid();
 
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
@@ -505,7 +511,7 @@ public class MediaProvider extends ContentProvider {
             LocalCallingIdentity identity = mCachedCallingIdentityForFuse.get(uid);
             if (identity == null) {
                identity = LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid);
-               if (uid / PER_USER_RANGE == sUserId) {
+               if (uidToUserId(uid) == sUserId) {
                    mCachedCallingIdentityForFuse.put(uid, identity);
                } else {
                    // In some app cloning designs, MediaProvider user 0 may
@@ -686,6 +692,7 @@ public class MediaProvider extends ContentProvider {
                 long newId, int newMediaType, boolean newIsDownload,
                 boolean oldIsTrashed, boolean newIsTrashed,
                 boolean oldIsPending, boolean newIsPending,
+                boolean oldIsFavorite, boolean newIsFavorite,
                 String oldOwnerPackage, String newOwnerPackage, String oldPath) {
             final boolean isDownload = oldIsDownload || newIsDownload;
             final Uri fileUri = MediaStore.Files.getContentUri(volumeName, oldId);
@@ -700,7 +707,8 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 if (mExternalDbFacade.onFileUpdated(oldId, oldMediaType, newMediaType, oldIsTrashed,
-                                newIsTrashed, oldIsPending, newIsPending)) {
+                                newIsTrashed, oldIsPending, newIsPending, oldIsFavorite,
+                                newIsFavorite)) {
                     mPickerSyncController.notifyMediaEvent();
                 }
             });
@@ -952,8 +960,8 @@ public class MediaProvider extends ContentProvider {
             mTranscodeHelper = new TranscodeHelperNoOp();
         }
 
-        // Create dir for redacted URI's path.
-        new File("/storage/emulated/" + UserHandle.myUserId(), REDACTED_URI_DIR).mkdirs();
+        // Create dir for redacted and picker URI paths.
+        buildPrimaryVolumeFile(uidToUserId(MY_UID), getRedactedRelativePath()).mkdirs();
 
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
@@ -1432,7 +1440,7 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public boolean shouldAllowLookupForFuse(int uid, int pathUserId) {
-        int callingUserId = uid / PER_USER_RANGE;
+        int callingUserId = uidToUserId(uid);
         if (!isCrossUserEnabled()) {
             Log.d(TAG, "CrossUser not enabled. Users: " + callingUserId + " and " + pathUserId);
             return false;
@@ -1535,58 +1543,52 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public FileLookupResult onFileLookupForFuse(String path, int uid, int tid) {
         uid = getBinderUidForFuse(uid, tid);
-        if (isSyntheticFilePathForRedactedUri(path, uid)) {
-            return getFileLookupResultsForRedactedUriPath(uid, path);
+        final int userId = uidToUserId(uid);
+
+        if (isSyntheticPath(path, userId)) {
+            if (isRedactedPath(path, userId)) {
+                return handleRedactedFileLookup(uid, path);
+            } else if (isPickerPath(path, userId)) {
+                return handlePickerFileLookup(userId, uid, path);
+            }
+
+            throw new IllegalStateException("Unexpected synthetic path: " + path);
         }
 
-        String ioPath = "";
-        boolean transformsComplete = true;
-        boolean transformsSupported = mTranscodeHelper.supportsTranscode(path);
-        int transforms = 0;
-        int transformsReason = 0;
-
-        if (transformsSupported) {
-            PendingOpenInfo info = null;
-            synchronized (mPendingOpenInfo) {
-                info = mPendingOpenInfo.get(tid);
-            }
-
-            if (info != null && info.uid == uid) {
-                transformsReason = info.transcodeReason;
-            } else {
-                transformsReason = mTranscodeHelper.shouldTranscode(path, uid, null /* bundle */);
-            }
-
-            if (transformsReason > 0) {
-                ioPath = mTranscodeHelper.getIoPath(path, uid);
-                transformsComplete = mTranscodeHelper.isTranscodeFileCached(path, ioPath);
-                transforms = FLAG_TRANSFORM_TRANSCODING;
-            }
+        if (mTranscodeHelper.supportsTranscode(path)) {
+            return handleTranscodedFileLookup(path, uid, tid);
         }
 
-        return new FileLookupResult(transforms, transformsReason, uid, transformsComplete,
-                transformsSupported, ioPath);
+        return new FileLookupResult(/* transforms */ 0, uid, /* ioPath */ "");
     }
 
-    private boolean isSyntheticFilePathForRedactedUri(String path, int uid) {
-        if (path == null) return false;
+    private FileLookupResult handleTranscodedFileLookup(String path, int uid, int tid) {
+        final int transformsReason;
+        final PendingOpenInfo info;
 
-        final String transformsSyntheticDir = getStorageRootPathForUid(uid) + "/"
-                + REDACTED_URI_DIR;
-        final String fileName = extractFileName(path);
-        return fileName != null && path.toLowerCase(Locale.ROOT).startsWith(
-                transformsSyntheticDir.toLowerCase(Locale.ROOT)) && fileName.startsWith(
-                REDACTED_URI_ID_PREFIX) && fileName.length() == REDACTED_URI_ID_SIZE;
+        synchronized (mPendingOpenInfo) {
+            info = mPendingOpenInfo.get(tid);
+        }
+
+        if (info != null && info.uid == uid) {
+            transformsReason = info.transcodeReason;
+        } else {
+            transformsReason = mTranscodeHelper.shouldTranscode(path, uid, null /* bundle */);
+        }
+
+        if (transformsReason > 0) {
+            final String ioPath = mTranscodeHelper.prepareIoPath(path, uid);
+            final boolean transformsComplete = mTranscodeHelper.isTranscodeFileCached(path, ioPath);
+
+            return new FileLookupResult(FLAG_TRANSFORM_TRANSCODING, transformsReason, uid,
+                    transformsComplete, /* transformsSupported */ true, ioPath);
+        }
+
+        return new FileLookupResult(/* transforms */ 0, transformsReason, uid,
+                /* transformsComplete */ true, /* transformsSupported */ true, "");
     }
 
-    private boolean isSyntheticDirPath(String path, int uid) {
-        final String transformsSyntheticDir = getStorageRootPathForUid(uid) + "/"
-                + TRANSFORMS_SYNTHETIC_DIR;
-        return path != null && path.toLowerCase(Locale.ROOT).startsWith(
-                transformsSyntheticDir.toLowerCase(Locale.ROOT));
-    }
-
-    private FileLookupResult getFileLookupResultsForRedactedUriPath(int uid, @NonNull String path) {
+    private FileLookupResult handleRedactedFileLookup(int uid, @NonNull String path) {
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         final String fileName = extractFileName(path);
 
@@ -1601,15 +1603,82 @@ public class MediaProvider extends ContentProvider {
                 (db) -> db.query("files", new String[]{MediaColumns.DATA},
                         FileColumns.REDACTED_URI_ID + "=?", new String[]{fileName}, null, null,
                         null))) {
-            if (!c.moveToFirst()) {
-                return new FileLookupResult(FLAG_TRANSFORM_REDACTION, 0, uid, false, true, null);
+            if (c.moveToFirst()) {
+                return new FileLookupResult(FLAG_TRANSFORM_REDACTION, uid, c.getString(0));
             }
 
-            return new FileLookupResult(FLAG_TRANSFORM_REDACTION, 0, uid, true, true,
-                    c.getString(0));
+            throw new IllegalStateException("Failed to fetch synthetic redacted path: " + path);
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    private FileLookupResult handlePickerFileLookup(int userId, int uid, @NonNull String path) {
+        final File file = new File(path);
+        final List<String> syntheticRelativePathSegments =
+                extractSyntheticRelativePathSegements(path, userId);
+        final int segmentCount = syntheticRelativePathSegments.size();
+
+        if (segmentCount < 1 || segmentCount > 4) {
+            throw new IllegalStateException("Unexpected synthetic picker path: " + file);
+        }
+
+        final String lastSegment = syntheticRelativePathSegments.get(segmentCount - 1);
+
+        boolean result = false;
+        switch (segmentCount) {
+            case 1:
+                // .../picker
+                if (lastSegment.equals("picker")) {
+                    result = file.exists() || file.mkdir();
+                }
+                break;
+            case 2:
+                // .../picker/<authority>
+                result = preparePickerAuthorityPathSegment(file, lastSegment, uid);
+                break;
+            case 3:
+                // .../picker/<authority>/media
+                if (lastSegment.equals("media")) {
+                    result = file.exists() || file.mkdir();
+                }
+                break;
+            case 4:
+                // .../picker/<authority>/media/<media-id.extension>
+                final String authority = syntheticRelativePathSegments.get(1);
+                result = preparePickerMediaIdPathSegment(file, authority, lastSegment);
+                break;
+        }
+
+        if (result) {
+            return new FileLookupResult(FLAG_TRANSFORM_PICKER, uid, path);
+        }
+        throw new IllegalStateException("Failed to prepare synthetic picker path: " + file);
+    }
+
+    private boolean preparePickerAuthorityPathSegment(File file, String authority, int uid) {
+        if (mPickerSyncController.isProviderEnabled(authority)) {
+            return file.mkdir();
+        }
+
+        return false;
+    }
+
+    private boolean preparePickerMediaIdPathSegment(File file, String authority, String fileName) {
+        final String mediaId = extractFileName(fileName);
+
+        try (Cursor cursor = mPickerDbFacade.queryMediaId(authority, mediaId)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                final int sizeBytesIdx = cursor.getColumnIndex(
+                        CloudMediaProviderContract.MediaColumns.SIZE_BYTES);
+
+                if (sizeBytesIdx != -1) {
+                    return createSparseFile(file, cursor.getLong(sizeBytesIdx));
+                }
+            }
+        }
+
+        return false;
     }
 
     public int getBinderUidForFuse(int uid, int tid) {
@@ -1624,6 +1693,10 @@ public class MediaProvider extends ContentProvider {
             }
             return info.uid;
         }
+    }
+
+    private static int uidToUserId(int uid) {
+        return uid / PER_USER_RANGE;
     }
 
     /**
@@ -2999,13 +3072,13 @@ public class MediaProvider extends ContentProvider {
         String ext = getFileExtensionFromCursor(c, columnNames);
         ext = ext == null ? "" : "." + ext;
         final String displayName = redactedUriId + ext;
-        final String data = getPathForRedactedUriId(displayName);
-
+        final String data = buildPrimaryVolumeFile(uidToUserId(Binder.getCallingUid()),
+                getRedactedRelativePath(), displayName).getAbsolutePath();
 
         updateRow(columnNames, MediaColumns._ID, row, redactedUriId);
         updateRow(columnNames, MediaColumns.DISPLAY_NAME, row, displayName);
-        updateRow(columnNames, MediaColumns.RELATIVE_PATH, row, REDACTED_URI_DIR);
-        updateRow(columnNames, MediaColumns.BUCKET_DISPLAY_NAME, row, REDACTED_URI_DIR);
+        updateRow(columnNames, MediaColumns.RELATIVE_PATH, row, getRedactedRelativePath());
+        updateRow(columnNames, MediaColumns.BUCKET_DISPLAY_NAME, row, getRedactedRelativePath());
         updateRow(columnNames, MediaColumns.DATA, row, data);
         updateRow(columnNames, MediaColumns.DOCUMENT_ID, row, null);
         updateRow(columnNames, MediaColumns.INSTANCE_ID, row, null);
@@ -3024,15 +3097,6 @@ public class MediaProvider extends ContentProvider {
             return extractFileExtension(c.getString(c.getColumnIndex(MediaColumns.DISPLAY_NAME)));
         }
         return null;
-    }
-
-    static private String getPathForRedactedUriId(@NonNull String displayName) {
-        return getStorageRootPathForUid(Binder.getCallingUid()) + "/" + REDACTED_URI_DIR + "/"
-                + displayName;
-    }
-
-    static private String getStorageRootPathForUid(int uid) {
-        return "/storage/emulated/" + (uid / PER_USER_RANGE);
     }
 
     private void updateRow(HashSet<String> columnNames, String columnName,
@@ -5673,7 +5737,7 @@ public class MediaProvider extends ContentProvider {
             }
             case MediaStore.SCAN_FILE_CALL:
             case MediaStore.SCAN_VOLUME_CALL: {
-                final int userId = Binder.getCallingUid() / PER_USER_RANGE;
+                final int userId = uidToUserId(Binder.getCallingUid());
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
                 final CallingIdentity providerToken = clearCallingIdentity();
                 try {
@@ -6628,7 +6692,8 @@ public class MediaProvider extends ContentProvider {
             } else if (!Objects.equals(beforeVolume, probeVolume)) {
                 throw new IllegalArgumentException("Changing volume from " + beforePath + " to "
                         + probePath + " not allowed");
-            } else if (!isUpdateAllowedForOwnedPath(beforeOwner, probeOwner)) {
+            } else if (!isUpdateAllowedForOwnedPath(beforeOwner, probeOwner, beforePath,
+                    probePath)) {
                 throw new IllegalArgumentException("Changing ownership from " + beforePath + " to "
                         + probePath + " not allowed");
             } else {
@@ -6815,8 +6880,22 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isUpdateAllowedForOwnedPath(@Nullable String srcOwner,
-            @Nullable String destOwner) {
-        // Allow update from srcPath if the source is not a owned path or calling package is the
+            @Nullable String destOwner, @NonNull String srcPath, @NonNull String destPath) {
+        // 1. Allow if the update is within owned path
+        // update() from /sdcard/Android/media/com.foo/ABC/image.jpeg to
+        // /sdcard/Android/media/com.foo/XYZ/image.jpeg - Allowed
+        if(Objects.equals(srcOwner, destOwner)) {
+            return true;
+        }
+
+        // 2. Check if the calling package is a special app which has global access
+        if (isCallingPackageManager() ||
+                (canAccessMediaFile(srcPath, /* allowLegacy */ false) &&
+                        (canAccessMediaFile(destPath, /* allowLegacy */ false)))) {
+            return true;
+        }
+
+        // 3. Allow update from srcPath if the source is not a owned path or calling package is the
         // owner of the source path or calling package shares the UID with the owner of the source
         // path
         // update() from /sdcard/DCIM/Foo.jpeg - Allowed
@@ -6825,8 +6904,8 @@ public class MediaProvider extends ContentProvider {
         final boolean isSrcUpdateAllowed = srcOwner == null
                 || isCallingIdentitySharedPackageName(srcOwner);
 
-        // Allow update to dstPath if the destination is not a owned path or calling package is the
-        // owner of the destination path or calling package shares the UID with the owner of the
+        // 4. Allow update to dstPath if the destination is not a owned path or calling package is
+        // the owner of the destination path or calling package shares the UID with the owner of the
         // destination path
         // update() to /sdcard/Pictures/image.jpeg - Allowed
         // update() to /sdcard/Android/media/com.foo/image.jpeg - Allowed for
@@ -8269,6 +8348,7 @@ public class MediaProvider extends ContentProvider {
         boolean isSuccess = false;
 
         final int originalUid = getBinderUidForFuse(uid, tid);
+        final int callingUserId = uidToUserId(uid);
         int mediaCapabilitiesUid = 0;
         final PendingOpenInfo pendingOpenInfo;
         synchronized (mPendingOpenInfo) {
@@ -8282,7 +8362,7 @@ public class MediaProvider extends ContentProvider {
         try {
             boolean forceRedaction = false;
             String redactedUriId = null;
-            if (isSyntheticFilePathForRedactedUri(path, uid)) {
+            if (isRedactedPath(path, callingUserId)) {
                 if (forWrite) {
                     // Redacted URIs are not allowed to update EXIF headers.
                     return new FileOpenResult(OsConstants.EACCES /* status */, originalUid,
@@ -8298,7 +8378,7 @@ public class MediaProvider extends ContentProvider {
                 // Irrespective of the permissions we want to redact in this case.
                 redact = true;
                 forceRedaction = true;
-            } else if (isSyntheticDirPath(path, uid)) {
+            } else if (isSyntheticPath(path, callingUserId)) {
                 // we don't support any other transformations under .transforms/synthetic dir
                 return new FileOpenResult(OsConstants.ENOENT /* status */, originalUid,
                         mediaCapabilitiesUid, new long[0]);
@@ -9756,11 +9836,13 @@ public class MediaProvider extends ContentProvider {
             // it. It finds the first best child match and proceeds the match from there without
             // looking at other siblings.
             mPublic.addURI(auth, "picker", PICKER);
+            // TODO(b/195009139): Remove after switching picker URI to new format
             // content://media/picker/<user-id>/<media-id>
             mPublic.addURI(auth, "picker/#/#", PICKER_ID);
+            // content://media/picker/<user-id>/<authority>/media/<media-id>
+            mPublic.addURI(auth, "picker/#/*/media/*", PICKER_ID);
             // content://media/picker/unreliable/<media_id>
             mPublic.addURI(auth, "picker/unreliable/#", PICKER_UNRELIABLE_VOLUME);
-
             mPublic.addURI(auth, "*/images/media", IMAGES_MEDIA);
             mPublic.addURI(auth, "*/images/media/#", IMAGES_MEDIA_ID);
             mPublic.addURI(auth, "*/images/media/#/thumbnail", IMAGES_MEDIA_ID_THUMBNAIL);

@@ -30,6 +30,12 @@ android_app {
         "guava",
         "modules-utils-build",
         "glide-prebuilt",
+        "glide-gifdecoder-prebuilt",
+        "glide-disklrucache-prebuilt",
+        "glide-annotation-and-compiler-prebuilt",
+        "androidx.fragment_fragment",
+        "androidx.vectordrawable_vectordrawable-animated",
+        "androidx.exifinterface_exifinterface",
     ],
 
     libs: [
@@ -60,6 +66,7 @@ android_app {
     plugins: [
         "java_api_finder",
         "error_prone_mediaprovider",
+        "glide-annotation-processor",
     ],
 
     sdk_version: "module_current",

@@ -534,6 +534,24 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testSpecialFormatDefaultValue() throws Exception {
+        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test_specialFormat");
+        values.put(MediaColumns.MIME_TYPE, "image/png");
+        Uri result = sIsolatedResolver.insert(uri, values);
+        try (Cursor c = sIsolatedResolver.query(result,
+                new String[]{MediaColumns.DISPLAY_NAME, FileColumns._SPECIAL_FORMAT},
+                null, null)) {
+            assertNotNull(c);
+            assertEquals(1, c.getCount());
+            assertTrue(c.moveToFirst());
+            assertEquals("test_specialFormat.png", c.getString(0));
+            assertEquals(FileColumns._SPECIAL_FORMAT_NONE, c.getInt(1));
+        }
+    }
+
+    @Test
     public void testBuildData_Primary() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/DCIM/IMG_1024.JPG",

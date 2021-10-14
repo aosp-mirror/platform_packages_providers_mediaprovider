@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.photopicker.data.model.UserId;
@@ -30,6 +31,7 @@ import com.android.providers.media.photopicker.data.model.UserId;
  * A utility class for cross-profile usage.
  */
 public class CrossProfileUtils {
+    private static final String TAG = "CrossProfileUtils";
 
     /**
      * Whether {@link MediaStore#ACTION_PICK_IMAGES} intent is allowed to show cross profile content
@@ -66,6 +68,8 @@ public class CrossProfileUtils {
             if (client != null) {
                 return true;
             }
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, "Unable to get content resolver for the given userId: " + userId, e);
         }
         return false;
     }

@@ -46,8 +46,32 @@
     <string name="add" msgid="2894574044585549298">"Додај"</string>
     <string name="deselect" msgid="4297825044827769490">"Поништи го изборот"</string>
     <string name="select" msgid="2704765470563027689">"Избери"</string>
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="one">Изберете до <xliff:g id="COUNT_1">^1</xliff:g> ставка</item>
+      <item quantity="other">Изберете до <xliff:g id="COUNT_1">^1</xliff:g> ставки</item>
+    </plurals>
     <string name="recent" msgid="6694613584743207874">"Неодамнешни"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Прикажи ги избраните"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"Фотографии"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"Албуми"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Префрли на работен профил"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Префрли на личен профил"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано од вашиот администратор"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Не е дозволено пристапување до работни податоци од лична апликација"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Не е дозволено пристапување до лични податоци од работна апликација"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Работните апликации се паузирани"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"За да ги отворите работните фотографии, вклучете ги работните апликации, па обидете се повторно"</string>
+    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
+      <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> ставка</item>
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> ставки</item>
+    </plurals>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Додај (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"Камера"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"Преземања"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"Омилени"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"Слики од екранот"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотека?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотеки?</item>

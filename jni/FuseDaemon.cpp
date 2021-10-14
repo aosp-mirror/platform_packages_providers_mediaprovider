@@ -685,7 +685,9 @@ static void pf_destroy(void* userdata) {
 }
 
 // Return true if the path is accessible for that uid.
-static bool is_app_accessible_path(MediaProviderWrapper* mp, const string& path, uid_t uid) {
+static bool is_app_accessible_path(struct fuse* fuse, const string& path, uid_t uid) {
+    MediaProviderWrapper* mp = fuse->mp;
+
     if (uid < AID_APP_START || uid == MY_UID) {
         return true;
     }
@@ -704,7 +706,7 @@ static bool is_app_accessible_path(MediaProviderWrapper* mp, const string& path,
         if (pkg == ".nomedia") {
             return true;
         }
-        if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
+        if (!fuse->bpf && android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
             // Emulated storage bind-mounts app-private data directories, and so these
             // should not be accessible through FUSE anyway.
             LOG(WARNING) << "Rejected access to app-private dir on FUSE: " << path
@@ -731,7 +733,7 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
     string parent_path = parent_node->BuildPath();
     // We should always allow lookups on the root, because failing them could cause
     // bind mounts to be invalidated.
-    if (!fuse->IsRoot(parent_node) && !is_app_accessible_path(fuse->mp, parent_path, req->ctx.uid)) {
+    if (!fuse->IsRoot(parent_node) && !is_app_accessible_path(fuse, parent_path, req->ctx.uid)) {
         *error_code = ENOENT;
         return nullptr;
     }
@@ -824,7 +826,7 @@ static void pf_getattr(fuse_req_t req,
         return;
     }
     const string& path = get_path(node);
-    if (!is_app_accessible_path(fuse->mp, path, req->ctx.uid)) {
+    if (!is_app_accessible_path(fuse, path, req->ctx.uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -852,7 +854,7 @@ static void pf_setattr(fuse_req_t req,
         return;
     }
     const string& path = get_path(node);
-    if (!is_app_accessible_path(fuse->mp, path, req->ctx.uid)) {
+    if (!is_app_accessible_path(fuse, path, req->ctx.uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -947,7 +949,7 @@ static void pf_canonical_path(fuse_req_t req, fuse_ino_t ino)
     node* node = fuse->FromInode(ino);
     const string& path = node ? get_path(node) : "";
 
-    if (node && is_app_accessible_path(fuse->mp, path, req->ctx.uid)) {
+    if (node && is_app_accessible_path(fuse, path, req->ctx.uid)) {
         // TODO(b/147482155): Check that uid has access to |path| and its contents
         fuse_reply_canonical_path(req, path.c_str());
         return;
@@ -968,7 +970,7 @@ static void pf_mknod(fuse_req_t req,
         return;
     }
     string parent_path = parent_node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, parent_path, req->ctx.uid)) {
+    if (!is_app_accessible_path(fuse, parent_path, req->ctx.uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1006,7 +1008,7 @@ static void pf_mkdir(fuse_req_t req,
     }
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     const string parent_path = parent_node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, parent_path, ctx->uid)) {
+    if (!is_app_accessible_path(fuse, parent_path, ctx->uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1047,7 +1049,7 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
     }
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     const string parent_path = parent_node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, parent_path, ctx->uid)) {
+    if (!is_app_accessible_path(fuse, parent_path, ctx->uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1076,7 +1078,7 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
         return;
     }
     const string parent_path = parent_node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, parent_path, req->ctx.uid)) {
+    if (!is_app_accessible_path(fuse, parent_path, req->ctx.uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1131,7 +1133,7 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     if (!old_parent_node) return ENOENT;
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     const string old_parent_path = old_parent_node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, old_parent_path, ctx->uid)) {
+    if (!is_app_accessible_path(fuse, old_parent_path, ctx->uid)) {
         return ENOENT;
     }
 
@@ -1144,7 +1146,7 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     node* new_parent_node = fuse->FromInode(new_parent);
     if (!new_parent_node) return ENOENT;
     const string new_parent_path = new_parent_node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, new_parent_path, ctx->uid)) {
+    if (!is_app_accessible_path(fuse, new_parent_path, ctx->uid)) {
         return ENOENT;
     }
 
@@ -1320,7 +1322,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     const string& io_path = get_path(node);
     const string& build_path = node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, io_path, ctx->uid)) {
+    if (!is_app_accessible_path(fuse, io_path, ctx->uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1607,7 +1609,7 @@ static void pf_opendir(fuse_req_t req,
     }
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     const string path = node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, path, ctx->uid)) {
+    if (!is_app_accessible_path(fuse, path, ctx->uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1657,7 +1659,7 @@ static void do_readdir_common(fuse_req_t req,
         return;
     }
     const string path = node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, path, req->ctx.uid)) {
+    if (!is_app_accessible_path(fuse, path, req->ctx.uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1805,7 +1807,7 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
         return;
     }
     const string path = node->BuildPath();
-    if (path != PRIMARY_VOLUME_PREFIX && !is_app_accessible_path(fuse->mp, path, req->ctx.uid)) {
+    if (path != PRIMARY_VOLUME_PREFIX && !is_app_accessible_path(fuse, path, req->ctx.uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1870,7 +1872,7 @@ static void pf_create(fuse_req_t req,
         return;
     }
     const string parent_path = parent_node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, parent_path, req->ctx.uid)) {
+    if (!is_app_accessible_path(fuse, parent_path, req->ctx.uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }

@@ -47,64 +47,136 @@
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> endrer <xliff:g id="COUNT">^2</xliff:g> lydfiler?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> endrer denne lydfilen?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="other">Endrer <xliff:g id="COUNT">^1</xliff:g> lydfiler …</item>
+      <item quantity="one">Endrer lydfilen …</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> endrer <xliff:g id="COUNT">^2</xliff:g> videoer?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> endrer denne videoen?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="other">Endrer <xliff:g id="COUNT">^1</xliff:g> videoer …</item>
+      <item quantity="one">Endrer videoen …</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> endrer <xliff:g id="COUNT">^2</xliff:g> bilder?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> endrer dette bildet?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="other">Endrer <xliff:g id="COUNT">^1</xliff:g> bilder …</item>
+      <item quantity="one">Endrer bildet …</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> endrer <xliff:g id="COUNT">^2</xliff:g> elementer?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> endrer dette elementet?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="other">Endrer <xliff:g id="COUNT">^1</xliff:g> elementer …</item>
+      <item quantity="one">Endrer elementet …</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> flytter <xliff:g id="COUNT">^2</xliff:g> lydfiler til papirkurven?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> flytter denne lydfilen til papirkurven?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="other">Flytter <xliff:g id="COUNT">^1</xliff:g> lydfiler til papirkurven …</item>
+      <item quantity="one">Flytter lydfilen til papirkurven …</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> flytter <xliff:g id="COUNT">^2</xliff:g> videoer til papirkurven?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> flytter denne videoen til papirkurven?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="other">Flytter <xliff:g id="COUNT">^1</xliff:g> videoer til papirkurven …</item>
+      <item quantity="one">Flytter videoen til papirkurven …</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> flytter <xliff:g id="COUNT">^2</xliff:g> bilder til papirkurven?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> flytter dette bildet til papirkurven?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="other">Flytter <xliff:g id="COUNT">^1</xliff:g> bilder til papirkurven …</item>
+      <item quantity="one">Flytter bildet til papirkurven …</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> flytter <xliff:g id="COUNT">^2</xliff:g> elementer til papirkurven?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> flytter dette elementet til papirkurven?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="other">Flytter <xliff:g id="COUNT">^1</xliff:g> elementer til papirkurven …</item>
+      <item quantity="one">Flytter elementet til papirkurven …</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> flytter <xliff:g id="COUNT">^2</xliff:g> lydfiler ut av papirkurven?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> flytter denne lydfilen ut av papirkurven?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="other">Flytter <xliff:g id="COUNT">^1</xliff:g> lydfiler ut av papirkurven …</item>
+      <item quantity="one">Flytter lydfilen ut av papirkurven …</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> flytter <xliff:g id="COUNT">^2</xliff:g> videoer ut av papirkurven?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> flytter denne videoen ut av papirkurven?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="other">Flytter <xliff:g id="COUNT">^1</xliff:g> videoer ut av papirkurven …</item>
+      <item quantity="one">Flytter videoen ut av papirkurven …</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> flytter <xliff:g id="COUNT">^2</xliff:g> bilder ut av papirkurven?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> flytter dette bildet ut av papirkurven?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="other">Flytter <xliff:g id="COUNT">^1</xliff:g> bilder ut av papirkurven …</item>
+      <item quantity="one">Flytter bildet ut av papirkurven …</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> flytter <xliff:g id="COUNT">^2</xliff:g> elementer ut av papirkurven?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> flytter dette elementet ut av papirkurven?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="other">Flytter <xliff:g id="COUNT">^1</xliff:g> elementer ut av papirkurven …</item>
+      <item quantity="one">Flytter elementet ut av papirkurven …</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> sletter <xliff:g id="COUNT">^2</xliff:g> lydfiler?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> sletter denne lydfilen?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="other">Sletter <xliff:g id="COUNT">^1</xliff:g> lydfiler …</item>
+      <item quantity="one">Sletter lydfilen …</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> sletter <xliff:g id="COUNT">^2</xliff:g> videoer?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> sletter denne videoen?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="other">Sletter <xliff:g id="COUNT">^1</xliff:g> videoer …</item>
+      <item quantity="one">Sletter videoen …</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> sletter <xliff:g id="COUNT">^2</xliff:g> bilder?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> sletter dette bildet?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="other">Sletter <xliff:g id="COUNT">^1</xliff:g> bilder …</item>
+      <item quantity="one">Sletter bildet …</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="other">Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> sletter <xliff:g id="COUNT">^2</xliff:g> elementer?</item>
       <item quantity="one">Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> sletter dette elementet?</item>
     </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="other">Sletter <xliff:g id="COUNT">^1</xliff:g> elementer …</item>
+      <item quantity="one">Sletter elementet …</item>
+    </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> kan ikke behandle mediefiler"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Behandlingen av mediene er avbrutt"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Feil under behandling av mediene"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Mediene er blitt behandlet"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Behandlingen av mediene er startet"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Mediene behandles …"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Avbryt"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Vent"</string>
 </resources>

@@ -34,9 +34,12 @@ java_sdk_library {
     ],
 
     installable: true,
-    min_sdk_version: "30",
 
-    libs: ["unsupportedappusage"],
+    libs: [
+        "androidx.annotation_annotation",
+        "framework-media.stubs.module_lib",
+        "unsupportedappusage",
+    ],
 
     hostdex: true, // for hiddenapi check
     impl_library_visibility: [
@@ -46,6 +49,7 @@ java_sdk_library {
         "com.android.mediaprovider",
         "test_com.android.mediaprovider",
     ],
+    min_sdk_version: "30",
 }
 
 filegroup {

@@ -69,9 +69,9 @@ cc_library_shared {
         "-google-runtime-int",
     ],
 
-    min_sdk_version: "30",
     sdk_version: "current",
     stl: "c++_static",
+    min_sdk_version: "30",
 }
 
 cc_test {

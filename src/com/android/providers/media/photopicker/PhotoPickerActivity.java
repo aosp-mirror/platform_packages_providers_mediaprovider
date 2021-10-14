@@ -47,7 +47,6 @@ import androidx.lifecycle.ViewModelProvider;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.AlbumsTabFragment;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
 import com.android.providers.media.photopicker.ui.PreviewFragment;
@@ -60,7 +59,6 @@ import com.google.android.material.chip.Chip;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.List;
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The

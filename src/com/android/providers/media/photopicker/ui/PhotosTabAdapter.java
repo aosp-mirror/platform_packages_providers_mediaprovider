@@ -40,15 +40,18 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     public static final int COLUMN_COUNT = 3;
 
     private List<Item> mItemList = new ArrayList<>();
-    private ImageLoader mImageLoader;
-    private View.OnClickListener mOnClickListener;
-    private Selection mSelection;
+    private final ImageLoader mImageLoader;
+    private final View.OnClickListener mOnClickListener;
+    private final View.OnLongClickListener mOnLongClickListener;
+    private final Selection mSelection;
 
     public PhotosTabAdapter(@NonNull Selection selection, @NonNull ImageLoader imageLoader,
-            @NonNull View.OnClickListener listener) {
+            @NonNull View.OnClickListener onClickListener,
+            @NonNull View.OnLongClickListener onLongClickListener) {
         mImageLoader = imageLoader;
         mSelection = selection;
-        mOnClickListener = listener;
+        mOnClickListener = onClickListener;
+        mOnLongClickListener = onLongClickListener;
     }
 
     @NonNull
@@ -68,6 +71,7 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
         if (getItemViewType(position) == ITEM_TYPE_PHOTO) {
             itemHolder.itemView.setOnClickListener(mOnClickListener);
+            itemHolder.itemView.setOnLongClickListener(mOnLongClickListener);
             itemHolder.itemView.setSelected(mSelection.isItemSelected(item));
         }
         itemHolder.bind();

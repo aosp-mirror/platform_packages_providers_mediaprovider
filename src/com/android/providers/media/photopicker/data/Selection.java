@@ -84,11 +84,11 @@ public class Selection {
     }
 
     /**
-     * Delete the selected {@code item} from the selected item list {@link #mSelectedItems}.
+     * Remove the {@code item} from the selected item list {@link #mSelectedItems}.
      *
-     * @param item the item to be deleted from the selected item list
+     * @param item the item to be removed from the selected item list
      */
-    public void deleteSelectedItem(Item item) {
+    public void removeSelectedItem(Item item) {
         mSelectedItems.remove(item.getContentUri());
         mSelectedItemSize.postValue(mSelectedItems.size());
         updateSelectionAllowed();

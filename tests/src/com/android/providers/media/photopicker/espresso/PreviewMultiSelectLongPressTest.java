@@ -16,43 +16,44 @@
 
 package com.android.providers.media.photopicker.espresso;
 
+import static androidx.test.InstrumentationRegistry.getTargetContext;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
-import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
-import static androidx.test.espresso.matcher.ViewMatchers.isSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
-import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 
-import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
+import androidx.lifecycle.ViewModelProvider;
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4ClassRunner.class)
-public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
+public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
     private static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
 
     @Rule
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule
-            = new ActivityScenarioRule<>(PhotoPickerBaseTest.getSingleSelectionIntent());
+            = new ActivityScenarioRule<>(PhotoPickerBaseTest.getMultiSelectionIntent());
 
     @Test
-    public void testPreview_singleSelect_image() {
+    public void testPreview_multiSelect_longPress_image() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
@@ -61,7 +62,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         registerIdlingResourceAndWaitForIdle();
 
         // Verify image is previewed
-        assertSingleSelectCommonLayoutMatches();
+        assertMultiSelectLongPressCommonLayoutMatches();
         onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
 
         // Navigate back to Photo grid
@@ -71,7 +72,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    public void testPreview_singleSelect_video() {
+    public void testPreview_multiSelect_longPress_video() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
@@ -83,12 +84,12 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         onView(withText(android.R.string.ok)).perform(click());
 
         // Verify videoView is displayed
-        assertSingleSelectCommonLayoutMatches();
+        assertMultiSelectLongPressCommonLayoutMatches();
         onView(withId(R.id.preview_videoView)).check(matches(isDisplayed()));
     }
 
     @Test
-    public void testPreview_singleSelect_gif() {
+    public void testPreview_multiSelect_longPress_gif() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
@@ -97,40 +98,49 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         registerIdlingResourceAndWaitForIdle();
 
         // Verify imageView is displayed for gif preview
-        assertSingleSelectCommonLayoutMatches();
+        assertMultiSelectLongPressCommonLayoutMatches();
         onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
     }
 
     @Test
-    public void testPreview_singleSelect_fromAlbumsPhoto() {
-        // Navigate to Albums tab
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
-                .perform(click());
+    public void testPreview_multiSelect_longPress_select() {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        final int cameraStringId = R.string.picker_category_camera;
-        // Navigate to photos in Camera album
-        onView(allOf(withText(cameraStringId),
-                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
-
-        // Verify that toolbar has the title as category name Camera
-        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
-                .check(matches(isDisplayed()));
-
+        final int position = 1;
         // Navigate to preview
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
 
         registerIdlingResourceAndWaitForIdle();
 
-        // Verify image is previewed
-        assertSingleSelectCommonLayoutMatches();
-        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+        final int selectButtonId = R.id.preview_add_or_select_button;
+        // Select the item within Preview
+        onView(withId(selectButtonId)).perform(click());
+        // Check that button text is changed to "deselect"
+        onView(withId(selectButtonId)).check(matches(withText(R.string.deselect)));
 
-        // Navigate back to Camera album
+        // Navigate back to PhotoGrid and check that item is selected
         onView(withContentDescription("Navigate up")).perform(click());
 
-        // Verify that toolbar has the title as category name Camera
-        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
-                .check(matches(isDisplayed()));
+        final int iconCheckId = R.id.icon_check;
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, position, iconCheckId);
+
+        // Navigate to Preview and check the select button text
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+
+        registerIdlingResourceAndWaitForIdle();
+
+        // Check that button text is set to "deselect" and common layout matches
+        assertMultiSelectLongPressCommonLayoutMatches(/* isSelected */ true);
+
+        // Click on "Deselect" and verify text changes to "Select"
+        onView(withId(selectButtonId)).perform(click());
+        // Check that button text is changed to "select"
+        onView(withId(selectButtonId)).check(matches(withText(R.string.select)));
+
+        // Navigate back to Photo grid and verify the item is not selected
+        onView(withContentDescription("Navigate up")).perform(click());
+
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, position, iconCheckId);
     }
 
     private void registerIdlingResourceAndWaitForIdle() {
@@ -139,11 +149,21 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         Espresso.onIdle();
     }
 
-    private void assertSingleSelectCommonLayoutMatches() {
+    private void assertMultiSelectLongPressCommonLayoutMatches() {
+        assertMultiSelectLongPressCommonLayoutMatches(/* isSelected */ false);
+    }
+
+    private void assertMultiSelectLongPressCommonLayoutMatches(boolean isSelected) {
         onView(withId(R.id.preview_viewPager)).check(matches(isDisplayed()));
         onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
         onView(withId(R.id.preview_add_or_select_button)).check(matches(isDisplayed()));
-        // Verify that the text in Add button
-        onView(withId(R.id.preview_add_or_select_button)).check(matches(withText(R.string.add)));
+        // Verify that the text in AddOrSelect button
+        if (isSelected) {
+            onView(withId(R.id.preview_add_or_select_button)).check(
+                    matches(withText(R.string.deselect)));
+        } else {
+            onView(withId(R.id.preview_add_or_select_button)).check(
+                    matches(withText(R.string.select)));
+        }
     }
 }

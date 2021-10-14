@@ -36,12 +36,12 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
+import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -51,7 +51,7 @@ import java.util.Locale;
 public class PreviewFragment extends Fragment {
     private static String TAG = "PreviewFragment";
 
-    private PickerViewModel mPickerViewModel;
+    private Selection mSelection;
     private ViewPager2 mViewPager;
     private PreviewAdapter mAdapter;
     private ViewPager2.OnPageChangeCallback mOnPageChangeCallBack;
@@ -59,7 +59,8 @@ public class PreviewFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
             Bundle savedInstanceState) {
-        mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
+        mSelection = new ViewModelProvider(requireActivity())
+                .get(PickerViewModel.class).getSelection();
         return inflater.inflate(R.layout.fragment_preview, parent, /* attachToRoot */ false);
     }
 
@@ -70,14 +71,17 @@ public class PreviewFragment extends Fragment {
         // adapter. If activity gets killed and recreated, we will lose items that were deselected.
         // TODO(b/185801129): Save the deselection state instead of making a copy of selected items.
         // TODO(b/185801129): Sort images/videos on based on date_taken
-        final List<Item> selectedItemList = new ArrayList<>(
-                mPickerViewModel.getSelectedItems().getValue().values());
+        final List<Item> selectedItemsList = mSelection.getSelectedItems();
+        final int selectedItemsListSize = selectedItemsList.size();
 
-        if (selectedItemList.size() > 1 && !mPickerViewModel.canSelectMultiple() ||
-                selectedItemList.size() <= 0) {
-            // TODO(b/185801129): This should never happen. Add appropriate log messages and
-            // handle UI transitions correctly on this error condition.
-            // We should also handle this situation in ViewModel
+        if (selectedItemsListSize <= 0) {
+            // This should never happen
+            Log.e(TAG, "No items to preview");
+            return;
+        } else if (selectedItemsListSize > 1 && !mSelection.canSelectMultiple()) {
+            // This should never happen
+            Log.e(TAG, "Found more than one preview items in single select mode."
+                    + " Selected items count: " + selectedItemsListSize);
             return;
         }
 
@@ -93,7 +97,7 @@ public class PreviewFragment extends Fragment {
         // Initialize adapter to hold selected items
         ImageLoader imageLoader = new ImageLoader(getContext());
         mAdapter = new PreviewAdapter(imageLoader);
-        mAdapter.updateItemList(selectedItemList);
+        mAdapter.updateItemList(selectedItemsList);
 
         // Initialize ViewPager2 to swipe between multiple pictures/videos in preview
         mViewPager = view.findViewById(R.id.preview_viewPager);
@@ -109,7 +113,7 @@ public class PreviewFragment extends Fragment {
         mViewPager.registerOnPageChangeCallback(mOnPageChangeCallBack);
 
         // Adjust the layout based on Single/Multi select and add appropriate onClick listeners
-        if (!mPickerViewModel.canSelectMultiple()) {
+        if (!mSelection.canSelectMultiple()) {
             // Adjust the select and add button layout for single select
             LayoutParams layoutParams
                     = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
@@ -117,8 +121,8 @@ public class PreviewFragment extends Fragment {
             selectButton.setVisibility(View.GONE);
         } else {
             // Update add button text to include number of items selected.
-            mPickerViewModel.getSelectedItems().observe(this, selectedItems -> {
-                addButton.setText(generateAddButtonString(getContext(), selectedItems.size()));
+            mSelection.getSelectedItemCount().observe(this, selectedItemCount -> {
+                addButton.setText(generateAddButtonString(getContext(), selectedItemCount));
             });
             selectButton.setOnClickListener(v -> {
                 onClickSelect(selectButton);
@@ -155,9 +159,9 @@ public class PreviewFragment extends Fragment {
         final Item currentItem = mAdapter.getItem(mViewPager.getCurrentItem());
 
         if (isSelected) {
-            mPickerViewModel.addSelectedItem(currentItem);
+            mSelection.addSelectedItem(currentItem);
         } else {
-            mPickerViewModel.deleteSelectedItem(currentItem);
+            mSelection.deleteSelectedItem(currentItem);
         }
         setSelected(selectButton, isSelected);
     }
@@ -172,12 +176,11 @@ public class PreviewFragment extends Fragment {
         @Override
         public void onPageSelected(int position) {
             // No action to take as we don't have deselect view here.
-            if (!mPickerViewModel.canSelectMultiple()) return;
+            if (!mSelection.canSelectMultiple()) return;
 
             // Set the appropriate select/deselect state for each item in each page based on the
             // selection list.
-            setSelected(mSelectButton, mPickerViewModel.getSelectedItems().getValue().containsKey(
-                    mAdapter.getItem(position).getContentUri()));
+            setSelected(mSelectButton, mSelection.isItemSelected(mAdapter.getItem(position)));
         }
     }
 

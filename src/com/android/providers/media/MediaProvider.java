@@ -66,7 +66,6 @@ import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.FileUtils.DEFAULT_FOLDER_NAMES;
 import static com.android.providers.media.util.FileUtils.PATTERN_PENDING_FILEPATH_FOR_SQL;
-import static com.android.providers.media.util.FileUtils.buildPath;
 import static com.android.providers.media.util.FileUtils.buildPrimaryVolumeFile;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileExtension;
@@ -88,7 +87,6 @@ import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_I
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
 import static com.android.providers.media.util.SyntheticPathUtils.createSparseFile;
 import static com.android.providers.media.util.SyntheticPathUtils.extractSyntheticRelativePathSegements;
-import static com.android.providers.media.util.SyntheticPathUtils.getPickerRelativePath;
 import static com.android.providers.media.util.SyntheticPathUtils.getRedactedRelativePath;
 import static com.android.providers.media.util.SyntheticPathUtils.isPickerPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isRedactedPath;
@@ -158,7 +156,6 @@ import android.os.Parcelable;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
-import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -701,6 +698,7 @@ public class MediaProvider extends ContentProvider {
                 long newId, int newMediaType, boolean newIsDownload,
                 boolean oldIsTrashed, boolean newIsTrashed,
                 boolean oldIsPending, boolean newIsPending,
+                boolean oldIsFavorite, boolean newIsFavorite,
                 String oldOwnerPackage, String newOwnerPackage, String oldPath) {
             final boolean isDownload = oldIsDownload || newIsDownload;
             final Uri fileUri = MediaStore.Files.getContentUri(volumeName, oldId);
@@ -715,7 +713,8 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 if (mExternalDbFacade.onFileUpdated(oldId, oldMediaType, newMediaType, oldIsTrashed,
-                                newIsTrashed, oldIsPending, newIsPending)) {
+                                newIsTrashed, oldIsPending, newIsPending, oldIsFavorite,
+                                newIsFavorite)) {
                     mPickerSyncController.notifyMediaEvent();
                 }
             });

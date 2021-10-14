@@ -19,6 +19,8 @@ package com.android.providers.media.photopicker.data;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
+import static com.android.providers.media.util.FileUtils.buildPrimaryVolumeFile;
+import static com.android.providers.media.util.SyntheticPathUtils.getPickerRelativePath;
 
 import android.content.ContentValues;
 import android.content.ContentUris;
@@ -30,6 +32,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.CloudMediaProviderContract;
+import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.os.Bundle;
 import android.os.SystemProperties;
@@ -76,6 +79,8 @@ public class PickerDbFacade {
     private static final int FAIL = -1;
 
     private static final String TABLE_MEDIA = "media";
+    private static final String PICKER_PATH = buildPrimaryVolumeFile(MediaStore.MY_USER_ID,
+            getPickerRelativePath()).getAbsolutePath();
 
     @VisibleForTesting
     public static final String KEY_ID = "_id";
@@ -618,6 +623,7 @@ public class PickerDbFacade {
     private String[] getProjectionLocked() {
         return new String[] {
             getProjectionAuthorityLocked(),
+            getProjectionDataLocked(),
             PROJECTION_ID,
             PROJECTION_DATE_TAKEN,
             PROJECTION_SIZE,
@@ -627,13 +633,31 @@ public class PickerDbFacade {
     }
 
     private String getProjectionAuthorityLocked() {
-        if (mCloudProvider == null) {
-            return String.format("'%s' AS %s", mLocalProvider,
-                    CloudMediaProviderContract.MediaColumns.AUTHORITY);
-        }
+        // Note that we prefer cloud_id over local_id here. It's important to remember that this
+        // logic is for computing the projection and doesn't affect the filtering of results which
+        // has already been done and ensures that only is_visible=true items are returned.
+        // Here, we need to distinguish between cloud+local and local-only items to determine the
+        // correct authority. Checking whether cloud_id IS NULL distinguishes the former from the
+        // latter.
         return String.format("IIF(%s IS NULL, '%s', '%s') AS %s",
                 KEY_CLOUD_ID, mLocalProvider, mCloudProvider,
                 CloudMediaProviderContract.MediaColumns.AUTHORITY);
+    }
+
+    private String getProjectionDataLocked() {
+        // _data format:
+        // /storage/emulated/<user-id>/.transforms/synthetic/<authority>/media/<media-id>
+        // See PickerUriResolver#getMediaUri
+        final String authority = String.format("IIF(%s IS NULL, '%s', '%s')",
+                KEY_CLOUD_ID, mLocalProvider, mCloudProvider);
+        // See comment in #getProjectionAuthorityLocked for why cloud_id is preferred over local_id
+        final String mediaId = String.format("IFNULL(%s, %s)", KEY_CLOUD_ID, KEY_LOCAL_ID);
+        final String fullPath = "'" + PICKER_PATH + "/'"
+                + "||" + authority
+                + "||" + "'/" + CloudMediaProviderContract.URI_PATH_MEDIA + "/'"
+                + "||" + mediaId;
+
+        return String.format("%s AS %s", fullPath, CloudMediaProviderContract.MediaColumns.DATA);
     }
 
     private static ContentValues cursorToContentValue(Cursor cursor, boolean isLocal) {

@@ -537,6 +537,37 @@ public class DatabaseHelperTest {
         }
     }
 
+    @Test
+    public void testAddSpecialFormat() throws Exception {
+        try (DatabaseHelper helper = new DatabaseHelperS(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            {
+                // Insert a row before database upgrade.
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test.jpg");
+                assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+            }
+        }
+
+        try (DatabaseHelper helper = new DatabaseHelperT(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            // Insert a row in the new version as well
+            final ContentValues values = new ContentValues();
+            values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test2.jpg");
+            assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+
+            try (Cursor cr = db.query("files", new String[]{FileColumns._SPECIAL_FORMAT}, null,
+                    null, null, null, null)) {
+                assertEquals(2, cr.getCount());
+                while (cr.moveToNext()) {
+                    // Verify that after db upgrade, for all database rows (new inserts and
+                    // upgrades), we set the default _special_format
+                    assertThat(cr.getInt(0)).isEqualTo(FileColumns._SPECIAL_FORMAT_NONE);
+                }
+            }
+        }
+    }
+
     /**
      * Test that database downgrade changed the UUID saved in database file.
      */

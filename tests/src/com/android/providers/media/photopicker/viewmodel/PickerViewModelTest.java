@@ -20,7 +20,6 @@ import static com.android.providers.media.photopicker.data.model.Category.CATEGO
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 import android.app.Application;
@@ -28,8 +27,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
-import android.net.Uri;
-import android.provider.MediaStore;
 import android.text.format.DateUtils;
 
 import androidx.annotation.NonNull;
@@ -53,7 +50,6 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerViewModelTest {
@@ -80,63 +76,6 @@ public class PickerViewModelTest {
         mPickerViewModel = new PickerViewModel(mApplication);
         mItemsProvider = new TestItemsProvider(context);
         mPickerViewModel.setItemsProvider(mItemsProvider);
-    }
-
-    @Test
-    public void testAddSelectedItem() throws Exception {
-        final String id = "1";
-        final Item item = generateFakeImageItem(id);
-
-        mPickerViewModel.addSelectedItem(item);
-
-        final Item selectedItem = mPickerViewModel.getSelectedItems().getValue().get(
-                item.getContentUri());
-
-        assertThat(selectedItem.getId()).isEqualTo(item.getId());
-        assertThat(selectedItem.getDateTaken()).isEqualTo(item.getDateTaken());
-        assertThat(selectedItem.getMimeType()).isEqualTo(item.getMimeType());
-        assertThat(selectedItem.getDuration()).isEqualTo(item.getDuration());
-    }
-
-    @Test
-    public void testDeleteSelectedItem() throws Exception {
-        final String id = "1";
-        final Item item = generateFakeImageItem(id);
-        Map<Uri, Item> selectedItems = mPickerViewModel.getSelectedItems().getValue();
-
-        assertThat(selectedItems.size()).isEqualTo(0);
-
-        mPickerViewModel.addSelectedItem(item);
-
-        selectedItems = mPickerViewModel.getSelectedItems().getValue();
-        assertThat(selectedItems.size()).isEqualTo(1);
-
-        mPickerViewModel.deleteSelectedItem(item);
-
-        selectedItems = mPickerViewModel.getSelectedItems().getValue();
-        assertThat(selectedItems.size()).isEqualTo(0);
-    }
-
-    @Test
-    public void testClearSelectedItem() throws Exception {
-        final String id1 = "1";
-        final Item item1 = generateFakeImageItem(id1);
-        final String id2 = "2";
-        final Item item2 = generateFakeImageItem(id2);
-        Map<Uri, Item> selectedItems = mPickerViewModel.getSelectedItems().getValue();
-
-        assertThat(selectedItems.size()).isEqualTo(0);
-
-        mPickerViewModel.addSelectedItem(item1);
-        mPickerViewModel.addSelectedItem(item2);
-
-        selectedItems = mPickerViewModel.getSelectedItems().getValue();
-        assertThat(selectedItems.size()).isEqualTo(2);
-
-        mPickerViewModel.clearSelectedItems();
-
-        selectedItems = mPickerViewModel.getSelectedItems().getValue();
-        assertThat(selectedItems.size()).isEqualTo(0);
     }
 
     @Test
@@ -328,148 +267,6 @@ public class PickerViewModelTest {
         }
     }
 
-    @Test
-    public void testParseValuesFromIntent_allowMultipleNotSupported() throws Exception {
-        final Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
-    }
-
-    @Test
-    public void testParseValuesFromIntent_setDefaultFalseForAllowMultiple() throws Exception {
-        final Intent intent = new Intent();
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.canSelectMultiple()).isFalse();
-    }
-
-    @Test
-    public void testParseValuesFromIntent_validMaxSelectionLimit() throws Exception {
-        final int maxLimit = MediaStore.getPickImagesMaxLimit() - 1;
-        final Intent intent = new Intent();
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.canSelectMultiple()).isTrue();
-        assertThat(mPickerViewModel.getMaxSelectionLimit()).isEqualTo(maxLimit);
-    }
-
-    @Test
-    public void testParseValuesFromIntent_negativeMaxSelectionLimit_throwsException()
-            throws Exception {
-        final Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, -1);
-
-        try {
-            mPickerViewModel.parseValuesFromIntent(intent);
-            fail("The maximum selection limit is not allowed to be negative");
-        } catch (IllegalArgumentException expected) {
-            // expected
-        }
-    }
-
-    @Test
-    public void testParseValuesFromIntent_tooLargeMaxSelectionLimit_throwsException()
-            throws Exception {
-        final Intent intent = new Intent();
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit() + 1);
-
-        try {
-            mPickerViewModel.parseValuesFromIntent(intent);
-            fail("The maximum selection limit should not be greater than "
-                    + "MediaStore.getPickImagesMaxLimit()");
-        } catch (IllegalArgumentException expected) {
-            // expected
-        }
-    }
-
-    @Test
-    public void testParseValuesFromIntent_actionGetContent() throws Exception {
-        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.canSelectMultiple()).isTrue();
-        assertThat(mPickerViewModel.getMaxSelectionLimit())
-                .isEqualTo(MediaStore.getPickImagesMaxLimit());
-    }
-
-    @Test
-    public void testParseValuesFromIntent_actionGetContent_doesNotRespectExtraPickImagesMax()
-            throws Exception {
-        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 5);
-
-        try {
-            mPickerViewModel.parseValuesFromIntent(intent);
-            fail("EXTRA_PICK_IMAGES_MAX is not supported for ACTION_GET_CONTENT");
-        } catch (IllegalArgumentException expected) {
-            // expected
-        }
-    }
-
-    @Test
-    public void testParseValuesFromIntent_noMimeType_defaultFalse()
-            throws Exception {
-        final Intent intent = new Intent();
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
-    }
-
-    @Test
-    public void testParseValuesFromIntent_validMimeType()
-            throws Exception {
-        final Intent intent = new Intent();
-        intent.setType("image/png");
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.hasMimeTypeFilter()).isTrue();
-    }
-
-    @Test
-    public void testParseValuesFromIntent_ignoreInvalidMimeType()
-            throws Exception {
-        final Intent intent = new Intent();
-        intent.setType("audio/*");
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
-    }
-
-    @Test
-    public void testIsSelectionAllowed_exceedsMaxSelectionLimit_selectionNotAllowed()
-            throws Exception {
-        final int maxLimit = 2;
-        final Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.isSelectionAllowed()).isTrue();
-
-        final String id1 = "1";
-        final Item item1 = generateFakeImageItem(id1);
-        mPickerViewModel.addSelectedItem(item1);
-
-        assertThat(mPickerViewModel.isSelectionAllowed()).isTrue();
-
-        final String id2 = "2";
-        final Item item2 = generateFakeImageItem(id2);
-        mPickerViewModel.addSelectedItem(item2);
-
-        assertThat(mPickerViewModel.isSelectionAllowed()).isFalse();
-    }
 
     private static Item generateFakeImageItem(String id) {
         final long dateTakenMs = System.currentTimeMillis() + Long.parseLong(id)
@@ -545,5 +342,34 @@ public class PickerViewModelTest {
         public void setCategoriesCursor(@NonNull Cursor cursor) {
             mCategoriesCursor = cursor;
         }
+    }
+
+    @Test
+    public void testParseValuesFromIntent_noMimeType_defaultFalse() {
+        final Intent intent = new Intent();
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
+    }
+
+    @Test
+    public void testParseValuesFromIntent_validMimeType() {
+        final Intent intent = new Intent();
+        intent.setType("image/png");
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.hasMimeTypeFilter()).isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromIntent_ignoreInvalidMimeType() {
+        final Intent intent = new Intent();
+        intent.setType("audio/*");
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
     }
 }

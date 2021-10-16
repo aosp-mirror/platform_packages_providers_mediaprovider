@@ -889,10 +889,17 @@ public class PickerDbFacadeTest {
     }
 
     private static void assertMediaCursor(Cursor cursor, String id) {
+        final String localData = "/storage/emulated/0/.transforms/synthetic/picker/"
+                + LOCAL_PROVIDER + "/media/" + id;
+        final String cloudData = "/storage/emulated/0/.transforms/synthetic/picker/"
+                + CLOUD_PROVIDER + "/media/" + id;
+
         assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.ID)))
                 .isEqualTo(id);
         assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.AUTHORITY)))
                 .isEqualTo(id.startsWith(LOCAL_ID) ? LOCAL_PROVIDER : CLOUD_PROVIDER);
+        assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.DATA)))
+                .isEqualTo(id.startsWith(LOCAL_ID) ? localData : cloudData);
     }
 
     private static void assertMediaCursor(Cursor cursor, String id, long dateTakenMs) {

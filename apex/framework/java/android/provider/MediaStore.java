@@ -278,7 +278,7 @@ public final class MediaStore {
     public static final String PARAM_LIMIT = "limit";
 
     /** {@hide} */
-    private static final int MY_USER_ID = UserHandle.myUserId();
+    public static final int MY_USER_ID = UserHandle.myUserId();
     /** {@hide} */
     public static final int MY_UID = android.os.Process.myUid();
     // Stolen from: UserHandle#getUserId
@@ -2039,6 +2039,46 @@ public final class MediaStore {
              */
             // @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String _USER_ID = "_user_id";
+
+            /**
+             * Special format for a file.
+             *
+             * Photo Picker requires special format tagging for media files.
+             * This is essential as {@link Images} collection can include
+             * images of various formats like Motion Photos, GIFs etc, which
+             * is not identifiable by {@link #MIME_TYPE}
+             *
+             * @hide
+             */
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            public static final String _SPECIAL_FORMAT = "_special_format";
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file doesn't have any special format associated with it.
+             * TODO(b/199522401): Expose these as public API for cloud providers.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_NONE = 0;
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file is a GIF file.
+             * TODO(b/199522401): Expose these as public API for cloud providers.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_GIF = 1;
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file is a Motion Photo.
+             * TODO(b/199522401): Expose these as public API for cloud providers.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_MOTION_PHOTO = 2;
         }
     }
 

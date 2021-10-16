@@ -32,6 +32,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
+import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import com.android.providers.media.util.ForegroundThread;
@@ -45,10 +46,8 @@ import java.util.Locale;
  * The base abstract Tab fragment
  */
 public abstract class TabFragment extends Fragment {
-
-    private static final String TAG =  "PhotoPickerTabFragment";
-
     protected PickerViewModel mPickerViewModel;
+    protected Selection mSelection;
     protected ImageLoader mImageLoader;
     protected AutoFitRecyclerView mRecyclerView;
 
@@ -73,11 +72,12 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
         mRecyclerView.setHasFixedSize(true);
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
+        mSelection = mPickerViewModel.getSelection();
 
         mProfileButton = view.findViewById(R.id.profile_button);
         mUserIdManager = mPickerViewModel.getUserIdManager();
 
-        final boolean canSelectMultiple = mPickerViewModel.canSelectMultiple();
+        final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
             final Button addButton = view.findViewById(R.id.button_add);
             addButton.setOnClickListener(v -> {
@@ -91,15 +91,14 @@ public abstract class TabFragment extends Fragment {
             });
             mBottomBarSize = (int) getResources().getDimension(R.dimen.picker_bottom_bar_size);
 
-            mPickerViewModel.getSelectedItems().observe(this, selectedItemList -> {
+            mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
                 final View bottomBar = view.findViewById(R.id.picker_bottom_bar);
-                final int size = selectedItemList.size();
                 int dimen = 0;
-                if (size == 0) {
+                if (selectedItemListSize == 0) {
                     bottomBar.setVisibility(View.GONE);
                 } else {
                     bottomBar.setVisibility(View.VISIBLE);
-                    addButton.setText(generateAddButtonString(getContext(), size));
+                    addButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
                     dimen = getBottomGapForRecyclerView(mBottomBarSize);
                 }
                 mRecyclerView.setPadding(0, 0, 0, dimen);
@@ -165,9 +164,9 @@ public abstract class TabFragment extends Fragment {
     }
 
     private boolean shouldShowProfileButton() {
-        return (!mPickerViewModel.canSelectMultiple() ||
-                mPickerViewModel.getSelectedItems().getValue().size() == 0) &&
-                !mHideProfileButton;
+        return !mHideProfileButton &&
+                (!mSelection.canSelectMultiple() ||
+                        mSelection.getSelectedItemCount().getValue() == 0);
     }
 
     private void onClickProfileButton() {

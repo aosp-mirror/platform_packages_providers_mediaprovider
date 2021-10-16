@@ -155,35 +155,40 @@ public class ExternalDbFacadeTest {
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_NONE, FileColumns.MEDIA_TYPE_NONE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
-                            /* oldIsPending */ false, /* newIsPending */ false)).isFalse();
+                            /* oldIsPending */ false, /* newIsPending */ false,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isFalse();
             assertDeletedMediaEmpty(facade);
 
             // Media -> non-media: added to deleted_media
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_NONE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
-                            /* oldIsPending */ false, /* newIsPending */ false)).isTrue();
+                            /* oldIsPending */ false, /* newIsPending */ false,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
             assertDeletedMedia(facade, ID1);
 
             // Non-media -> non-media: no-op
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_NONE, FileColumns.MEDIA_TYPE_NONE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
-                            /* oldIsPending */ false, /* newIsPending */ false)).isFalse();
+                            /* oldIsPending */ false, /* newIsPending */ false,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isFalse();
             assertDeletedMedia(facade, ID1);
 
             // Non-media -> media: remove from deleted_media
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_NONE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
-                            /* oldIsPending */ false, /* newIsPending */ false)).isTrue();
+                            /* oldIsPending */ false, /* newIsPending */ false,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
             assertDeletedMediaEmpty(facade);
 
             // Non-media -> media: no-op
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_NONE, FileColumns.MEDIA_TYPE_NONE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
-                            /* oldIsPending */ false, /* newIsPending */ false)).isFalse();
+                            /* oldIsPending */ false, /* newIsPending */ false,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isFalse();
             assertDeletedMediaEmpty(facade);
         }
     }
@@ -197,21 +202,24 @@ public class ExternalDbFacadeTest {
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ true, /* newIsTrashed */ false,
-                            /* oldIsPending */ false, /* newIsPending */ false)).isTrue();
+                            /* oldIsPending */ false, /* newIsPending */ false,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
             assertDeletedMediaEmpty(facade);
 
             // Was not trashed but is now trashed
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ true,
-                            /* oldIsPending */ false, /* newIsPending */ false)).isTrue();
+                            /* oldIsPending */ false, /* newIsPending */ false,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
             assertDeletedMedia(facade, ID1);
 
             // Was trashed but is now neither trashed nor pending
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ true, /* newIsTrashed */ false,
-                            /* oldIsPending */ false, /* newIsPending */ false)).isTrue();
+                            /* oldIsPending */ false, /* newIsPending */ false,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
             assertDeletedMediaEmpty(facade);
         }
     }
@@ -225,22 +233,67 @@ public class ExternalDbFacadeTest {
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
-                            /* oldIsPending */ true, /* newIsPending */ false)).isTrue();
+                            /* oldIsPending */ true, /* newIsPending */ false,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
             assertDeletedMediaEmpty(facade);
 
             // Was not pending but is now pending
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
-                            /* oldIsPending */ false, /* newIsPending */ true)).isTrue();
+                            /* oldIsPending */ false, /* newIsPending */ true,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
             assertDeletedMedia(facade, ID1);
 
             // Was pending but is now neither trashed nor pending
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
-                            /* oldIsPending */ true, /* newIsPending */ false)).isTrue();
+                            /* oldIsPending */ true, /* newIsPending */ false,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
             assertDeletedMediaEmpty(facade);
+        }
+    }
+
+    @Test
+    public void testOnUpdate_visibleFavorite() throws Exception {
+        try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
+            ExternalDbFacade facade = new ExternalDbFacade(sIsolatedContext, helper);
+
+            // Was favorite but is now not favorited
+            assertThat(facade.onFileUpdated(ID1,
+                            FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
+                            /* oldIsTrashed */ false, /* newIsTrashed */ false,
+                            /* oldIsPending */ false, /* newIsPending */ false,
+                            /* oldIsFavorite */ true, /* newIsFavorite */ false)).isTrue();
+
+            // Was not favorite but is now favorited
+            assertThat(facade.onFileUpdated(ID1,
+                            FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
+                            /* oldIsTrashed */ false, /* newIsTrashed */ false,
+                            /* oldIsPending */ false, /* newIsPending */ false,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ true)).isTrue();
+        }
+    }
+
+    @Test
+    public void testOnUpdate_hiddenFavorite() throws Exception {
+        try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
+            ExternalDbFacade facade = new ExternalDbFacade(sIsolatedContext, helper);
+
+            // Was favorite but is now not favorited
+            assertThat(facade.onFileUpdated(ID1,
+                            FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
+                            /* oldIsTrashed */ true, /* newIsTrashed */ true,
+                            /* oldIsPending */ false, /* newIsPending */ false,
+                            /* oldIsFavorite */ true, /* newIsFavorite */ false)).isFalse();
+
+            // Was not favorite but is now favorited
+            assertThat(facade.onFileUpdated(ID1,
+                            FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
+                            /* oldIsTrashed */ false, /* newIsTrashed */ false,
+                            /* oldIsPending */ true, /* newIsPending */ true,
+                            /* oldIsFavorite */ false, /* newIsFavorite */ true)).isFalse();
         }
     }
 

@@ -48,7 +48,7 @@
       <item quantity="one">இந்த ஆடியோ ஃபைலில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ கோப்புகளை மாற்றியமைக்கிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ ஃபைல்களை மாற்றியமைக்கிறது…</item>
       <item quantity="one">ஆடியோ ஃபைலை மாற்றியமைக்கிறது…</item>
     </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
@@ -80,7 +80,7 @@
       <item quantity="one">இந்த ஆடியோ ஃபைலை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ கோப்புகளை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ ஃபைல்களை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
       <item quantity="one">ஆடியோ ஃபைலை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
@@ -112,7 +112,7 @@
       <item quantity="one">இந்த ஆடியோ ஃபைலை நீக்கியவற்றில் இருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ கோப்புகளை ‘நீக்கியவை’ ஃபோல்டரிலிருந்து நகர்த்துகிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ ஃபைல்களை ‘நீக்கியவை’ ஃபோல்டரிலிருந்து நகர்த்துகிறது…</item>
       <item quantity="one">ஆடியோ ஃபைலை ‘நீக்கியவை’ ஃபோல்டரிலிருந்து நகர்த்துகிறது…</item>
     </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
@@ -144,7 +144,7 @@
       <item quantity="one">இந்த ஆடியோ ஃபைலை நீக்க <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ கோப்புகளை நீக்குகிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ ஃபைல்களை நீக்குகிறது…</item>
       <item quantity="one">ஆடியோ ஃபைலை நீக்குகிறது…</item>
     </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
@@ -171,7 +171,7 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆவணங்களை நீக்குகிறது…</item>
       <item quantity="one">ஆவணத்தை நீக்குகிறது…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"மீடியா கோப்புகளை <xliff:g id="APP_NAME">%s</xliff:g> ஆப்ஸால் செயலாக்க முடியவில்லை"</string>
+    <string name="transcode_denied" msgid="6760546817138288976">"மீடியா ஃபைல்களை <xliff:g id="APP_NAME">%s</xliff:g> ஆப்ஸால் செயலாக்க முடியவில்லை"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"மீடியா செயலாக்கம் ரத்துசெய்யப்பட்டது"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"மீடியா செயலாக்கத்தில் பிழை"</string>
     <string name="transcode_processing_success" msgid="447288876429730122">"மீடியா செயலாக்கம் நிறைவடைந்தது"</string>

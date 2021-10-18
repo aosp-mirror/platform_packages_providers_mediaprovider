@@ -38,6 +38,7 @@ cc_library_shared {
     ],
 
     header_libs: [
+        "bpf_syscall_wrappers",
         "libnativehelper_header_only",
     ],
 

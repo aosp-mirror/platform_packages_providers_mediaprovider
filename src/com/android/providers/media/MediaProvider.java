@@ -66,7 +66,6 @@ import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.FileUtils.DEFAULT_FOLDER_NAMES;
 import static com.android.providers.media.util.FileUtils.PATTERN_PENDING_FILEPATH_FOR_SQL;
-import static com.android.providers.media.util.FileUtils.buildPath;
 import static com.android.providers.media.util.FileUtils.buildPrimaryVolumeFile;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileExtension;
@@ -88,7 +87,6 @@ import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_I
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
 import static com.android.providers.media.util.SyntheticPathUtils.createSparseFile;
 import static com.android.providers.media.util.SyntheticPathUtils.extractSyntheticRelativePathSegements;
-import static com.android.providers.media.util.SyntheticPathUtils.getPickerRelativePath;
 import static com.android.providers.media.util.SyntheticPathUtils.getRedactedRelativePath;
 import static com.android.providers.media.util.SyntheticPathUtils.isPickerPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isRedactedPath;
@@ -157,7 +155,6 @@ import android.os.Parcelable;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
-import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -695,6 +692,7 @@ public class MediaProvider extends ContentProvider {
                 long newId, int newMediaType, boolean newIsDownload,
                 boolean oldIsTrashed, boolean newIsTrashed,
                 boolean oldIsPending, boolean newIsPending,
+                boolean oldIsFavorite, boolean newIsFavorite,
                 String oldOwnerPackage, String newOwnerPackage, String oldPath) {
             final boolean isDownload = oldIsDownload || newIsDownload;
             final Uri fileUri = MediaStore.Files.getContentUri(volumeName, oldId);
@@ -709,7 +707,8 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 if (mExternalDbFacade.onFileUpdated(oldId, oldMediaType, newMediaType, oldIsTrashed,
-                                newIsTrashed, oldIsPending, newIsPending)) {
+                                newIsTrashed, oldIsPending, newIsPending, oldIsFavorite,
+                                newIsFavorite)) {
                     mPickerSyncController.notifyMediaEvent();
                 }
             });
@@ -6693,7 +6692,8 @@ public class MediaProvider extends ContentProvider {
             } else if (!Objects.equals(beforeVolume, probeVolume)) {
                 throw new IllegalArgumentException("Changing volume from " + beforePath + " to "
                         + probePath + " not allowed");
-            } else if (!isUpdateAllowedForOwnedPath(beforeOwner, probeOwner)) {
+            } else if (!isUpdateAllowedForOwnedPath(beforeOwner, probeOwner, beforePath,
+                    probePath)) {
                 throw new IllegalArgumentException("Changing ownership from " + beforePath + " to "
                         + probePath + " not allowed");
             } else {
@@ -6880,8 +6880,22 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isUpdateAllowedForOwnedPath(@Nullable String srcOwner,
-            @Nullable String destOwner) {
-        // Allow update from srcPath if the source is not a owned path or calling package is the
+            @Nullable String destOwner, @NonNull String srcPath, @NonNull String destPath) {
+        // 1. Allow if the update is within owned path
+        // update() from /sdcard/Android/media/com.foo/ABC/image.jpeg to
+        // /sdcard/Android/media/com.foo/XYZ/image.jpeg - Allowed
+        if(Objects.equals(srcOwner, destOwner)) {
+            return true;
+        }
+
+        // 2. Check if the calling package is a special app which has global access
+        if (isCallingPackageManager() ||
+                (canAccessMediaFile(srcPath, /* allowLegacy */ false) &&
+                        (canAccessMediaFile(destPath, /* allowLegacy */ false)))) {
+            return true;
+        }
+
+        // 3. Allow update from srcPath if the source is not a owned path or calling package is the
         // owner of the source path or calling package shares the UID with the owner of the source
         // path
         // update() from /sdcard/DCIM/Foo.jpeg - Allowed
@@ -6890,8 +6904,8 @@ public class MediaProvider extends ContentProvider {
         final boolean isSrcUpdateAllowed = srcOwner == null
                 || isCallingIdentitySharedPackageName(srcOwner);
 
-        // Allow update to dstPath if the destination is not a owned path or calling package is the
-        // owner of the destination path or calling package shares the UID with the owner of the
+        // 4. Allow update to dstPath if the destination is not a owned path or calling package is
+        // the owner of the destination path or calling package shares the UID with the owner of the
         // destination path
         // update() to /sdcard/Pictures/image.jpeg - Allowed
         // update() to /sdcard/Android/media/com.foo/image.jpeg - Allowed for

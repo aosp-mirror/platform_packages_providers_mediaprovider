@@ -19,13 +19,17 @@ package com.android.providers.media.photopicker.espresso;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
 
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
 import androidx.test.espresso.Espresso;
@@ -95,6 +99,38 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         // Verify imageView is displayed for gif preview
         assertSingleSelectCommonLayoutMatches();
         onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+    }
+
+    @Test
+    public void testPreview_singleSelect_fromAlbumsPhoto() {
+        // Navigate to Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .perform(click());
+
+        final int cameraStringId = R.string.picker_category_camera;
+        // Navigate to photos in Camera album
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
+
+        // Verify that toolbar has the title as category name Camera
+        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
+                .check(matches(isDisplayed()));
+
+        // Navigate to preview
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+
+        registerIdlingResourceAndWaitForIdle();
+
+        // Verify image is previewed
+        assertSingleSelectCommonLayoutMatches();
+        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+
+        // Navigate back to Camera album
+        onView(withContentDescription("Navigate up")).perform(click());
+
+        // Verify that toolbar has the title as category name Camera
+        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
+                .check(matches(isDisplayed()));
     }
 
     private void registerIdlingResourceAndWaitForIdle() {

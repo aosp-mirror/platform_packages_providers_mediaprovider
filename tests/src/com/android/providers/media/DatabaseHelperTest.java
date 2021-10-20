@@ -577,7 +577,6 @@ public class DatabaseHelperTest {
         Class<? extends DatabaseHelper> dbVersionLower = DatabaseHelperS.class;
         String originalUUID;
         int originalVersion;
-
         // Create the database with database version = dbVersionLower
         try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
                 .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
@@ -588,7 +587,6 @@ public class DatabaseHelperTest {
             assertWithMessage("Current database version")
                     .that(db.getVersion()).isEqualTo(VERSION_S);
         }
-
         // Upgrade the database by changing the version to dbVersionHigher
         try (DatabaseHelper helper = dbVersionHigher.getConstructor(Context.class, String.class)
                 .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
@@ -598,12 +596,11 @@ public class DatabaseHelperTest {
                     .that(db.getVersion()).isNotEqualTo(originalVersion);
             // Verify that upgrade resulted in database version same as latest version.
             assertWithMessage("Current database version after upgrade")
-                    .that(db.getVersion()).isEqualTo(VERSION_LATEST);
+                    .that(db.getVersion()).isEqualTo(DatabaseHelper.VERSION_T);
             // Verify that upgrade didn't change UUID
             assertWithMessage("Current database UUID after upgrade")
                     .that(DatabaseHelper.getOrCreateUuid(db)).isEqualTo(originalUUID);
         }
-
         // Downgrade the database by changing the version to dbVersionLower
         try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
                 .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {

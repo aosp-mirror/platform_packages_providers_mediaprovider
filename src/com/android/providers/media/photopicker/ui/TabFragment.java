@@ -22,6 +22,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -53,6 +54,7 @@ public abstract class TabFragment extends Fragment {
 
     private int mBottomBarSize;
     private ExtendedFloatingActionButton mProfileButton;
+    private TextView mEmptyTextView;
     private UserIdManager mUserIdManager;
     private boolean mHideProfileButton;
 
@@ -70,6 +72,9 @@ public abstract class TabFragment extends Fragment {
 
         mImageLoader = new ImageLoader(getContext());
         mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
+        View emptyView = view.findViewById(android.R.id.empty);
+        mRecyclerView.setEmptyView(emptyView);
+        mEmptyTextView = emptyView.findViewById(R.id.empty_text_view);
         mRecyclerView.setHasFixedSize(true);
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
         mSelection = mPickerViewModel.getSelection();
@@ -120,6 +125,7 @@ public abstract class TabFragment extends Fragment {
     public void onResume() {
         super.onResume();
 
+        mEmptyTextView.setText(getEmptyMessage());
         updateProfileButtonAsync();
     }
 
@@ -230,6 +236,13 @@ public abstract class TabFragment extends Fragment {
 
     protected int getBottomGapForRecyclerView(int bottomBarSize) {
         return bottomBarSize;
+    }
+
+    /**
+     * Get the messages to show on empty view
+     */
+    protected String getEmptyMessage() {
+        return getString(R.string.picker_photos_empty_message);
     }
 
     protected void hideProfileButton(boolean hide) {

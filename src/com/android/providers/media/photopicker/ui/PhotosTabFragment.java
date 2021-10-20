@@ -140,6 +140,11 @@ public class PhotosTabFragment extends TabFragment {
         }
     }
 
+    @Override
+    protected String getEmptyMessage() {
+        return getString(R.string.picker_photos_empty_message);
+    }
+
     private void onItemClick(@NonNull View view) {
         if (mSelection.canSelectMultiple()) {
             final boolean isSelectedBefore = view.isSelected();

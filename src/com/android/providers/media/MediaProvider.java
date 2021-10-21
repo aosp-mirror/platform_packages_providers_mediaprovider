@@ -156,6 +156,7 @@ import android.provider.Column;
 import android.provider.DeviceConfig;
 import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.DocumentsContract;
+import android.provider.ExportedSince;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.AudioColumns;
@@ -918,10 +919,10 @@ public class MediaProvider extends ContentProvider {
         mMediaScanner = new ModernMediaScanner(context);
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
-                true, false, false, Column.class,
+                true, false, false, Column.class, ExportedSince.class, 
                 Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
-                false, false, false, Column.class,
+                false, false, false, Column.class, ExportedSince.class, 
                 Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
 
         if (SdkLevel.isAtLeastS()) {

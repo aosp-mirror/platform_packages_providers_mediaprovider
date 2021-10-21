@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.provider.Column;
+import android.provider.ExportedSince;
 import android.util.Log;
 
 import com.android.providers.media.util.ForegroundThread;
@@ -75,7 +76,7 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
                     try {
                         DatabaseHelper helper = new DatabaseHelper(
                                 context, file, MediaProvider.isInternalMediaDatabaseName(file),
-                                false, false, Column.class, Metrics::logSchemaChange, null,
+                                false, false, Column.class, ExportedSince.class, Metrics::logSchemaChange, null,
                                 MediaProvider.MIGRATION_LISTENER, null);
                         helper.runWithTransaction((db) -> {
                             // Perform just enough to force database upgrade

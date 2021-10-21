@@ -132,13 +132,13 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
 
     @Test
     public void testPhotoGrid_albumPhotos() {
-        final int chipContainerId = R.id.chip_container;
         // Navigate to Albums tab
-        onView(allOf(withText(R.string.picker_albums), withParent(withId(chipContainerId))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
                 .perform(click());
 
+        final int cameraStringId = R.string.picker_category_camera;
         // Navigate to photos in Camera album
-        onView(allOf(withText(R.string.picker_category_camera),
+        onView(allOf(withText(cameraStringId),
                 isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
 
         final int dateHeaderTitleId = R.id.date_header_title;
@@ -166,20 +166,19 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, VIDEO_CONTAINER_ID);
 
         // Verify that toolbar has the title as category name
-        onView(allOf(withText(R.string.picker_category_camera),
-                withParent(withId(R.id.toolbar))))
+        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
                 .check(matches(isDisplayed()));
 
         // Verify that tab chips are not shown on the toolbar
-        onView(withId(chipContainerId)).check(matches(not(isDisplayed())));
+        onView(withId(CHIP_CONTAINER_ID)).check(matches(not(isDisplayed())));
 
         // Click back button
         onView(withContentDescription("Navigate up")).perform(click());
 
         // on clicking back button we are back to Album grid
-        onView(allOf(withText(R.string.picker_albums), withParent(withId(chipContainerId))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
                 .check(matches(isSelected()));
-        onView(allOf(withText(R.string.picker_category_camera),
+        onView(allOf(withText(cameraStringId),
                 isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(matches(isDisplayed()));
     }
 }

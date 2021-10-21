@@ -17,18 +17,23 @@
 package com.android.providers.media.photopicker.espresso;
 
 import static androidx.test.InstrumentationRegistry.getTargetContext;
-
 import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isSelected;
+import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
-import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
 
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
@@ -36,9 +41,9 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
 
-import org.junit.runner.RunWith;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class MultiSelectTest extends PhotoPickerBaseTest {
@@ -132,5 +137,86 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
         onView(withId(addButtonId)).check(matches(isDisplayed()));
         onView(withId(addButtonId)).check(matches(withText(addButtonString + " (1)")));
+    }
+
+    @Test
+    public void testMultiSelectAcrossCategories() {
+        // Navigate to Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .perform(click());
+
+        final int cameraStringId = R.string.picker_category_camera;
+        // Navigate to photos in Camera album
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
+
+        // Selecting one item will enable add button and show "Add (1)" as button text
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+
+        final int addButtonId = R.id.button_add;
+        final String addButtonString =
+                getTargetContext().getResources().getString(R.string.add);
+        onView(withId(addButtonId)).check(matches(isDisplayed()));
+        onView(withId(addButtonId)).check(matches(withText(addButtonString + " (1)")));
+
+        // Click back button
+        onView(withContentDescription("Navigate up")).perform(click());
+
+        // On clicking back button we are back to Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .check(matches(isSelected()));
+
+        // Navigate to photos in Video album
+        final int videoStringId = R.string.picker_category_videos;
+        onView(allOf(withText(videoStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
+
+        // When the selected item count is 2, "Add (2)" should be displayed
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+        onView(withId(addButtonId)).check(matches(isDisplayed()));
+        onView(withId(addButtonId)).check(matches(withText(addButtonString + " (2)")));
+    }
+
+    @Test
+    public void testMultiSelectAcrossDifferentTabs() {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Position=1 is the first image item
+        final int position = 1;
+        // Select 1st item thumbnail and verify select icon is selected
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+
+        // Navigate to Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .perform(click());
+
+        final int cameraStringId = R.string.picker_category_camera;
+        // Navigate to photos in Camera album
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
+
+        // The image item in Camera album is selected
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+
+        // Deselect the item
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+
+        // Click back button
+        onView(withContentDescription("Navigate up")).perform(click());
+
+        // On clicking back button we are back to Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .check(matches(isSelected()));
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(matches(isDisplayed()));
+
+        // Navigate to Photos tab
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .perform(click());
+
+        // The image item is not selected
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
     }
 }

@@ -159,8 +159,9 @@ public class PhotosTabFragment extends TabFragment {
             }
             view.setSelected(!isSelectedBefore);
         } else {
-            mSelection.clearSelectedItems();
-            mSelection.addSelectedItem((Item) view.getTag());
+            Item item = (Item) view.getTag();
+            mSelection.setSelectedItem(item);
+            mSelection.prepareItemForPreviewOnLongPress(item);
             // Transition to PreviewFragment.
             PreviewFragment.show(getActivity().getSupportFragmentManager());
         }

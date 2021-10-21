@@ -66,12 +66,7 @@ public class PreviewFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        // Warning: The below code assumes that getSelectedItems will never return null.
-        // We are creating a new ArrayList with selected items, this list used as data for the
-        // adapter. If activity gets killed and recreated, we will lose items that were deselected.
-        // TODO(b/185801129): Save the deselection state instead of making a copy of selected items.
-        // TODO(b/185801129): Sort images/videos on based on date_taken
-        final List<Item> selectedItemsList = mSelection.getSelectedItems();
+        final List<Item> selectedItemsList = mSelection.getSelectedItemsForPreview();
         final int selectedItemsListSize = selectedItemsList.size();
 
         if (selectedItemsListSize <= 0) {

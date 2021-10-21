@@ -34,6 +34,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.mtp.MtpConstants;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.RemoteException;
@@ -114,6 +115,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final boolean mEarlyUpgrade;
     final boolean mLegacyProvider;
     final @Nullable Class<? extends Annotation> mColumnAnnotation;
+    final @Nullable Class<? extends Annotation> mExportedSinceAnnotation;
     final @Nullable OnSchemaChangeListener mSchemaListener;
     final @Nullable OnFilesChangeListener mFilesListener;
     final @Nullable OnLegacyMigrationListener mMigrationListener;
@@ -151,31 +153,37 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 long oldId, int oldMediaType, boolean oldIsDownload,
                 long newId, int newMediaType, boolean newIsDownload,
                 String oldOwnerPackage, String newOwnerPackage, String oldPath);
+
         public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload, String ownerPackage, String path);
     }
 
     public interface OnLegacyMigrationListener {
         public void onStarted(ContentProviderClient client, String volumeName);
+
         public void onProgress(ContentProviderClient client, String volumeName,
                 long progress, long total);
+
         public void onFinished(ContentProviderClient client, String volumeName);
     }
 
     public DatabaseHelper(Context context, String name,
             boolean internal, boolean earlyUpgrade, boolean legacyProvider,
             @Nullable Class<? extends Annotation> columnAnnotation,
+            @Nullable Class<? extends Annotation> exportedSinceAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
             @Nullable UnaryOperator<String> idGenerator) {
         this(context, name, getDatabaseVersion(context), internal, earlyUpgrade, legacyProvider,
-                columnAnnotation, schemaListener, filesListener, migrationListener, idGenerator);
+                columnAnnotation, exportedSinceAnnotation, schemaListener, filesListener,
+                migrationListener, idGenerator);
     }
 
     public DatabaseHelper(Context context, String name, int version,
             boolean internal, boolean earlyUpgrade, boolean legacyProvider,
             @Nullable Class<? extends Annotation> columnAnnotation,
+            @Nullable Class<? extends Annotation> exportedSinceAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
@@ -189,6 +197,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mEarlyUpgrade = earlyUpgrade;
         mLegacyProvider = legacyProvider;
         mColumnAnnotation = columnAnnotation;
+        mExportedSinceAnnotation = exportedSinceAnnotation;
         mSchemaListener = schemaListener;
         mFilesListener = filesListener;
         mMigrationListener = migrationListener;
@@ -420,10 +429,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     map = new ArrayMap<>();
                     try {
                         for (Field field : clazz.getFields()) {
-                            if (Objects.equals(field.getName(), "_ID")
-                                    || field.isAnnotationPresent(mColumnAnnotation)) {
-                                final String column = (String) field.get(null);
-                                map.put(column, column);
+                            if (Objects.equals(field.getName(), "_ID") || (mColumnAnnotation != null
+                                    && field.isAnnotationPresent(mColumnAnnotation))) {
+                                boolean shouldIgnoreByOsVersion = shouldBeIgnoredByOsVersion(field);
+                                if (!shouldIgnoreByOsVersion) {
+                                    final String column = (String) field.get(null);
+                                    map.put(column, column);
+                                }
                             }
                         }
                     } catch (ReflectiveOperationException e) {
@@ -1924,6 +1936,31 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             Log.i(TAG, "Waiting for passthrough to be mounted...");
             SystemClock.sleep(100);
+        }
+    }
+
+    private boolean shouldBeIgnoredByOsVersion(@NonNull Field field) {
+        if (mExportedSinceAnnotation == null) {
+            return false;
+        }
+
+        if (!field.isAnnotationPresent(mExportedSinceAnnotation)) {
+            return false;
+        }
+
+        try {
+            final Annotation annotation = field.getAnnotation(mExportedSinceAnnotation);
+            final int exportedSinceOSVersion = (int) annotation.annotationType().getMethod(
+                    "osVersion").invoke(annotation);
+            final boolean shouldIgnore = exportedSinceOSVersion > Build.VERSION.SDK_INT;
+            if (shouldIgnore) {
+                Log.d(TAG, "Ignoring column " + field.get(null) + " with version "
+                        + exportedSinceOSVersion + " in OS version " + Build.VERSION.SDK_INT);
+            }
+            return shouldIgnore;
+        } catch (Exception e) {
+            Log.e(TAG, "Can't parse the OS version in ExportedSince annotation", e);
+            return false;
         }
     }
 

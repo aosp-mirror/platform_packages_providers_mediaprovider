@@ -141,8 +141,8 @@ public class Item {
 
     /**
      * Return the date item. If dateTaken is 0, it is a recent item.
-     * @param dateTaken the time of date taken. The unit is in milliseconds since
-     *                  January 1, 1970 00:00:00.0 UTC.
+     * @param dateTaken the time of date taken. The unit is in milliseconds
+     *                  since January 1, 1970 00:00:00.0 UTC.
      * @return the item with date type
      */
     public static Item createDateItem(long dateTaken) {
@@ -183,6 +183,21 @@ public class Item {
             mIsImage = true;
         } else if (MimeUtils.isVideoMimeType(mMimeType)) {
             mIsVideo = true;
+        }
+    }
+
+    /**
+     * Compares this item with given {@code anotherItem} by comparing
+     * {@link Item#getDateTaken()} value. When {@link Item#getDateTaken()} is
+     * same, Items are compared based on {@link Item#getId}.
+     */
+    public int compareTo(Item anotherItem) {
+        if (mDateTaken > anotherItem.getDateTaken()) {
+            return 1;
+        } else if (mDateTaken < anotherItem.getDateTaken()) {
+            return -1;
+        } else {
+            return mId.compareTo(anotherItem.getId());
         }
     }
 }

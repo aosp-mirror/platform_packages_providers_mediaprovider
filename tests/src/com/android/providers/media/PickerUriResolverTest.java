@@ -42,6 +42,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
+import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
@@ -152,6 +153,27 @@ public class PickerUriResolverTest {
                 () -> PickerUriResolver.unwrapProviderUri(mediaUriUserShort));
         assertThrows(IllegalArgumentException.class,
                 () -> PickerUriResolver.wrapProviderUri(providerUriUserShort, 0));
+    }
+
+    @Test
+    public void testGetAlbumUri() throws Exception {
+        final String authority = "foo";
+        final Uri uri = Uri.parse("content://foo/album");
+        assertThat(PickerUriResolver.getAlbumUri(authority)).isEqualTo(uri);
+    }
+
+    @Test
+    public void testGetMediaUri() throws Exception {
+        final String authority = "foo";
+        final Uri uri = Uri.parse("content://foo/media");
+        assertThat(PickerUriResolver.getMediaUri(authority)).isEqualTo(uri);
+    }
+
+    @Test
+    public void testGetDeletedMediaUri() throws Exception {
+        final String authority = "foo";
+        final Uri uri = Uri.parse("content://foo/deleted_media");
+        assertThat(PickerUriResolver.getDeletedMediaUri(authority)).isEqualTo(uri);
     }
 
     @Test

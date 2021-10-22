@@ -21,6 +21,7 @@ import static com.android.providers.media.photopicker.util.CursorUtils.getCursor
 
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
@@ -141,8 +142,8 @@ public class Item {
 
     /**
      * Return the date item. If dateTaken is 0, it is a recent item.
-     * @param dateTaken the time of date taken. The unit is in milliseconds since
-     *                  January 1, 1970 00:00:00.0 UTC.
+     * @param dateTaken the time of date taken. The unit is in milliseconds
+     *                  since January 1, 1970 00:00:00.0 UTC.
      * @return the item with date type
      */
     public static Item createDateItem(long dateTaken) {
@@ -159,7 +160,7 @@ public class Item {
      * @param userId the user id to create an {@link Item} for
      */
     public void updateFromCursor(@NonNull Cursor cursor, @NonNull UserId userId) {
-        final String authority = getCursorString(cursor, ItemColumns.AUTHORITY);
+        final String authority = extractAuthority(cursor);
         mId = getCursorString(cursor, ItemColumns.ID);
         mMimeType = getCursorString(cursor, ItemColumns.MIME_TYPE);
         mDateTaken = getCursorLong(cursor, ItemColumns.DATE_TAKEN);
@@ -184,5 +185,29 @@ public class Item {
         } else if (MimeUtils.isVideoMimeType(mMimeType)) {
             mIsVideo = true;
         }
+    }
+
+    /**
+     * Compares this item with given {@code anotherItem} by comparing
+     * {@link Item#getDateTaken()} value. When {@link Item#getDateTaken()} is
+     * same, Items are compared based on {@link Item#getId}.
+     */
+    public int compareTo(Item anotherItem) {
+        if (mDateTaken > anotherItem.getDateTaken()) {
+            return 1;
+        } else if (mDateTaken < anotherItem.getDateTaken()) {
+            return -1;
+        } else {
+            return mId.compareTo(anotherItem.getId());
+        }
+    }
+
+    private String extractAuthority(Cursor cursor) {
+        final String authority = getCursorString(cursor, ItemColumns.AUTHORITY);
+        if (authority == null) {
+            final Bundle bundle = cursor.getExtras();
+            return bundle.getString(ItemColumns.AUTHORITY);
+        }
+        return authority;
     }
 }

@@ -137,8 +137,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select items
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
@@ -146,16 +146,14 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         registerIdlingResourceAndWaitForIdle();
 
         // Preview Order
-        // 1 - VideoView
+        // 1 - Image
         // 2 - Gif
-        // 3 - Image
-        // Navigate from Video -> Gif -> Image -> Gif -> Video -> Gif and verify the layout matches
+        // 3 - Video
+        // Navigate from Image -> Gif -> Video -> Gif -> Image -> Gif and verify the layout matches
 
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
-        // 1. Video item
+        // 1. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();
@@ -165,9 +163,11 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();
-        // 3. Image
+        // Since there is no video in the video file, we get an error.
+        onView(withText(android.R.string.ok)).perform(click());
+        // 3. Video item
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeRightAndWait();
@@ -177,11 +177,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
                 .check(matches(isDisplayed()));
 
         swipeRightAndWait();
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
-        // 1. Video
+        // 1. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();

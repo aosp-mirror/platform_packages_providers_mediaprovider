@@ -255,6 +255,10 @@ public final class MediaStore {
     public static final String QUERY_ARG_MIME_TYPE = "android:query-arg-mime_type";
     /** {@hide} */
     public static final String QUERY_ARG_SIZE_BYTES = "android:query-arg-size_bytes";
+    /** {@hide} */
+    public static final String QUERY_ARG_ALBUM_ID = "android:query-arg-album_id";
+    /** {@hide} */
+    public static final String QUERY_ARG_ALBUM_TYPE = "android:query-arg-album_type";
 
     /**
      * This is for internal use by the media scanner only.

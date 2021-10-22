@@ -156,6 +156,11 @@ public class PickerUriResolver {
                 + CloudMediaProviderContract.URI_PATH_MEDIA_INFO);
     }
 
+    public static Uri getAlbumUri(String authority) {
+        return Uri.parse("content://" + authority + "/"
+                + CloudMediaProviderContract.URI_PATH_ALBUM);
+    }
+
     private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal) throws FileNotFoundException {
         final ContentResolver resolver = getContentResolverForUserId(uri);

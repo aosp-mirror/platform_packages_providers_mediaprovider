@@ -1359,6 +1359,8 @@ public class FileUtils {
             // The relative path for files in the top directory is "/"
             if (!"/".equals(values.getAsString(MediaColumns.RELATIVE_PATH))) {
                 values.put(MediaColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
+            } else {
+                values.putNull(MediaColumns.BUCKET_DISPLAY_NAME);
             }
         }
     }

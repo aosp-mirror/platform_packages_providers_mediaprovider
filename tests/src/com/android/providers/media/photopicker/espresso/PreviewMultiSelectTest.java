@@ -22,14 +22,19 @@ import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.swipeLeft;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isCompletelyDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isNotSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.isSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
+
+import static org.hamcrest.Matchers.allOf;
 
 import android.view.View;
 import androidx.test.espresso.Espresso;
@@ -132,8 +137,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select items
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
@@ -141,16 +146,14 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         registerIdlingResourceAndWaitForIdle();
 
         // Preview Order
-        // 1 - VideoView
+        // 1 - Image
         // 2 - Gif
-        // 3 - Image
-        // Navigate from Video -> Gif -> Image -> Gif -> Video -> Gif and verify the layout matches
+        // 3 - Video
+        // Navigate from Image -> Gif -> Video -> Gif -> Image -> Gif and verify the layout matches
 
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
-        // 1. Video item
+        // 1. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();
@@ -160,9 +163,11 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();
-        // 3. Image
+        // Since there is no video in the video file, we get an error.
+        onView(withText(android.R.string.ok)).perform(click());
+        // 3. Video item
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeRightAndWait();
@@ -172,11 +177,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
                 .check(matches(isDisplayed()));
 
         swipeRightAndWait();
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
-        // 1. Video
+        // 1. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();
@@ -184,6 +187,43 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
+    }
+
+    @Test
+    public void testPreview_multiSelect_fromAlbumsTab() {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Select 1 item in Photos tab
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+        final int iconCheckId = R.id.icon_check;
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, iconCheckId);
+
+        // Navigate to Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .perform(click());
+        // The Albums tab chip is selected
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .check(matches(isSelected()));
+        final int cameraStringId = R.string.picker_category_camera;
+        // Camera album is shown
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(matches(isDisplayed()));
+
+        // Navigate to preview
+        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+
+        registerIdlingResourceAndWaitForIdle();
+
+        assertMultiSelectPreviewCommonLayoutDisplayed();
+        // Verify ImageView is displayed
+        onView(withId(IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
+
+        // Click back button and verify we are back to Albums tab
+        onView(withContentDescription("Navigate up")).perform(click());
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .check(matches(isSelected()));
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(matches(isDisplayed()));
     }
 
     private void assertMultiSelectPreviewCommonLayoutDisplayed() {

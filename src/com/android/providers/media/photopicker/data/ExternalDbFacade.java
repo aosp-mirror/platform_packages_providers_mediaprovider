@@ -85,7 +85,8 @@ public class ExternalDbFacade {
             CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
             CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME,
             CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
-            CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID
+            CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID,
+            CloudMediaProviderContract.AlbumColumns.TYPE,
     };
 
     private static final String WHERE_IMAGE_TYPE = FileColumns.MEDIA_TYPE + " = "
@@ -330,7 +331,8 @@ public class ExternalDbFacade {
                 getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS),
                 Category.getCategoryName(mContext, category),
                 String.valueOf(count),
-                getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID)
+                getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
+                CloudMediaProviderContract.AlbumColumns.TYPE_LOCAL
             };
 
             c.addRow(projectionValue);

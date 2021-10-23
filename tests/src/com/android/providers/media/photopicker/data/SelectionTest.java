@@ -40,6 +40,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.List;
+
 public class SelectionTest {
     private Selection mSelection;
 
@@ -88,11 +90,13 @@ public class SelectionTest {
     }
 
     @Test
-    public void testClearSelectedItem() {
+    public void testSetSelectedItem() {
         final String id1 = "1";
         final Item item1 = generateFakeImageItem(id1);
         final String id2 = "2";
         final Item item2 = generateFakeImageItem(id2);
+        final String id3 = "3";
+        final Item item3 = generateFakeImageItem(id3);
 
         assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(0);
 
@@ -100,8 +104,60 @@ public class SelectionTest {
         mSelection.addSelectedItem(item2);
         assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(2);
 
-        mSelection.clearSelectedItems();
-        assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(0);
+        mSelection.setSelectedItem(item3);
+        assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(1);
+        assertThat(mSelection.getSelectedItems().get(0).getContentUri())
+                .isEqualTo(item3.getContentUri());
+    }
+
+    @Test
+    public void testGetSelectedItemsForPreview_multiSelect() {
+        final String id1 = "1";
+        final Item item1 = generateFakeImageItem(id1);
+        final String id2 = "2";
+        final Item item2 = generateFakeImageItem(id2);
+        final String id3 = "3";
+        final Item item3 = generateFakeImageItem(id3);
+        final String id4 = "4";
+        final Item item4SameDateTakenAsItem3 = ItemTest.generateItem(id4, "image/jpeg",
+                item3.getDateTaken(), /* duration */ 1000);
+
+        mSelection.addSelectedItem(item1);
+        mSelection.addSelectedItem(item2);
+        mSelection.addSelectedItem(item3);
+        mSelection.addSelectedItem(item4SameDateTakenAsItem3);
+        assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(4);
+
+        List<Item> itemsForPreview = mSelection.getSelectedItemsForPreview();
+        assertThat(itemsForPreview.size()).isEqualTo(0);
+
+        mSelection.prepareSelectedItemsForPreviewAll();
+
+        itemsForPreview = mSelection.getSelectedItemsForPreview();
+        assertThat(itemsForPreview.size()).isEqualTo(4);
+
+        // Verify that the item list is sorted based on dateTaken
+        assertThat(itemsForPreview.get(0).getId()).isEqualTo(id4);
+        assertThat(itemsForPreview.get(1).getId()).isEqualTo(id3);
+        assertThat(itemsForPreview.get(2).getId()).isEqualTo(id2);
+        assertThat(itemsForPreview.get(3).getId()).isEqualTo(id1);
+    }
+
+    @Test
+    public void testGetSelectedItemsForPreview_singleSelect() {
+        final String id1 = "1";
+        final Item item1 = generateFakeImageItem(id1);
+
+        List<Item> itemsForPreview = mSelection.getSelectedItemsForPreview();
+        assertThat(itemsForPreview.size()).isEqualTo(0);
+
+        mSelection.prepareItemForPreviewOnLongPress(item1);
+
+        itemsForPreview = mSelection.getSelectedItemsForPreview();
+        assertThat(itemsForPreview.size()).isEqualTo(1);
+
+        // Verify that the item list has expected element.
+        assertThat(itemsForPreview.get(0).getId()).isEqualTo(id1);
     }
 
     @Test

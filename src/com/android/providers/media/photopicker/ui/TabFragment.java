@@ -87,6 +87,7 @@ public abstract class TabFragment extends Fragment {
             final Button viewSelectedButton = view.findViewById(R.id.button_view_selected);
             // Transition to PreviewFragment on clicking "View Selected".
             viewSelectedButton.setOnClickListener(v -> {
+                mSelection.prepareSelectedItemsForPreviewAll();
                 PreviewFragment.show(getActivity().getSupportFragmentManager());
             });
             mBottomBarSize = (int) getResources().getDimension(R.dimen.picker_bottom_bar_size);

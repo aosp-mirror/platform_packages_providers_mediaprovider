@@ -39,6 +39,9 @@ public class Selection {
     // The list of selected items.
     private Map<Uri, Item> mSelectedItems = new HashMap<>();
     private MutableLiveData<Integer> mSelectedItemSize = new MutableLiveData<>();
+    // The list of selected items for preview. This needs to be saved separately so that if activity
+    // gets killed, we will still have deselected items for preview.
+    private List<Item> mSelectedItemsForPreview = new ArrayList<>();
     private boolean mSelectMultiple = false;
     private int mMaxSelectionLimit = 1;
     // This is set to false when max selection limit is reached.
@@ -71,10 +74,11 @@ public class Selection {
     }
 
     /**
-     * Clear the selected Item list {@link #mSelectedItems}.
+     * Clears {@link #mSelectedItems} and sets the selected item as given {@code item}
      */
-    public void clearSelectedItems() {
+    public void setSelectedItem(Item item) {
         mSelectedItems.clear();
+        mSelectedItems.put(item.getContentUri(), item);
         mSelectedItemSize.postValue(mSelectedItems.size());
         updateSelectionAllowed();
     }
@@ -118,6 +122,31 @@ public class Selection {
      */
     public boolean isSelectionAllowed() {
         return mIsSelectionAllowed;
+    }
+
+    /**
+     * Prepares current selected items for previewing all selected items in multi-select preview.
+     * The method also sorts the selected items by {@link Item#compareTo} method which sorts based
+     * on dateTaken values.
+     */
+    public void prepareSelectedItemsForPreviewAll() {
+        mSelectedItemsForPreview = new ArrayList<>(mSelectedItems.values());
+        mSelectedItemsForPreview.sort(Collections.reverseOrder(Item::compareTo));
+    }
+
+    /**
+     * Sets the given {@code item} as the item for previewing. This method will be used while
+     * previewing on long press.
+     */
+    public void prepareItemForPreviewOnLongPress(Item item) {
+        mSelectedItemsForPreview = Collections.singletonList(item);
+    }
+
+    /**
+     * @return {@link #mSelectedItemsForPreview} - selected items for preview.
+     */
+    public List<Item> getSelectedItemsForPreview() {
+        return Collections.unmodifiableList(mSelectedItemsForPreview);
     }
 
     /**

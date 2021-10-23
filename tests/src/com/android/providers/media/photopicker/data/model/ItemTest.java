@@ -37,7 +37,7 @@ public class ItemTest {
     @Test
     public void testConstructor() {
         final String id = "1";
-        final long dateTaken = 12345678l;
+        final long dateTaken = 12345678L;
         final String mimeType = "image/png";
         final long duration = 1000;
         final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, duration);
@@ -60,7 +60,7 @@ public class ItemTest {
     @Test
     public void testConstructor_differentUser() {
         final String id = "1";
-        final long dateTaken = 12345678l;
+        final long dateTaken = 12345678L;
         final String mimeType = "image/png";
         final long duration = 1000;
         final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, duration);
@@ -84,7 +84,7 @@ public class ItemTest {
     @Test
     public void testIsImage() {
         final String id = "1";
-        final long dateTaken = 12345678l;
+        final long dateTaken = 12345678L;
         final String mimeType = "image/png";
         final long duration = 1000;
         final Item item = generateItem(id, mimeType, dateTaken, duration);
@@ -98,7 +98,7 @@ public class ItemTest {
     @Test
     public void testIsVideo() {
         final String id = "1";
-        final long dateTaken = 12345678l;
+        final long dateTaken = 12345678L;
         final String mimeType = "video/mpeg";
         final long duration = 1000;
         final Item item = generateItem(id, mimeType, dateTaken, duration);
@@ -112,7 +112,7 @@ public class ItemTest {
     @Test
     public void testIsGif() {
         final String id = "1";
-        final long dateTaken = 12345678l;
+        final long dateTaken = 12345678L;
         final String mimeType = "image/gif";
         final long duration = 1000;
         final Item item = generateItem(id, mimeType, dateTaken, duration);
@@ -125,12 +125,48 @@ public class ItemTest {
 
     @Test
     public void testCreateDateItem() {
-        final long dateTaken = 12345678l;
+        final long dateTaken = 12345678L;
 
         final Item item = Item.createDateItem(dateTaken);
 
         assertThat(item.getDateTaken()).isEqualTo(dateTaken);
         assertThat(item.isDate()).isTrue();
+    }
+
+    @Test
+    public void testCompareTo_differentDateTaken() {
+        final String id1 = "1";
+        final long dateTaken1 = 1000000L;
+        final Item item1 = generateJpegItem(id1, dateTaken1);
+
+        final String id2 = "2";
+        final long dateTaken2 = 20000000L;
+        final Item item2 = generateJpegItem(id2, dateTaken2);
+
+        assertThat(item1.compareTo(item2)).isEqualTo(-1);
+        assertThat(item2.compareTo(item1)).isEqualTo(1);
+    }
+
+    @Test
+    public void testCompareTo_sameDateTaken() {
+        final long dateTaken = 12345678L;
+
+        final String id1 = "1";
+        final Item item1 = generateJpegItem(id1, dateTaken);
+
+        final String id2 = "2";
+        final Item item2 = generateJpegItem(id2, dateTaken);
+
+        assertThat(item1.compareTo(item2)).isEqualTo(-1);
+        assertThat(item2.compareTo(item1)).isEqualTo(1);
+
+        // Compare the same object
+        assertThat(item2.compareTo(item2)).isEqualTo(0);
+
+        // Compare two items with same dateTaken and same id. This will never happen in real world
+        // use-case because ids are always unique.
+        final Item item2SameValues = generateJpegItem(id2, dateTaken);
+        assertThat(item2SameValues.compareTo(item2)).isEqualTo(0);
     }
 
     private static Cursor generateCursorForItem(String id, String mimeType, long dateTaken,
@@ -139,6 +175,12 @@ public class ItemTest {
         cursor.addRow(new Object[] {id, mimeType, dateTaken, /* dateModified */ dateTaken,
                 duration});
         return cursor;
+    }
+
+    private static Item generateJpegItem(String id, long dateTaken) {
+        final String mimeType = "image/jpeg";
+        final long duration = 1000;
+        return generateItem(id, mimeType, dateTaken, duration);
     }
 
     /**

@@ -22,18 +22,23 @@ import static android.provider.CloudMediaProviderContract.MediaColumns.ID;
 import static android.provider.CloudMediaProviderContract.MediaColumns.MEDIA_STORE_URI;
 import static android.provider.CloudMediaProviderContract.MediaColumns.MIME_TYPE;
 import static android.provider.CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
+import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
-import static android.provider.CloudMediaProviderContract.MediaInfo;
+import static android.provider.CloudMediaProviderContract.MediaInfo;;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.os.SystemClock;
 import android.provider.CloudMediaProvider;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Generates {@link TestMedia} items that can be accessed via test {@link CloudMediaProvider}
@@ -42,33 +47,65 @@ import java.util.Set;
 public class PickerProviderMediaGenerator {
     private static final Map<String, MediaGenerator> sMediaGeneratorMap = new HashMap<>();
     private static final String[] MEDIA_PROJECTION = new String[] {
-        ID,
-        MEDIA_STORE_URI,
-        MIME_TYPE,
-        DATE_TAKEN_MS,
-        SIZE_BYTES,
-        DURATION_MS,
+        MediaColumns.ID,
+        MediaColumns.MEDIA_STORE_URI,
+        MediaColumns.MIME_TYPE,
+        MediaColumns.DATE_TAKEN_MS,
+        MediaColumns.SIZE_BYTES,
+        MediaColumns.DURATION_MS,
+        MediaColumns.IS_FAVORITE,
     };
 
-    private static final String[] DELETED_MEDIA_PROJECTION = new String[] { ID };
+    private static final String[] ALBUM_PROJECTION = new String[] {
+        AlbumColumns.ID,
+        AlbumColumns.DISPLAY_NAME,
+        AlbumColumns.DATE_TAKEN_MS,
+        AlbumColumns.MEDIA_COVER_ID,
+        AlbumColumns.MEDIA_COUNT,
+        AlbumColumns.TYPE,
+    };
+
+    private static final String[] DELETED_MEDIA_PROJECTION = new String[] { MediaColumns.ID };
+
+    // TODO(b/195009148): Investigate how to expose as TestApi and avoid hard-coding
+    // Copied from CloudMediaProviderContract#AlbumColumns
+    public static final String ALBUM_COLUMN_TYPE_LOCAL = "LOCAL";
+    public static final String ALBUM_COLUMN_TYPE_CLOUD = null;
+    public static final String ALBUM_COLUMN_TYPE_FAVORITES = "FAVORITES";
+    public static final String ALBUM_COLUMN_TYPE_UNRELIABLE_VOLUME = "UNRELIABLE_VOLUME";
 
     public static class MediaGenerator {
-        private final Set<TestMedia> mMedia = new HashSet<>();
-        private final Set<TestMedia> mDeletedMedia = new HashSet<>();
+        private final List<TestMedia> mMedia = new ArrayList<>();
+        private final List<TestMedia> mDeletedMedia = new ArrayList<>();
+        private final List<TestAlbum> mAlbums = new ArrayList<>();
         private String mVersion;
         private long mGeneration;
 
-        public Cursor getMedia(long generation) {
-            return getCursor(mMedia, generation, /* isDeleted */ false);
+        public Cursor getMedia(long generation, String albumdId, String mimeType, long sizeBytes) {
+            return getCursor(mMedia, generation, albumdId, mimeType, sizeBytes,
+                    /* isDeleted */ false);
+        }
+
+        public Cursor getAlbums(String mimeType, long sizeBytes, boolean isLocal) {
+            return getCursor(mAlbums, mimeType, sizeBytes, isLocal);
         }
 
         public Cursor getDeletedMedia(long generation) {
-            return getCursor(mDeletedMedia, generation, /* isDeleted */ true);
+            return getCursor(mDeletedMedia, generation, /* albumId */ STRING_DEFAULT,
+                    /* mimeType */ STRING_DEFAULT, /* sizeBytes */ LONG_DEFAULT,
+                    /* isDeleted */ true);
         }
 
         public void addMedia(String localId, String cloudId) {
             mDeletedMedia.remove(createPlaceholderMedia(localId, cloudId));
-            mMedia.add(createTestMedia(localId, cloudId));
+            mMedia.add(0, createTestMedia(localId, cloudId));
+        }
+
+        public void addMedia(String localId, String cloudId, String albumId, String mimeType,
+                long sizeBytes, boolean isFavorite) {
+            mDeletedMedia.remove(createPlaceholderMedia(localId, cloudId));
+            mMedia.add(0,
+                    createTestMedia(localId, cloudId, albumId, mimeType, sizeBytes, isFavorite));
         }
 
         public void deleteMedia(String localId, String cloudId) {
@@ -77,9 +114,14 @@ public class PickerProviderMediaGenerator {
             }
         }
 
+        public void createAlbum(String id) {
+            mAlbums.add(createTestAlbum(id));
+        }
+
         public void resetAll() {
             mMedia.clear();
             mDeletedMedia.clear();
+            mAlbums.clear();
         }
 
         public void setVersion(String version) {
@@ -98,9 +140,20 @@ public class PickerProviderMediaGenerator {
             return mMedia.size();
         }
 
+        private TestAlbum createTestAlbum(String id) {
+            return new TestAlbum(id, mMedia);
+        }
+
         private TestMedia createTestMedia(String localId, String cloudId) {
             // Increase generation
             return new TestMedia(localId, cloudId, ++mGeneration);
+        }
+
+        private TestMedia createTestMedia(String localId, String cloudId, String albumId,
+                String mimeType, long sizeBytes, boolean isFavorite) {
+            // Increase generation
+            return new TestMedia(localId, cloudId, albumId, mimeType, sizeBytes, /* durationMs */ 0,
+                    ++mGeneration, isFavorite);
         }
 
         private static TestMedia createPlaceholderMedia(String localId, String cloudId) {
@@ -109,8 +162,8 @@ public class PickerProviderMediaGenerator {
             return new TestMedia(localId, cloudId, 0);
         }
 
-        private static Cursor getCursor(Set<TestMedia> mediaSet, long generation,
-                boolean isDeleted) {
+        private static Cursor getCursor(List<TestMedia> mediaList, long generation,
+                String albumId, String mimeType, long sizeBytes, boolean isDeleted) {
             final MatrixCursor matrix;
             if (isDeleted) {
                 matrix = new MatrixCursor(DELETED_MEDIA_PROJECTION);
@@ -118,10 +171,23 @@ public class PickerProviderMediaGenerator {
                 matrix = new MatrixCursor(MEDIA_PROJECTION);
             }
 
-            Set<TestMedia> result = new HashSet<>();
-            for (TestMedia media : mediaSet) {
-                if (media.generation > generation) {
+            for (TestMedia media : mediaList) {
+                if (media.generation > generation
+                        && matchesFilter(media, albumId, mimeType, sizeBytes)) {
                     matrix.addRow(media.toArray(isDeleted));
+                }
+            }
+            return matrix;
+        }
+
+        private static Cursor getCursor(List<TestAlbum> albumList, String mimeType, long sizeBytes,
+                boolean isLocal) {
+            final MatrixCursor matrix = new MatrixCursor(ALBUM_PROJECTION);
+
+            for (TestAlbum album : albumList) {
+                final String[] res = album.toArray(mimeType, sizeBytes, isLocal);
+                if (res != null) {
+                    matrix.addRow(res);
                 }
             }
             return matrix;
@@ -131,14 +197,31 @@ public class PickerProviderMediaGenerator {
     private static class TestMedia {
         public final String localId;
         public final String cloudId;
+        public final String albumId;
+        public final String mimeType;
+        public final long sizeBytes;
         public final long dateTakenMs;
+        public final long durationMs;
         public final long generation;
+        public final boolean isFavorite;
 
         public TestMedia(String localId, String cloudId, long generation) {
+            this(localId, cloudId, /* albumId */ null, "image/jpeg", /* sizeBytes */ 4096,
+                    /* durationMs */ 0, generation, /* isFavorite */ false);
+        }
+
+        public TestMedia(String localId, String cloudId, String albumId, String mimeType,
+                long sizeBytes, long durationMs, long generation, boolean isFavorite) {
             this.localId = localId;
             this.cloudId = cloudId;
+            this.albumId = albumId;
+            this.mimeType = mimeType;
+            this.sizeBytes = sizeBytes;
             this.dateTakenMs = System.currentTimeMillis();
+            this.durationMs = durationMs;
             this.generation = generation;
+            this.isFavorite = isFavorite;
+            SystemClock.sleep(1);
         }
 
         public String[] toArray(boolean isDeleted) {
@@ -149,10 +232,11 @@ public class PickerProviderMediaGenerator {
             return new String[] {
                 getId(),
                 localId == null ? null : "content://media/external/files/" + localId,
-                "image/jpeg",
+                mimeType,
                 String.valueOf(dateTakenMs),
-                /* size_bytes */ String.valueOf(4096),
-                /* duration_ms */ String.valueOf(0)
+                String.valueOf(sizeBytes),
+                String.valueOf(durationMs),
+                String.valueOf(isFavorite ? 1 : 0)
             };
         }
 
@@ -173,6 +257,74 @@ public class PickerProviderMediaGenerator {
         private String getId() {
             return cloudId == null ? localId : cloudId;
         }
+    }
+
+    private static class TestAlbum {
+        public final String id;
+        private final List<TestMedia> media;
+
+        public TestAlbum(String id, List<TestMedia> media) {
+            this.id = id;
+            this.media = media;
+        }
+
+        public String[] toArray(String mimeType, long sizeBytes, boolean isLocal) {
+            long mediaCount = 0;
+            String mediaCoverId = null;
+            long dateTakenMs = 0;
+
+            for (TestMedia m : media) {
+                if (matchesFilter(m, id, mimeType, sizeBytes)) {
+                    if (mediaCount++ == 0) {
+                        mediaCoverId = m.getId();
+                        dateTakenMs = m.dateTakenMs;
+                    }
+                }
+            }
+
+            if (mediaCount == 0) {
+                return null;
+            }
+
+            return new String[] {
+                id,
+                mediaCoverId,
+                /* displayName */ id,
+                String.valueOf(dateTakenMs),
+                String.valueOf(mediaCount),
+                isLocal ? ALBUM_COLUMN_TYPE_LOCAL : ALBUM_COLUMN_TYPE_CLOUD
+            };
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || !(o instanceof TestAlbum)) {
+                return false;
+            }
+
+            TestAlbum other = (TestAlbum) o;
+            return Objects.equals(id, other.id);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(id);
+        }
+    }
+
+    private static boolean matchesFilter(TestMedia media, String albumId, String mimeType,
+            long sizeBytes) {
+        if (!Objects.equals(albumId, STRING_DEFAULT) && !Objects.equals(albumId, media.albumId)) {
+            return false;
+        }
+        if (!Objects.equals(mimeType, STRING_DEFAULT) && !media.mimeType.startsWith(mimeType)) {
+            return false;
+        }
+        if (sizeBytes != LONG_DEFAULT && media.sizeBytes > sizeBytes) {
+            return false;
+        }
+
+        return true;
     }
 
     public static MediaGenerator getMediaGenerator(String authority) {

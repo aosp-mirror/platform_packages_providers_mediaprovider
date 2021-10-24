@@ -16,7 +16,6 @@
 
 package com.android.providers.media.photopicker.espresso;
 
-import static androidx.test.InstrumentationRegistry.getTargetContext;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
@@ -25,9 +24,13 @@ import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
+import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.*;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
+import static com.google.common.truth.Truth.assertThat;
 
 import static org.hamcrest.Matchers.not;
 
@@ -38,6 +41,7 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import org.junit.Rule;
@@ -141,6 +145,45 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         onView(withContentDescription("Navigate up")).perform(click());
 
         assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, position, iconCheckId);
+    }
+
+    @Test
+    public void testPreview_multiSelect_longPress_showsOnlyOne() {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Select two items - image and video item
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+
+        final int position = 2;
+        // Long press gif item to preview the item.
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+
+        registerIdlingResourceAndWaitForIdle();
+
+        mRule.getScenario().onActivity(activity -> {
+            Selection selection
+                    = new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
+            // Verify that we have two items(image and video) as selected items and
+            // 1 item  (gif) as item for preview
+            assertThat(selection.getSelectedItemCount().getValue()).isEqualTo(2);
+            assertThat(selection.getSelectedItemsForPreview().size()).isEqualTo(1);
+        });
+
+        final int imageViewId = R.id.preview_imageView;
+        // TODO(b/194281557): Check Gif badge to confirm this is the preview for gif item
+        onView(withId(imageViewId)).check(matches(isDisplayed()));
+
+        // Verify that only one item is being previewed. Swipe left and right, and verify we still
+        // have ImageView in preview.
+        swipeLeftAndWait();
+        // TODO(b/194281557): Check Gif badge to confirm this is the preview for gif item
+        onView(withId(imageViewId)).check(matches(isDisplayed()));
+        swipeRightAndWait();
+        // TODO(b/194281557): Check Gif badge to confirm this is the preview for gif item
+        onView(withId(imageViewId)).check(matches(isDisplayed()));
     }
 
     private void registerIdlingResourceAndWaitForIdle() {

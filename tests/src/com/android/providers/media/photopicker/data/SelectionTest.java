@@ -85,7 +85,7 @@ public class SelectionTest {
         mSelection.addSelectedItem(item);
         assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(1);
 
-        mSelection.deleteSelectedItem(item);
+        mSelection.removeSelectedItem(item);
         assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(0);
     }
 

@@ -19,7 +19,6 @@ package com.android.providers.media.photopicker.espresso;
 import static androidx.test.InstrumentationRegistry.getTargetContext;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.action.ViewActions.swipeLeft;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isCompletelyDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
@@ -103,8 +102,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         final String addButtonString =
                 getTargetContext().getResources().getString(R.string.add);
-        final int previewAddButtonId = R.id.preview_add_button;
-        final int previewSelectButtonId = R.id.preview_select_button;
+        final int previewAddButtonId = R.id.preview_add_or_select_button;
+        final int previewSelectButtonId = R.id.preview_select_check_button;
         final String deselectString =
                 getTargetContext().getResources().getString(R.string.deselect);
 
@@ -228,8 +227,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
     private void assertMultiSelectPreviewCommonLayoutDisplayed() {
         onView(withId(PREVIEW_VIEW_PAGER_ID)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_add_button)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_select_button)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_add_or_select_button)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_select_check_button)).check(matches(isDisplayed()));
     }
 
     private Matcher<View> ViewPagerMatcher(int viewPagerId, int itemViewId) {
@@ -259,8 +258,16 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         Espresso.onIdle();
     }
 
-    private void swipeLeftAndWait() {
-        onView(withId(PREVIEW_VIEW_PAGER_ID)).perform(swipeLeft());
+    /**
+     * A custom swipeLeft method to avoid system gestures taking over ViewActions#swipeLeft
+     */
+    private static ViewAction customSwipeLeft() {
+        return new GeneralSwipeAction(Swipe.FAST, GeneralLocation.CENTER,
+                GeneralLocation.CENTER_LEFT, Press.FINGER);
+    }
+
+    private static void swipeLeftAndWait() {
+        onView(withId(PREVIEW_VIEW_PAGER_ID)).perform(customSwipeLeft());
         Espresso.onIdle();
     }
 
@@ -272,7 +279,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
                 GeneralLocation.CENTER_RIGHT, Press.FINGER);
     }
 
-    private void swipeRightAndWait() {
+    private static void swipeRightAndWait() {
         // Use customSwipeRight to avoid system gestures taking over ViewActions#swipeRight
         onView(withId(PREVIEW_VIEW_PAGER_ID)).perform(customSwipeRight());
         Espresso.onIdle();

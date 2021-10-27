@@ -17,8 +17,10 @@
 package com.android.providers.media;
 
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -41,10 +43,13 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.photopicker.data.ExternalDbFacade;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -52,7 +57,8 @@ import java.util.List;
  * validations etc) and redirects picker URIs to the correct resolver.
  */
 public class PickerUriResolver {
-    private static final String TAG = PickerUriResolver.class.getSimpleName();
+    private static final String TAG = "PickerUriResolver";
+
     private static final String PICKER_SEGMENT = "picker";
     private static final String PICKER_INTERNAL_SEGMENT = "picker_internal";
     /** A uri with prefix "content://media/picker" is considered as a picker uri */
@@ -65,10 +71,15 @@ public class PickerUriResolver {
     public static final Uri PICKER_INTERNAL_URI = MediaStore.AUTHORITY_URI.buildUpon().
             appendPath(PICKER_INTERNAL_SEGMENT).build();
 
-    private Context mContext;
+    public static final String MEDIA_PATH = "media";
+    public static final String ALBUM_PATH = "albums";
 
-    PickerUriResolver(Context context) {
+    private final Context mContext;
+    private final PickerDbFacade mDbFacade;
+
+    PickerUriResolver(Context context, PickerDbFacade dbFacade) {
         mContext = context;
+        mDbFacade = dbFacade;
     }
 
     public ParcelFileDescriptor openFile(Uri uri, String mode, CancellationSignal signal,
@@ -131,13 +142,15 @@ public class PickerUriResolver {
 
     public String getType(@NonNull Uri uri) {
         try (Cursor cursor = queryInternal(uri, new String[]{MediaStore.MediaColumns.MIME_TYPE},
-                /* queryArgs */ null, /* signal */ null)) {
+                        /* queryArgs */ null, /* signal */ null)) {
             if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
-                return cursor.getString(0);
+                return getCursorString(cursor,
+                        CloudMediaProviderContract.MediaColumns.MIME_TYPE);
             }
         } catch (FileNotFoundException e) {
             throw new IllegalArgumentException(e.getMessage());
         }
+
         throw new IllegalArgumentException("Failed to getType for uri: " + uri);
     }
 
@@ -166,6 +179,10 @@ public class PickerUriResolver {
         final ContentResolver resolver = getContentResolverForUserId(uri);
         final long token = Binder.clearCallingIdentity();
         try {
+            if (PickerDbFacade.isPickerDbEnabled()) {
+                return queryPickerUri(uri);
+            }
+
             // Support query similar to as we support for redacted mediastore file uris.
             // TODO(b/191362529): Restrict projection values when we start querying picker db. Add
             // PickerColumns and add checks for projection.
@@ -174,6 +191,11 @@ public class PickerUriResolver {
         } finally {
             Binder.restoreCallingIdentity(token);
         }
+    }
+
+    private Cursor queryPickerUri(Uri uri) {
+        uri = unwrapProviderUri(uri);
+        return mDbFacade.queryMediaId(uri.getHost(), uri.getLastPathSegment());
     }
 
     public static Uri wrapProviderUri(Uri uri, int userId) {

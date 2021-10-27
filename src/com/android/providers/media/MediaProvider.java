@@ -210,6 +210,7 @@ import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.metrics.PulledMetrics;
+import com.android.providers.media.photopicker.PickerDataLayer;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
@@ -942,7 +943,6 @@ public class MediaProvider extends ContentProvider {
         mDevicePolicyManager = context.getSystemService(DevicePolicyManager.class);
         mUserManager = context.getSystemService(UserManager.class);
         mVolumeCache = new VolumeCache(context, mUserCache);
-        mPickerUriResolver = new PickerUriResolver(context);
 
         // Reasonable thumbnail size is half of the smallest screen edge width
         final DisplayMetrics metrics = context.getResources().getDisplayMetrics();
@@ -959,7 +959,9 @@ public class MediaProvider extends ContentProvider {
                 MIGRATION_LISTENER, mIdGenerator);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase);
         mPickerDbFacade = new PickerDbFacade(context);
+        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade);
         mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
+        mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade);
 
         if (SdkLevel.isAtLeastS()) {
             mTranscodeHelper = new TranscodeHelperImpl(context, this);
@@ -2935,19 +2937,10 @@ public class MediaProvider extends ContentProvider {
         }
 
         // TODO(b/195008831): Add test to verify that apps can't access
-        if (table == PICKER_INTERNAL) {
-            final int limit = queryArgs.getInt(MediaStore.QUERY_ARG_LIMIT,
-                    PickerDbFacade.QueryFilterBuilder.LIMIT_DEFAULT);
-            final long sizeBytes = queryArgs.getLong(MediaStore.QUERY_ARG_SIZE_BYTES,
-                    PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT);
-            final String mimeType = queryArgs.getString(MediaStore.QUERY_ARG_MIME_TYPE,
-                    PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT);
-
-            PickerDbFacade.QueryFilterBuilder qfb = new PickerDbFacade.QueryFilterBuilder(limit);
-            qfb.setSizeBytes(sizeBytes);
-            qfb.setMimeType(mimeType);
-
-            return mPickerDbFacade.queryMedia(qfb.build());
+        if (table == PICKER_INTERNAL_MEDIA) {
+            return mPickerDataLayer.fetchMedia(queryArgs);
+        } else if (table == PICKER_INTERNAL_ALBUMS) {
+            return mPickerDataLayer.fetchAlbums(queryArgs);
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
@@ -5737,6 +5730,11 @@ public class MediaProvider extends ContentProvider {
                 return null;
             }
             case MediaStore.WAIT_FOR_IDLE_CALL: {
+                // TODO(b/195009139): Remove after overriding wait for idle in test to sync picker
+                // Syncing the picker while waiting for idle fixes tests with the picker db
+                // flag enabled because the picker db is in a consistent state with the external
+                // db after the sync
+                syncPicker();
                 ForegroundThread.waitForIdle();
                 final CountDownLatch latch = new CountDownLatch(1);
                 BackgroundThread.getExecutor().execute(() -> {
@@ -5934,19 +5932,23 @@ public class MediaProvider extends ContentProvider {
                 mPickerSyncController.setCloudProvider(cloudProvider);
                 // fall through
             case MediaStore.SYNC_PROVIDERS_CALL:
-                // Clear the binder calling identity so that we can sync the unexported
-                // local_provider while running as MediaProvider
-                final long t = Binder.clearCallingIdentity();
-                try {
-                    // TODO(b/190713331): Remove after initial development
-                    Log.i(TAG, "Developer initiated provider sync");
-                    mPickerSyncController.syncPicker();
-                    return new Bundle();
-                } finally {
-                    Binder.restoreCallingIdentity(t);
-                }
+                syncPicker();
+                return new Bundle();
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
+        }
+    }
+
+    private void syncPicker() {
+        // Clear the binder calling identity so that we can sync the unexported
+        // local_provider while running as MediaProvider
+        final long t = Binder.clearCallingIdentity();
+        try {
+            // TODO(b/190713331): Remove after initial development
+            Log.v(TAG, "Developer initiated provider sync");
+            mPickerSyncController.syncPicker();
+        } finally {
+            Binder.restoreCallingIdentity(t);
         }
     }
 
@@ -9725,6 +9727,7 @@ public class MediaProvider extends ContentProvider {
     private DatabaseHelper mExternalDatabase;
     private PickerDbFacade mPickerDbFacade;
     private ExternalDbFacade mExternalDbFacade;
+    private PickerDataLayer mPickerDataLayer;
     private PickerSyncController mPickerSyncController;
     private TranscodeHelper mTranscodeHelper;
 
@@ -9786,8 +9789,9 @@ public class MediaProvider extends ContentProvider {
 
     static final int PICKER = 900;
     static final int PICKER_ID = 901;
-    static final int PICKER_INTERNAL = 902;
-    static final int PICKER_UNRELIABLE_VOLUME = 903;
+    static final int PICKER_INTERNAL_MEDIA = 902;
+    static final int PICKER_INTERNAL_ALBUMS = 903;
+    static final int PICKER_UNRELIABLE_VOLUME = 904;
 
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
             Arrays.asList(AUDIO_MEDIA_ID, IMAGES_MEDIA_ID, VIDEO_MEDIA_ID, FILES_ID, DOWNLOADS_ID));
@@ -9887,7 +9891,8 @@ public class MediaProvider extends ContentProvider {
             // NOTE: technically hidden, since Uri is never exposed
             mPublic.addURI(auth, "*/version", VERSION);
 
-            mHidden.addURI(auth, "picker_internal", PICKER_INTERNAL);
+            mHidden.addURI(auth, "picker_internal/media", PICKER_INTERNAL_MEDIA);
+            mHidden.addURI(auth, "picker_internal/albums", PICKER_INTERNAL_ALBUMS);
             mHidden.addURI(auth, "*", VOLUMES_ID);
             mHidden.addURI(auth, null, VOLUMES);
 

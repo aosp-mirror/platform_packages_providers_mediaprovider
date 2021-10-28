@@ -2983,6 +2983,7 @@ public final class MediaStore {
              * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
              * and {@link #IS_RINGTONE}.
              */
+            @ExportedSince(osVersion = Build.VERSION_CODES.S)
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RECORDING = "is_recording";
 

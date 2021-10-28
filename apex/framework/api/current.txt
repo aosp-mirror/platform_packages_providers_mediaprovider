@@ -433,6 +433,15 @@ package android.provider {
     field public static final String YEAR = "year";
   }
 
+  public static class MediaStore.PickerMediaColumns {
+    field public static final String DATA = "_data";
+    field public static final String DATE_TAKEN = "datetaken";
+    field public static final String DISPLAY_NAME = "_display_name";
+    field public static final String DURATION_MILLIS = "duration";
+    field public static final String MIME_TYPE = "mime_type";
+    field public static final String SIZE = "_size";
+  }
+
   public static final class MediaStore.Video {
     ctor public MediaStore.Video();
     method @Deprecated public static android.database.Cursor query(android.content.ContentResolver, android.net.Uri, String[]);

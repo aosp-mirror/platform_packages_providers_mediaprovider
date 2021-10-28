@@ -1182,7 +1182,8 @@ static void pf_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t new_parent,
 
 static handle* create_handle_for_node(struct fuse* fuse, const string& path, int fd, uid_t uid,
                                       uid_t transforms_uid, node* node, const RedactionInfo* ri,
-                                      const bool open_info_direct_io, int* keep_cache) {
+                                      const bool allow_passthrough, const bool open_info_direct_io,
+                                      int* keep_cache) {
     std::lock_guard<std::recursive_mutex> guard(fuse->lock);
 
     bool redaction_needed = ri->isRedactionNeeded();
@@ -1193,7 +1194,7 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
         CHECK(transforms);
     }
 
-    if (fuse->passthrough) {
+    if (fuse->passthrough && allow_passthrough) {
         *keep_cache = transforms_complete;
         // We only enabled passthrough iff these 2 conditions hold
         // 1. Redaction is not needed
@@ -1334,7 +1335,8 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     }
 
     int fd = -1;
-    if (result->fd >= 0) {
+    const bool is_fd_from_java = result->fd >= 0;
+    if (is_fd_from_java) {
         fd = result->fd;
         TRACE_NODE(node, req) << "opened in Java";
     } else {
@@ -1346,8 +1348,11 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     }
 
     int keep_cache = 1;
+    // If is_fd_from_java==true, we disallow passthrough because the fd can be pointing to the
+    // FUSE fs if gotten from another process
     const handle* h = create_handle_for_node(fuse, io_path, fd, result->uid, result->transforms_uid,
                                              node, result->redaction_info.release(),
+                                             /* allow_passthrough */ !is_fd_from_java,
                                              open_info.direct_io, &keep_cache);
     fill_fuse_file_info(h, &open_info, keep_cache, fi);
 
@@ -1896,9 +1901,9 @@ static void pf_create(fuse_req_t req,
     // to the file before all the EXIF content is written. We could special case reads before the
     // first close after a file has just been created.
     int keep_cache = 1;
-    const handle* h =
-            create_handle_for_node(fuse, child_path, fd, req->ctx.uid, 0 /* transforms_uid */, node,
-                                   new RedactionInfo(), open_info.direct_io, &keep_cache);
+    const handle* h = create_handle_for_node(
+            fuse, child_path, fd, req->ctx.uid, 0 /* transforms_uid */, node, new RedactionInfo(),
+            /* allow_passthrough */ true, open_info.direct_io, &keep_cache);
     fill_fuse_file_info(h, &open_info, keep_cache, fi);
 
     // TODO(b/173190192) ensuring that h->cached must be enabled in order to

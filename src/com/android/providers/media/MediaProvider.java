@@ -61,6 +61,7 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_EXTERNAL_STORAGE;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_IMAGES;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_VIDEO;
+import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
@@ -1663,6 +1664,50 @@ public class MediaProvider extends ContentProvider {
             return new FileLookupResult(FLAG_TRANSFORM_PICKER, uid, path);
         }
         throw new IllegalStateException("Failed to prepare synthetic picker path: " + file);
+    }
+
+    private FileOpenResult handlePickerFileOpen(String path, int uid) {
+        final String[] segments = path.split("/");
+        if (segments.length != 10) {
+            Log.e(TAG, "Picker file open failed. Unexpected segments: " + path);
+            return new FileOpenResult(OsConstants.ENOENT /* status */, uid, /* transformsUid */ 0,
+                    new long[0]);
+        }
+
+        // ['', 'storage', 'emulated', '0', 'transforms', 'synthetic', 'picker', '<host>',
+        // 'media', '<fileName>']
+        final String userId = segments[3];
+        final String fileName = segments[9];
+        final String host = segments[7];
+        final String authority = userId + "@" + host;
+        final int lastDotIndex = fileName.lastIndexOf('.');
+
+        if (lastDotIndex == -1) {
+            Log.e(TAG, "Picker file open failed. No file extension: " + path);
+            return FileOpenResult.createError(OsConstants.ENOENT, uid);
+        }
+
+        final String mediaId = fileName.substring(0, lastDotIndex);
+        final Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
+
+        final ParcelFileDescriptor pfd;
+        try {
+            pfd = getContext().getContentResolver().openFile(uri, "r",
+                    /* cancellationSignal */ null);
+        } catch (IOException e) {
+            Log.e(TAG, "Picker file open failed. Failed to open URI: " + uri, e);
+            return FileOpenResult.createError(OsConstants.ENOENT, uid);
+        }
+
+        try (FileInputStream fis = new FileInputStream(pfd.getFileDescriptor())) {
+            final String mimeType = MimeUtils.resolveMimeType(new File(path));
+            final long[] redactionRanges = getRedactionRanges(fis, mimeType).redactionRanges;
+            return new FileOpenResult(0 /* status */, uid, /* transformsUid */ 0,
+                    /* nativeFd */ pfd.detachFd(), redactionRanges);
+        } catch (IOException e) {
+            Log.e(TAG, "Picker file open failed. No file extension: " + path, e);
+            return FileOpenResult.createError(OsConstants.ENOENT, uid);
+        }
     }
 
     private boolean preparePickerAuthorityPathSegment(File file, String authority, int uid) {
@@ -8135,6 +8180,12 @@ public class MediaProvider extends ContentProvider {
     private static final class RedactionInfo {
         public final long[] redactionRanges;
         public final long[] freeOffsets;
+
+        public RedactionInfo() {
+            this.redactionRanges = new long[0];
+            this.freeOffsets = new long[0];
+        }
+
         public RedactionInfo(long[] redactionRanges, long[] freeOffsets) {
             this.redactionRanges = redactionRanges;
             this.freeOffsets = freeOffsets;
@@ -8286,13 +8337,35 @@ public class MediaProvider extends ContentProvider {
      */
     @VisibleForTesting
     public static RedactionInfo getRedactionRanges(File file) throws IOException {
-        Trace.beginSection("getRedactionRanges");
+        try (FileInputStream is = new FileInputStream(file)) {
+            return getRedactionRanges(is, MimeUtils.resolveMimeType(file));
+        } catch (FileNotFoundException ignored) {
+            // If file not found, then there's nothing to redact
+            return new RedactionInfo();
+        } catch (IOException e) {
+            throw new IOException("Failed to redact " + file, e);
+        }
+    }
+
+    /**
+     * Calculates the ranges containing sensitive metadata that should be redacted if the caller
+     * doesn't have the required permissions.
+     *
+     * @param fis {@link FileInputStream} to be redacted
+     * @return the ranges to be redacted in a RedactionInfo object, could be empty redaction ranges
+     * if there's sensitive metadata
+     * @throws IOException if an IOException happens while calculating the redaction ranges
+     */
+    @VisibleForTesting
+    public static RedactionInfo getRedactionRanges(FileInputStream fis, String mimeType)
+            throws IOException {
         final LongArray res = new LongArray();
         final LongArray freeOffsets = new LongArray();
-        try (FileInputStream is = new FileInputStream(file)) {
-            final String mimeType = MimeUtils.resolveMimeType(file);
+
+        Trace.beginSection("getRedactionRanges");
+        try {
             if (ExifInterface.isSupportedMimeType(mimeType)) {
-                final ExifInterface exif = new ExifInterface(is.getFD());
+                final ExifInterface exif = new ExifInterface(fis.getFD());
                 for (String tag : REDACTED_EXIF_TAGS) {
                     final long[] range = exif.getAttributeRange(tag);
                     if (range != null) {
@@ -8306,7 +8379,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (IsoInterface.isSupportedMimeType(mimeType)) {
-                final IsoInterface iso = IsoInterface.fromFileDescriptor(is.getFD());
+                final IsoInterface iso = IsoInterface.fromFileDescriptor(fis.getFD());
                 for (int box : REDACTED_ISO_BOXES) {
                     final long[] ranges = iso.getBoxRanges(box);
                     for (int i = 0; i < ranges.length; i += 2) {
@@ -8320,13 +8393,11 @@ public class MediaProvider extends ContentProvider {
                 final XmpInterface isoXmp = XmpInterface.fromContainer(iso);
                 res.addAll(isoXmp.getRedactionRanges());
             }
-        } catch (FileNotFoundException ignored) {
-            // If file not found, then there's nothing to redact
-        } catch (IOException e) {
-            throw new IOException("Failed to redact " + file, e);
+
+            return new RedactionInfo(res.toArray(), freeOffsets.toArray());
+        } finally {
+            Trace.endSection();
         }
-        Trace.endSection();
-        return new RedactionInfo(res.toArray(), freeOffsets.toArray());
     }
 
     /**
@@ -8378,26 +8449,30 @@ public class MediaProvider extends ContentProvider {
         try {
             boolean forceRedaction = false;
             String redactedUriId = null;
-            if (isRedactedPath(path, callingUserId)) {
+            if (isSyntheticPath(path, callingUserId)) {
                 if (forWrite) {
-                    // Redacted URIs are not allowed to update EXIF headers.
+                    // Synthetic URIs are not allowed to update EXIF headers.
                     return new FileOpenResult(OsConstants.EACCES /* status */, originalUid,
                             mediaCapabilitiesUid, new long[0]);
                 }
 
-                redactedUriId = extractFileName(path);
+                if (isRedactedPath(path, callingUserId)) {
+                    redactedUriId = extractFileName(path);
 
-                // If path is redacted Uris' path, ioPath must be the real path, ioPath must
-                // haven been updated to the real path during onFileLookupForFuse.
-                path = ioPath;
+                    // If path is redacted Uris' path, ioPath must be the real path, ioPath must
+                    // haven been updated to the real path during onFileLookupForFuse.
+                    path = ioPath;
 
-                // Irrespective of the permissions we want to redact in this case.
-                redact = true;
-                forceRedaction = true;
-            } else if (isSyntheticPath(path, callingUserId)) {
-                // we don't support any other transformations under .transforms/synthetic dir
-                return new FileOpenResult(OsConstants.ENOENT /* status */, originalUid,
-                        mediaCapabilitiesUid, new long[0]);
+                    // Irrespective of the permissions we want to redact in this case.
+                    redact = true;
+                    forceRedaction = true;
+                } else if (isPickerPath(path, callingUserId)) {
+                    return handlePickerFileOpen(path, originalUid);
+                } else {
+                    // we don't support any other transformations under .transforms/synthetic dir
+                    return new FileOpenResult(OsConstants.ENOENT /* status */, originalUid,
+                            mediaCapabilitiesUid, new long[0]);
+                }
             }
 
             if (isPrivatePackagePathNotAccessibleByCaller(path)) {

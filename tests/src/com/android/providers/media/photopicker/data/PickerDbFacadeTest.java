@@ -513,7 +513,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertMediaCursor(cr, LOCAL_ID);
+            assertMediaCursor(cr, LOCAL_ID, VIDEO_MIME_TYPE);
         }
 
         // Verify after
@@ -532,7 +532,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertMediaCursor(cr, LOCAL_ID);
+            assertMediaCursor(cr, LOCAL_ID, VIDEO_MIME_TYPE);
         }
 
         // Verify before
@@ -551,7 +551,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertMediaCursor(cr, LOCAL_ID);
+            assertMediaCursor(cr, LOCAL_ID, VIDEO_MIME_TYPE);
         }
     }
 
@@ -596,7 +596,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertMediaCursor(cr, LOCAL_ID);
+            assertMediaCursor(cr, LOCAL_ID, VIDEO_MIME_TYPE);
         }
 
         // Verify before
@@ -817,6 +817,26 @@ public class PickerDbFacadeTest {
         }
     }
 
+    @Test
+    public void testDataColumn() throws Exception {
+        Cursor imageCursor = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, /* mediaStoreUri */ null,
+                SIZE_BYTES, IMAGE_MIME_TYPE, /* isFavorite */ false);
+        Cursor videoCursor = getMediaCursor(LOCAL_ID + 1, DATE_TAKEN_MS, /* mediaStoreUri */ null,
+                SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ false);
+
+        assertThat(mFacade.addMedia(imageCursor, LOCAL_PROVIDER)).isEqualTo(1);
+        assertThat(mFacade.addMedia(videoCursor, LOCAL_PROVIDER)).isEqualTo(1);
+
+        try (Cursor cr = queryMediaAll()) {
+            assertThat(cr.getCount()).isEqualTo(2);
+            cr.moveToFirst();
+            assertMediaCursor(cr, LOCAL_ID + 1, VIDEO_MIME_TYPE);
+
+            cr.moveToNext();
+            assertMediaCursor(cr, LOCAL_ID, IMAGE_MIME_TYPE);
+        }
+    }
+
     private Cursor queryMediaAll() {
         return mFacade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build());
     }
@@ -888,11 +908,13 @@ public class PickerDbFacadeTest {
                 .isEqualTo(mediaCount);
     }
 
-    private static void assertMediaCursor(Cursor cursor, String id) {
+    private static void assertMediaCursor(Cursor cursor, String id, String mimeType) {
+        final String extension = mimeType.equals(IMAGE_MIME_TYPE)
+                ? PickerDbFacade.IMAGE_FILE_EXTENSION : PickerDbFacade.VIDEO_FILE_EXTENSION;
         final String localData = "/storage/emulated/0/.transforms/synthetic/picker/"
-                + LOCAL_PROVIDER + "/media/" + id;
+                + LOCAL_PROVIDER + "/media/" + id + extension;
         final String cloudData = "/storage/emulated/0/.transforms/synthetic/picker/"
-                + CLOUD_PROVIDER + "/media/" + id;
+                + CLOUD_PROVIDER + "/media/" + id + extension;
 
         assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.ID)))
                 .isEqualTo(id);
@@ -903,7 +925,7 @@ public class PickerDbFacadeTest {
     }
 
     private static void assertMediaCursor(Cursor cursor, String id, long dateTakenMs) {
-        assertMediaCursor(cursor, id);
+        assertMediaCursor(cursor, id, VIDEO_MIME_TYPE);
         assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.MIME_TYPE)))
                 .isEqualTo(VIDEO_MIME_TYPE);
         assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.DATE_TAKEN_MS)))

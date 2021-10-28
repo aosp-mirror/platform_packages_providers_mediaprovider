@@ -48,6 +48,7 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
@@ -95,12 +96,10 @@ public class PickerUriResolver {
         final long token = Binder.clearCallingIdentity();
         try {
             if (PickerDbFacade.isPickerDbEnabled()) {
-                // TODO(b/195009143): Redact before returning fd
-                uri = unwrapProviderUri(uri);
-            } else {
-                uri = getRedactedFileUriFromPickerUri(uri, resolver);
+                return openPickerFile(uri);
             }
 
+            uri = getRedactedFileUriFromPickerUri(uri, resolver);
             return resolver.openFile(uri, "r", signal);
         } finally {
             Binder.restoreCallingIdentity(token);
@@ -116,12 +115,11 @@ public class PickerUriResolver {
         final long token = Binder.clearCallingIdentity();
         try {
             if (PickerDbFacade.isPickerDbEnabled()) {
-                // TODO(b/195009143): Redact before returning fd
-                uri = unwrapProviderUri(uri);
-            } else {
-                uri = getRedactedFileUriFromPickerUri(uri, resolver);
+                return new AssetFileDescriptor(openPickerFile(uri), 0,
+                        AssetFileDescriptor.UNKNOWN_LENGTH);
             }
 
+            uri = getRedactedFileUriFromPickerUri(uri, resolver);
             return resolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal);
         } finally {
             Binder.restoreCallingIdentity(token);
@@ -191,6 +189,24 @@ public class PickerUriResolver {
         } finally {
             Binder.restoreCallingIdentity(token);
         }
+    }
+
+    private ParcelFileDescriptor openPickerFile(Uri uri) throws FileNotFoundException {
+        final File file = getPickerFileFromUri(uri);
+        if (file == null) {
+            throw new FileNotFoundException("File not found for uri: " + uri);
+        }
+        return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
+    }
+
+    private File getPickerFileFromUri(Uri uri) {
+        try (Cursor cursor = queryPickerUri(uri)) {
+            if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
+                String path = getCursorString(cursor, CloudMediaProviderContract.MediaColumns.DATA);
+                return new File(path);
+            }
+        }
+        return null;
     }
 
     private Cursor queryPickerUri(Uri uri) {

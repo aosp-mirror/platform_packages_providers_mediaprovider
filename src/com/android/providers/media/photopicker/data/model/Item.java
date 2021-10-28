@@ -26,16 +26,10 @@ import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
-import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.util.MimeUtils;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Base class representing one single entity/item in the PhotoPicker.

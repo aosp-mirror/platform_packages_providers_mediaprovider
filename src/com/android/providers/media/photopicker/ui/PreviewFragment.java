@@ -51,6 +51,19 @@ import java.util.Locale;
 public class PreviewFragment extends Fragment {
     private static String TAG = "PreviewFragment";
 
+    private static final String PREVIEW_TYPE = "preview_type";
+    private static final int PREVIEW_ON_LONG_PRESS = 1;
+    private static final int PREVIEW_ON_VIEW_SELECTED = 2;
+
+    private static final Bundle sPreviewOnLongPressArgs = new Bundle();
+    static {
+        sPreviewOnLongPressArgs.putInt(PREVIEW_TYPE, PREVIEW_ON_LONG_PRESS);
+    }
+    private static final Bundle sPreviewOnViewSelectedArgs = new Bundle();
+    static {
+        sPreviewOnViewSelectedArgs.putInt(PREVIEW_TYPE, PREVIEW_ON_VIEW_SELECTED);
+    }
+
     private Selection mSelection;
     private ViewPager2 mViewPager;
     private PreviewAdapter mAdapter;
@@ -70,25 +83,14 @@ public class PreviewFragment extends Fragment {
         final int selectedItemsListSize = selectedItemsList.size();
 
         if (selectedItemsListSize <= 0) {
-            // This should never happen
-            Log.e(TAG, "No items to preview");
-            return;
+            // This should never happen.
+            throw new IllegalStateException("No items to preview");
         } else if (selectedItemsListSize > 1 && !mSelection.canSelectMultiple()) {
             // This should never happen
-            Log.e(TAG, "Found more than one preview items in single select mode."
-                    + " Selected items count: " + selectedItemsListSize);
-            return;
+            throw new IllegalStateException("Found more than one preview items in single select"
+                    + " mode. Selected items count: " + selectedItemsListSize);
         }
 
-        Button addButton = view.findViewById(R.id.preview_add_button);
-
-        // On clicking add button we return the picker result to calling app.
-        // This destroys PickerActivity and all fragments.
-        addButton.setOnClickListener(v -> {
-            ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
-        });
-
-        // TODO(b/169737802): Support Videos
         // Initialize adapter to hold selected items
         ImageLoader imageLoader = new ImageLoader(getContext());
         mAdapter = new PreviewAdapter(imageLoader);
@@ -100,37 +102,94 @@ public class PreviewFragment extends Fragment {
         mViewPager.setPageTransformer(new MarginPageTransformer(
                 getResources().getDimensionPixelSize(R.dimen.preview_viewpager_margin)));
 
-        Button selectButton = view.findViewById(R.id.preview_select_button);
+        setUpPreviewLayout(view, getArguments());
+    }
+
+    private void setUpPreviewLayout(@NonNull View view, @Nullable Bundle args) {
+        if (args == null) {
+            // We are willing to crash PhotoPickerActivity because this error might only happen
+            // during development.
+            throw new IllegalArgumentException("Can't determine the type of the Preview, arguments"
+                    + " is not set");
+        }
+
+        final Button addOrSelectButton = view.findViewById(R.id.preview_add_or_select_button);
+        final Button selectCheckButton = view.findViewById(R.id.preview_select_check_button);
+        final int previewType = args.getInt(PREVIEW_TYPE, -1);
+        if (previewType == PREVIEW_ON_LONG_PRESS) {
+            setUpPreviewLayoutForLongPress(addOrSelectButton, selectCheckButton);
+        } else if (previewType == PREVIEW_ON_VIEW_SELECTED) {
+            setUpPreviewLayoutForViewSelected(addOrSelectButton, selectCheckButton);
+        } else {
+            // We are willing to crash PhotoPickerActivity because this error might only happen
+            // during development.
+            throw new IllegalArgumentException("No preview type specified");
+        }
+    }
+
+    /**
+     * Adjusts the select/add button layout for preview on LongPress
+     */
+    private void setUpPreviewLayoutForLongPress(@NonNull Button addOrSelectButton,
+            @NonNull Button selectCheckButton) {
+        LayoutParams layoutParams
+                = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
+        addOrSelectButton.setLayoutParams(layoutParams);
+
+        // This button won't be visible in Preview on LongPress. Select/Deselect action for multi
+        // select mode is handled by addOrSelect button.
+        selectCheckButton.setVisibility(View.GONE);
+
+        // Preview on Long Press will reuse AddOrSelect button as
+        // * Add button - Button with text "Add" - for single select mode
+        // * Select button - Button with text "Select"/"Deselect" based on the selection state of
+        //                   the item - for multi select mode
+        if (!mSelection.canSelectMultiple()) {
+            // On clicking add button we return the picker result to calling app.
+            // This destroys PickerActivity and all fragments.
+            addOrSelectButton.setOnClickListener(v -> {
+                ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
+            });
+        } else {
+            // For preview on long press, we always preview only one item.
+            // Selection#getSelectedItemsForPreview is guaranteed to return only one item. Hence,
+            // we can always use position=0 as current position.
+            updateSelectButtonText(addOrSelectButton,
+                    mSelection.isItemSelected(mAdapter.getItem(0)));
+            addOrSelectButton.setOnClickListener(
+                    v -> onClickSelect(addOrSelectButton, /* shouldUpdateButtonState */ false));
+        }
+    }
+
+    /**
+     * Adjusts the layout based on Multi select and adds appropriate onClick listeners
+     */
+    private void setUpPreviewLayoutForViewSelected(@NonNull Button addButton,
+            @NonNull Button selectButton) {
+        // On clicking add button we return the picker result to calling app.
+        // This destroys PickerActivity and all fragments.
+        addButton.setOnClickListener(v -> {
+            ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
+        });
 
         // Update the select icon and text according to the state of selection while swiping
         // between photos
         mOnPageChangeCallBack = new OnPageChangeCallBack(selectButton);
         mViewPager.registerOnPageChangeCallback(mOnPageChangeCallBack);
 
-        // Adjust the layout based on Single/Multi select and add appropriate onClick listeners
-        if (!mSelection.canSelectMultiple()) {
-            // Adjust the select and add button layout for single select
-            LayoutParams layoutParams
-                    = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
-            addButton.setLayoutParams(layoutParams);
-            selectButton.setVisibility(View.GONE);
-        } else {
-            // Update add button text to include number of items selected.
-            mSelection.getSelectedItemCount().observe(this, selectedItemCount -> {
-                addButton.setText(generateAddButtonString(getContext(), selectedItemCount));
-            });
-            selectButton.setOnClickListener(v -> {
-                onClickSelect(selectButton);
-            });
-        }
+        // Update add button text to include number of items selected.
+        mSelection.getSelectedItemCount().observe(this, selectedItemCount -> {
+            addButton.setText(generateAddButtonString(getContext(), selectedItemCount));
+        });
+
+        selectButton.setOnClickListener(
+                v -> onClickSelect(selectButton, /* shouldUpdateButtonState */ true));
     }
 
     @Override
     public void onResume() {
         super.onResume();
 
-        // TODO(185801129): Change the layout of the toolbar or add new toolbar that can overlap
-        // with image/video preview if necessary
         ((PhotoPickerActivity) getActivity()).updateCommonLayouts(LayoutModeUtils.MODE_PREVIEW,
                 /* title */"");
 
@@ -148,17 +207,30 @@ public class PreviewFragment extends Fragment {
         }
     }
 
-    private void onClickSelect(@NonNull Button selectButton) {
-        // isSelected tracks new state for select button, which is opposite of old state
-        final boolean isSelected = !selectButton.isSelected();
+    private void onClickSelect(@NonNull Button selectButton, boolean shouldUpdateButtonState) {
         final Item currentItem = mAdapter.getItem(mViewPager.getCurrentItem());
+        final boolean wasSelectedBefore = mSelection.isItemSelected(currentItem);
 
-        if (isSelected) {
-            mSelection.addSelectedItem(currentItem);
+        if (wasSelectedBefore) {
+            // If the item is previously selected, current user action is to deselect the item
+            mSelection.removeSelectedItem(currentItem);
         } else {
-            mSelection.deleteSelectedItem(currentItem);
+            // If the item is not previously selected, current user action is to select the item
+            mSelection.addSelectedItem(currentItem);
         }
-        setSelected(selectButton, isSelected);
+
+        // After the user has clicked the button, current state of the button should be opposite of
+        // the previous state.
+        // If the previous state was to "Select" the item, and user clicks "Select" button,
+        // wasSelectedBefore = false. And item will be added to selected items. Now, user can only
+        // deselect the item. Hence, isSelectedNow is opposite of previous state,
+        // i.e., isSelectedNow = true.
+        final boolean isSelectedNow = !wasSelectedBefore;
+        if (shouldUpdateButtonState) {
+            updateSelectButtonStateAndText(selectButton, isSelectedNow);
+        } else {
+            updateSelectButtonText(selectButton, isSelectedNow);
+        }
     }
 
     private class OnPageChangeCallBack extends ViewPager2.OnPageChangeCallback {
@@ -175,22 +247,29 @@ public class PreviewFragment extends Fragment {
 
             // Set the appropriate select/deselect state for each item in each page based on the
             // selection list.
-            setSelected(mSelectButton, mSelection.isItemSelected(mAdapter.getItem(position)));
+            updateSelectButtonStateAndText(mSelectButton,
+                    mSelection.isItemSelected(mAdapter.getItem(position)));
         }
     }
 
-    private static void setSelected(@NonNull Button selectButton, boolean isSelected) {
+    private static void updateSelectButtonStateAndText(@NonNull Button selectButton,
+            boolean isSelected) {
         selectButton.setSelected(isSelected);
+        updateSelectButtonText(selectButton, isSelected);
+    }
+
+    private static void updateSelectButtonText(@NonNull Button selectButton, boolean isSelected) {
         selectButton.setText(isSelected ? R.string.deselect : R.string.select);
     }
 
-    public static void show(FragmentManager fm) {
+    public static void show(@NonNull FragmentManager fm, @NonNull Bundle args) {
         if (fm.isStateSaved()) {
             Log.d(TAG, "Skip show preview fragment because state saved");
             return;
         }
 
         final PreviewFragment fragment = new PreviewFragment();
+        fragment.setArguments(args);
         fm.beginTransaction()
                 .replace(R.id.fragment_container, fragment, TAG)
                 .addToBackStack(TAG)
@@ -201,12 +280,20 @@ public class PreviewFragment extends Fragment {
      * Get the fragment in the FragmentManager
      * @param fm the fragment manager
      */
-    public static Fragment get(FragmentManager fm) {
+    public static Fragment get(@NonNull FragmentManager fm) {
         return fm.findFragmentByTag(TAG);
     }
 
+    public static Bundle getArgsForPreviewOnLongPress() {
+        return sPreviewOnLongPressArgs;
+    }
+
+    public static Bundle getArgsForPreviewOnViewSelected() {
+        return sPreviewOnViewSelectedArgs;
+    }
+
     // TODO: There is a same method in TabFragment. To find a way to reuse it.
-    private static String generateAddButtonString(Context context, int size) {
+    private static String generateAddButtonString(@NonNull Context context, int size) {
         final String sizeString = NumberFormat.getInstance(Locale.getDefault()).format(size);
         final String template = context.getString(R.string.picker_add_button_multi_select);
         return TextUtils.expandTemplate(template, sizeString).toString();

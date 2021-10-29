@@ -60,6 +60,31 @@ public class SpecialFormatDetectorTest {
     }
 
     @Test
+    public void testDetect_gif() throws Exception {
+        final File dir = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS);
+        final File file = stage(R.raw.test_gif, new File(dir, TAG + System.nanoTime() + ".jpg"));
+
+        final Uri uri = MediaStore.scanFile(mIsolatedResolver, file);
+        assertThat(uri).isNotNull();
+
+        final Uri filesUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
+                ContentUris.parseId(uri));
+
+        try (Cursor cr = mIsolatedResolver.query(filesUri,
+                new String[]{MediaStore.Files.FileColumns.MIME_TYPE,
+                        MediaStore.Files.FileColumns._SPECIAL_FORMAT}, null, null, null)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertThat(cr.getString(0)).isEqualTo("image/jpeg");
+            assertThat(cr.getInt(1)).isEqualTo(
+                    MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF);
+        }
+
+        file.delete();
+    }
+
+    @Test
     public void testDetect_motionPhoto() throws Exception {
         final File dir = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOWNLOADS);
@@ -86,7 +111,7 @@ public class SpecialFormatDetectorTest {
     }
 
     @Test
-    public void testDetect_notMotionPhoto() throws Exception {
+    public void testDetect_notSpecialFormat() throws Exception {
         final File dir = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOWNLOADS);
         final File file = stage(R.raw.test_image, new File(dir, TAG + System.nanoTime() + ".jpg"));

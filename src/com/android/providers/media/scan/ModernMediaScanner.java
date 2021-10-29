@@ -1384,7 +1384,7 @@ public class ModernMediaScanner implements MediaScanner {
             final XmpInterface xmp = XmpInterface.fromContainer(exif);
             withXmpValues(op, xmp, mimeType);
 
-            op.withValue(FileColumns._SPECIAL_FORMAT, SpecialFormatDetector.detect(exif));
+            op.withValue(FileColumns._SPECIAL_FORMAT, SpecialFormatDetector.detect(exif, file));
         } catch (Exception e) {
             logTroubleScanning(file, e);
         }

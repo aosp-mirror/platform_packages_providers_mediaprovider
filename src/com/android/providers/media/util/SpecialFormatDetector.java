@@ -16,6 +16,7 @@
 
 package com.android.providers.media.util;
 
+import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.os.Trace;
 import android.provider.MediaStore.Files.FileColumns;
@@ -26,6 +27,7 @@ import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.IOException;
+import java.io.File;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 
@@ -69,11 +71,30 @@ public class SpecialFormatDetector {
     /**
      * {@return} special format for a file
      */
-    public static int detect(ExifInterface exif) throws Exception {
+    public static int detect(ExifInterface exif, File file) throws Exception {
+        if (isGif(file)) {
+            return FileColumns._SPECIAL_FORMAT_GIF;
+        }
+
         if (isMotionPhoto(exif)) {
             return FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
         }
         return FileColumns._SPECIAL_FORMAT_NONE;
+    }
+
+    /**
+     * @return true if the file is a GIF file by checking file metadata
+     *
+     * Note: This does not respect file extension.
+     */
+    private static boolean isGif(File file) {
+        final BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
+        // Set options such that the image is not decoded to a bitmap, as we only want mimetype
+        // options
+        bitmapOptions.inSampleSize = 1;
+        bitmapOptions.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOptions);
+        return bitmapOptions.outMimeType.equalsIgnoreCase("image/gif");
     }
 
     private static boolean isMotionPhoto(ExifInterface exif) throws Exception {

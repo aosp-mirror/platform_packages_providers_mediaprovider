@@ -235,7 +235,6 @@ public class PickerSyncController {
         }
     }
 
-
     /**
      * Notifies about media events like inserts/updates/deletes from cloud and local providers and
      * syncs the changes in the background.

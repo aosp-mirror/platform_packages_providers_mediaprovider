@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import android.content.ClipData;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -35,12 +36,15 @@ import android.util.Log;
 import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -164,16 +168,19 @@ public class PickerResultTest {
      */
     private Item createImageItem() throws Exception {
         // Create an image and revoke test app's access on it
-        final Uri imageUri = assertCreateNewImage();
+        Uri imageUri = assertCreateNewImage();
         clearMediaOwner(imageUri, mContext.getUserId());
+        if (PickerDbFacade.isPickerDbEnabled()) {
+            // Create with a picker URI with picker db enabled
+            imageUri = PickerUriResolver
+                    .getMediaUri(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                    .buildUpon()
+                    .appendPath(String.valueOf(ContentUris.parseId(imageUri)))
+                    .build();
+        }
 
-        // Create an item for the selection, since PickerResult only uses Item#getContentUri(),
-        // no need to create actual item, and can mock the class.
-        final Item imageItem = mock(Item.class);
-        when(imageItem.getContentUri()).thenReturn(imageUri);
-        when(imageItem.getId()).thenReturn(imageUri.getLastPathSegment());
-
-        return imageItem;
+        return new Item(imageUri.getLastPathSegment(), "image/jpeg", /* dateTaken */ 0,
+                /* duration */ 0, imageUri);
     }
 
     private Uri assertCreateNewImage() throws Exception {
@@ -183,7 +190,15 @@ public class PickerResultTest {
     private Uri assertCreateNewFile(File dir, String fileName) throws Exception {
         final File file = new File(dir, fileName);
         assertThat(file.createNewFile()).isTrue();
-        return MediaStore.scanFile(mContext.getContentResolver(), file);
+
+        // Write 1 byte because 0byte files are not valid in the picker db
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(1);
+        }
+
+        final Uri uri = MediaStore.scanFile(mContext.getContentResolver(), file);
+        MediaStore.waitForIdle(mContext.getContentResolver());
+        return uri;
     }
 
     private String getImageFileName() {

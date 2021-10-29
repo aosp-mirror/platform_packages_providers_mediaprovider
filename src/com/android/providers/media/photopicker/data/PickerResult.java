@@ -79,6 +79,9 @@ public class PickerResult {
     static Uri getPickerUri(Uri uri, String id) {
         final String userInfo = uri.getUserInfo();
         final String userId = userInfo == null ? UserId.CURRENT_USER.toString() : userInfo;
+        if (PickerDbFacade.isPickerDbEnabled()) {
+            return PickerUriResolver.wrapProviderUri(uri, Integer.parseInt(userId));
+        }
         final Uri uriWithUserId =
                 PickerUriResolver.PICKER_URI.buildUpon().appendPath(userId).build();
         return uriWithUserId.buildUpon().appendPath(id).build();

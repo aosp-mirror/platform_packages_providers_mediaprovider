@@ -101,6 +101,11 @@ public class PickerDbFacade {
     @VisibleForTesting
     public static final String KEY_IS_FAVORITE = "is_favorite";
 
+    @VisibleForTesting
+    public static final String IMAGE_FILE_EXTENSION = ".jpg";
+    @VisibleForTesting
+    public static final String VIDEO_FILE_EXTENSION = ".mp4";
+
     // We prefer cloud_id first and it only matters for cloud+local items. For those, the row
     // will already be associated with a cloud authority, see #getProjectionAuthorityLocked.
     // Note that hidden cloud+local items will not be returned in the query, so there's no concern
@@ -658,10 +663,14 @@ public class PickerDbFacade {
                 KEY_CLOUD_ID, mLocalProvider, mCloudProvider);
         // See comment in #getProjectionAuthorityLocked for why cloud_id is preferred over local_id
         final String mediaId = String.format("IFNULL(%s, %s)", KEY_CLOUD_ID, KEY_LOCAL_ID);
+        // TODO(b/195009139): Add .gif fileextension support
+        final String fileExtension = String.format("IIF(%s LIKE 'image/%%', '%s', '%s')",
+                KEY_MIME_TYPE, IMAGE_FILE_EXTENSION, VIDEO_FILE_EXTENSION);
         final String fullPath = "'" + PICKER_PATH + "/'"
                 + "||" + authority
                 + "||" + "'/" + CloudMediaProviderContract.URI_PATH_MEDIA + "/'"
-                + "||" + mediaId;
+                + "||" + mediaId
+                + "||" + fileExtension;
 
         return String.format("%s AS %s", fullPath, CloudMediaProviderContract.MediaColumns.DATA);
     }

@@ -31,12 +31,14 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.RemoteException;
+import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
 
 import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryColumns;
 import com.android.providers.media.photopicker.data.model.Item.ItemColumns;
@@ -134,6 +136,11 @@ public class ItemsProvider {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
+
+        if (PickerDbFacade.isPickerDbEnabled()) {
+            return queryAlbums(mimeType, userId);
+        }
+
         return buildCategoriesCursor(Category.CATEGORIES_LIST, mimeType, userId);
     }
 
@@ -188,10 +195,8 @@ public class ItemsProvider {
             selectionArgs = new String[] {replaceMatchAnyChar(mimeType)};
         }
 
-        if (PickerDbFacade.isPickerDbEnabled() && category == null) {
-            // The picker db doesn't yet support categories, so only serve non-category queries
-            // from the picker db
-            return queryPickerDb(limit, mimeType, userId);
+        if (PickerDbFacade.isPickerDbEnabled()) {
+            return queryMedia(limit, mimeType, category, userId);
         }
         return queryMediaStore(projection, selection, selectionArgs, offset, limit, userId);
     }
@@ -240,24 +245,48 @@ public class ItemsProvider {
         }
     }
 
-    @Nullable
-    private Cursor queryPickerDb(int limit, @Nullable String mimeType, @NonNull UserId userId) {
+    private Cursor queryMedia(int limit, @Nullable String mimeType,
+            @NonNull String category, @NonNull UserId userId)
+            throws IllegalStateException {
+        final Bundle extras = new Bundle();
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
-            final Bundle extras = new Bundle();
             extras.putInt(MediaStore.QUERY_ARG_LIMIT, limit);
             extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+            if (category != null) {
+                extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category);
+                extras.putString(MediaStore.QUERY_ARG_ALBUM_TYPE,
+                        Category.CATEGORY_FAVORITES.equals(category)
+                        ? AlbumColumns.TYPE_FAVORITES : AlbumColumns.TYPE_LOCAL);
+            }
 
-            return client.query(PickerUriResolver.PICKER_INTERNAL_URI, /* projection */ null,
-                    extras, /* cancellationSignal */ null);
-        } catch (RemoteException e) {
+            final Uri uri = PickerUriResolver.PICKER_INTERNAL_URI.buildUpon()
+                    .appendPath(PickerUriResolver.MEDIA_PATH).build();
+
+            return client.query(uri, /* projection */ null, extras, /* cancellationSignal */ null);
+        } catch (RemoteException | NameNotFoundException ignored) {
             // Do nothing, return null.
-            Log.e(TAG, "RemoteException while querying picker database for items with"
-                            + " mimeType filter = " + mimeType
-                            + " limit = " + limit + " userId = " + userId, e);
+            Log.e(TAG, "Failed to query merged media with extras: "
+                    + extras + ". userId = " + userId, ignored);
             return null;
-        } catch (NameNotFoundException e) {
-            Log.e(TAG, "Unable to get content resolver for the given userId: " + userId, e);
+        }
+    }
+
+    @Nullable
+    private Cursor queryAlbums(@Nullable String mimeType, @NonNull UserId userId) {
+        final Bundle extras = new Bundle();
+        try (ContentProviderClient client = userId.getContentResolver(mContext)
+                .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
+            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+
+            final Uri uri = PickerUriResolver.PICKER_INTERNAL_URI.buildUpon()
+                    .appendPath(PickerUriResolver.ALBUM_PATH).build();
+
+            return client.query(uri, /* projection */ null, extras, /* cancellationSignal */ null);
+        } catch (RemoteException | NameNotFoundException ignored) {
+            // Do nothing, return null.
+            Log.w(TAG, "Failed to query merged albums with extras: "
+                    + extras + ". userId = " + userId, ignored);
             return null;
         }
     }
@@ -269,10 +298,8 @@ public class ItemsProvider {
                     Long.parseLong(id));
         } else {
             // We only have authority after querying the picker db
-            final Uri providerUri = PickerUriResolver.getMediaUri(authority).buildUpon()
+            uri = PickerUriResolver.getMediaUri(authority).buildUpon()
                     .appendPath(id).build();
-            uri = PickerUriResolver.wrapProviderUri(providerUri,
-                    userId.getUserHandle().getIdentifier());
         }
 
         if (userId.equals(UserId.CURRENT_USER)) {

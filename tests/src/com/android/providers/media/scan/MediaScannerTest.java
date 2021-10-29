@@ -49,6 +49,7 @@ import com.android.providers.media.MediaDocumentsProvider;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.R;
 import com.android.providers.media.util.FileUtils;
+import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
 
 import org.junit.Before;
@@ -72,6 +73,7 @@ public class MediaScannerTest {
         private final MockContentResolver mResolver;
         private final MediaProvider mProvider;
         private final MediaDocumentsProvider mDocumentsProvider;
+        private final PhotoPickerProvider mPhotoPickerProvider;
 
         public IsolatedContext(Context base, String tag, boolean asFuseThread) {
             super(base);
@@ -125,13 +127,13 @@ public class MediaScannerTest {
                 }
             });
 
+            final ProviderInfo photoPickerProviderInfo = base.getPackageManager()
+                    .resolveContentProvider(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                            0);
+            mPhotoPickerProvider = new PhotoPickerProvider();
+            mPhotoPickerProvider.attachInfo(this, photoPickerProviderInfo);
             mResolver.addProvider(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
-                    new MockContentProvider() {
-                @Override
-                public Bundle call(String method, String request, Bundle args) {
-                    return Bundle.EMPTY;
-                }
-            });
+                    mPhotoPickerProvider);
 
             MediaStore.waitForIdle(mResolver);
         }

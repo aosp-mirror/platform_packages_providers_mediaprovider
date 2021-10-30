@@ -44,7 +44,7 @@
     <string name="allow" msgid="8885707816848569619">"Permitir"</string>
     <string name="deny" msgid="6040983710442068936">"Recusar"</string>
     <string name="add" msgid="2894574044585549298">"Adicionar"</string>
-    <string name="deselect" msgid="4297825044827769490">"Desselecionar"</string>
+    <string name="deselect" msgid="4297825044827769490">"Desmarcar"</string>
     <string name="select" msgid="2704765470563027689">"Selecionar"</string>
     <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
       <item quantity="other">Selecione até <xliff:g id="COUNT_1">^1</xliff:g> itens</item>

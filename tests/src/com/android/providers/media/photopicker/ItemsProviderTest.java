@@ -47,6 +47,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +78,7 @@ public class ItemsProviderTest {
 
         final Context context = InstrumentationRegistry.getTargetContext();
         final Context isolatedContext
-                = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
+                = new IsolatedContext(context, "databases", /*asFuseThread*/ false);
         mIsolatedResolver = isolatedContext.getContentResolver();
         mItemsProvider = new ItemsProvider(isolatedContext);
 
@@ -743,11 +744,25 @@ public class ItemsProviderTest {
             dir.mkdirs();
         }
         assertThat(dir.exists()).isTrue();
+
         final File file = new File(dir, fileName);
+        createAndPrepareFile(file);
+
+        return file;
+    }
+
+    private Uri createAndPrepareFile(File file) throws IOException {
         assertThat(file.createNewFile()).isTrue();
 
-        MediaStore.scanFile(mIsolatedResolver, file);
-        return file;
+        // Write 1 byte because 0byte files are not valid in the picker db
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(1);
+        }
+
+        final Uri uri = MediaStore.scanFile(mIsolatedResolver, file);
+        MediaStore.waitForIdle(mIsolatedResolver);
+
+        return uri;
     }
 
     private File getDownloadsDir() {
@@ -802,11 +817,8 @@ public class ItemsProviderTest {
     private Uri createFileAndGet(File parent, String fileName, long lastModifiedTime)
             throws IOException {
         final File file = new File(parent, fileName);
-        assertWithMessage("Create new file " + file)
-                .that(file.createNewFile()).isTrue();
-        assertWithMessage("Set last modified for " + file)
-                .that(file.setLastModified(lastModifiedTime)).isTrue();
-        final Uri uri = MediaStore.scanFile(mIsolatedResolver, file);
+        final Uri uri = createAndPrepareFile(file);
+
         assertWithMessage("Uri obtained by scanning file " + file)
                 .that(uri).isNotNull();
         return uri;

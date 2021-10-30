@@ -38,4 +38,8 @@ public final class FileOpenResult {
         this.nativeFd = nativeFd;
         this.redactionRanges = redactionRanges;
     }
+
+    public static FileOpenResult createError(int errorCode, int uid) {
+        return new FileOpenResult(errorCode, uid, /* transformsUid */ 0, new long[0]);
+    }
 }

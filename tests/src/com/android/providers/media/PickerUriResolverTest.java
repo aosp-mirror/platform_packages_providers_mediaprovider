@@ -18,7 +18,7 @@ package com.android.providers.media;
 
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.provider.MediaStore.MediaColumns.DISPLAY_NAME;
+import static android.provider.MediaStore.MediaColumns._ID;
 import static android.provider.MediaStore.MediaColumns.RELATIVE_PATH;
 
 import static androidx.test.InstrumentationRegistry.getTargetContext;
@@ -48,6 +48,8 @@ import android.provider.MediaStore;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.scan.MediaScannerTest;
 
@@ -57,6 +59,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
 
 @RunWith(AndroidJUnit4.class)
@@ -71,10 +74,12 @@ public class PickerUriResolverTest {
     private static Context sCurrentContext;
     private static TestPickerUriResolver sTestPickerUriResolver;
     private static Uri sTestPickerUri;
+    private static PickerDbFacade sPickerDbFacade;
+    private static String TEST_ID;
 
     private static class TestPickerUriResolver extends PickerUriResolver {
-        TestPickerUriResolver(Context context) {
-            super(context);
+        TestPickerUriResolver(Context context, PickerDbFacade facade) {
+            super(context, facade);
         }
 
         @Override
@@ -94,11 +99,12 @@ public class PickerUriResolverTest {
                         android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS);
         sCurrentContext = mock(Context.class);
-        sTestPickerUriResolver = new TestPickerUriResolver(sCurrentContext);
-
         final Context otherUserContext = createOtherUserContext(TEST_USER);
-        final Uri mediaStoreUriInOtherContext = createTestFileInContext(otherUserContext);
+        sPickerDbFacade = new PickerDbFacade(otherUserContext);
+        sTestPickerUriResolver = new TestPickerUriResolver(sCurrentContext, sPickerDbFacade);
 
+        final Uri mediaStoreUriInOtherContext = createTestFileInContext(otherUserContext);
+        TEST_ID = mediaStoreUriInOtherContext.getLastPathSegment();
         sTestPickerUri = getPickerUriForId(ContentUris.parseId(mediaStoreUriInOtherContext),
                 TEST_USER);
     }
@@ -284,7 +290,7 @@ public class PickerUriResolverTest {
         // PickerUriResolver should correctly be able to call into other user's content resolver
         // from the current context.
         final Context otherUserContext = new MediaScannerTest.IsolatedContext(getTargetContext(),
-                "modern", /* asFuseThread */ false);
+                "databases", /* asFuseThread */ false);
         when(sCurrentContext.createPackageContextAsUser("android", /* flags= */ 0, userHandle)).
                 thenReturn(otherUserContext);
         return otherUserContext;
@@ -292,8 +298,14 @@ public class PickerUriResolverTest {
 
     private static Uri createTestFileInContext(Context context) throws Exception {
         TEST_FILE.createNewFile();
+        // Write 1 byte because 0byte files are not valid in the picker db
+        try (FileOutputStream fos = new FileOutputStream(TEST_FILE)) {
+            fos.write(1);
+        }
+
         final Uri uri = MediaStore.scanFile(context.getContentResolver(), TEST_FILE);
         assertThat(uri).isNotNull();
+        MediaStore.waitForIdle(context.getContentResolver());
         return uri;
     }
 
@@ -304,6 +316,14 @@ public class PickerUriResolverTest {
     }
 
     private static Uri getPickerUriForId(long id, int user) {
+        if (PickerDbFacade.isPickerDbEnabled()) {
+            final Uri providerUri = PickerUriResolver
+                    .getMediaUri(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                    .buildUpon()
+                    .appendPath(String.valueOf(id))
+                    .build();
+            return PickerUriResolver.wrapProviderUri(providerUri, user);
+        }
         return Uri.parse("content://media/picker/" + user + "/" + id);
     }
 
@@ -328,12 +348,12 @@ public class PickerUriResolverTest {
 
     private void testQuery(Uri uri) throws Exception {
         Cursor result = sTestPickerUriResolver.query(uri,
-                /* projection */ new String[]{DISPLAY_NAME},
+                /* projection */ new String[]{_ID},
                 /* queryArgs */ null, /* signal */ null, /* callingPid */ -1, /* callingUid */ -1);
         assertThat(result).isNotNull();
         assertThat(result.getCount()).isEqualTo(1);
         result.moveToFirst();
-        assertThat(result.getString(0)).isEqualTo(TEST_FILE.getName());
+        assertThat(result.getString(0)).isEqualTo(TEST_ID);
     }
 
     private void testGetType(Uri uri, String expectedMimeType) throws Exception {

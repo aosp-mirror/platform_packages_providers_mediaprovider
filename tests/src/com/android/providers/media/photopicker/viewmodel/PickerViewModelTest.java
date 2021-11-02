@@ -149,8 +149,9 @@ public class PickerViewModelTest {
         final String lastItemId = "13";
         final List<Item> fakeItemList = generateFakeImageItemList(originalItemCount);
         final long dateTakenMs = fakeItemList.get(originalItemCount - 1).getDateTaken();
+        final long generationModified = 1L;
         final Item lastItem = ItemTest.generateItem(lastItemId, FAKE_IMAGE_MIME_TYPE,
-                dateTakenMs, /* duration= */ 1000l);
+                dateTakenMs, generationModified, /* duration= */ 1000L);
         fakeItemList.add(lastItem);
         final int itemCount = fakeItemList.size();
         mItemsProvider.setItems(fakeItemList);
@@ -271,8 +272,10 @@ public class PickerViewModelTest {
     private static Item generateFakeImageItem(String id) {
         final long dateTakenMs = System.currentTimeMillis() + Long.parseLong(id)
                 * DateUtils.DAY_IN_MILLIS;
+        final long generationModified = 1L;
 
-        return ItemTest.generateItem(id, FAKE_IMAGE_MIME_TYPE, dateTakenMs, /* duration= */ 1000l);
+        return ItemTest.generateItem(id, FAKE_IMAGE_MIME_TYPE, dateTakenMs, generationModified,
+                /* duration= */ 1000L);
     }
 
     private static List<Item> generateFakeImageItemList(int num) {
@@ -318,6 +321,7 @@ public class PickerViewModelTest {
                         item.getMimeType(),
                         String.valueOf(item.getDateTaken()),
                         String.valueOf(item.getDateTaken()),
+                        String.valueOf(item.getGenerationModified()),
                         String.valueOf(item.getDuration()),
                 });
             }

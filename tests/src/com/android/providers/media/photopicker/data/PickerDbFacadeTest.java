@@ -18,14 +18,9 @@ package com.android.providers.media.photopicker.data;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import android.Manifest;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
-import android.database.sqlite.SQLiteDatabase;
-import android.os.Bundle;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 
@@ -33,7 +28,6 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import java.io.File;
 
@@ -45,6 +39,7 @@ import org.junit.runner.RunWith;
 public class PickerDbFacadeTest {
     private static final long SIZE_BYTES = 7000;
     private static final long DATE_TAKEN_MS = 1623852851911L;
+    private static final long GENERATION_MODIFIED = 1L;
     private static final long DURATION_MS = 5;
     private static final String LOCAL_ID = "50";
     private static final String MEDIA_STORE_URI = "content://media/external/file/" + LOCAL_ID;
@@ -491,10 +486,10 @@ public class PickerDbFacadeTest {
 
     @Test
     public void testQueryWithSizeFilter() throws Exception {
-        Cursor cursor1 = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS,
+        Cursor cursor1 = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, /* sizeBytes */ 1, VIDEO_MIME_TYPE,
                 /* isFavorite */ false);
-        Cursor cursor2 = getMediaCursor(CLOUD_ID, DATE_TAKEN_MS,
+        Cursor cursor2 = getMediaCursor(CLOUD_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, /* sizeBytes */ 2, VIDEO_MIME_TYPE,
                 /* isFavorite */ false);
 
@@ -557,9 +552,9 @@ public class PickerDbFacadeTest {
 
     @Test
     public void testQueryWithMimeTypeFilter() throws Exception {
-        Cursor cursor1 = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS,
+        Cursor cursor1 = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, "video/webm", /* isFavorite */ false);
-        Cursor cursor2 = getMediaCursor(CLOUD_ID, DATE_TAKEN_MS,
+        Cursor cursor2 = getMediaCursor(CLOUD_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, "video/mp4", /* isFavorite */ false);
 
         assertThat(mFacade.addMedia(cursor1, LOCAL_PROVIDER)).isEqualTo(1);
@@ -621,9 +616,9 @@ public class PickerDbFacadeTest {
 
     @Test
     public void testQueryWithSizeAndMimeTypeFilter() throws Exception {
-        Cursor cursor1 = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS,
+        Cursor cursor1 = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, /* sizeBytes */ 2, "video/webm", /* isFavorite */ false);
-        Cursor cursor2 = getMediaCursor(CLOUD_ID, DATE_TAKEN_MS,
+        Cursor cursor2 = getMediaCursor(CLOUD_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, /* sizeBytes */ 1, "video/mp4", /* isFavorite */ false);
 
         assertThat(mFacade.addMedia(cursor1, LOCAL_PROVIDER)).isEqualTo(1);
@@ -689,13 +684,13 @@ public class PickerDbFacadeTest {
 
     @Test
     public void testFavorites() throws Exception {
-        Cursor localCursor1 = getMediaCursor(LOCAL_ID + "1", DATE_TAKEN_MS,
+        Cursor localCursor1 = getMediaCursor(LOCAL_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ true);
-        Cursor localCursor2 = getMediaCursor(LOCAL_ID + "2", DATE_TAKEN_MS,
+        Cursor localCursor2 = getMediaCursor(LOCAL_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ false);
-        Cursor cloudCursor1 = getMediaCursor(CLOUD_ID + "1", DATE_TAKEN_MS,
+        Cursor cloudCursor1 = getMediaCursor(CLOUD_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ true);
-        Cursor cloudCursor2 = getMediaCursor(CLOUD_ID + "2", DATE_TAKEN_MS,
+        Cursor cloudCursor2 = getMediaCursor(CLOUD_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ false);
 
         assertThat(mFacade.addMedia(localCursor1, LOCAL_PROVIDER)).isEqualTo(1);
@@ -722,13 +717,13 @@ public class PickerDbFacadeTest {
 
     @Test
     public void testGetFavoritesAlbumWithoutFilter() throws Exception {
-        Cursor localCursor1 = getMediaCursor(LOCAL_ID + "1", DATE_TAKEN_MS,
+        Cursor localCursor1 = getMediaCursor(LOCAL_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ true);
-        Cursor localCursor2 = getMediaCursor(LOCAL_ID + "2", DATE_TAKEN_MS,
+        Cursor localCursor2 = getMediaCursor(LOCAL_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, IMAGE_MIME_TYPE, /* isFavorite */ false);
-        Cursor cloudCursor1 = getMediaCursor(CLOUD_ID + "1", DATE_TAKEN_MS,
+        Cursor cloudCursor1 = getMediaCursor(CLOUD_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, IMAGE_MIME_TYPE, /* isFavorite */ true);
-        Cursor cloudCursor2 = getMediaCursor(CLOUD_ID + "2", DATE_TAKEN_MS,
+        Cursor cloudCursor2 = getMediaCursor(CLOUD_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ false);
 
         assertThat(mFacade.addMedia(localCursor1, LOCAL_PROVIDER)).isEqualTo(1);
@@ -756,13 +751,13 @@ public class PickerDbFacadeTest {
 
     @Test
     public void testGetFavoritesAlbumWithMimeTypeFilter() throws Exception {
-        Cursor localCursor1 = getMediaCursor(LOCAL_ID + "1", DATE_TAKEN_MS,
+        Cursor localCursor1 = getMediaCursor(LOCAL_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ true);
-        Cursor localCursor2 = getMediaCursor(LOCAL_ID + "2", DATE_TAKEN_MS,
+        Cursor localCursor2 = getMediaCursor(LOCAL_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, IMAGE_MIME_TYPE, /* isFavorite */ false);
-        Cursor cloudCursor1 = getMediaCursor(CLOUD_ID + "1", DATE_TAKEN_MS,
+        Cursor cloudCursor1 = getMediaCursor(CLOUD_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, IMAGE_MIME_TYPE, /* isFavorite */ true);
-        Cursor cloudCursor2 = getMediaCursor(CLOUD_ID + "2", DATE_TAKEN_MS,
+        Cursor cloudCursor2 = getMediaCursor(CLOUD_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ false);
 
         assertThat(mFacade.addMedia(localCursor1, LOCAL_PROVIDER)).isEqualTo(1);
@@ -819,10 +814,10 @@ public class PickerDbFacadeTest {
 
     @Test
     public void testDataColumn() throws Exception {
-        Cursor imageCursor = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, /* mediaStoreUri */ null,
-                SIZE_BYTES, IMAGE_MIME_TYPE, /* isFavorite */ false);
-        Cursor videoCursor = getMediaCursor(LOCAL_ID + 1, DATE_TAKEN_MS, /* mediaStoreUri */ null,
-                SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ false);
+        Cursor imageCursor = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, IMAGE_MIME_TYPE, /* isFavorite */ false);
+        Cursor videoCursor = getMediaCursor(LOCAL_ID + 1, DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ false);
 
         assertThat(mFacade.addMedia(imageCursor, LOCAL_PROVIDER)).isEqualTo(1);
         assertThat(mFacade.addMedia(videoCursor, LOCAL_PROVIDER)).isEqualTo(1);
@@ -849,12 +844,13 @@ public class PickerDbFacadeTest {
         return c;
     }
 
-    private static Cursor getMediaCursor(String id, long dateTakenMs, String mediaStoreUri,
-            long sizeBytes, String mimeType, boolean isFavorite) {
+    private static Cursor getMediaCursor(String id, long dateTakenMs, long generationModified,
+            String mediaStoreUri, long sizeBytes, String mimeType, boolean isFavorite) {
         String[] projectionKey = new String[] {
             MediaColumns.ID,
             MediaColumns.MEDIA_STORE_URI,
             MediaColumns.DATE_TAKEN_MS,
+            MediaColumns.GENERATION_MODIFIED,
             MediaColumns.SIZE_BYTES,
             MediaColumns.MIME_TYPE,
             MediaColumns.DURATION_MS,
@@ -865,6 +861,7 @@ public class PickerDbFacadeTest {
             id,
             mediaStoreUri,
             String.valueOf(dateTakenMs),
+            String.valueOf(generationModified),
             String.valueOf(sizeBytes),
             mimeType,
             String.valueOf(DURATION_MS),
@@ -877,14 +874,14 @@ public class PickerDbFacadeTest {
     }
 
     private static Cursor getLocalMediaCursor(String localId, long dateTakenMs) {
-        return getMediaCursor(localId, dateTakenMs, toMediaStoreUri(localId), SIZE_BYTES,
-                VIDEO_MIME_TYPE, /* isFavorite */ false);
+        return getMediaCursor(localId, dateTakenMs, GENERATION_MODIFIED, toMediaStoreUri(localId),
+                SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ false);
     }
 
     private static Cursor getCloudMediaCursor(String cloudId, String localId,
             long dateTakenMs) {
-        return getMediaCursor(cloudId, dateTakenMs, toMediaStoreUri(localId), SIZE_BYTES,
-                VIDEO_MIME_TYPE, /* isFavorite */ false);
+        return getMediaCursor(cloudId, dateTakenMs, GENERATION_MODIFIED, toMediaStoreUri(localId),
+                SIZE_BYTES, VIDEO_MIME_TYPE, /* isFavorite */ false);
     }
 
     private static String toMediaStoreUri(String localId) {
@@ -930,6 +927,8 @@ public class PickerDbFacadeTest {
                 .isEqualTo(VIDEO_MIME_TYPE);
         assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.DATE_TAKEN_MS)))
                 .isEqualTo(dateTakenMs);
+        assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.GENERATION_MODIFIED)))
+                .isEqualTo(GENERATION_MODIFIED);
         assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.SIZE_BYTES)))
                 .isEqualTo(SIZE_BYTES);
         assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.DURATION_MS)))

@@ -88,6 +88,22 @@ public final class CloudMediaProviderContract {
         public static final String DATE_TAKEN_MS = "date_taken_ms";
 
         /**
+         * Generation number associated with a media item.
+         * <p>
+         * Providers should associate a monotonically increasing generation number to each media
+         * item which is expected to increase for each atomic modification on the media item. This
+         * is useful for the OS to quickly identify that a media item has changed since a previous
+         * point in time. Note that this does not need to be unique across all media items, i.e.,
+         * multiple media items can have the same GENERATION_MODIFIED value. However, the
+         * modification of a media item should increase the {@link MediaInfo#MEDIA_GENERATION}.
+         * <p>
+         * Type: LONG
+         *
+         * @see MediaInfo#MEDIA_GENERATION
+         */
+        public static final String GENERATION_MODIFIED = "generation_modified";
+
+        /**
          * Concrete MIME type of a media file. For example, "image/png" or
          * "video/mp4".
          * <p>
@@ -288,6 +304,7 @@ public final class CloudMediaProviderContract {
          *
          * @see CloudMediaProviderContract#EXTRA_GENERATION
          * @see CloudMediaProvider#onGetMediaInfo
+         * @see CloudMediaProviderContract.MediaColumns#GENERATION_MODIFIED
          */
         public static final String MEDIA_GENERATION = "media_generation";
 

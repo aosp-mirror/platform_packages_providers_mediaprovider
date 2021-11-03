@@ -180,7 +180,7 @@ public class PickerResultTest {
         }
 
         return new Item(imageUri.getLastPathSegment(), "image/jpeg", /* dateTaken */ 0,
-                /* duration */ 0, imageUri);
+                /* generationModified */ 0, /* duration */ 0, imageUri);
     }
 
     private Uri assertCreateNewImage() throws Exception {

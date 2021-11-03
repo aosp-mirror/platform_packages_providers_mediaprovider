@@ -16,15 +16,8 @@
 
 package com.android.providers.media;
 
-import static android.provider.CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS;
-import static android.provider.CloudMediaProviderContract.MediaColumns.DURATION_MS;
-import static android.provider.CloudMediaProviderContract.MediaColumns.ID;
-import static android.provider.CloudMediaProviderContract.MediaColumns.MEDIA_STORE_URI;
-import static android.provider.CloudMediaProviderContract.MediaColumns.MIME_TYPE;
-import static android.provider.CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
-import static android.provider.CloudMediaProviderContract.MediaInfo;;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
@@ -32,7 +25,6 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.os.SystemClock;
 import android.provider.CloudMediaProvider;
-import com.android.providers.media.photopicker.data.PickerDbFacade;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,6 +43,7 @@ public class PickerProviderMediaGenerator {
         MediaColumns.MEDIA_STORE_URI,
         MediaColumns.MIME_TYPE,
         MediaColumns.DATE_TAKEN_MS,
+        MediaColumns.GENERATION_MODIFIED,
         MediaColumns.SIZE_BYTES,
         MediaColumns.DURATION_MS,
         MediaColumns.IS_FAVORITE,
@@ -234,6 +227,7 @@ public class PickerProviderMediaGenerator {
                 localId == null ? null : "content://media/external/files/" + localId,
                 mimeType,
                 String.valueOf(dateTakenMs),
+                String.valueOf(generation),
                 String.valueOf(sizeBytes),
                 String.valueOf(durationMs),
                 String.valueOf(isFavorite ? 1 : 0)

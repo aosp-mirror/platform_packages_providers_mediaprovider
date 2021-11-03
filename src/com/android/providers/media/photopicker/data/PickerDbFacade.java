@@ -33,8 +33,6 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
-import android.provider.MediaStore.MediaColumns;
-import android.os.Bundle;
 import android.os.SystemProperties;
 import android.util.Log;
 
@@ -43,7 +41,6 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Item;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -93,6 +90,8 @@ public class PickerDbFacade {
     @VisibleForTesting
     public static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
     @VisibleForTesting
+    public static final String KEY_GENERATION_MODIFIED = "generation_modified";
+    @VisibleForTesting
     public static final String KEY_SIZE_BYTES = "size_bytes";
     @VisibleForTesting
     public static final String KEY_DURATION_MS = "duration_ms";
@@ -114,6 +113,9 @@ public class PickerDbFacade {
             KEY_LOCAL_ID, CloudMediaProviderContract.MediaColumns.ID);
     private static final String PROJECTION_DATE_TAKEN = String.format("%s AS %s", KEY_DATE_TAKEN_MS,
             CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS);
+    private static final String PROJECTION_GENERATION_MODIFIED = String.format("%s AS %s",
+            KEY_GENERATION_MODIFIED,
+            CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED);
     private static final String PROJECTION_SIZE = String.format("%s AS %s", KEY_SIZE_BYTES,
             CloudMediaProviderContract.MediaColumns.SIZE_BYTES);
     private static final String PROJECTION_DURATION = String.format("%s AS %s", KEY_DURATION_MS,
@@ -637,6 +639,7 @@ public class PickerDbFacade {
             getProjectionDataLocked(),
             PROJECTION_ID,
             PROJECTION_DATE_TAKEN,
+            PROJECTION_GENERATION_MODIFIED,
             PROJECTION_SIZE,
             PROJECTION_DURATION,
             PROJECTION_MIME_TYPE
@@ -699,6 +702,9 @@ public class PickerDbFacade {
                     break;
                 case CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS:
                     values.put(KEY_DATE_TAKEN_MS, cursor.getLong(index));
+                    break;
+                case CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED:
+                    values.put(KEY_GENERATION_MODIFIED, cursor.getLong(index));
                     break;
                 case CloudMediaProviderContract.MediaColumns.SIZE_BYTES:
                     values.put(KEY_SIZE_BYTES, cursor.getLong(index));

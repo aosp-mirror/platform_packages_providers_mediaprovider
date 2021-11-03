@@ -120,7 +120,7 @@ public class SelectionTest {
         final Item item3 = generateFakeImageItem(id3);
         final String id4 = "4";
         final Item item4SameDateTakenAsItem3 = ItemTest.generateItem(id4, "image/jpeg",
-                item3.getDateTaken(), /* duration */ 1000);
+                item3.getDateTaken(), /* generationModified= */ 1L, /* duration */ 1000);
 
         mSelection.addSelectedItem(item1);
         mSelection.addSelectedItem(item2);
@@ -271,6 +271,7 @@ public class SelectionTest {
         final long dateTakenMs = System.currentTimeMillis() + Long.parseLong(id)
                 * DateUtils.DAY_IN_MILLIS;
 
-        return ItemTest.generateItem(id, "image/jpeg", dateTakenMs, /* duration= */ 1000l);
+        return ItemTest.generateItem(id, "image/jpeg", dateTakenMs,
+                /* generationModified= */ 1L, /* duration= */ 1000L);
     }
 }

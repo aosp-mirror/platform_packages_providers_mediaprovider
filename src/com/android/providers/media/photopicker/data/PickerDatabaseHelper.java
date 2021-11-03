@@ -27,14 +27,14 @@ import androidx.annotation.VisibleForTesting;
  * Wrapper class for the photo picker database. Can open the actual database
  * on demand, create and upgrade the schema, etc.
  *
- * @See DatabaseHelper
+ * @see DatabaseHelper
  */
 public class PickerDatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "PickerDatabaseHelper";
     @VisibleForTesting
     static final String PICKER_DATABASE_NAME = "picker.db";
 
-    private static final int VERSION_T = 1;
+    private static final int VERSION_T = 2;
     private static final int VERSION_LATEST = VERSION_T;
 
     final Context mContext;
@@ -65,6 +65,9 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onUpgrade() for " + mName + " from " + oldV + " to " + newV);
+
+        createLatestSchema(db);
+        createLatestIndexes(db);
     }
 
     @Override
@@ -107,6 +110,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "cloud_id TEXT UNIQUE,"
                 + "is_visible INTEGER CHECK(is_visible == 1),"
                 + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
+                + "generation_modified INTEGER NOT NULL CHECK(generation_modified >= 0),"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "duration_ms INTEGER CHECK(duration_ms >= 0),"
                 + "mime_type TEXT NOT NULL,is_favorite INTEGER,"

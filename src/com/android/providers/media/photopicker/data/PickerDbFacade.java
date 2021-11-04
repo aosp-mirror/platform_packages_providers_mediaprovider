@@ -653,7 +653,7 @@ public class PickerDbFacade {
         // Here, we need to distinguish between cloud+local and local-only items to determine the
         // correct authority. Checking whether cloud_id IS NULL distinguishes the former from the
         // latter.
-        return String.format("IIF(%s IS NULL, '%s', '%s') AS %s",
+        return String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END AS %s",
                 KEY_CLOUD_ID, mLocalProvider, mCloudProvider,
                 CloudMediaProviderContract.MediaColumns.AUTHORITY);
     }
@@ -662,13 +662,14 @@ public class PickerDbFacade {
         // _data format:
         // /storage/emulated/<user-id>/.transforms/synthetic/<authority>/media/<media-id>
         // See PickerUriResolver#getMediaUri
-        final String authority = String.format("IIF(%s IS NULL, '%s', '%s')",
+        final String authority = String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
                 KEY_CLOUD_ID, mLocalProvider, mCloudProvider);
         // See comment in #getProjectionAuthorityLocked for why cloud_id is preferred over local_id
         final String mediaId = String.format("IFNULL(%s, %s)", KEY_CLOUD_ID, KEY_LOCAL_ID);
         // TODO(b/195009139): Add .gif fileextension support
-        final String fileExtension = String.format("IIF(%s LIKE 'image/%%', '%s', '%s')",
-                KEY_MIME_TYPE, IMAGE_FILE_EXTENSION, VIDEO_FILE_EXTENSION);
+        final String fileExtension =
+                String.format("CASE WHEN %s LIKE 'image/%%' THEN '%s' ELSE '%s' END",
+                        KEY_MIME_TYPE, IMAGE_FILE_EXTENSION, VIDEO_FILE_EXTENSION);
         final String fullPath = "'" + PICKER_PATH + "/'"
                 + "||" + authority
                 + "||" + "'/" + CloudMediaProviderContract.URI_PATH_MEDIA + "/'"

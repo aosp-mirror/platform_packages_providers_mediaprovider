@@ -48,10 +48,8 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PhotosTabTest extends PhotoPickerBaseTest {
-    private static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
     private static final int ICON_GIF_ID = R.id.icon_gif;
     private static final int VIDEO_CONTAINER_ID = R.id.video_container;
-    private static final int ICON_CHECK_ID = R.id.icon_check;
     private static final int OVERLAY_GRADIENT_ID = R.id.overlay_gradient;
 
     @Rule
@@ -78,56 +76,50 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
     public void testPhotoGridLayout_image() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // Verify second item in the recycler view is image
-        final int position = 1;
         // Verify we have the thumbnail
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
 
         // Verify check icon, gif icon and video icon are not displayed
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, OVERLAY_GRADIENT_ID);
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_GIF_ID);
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, VIDEO_CONTAINER_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, OVERLAY_GRADIENT_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_GIF_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, VIDEO_CONTAINER_ID);
     }
 
     @Test
     public void testPhotoGridLayout_gif() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // Verify third item in the recycler view is video
-        final int position = 2;
         // Verify we have the thumbnail
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
         // Verify gif icon is displayed
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, OVERLAY_GRADIENT_ID);
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_GIF_ID);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, OVERLAY_GRADIENT_ID);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_GIF_ID);
 
         // Verify check icon and video icon are not displayed
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, VIDEO_CONTAINER_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_CHECK_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, VIDEO_CONTAINER_ID);
     }
 
     @Test
     public void testPhotoGridLayout_video() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // Verify fourth item in the recycler view is video
-        final int position = 3;
         // Verify we have the thumbnail
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
 
         // Verify video icon and duration are displayed
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, OVERLAY_GRADIENT_ID);
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, VIDEO_CONTAINER_ID);
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.video_duration);
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.icon_video);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, OVERLAY_GRADIENT_ID);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, VIDEO_CONTAINER_ID);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, R.id.video_duration);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, R.id.icon_video);
         onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
-                .atPositionOnView(position, R.id.video_duration))
+                .atPositionOnView(VIDEO_POSITION, R.id.video_duration))
                 .check(matches(withText(containsString("0"))));
 
         // Verify check icon and gif icon are not displayed
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_GIF_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_CHECK_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_GIF_ID);
     }
 
     @Test

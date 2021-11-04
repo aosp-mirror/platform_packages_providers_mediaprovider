@@ -33,7 +33,6 @@ import android.provider.MediaStore;
 import android.system.ErrnoException;
 import android.system.Os;
 
-import androidx.annotation.NonNull;
 import androidx.core.util.Supplier;
 import androidx.test.InstrumentationRegistry;
 
@@ -58,6 +57,27 @@ public class PhotoPickerBaseTest {
     protected static final int CHIP_CONTAINER_ID = R.id.chip_container;
     protected static final int PICKER_PHOTOS_STRING_ID = R.string.picker_photos;
     protected static final int PICKER_ALBUMS_STRING_ID = R.string.picker_albums;
+    protected static final int PREVIEW_VIEW_PAGER_ID = R.id.preview_viewPager;
+    protected static final int ICON_CHECK_ID = R.id.icon_check;
+    protected static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
+    protected static final int VIEW_SELECTED_BUTTON_ID = R.id.button_view_selected;
+    protected static final int PREVIEW_IMAGE_VIEW_ID = R.id.preview_imageView;
+
+    /**
+     * The position of the image item in the grid on the Photos tab
+     */
+    protected static final int IMAGE_POSITION = 1;
+
+    /**
+     * The position of the gif item in the grid on the Photos tab
+     */
+    protected static final int GIF_POSITION = 2;
+
+    /**
+     * The position of the video item in the grid on the Photos tab
+     */
+    protected static final int VIDEO_POSITION = 3;
+
 
     private static final Intent sSingleSelectIntent;
     static {
@@ -100,6 +120,14 @@ public class PhotoPickerBaseTest {
 
     public static Intent getMultiSelectionIntent() {
         return sMultiSelectionIntent;
+    }
+
+    public static Intent getMultiSelectionIntent(int max) {
+        final Intent intent = new Intent(sMultiSelectionIntent);
+        Bundle extras = new Bundle();
+        extras.putInt(MediaStore.EXTRA_PICK_IMAGES_MAX, max);
+        intent.putExtras(extras);
+        return intent;
     }
 
     public static IsolatedContext getIsolatedContext() {

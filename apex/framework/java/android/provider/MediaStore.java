@@ -4351,6 +4351,7 @@ public final class MediaStore {
         return userId == null ? MY_USER_ID : Integer.parseInt(userId);
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     private static Uri maybeAddUserId(@NonNull Uri uri, String userId) {
         if (userId == null) {
             return uri;
@@ -4360,6 +4361,7 @@ public final class MediaStore {
             UserHandle.of(Integer.parseInt(userId)));
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     private static List<Uri> maybeAddUserId(@NonNull List<Uri> uris, String userId) {
         if (userId == null) {
             return uris;
@@ -4392,6 +4394,7 @@ public final class MediaStore {
      * @throws SecurityException if the caller doesn't have the read access to {@code uri}
      * @see #getRedactedUri(ContentResolver, List)
      */
+    @RequiresApi(Build.VERSION_CODES.S)
     @Nullable
     public static Uri getRedactedUri(@NonNull ContentResolver resolver, @NonNull Uri uri) {
         final String authority = uri.getAuthority();
@@ -4444,6 +4447,7 @@ public final class MediaStore {
      * @throws IllegalArgumentException if all the uris in {@code uris} don't belong to same user id
      * @see #getRedactedUri(ContentResolver, Uri)
      */
+    @RequiresApi(Build.VERSION_CODES.S)
     @NonNull
     public static List<Uri> getRedactedUri(@NonNull ContentResolver resolver,
             @NonNull List<Uri> uris) {

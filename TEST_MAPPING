@@ -41,6 +41,9 @@
         },
         {
             "name": "CtsMediaProviderTranscodeTests"
+        },
+        {
+            "name": "CtsPhotoPickerTest"
         }
     ],
     "postsubmit": [

@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
         package="com.android.providers.media.module">
 
+    <meta-data
+        android:name="com.android.providers.media.photopicker.data.glide.PickerGlideModule"
+        android:value="GlideModule" />
+
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -153,6 +157,7 @@
 
         <activity
                 android:name="com.android.providers.media.photopicker.PhotoPickerActivity"
+                android:process=":PhotoPicker"
                 android:theme="@style/PickerDefaultTheme"
                 android:exported="true"
                 android:excludeFromRecents="true"

@@ -29,8 +29,6 @@ import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.os.SystemProperties;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -47,8 +45,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.AlbumsTabFragment;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
 import com.android.providers.media.photopicker.ui.PreviewFragment;
@@ -61,8 +59,6 @@ import com.google.android.material.chip.Chip;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
@@ -84,6 +80,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     @interface TabChipType {}
 
     private PickerViewModel mPickerViewModel;
+    private Selection mSelection;
     private ViewGroup mTabChipContainer;
     private Chip mPhotosTabChip;
     private Chip mAlbumsTabChip;
@@ -109,6 +106,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         ta.recycle();
 
         mPickerViewModel = createViewModel();
+        mSelection = mPickerViewModel.getSelection();
 
         try {
             mPickerViewModel.parseValuesFromIntent(getIntent());
@@ -257,7 +255,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void initStateForBottomSheet() {
-        if (!mPickerViewModel.canSelectMultiple() && !isOrientationLandscape()) {
+        if (!mSelection.canSelectMultiple() && !isOrientationLandscape()) {
             final WindowManager windowManager = getSystemService(WindowManager.class);
             final Rect displayBounds = windowManager.getCurrentWindowMetrics().getBounds();
             final int peekHeight = (int) (displayBounds.height() * 0.60);
@@ -339,11 +337,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     public void setResultAndFinishSelf() {
-        final List<Item> selectedItemList = new ArrayList<>(
-                mPickerViewModel.getSelectedItems().getValue().values());
-
-        setResult(Activity.RESULT_OK, getPickerResponseIntent(mPickerViewModel.canSelectMultiple(),
-                selectedItemList));
+        setResult(Activity.RESULT_OK, getPickerResponseIntent(mSelection.canSelectMultiple(),
+                mSelection.getSelectedItems()));
         finish();
     }
 

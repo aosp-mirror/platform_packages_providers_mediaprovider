@@ -62,6 +62,8 @@ public class ExternalDbFacade {
         MediaColumns._ID + " AS " + CloudMediaProviderContract.MediaColumns.ID,
         "COALESCE(" + MediaColumns.DATE_TAKEN + "," + MediaColumns.DATE_MODIFIED +
                     "* 1000) AS " + CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS,
+        MediaColumns.GENERATION_MODIFIED + " AS " +
+                CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED,
         MediaColumns.SIZE + " AS " + CloudMediaProviderContract.MediaColumns.SIZE_BYTES,
         MediaColumns.MIME_TYPE + " AS " + CloudMediaProviderContract.MediaColumns.MIME_TYPE,
         MediaColumns.DURATION + " AS " + CloudMediaProviderContract.MediaColumns.DURATION_MS,

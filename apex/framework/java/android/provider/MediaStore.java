@@ -2910,66 +2910,36 @@ public final class MediaStore {
 
             /**
              * Non-zero if the audio file is music
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_MUSIC = "is_music";
 
             /**
              * Non-zero if the audio file is a podcast
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_PODCAST = "is_podcast";
 
             /**
              * Non-zero if the audio file may be a ringtone
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
-             * and {@link #IS_RECORDING}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RINGTONE = "is_ringtone";
 
             /**
              * Non-zero if the audio file may be an alarm
-             *
-             * This is mutually exclusive with {@link #IS_AUDIOBOOK},
-             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_ALARM = "is_alarm";
 
             /**
              * Non-zero if the audio file may be a notification sound
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_NOTIFICATION = "is_notification";
 
             /**
              * Non-zero if the audio file is an audiobook
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING}, and
-             * {@link #IS_RINGTONE}
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_AUDIOBOOK = "is_audiobook";
@@ -2977,11 +2947,6 @@ public final class MediaStore {
             /**
              * Non-zero if the audio file is a voice recording recorded
              * by voice recorder apps
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
-             * and {@link #IS_RINGTONE}.
              */
             @ExportedSince(osVersion = Build.VERSION_CODES.S)
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
@@ -4386,6 +4351,7 @@ public final class MediaStore {
         return userId == null ? MY_USER_ID : Integer.parseInt(userId);
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     private static Uri maybeAddUserId(@NonNull Uri uri, String userId) {
         if (userId == null) {
             return uri;
@@ -4395,6 +4361,7 @@ public final class MediaStore {
             UserHandle.of(Integer.parseInt(userId)));
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     private static List<Uri> maybeAddUserId(@NonNull List<Uri> uris, String userId) {
         if (userId == null) {
             return uris;
@@ -4427,6 +4394,7 @@ public final class MediaStore {
      * @throws SecurityException if the caller doesn't have the read access to {@code uri}
      * @see #getRedactedUri(ContentResolver, List)
      */
+    @RequiresApi(Build.VERSION_CODES.S)
     @Nullable
     public static Uri getRedactedUri(@NonNull ContentResolver resolver, @NonNull Uri uri) {
         final String authority = uri.getAuthority();
@@ -4479,6 +4447,7 @@ public final class MediaStore {
      * @throws IllegalArgumentException if all the uris in {@code uris} don't belong to same user id
      * @see #getRedactedUri(ContentResolver, Uri)
      */
+    @RequiresApi(Build.VERSION_CODES.S)
     @NonNull
     public static List<Uri> getRedactedUri(@NonNull ContentResolver resolver,
             @NonNull List<Uri> uris) {

@@ -42,6 +42,8 @@ public class Item {
         public static String DATE_TAKEN = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS;
         // TODO(b/195009139): Remove after fully switching to picker db
         public static String DATE_MODIFIED = MediaStore.MediaColumns.DATE_MODIFIED;
+        public static String GENERATION_MODIFIED =
+                CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED;
         public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MS;
         public static String SIZE = CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
         public static String AUTHORITY = CloudMediaProviderContract.MediaColumns.AUTHORITY;
@@ -51,6 +53,7 @@ public class Item {
                 MIME_TYPE,
                 DATE_TAKEN,
                 DATE_MODIFIED,
+                GENERATION_MODIFIED,
                 DURATION,
         };
 
@@ -60,6 +63,7 @@ public class Item {
             MediaStore.MediaColumns.MIME_TYPE + " AS " + MIME_TYPE,
             MediaStore.MediaColumns.DATE_TAKEN + " AS " + DATE_TAKEN,
             MediaStore.MediaColumns.DATE_MODIFIED + " AS " + DATE_MODIFIED,
+            MediaStore.MediaColumns.GENERATION_MODIFIED + " AS " + GENERATION_MODIFIED,
             MediaStore.MediaColumns.DURATION +  " AS " + DURATION,
         };
     }
@@ -68,6 +72,7 @@ public class Item {
 
     private String mId;
     private long mDateTaken;
+    private long mGenerationModified;
     private long mDuration;
     private String mMimeType;
     private Uri mUri;
@@ -83,10 +88,12 @@ public class Item {
     }
 
     @VisibleForTesting
-    public Item(String id, String mimeType, long dateTaken, long duration, Uri uri) {
+    public Item(String id, String mimeType, long dateTaken, long generationModified, long duration,
+            Uri uri) {
         mId = id;
         mMimeType = mimeType;
         mDateTaken = dateTaken;
+        mGenerationModified = generationModified;
         mDuration = duration;
         mUri = uri;
         parseMimeType();
@@ -128,6 +135,10 @@ public class Item {
         return mDateTaken;
     }
 
+    public long getGenerationModified() {
+        return mGenerationModified;
+    }
+
     public static Item fromCursor(Cursor cursor, UserId userId) {
         assert(cursor != null);
         final Item item = new Item(cursor, userId);
@@ -162,6 +173,7 @@ public class Item {
             // Convert DATE_MODIFIED to millis
             mDateTaken = getCursorLong(cursor, ItemColumns.DATE_MODIFIED) * 1000;
         }
+        mGenerationModified = getCursorLong(cursor, ItemColumns.GENERATION_MODIFIED);
         mDuration = getCursorLong(cursor, ItemColumns.DURATION);
 
         // TODO (b/188867567): Currently, we only has local data source,

@@ -47,7 +47,7 @@
         android:layout_height="wrap_content">
 
         <Button
-            android:id="@+id/preview_select_button"
+            android:id="@+id/preview_select_check_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="start|center_vertical"
@@ -61,7 +61,7 @@
             android:textSize="@dimen/preview_deselect_text_size" />
 
         <Button
-            android:id="@+id/preview_add_button"
+            android:id="@+id/preview_add_or_select_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end|center_vertical"

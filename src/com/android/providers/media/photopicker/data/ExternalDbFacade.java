@@ -62,6 +62,8 @@ public class ExternalDbFacade {
         MediaColumns._ID + " AS " + CloudMediaProviderContract.MediaColumns.ID,
         "COALESCE(" + MediaColumns.DATE_TAKEN + "," + MediaColumns.DATE_MODIFIED +
                     "* 1000) AS " + CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS,
+        MediaColumns.GENERATION_MODIFIED + " AS " +
+                CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED,
         MediaColumns.SIZE + " AS " + CloudMediaProviderContract.MediaColumns.SIZE_BYTES,
         MediaColumns.MIME_TYPE + " AS " + CloudMediaProviderContract.MediaColumns.MIME_TYPE,
         MediaColumns.DURATION + " AS " + CloudMediaProviderContract.MediaColumns.DURATION_MS,
@@ -85,7 +87,8 @@ public class ExternalDbFacade {
             CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
             CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME,
             CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
-            CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID
+            CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID,
+            CloudMediaProviderContract.AlbumColumns.TYPE,
     };
 
     private static final String WHERE_IMAGE_TYPE = FileColumns.MEDIA_TYPE + " = "
@@ -330,7 +333,8 @@ public class ExternalDbFacade {
                 getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS),
                 Category.getCategoryName(mContext, category),
                 String.valueOf(count),
-                getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID)
+                getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
+                CloudMediaProviderContract.AlbumColumns.TYPE_LOCAL
             };
 
             c.addRow(projectionValue);

@@ -36,6 +36,7 @@ import android.provider.MediaStore;
 
 import com.android.providers.media.LocalCallingIdentity;
 import com.android.providers.media.MediaProvider;
+import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 
 import androidx.annotation.NonNull;
@@ -68,18 +69,27 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     @Override
     public Cursor onQueryMedia(@Nullable Bundle extras) {
         // TODO(b/190713331): Handle extra_page
-        return mDbFacade.queryMediaGeneration(extractGeneration(extras), extractAlbum(extras),
-                extractMimeType(extras));
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromCloudMediaBundle(extras);
+
+        return mDbFacade.queryMediaGeneration(queryExtras.getGeneration(), queryExtras.getAlbumId(),
+                queryExtras.getMimeType());
     }
 
     @Override
     public Cursor onQueryDeletedMedia(@Nullable Bundle extras) {
-        return mDbFacade.queryDeletedMedia(extractGeneration(extras));
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromCloudMediaBundle(extras);
+
+        return mDbFacade.queryDeletedMedia(queryExtras.getGeneration());
     }
 
     @Override
     public Cursor onQueryAlbums(@Nullable Bundle extras) {
-        return mDbFacade.queryAlbums(extractMimeType(extras));
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromCloudMediaBundle(extras);
+
+        return mDbFacade.queryAlbums(queryExtras.getMimeType());
     }
 
     @Override
@@ -110,9 +120,12 @@ public class PhotoPickerProvider extends CloudMediaProvider {
 
     @Override
     public Bundle onGetMediaInfo(@Nullable Bundle extras) {
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromCloudMediaBundle(extras);
+
         // TODO(b/190713331): Handle extra_filter_albums
         Bundle bundle = new Bundle();
-        try (Cursor cursor = mDbFacade.getMediaInfo(extractGeneration(extras))) {
+        try (Cursor cursor = mDbFacade.getMediaInfo(queryExtras.getGeneration())) {
             if (cursor.moveToFirst()) {
                 int generationIndex = cursor.getColumnIndexOrThrow(MediaInfo.MEDIA_GENERATION);
                 int countIndex = cursor.getColumnIndexOrThrow(MediaInfo.MEDIA_COUNT);
@@ -137,19 +150,5 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     private static Uri fromMediaId(String mediaId) {
         return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY,
                 Long.parseLong(mediaId));
-    }
-
-    private static long extractGeneration(@Nullable Bundle extras) {
-        return extras == null ? 0 : extras.getLong(EXTRA_GENERATION, 0);
-    }
-
-    private static String extractAlbum(@Nullable Bundle extras) {
-        return extras == null
-                ? null : extras.getString(CloudMediaProviderContract.EXTRA_FILTER_ALBUM);
-    }
-
-    private static String extractMimeType(@Nullable Bundle extras) {
-        return extras == null
-                ? null : extras.getString(CloudMediaProviderContract.EXTRA_FILTER_MIMETYPE);
     }
 }

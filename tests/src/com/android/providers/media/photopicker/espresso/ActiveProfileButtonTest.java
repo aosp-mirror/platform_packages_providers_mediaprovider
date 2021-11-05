@@ -18,10 +18,10 @@ package com.android.providers.media.photopicker.espresso;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
-import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
+import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
@@ -39,8 +39,6 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.data.UserIdManager;
-import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -50,8 +48,6 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class ActiveProfileButtonTest extends PhotoPickerBaseTest {
     private static final int PROFILE_BUTTON = R.id.profile_button;
-    private static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
-    private static final int ICON_CHECK_ID = R.id.icon_check;
 
     @BeforeClass
     public static void setupClass() throws Exception {
@@ -101,23 +97,21 @@ public class ActiveProfileButtonTest extends PhotoPickerBaseTest {
         // Verify profile button is displayed
         onView(withId(PROFILE_BUTTON)).check(matches(isDisplayed()));
 
-        // position=1 is the first image item
-        final int position = 1;
         // Select 1st item thumbnail and verify profile button is not shown
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
 
         onView(withId(PROFILE_BUTTON)).check(matches(not(isDisplayed())));
 
         // Deselect the item to check profile button is shown
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
-        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
 
         onView(withId(PROFILE_BUTTON)).check(matches(isDisplayed()));
 
         // Select 1st item thumbnail and verify profile button is not shown
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
         onView(withId(PROFILE_BUTTON)).check(matches(not(isDisplayed())));
 
         // Goto Albums page and verify profile button is not shown

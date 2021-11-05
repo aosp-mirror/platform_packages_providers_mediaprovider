@@ -19,13 +19,16 @@ package com.android.providers.media.photopicker.espresso;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
-import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
 import androidx.test.espresso.Espresso;
@@ -41,7 +44,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
-    private static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
 
     @Rule
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule
@@ -52,7 +54,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
 
         registerIdlingResourceAndWaitForIdle();
 
@@ -71,7 +73,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
 
         registerIdlingResourceAndWaitForIdle();
 
@@ -88,13 +90,45 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
 
         registerIdlingResourceAndWaitForIdle();
 
         // Verify imageView is displayed for gif preview
         assertSingleSelectCommonLayoutMatches();
         onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+    }
+
+    @Test
+    public void testPreview_singleSelect_fromAlbumsPhoto() {
+        // Navigate to Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .perform(click());
+
+        final int cameraStringId = R.string.picker_category_camera;
+        // Navigate to photos in Camera album
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
+
+        // Verify that toolbar has the title as category name Camera
+        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
+                .check(matches(isDisplayed()));
+
+        // Navigate to preview
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+
+        registerIdlingResourceAndWaitForIdle();
+
+        // Verify image is previewed
+        assertSingleSelectCommonLayoutMatches();
+        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+
+        // Navigate back to Camera album
+        onView(withContentDescription("Navigate up")).perform(click());
+
+        // Verify that toolbar has the title as category name Camera
+        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
+                .check(matches(isDisplayed()));
     }
 
     private void registerIdlingResourceAndWaitForIdle() {
@@ -105,9 +139,9 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
     private void assertSingleSelectCommonLayoutMatches() {
         onView(withId(R.id.preview_viewPager)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_select_button)).check(matches(not(isDisplayed())));
-        onView(withId(R.id.preview_add_button)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.preview_add_or_select_button)).check(matches(isDisplayed()));
         // Verify that the text in Add button
-        onView(withId(R.id.preview_add_button)).check(matches(withText(R.string.add)));
+        onView(withId(R.id.preview_add_or_select_button)).check(matches(withText(R.string.add)));
     }
 }

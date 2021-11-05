@@ -1307,8 +1307,6 @@ public class ModernMediaScanner implements MediaScanner {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
         withGenericValues(op, file, attrs, mimeType, mediaType);
 
-        op.withValue(FileColumns._SPECIAL_FORMAT, SpecialFormatDetector.detect());
-
         op.withValue(MediaColumns.ARTIST, UNKNOWN_STRING);
         op.withValue(MediaColumns.ALBUM, file.getParentFile().getName());
         op.withValue(VideoColumns.COLOR_STANDARD, null);
@@ -1358,8 +1356,6 @@ public class ModernMediaScanner implements MediaScanner {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
         withGenericValues(op, file, attrs, mimeType, mediaType);
 
-        op.withValue(FileColumns._SPECIAL_FORMAT, SpecialFormatDetector.detect());
-
         op.withValue(ImageColumns.DESCRIPTION, null);
 
         try (FileInputStream is = new FileInputStream(file)) {
@@ -1388,6 +1384,7 @@ public class ModernMediaScanner implements MediaScanner {
             final XmpInterface xmp = XmpInterface.fromContainer(exif);
             withXmpValues(op, xmp, mimeType);
 
+            op.withValue(FileColumns._SPECIAL_FORMAT, SpecialFormatDetector.detect(exif, file));
         } catch (Exception e) {
             logTroubleScanning(file, e);
         }

@@ -150,13 +150,6 @@ public class PhotoPickerToolActivity extends Activity {
     }
 
     private void onSetSelectionCountCheckedChanged(View view, boolean isChecked) {
-        if (isChecked) {
-            if (!mAllowMultipleCheckBox.isChecked()) {
-                final String selectionWarning =
-                        "The ALLOW MULTIPLE is not checked, SET SELECTION COUNT won't have effect!";
-                Snackbar.make(view, selectionWarning, Snackbar.LENGTH_SHORT).show();
-            }
-        }
         mMaxCountText.setEnabled(isChecked);
     }
 
@@ -170,7 +163,11 @@ public class PhotoPickerToolActivity extends Activity {
         }
 
         if (mAllowMultipleCheckBox.isChecked()) {
-            intent.putExtra(EXTRA_PICK_IMAGES_MAX, PICK_IMAGES_MAX_LIMIT);
+            if (mGetContentCheckBox.isChecked()) {
+                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            } else {
+                intent.putExtra(EXTRA_PICK_IMAGES_MAX, PICK_IMAGES_MAX_LIMIT);
+            }
         }
 
         if (mSetImageOnlyCheckBox.isChecked()) {

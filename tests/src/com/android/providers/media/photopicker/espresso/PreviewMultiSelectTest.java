@@ -19,31 +19,40 @@ package com.android.providers.media.photopicker.espresso;
 import static androidx.test.InstrumentationRegistry.getTargetContext;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.action.ViewActions.swipeLeft;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isCompletelyDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isNotSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.isSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
+import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
+
+import static com.google.common.truth.Truth.assertThat;
+
+import static org.hamcrest.Matchers.allOf;
 
 import android.view.View;
+
+import androidx.lifecycle.ViewModelProvider;
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.IdlingRegistry;
-import androidx.test.espresso.ViewAction;
-import androidx.test.espresso.action.GeneralLocation;
-import androidx.test.espresso.action.GeneralSwipeAction;
-import androidx.test.espresso.action.Press;
-import androidx.test.espresso.action.Swipe;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.Selection;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -54,10 +63,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
-    private static final int PREVIEW_VIEW_PAGER_ID = R.id.preview_viewPager;
-    private static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
-    private static final int VIEW_SELECTED_BUTTON_ID = R.id.button_view_selected;
-    private static final int IMAGE_VIEW_ID = R.id.preview_imageView;
     private static final int VIDEO_VIEW_ID = R.id.preview_videoView;
 
     @Rule
@@ -69,15 +74,15 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select two items and Navigate to preview
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
         registerIdlingResourceAndWaitForIdle();
 
         assertMultiSelectPreviewCommonLayoutDisplayed();
         // Verify ImageView is displayed
-        onView(withId(IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
+        onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
 
         // Click back button and verify we are back to photos tab
         onView(withContentDescription("Navigate up")).perform(click());
@@ -89,8 +94,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select image and gif
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
@@ -98,8 +103,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         final String addButtonString =
                 getTargetContext().getResources().getString(R.string.add);
-        final int previewAddButtonId = R.id.preview_add_button;
-        final int previewSelectButtonId = R.id.preview_select_button;
+        final int previewAddButtonId = R.id.preview_add_or_select_button;
+        final int previewSelectButtonId = R.id.preview_select_check_button;
         final String deselectString =
                 getTargetContext().getResources().getString(R.string.deselect);
 
@@ -117,6 +122,12 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Verify that the text in Add button now changes to "Add (1)"
         onView(withId(previewAddButtonId))
                 .check(matches(withText(addButtonString + " (1)")));
+        // Verify that we have one item in selected items
+        mRule.getScenario().onActivity(activity -> {
+            Selection selection
+                    = new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
+            assertThat(selection.getSelectedItemCount().getValue()).isEqualTo(1);
+        });
 
         // Select the item again
         onView(withId(previewSelectButtonId)).perform(click());
@@ -125,6 +136,12 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Verify that the text in Add button now changes back to "Add (2)"
         onView(withId(previewAddButtonId))
                 .check(matches(withText(addButtonString + " (2)")));
+        // Verify that we have 2 items in selected items
+        mRule.getScenario().onActivity(activity -> {
+            Selection selection
+                    = new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
+            assertThat(selection.getSelectedItemCount().getValue()).isEqualTo(2);
+        });
     }
 
     @Test
@@ -132,64 +149,204 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select items
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
         registerIdlingResourceAndWaitForIdle();
 
         // Preview Order
-        // 1 - VideoView
+        // 1 - Image
         // 2 - Gif
-        // 3 - Image
-        // Navigate from Video -> Gif -> Image -> Gif -> Video -> Gif and verify the layout matches
+        // 3 - Video
+        // Navigate from Image -> Gif -> Video -> Gif -> Image -> Gif and verify the layout matches
 
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
-        // 1. Video item
+        // 1. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();
         // 2. Gif
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();
-        // 3. Image
+        // Since there is no video in the video file, we get an error.
+        onView(withText(android.R.string.ok)).perform(click());
+        // 3. Video item
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeRightAndWait();
         // 2. Gif
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeRightAndWait();
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
-        // 1. Video
+        // 1. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();
         // 2. Gif
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
+    }
+
+    @Test
+    public void testPreview_multiSelect_fromAlbumsTab() {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Select 1 item in Photos tab
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        final int iconCheckId = R.id.icon_check;
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, iconCheckId);
+
+        // Navigate to Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .perform(click());
+        // The Albums tab chip is selected
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .check(matches(isSelected()));
+        final int cameraStringId = R.string.picker_category_camera;
+        // Camera album is shown
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(matches(isDisplayed()));
+
+        // Navigate to preview
+        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+
+        registerIdlingResourceAndWaitForIdle();
+
+        assertMultiSelectPreviewCommonLayoutDisplayed();
+        // Verify ImageView is displayed
+        onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
+
+        // Click back button and verify we are back to Albums tab
+        onView(withContentDescription("Navigate up")).perform(click());
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .check(matches(isSelected()));
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(matches(isDisplayed()));
+    }
+
+    @Test
+    public void testPreview_viewSelectedAfterLongPress() {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Select video item
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+
+        final int position = 2;
+        // Preview gif item using preview on long press
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+
+        registerIdlingResourceAndWaitForIdle();
+
+        // Verify that we have one item as selected item and 1 item as item for preview, and verify
+        // they are not the same.
+        mRule.getScenario().onActivity(activity -> {
+            Selection selection
+                    = new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
+            assertThat(selection.getSelectedItemCount().getValue()).isEqualTo(1);
+            assertThat(selection.getSelectedItemsForPreview().size()).isEqualTo(1);
+            assertThat(selection.getSelectedItems().get(0))
+                    .isNotEqualTo(selection.getSelectedItemsForPreview().get(0));
+        });
+
+        // Click back button to go back to Photos tab
+        onView(withContentDescription("Navigate up")).perform(click());
+
+        // Navigate to preview by clicking "View Selected" button.
+        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+        registerIdlingResourceAndWaitForIdle();
+
+        // Since there is no video in the video file, we get an error.
+        onView(withText(android.R.string.ok)).perform(click());
+        assertMultiSelectPreviewCommonLayoutDisplayed();
+
+        // Verify that "View Selected" shows the video item, not the gif item that was previewed
+        // earlier with preview on long press
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+                .check(matches(isDisplayed()));
+
+        // Swipe and verify we don't preview the gif item
+        swipeLeftAndWait();
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+                .check(matches(isDisplayed()));
+        swipeRightAndWait();
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+                .check(matches(isDisplayed()));
+    }
+
+    @Test
+    public void testPreview_multiSelect_acrossAlbums() {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Select gif and video item from Photos tab
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+
+        // Navigate to albums
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .perform(click());
+
+        final int cameraStringId = R.string.picker_category_camera;
+        // Navigate to photos in Camera album
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
+        // Select image item from Camera category
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, 1, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+
+        // Navigate to preview
+        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+        registerIdlingResourceAndWaitForIdle();
+
+        // Deselect the image item
+        final int previewSelectButtonId = R.id.preview_select_check_button;
+        onView(withId(previewSelectButtonId)).perform(click());
+
+        // Go back to Camera album and verify that item is deselected
+        onView(withContentDescription("Navigate up")).perform(click());
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+
+        // Go back to photo grid and verify that item is deselected
+        onView(withContentDescription("Navigate up")).perform(click());
+        // Navigate to Photo grid
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .perform(click());
+
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+
+        // Go back to preview and deselect another item
+        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+        registerIdlingResourceAndWaitForIdle();
+
+        // Deselect the Gif item
+        onView(withId(previewSelectButtonId)).perform(click());
+
+        // Go back to Photos tab and verify that Gif item is deselected
+        onView(withContentDescription("Navigate up")).perform(click());
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
     }
 
     private void assertMultiSelectPreviewCommonLayoutDisplayed() {
         onView(withId(PREVIEW_VIEW_PAGER_ID)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_add_button)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_select_button)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_add_or_select_button)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_select_check_button)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_select_check_button)).check(matches(isSelected()));
     }
 
     private Matcher<View> ViewPagerMatcher(int viewPagerId, int itemViewId) {
@@ -216,25 +373,6 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     private void registerIdlingResourceAndWaitForIdle() {
         mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
                 new ViewPager2IdlingResource(activity.findViewById(PREVIEW_VIEW_PAGER_ID)))));
-        Espresso.onIdle();
-    }
-
-    private void swipeLeftAndWait() {
-        onView(withId(PREVIEW_VIEW_PAGER_ID)).perform(swipeLeft());
-        Espresso.onIdle();
-    }
-
-    /**
-     * A custom swipeRight method to avoid system gestures taking over ViewActions#swipeRight
-     */
-    private static ViewAction customSwipeRight() {
-        return new GeneralSwipeAction(Swipe.FAST, GeneralLocation.CENTER,
-                GeneralLocation.CENTER_RIGHT, Press.FINGER);
-    }
-
-    private void swipeRightAndWait() {
-        // Use customSwipeRight to avoid system gestures taking over ViewActions#swipeRight
-        onView(withId(PREVIEW_VIEW_PAGER_ID)).perform(customSwipeRight());
         Espresso.onIdle();
     }
 }

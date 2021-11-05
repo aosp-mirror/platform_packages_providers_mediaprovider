@@ -75,7 +75,7 @@ public class PhotosTabFragment extends TabFragment {
         super.onViewCreated(view, savedInstanceState);
 
         final PhotosTabAdapter adapter = new PhotosTabAdapter(mSelection, mImageLoader,
-                this::onItemClick);
+                this::onItemClick, this::onItemLongClick);
 
         mIsDefaultCategory = TextUtils.equals(Category.CATEGORY_DEFAULT, mCategoryType);
         if (mIsDefaultCategory) {
@@ -141,7 +141,7 @@ public class PhotosTabFragment extends TabFragment {
             final boolean isSelectedBefore = view.isSelected();
 
             if (isSelectedBefore) {
-                mSelection.deleteSelectedItem((Item) view.getTag());
+                mSelection.removeSelectedItem((Item) view.getTag());
             } else {
                 if (!mSelection.isSelectionAllowed()) {
                     final int maxCount = mSelection.getMaxSelectionLimit();
@@ -159,11 +159,27 @@ public class PhotosTabFragment extends TabFragment {
             }
             view.setSelected(!isSelectedBefore);
         } else {
-            mSelection.clearSelectedItems();
-            mSelection.addSelectedItem((Item) view.getTag());
-            // Transition to PreviewFragment.
-            PreviewFragment.show(getActivity().getSupportFragmentManager());
+            Item item = (Item) view.getTag();
+            mSelection.setSelectedItem(item);
+            ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
         }
+    }
+
+    private boolean onItemLongClick(@NonNull View view) {
+        Item item = (Item) view.getTag();
+        if (!mSelection.canSelectMultiple()) {
+            // In single select mode, if the item is previewed, we set it as selected item. This is
+            // will assist in "Add" button click to return all selected items.
+            // For multi select, long click only previews the item, and until user selects the item,
+            // it doesn't get added to selected items. Also, there is no "Add" button in the preview
+            // layout that can return selected items.
+            mSelection.setSelectedItem(item);
+        }
+        mSelection.prepareItemForPreviewOnLongPress(item);
+        // Transition to PreviewFragment.
+        PreviewFragment.show(getActivity().getSupportFragmentManager(),
+                PreviewFragment.getArgsForPreviewOnLongPress());
+        return true;
     }
 
     /**

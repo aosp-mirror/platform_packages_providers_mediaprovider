@@ -63,10 +63,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
-    private static final int PREVIEW_VIEW_PAGER_ID = R.id.preview_viewPager;
-    private static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
-    private static final int VIEW_SELECTED_BUTTON_ID = R.id.button_view_selected;
-    private static final int IMAGE_VIEW_ID = R.id.preview_imageView;
     private static final int VIDEO_VIEW_ID = R.id.preview_videoView;
 
     @Rule
@@ -78,15 +74,15 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select two items and Navigate to preview
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
         registerIdlingResourceAndWaitForIdle();
 
         assertMultiSelectPreviewCommonLayoutDisplayed();
         // Verify ImageView is displayed
-        onView(withId(IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
+        onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
 
         // Click back button and verify we are back to photos tab
         onView(withContentDescription("Navigate up")).perform(click());
@@ -98,8 +94,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select image and gif
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
@@ -153,9 +149,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select items
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
@@ -169,13 +165,13 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         // 1. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();
         // 2. Gif
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();
@@ -189,19 +185,19 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         swipeRightAndWait();
         // 2. Gif
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeRightAndWait();
         // 1. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         swipeLeftAndWait();
         // 2. Gif
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, IMAGE_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
     }
 
@@ -210,9 +206,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select 1 item in Photos tab
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
         final int iconCheckId = R.id.icon_check;
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, iconCheckId);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, iconCheckId);
 
         // Navigate to Albums tab
         onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
@@ -232,7 +228,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         assertMultiSelectPreviewCommonLayoutDisplayed();
         // Verify ImageView is displayed
-        onView(withId(IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
+        onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
 
         // Click back button and verify we are back to Albums tab
         onView(withContentDescription("Navigate up")).perform(click());

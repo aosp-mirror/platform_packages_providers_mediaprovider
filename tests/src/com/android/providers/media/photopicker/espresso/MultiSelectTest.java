@@ -47,8 +47,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class MultiSelectTest extends PhotoPickerBaseTest {
-    private static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
-    private static final int ICON_CHECK_ID = R.id.icon_check;
 
     @Rule
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule
@@ -58,32 +56,30 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
     public void testMultiselect_selectIcon() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // position=1 is the first image item
-        final int position = 1;
         // Check select icon is visible
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.overlay_gradient);
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, R.id.overlay_gradient);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
 
         // Verify that select icon is not selected yet
-        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
 
-        // Select 1st item thumbnail and verify select icon is selected
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        // Select image item thumbnail and verify select icon is selected
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
 
         // Deselect the item to check item is marked as not selected.
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
-        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
 
         // Now, click on the select/check icon, verify we can also click on check icon to select or
         // deselect an item.
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
 
         // Click on recyclerView item, this deselects the item. Verify that we can click on any
         // region on the recyclerView item to select/deselect the item.
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, /* targetViewId */ -1);
-        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, /* targetViewId */ -1);
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
     }
 
     @Test
@@ -97,10 +93,8 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
         // Initially, buttons should be hidden
         onView(withId(bottomBarId)).check(matches(not(isDisplayed())));
 
-        // position=1 is the first image item
-        final int position = 1;
         // Selecting one item shows view selected and add button
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
 
         onView(withId(bottomBarId)).check(matches(isDisplayed()));
         onView(withId(viewSelectedId)).check(matches(isDisplayed()));
@@ -108,7 +102,7 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(addButtonId)).check(matches(isDisplayed()));
 
         // When the selected item count is 0, ViewSelected and add button should hide
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
         onView(withId(bottomBarId)).check(matches(not(isDisplayed())));
         onView(withId(viewSelectedId)).check(matches(not(isDisplayed())));
         onView(withId(addButtonId)).check(matches(not(isDisplayed())));
@@ -123,18 +117,18 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
                 getTargetContext().getResources().getString(R.string.add);
 
         // Selecting one item will enable add button and show "Add (1)" as button text
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
 
         onView(withId(addButtonId)).check(matches(isDisplayed()));
         onView(withId(addButtonId)).check(matches(withText(addButtonString + " (1)")));
 
         // When the selected item count is 2, "Add (2)" should be displayed
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
         onView(withId(addButtonId)).check(matches(isDisplayed()));
         onView(withId(addButtonId)).check(matches(withText(addButtonString + " (2)")));
 
         // When the item is deselected add button resets to selected count
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
         onView(withId(addButtonId)).check(matches(isDisplayed()));
         onView(withId(addButtonId)).check(matches(withText(addButtonString + " (1)")));
     }
@@ -181,11 +175,9 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
     public void testMultiSelectAcrossDifferentTabs() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // Position=1 is the first image item
-        final int position = 1;
-        // Select 1st item thumbnail and verify select icon is selected
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        // Select image item thumbnail and verify select icon is selected
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
 
         // Navigate to Albums tab
         onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
@@ -196,6 +188,7 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
         onView(allOf(withText(cameraStringId),
                 isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
 
+        final int position = 1;
         // The image item in Camera album is selected
         assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
 
@@ -217,6 +210,6 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
                 .perform(click());
 
         // The image item is not selected
-        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
     }
 }

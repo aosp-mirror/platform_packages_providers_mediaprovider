@@ -593,6 +593,21 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     }
     TRACE_NODE(node, req);
 
+    if (should_invalidate && fuse->IsTranscodeSupportedPath(path)) {
+        // Some components like the MTP stack need an efficient mechanism to determine if a file
+        // supports transcoding. This allows them workaround an issue with MTP clients on windows
+        // where those clients incorrectly use the original file size instead of the transcoded file
+        // size to copy files from the device. This size misuse causes transcoded files to be
+        // truncated to the original file size, hence corrupting the transcoded file.
+        //
+        // We expose the transcode bit via the st_nlink stat field. This should be safe because the
+        // field is not supported on FAT filesystems which FUSE is emulating.
+        // WARNING: Apps should never rely on this behavior as it is NOT supported API and will be
+        // removed in a future release when the MTP stack has better support for transcoded files on
+        // Windows OS.
+        e->attr.st_nlink = 2;
+    }
+
     // This FS is not being exported via NFS so just a fixed generation number
     // for now. If we do need this, we need to increment the generation ID each
     // time the fuse daemon restarts because that's what it takes for us to

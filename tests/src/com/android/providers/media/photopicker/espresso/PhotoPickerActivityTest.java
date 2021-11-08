@@ -60,6 +60,7 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     public void testActivityLayout_Simple() {
         onView(withId(R.id.toolbar)).check(matches(isDisplayed()));
         onView(withId(R.id.fragment_container)).check(matches(isDisplayed()));
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
         onView(withContentDescription("Navigate up")).perform(click());
         assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
                 Activity.RESULT_CANCELED);

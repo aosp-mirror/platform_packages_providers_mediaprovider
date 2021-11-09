@@ -20,6 +20,7 @@ import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
@@ -65,7 +66,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
         registerIdlingResourceAndWaitForIdle();
 
@@ -75,6 +76,9 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         // Verify image is previewed
         assertSingleSelectCommonLayoutMatches();
         onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+        // Verify no special format icon is previewed
+        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
 
         // Navigate back to Photo grid
         onView(withContentDescription("Navigate up")).perform(click());
@@ -99,20 +103,9 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         // Verify videoView is displayed
         assertSingleSelectCommonLayoutMatches();
         onView(withId(R.id.preview_videoView)).check(matches(isDisplayed()));
-    }
-
-    @Test
-    public void testPreview_singleSelect_gif() {
-        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-
-        // Navigate to preview
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
-
-        registerIdlingResourceAndWaitForIdle();
-
-        // Verify imageView is displayed for gif preview
-        assertSingleSelectCommonLayoutMatches();
-        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+        // Verify no special format icon is previewed
+        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
     }
 
     @Test
@@ -156,7 +149,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
         // Navigate to preview
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
         registerIdlingResourceAndWaitForIdle();
 
@@ -182,7 +175,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
         registerIdlingResourceAndWaitForIdle();
 

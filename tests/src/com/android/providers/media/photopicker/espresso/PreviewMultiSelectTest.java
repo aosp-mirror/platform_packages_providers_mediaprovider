@@ -19,6 +19,7 @@ package com.android.providers.media.photopicker.espresso;
 import static androidx.test.InstrumentationRegistry.getTargetContext;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isCompletelyDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
@@ -75,8 +76,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select two items and Navigate to preview
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
         registerIdlingResourceAndWaitForIdle();
@@ -100,9 +101,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     public void testPreview_multiSelect_deselect() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // Select image and gif
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
+        // Select first and second image
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
@@ -157,8 +158,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         // Select items
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
@@ -166,20 +167,25 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         // Preview Order
         // 1 - Image
-        // 2 - Gif
+        // 2 - Image
         // 3 - Video
-        // Navigate from Image -> Gif -> Video -> Gif -> Image -> Gif and verify the layout matches
+        // Navigate from Image -> Image -> Video -> Image -> Image -> Image and verify the layout
+        // matches
 
         // 1. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
+        // Verify no special format icon is previewed
+        assertSpecialFormatBadgeDoesNotExist();
 
         swipeLeftAndWait();
-        // 2. Gif
+        // 2. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
+        // Verify no special format icon is previewed
+        assertSpecialFormatBadgeDoesNotExist();
 
         swipeLeftAndWait();
         // Since there is no video in the video file, we get an error.
@@ -188,24 +194,32 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
                 .check(matches(isDisplayed()));
+        // Verify no special format icon is previewed
+        assertSpecialFormatBadgeDoesNotExist();
 
         swipeRightAndWait();
-        // 2. Gif
+        // 2. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
+        // Verify no special format icon is previewed
+        assertSpecialFormatBadgeDoesNotExist();
 
         swipeRightAndWait();
         // 1. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
+        // Verify no special format icon is previewed
+        assertSpecialFormatBadgeDoesNotExist();
 
         swipeLeftAndWait();
-        // 2. Gif
+        // 2. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
                 .check(matches(isDisplayed()));
+        // Verify no special format icon is previewed
+        assertSpecialFormatBadgeDoesNotExist();
     }
 
     @Test
@@ -213,9 +227,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select 1 item in Photos tab
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
         final int iconCheckId = R.id.icon_check;
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, iconCheckId);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, iconCheckId);
 
         // Navigate to Albums tab
         onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
@@ -250,12 +264,11 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select video item
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
 
-        final int position = 2;
-        // Preview gif item using preview on long press
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+        // Preview second image item using preview on long press
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
 
         registerIdlingResourceAndWaitForIdle();
 
@@ -281,12 +294,12 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withText(android.R.string.ok)).perform(click());
         assertMultiSelectPreviewCommonLayoutDisplayed();
 
-        // Verify that "View Selected" shows the video item, not the gif item that was previewed
+        // Verify that "View Selected" shows the video item, not the image item that was previewed
         // earlier with preview on long press
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
                 .check(matches(isDisplayed()));
 
-        // Swipe and verify we don't preview the gif item
+        // Swipe and verify we don't preview the image item
         swipeLeftAndWait();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
                 .check(matches(isDisplayed()));
@@ -299,11 +312,11 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     public void testPreview_multiSelect_acrossAlbums() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // Select gif and video item from Photos tab
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+        // Select second image and video item from Photos tab
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
 
         // Navigate to albums
         onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
@@ -341,12 +354,17 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
         registerIdlingResourceAndWaitForIdle();
 
-        // Deselect the Gif item
+        // Deselect the second image item
         onView(withId(previewSelectButtonId)).perform(click());
 
-        // Go back to Photos tab and verify that Gif item is deselected
+        // Go back to Photos tab and verify that second image item is deselected
         onView(withContentDescription("Navigate up")).perform(click());
-        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+    }
+
+    private void assertSpecialFormatBadgeDoesNotExist() {
+        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
     }
 
     private void assertMultiSelectPreviewCommonLayoutDisplayed() {

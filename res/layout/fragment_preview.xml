@@ -58,7 +58,7 @@
             android:textAllCaps="false"
             android:text="@string/deselect"
             android:textColor="@color/picker_default_white"
-            android:textSize="@dimen/preview_deselect_text_size" />
+            style="?attr/borderlessButtonStyle"/>
 
         <Button
             android:id="@+id/preview_add_or_select_button"
@@ -69,6 +69,6 @@
             android:text="@string/add"
             android:textAllCaps="false"
             android:textColor="@color/preview_default_grey"
-            android:textSize="@dimen/preview_add_text_size"/>
+            style="?attr/materialButtonStyle"/>
     </FrameLayout>
 </FrameLayout>

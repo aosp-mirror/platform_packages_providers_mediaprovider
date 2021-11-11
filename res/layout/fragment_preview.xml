@@ -27,24 +27,28 @@
 
     <!-- Adds scrim for Toolbar -->
     <FrameLayout
+        android:id="@+id/preview_top_scrim"
         android:layout_width="match_parent"
         android:layout_height="@dimen/preview_toolbar_scrim_height"
         android:background="@drawable/preview_gradient_desc"
-        android:layout_gravity="top"/>
+        android:layout_gravity="top"
+        android:visibility="gone"/>
 
     <!-- Adds scrim for deselect and Add button -->
     <FrameLayout
+        android:id="@+id/preview_bottom_scrim"
         android:layout_width="match_parent"
         android:layout_height="@dimen/preview_deselect_scrim_height"
         android:background="@drawable/preview_gradient_asc"
-        android:layout_gravity="bottom"/>
+        android:layout_gravity="bottom"
+        android:visibility="gone"/>
 
     <FrameLayout
-        android:layout_marginHorizontal="@dimen/preview_buttons_margin_horizontal"
+        android:id="@+id/preview_bottom_bar"
         android:layout_gravity="bottom"
-        android:layout_marginBottom="@dimen/preview_buttons_margin_bottom"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="@dimen/picker_bottom_bar_size"
+        android:paddingHorizontal="@dimen/preview_buttons_padding_horizontal">
 
         <Button
             android:id="@+id/preview_select_check_button"
@@ -58,7 +62,7 @@
             android:textAllCaps="false"
             android:text="@string/deselect"
             android:textColor="@color/picker_default_white"
-            android:textSize="@dimen/preview_deselect_text_size" />
+            style="?attr/borderlessButtonStyle"/>
 
         <Button
             android:id="@+id/preview_add_or_select_button"
@@ -69,6 +73,6 @@
             android:text="@string/add"
             android:textAllCaps="false"
             android:textColor="@color/preview_default_grey"
-            android:textSize="@dimen/preview_add_text_size"/>
+            style="?attr/materialButtonStyle"/>
     </FrameLayout>
 </FrameLayout>

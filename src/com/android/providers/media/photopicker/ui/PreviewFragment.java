@@ -17,6 +17,8 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.content.res.Configuration;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -103,6 +105,31 @@ public class PreviewFragment extends Fragment {
                 getResources().getDimensionPixelSize(R.dimen.preview_viewpager_margin)));
 
         setUpPreviewLayout(view, getArguments());
+        setupScrimLayerAndBottomBar(view);
+    }
+
+    private void setupScrimLayerAndBottomBar(View fragmentView) {
+        final boolean isLandscape = getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE;
+
+        // Show the scrim layers in Landscape mode. The default visibility is GONE.
+        if (isLandscape) {
+            final View topScrim = fragmentView.findViewById(R.id.preview_top_scrim);
+            topScrim.setVisibility(View.VISIBLE);
+
+            final View bottomScrim = fragmentView.findViewById(R.id.preview_bottom_scrim);
+            bottomScrim.setVisibility(View.VISIBLE);
+        }
+
+        // Set appropriate background color for the bottom bar
+        final int bottomBarColor;
+        if (isLandscape) {
+            bottomBarColor = Color.TRANSPARENT;
+        } else {
+            bottomBarColor = getContext().getColor(R.color.preview_scrim_solid_color);
+        }
+        final View bottomBar = fragmentView.findViewById(R.id.preview_bottom_bar);
+        bottomBar.setBackgroundColor(bottomBarColor);
     }
 
     private void setUpPreviewLayout(@NonNull View view, @Nullable Bundle args) {
@@ -132,7 +159,7 @@ public class PreviewFragment extends Fragment {
      */
     private void setUpPreviewLayoutForLongPress(@NonNull Button addOrSelectButton,
             @NonNull Button selectCheckButton) {
-        LayoutParams layoutParams
+        final LayoutParams layoutParams
                 = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
         addOrSelectButton.setLayoutParams(layoutParams);
 

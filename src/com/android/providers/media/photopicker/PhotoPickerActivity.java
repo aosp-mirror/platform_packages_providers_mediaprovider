@@ -380,8 +380,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // 2. Set the toolbar color
         final ColorDrawable toolbarColor;
         if (isPreview && !shouldShowTabChips) {
-            // Preview defaults to black color irrespective of if it should show tab chips or not
-            toolbarColor = new ColorDrawable(getColor(android.R.color.transparent));
+            if (isOrientationLandscape()) {
+                // Toolbar in Preview will have transparent color in Landscape mode.
+                toolbarColor = new ColorDrawable(getColor(android.R.color.transparent));
+            } else {
+                // Toolbar in Preview will have a solid color with 90% opacity in Portrait mode.
+                toolbarColor = new ColorDrawable(getColor(R.color.preview_scrim_solid_color));
+            }
         } else {
             toolbarColor = new ColorDrawable(getColor(R.color.picker_background_color));
         }

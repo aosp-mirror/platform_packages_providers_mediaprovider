@@ -19,7 +19,11 @@ package com.android.providers.media;
 import static android.os.Environment.DIRECTORY_MOVIES;
 import static android.os.Environment.DIRECTORY_PICTURES;
 import static android.os.Environment.buildPath;
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 import static android.provider.MediaStore.MediaColumns.DATE_EXPIRES;
+import static android.provider.MediaStore.MediaColumns.DISPLAY_NAME;
+import static android.provider.MediaStore.MediaColumns.RELATIVE_PATH;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -27,13 +31,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
-import android.app.UiAutomation;
+import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
@@ -70,8 +76,11 @@ public class IdleServiceTest {
     public void setUp() {
         final Context context = InstrumentationRegistry.getTargetContext();
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
-                .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
-                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
+                .adoptShellPermissionIdentity(android.Manifest.permission.LOG_COMPAT_CHANGE,
+                        android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
+                        android.Manifest.permission.READ_DEVICE_CONFIG,
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        android.Manifest.permission.DUMP);
 
         mDir = new File(context.getExternalMediaDirs()[0], "test_" + System.nanoTime());
         mDir.mkdirs();
@@ -89,10 +98,9 @@ public class IdleServiceTest {
     public void testPruneThumbnails() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
         final ContentResolver resolver = context.getContentResolver();
-
         // Previous tests (like DatabaseHelperTest) may have left stale
         // .database_uuid files, do an idle run first to clean them up.
-        runIdleMaintenance(resolver);
+        MediaStore.runIdleMaintenance(resolver);
         MediaStore.waitForIdle(resolver);
 
         final File dir = Environment.getExternalStorageDirectory();
@@ -114,7 +122,7 @@ public class IdleServiceTest {
         final File d = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", "random.bin"));
 
         // Idle maintenance pass should clean up unknown files
-        runIdleMaintenance(resolver);
+        MediaStore.runIdleMaintenance(resolver);
         assertFalse(exists(a));
         assertFalse(exists(b));
         assertTrue(exists(c));
@@ -128,7 +136,7 @@ public class IdleServiceTest {
         touch(uuidFile);
 
         // Idle maintenance pass should clean up all files
-        runIdleMaintenance(resolver);
+        MediaStore.runIdleMaintenance(resolver);
         assertFalse(exists(a));
         assertFalse(exists(b));
         assertFalse(exists(c));
@@ -154,11 +162,91 @@ public class IdleServiceTest {
                 (System.currentTimeMillis() - 12 * DateUtils.DAY_IN_MILLIS) / 1000;
         final Uri uri3 = createExpiredTrashedItem(resolver, dateExpires3, displayName);
 
-        runIdleMaintenance(resolver);
+        MediaStore.runIdleMaintenance(resolver);
 
         assertExpiredItemIsExtended(resolver, uri1);
         assertExpiredItemIsExtended(resolver, uri2);
         assertExpiredItemIsExtended(resolver, uri3);
+    }
+
+    @Test
+    public void testExtendTrashedItemExpiresOverOneWeek() throws Exception {
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final ContentResolver resolver = context.getContentResolver();
+        final long dateExpires = (System.currentTimeMillis() - 10 * DateUtils.DAY_IN_MILLIS) / 1000;
+        final Uri uri = createExpiredTrashedItem(resolver, dateExpires);
+
+        MediaStore.runIdleMaintenance(resolver);
+
+        assertExpiredItemIsExtended(resolver, uri);
+    }
+
+    @Test
+    public void testDeleteExpiredTrashedItem() throws Exception {
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final ContentResolver resolver = context.getContentResolver();
+        // Create the expired item and scan the file to add it into database
+        final long dateExpires = (System.currentTimeMillis() - 3 * DateUtils.DAY_IN_MILLIS) / 1000;
+        final Uri uri = createExpiredTrashedItem(resolver, dateExpires);
+
+        MediaStore.runIdleMaintenance(resolver);
+
+        final String[] projection = new String[]{DATE_EXPIRES};
+        final Bundle queryArgs = new Bundle();
+        queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
+        try (Cursor cursor = resolver.query(uri, projection, queryArgs,
+                null /* cancellationSignal */)) {
+            assertThat(cursor.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testDetectSpecialFormat() throws Exception {
+        // Require isolated resolver to query hidden column _special_format
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context isolatedContext = new MediaScannerTest.IsolatedContext(context, "modern",
+                /*asFuseThread*/ false);
+        final ContentResolver resolver = isolatedContext.getContentResolver();
+
+        // Create file such that it is not scanned
+        final File dir = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS);
+        final String fileName = TAG + System.nanoTime() + ".jpg";
+
+        ContentValues values = new ContentValues();
+        values.put(DISPLAY_NAME, fileName);
+        values.put(RELATIVE_PATH, dir.getName());
+
+        final Uri filesUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
+        final Uri uri = resolver.insert(filesUri, values);
+        assertThat(uri).isNotNull();
+
+        final File file = new File(dir, fileName);
+        file.createNewFile();
+
+        try {
+            final String[] projection = new String[]{_SPECIAL_FORMAT};
+            try (Cursor cr = resolver.query(uri, projection, null, null, null)) {
+                assertThat(cr.getCount()).isEqualTo(1);
+                assertThat(cr.moveToFirst()).isNotNull();
+                assertThat(cr.isNull(0)).isTrue();
+            }
+
+            // We are not calling runIdleMaintenance as it also scans volumes.
+            try (ContentProviderClient cpc = resolver
+                    .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+                ((MediaProvider) cpc.getLocalContentProvider())
+                        .detectSpecialFormat(new CancellationSignal());
+            }
+
+            try (Cursor cr = resolver.query(uri, projection, null, null, null)) {
+                assertThat(cr.getCount()).isEqualTo(1);
+                assertThat(cr.moveToFirst()).isNotNull();
+                assertThat(cr.getInt(0)).isEqualTo(_SPECIAL_FORMAT_NONE);
+            }
+        } finally {
+            file.delete();
+        }
     }
 
     private void assertExpiredItemIsExtended(ContentResolver resolver, Uri uri) throws Exception {
@@ -200,48 +288,6 @@ public class IdleServiceTest {
             assertThat(cursor.getCount()).isEqualTo(1);
         }
         return uri;
-    }
-
-    @Test
-    public void testExtendTrashedItemExpiresOverOneWeek() throws Exception {
-        final Context context = InstrumentationRegistry.getTargetContext();
-        final ContentResolver resolver = context.getContentResolver();
-        final long dateExpires = (System.currentTimeMillis() - 10 * DateUtils.DAY_IN_MILLIS) / 1000;
-        final Uri uri = createExpiredTrashedItem(resolver, dateExpires);
-
-        runIdleMaintenance(resolver);
-
-        assertExpiredItemIsExtended(resolver, uri);
-    }
-
-    @Test
-    public void testDeleteExpiredTrashedItem() throws Exception {
-        final Context context = InstrumentationRegistry.getTargetContext();
-        final ContentResolver resolver = context.getContentResolver();
-
-        // Create the expired item and scan the file to add it into database
-        final long dateExpires = (System.currentTimeMillis() - 3 * DateUtils.DAY_IN_MILLIS) / 1000;
-        final Uri uri = createExpiredTrashedItem(resolver, dateExpires);
-
-        runIdleMaintenance(resolver);
-
-        final String[] projection = new String[]{DATE_EXPIRES};
-        final Bundle queryArgs = new Bundle();
-        queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
-        try (Cursor cursor = resolver.query(uri, projection, queryArgs,
-                null /* cancellationSignal */)) {
-            assertThat(cursor.getCount()).isEqualTo(0);
-        }
-    }
-
-    private static void runIdleMaintenance(ContentResolver resolver) {
-        final UiAutomation ui = InstrumentationRegistry.getInstrumentation().getUiAutomation();
-        ui.adoptShellPermissionIdentity(android.Manifest.permission.DUMP);
-        try {
-            MediaStore.runIdleMaintenance(resolver);
-        } finally {
-            ui.dropShellPermissionIdentity();
-        }
     }
 
     public static File delete(File file) throws IOException {

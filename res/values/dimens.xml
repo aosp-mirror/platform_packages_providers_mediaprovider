@@ -41,8 +41,6 @@
     <dimen name="picker_date_header_height">56dp</dimen>
     <dimen name="picker_date_header_padding">16dp</dimen>
 
-    <dimen name="picker_message_height">32dp</dimen>
-
     <dimen name="picker_album_name_min_height">20dp</dimen>
     <dimen name="picker_album_name_margin">8dp</dimen>
     <dimen name="picker_album_item_count_height">16dp</dimen>
@@ -54,15 +52,22 @@
 
     <dimen name="picker_photo_item_spacing">3dp</dimen>
 
-    <dimen name="picker_chip_text_size">14sp</dimen>
+    <dimen name="picker_chip_text_size">16sp</dimen>
     <dimen name="picker_chip_touch_size">48dp</dimen>
     <dimen name="picker_chip_radius">16dp</dimen>
 
     <!-- PhotoPicker Preview -->
-    <dimen name="preview_buttons_margin_horizontal">16dp</dimen>
-    <dimen name="preview_buttons_margin_bottom">10dp</dimen>
+    <dimen name="preview_buttons_padding_horizontal">16dp</dimen>
     <dimen name="preview_deselect_padding_start">2dp</dimen>
+    <dimen name="preview_viewpager_margin">20dp</dimen>
     <!-- PhotoPicker Preview text -->
-    <dimen name="preview_add_text_size">14sp</dimen>
-    <dimen name="preview_deselect_text_size">16sp</dimen>
+    <dimen name="preview_toolbar_scrim_height">96dp</dimen>
+    <dimen name="preview_deselect_scrim_height">240dp</dimen>
+
+    <!-- PhotoPicker Work Profile -->
+    <dimen name="picker_profile_button_margin_bottom">32dp</dimen>
+    <dimen name="picker_profile_dialog_radius">8dp</dimen>
+    <dimen name="picker_profile_dialog_title_text_size">14sp</dimen>
+    <dimen name="picker_profile_dialog_icon_height">24dp</dimen>
+    <dimen name="picker_profile_dialog_icon_width">24dp</dimen>
 </resources>

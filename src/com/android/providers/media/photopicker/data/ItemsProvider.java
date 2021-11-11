@@ -16,26 +16,35 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.RemoteException;
+import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.util.Log;
 
+import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryColumns;
 import com.android.providers.media.photopicker.data.model.Item.ItemColumns;
 import com.android.providers.media.photopicker.data.model.UserId;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -46,6 +55,7 @@ public class ItemsProvider {
     private static final String IMAGES_VIDEOS_WHERE_CLAUSE = "( " +
             FileColumns.MEDIA_TYPE + " = " + FileColumns.MEDIA_TYPE_IMAGE + " OR "
             + FileColumns.MEDIA_TYPE + " = " + FileColumns.MEDIA_TYPE_VIDEO + " )";
+    private static final String TAG = ItemsProvider.class.getSimpleName();
 
     private final Context mContext;
 
@@ -75,13 +85,12 @@ public class ItemsProvider {
      * if there are no such images/videos. The Cursor for each item contains {@link ItemColumns}
      *
      * @throws IllegalArgumentException thrown if unsupported values for {@code category} is passed.
-     * @throws IllegalStateException thrown if unsupported value for {@code userId} is passed.
      *
      */
     @Nullable
     public Cursor getItems(@Nullable @Category.CategoryType String category, int offset,
             int limit, @Nullable String mimeType, @Nullable UserId userId) throws
-            IllegalArgumentException, IllegalStateException {
+            IllegalArgumentException {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
@@ -92,15 +101,14 @@ public class ItemsProvider {
     @Nullable
     private Cursor getItemsInternal(@Nullable @Category.CategoryType String category,
             int offset, int limit, @Nullable String mimeType, @NonNull UserId userId) throws
-            IllegalArgumentException, IllegalStateException {
+            IllegalArgumentException {
         // Validate incoming params
         if (category != null && !Category.isValidCategory(category)) {
             throw new IllegalArgumentException("ItemsProvider does not support the given "
                     + "category: " + category);
         }
 
-        final String[] projection = ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]);
-        return query(projection, category, mimeType, offset, limit, userId);
+        return query(ItemColumns.PROJECTION, category, mimeType, offset, limit, userId);
     }
 
     /**
@@ -117,7 +125,7 @@ public class ItemsProvider {
      * @return {@link Cursor} for each category would contain the following columns in
      * their relative order:
      * categoryName: {@link CategoryColumns#NAME} The name of the category,
-     * categoryCoverUri: {@link CategoryColumns#COVER_URI} The Uri for the cover of
+     * categoryCoverId: {@link CategoryColumns#COVER_ID} The id for the cover of
      *                   the category. By default this will be the most recent image/video in that
      *                   category,
      * categoryNumberOfItems: {@link CategoryColumns#NUMBER_OF_ITEMS} number of image/video items
@@ -128,6 +136,11 @@ public class ItemsProvider {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
+
+        if (PickerDbFacade.isPickerDbEnabled()) {
+            return queryAlbums(mimeType, userId);
+        }
+
         return buildCategoriesCursor(Category.CATEGORIES_LIST, mimeType, userId);
     }
 
@@ -146,8 +159,7 @@ public class ItemsProvider {
     }
 
     private String[] getCategoryColumns(@Category.CategoryType String category,
-            @Nullable String mimeType, @NonNull UserId userId) throws IllegalArgumentException,
-            IllegalStateException {
+            @Nullable String mimeType, @NonNull UserId userId) throws IllegalArgumentException {
         if (!Category.isValidCategory(category)) {
             throw new IllegalArgumentException("Category type not supported");
         }
@@ -161,7 +173,7 @@ public class ItemsProvider {
 
         return new String[] {
                 category, // category name
-                getMediaStoreUriForItem(c.getString(0)).toString(), // coverUri
+                c.getString(0), // coverId
                 String.valueOf(c.getCount()), // item count
                 category // category type
         };
@@ -170,7 +182,7 @@ public class ItemsProvider {
     @Nullable
     private Cursor query(@NonNull String[] projection,
             @Nullable @Category.CategoryType String category, @Nullable String mimeType, int offset,
-            int limit, @NonNull UserId userId) throws IllegalStateException {
+            int limit, @NonNull UserId userId) {
         String selection = IMAGES_VIDEOS_WHERE_CLAUSE;
         String[] selectionArgs = null;
 
@@ -182,13 +194,26 @@ public class ItemsProvider {
             selection += " AND (" + MediaColumns.MIME_TYPE + " LIKE ? )";
             selectionArgs = new String[] {replaceMatchAnyChar(mimeType)};
         }
+
+        if (PickerDbFacade.isPickerDbEnabled()) {
+            return queryMedia(limit, mimeType, category, userId);
+        }
         return queryMediaStore(projection, selection, selectionArgs, offset, limit, userId);
     }
 
     @Nullable
     private Cursor queryMediaStore(@NonNull String[] projection,
             @Nullable String selection, @Nullable String[] selectionArgs, int offset,
-            int limit, @NonNull UserId userId) throws IllegalStateException {
+            int limit, @NonNull UserId userId) {
+
+        if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            // If external storage is not ready, we can't load any items from MediaStore.
+            // This shouldn't happen in real world use case. This may happen in tests because test
+            // instrumentation kills the target package before starting the test.
+            Log.w(TAG, "Couldn't query items because external storage is not ready");
+            return null;
+        }
+
         final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
@@ -198,31 +223,85 @@ public class ItemsProvider {
             // DATE_TAKEN is time in milliseconds, whereas DATE_MODIFIED is time in seconds.
             // Sort by DATE_MODIFIED if DATE_TAKEN is NULL
             extras.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
-                    "COALESCE(" + MediaColumns.DATE_TAKEN + "," + MediaColumns.DATE_MODIFIED +
-                    "* 1000) DESC");
+                    "COALESCE(" + MediaColumns.DATE_TAKEN + ","
+                            + MediaColumns.DATE_MODIFIED + "* 1000) DESC, "
+                            + MediaColumns._ID + " DESC");
             extras.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
             if (limit != -1) {
                 extras.putInt(ContentResolver.QUERY_ARG_LIMIT, limit);
             }
 
             return client.query(contentUri, projection, extras, null);
-        } catch (RemoteException ignored) {
+        } catch (RemoteException e) {
             // Do nothing, return null.
+            Log.e(TAG, "RemoteException while querying MediaStore for items with"
+                    + " selection = " + selection
+                    + " selectionArgs = " + Arrays.toString(selectionArgs)
+                    + " limit = " + limit + " offset = " + offset + " userId = " + userId, e);
+            return null;
+        } catch (NameNotFoundException e) {
+            Log.e(TAG, "Unable to get content resolver for the given userId: " + userId, e);
+            return null;
         }
-        return null;
     }
 
-    private static Uri getMediaStoreUriForItem(String id) {
-        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, Long.parseLong(id));
+    private Cursor queryMedia(int limit, @Nullable String mimeType,
+            @NonNull String category, @NonNull UserId userId)
+            throws IllegalStateException {
+        final Bundle extras = new Bundle();
+        try (ContentProviderClient client = userId.getContentResolver(mContext)
+                .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
+            extras.putInt(MediaStore.QUERY_ARG_LIMIT, limit);
+            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+            if (category != null) {
+                extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category);
+                extras.putString(MediaStore.QUERY_ARG_ALBUM_TYPE,
+                        Category.CATEGORY_FAVORITES.equals(category)
+                        ? AlbumColumns.TYPE_FAVORITES : AlbumColumns.TYPE_LOCAL);
+            }
+
+            final Uri uri = PickerUriResolver.PICKER_INTERNAL_URI.buildUpon()
+                    .appendPath(PickerUriResolver.MEDIA_PATH).build();
+
+            return client.query(uri, /* projection */ null, extras, /* cancellationSignal */ null);
+        } catch (RemoteException | NameNotFoundException ignored) {
+            // Do nothing, return null.
+            Log.e(TAG, "Failed to query merged media with extras: "
+                    + extras + ". userId = " + userId, ignored);
+            return null;
+        }
     }
 
-    private static String replaceMatchAnyChar(@NonNull String mimeType) {
-        return mimeType.replace('*', '%');
+    @Nullable
+    private Cursor queryAlbums(@Nullable String mimeType, @NonNull UserId userId) {
+        final Bundle extras = new Bundle();
+        try (ContentProviderClient client = userId.getContentResolver(mContext)
+                .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
+            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+
+            final Uri uri = PickerUriResolver.PICKER_INTERNAL_URI.buildUpon()
+                    .appendPath(PickerUriResolver.ALBUM_PATH).build();
+
+            return client.query(uri, /* projection */ null, extras, /* cancellationSignal */ null);
+        } catch (RemoteException | NameNotFoundException ignored) {
+            // Do nothing, return null.
+            Log.w(TAG, "Failed to query merged albums with extras: "
+                    + extras + ". userId = " + userId, ignored);
+            return null;
+        }
     }
 
     public static Uri getItemsUri(String id, String authority, UserId userId) {
-        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
-                Long.parseLong(id));
+        final Uri uri;
+        if (authority == null) {
+            uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
+                    Long.parseLong(id));
+        } else {
+            // We only have authority after querying the picker db
+            uri = PickerUriResolver.getMediaUri(authority).buildUpon()
+                    .appendPath(id).build();
+        }
+
         if (userId.equals(UserId.CURRENT_USER)) {
             return uri;
         } else {

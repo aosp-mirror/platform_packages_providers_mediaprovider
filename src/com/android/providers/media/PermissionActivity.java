@@ -240,7 +240,9 @@ public class PermissionActivity extends Activity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mHandler.removeCallbacks(mShowProgressDialogRunnable);
+        if (mHandler != null) {
+            mHandler.removeCallbacks(mShowProgressDialogRunnable);
+        }
         // Cancel and interrupt the AsyncTask of the positive action. This avoids
         // calling the old activity during "onPostExecute", but the AsyncTask could
         // still finish its background task. For now we are ok with:

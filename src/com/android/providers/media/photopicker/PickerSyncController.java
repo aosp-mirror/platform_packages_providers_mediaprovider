@@ -16,8 +16,17 @@
 
 package com.android.providers.media.photopicker;
 
+import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
+import static com.android.providers.media.PickerUriResolver.getAlbumUri;
+import static com.android.providers.media.PickerUriResolver.getMediaUri;
+import static com.android.providers.media.PickerUriResolver.getDeletedMediaUri;
+import static com.android.providers.media.PickerUriResolver.getMediaInfoUri;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LIMIT_DEFAULT;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
 import android.annotation.IntDef;
 import android.content.ContentResolver;
@@ -30,20 +39,15 @@ import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.provider.CloudMediaProvider;
 import android.provider.CloudMediaProviderContract;
 import android.text.TextUtils;
 import android.util.Log;
-
+import androidx.annotation.GuardedBy;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
-
-import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.util.BackgroundThread;
-
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
@@ -63,7 +67,7 @@ public class PickerSyncController {
 
     public static final String LOCAL_PICKER_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker";
-    private static final long DEFAULT_SYNC_DELAY_MS = 5000;
+    private static final long DEFAULT_SYNC_DELAY_MS = 1000;
 
     private static final int H_SYNC_PICKER = 1;
 
@@ -81,15 +85,16 @@ public class PickerSyncController {
     @Retention(RetentionPolicy.SOURCE)
     private @interface SyncType {}
 
+    private final Object mLock = new Object();
     private final PickerDbFacade mDbFacade;
     private final Context mContext;
     private final SharedPreferences mPrefs;
     private final String mLocalProvider;
     private final long mSyncDelayMs;
-    private final PickerHandler mHandler;
 
     // TODO(b/190713331): Listen for package_removed
-    private volatile String mCloudProvider;
+    @GuardedBy("mLock")
+    private String mCloudProvider;
 
     public PickerSyncController(Context context, PickerDbFacade dbFacade) {
         this(context, dbFacade, LOCAL_PICKER_PROVIDER_AUTHORITY, DEFAULT_SYNC_DELAY_MS);
@@ -103,26 +108,7 @@ public class PickerSyncController {
         mDbFacade = dbFacade;
         mLocalProvider = localProvider;
         mCloudProvider = mPrefs.getString(PREFS_KEY_CLOUD_PROVIDER, /* default */ null);
-        mHandler = new PickerHandler(BackgroundThread.get().getLooper());
         mSyncDelayMs = syncDelayMs;
-    }
-
-    private class PickerHandler extends Handler {
-        public PickerHandler(Looper looper) {
-            super(looper);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case H_SYNC_PICKER: {
-                    syncPicker();
-                    break;
-                }
-                default:
-                    Log.w(TAG, "Unexpected handler message: " + msg);
-            }
-        }
     }
 
     /**
@@ -130,13 +116,19 @@ public class PickerSyncController {
      */
     public void syncPicker() {
         syncAndCommitProvider(mLocalProvider);
-        syncAndCommitProvider(mCloudProvider);
+
+        synchronized (mLock) {
+            syncAndCommitProvider(mCloudProvider);
+
+            // Set the latest cloud provider on the facade
+            mDbFacade.setCloudProvider(mCloudProvider);
+        }
     }
 
     private void syncAndCommitProvider(@Nullable String authority) {
         if (authority == null) {
             // Only cloud authority can be null
-            mDbFacade.resetMedia(/* isLocal */ false);
+            mDbFacade.resetMedia(authority);
             return;
         }
 
@@ -153,7 +145,7 @@ public class PickerSyncController {
         if (result == SYNC_TYPE_RESET) {
             // Odd! Can only happen if cloud provider gave us unexpected MediaInfo
             // We reset the cloud media in the picker db
-            mDbFacade.resetMedia(isLocal(authority));
+            mDbFacade.resetMedia(authority);
 
             // And clear our cached MediaInfo, so that whenever the provider recovers,
             // we force a full sync
@@ -191,25 +183,35 @@ public class PickerSyncController {
         return result;
     }
 
-    // TODO(b/190713331): Avoid switching cloud provider during picker query or sync
     /**
      * Enables a provider with {@code authority} as the default cloud {@link CloudMediaProvider}.
      * If {@code authority} is set to {@code null}, it simply clears the cloud provider.
      *
-     * Note, that this doesn't sync the new provider after switching.
+     * Note, that this doesn't sync the new provider after switching, however, no cloud items will
+     * available from the picker db until the next sync. Callers should schedule a sync in the
+     * background after switching providers.
      *
      * @return {@code true} if the provider was successfully enabled or cleared, {@code false}
      * otherwise
      */
     public boolean setCloudProvider(String authority) {
-        if (Objects.equals(mCloudProvider, authority)) {
-            Log.w(TAG, "Cloud provider already set: " + authority);
-            return true;
+        synchronized (mLock) {
+            if (Objects.equals(mCloudProvider, authority)) {
+                Log.w(TAG, "Cloud provider already set: " + authority);
+                return true;
+            }
         }
 
         if (authority == null || getSupportedCloudProviders().contains(authority)) {
-            mCloudProvider = authority;
-            clearCachedCloudMediaInfo(authority);
+            synchronized (mLock) {
+                mCloudProvider = authority;
+
+                // This will *clear* the cloud provider on the mDbFacade and prevents any queries
+                // from seeing the old or new cloud media until a sync where the cloud provider
+                // on the facade will be set again
+                clearCachedCloudMediaInfo(authority);
+            }
+
             return true;
         }
 
@@ -218,11 +220,19 @@ public class PickerSyncController {
     }
 
     public String getCloudProvider() {
-        return mCloudProvider;
+        synchronized (mLock) {
+            return mCloudProvider;
+        }
     }
 
     public String getLocalProvider() {
         return mLocalProvider;
+    }
+
+    public boolean isProviderEnabled(String authority) {
+        synchronized (mLock) {
+            return authority.equals(mLocalProvider) || authority.equals(mCloudProvider);
+        }
     }
 
     /**
@@ -233,8 +243,8 @@ public class PickerSyncController {
      * notifications.
      */
     public void notifyMediaEvent() {
-        mHandler.removeMessages(H_SYNC_PICKER);
-        mHandler.sendEmptyMessageDelayed(H_SYNC_PICKER, mSyncDelayMs);
+        BackgroundThread.getHandler().removeCallbacks(this::syncPicker);
+        BackgroundThread.getHandler().postDelayed(this::syncPicker, mSyncDelayMs);
     }
 
     // TODO(b/190713331): Check extra_pages and extra_honored_args
@@ -242,12 +252,12 @@ public class PickerSyncController {
         int result = 0;
         if (fullSync) {
             // Reset media
-            result = mDbFacade.resetMedia(isLocal(authority));
+            result = mDbFacade.resetMedia(authority);
             Log.i(TAG, "Reset sync. Authority: " + authority +  ". Result count: " + result);
 
             // Sync media
             try (Cursor cursor = query(getMediaUri(authority), /* extras */ null)) {
-                result = addMedia(authority, cursor);
+                result = mDbFacade.addMedia(cursor, authority);
                 Log.i(TAG, "Full sync. Authority: " + authority +  ". Result count: " + result
                         + ". Cursor count: " + cursor.getCount());
             }
@@ -255,21 +265,21 @@ public class PickerSyncController {
             // Sync media
             final Bundle queryArgs = new Bundle();
             final long cachedGeneration = cachedMediaInfo.getLong(MediaInfo.MEDIA_GENERATION);
-            queryArgs.putLong(MediaInfo.MEDIA_GENERATION, cachedGeneration);
+            queryArgs.putLong(EXTRA_GENERATION, cachedGeneration);
 
             try (Cursor cursor = query(getMediaUri(authority), queryArgs)) {
-                result = addMedia(authority, cursor);
+                result = mDbFacade.addMedia(cursor, authority);
                 Log.i(TAG, "Incremental sync. Authority: " + authority +  ". Result count: "
                         + result + ". Cursor count: " + cursor.getCount());
             }
 
             // Sync deleted_media
             final Bundle queryDeletedArgs = new Bundle();
-            queryDeletedArgs.putLong(MediaInfo.MEDIA_GENERATION, cachedGeneration);
+            queryDeletedArgs.putLong(EXTRA_GENERATION, cachedGeneration);
 
             try (Cursor cursor = query(getDeletedMediaUri(authority), queryDeletedArgs)) {
                 final int idIndex = cursor.getColumnIndex(MediaColumns.ID);
-                result = removeMedia(authority, cursor, idIndex);
+                result = mDbFacade.removeMedia(cursor, idIndex, authority);
                 Log.i(TAG, "Incremental deleted sync. Authority: " + authority +  ". Result count: "
                         + result + ". Cursor count: " + cursor.getCount());
             }
@@ -296,6 +306,9 @@ public class PickerSyncController {
             // nor expect incorrect data from the local provider since we are bundled together
             return;
         }
+
+        // Disable cloud provider queries on the db until next sync
+        mDbFacade.setCloudProvider(null);
 
         final SharedPreferences.Editor editor = mPrefs.edit();
 
@@ -330,9 +343,14 @@ public class PickerSyncController {
     }
 
     private Bundle getLatestMediaInfo(String authority) {
-        return mContext.getContentResolver().call(getMediaInfoUri(authority),
-                CloudMediaProviderContract.METHOD_GET_MEDIA_INFO, /* arg */ null,
-                /* extras */ null);
+        try {
+            return mContext.getContentResolver().call(getMediaInfoUri(authority),
+                    CloudMediaProviderContract.METHOD_GET_MEDIA_INFO, /* arg */ null,
+                    /* extras */ null);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to fetch latest media info from authority: " + authority, e);
+            return Bundle.EMPTY;
+        }
     }
 
     @SyncType
@@ -369,16 +387,6 @@ public class PickerSyncController {
         return SYNC_TYPE_INCREMENTAL;
     }
 
-    private int addMedia(String authority, Cursor cursor) {
-        return isLocal(authority) ? mDbFacade.addLocalMedia(cursor)
-                : mDbFacade.addCloudMedia(cursor);
-    }
-
-    private int removeMedia(String authority, Cursor cursor, int idIndex) {
-        return isLocal(authority) ? mDbFacade.removeLocalMedia(cursor, idIndex)
-                : mDbFacade.removeCloudMedia(cursor, idIndex);
-    }
-
     private String getPrefsKey(String authority, String key) {
         return (isLocal(authority) ? PREFS_KEY_LOCAL_PREFIX : PREFS_KEY_CLOUD_PREFIX) + key;
     }
@@ -390,20 +398,5 @@ public class PickerSyncController {
     private Cursor query(Uri uri, Bundle extras) {
         return mContext.getContentResolver().query(uri, /* projection */ null, extras,
                 /* cancellationSignal */ null);
-    }
-
-    private static Uri getMediaUri(String authority) {
-        return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_MEDIA);
-    }
-
-    private static Uri getDeletedMediaUri(String authority) {
-        return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_DELETED_MEDIA);
-    }
-
-    private static Uri getMediaInfoUri(String authority) {
-        return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_MEDIA_INFO);
     }
 }

@@ -16,15 +16,24 @@
 
 package com.android.providers.media.photopicker;
 
+import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_CLOUD;
+import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_FAVORITES;
+import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_LOCAL;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
-
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 import static com.google.common.truth.Truth.assertThat;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.os.Bundle;
 import android.os.SystemClock;
+import android.provider.CloudMediaProviderContract.AlbumColumns;
+import android.provider.CloudMediaProviderContract.MediaColumns;
+import android.provider.MediaStore;
 import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
@@ -32,6 +41,8 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.util.BackgroundThread;
 
 import java.util.List;
@@ -65,6 +76,12 @@ public class PickerSyncControllerTest {
     private static final String CLOUD_ID_1 = "1";
     private static final String CLOUD_ID_2 = "2";
 
+    private static final String ALBUM_ID_1 = "1";
+    private static final String ALBUM_ID_2 = "2";
+
+    private static final String MIME_TYPE_DEFAULT = STRING_DEFAULT;
+    private static final long SIZE_BYTES_DEFAULT = LONG_DEFAULT;
+
     private static final Pair<String, String> LOCAL_ONLY_1 = Pair.create(LOCAL_ID_1, null);
     private static final Pair<String, String> LOCAL_ONLY_2 = Pair.create(LOCAL_ID_2, null);
     private static final Pair<String, String> CLOUD_ONLY_1 = Pair.create(null, CLOUD_ID_1);
@@ -74,6 +91,10 @@ public class PickerSyncControllerTest {
 
     private static final String VERSION_1 = "1";
     private static final String VERSION_2 = "2";
+
+    private static final String IMAGE_MIME_TYPE = "image/jpeg";
+    private static final String VIDEO_MIME_TYPE = "video/mp4";
+    private static final long SIZE_BYTES = 50;
 
     private static final long SYNC_DELAY_MS = 1000;
 
@@ -92,12 +113,12 @@ public class PickerSyncControllerTest {
         mCloudSecondaryMediaGenerator.setVersion(VERSION_1);
 
         mContext = InstrumentationRegistry.getTargetContext();
-        mFacade = new PickerDbFacade(mContext);
+        mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY);
         mController = new PickerSyncController(mContext, mFacade, LOCAL_PROVIDER_AUTHORITY,
                 /* syncDelay */ 0);
 
-        mFacade.resetMedia(/* isLocal */ true);
-        mFacade.resetMedia(/* isLocal */ false);
+        mFacade.resetMedia(LOCAL_PROVIDER_AUTHORITY);
+        mFacade.resetMedia(null);
     }
 
     @After
@@ -121,8 +142,8 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(2);
 
-            assertCursor(cr, LOCAL_ONLY_2);
-            assertCursor(cr, LOCAL_ONLY_1);
+            assertCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER_AUTHORITY);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
         }
 
         // 3. Delete one local-only media
@@ -132,7 +153,7 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(1);
 
-            assertCursor(cr, LOCAL_ONLY_2);
+            assertCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER_AUTHORITY);
         }
 
         // 4. Reset media without version bump
@@ -142,7 +163,7 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(1);
 
-            assertCursor(cr, LOCAL_ONLY_2);
+            assertCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER_AUTHORITY);
         }
 
         // 5. Bump version
@@ -173,8 +194,8 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(2);
 
-            assertCursor(cr, CLOUD_ONLY_2);
-            assertCursor(cr, CLOUD_ONLY_1);
+            assertCursor(cr, CLOUD_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
 
         // 4. Set secondary cloud provider again
@@ -188,8 +209,8 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(2);
 
-            assertCursor(cr, CLOUD_ONLY_2);
-            assertCursor(cr, CLOUD_ONLY_1);
+            assertCursor(cr, CLOUD_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
 
         // 6. Clear cloud provider
@@ -213,7 +234,7 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(1);
 
-            assertCursor(cr, CLOUD_ONLY_1);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
 
         // 3. Set invalid cloud version
@@ -228,7 +249,7 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(1);
 
-            assertCursor(cr, CLOUD_ONLY_1);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
     }
 
@@ -247,7 +268,7 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(1);
 
-            assertCursor(cr, LOCAL_ONLY_1);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
         }
 
         // 3. Delete local-only item
@@ -257,7 +278,7 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(1);
 
-            assertCursor(cr, CLOUD_AND_LOCAL_1);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
 
         // 4. Re-add local-only item
@@ -267,7 +288,7 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(1);
 
-            assertCursor(cr, LOCAL_ONLY_1);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
         }
 
         // 5. Delete cloud+local item
@@ -277,7 +298,7 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(1);
 
-            assertCursor(cr, LOCAL_ONLY_1);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
         }
 
         // 6. Delete local-only item
@@ -289,23 +310,51 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testSetCloudProvider() {
+        //1. Get local provider assertion out of the way
         assertThat(mController.getLocalProvider()).isEqualTo(LOCAL_PROVIDER_AUTHORITY);
 
-        // Can set cloud provider
+        // Assert that no cloud provider set on facade
+        assertThat(mFacade.getCloudProvider()).isNull();
+
+        // 2. Can set cloud provider
         assertThat(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
         assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
-        // Can clear cloud provider
+        // Assert that setting cloud provider clears facade cloud provider
+        // And after syncing, the latest provider is set on the facade
+        assertThat(mFacade.getCloudProvider()).isNull();
+        mController.syncPicker();
+        assertThat(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // 3. Can clear cloud provider
         assertThat(mController.setCloudProvider(null)).isTrue();
         assertThat(mController.getCloudProvider()).isNull();
 
-        // Can set cloud proivder
+        // Assert that setting cloud provider clears facade cloud provider
+        // And after syncing, the latest provider is set on the facade
+        assertThat(mFacade.getCloudProvider()).isNull();
+        mController.syncPicker();
+        assertThat(mFacade.getCloudProvider()).isNull();
+
+        // 4. Can set cloud proivder
         assertThat(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
         assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Assert that setting cloud provider clears facade cloud provider
+        // And after syncing, the latest provider is set on the facade
+        assertThat(mFacade.getCloudProvider()).isNull();
+        mController.syncPicker();
+        assertThat(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         // Invalid cloud provider is ignored
         assertThat(mController.setCloudProvider(LOCAL_PROVIDER_AUTHORITY)).isFalse();
         assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Assert that unsuccessfully setting cloud provider doesn't clear facade cloud provider
+        // And after syncing, nothing changes
+        assertThat(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mController.syncPicker();
+        assertThat(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
     }
 
     @Test
@@ -334,7 +383,7 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(1);
 
-            assertCursor(cr, LOCAL_ONLY_1);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
         }
     }
 
@@ -342,13 +391,17 @@ public class PickerSyncControllerTest {
         generator.addMedia(media.first, media.second);
     }
 
+    private static void addMedia(MediaGenerator generator, Pair<String, String> media,
+            String albumId, String mimeType, long sizeBytes, boolean isFavorite) {
+        generator.addMedia(media.first, media.second, albumId, mimeType, sizeBytes, isFavorite);
+    }
+
     private static void deleteMedia(MediaGenerator generator, Pair<String, String> media) {
         generator.deleteMedia(media.first, media.second);
     }
 
     private Cursor queryMedia() {
-        return mFacade.queryMediaAll(/* limit */ 1000, /* mimeTypeFilter */ null,
-                /* sizeBytesMax */ 0);
+        return mFacade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build());
     }
 
     private void assertEmptyCursor() {
@@ -357,9 +410,22 @@ public class PickerSyncControllerTest {
         }
     }
 
-    private static void assertCursor(Cursor cursor, Pair<String, String> media) {
+    private static void assertCursor(Cursor cursor, String id, String expectedAuthority) {
         cursor.moveToNext();
-        assertThat(cursor.getString(cursor.getColumnIndex(KEY_LOCAL_ID))).isEqualTo(media.first);
-        assertThat(cursor.getString(cursor.getColumnIndex(KEY_CLOUD_ID))).isEqualTo(media.second);
+        assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.ID)))
+                .isEqualTo(id);
+
+        final int authorityIdx = cursor.getColumnIndex(MediaColumns.AUTHORITY);
+        final String authority;
+        if (authorityIdx >= 0) {
+            // Cursor from picker db has authority as a column
+            authority = cursor.getString(authorityIdx);
+        } else {
+            // Cursor from provider directly doesn't have an authority column but will
+            // have the authority set as an extra
+            final Bundle bundle = cursor.getExtras();
+            authority = bundle.getString(MediaColumns.AUTHORITY);
+        }
+        assertThat(authority).isEqualTo(expectedAuthority);
     }
 }

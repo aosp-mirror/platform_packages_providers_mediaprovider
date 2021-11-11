@@ -16,8 +16,6 @@
 
 package com.android.providers.media.photopicker.data;
 
-import static com.android.providers.media.DatabaseHelper.VERSION_LATEST;
-
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -29,12 +27,15 @@ import androidx.annotation.VisibleForTesting;
  * Wrapper class for the photo picker database. Can open the actual database
  * on demand, create and upgrade the schema, etc.
  *
- * @See DatabaseHelper
+ * @see DatabaseHelper
  */
-public class PickerDatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
+public class PickerDatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "PickerDatabaseHelper";
     @VisibleForTesting
     static final String PICKER_DATABASE_NAME = "picker.db";
+
+    private static final int VERSION_T = 2;
+    private static final int VERSION_LATEST = VERSION_T;
 
     final Context mContext;
     final String mName;
@@ -64,6 +65,17 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper implements AutoClosea
     @Override
     public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onUpgrade() for " + mName + " from " + oldV + " to " + newV);
+
+        createLatestSchema(db);
+        createLatestIndexes(db);
+    }
+
+    @Override
+    public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
+        Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
+
+        createLatestSchema(db);
+        createLatestIndexes(db);
     }
 
     @VisibleForTesting
@@ -94,11 +106,14 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper implements AutoClosea
         makePristineSchema(db);
 
         db.execSQL("CREATE TABLE media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "local_id TEXT,cloud_id TEXT UNIQUE,is_visible INTEGER CHECK(is_visible == 1),"
+                + "local_id TEXT,"
+                + "cloud_id TEXT UNIQUE,"
+                + "is_visible INTEGER CHECK(is_visible == 1),"
                 + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
+                + "generation_modified INTEGER NOT NULL CHECK(generation_modified >= 0),"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "duration_ms INTEGER CHECK(duration_ms >= 0),"
-                + "mime_type TEXT NOT NULL,"
+                + "mime_type TEXT NOT NULL,is_favorite INTEGER,"
                 + "CHECK(local_id IS NOT NULL OR cloud_id IS NOT NULL),"
                 + "UNIQUE(local_id, is_visible))");
     }
@@ -112,5 +127,6 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper implements AutoClosea
         db.execSQL("CREATE INDEX date_taken_index on media(date_taken_ms)");
         db.execSQL("CREATE INDEX size_index on media(size_bytes)");
         db.execSQL("CREATE INDEX mime_type_index on media(mime_type)");
+        db.execSQL("CREATE INDEX is_favorite_index on media(is_favorite)");
     }
 }

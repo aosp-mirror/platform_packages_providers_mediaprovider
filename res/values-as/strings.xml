@@ -17,8 +17,8 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"মিডিয়া"</string>
-    <string name="storage_description" msgid="4081716890357580107">"স্থানীয় সঞ্চয়াগাৰ"</string>
-    <string name="app_label" msgid="9035307001052716210">"মিডিয়া সঞ্চয়াগাৰ"</string>
+    <string name="storage_description" msgid="4081716890357580107">"স্থানীয় ষ্ট’ৰেজ"</string>
+    <string name="app_label" msgid="9035307001052716210">"মিডিয়া ষ্ট’ৰেজ"</string>
     <string name="artist_label" msgid="8105600993099120273">"শিল্পী"</string>
     <string name="unknown" msgid="2059049215682829375">"অজ্ঞাত"</string>
     <string name="root_images" msgid="5861633549189045666">"প্ৰতিচ্ছবি"</string>
@@ -43,6 +43,35 @@
     <string name="clear" msgid="5524638938415865915">"মচক"</string>
     <string name="allow" msgid="8885707816848569619">"অনুমতি দিয়ক"</string>
     <string name="deny" msgid="6040983710442068936">"অস্বীকাৰ কৰক"</string>
+    <string name="add" msgid="2894574044585549298">"যোগ দিয়ক"</string>
+    <string name="deselect" msgid="4297825044827769490">"বাছনিৰ পৰা আঁতৰাওক"</string>
+    <string name="select" msgid="2704765470563027689">"বাছনি কৰক"</string>
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> টালৈকে বস্তু বাছনি কৰক</item>
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> টালৈকে বস্তু বাছনি কৰক</item>
+    </plurals>
+    <string name="recent" msgid="6694613584743207874">"শেহতীয়া"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"ভিউ বাছনি কৰা হৈছে"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"ফট’"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"এলবাম"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"কৰ্মস্থানৰ প্ৰ’ফাইললৈ সলনি কৰক"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"ব্যক্তিগত প্ৰ’ফাইললৈ সলনি কৰক"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"আপোনাৰ প্ৰশাসকে অৱৰোধ কৰিছে"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ব্যক্তিগত এপৰ পৰা কৰ্মস্থানৰ ডেটা এক্সেছ কৰাৰ অনুমতি নাই"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"কাম সম্পর্কীয় এপৰ পৰা ব্যক্তিগত ডেটা এক্সেছ কৰাৰ অনুমতি নাই"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"কাম সম্পর্কীয় এপ্‌সমূহ পজ কৰা আছে"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"কৰ্মস্থানৰ ফট’ খুলিবলৈ আপোনাৰ কাম সম্পর্কীয় এপ্‌সমূহ অন কৰক তাৰ পাছত পুনৰ চেষ্টা কৰক"</string>
+    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
+      <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> টা বস্তু</item>
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> টা বস্তু</item>
+    </plurals>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g> টা) যোগ দিয়ক"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"কেমেৰা"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"ডাউনল’ড"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"প্ৰিয়"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"স্ক্ৰীনশ্বট"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰিবলৈ অনুমতি দিবনে?</item>
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰিবলৈ অনুমতি দিবনে?</item>

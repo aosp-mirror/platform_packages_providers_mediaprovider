@@ -88,6 +88,22 @@ public final class CloudMediaProviderContract {
         public static final String DATE_TAKEN_MS = "date_taken_ms";
 
         /**
+         * Generation number associated with a media item.
+         * <p>
+         * Providers should associate a monotonically increasing generation number to each media
+         * item which is expected to increase for each atomic modification on the media item. This
+         * is useful for the OS to quickly identify that a media item has changed since a previous
+         * point in time. Note that this does not need to be unique across all media items, i.e.,
+         * multiple media items can have the same GENERATION_MODIFIED value. However, the
+         * modification of a media item should increase the {@link MediaInfo#MEDIA_GENERATION}.
+         * <p>
+         * Type: LONG
+         *
+         * @see MediaInfo#MEDIA_GENERATION
+         */
+        public static final String GENERATION_MODIFIED = "generation_modified";
+
+        /**
          * Concrete MIME type of a media file. For example, "image/png" or
          * "video/mp4".
          * <p>
@@ -126,6 +142,32 @@ public final class CloudMediaProviderContract {
          * Type: LONG
          */
         public static final String DURATION_MS = "duration_ms";
+
+        /**
+         * Whether the item has been favourited in the media collection. If {@code non-zero}, this
+         * media item will appear in the favourites category in the Photo Picker.
+         * <p>
+         * Type: INTEGER
+         */
+        public static final String IS_FAVORITE = "is_favorite";
+
+        /**
+         * Authority of the media item
+         * <p>
+         * Type: STRING
+         *
+         * @hide
+         */
+        public static final String AUTHORITY = "authority";
+
+        /**
+         * File path of the media item
+         * <p>
+         * Type: STRING
+         *
+         * @hide
+         */
+        public static final String DATA = "data";
     }
 
     /** Constants related to an album item, including {@link Cursor} column names */
@@ -185,6 +227,44 @@ public final class CloudMediaProviderContract {
          * Type: LONG
          */
         public static final String MEDIA_COUNT = "album_media_count";
+
+        /**
+         * Type of album: {@link #TYPE_LOCAL}, {@link TYPE_CLOUD}, {@link TYPE_FAVORITES},
+         * {@link TYPE_UNRELIABLE_VOLUME}
+         * <p>
+         * Type: STRING
+         *
+         * @hide
+         */
+        public static final String TYPE = "type";
+
+        /**
+         * Constant representing a type of album from a local provider except favorites
+         *
+         * @hide
+         */
+        public static final String TYPE_LOCAL = "LOCAL";
+
+        /**
+         * Constant representing a type of album from a cloud provider
+         *
+         * @hide
+         */
+        public static final String TYPE_CLOUD = null;
+
+        /**
+         * Constant representing a type of album from merged favorites of a local and cloud provider
+         *
+         * @hide
+         */
+        public static final String TYPE_FAVORITES = "FAVORITES";
+
+        /**
+         * Constant representing a type of album from an unreliable volume
+         *
+         * @hide
+         */
+        public static final String TYPE_UNRELIABLE_VOLUME = "UNRELIABLE_VOLUME";
     }
 
     /** Constants related to the entire media collection */
@@ -225,6 +305,7 @@ public final class CloudMediaProviderContract {
          *
          * @see CloudMediaProviderContract#EXTRA_GENERATION
          * @see CloudMediaProvider#onGetMediaInfo
+         * @see CloudMediaProviderContract.MediaColumns#GENERATION_MODIFIED
          */
         public static final String MEDIA_GENERATION = "media_generation";
 
@@ -302,20 +383,6 @@ public final class CloudMediaProviderContract {
      * Type: LONG
      */
     public static final String EXTRA_GENERATION = "android.provider.extra.GENERATION";
-
-    /**
-     * Limits the query results to only favourited media items in the media collection.
-     *
-     * If the provider handled the favourites filter, they must also add the
-     * {@link #EXTRA_FILTER_FAVOURITES} key to the array of
-     * {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned {@link Cursor#setExtras}
-     * {@link Bundle}.
-     *
-     * @see CloudMediaProvider#onQueryMedia
-     * <p>
-     * Type: BOOLEAN
-     */
-    public static final String EXTRA_FILTER_FAVOURITES = "android.provider.extra.FILTER_FAVOURITES";
 
     /**
      * Limits the query results to only media items matching the given album id.

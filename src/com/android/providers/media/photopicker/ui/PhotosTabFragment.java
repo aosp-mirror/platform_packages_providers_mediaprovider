@@ -30,9 +30,11 @@ import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.android.providers.media.R;
 
+import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryType;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.util.LayoutModeUtils;
 
 import com.google.android.material.snackbar.Snackbar;
 
@@ -44,6 +46,7 @@ import java.util.Locale;
  */
 public class PhotosTabFragment extends TabFragment {
 
+    private static final int MINIMUM_SPAN_COUNT = 3;
     private static final String FRAGMENT_TAG = "PhotosTabFragment";
     private static final String EXTRA_CATEGORY_TYPE = "category_type";
     private static final String EXTRA_CATEGORY_NAME = "category_name";
@@ -71,8 +74,8 @@ public class PhotosTabFragment extends TabFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        final PhotosTabAdapter adapter = new PhotosTabAdapter(mPickerViewModel, mImageLoader,
-                this::onItemClick);
+        final PhotosTabAdapter adapter = new PhotosTabAdapter(mSelection, mImageLoader,
+                this::onItemClick, this::onItemLongClick);
 
         mIsDefaultCategory = TextUtils.equals(Category.CATEGORY_DEFAULT, mCategoryType);
         if (mIsDefaultCategory) {
@@ -95,6 +98,7 @@ public class PhotosTabFragment extends TabFragment {
         final int spacing = getResources().getDimensionPixelSize(R.dimen.picker_photo_item_spacing);
         final int photoSize = getResources().getDimensionPixelSize(R.dimen.picker_photo_size);
         mRecyclerView.setColumnWidth(photoSize + spacing);
+        mRecyclerView.setMinimumSpanCount(MINIMUM_SPAN_COUNT);
 
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setAdapter(adapter);
@@ -117,27 +121,30 @@ public class PhotosTabFragment extends TabFragment {
         super.onResume();
 
         if (mIsDefaultCategory) {
-            getActivity().setTitle(/* title= */ "");
+            ((PhotoPickerActivity) getActivity()).updateCommonLayouts(
+                    LayoutModeUtils.MODE_PHOTOS_TAB, /* title */ "");
+            hideProfileButton(/* hide */ false);
         } else {
-            final String categoryName = Category.getCategoryName(getContext(), mCategoryType);
+            hideProfileButton(/* hide */ true);
+            String categoryName = Category.getCategoryName(getContext(), mCategoryType);
 
             if (TextUtils.isEmpty(categoryName)) {
-                getActivity().setTitle(mCategoryName);
-            } else {
-                getActivity().setTitle(categoryName);
+                categoryName = mCategoryName;
             }
+            ((PhotoPickerActivity) getActivity()).updateCommonLayouts(
+                    LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB, categoryName);
         }
     }
 
     private void onItemClick(@NonNull View view) {
-        if (mPickerViewModel.canSelectMultiple()) {
+        if (mSelection.canSelectMultiple()) {
             final boolean isSelectedBefore = view.isSelected();
 
             if (isSelectedBefore) {
-                mPickerViewModel.deleteSelectedItem((Item) view.getTag());
+                mSelection.removeSelectedItem((Item) view.getTag());
             } else {
-                if (!mPickerViewModel.isSelectionAllowed()) {
-                    final int maxCount = mPickerViewModel.getMaxSelectionLimit();
+                if (!mSelection.isSelectionAllowed()) {
+                    final int maxCount = mSelection.getMaxSelectionLimit();
                     final CharSequence quantityText =
                             getResources().getQuantityString(R.plurals.select_up_to, maxCount);
                     final String itemCountString = NumberFormat.getInstance(Locale.getDefault())
@@ -147,16 +154,32 @@ public class PhotosTabFragment extends TabFragment {
                     Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
                     return;
                 } else {
-                    mPickerViewModel.addSelectedItem((Item) view.getTag());
+                    mSelection.addSelectedItem((Item) view.getTag());
                 }
             }
             view.setSelected(!isSelectedBefore);
         } else {
-            mPickerViewModel.clearSelectedItems();
-            mPickerViewModel.addSelectedItem((Item) view.getTag());
-            // Transition to PreviewFragment.
-            PreviewFragment.show(getActivity().getSupportFragmentManager());
+            Item item = (Item) view.getTag();
+            mSelection.setSelectedItem(item);
+            ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
         }
+    }
+
+    private boolean onItemLongClick(@NonNull View view) {
+        Item item = (Item) view.getTag();
+        if (!mSelection.canSelectMultiple()) {
+            // In single select mode, if the item is previewed, we set it as selected item. This is
+            // will assist in "Add" button click to return all selected items.
+            // For multi select, long click only previews the item, and until user selects the item,
+            // it doesn't get added to selected items. Also, there is no "Add" button in the preview
+            // layout that can return selected items.
+            mSelection.setSelectedItem(item);
+        }
+        mSelection.prepareItemForPreviewOnLongPress(item);
+        // Transition to PreviewFragment.
+        PreviewFragment.show(getActivity().getSupportFragmentManager(),
+                PreviewFragment.getArgsForPreviewOnLongPress());
+        return true;
     }
 
     /**

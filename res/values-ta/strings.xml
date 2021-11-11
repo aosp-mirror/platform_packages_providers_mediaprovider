@@ -43,12 +43,41 @@
     <string name="clear" msgid="5524638938415865915">"அழி"</string>
     <string name="allow" msgid="8885707816848569619">"அனுமதி"</string>
     <string name="deny" msgid="6040983710442068936">"நிராகரி"</string>
+    <string name="add" msgid="2894574044585549298">"சேர்"</string>
+    <string name="deselect" msgid="4297825044827769490">"தேர்வுநீக்கு"</string>
+    <string name="select" msgid="2704765470563027689">"தேர்ந்தெடு"</string>
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> படங்களைத் தேர்ந்தெடுங்கள்</item>
+      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> படத்தைத் தேர்ந்தெடுங்கள்</item>
+    </plurals>
+    <string name="recent" msgid="6694613584743207874">"சமீபத்தியவை"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"தேர்ந்தெடுத்தவற்றைக் காட்டு"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"படங்கள்"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"ஆல்பங்கள்"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"பணிச் சுயவிவரத்திற்கு மாறு"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"தனிப்பட்ட சுயவிவரத்திற்கு மாறு"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"உங்கள் நிர்வாகி தடைசெய்துள்ளார்"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"தனிப்பட்ட ஆப்ஸிலிருந்து பணித் தரவை அணுக அனுமதியில்லை"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"பணி ஆப்ஸிலிருந்து தனிப்பட்ட தரவை அணுக அனுமதியில்லை"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"பணி ஆப்ஸ் இடைநிறுத்தப்பட்டுள்ளன"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"பணிப் படங்களைத் திறக்க, பணி ஆப்ஸை ஆன் செய்துவிட்டு முயலவும்"</string>
+    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> படங்கள்</item>
+      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> படம்</item>
+    </plurals>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) படங்களைச் சேர்"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"கேமரா"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"பதிவிறக்கங்கள்"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"பிடித்தவை"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"ஸ்கிரீன்ஷாட்டுகள்"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
       <item quantity="one">இந்த ஆடியோ ஃபைலில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ கோப்புகளை மாற்றியமைக்கிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ ஃபைல்களை மாற்றியமைக்கிறது…</item>
       <item quantity="one">ஆடியோ ஃபைலை மாற்றியமைக்கிறது…</item>
     </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
@@ -80,7 +109,7 @@
       <item quantity="one">இந்த ஆடியோ ஃபைலை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ கோப்புகளை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ ஃபைல்களை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
       <item quantity="one">ஆடியோ ஃபைலை ‘நீக்கியவை’ ஃபோல்டருக்கு நகர்த்துகிறது…</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
@@ -112,7 +141,7 @@
       <item quantity="one">இந்த ஆடியோ ஃபைலை நீக்கியவற்றில் இருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ கோப்புகளை ‘நீக்கியவை’ ஃபோல்டரிலிருந்து நகர்த்துகிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ ஃபைல்களை ‘நீக்கியவை’ ஃபோல்டரிலிருந்து நகர்த்துகிறது…</item>
       <item quantity="one">ஆடியோ ஃபைலை ‘நீக்கியவை’ ஃபோல்டரிலிருந்து நகர்த்துகிறது…</item>
     </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
@@ -144,7 +173,7 @@
       <item quantity="one">இந்த ஆடியோ ஃபைலை நீக்க <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ கோப்புகளை நீக்குகிறது…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆடியோ ஃபைல்களை நீக்குகிறது…</item>
       <item quantity="one">ஆடியோ ஃபைலை நீக்குகிறது…</item>
     </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
@@ -171,7 +200,7 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ஆவணங்களை நீக்குகிறது…</item>
       <item quantity="one">ஆவணத்தை நீக்குகிறது…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"மீடியா கோப்புகளை <xliff:g id="APP_NAME">%s</xliff:g> ஆப்ஸால் செயலாக்க முடியவில்லை"</string>
+    <string name="transcode_denied" msgid="6760546817138288976">"மீடியா ஃபைல்களை <xliff:g id="APP_NAME">%s</xliff:g> ஆப்ஸால் செயலாக்க முடியவில்லை"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"மீடியா செயலாக்கம் ரத்துசெய்யப்பட்டது"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"மீடியா செயலாக்கத்தில் பிழை"</string>
     <string name="transcode_processing_success" msgid="447288876429730122">"மீடியா செயலாக்கம் நிறைவடைந்தது"</string>

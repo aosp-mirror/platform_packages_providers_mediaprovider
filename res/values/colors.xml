@@ -20,6 +20,7 @@
 
     <!-- PhotoPicker -->
     <color name="picker_default_white">@android:color/white</color>
+    <color name="picker_drag_bar_color">#DADCE0</color>
 
     <!-- PhotoPicker photo grid -->
     <color name="picker_primary_color">#1A73E8</color>
@@ -34,6 +35,7 @@
     <color name="picker_item_gradient_color">#42000000</color>
     <color name="preview_gradient_color_light">@android:color/transparent</color>
     <color name="preview_gradient_color_dark">#80202124</color>
+    <color name="preview_scrim_solid_color">#E6000000</color> <!-- 90% opacity black -->
 
     <!-- PhotoPicker Preview -->
     <color name="preview_default_blue">#8AB4F8</color>

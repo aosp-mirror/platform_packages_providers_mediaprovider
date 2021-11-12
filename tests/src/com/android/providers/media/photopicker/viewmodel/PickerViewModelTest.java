@@ -323,6 +323,7 @@ public class PickerViewModelTest {
                         String.valueOf(item.getDateTaken()),
                         String.valueOf(item.getGenerationModified()),
                         String.valueOf(item.getDuration()),
+                        String.valueOf(item.getSpecialFormat()),
                 });
             }
 

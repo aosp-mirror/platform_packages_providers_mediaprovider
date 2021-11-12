@@ -16,6 +16,10 @@
 
 package com.android.providers.media.photopicker.data.model;
 
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
+
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorInt;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 
@@ -47,6 +51,8 @@ public class Item {
         public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MS;
         public static String SIZE = CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
         public static String AUTHORITY = CloudMediaProviderContract.MediaColumns.AUTHORITY;
+        // TODO(b/204837343): Replace by CloudMediaProviderContract constant
+        public static String SPECIAL_FORMAT = MediaStore.Files.FileColumns._SPECIAL_FORMAT;
 
         public static final String[] ALL_COLUMNS = {
                 ID,
@@ -55,6 +61,7 @@ public class Item {
                 DATE_MODIFIED,
                 GENERATION_MODIFIED,
                 DURATION,
+                SPECIAL_FORMAT
         };
 
         // TODO(b/195009139): Remove after fully switching to picker db
@@ -65,10 +72,9 @@ public class Item {
             MediaStore.MediaColumns.DATE_MODIFIED + " AS " + DATE_MODIFIED,
             MediaStore.MediaColumns.GENERATION_MODIFIED + " AS " + GENERATION_MODIFIED,
             MediaStore.MediaColumns.DURATION +  " AS " + DURATION,
+            MediaStore.Files.FileColumns._SPECIAL_FORMAT +  " AS " + SPECIAL_FORMAT,
         };
     }
-
-    private static final String MIME_TYPE_GIF = "image/gif";
 
     private String mId;
     private long mDateTaken;
@@ -78,7 +84,7 @@ public class Item {
     private Uri mUri;
     private boolean mIsImage;
     private boolean mIsVideo;
-    private boolean mIsGif;
+    private int mSpecialFormat;
     private boolean mIsDate;
 
     private Item() {}
@@ -89,13 +95,14 @@ public class Item {
 
     @VisibleForTesting
     public Item(String id, String mimeType, long dateTaken, long generationModified, long duration,
-            Uri uri) {
+            Uri uri, int specialFormat) {
         mId = id;
         mMimeType = mimeType;
         mDateTaken = dateTaken;
         mGenerationModified = generationModified;
         mDuration = duration;
         mUri = uri;
+        mSpecialFormat = specialFormat;
         parseMimeType();
     }
 
@@ -112,7 +119,11 @@ public class Item {
     }
 
     public boolean isGif() {
-        return mIsGif;
+        return mSpecialFormat == _SPECIAL_FORMAT_GIF;
+    }
+
+    public boolean isMotionPhoto() {
+        return mSpecialFormat == _SPECIAL_FORMAT_MOTION_PHOTO;
     }
 
     public boolean isDate() {
@@ -137,6 +148,11 @@ public class Item {
 
     public long getGenerationModified() {
         return mGenerationModified;
+    }
+
+    @VisibleForTesting
+    public int getSpecialFormat() {
+        return mSpecialFormat;
     }
 
     public static Item fromCursor(Cursor cursor, UserId userId) {
@@ -175,6 +191,7 @@ public class Item {
         }
         mGenerationModified = getCursorLong(cursor, ItemColumns.GENERATION_MODIFIED);
         mDuration = getCursorLong(cursor, ItemColumns.DURATION);
+        mSpecialFormat = getCursorInt(cursor, ItemColumns.SPECIAL_FORMAT);
 
         // TODO (b/188867567): Currently, we only has local data source,
         //  get the uri from provider
@@ -184,9 +201,7 @@ public class Item {
     }
 
     private void parseMimeType() {
-        if (MIME_TYPE_GIF.equalsIgnoreCase(mMimeType)) {
-            mIsGif = true;
-        } else if (MimeUtils.isImageMimeType(mMimeType)) {
+        if (MimeUtils.isImageMimeType(mMimeType)) {
             mIsImage = true;
         } else if (MimeUtils.isVideoMimeType(mMimeType)) {
             mIsVideo = true;

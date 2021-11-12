@@ -95,15 +95,18 @@ public final class MediaVolume implements Parcelable {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         MediaVolume that = (MediaVolume) obj;
+        // We consciously don't compare the path, because:
+        // 1. On unmount events, the returned path for StorageVolumes is
+        // 'null', and different from a mounted volume.
+        // 2. A volume with a certain ID should never be mounted in two different paths, anyway
         return Objects.equals(mName, that.mName) &&
                 Objects.equals(mUser, that.mUser) &&
-                Objects.equals(mPath, that.mPath) &&
                 Objects.equals(mId, that.mId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mName, mUser, mPath, mId);
+        return Objects.hash(mName, mUser, mId);
     }
 
     public boolean isVisibleToUser(UserHandle user) {
@@ -136,6 +139,12 @@ public final class MediaVolume implements Parcelable {
         dest.writeParcelable(mUser, flags);
         dest.writeString(mPath.toString());
         dest.writeString(mId);
+    }
+
+    @Override
+    public String toString() {
+        return "MediaVolume name: [" + mName + "] id: [" + mId + "] user: [" + mUser + "] path: ["
+                + mPath + "]";
     }
 
     public static final @android.annotation.NonNull Creator<MediaVolume> CREATOR

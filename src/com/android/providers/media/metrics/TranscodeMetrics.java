@@ -152,7 +152,7 @@ final class TranscodeMetrics {
         return STATS_DATA_SAMPLE_LIMIT;
     }
 
-    /** This is the data to populate the proto shared to westworld. */
+    /** This is the data to populate the proto shared with statsd. */
     static final class TranscodingStatsData {
         private final String mRequestorPackage;
         private final short mAccessType;

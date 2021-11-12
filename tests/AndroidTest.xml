@@ -16,6 +16,7 @@
 <configuration description="Runs Tests for MediaProvder.">
     <target_preparer class="com.android.tradefed.targetprep.TestAppInstallSetup">
         <option name="test-file-name" value="MediaProviderTests.apk" />
+        <option name="test-file-name" value="MediaProviderTestAppForPermissionActivity.apk" />
         <option name="test-file-name" value="MediaProviderTestAppWithStoragePerms.apk" />
         <option name="test-file-name" value="MediaProviderTestAppWithoutPerms.apk" />
         <option name="test-file-name" value="LegacyMediaProviderTestApp.apk" />
@@ -29,7 +30,13 @@
         <option name="package" value="com.android.providers.media.tests" />
         <option name="runner" value="androidx.test.runner.AndroidJUnitRunner" />
         <option name="hidden-api-checks" value="false"/>
+        <option name="instrumentation-arg" key="thisisignored" value="thisisignored --no-window-animation" />
     </test>
+
+    <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
+        <option name="run-command" value="input keyevent KEYCODE_WAKEUP" />
+        <option name="run-command" value="wm dismiss-keyguard" />
+    </target_preparer>
 
     <object type="module_controller" class="com.android.tradefed.testtype.suite.module.MainlineTestModuleController">
         <option name="mainline-module-package-name" value="com.google.android.mediaprovider" />

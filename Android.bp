@@ -23,8 +23,19 @@ android_app {
     static_libs: [
         "androidx.appcompat_appcompat",
         "androidx.core_core",
+        "androidx.legacy_legacy-support-core-ui",
+        "androidx.lifecycle_lifecycle-extensions",
+        "androidx.recyclerview_recyclerview",
+        "com.google.android.material_material",
         "guava",
         "modules-utils-build",
+        "glide-prebuilt",
+        "glide-gifdecoder-prebuilt",
+        "glide-disklrucache-prebuilt",
+        "glide-annotation-and-compiler-prebuilt",
+        "androidx.fragment_fragment",
+        "androidx.vectordrawable_vectordrawable-animated",
+        "androidx.exifinterface_exifinterface",
     ],
 
     libs: [
@@ -55,6 +66,7 @@ android_app {
     plugins: [
         "java_api_finder",
         "error_prone_mediaprovider",
+        "glide-annotation-processor",
     ],
 
     sdk_version: "module_current",
@@ -79,6 +91,10 @@ android_app {
     },
 
     required: ["preinstalled-packages-com.android.providers.media.module.xml"],
+
+    lint: {
+        strict_updatability_linting: true,
+    },
 }
 
 // Used by MediaProvider and MediaProviderTests

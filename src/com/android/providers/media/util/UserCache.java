@@ -16,7 +16,12 @@
 
 package com.android.providers.media.util;
 
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
+
+import android.app.admin.DevicePolicyManager;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Process;
 import android.os.UserHandle;
@@ -26,6 +31,9 @@ import android.util.LongSparseArray;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
+import com.android.modules.utils.build.SdkLevel;
+
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +55,8 @@ public class UserCache {
 
     @GuardedBy("mLock")
     final LongSparseArray<Context> mUserContexts = new LongSparseArray<>();
+    @GuardedBy("mLock")
+    final LongSparseArray<Boolean> mUserIsWorkProfile = new LongSparseArray<>();
 
     @GuardedBy("mLock")
     final ArrayList<UserHandle> mUsers = new ArrayList<>();
@@ -64,6 +74,16 @@ public class UserCache {
             mUsers.clear();
             // Add the user we're running as by default
             mUsers.add(Process.myUserHandle());
+            if (!SdkLevel.isAtLeastS()) {
+                // Before S, we only handle the owner user
+                return;
+            }
+
+            // App cloning is not supported for profile users like AFW.
+            if (mUserManager.isProfile()) {
+                return;
+            }
+
             // And find all profiles that share media with us
             for (UserHandle profile : profiles) {
                 if (!profile.equals(mContext.getUser())) {
@@ -90,6 +110,37 @@ public class UserCache {
         }
     }
 
+    public boolean isWorkProfile(int userId) {
+        if (userId == 0) {
+            // Owner user can not have a work profile
+            return false;
+        }
+        synchronized (mLock) {
+            int index = mUserIsWorkProfile.indexOfKey(userId);
+            if (index >= 0) {
+                return mUserIsWorkProfile.valueAt(index);
+            }
+        }
+
+        Context userContext = getContextForUser(UserHandle.of(userId));
+        PackageManager packageManager = userContext.getPackageManager();
+        DevicePolicyManager policyManager = userContext.getSystemService(
+                DevicePolicyManager.class);
+        boolean isWorkProfile = false;
+        for (ApplicationInfo ai : packageManager.getInstalledApplications(
+                MATCH_DIRECT_BOOT_AWARE | MATCH_DIRECT_BOOT_UNAWARE)) {
+            if (policyManager.isProfileOwnerApp(ai.packageName)) {
+                isWorkProfile = true;
+            }
+        }
+
+        synchronized (mLock) {
+            mUserIsWorkProfile.put(userId, isWorkProfile);
+        }
+
+        return isWorkProfile;
+    }
+
     public @NonNull Context getContextForUser(@NonNull UserHandle user) {
         Context userContext;
         synchronized (mLock) {
@@ -111,16 +162,45 @@ public class UserCache {
 
     /**
      *  Returns whether the passed in user shares media with its parent (or peer).
+     *
+     * @param user user to check
+     * @return whether the user shares media with its parent
+     */
+    public boolean userSharesMediaWithParent(@NonNull UserHandle user) {
+        if (Process.myUserHandle().equals(user)) {
+            // Early return path - the owner user doesn't have a parent
+            return false;
+        }
+        boolean found = userSharesMediaWithParentCached(user);
+        if (!found) {
+            // Update the cache and try again
+            update();
+            found = userSharesMediaWithParentCached(user);
+        }
+        return found;
+    }
+
+    /**
+     *  Returns whether the passed in user shares media with its parent (or peer).
      *  Note that the value returned here is based on cached data; it relies on
      *  other callers to keep the user cache up-to-date.
      *
      * @param user user to check
      * @return whether the user shares media with its parent
      */
-    public boolean userSharesMediaWithParent(@NonNull UserHandle user) {
+    public boolean userSharesMediaWithParentCached(@NonNull UserHandle user) {
         synchronized (mLock) {
             // It must be a user that we manage, and not equal to the main user that we run as
-            return user != Process.myUserHandle() && mUsers.contains(user);
+            return !Process.myUserHandle().equals(user) && mUsers.contains(user);
+        }
+    }
+
+    public void dump(PrintWriter writer) {
+        writer.println("User cache state:");
+        synchronized (mLock) {
+            for (UserHandle user : mUsers) {
+                writer.println("  user: " + user);
+            }
         }
     }
 }

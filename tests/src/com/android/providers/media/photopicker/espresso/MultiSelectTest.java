@@ -53,6 +53,11 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getMultiSelectionIntent());
 
     @Test
+    public void testMultiselect_showDragBar() {
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+    }
+
+    @Test
     public void testMultiselect_selectIcon() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 

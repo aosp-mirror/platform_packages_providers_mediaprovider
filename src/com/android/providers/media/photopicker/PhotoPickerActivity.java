@@ -28,7 +28,10 @@ import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Binder;
 import android.os.Bundle;
+import android.os.SystemProperties;
+import android.provider.DeviceConfig;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -44,6 +47,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Category;
@@ -99,6 +103,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (!isPhotoPickerEnabled()) {
+            setCancelledResultAndFinishSelf();
+        }
+
         setContentView(R.layout.activity_photo_picker);
 
         mToolbar = findViewById(R.id.toolbar);
@@ -132,6 +141,44 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
         mFragmentContainerView = findViewById(R.id.fragment_container);
+    }
+
+    /**
+     * TODO(b/205291616) Remove this before launch. This is a temporary method to hide the API
+     * until we are ready to launch it.
+     */
+    @VisibleForTesting
+    public boolean isPhotoPickerEnabled() {
+        // Always enabled on T+
+        if (SdkLevel.isAtLeastT()) {
+            return true;
+        }
+
+        // If the system property is enabled, then picker is enabled
+        boolean isSysPropertyEnabled =
+                SystemProperties.getBoolean(
+                        "persist.sys.storage_picker_enabled" /* key */,
+                        false /* def */);
+        if (isSysPropertyEnabled) {
+            return true;
+        }
+
+        // If build is < S, then picker is disabled since we cannot check device config
+        if (!SdkLevel.isAtLeastS()) {
+            // We cannot read device config on R
+            return false;
+        }
+
+        // If the device config is enabled, then picker is enabled
+        final long token = Binder.clearCallingIdentity();
+        try {
+            return DeviceConfig.getBoolean(
+                    DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                    "picker_intent_enabled",
+                    false /* defaultValue */ );
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
     }
 
     /**

@@ -20,6 +20,7 @@ import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COL
 import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_FAVORITES;
 import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_LOCAL;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
+import static com.android.providers.media.photopicker.PickerSyncController.CloudProviderInfo;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
@@ -30,6 +31,7 @@ import static com.google.common.truth.Truth.assertThat;
 import android.content.Context;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.os.Process;
 import android.os.SystemClock;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.CloudMediaProviderContract.MediaColumns;
@@ -51,6 +53,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -122,6 +125,7 @@ public class PickerSyncControllerTest {
 
         mFacade.resetMedia(LOCAL_PROVIDER_AUTHORITY);
         mFacade.resetMedia(null);
+        Assume.assumeTrue(PickerDbFacade.isPickerDbEnabled());
     }
 
     @After
@@ -362,10 +366,33 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testGetSupportedCloudProviders() {
-        List<String> providers = mController.getSupportedCloudProviders();
+        List<CloudProviderInfo> providers = mController.getSupportedCloudProviders();
 
-        assertThat(providers).containsExactly(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
-                CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        CloudProviderInfo primaryInfo = new CloudProviderInfo(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
+                Process.myUid());
+        CloudProviderInfo secondaryInfo = new CloudProviderInfo(CLOUD_SECONDARY_PROVIDER_AUTHORITY,
+                Process.myUid());
+
+        assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
+    }
+
+    @Test
+    public void testIsProviderAuthorityEnabled() {
+        assertThat(mController.isProviderEnabled(LOCAL_PROVIDER_AUTHORITY)).isTrue();
+        assertThat(mController.isProviderEnabled(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isFalse();
+        assertThat(mController.isProviderEnabled(CLOUD_SECONDARY_PROVIDER_AUTHORITY)).isFalse();
+
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        assertThat(mController.isProviderEnabled(LOCAL_PROVIDER_AUTHORITY)).isTrue();
+        assertThat(mController.isProviderEnabled(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
+        assertThat(mController.isProviderEnabled(CLOUD_SECONDARY_PROVIDER_AUTHORITY)).isFalse();
+    }
+
+    @Test
+    public void testIsProviderUidEnabled() {
+        assertThat(mController.isProviderEnabled(Process.myUid())).isTrue();
+        assertThat(mController.isProviderEnabled(1000)).isFalse();
     }
 
     private static void waitForIdle() {

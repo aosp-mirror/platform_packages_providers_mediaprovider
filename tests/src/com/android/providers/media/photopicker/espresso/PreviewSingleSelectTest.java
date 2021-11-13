@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.espresso;
 
+import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
@@ -28,9 +30,18 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
+import android.app.Activity;
+import android.content.res.Configuration;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.view.View;
+
+import androidx.appcompat.widget.Toolbar;
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
@@ -58,6 +69,9 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
         registerIdlingResourceAndWaitForIdle();
 
+        // No dragBar in preview
+        onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
+
         // Verify image is previewed
         assertSingleSelectCommonLayoutMatches();
         onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
@@ -66,6 +80,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         onView(withContentDescription("Navigate up")).perform(click());
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+        // Shows dragBar after we are back to Photos tab
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
     }
 
     @Test
@@ -131,10 +147,73 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
                 .check(matches(isDisplayed()));
     }
 
+    @Test
+    public void testPreview_noScrimLayerAndHasSolidColorInPortrait() {
+        mRule.getScenario().onActivity(activity -> {
+            assertThat(activity.getResources().getConfiguration().orientation).isEqualTo(
+                    Configuration.ORIENTATION_PORTRAIT);
+        });
+
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+        // Navigate to preview
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+
+        registerIdlingResourceAndWaitForIdle();
+
+        onView(withId(R.id.preview_top_scrim)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.preview_bottom_scrim)).check(matches(not(isDisplayed())));
+
+        mRule.getScenario().onActivity(activity -> {
+            assertBackgroundColorOnToolbarAndBottomBar(activity, R.color.preview_scrim_solid_color);
+        });
+    }
+
+    @Test
+    public void testPreview_showScrimLayerInLandscape() {
+        mRule.getScenario().onActivity(activity -> {
+            activity.setRequestedOrientation(SCREEN_ORIENTATION_LANDSCAPE);
+        });
+
+        mRule.getScenario().onActivity(activity -> {
+            assertThat(activity.getResources().getConfiguration().orientation).isEqualTo(
+                    Configuration.ORIENTATION_LANDSCAPE);
+        });
+
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Navigate to preview
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+
+        registerIdlingResourceAndWaitForIdle();
+
+        onView(withId(R.id.preview_top_scrim)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_bottom_scrim)).check(matches(isDisplayed()));
+
+        mRule.getScenario().onActivity(activity -> {
+            assertBackgroundColorOnToolbarAndBottomBar(activity, android.R.color.transparent);
+        });
+    }
+
     private void registerIdlingResourceAndWaitForIdle() {
         mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
                 new ViewPager2IdlingResource(activity.findViewById(R.id.preview_viewPager)))));
         Espresso.onIdle();
+    }
+
+    private void assertBackgroundColorOnToolbarAndBottomBar(Activity activity, int colorResId) {
+        final Toolbar toolbar = activity.findViewById(R.id.toolbar);
+        final Drawable toolbarDrawable = toolbar.getBackground();
+
+        assertThat(toolbarDrawable).isInstanceOf(ColorDrawable.class);
+
+        final int expectedColor = activity.getColor(colorResId);
+        assertThat(((ColorDrawable) toolbarDrawable).getColor()).isEqualTo(expectedColor);
+
+        final View bottomBar = activity.findViewById(R.id.preview_bottom_bar);
+        final Drawable bottomBarDrawable = bottomBar.getBackground();
+
+        assertThat(bottomBarDrawable).isInstanceOf(ColorDrawable.class);
+        assertThat(((ColorDrawable) bottomBarDrawable).getColor()).isEqualTo(expectedColor);
     }
 
     private void assertSingleSelectCommonLayoutMatches() {

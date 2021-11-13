@@ -52,6 +52,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -123,6 +124,7 @@ public class PickerDataLayerTest {
 
         mFacade.resetMedia(LOCAL_PROVIDER_AUTHORITY);
         mFacade.resetMedia(null);
+        Assume.assumeTrue(PickerDbFacade.isPickerDbEnabled());
     }
 
     @After

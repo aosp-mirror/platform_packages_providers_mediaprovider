@@ -44,6 +44,7 @@ java_sdk_library {
     hostdex: true, // for hiddenapi check
     impl_library_visibility: [
         "//packages/providers/MediaProvider:__subpackages__",
+        "//cts/tests/PhotoPicker",
     ],
     apex_available: [
         "com.android.mediaprovider",

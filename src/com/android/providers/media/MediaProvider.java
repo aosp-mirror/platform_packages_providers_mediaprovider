@@ -6042,15 +6042,38 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
-            case MediaStore.SET_CLOUD_PROVIDER_CALL:
+            case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 // TODO(b/190713331): Remove after initial development
                 final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);
                 Log.i(TAG, "Developer initiated cloud provider switch: " + cloudProvider);
                 mPickerSyncController.setCloudProvider(cloudProvider);
                 // fall through
-            case MediaStore.SYNC_PROVIDERS_CALL:
+            }
+            case MediaStore.SYNC_PROVIDERS_CALL: {
                 syncPicker();
                 return new Bundle();
+            }
+            case MediaStore.GET_CLOUD_PROVIDER_CALL: {
+                final String cloudProvider = mPickerSyncController.getCloudProvider();
+
+                Bundle bundle = new Bundle();
+                bundle.putString(MediaStore.EXTRA_CLOUD_PROVIDER, cloudProvider);
+                return bundle;
+            }
+            case MediaStore.NOTIFY_CLOUD_EVENT_CALL: {
+                final boolean notifyCloudEventResult;
+                if (mPickerSyncController.isProviderEnabled(Binder.getCallingUid())) {
+                    mPickerSyncController.notifyMediaEvent();
+                    notifyCloudEventResult = true;
+                } else {
+                    notifyCloudEventResult = false;
+                }
+
+                Bundle bundle = new Bundle();
+                bundle.putBoolean(MediaStore.EXTRA_NOTIFY_CLOUD_EVENT_RESULT,
+                        notifyCloudEventResult);
+                return bundle;
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }

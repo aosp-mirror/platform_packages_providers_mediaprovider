@@ -25,6 +25,8 @@ import android.provider.MediaStore;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.android.modules.utils.build.SdkLevel;
+
 import java.io.File;
 import java.util.Objects;
 
@@ -60,6 +62,11 @@ public final class MediaVolume implements Parcelable {
      */
     private final @Nullable String mId;
 
+    /**
+     * Whether the volume is a stub volume (a volume managed from outside Android).
+     */
+    private final boolean mStub;
+
     public @NonNull String getName() {
         return mName;
     }
@@ -76,11 +83,17 @@ public final class MediaVolume implements Parcelable {
         return mId;
     }
 
-    private MediaVolume (@NonNull String name, UserHandle user, File path, String id) {
+    public boolean isStub() {
+        return mStub;
+    }
+
+    private MediaVolume (@NonNull String name, UserHandle user, File path, String id,
+                         boolean stub) {
         this.mName = name;
         this.mUser = user;
         this.mPath = path;
         this.mId = id;
+        this.mStub = stub;
     }
 
     private MediaVolume (Parcel in) {
@@ -88,6 +101,7 @@ public final class MediaVolume implements Parcelable {
         this.mUser = in.readParcelable(null);
         this.mPath  = new File(in.readString());
         this.mId = in.readString();
+        this.mStub = in.readInt() != 0;
     }
 
     @Override
@@ -101,12 +115,13 @@ public final class MediaVolume implements Parcelable {
         // 2. A volume with a certain ID should never be mounted in two different paths, anyway
         return Objects.equals(mName, that.mName) &&
                 Objects.equals(mUser, that.mUser) &&
-                Objects.equals(mId, that.mId);
+                Objects.equals(mId, that.mId) &&
+                (mStub == that.mStub);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mName, mUser, mId);
+        return Objects.hash(mName, mUser, mId, mStub);
     }
 
     public boolean isVisibleToUser(UserHandle user) {
@@ -119,13 +134,14 @@ public final class MediaVolume implements Parcelable {
         UserHandle user = storageVolume.getOwner();
         File path = storageVolume.getDirectory();
         String id = storageVolume.getId();
-        return new MediaVolume(name, user, path, id);
+        boolean stub = SdkLevel.isAtLeastT() ? storageVolume.isStub() : false;
+        return new MediaVolume(name, user, path, id, stub);
     }
 
     public static MediaVolume fromInternal() {
         String name = MediaStore.VOLUME_INTERNAL;
 
-        return new MediaVolume(name, null, null, null);
+        return new MediaVolume(name, null, null, null, false);
     }
 
     @Override
@@ -139,12 +155,13 @@ public final class MediaVolume implements Parcelable {
         dest.writeParcelable(mUser, flags);
         dest.writeString(mPath.toString());
         dest.writeString(mId);
+        dest.writeInt(mStub ? 1 : 0);
     }
 
     @Override
     public String toString() {
         return "MediaVolume name: [" + mName + "] id: [" + mId + "] user: [" + mUser + "] path: ["
-                + mPath + "]";
+                + mPath + "] stub: [" + mStub + "]";
     }
 
     public static final @android.annotation.NonNull Creator<MediaVolume> CREATOR

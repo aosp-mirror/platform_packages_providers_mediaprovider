@@ -861,11 +861,16 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Ensure that default folders are created on mounted primary storage
-     * devices. We only do this once per volume so we don't annoy the user if
-     * deleted manually.
+     * Ensure that default folders are created on mounted storage devices.
+     * We only do this once per volume so we don't annoy the user if deleted
+     * manually.
      */
     private void ensureDefaultFolders(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
+        if (volume.isStub()) {
+            // StubVolumes are managed from outside Android (e.g. from Chrome OS). So default
+            // folders should not be automatically created inside them.
+            return;
+        }
         final String key = "created_default_folders_" + volume.getId();
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -891,6 +896,12 @@ public class MediaProvider extends ContentProvider {
      * disk, then all thumbnails will be considered stable and will be deleted.
      */
     private void ensureThumbnailsValid(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
+        if (volume.isStub()) {
+            // StubVolumes are managed from outside Android (e.g. from Chrome OS). So default
+            // folders and thumbnail directories should not be automatically created inside them,
+            // and there is no need to eusure the validity of thumbnails here.
+            return;
+        }
         final String uuidFromDatabase = DatabaseHelper.getOrCreateUuid(db);
         try {
             for (File dir : getThumbnailDirectories(volume)) {

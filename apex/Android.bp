@@ -59,12 +59,6 @@ bootclasspath_fragment {
         },
     ],
 
-    // Additional stubs libraries that this fragment's contents use which are
-    // not provided by another bootclasspath_fragment.
-    additional_stubs: [
-        "android-non-updatable",
-    ],
-
     // Additional hidden API flag files to override the defaults. This must only be
     // modified by the Soong or platform compat team.
     hidden_api: {

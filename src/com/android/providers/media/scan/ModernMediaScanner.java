@@ -101,6 +101,7 @@ import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
+import com.android.providers.media.util.SpecialFormatDetector;
 import com.android.providers.media.util.XmpInterface;
 
 import java.io.File;
@@ -174,14 +175,6 @@ public class ModernMediaScanner implements MediaScanner {
     // See SQLITE_MAX_EXPR_DEPTH in sqlite3.c
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     static final int MAX_EXCLUDE_DIRS = 450;
-
-    private static final Pattern PATTERN_VISIBLE = Pattern.compile(
-            "(?i)^/storage/[^/]+(?:/[0-9]+)?$");
-    private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
-            "(?i)^/storage/[^/]+(?:/[0-9]+)?/"
-                    + "(?:(?:Android/(?:data|obb|sandbox)$)|"
-                    + "(?:\\.transforms$)|"
-                    + "(?:(?:Movies|Music|Pictures)/.thumbnails$))");
 
     private static final Pattern PATTERN_YEAR = Pattern.compile("([1-9][0-9][0-9][0-9])");
 
@@ -666,6 +659,8 @@ public class ModernMediaScanner implements MediaScanner {
             synchronized (mPendingCleanDirectories) {
                 if (mIsDirectoryTreeDirty) {
                     // Directory tree is dirty, continue scanning subtree.
+                } else if (FileUtils.getTopLevelNoMedia(dir.toFile()) == null) {
+                  // No nomedia file found, continue scanning.
                 } else if (FileUtils.isDirectoryDirty(FileUtils.getTopLevelNoMedia(dir.toFile()))) {
                     // Track the directory dirty status for directory tree in mIsDirectoryDirty.
                     // This removes additional dirty state check for subdirectories of nomedia
@@ -1389,6 +1384,7 @@ public class ModernMediaScanner implements MediaScanner {
             final XmpInterface xmp = XmpInterface.fromContainer(exif);
             withXmpValues(op, xmp, mimeType);
 
+            op.withValue(FileColumns._SPECIAL_FORMAT, SpecialFormatDetector.detect(exif, file));
         } catch (Exception e) {
             logTroubleScanning(file, e);
         }
@@ -1677,14 +1673,14 @@ public class ModernMediaScanner implements MediaScanner {
 
         // Handle well-known paths that should always be visible or invisible,
         // regardless of .nomedia presence
-        if (PATTERN_VISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+        if (FileUtils.shouldBeVisible(dir.getAbsolutePath())) {
             // Well known paths can never be a hidden directory. Delete any non-standard nomedia
             // presence in well known path.
             nomedia.delete();
             return true;
         }
 
-        if (PATTERN_INVISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+        if (FileUtils.shouldBeInvisible(dir.getAbsolutePath())) {
             // Create the .nomedia file in paths that are not scannable. This is useful when user
             // ejects the SD card and brings it to an older device and its media scanner can
             // now correctly identify these paths as not scannable.

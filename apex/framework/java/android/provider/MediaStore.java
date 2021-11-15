@@ -691,6 +691,8 @@ public final class MediaStore {
      * {@link Activity#RESULT_CANCELED} is returned.
      * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
+     *
+     * @hide
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
@@ -705,6 +707,8 @@ public final class MediaStore {
      * than 1 and less than or equal to
      * {@link MediaStore#getPickImagesMaxLimit}, otherwise
      * {@link Activity#RESULT_CANCELED} is returned.
+     *
+     * @hide
      */
     public final static String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
 
@@ -712,6 +716,8 @@ public final class MediaStore {
      * The maximum limit for the number of items that can be selected using
      * {@link MediaStore#ACTION_PICK_IMAGES} when launched in multiple selection mode.
      * This can be used as a constant value for {@link MediaStore#EXTRA_PICK_IMAGES_MAX}.
+     *
+     * @hide
      */
     public static int getPickImagesMaxLimit() {
         return PICK_IMAGES_MAX_LIMIT;

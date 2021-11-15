@@ -69,6 +69,9 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
         registerIdlingResourceAndWaitForIdle();
 
+        // No dragBar in preview
+        onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
+
         // Verify image is previewed
         assertSingleSelectCommonLayoutMatches();
         onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
@@ -77,6 +80,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         onView(withContentDescription("Navigate up")).perform(click());
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+        // Shows dragBar after we are back to Photos tab
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
     }
 
     @Test

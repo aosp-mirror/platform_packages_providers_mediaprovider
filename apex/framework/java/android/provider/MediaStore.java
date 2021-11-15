@@ -255,6 +255,10 @@ public final class MediaStore {
     public static final String QUERY_ARG_MIME_TYPE = "android:query-arg-mime_type";
     /** {@hide} */
     public static final String QUERY_ARG_SIZE_BYTES = "android:query-arg-size_bytes";
+    /** {@hide} */
+    public static final String QUERY_ARG_ALBUM_ID = "android:query-arg-album_id";
+    /** {@hide} */
+    public static final String QUERY_ARG_ALBUM_TYPE = "android:query-arg-album_type";
 
     /**
      * This is for internal use by the media scanner only.
@@ -278,7 +282,7 @@ public final class MediaStore {
     public static final String PARAM_LIMIT = "limit";
 
     /** {@hide} */
-    private static final int MY_USER_ID = UserHandle.myUserId();
+    public static final int MY_USER_ID = UserHandle.myUserId();
     /** {@hide} */
     public static final int MY_UID = android.os.Process.myUid();
     // Stolen from: UserHandle#getUserId
@@ -687,6 +691,8 @@ public final class MediaStore {
      * {@link Activity#RESULT_CANCELED} is returned.
      * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
+     *
+     * @hide
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
@@ -701,6 +707,8 @@ public final class MediaStore {
      * than 1 and less than or equal to
      * {@link MediaStore#getPickImagesMaxLimit}, otherwise
      * {@link Activity#RESULT_CANCELED} is returned.
+     *
+     * @hide
      */
     public final static String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
 
@@ -708,6 +716,8 @@ public final class MediaStore {
      * The maximum limit for the number of items that can be selected using
      * {@link MediaStore#ACTION_PICK_IMAGES} when launched in multiple selection mode.
      * This can be used as a constant value for {@link MediaStore#EXTRA_PICK_IMAGES_MAX}.
+     *
+     * @hide
      */
     public static int getPickImagesMaxLimit() {
         return PICK_IMAGES_MAX_LIMIT;
@@ -2039,6 +2049,46 @@ public final class MediaStore {
              */
             // @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String _USER_ID = "_user_id";
+
+            /**
+             * Special format for a file.
+             *
+             * Photo Picker requires special format tagging for media files.
+             * This is essential as {@link Images} collection can include
+             * images of various formats like Motion Photos, GIFs etc, which
+             * is not identifiable by {@link #MIME_TYPE}
+             *
+             * @hide
+             */
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            public static final String _SPECIAL_FORMAT = "_special_format";
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file doesn't have any special format associated with it.
+             * TODO(b/199522401): Expose these as public API for cloud providers.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_NONE = 0;
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file is a GIF file.
+             * TODO(b/199522401): Expose these as public API for cloud providers.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_GIF = 1;
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file is a Motion Photo.
+             * TODO(b/199522401): Expose these as public API for cloud providers.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_MOTION_PHOTO = 2;
         }
     }
 
@@ -2866,66 +2916,36 @@ public final class MediaStore {
 
             /**
              * Non-zero if the audio file is music
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_MUSIC = "is_music";
 
             /**
              * Non-zero if the audio file is a podcast
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_PODCAST = "is_podcast";
 
             /**
              * Non-zero if the audio file may be a ringtone
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
-             * and {@link #IS_RECORDING}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RINGTONE = "is_ringtone";
 
             /**
              * Non-zero if the audio file may be an alarm
-             *
-             * This is mutually exclusive with {@link #IS_AUDIOBOOK},
-             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_ALARM = "is_alarm";
 
             /**
              * Non-zero if the audio file may be a notification sound
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_NOTIFICATION = "is_notification";
 
             /**
              * Non-zero if the audio file is an audiobook
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING}, and
-             * {@link #IS_RINGTONE}
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_AUDIOBOOK = "is_audiobook";
@@ -2933,12 +2953,8 @@ public final class MediaStore {
             /**
              * Non-zero if the audio file is a voice recording recorded
              * by voice recorder apps
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
-             * and {@link #IS_RINGTONE}.
              */
+            @ExportedSince(osVersion = Build.VERSION_CODES.S)
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RECORDING = "is_recording";
 
@@ -4341,6 +4357,7 @@ public final class MediaStore {
         return userId == null ? MY_USER_ID : Integer.parseInt(userId);
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     private static Uri maybeAddUserId(@NonNull Uri uri, String userId) {
         if (userId == null) {
             return uri;
@@ -4350,6 +4367,7 @@ public final class MediaStore {
             UserHandle.of(Integer.parseInt(userId)));
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     private static List<Uri> maybeAddUserId(@NonNull List<Uri> uris, String userId) {
         if (userId == null) {
             return uris;
@@ -4382,6 +4400,7 @@ public final class MediaStore {
      * @throws SecurityException if the caller doesn't have the read access to {@code uri}
      * @see #getRedactedUri(ContentResolver, List)
      */
+    @RequiresApi(Build.VERSION_CODES.S)
     @Nullable
     public static Uri getRedactedUri(@NonNull ContentResolver resolver, @NonNull Uri uri) {
         final String authority = uri.getAuthority();
@@ -4434,6 +4453,7 @@ public final class MediaStore {
      * @throws IllegalArgumentException if all the uris in {@code uris} don't belong to same user id
      * @see #getRedactedUri(ContentResolver, Uri)
      */
+    @RequiresApi(Build.VERSION_CODES.S)
     @NonNull
     public static List<Uri> getRedactedUri(@NonNull ContentResolver resolver,
             @NonNull List<Uri> uris) {

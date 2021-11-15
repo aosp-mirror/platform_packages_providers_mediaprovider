@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.espresso;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.action.ViewActions.longClick;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isNotSelected;
@@ -56,5 +57,11 @@ class RecyclerViewTestUtils {
         onView(withRecyclerView(recyclerViewId)
                 .atPositionOnView(position, targetViewId))
                 .perform(click());
+    }
+
+    public static void longClickItem(int recyclerViewId, int position, int targetViewId) {
+        onView(withRecyclerView(recyclerViewId)
+                .atPositionOnView(position, targetViewId))
+                .perform(longClick());
     }
 }

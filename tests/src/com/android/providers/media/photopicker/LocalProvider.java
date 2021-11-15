@@ -18,7 +18,6 @@ package com.android.providers.media.photopicker;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
-
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
 import android.content.res.AssetFileDescriptor;
@@ -28,8 +27,10 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProvider;
+import android.provider.CloudMediaProviderContract;
 
 import com.android.providers.media.PickerProviderMediaGenerator;
+import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 
 import java.io.FileNotFoundException;
 
@@ -55,12 +56,28 @@ public class LocalProvider extends CloudMediaProvider {
 
     @Override
     public Cursor onQueryMedia(Bundle extras) {
-        return mMediaGenerator.getMedia(getGeneration(extras));
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromCloudMediaBundle(extras);
+
+        return mMediaGenerator.getMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
+                queryExtras.getMimeType(), queryExtras.getSizeBytes());
     }
 
     @Override
     public Cursor onQueryDeletedMedia(Bundle extras) {
-        return mMediaGenerator.getDeletedMedia(getGeneration(extras));
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromCloudMediaBundle(extras);
+
+        return mMediaGenerator.getDeletedMedia(queryExtras.getGeneration());
+    }
+
+    @Override
+    public Cursor onQueryAlbums(Bundle extras) {
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromCloudMediaBundle(extras);
+
+        return mMediaGenerator.getAlbums(queryExtras.getMimeType(), queryExtras.getSizeBytes(),
+                /* isLocal */ true);
     }
 
     @Override
@@ -83,9 +100,5 @@ public class LocalProvider extends CloudMediaProvider {
         bundle.putLong(MediaInfo.MEDIA_COUNT, mMediaGenerator.getCount());
 
         return bundle;
-    }
-
-    private static long getGeneration(Bundle extras) {
-        return extras == null ? 0 : extras.getLong(EXTRA_GENERATION, 0);
     }
 }

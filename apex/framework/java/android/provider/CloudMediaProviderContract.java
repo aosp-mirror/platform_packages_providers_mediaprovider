@@ -31,7 +31,10 @@ import java.util.UUID;
  * provides a foundational implementation of this contract.
  *
  * @see CloudMediaProvider
+ *
+ * @hide
  */
+@SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
 public final class CloudMediaProviderContract {
     private static final String TAG = "CloudMediaProviderContract";
 

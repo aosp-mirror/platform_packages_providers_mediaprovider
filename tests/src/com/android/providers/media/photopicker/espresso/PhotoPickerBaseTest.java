@@ -62,6 +62,7 @@ public class PhotoPickerBaseTest {
     protected static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
     protected static final int VIEW_SELECTED_BUTTON_ID = R.id.button_view_selected;
     protected static final int PREVIEW_IMAGE_VIEW_ID = R.id.preview_imageView;
+    protected static final int DRAG_BAR_ID = R.id.drag_bar;
 
     /**
      * The position of the image item in the grid on the Photos tab

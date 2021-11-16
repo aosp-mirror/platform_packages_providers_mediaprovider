@@ -82,6 +82,8 @@ import java.io.FileNotFoundException;
  * change without changing the provider version as returned by {@link #onGetMediaInfo}.
  *
  * @see MediaStore#ACTION_PICK_IMAGES
+ *
+ * @hide
  */
 public abstract class CloudMediaProvider extends ContentProvider {
     private static final String TAG = "CloudMediaProvider";

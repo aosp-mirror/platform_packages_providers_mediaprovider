@@ -243,11 +243,17 @@ public final class MediaStore {
     public static final String EXTRA_IS_SYSTEM_GALLERY_RESPONSE = "is_system_gallery_response";
 
     /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_CALL = "get_cloud_provider";
+    /** {@hide} */
+    public static final String NOTIFY_CLOUD_EVENT_CALL = "notify_cloud_event";
+    /** {@hide} */
     public static final String SYNC_PROVIDERS_CALL = "sync_providers";
     /** {@hide} */
     public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";
     /** {@hide} */
     public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
+    /** {@hide} */
+    public static final String EXTRA_NOTIFY_CLOUD_EVENT_RESULT = "notify_cloud_event_result";
 
     /** {@hide} */
     public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
@@ -691,6 +697,8 @@ public final class MediaStore {
      * {@link Activity#RESULT_CANCELED} is returned.
      * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
+     *
+     * @hide
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
@@ -705,6 +713,8 @@ public final class MediaStore {
      * than 1 and less than or equal to
      * {@link MediaStore#getPickImagesMaxLimit}, otherwise
      * {@link Activity#RESULT_CANCELED} is returned.
+     *
+     * @hide
      */
     public final static String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
 
@@ -712,6 +722,8 @@ public final class MediaStore {
      * The maximum limit for the number of items that can be selected using
      * {@link MediaStore#ACTION_PICK_IMAGES} when launched in multiple selection mode.
      * This can be used as a constant value for {@link MediaStore#EXTRA_PICK_IMAGES_MAX}.
+     *
+     * @hide
      */
     public static int getPickImagesMaxLimit() {
         return PICK_IMAGES_MAX_LIMIT;
@@ -4560,5 +4572,39 @@ public final class MediaStore {
                 Log.w(TAG, "Unknown AppOpsManager mode " + opMode);
                 return false;
         }
+    }
+
+    /**
+     * Returns the authority of the currently enabled cloud provider or {@code null} if there's none
+     * enabled.
+     *
+     * See android.provider.CloudMediaProvider
+     */
+    // TODO(b/202733511): Convert See to @see tag after CloudMediaProvider API is unhidden
+    @Nullable
+    public static String getCloudProvider(@NonNull ContentResolver resolver) {
+        Objects.requireNonNull(resolver);
+
+        final Bundle out = resolver.call(AUTHORITY, GET_CLOUD_PROVIDER_CALL, null, null);
+        return out.getString(EXTRA_CLOUD_PROVIDER);
+    }
+
+    /**
+     * Notifies the OS about a cloud event requiring a full or incremental media collection sync
+     * for the currently enabled cloud provider.
+     *
+     * The OS will schedule the sync in the background and will attempt to batch frequent
+     * notifications into a single sync event.
+     *
+     * If the caller is not the currently enabled cloud provider as returned by
+     * {@link #getCloudProvider(ContentResolver)}, the request will be unsuccessful.
+     *
+     * @return {@code true} if the notification was successful, {@code false} otherwise
+     */
+    public static boolean notifyCloudEvent(@NonNull ContentResolver resolver) {
+        Objects.requireNonNull(resolver);
+
+        final Bundle out = resolver.call(AUTHORITY, NOTIFY_CLOUD_EVENT_CALL, null, null);
+        return out.getBoolean(EXTRA_NOTIFY_CLOUD_EVENT_RESULT);
     }
 }

@@ -562,8 +562,8 @@ public class DatabaseHelperTest {
                 assertEquals(2, cr.getCount());
                 while (cr.moveToNext()) {
                     // Verify that after db upgrade, for all database rows (new inserts and
-                    // upgrades), we set the default _special_format
-                    assertThat(cr.getInt(0)).isEqualTo(FileColumns._SPECIAL_FORMAT_NONE);
+                    // upgrades), we set _special_format column as NULL
+                    assertThat(cr.isNull(0)).isTrue();
                 }
             }
         }

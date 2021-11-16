@@ -23,9 +23,11 @@ import static com.google.common.truth.Truth.assertThat;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.UserHandle;
 import android.provider.MediaStore;
 
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Test;
@@ -61,6 +63,8 @@ public class ItemTest {
     }
 
     @Test
+    // TODO(b/205096638) Re-enable if we add work profile support on R
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
     public void testConstructor_differentUser() {
         final String id = "1";
         final long dateTaken = 12345678L;

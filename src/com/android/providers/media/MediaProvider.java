@@ -72,6 +72,7 @@ import static com.android.providers.media.util.FileUtils.extractRelativePathForD
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
+import static com.android.providers.media.util.FileUtils.fromFuseFile;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
 import static com.android.providers.media.util.FileUtils.isCrossUserEnabled;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
@@ -79,6 +80,7 @@ import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
 import static com.android.providers.media.util.FileUtils.isObbOrChildPath;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
+import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 
@@ -3553,7 +3555,7 @@ public class MediaProvider extends ContentProvider {
         if (path != null) {
             // Touch root of volume to update mTime on FUSE filesystem
             // This allows FileManagers that may be relying on mTime changes to update their UI
-            File fusePath = getFuseFile(path);
+            File fusePath = toFuseFile(path);
             if (fusePath != null) {
                 Log.i(TAG, "Touching FUSE path " + fusePath);
                 fusePath.setLastModified(System.currentTimeMillis());
@@ -5807,7 +5809,10 @@ public class MediaProvider extends ContentProvider {
             throws FileNotFoundException {
         try (ParcelFileDescriptor inputPfd =
                 extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR)) {
-            final File file = getFileFromFileDescriptor(inputPfd);
+            File file = getFileFromFileDescriptor(inputPfd);
+            // Convert from FUSE file to lower fs file because the supportsTranscode() check below
+            // expects a lower fs file format
+            file = fromFuseFile(file);
             if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
                 // Note that we should be checking if a file is a modern format and not just
                 // that it supports transcoding, unfortunately, checking modern format
@@ -5877,6 +5882,9 @@ public class MediaProvider extends ContentProvider {
     /**
      * Return the filesystem path of the real file on disk that is represented
      * by the given {@link ParcelFileDescriptor}.
+     *
+     * Note that the file may be a FUSE or lower fs file and depending on the purpose might need
+     * to be converted with {@link FileUtils#toFuseFile} or {@link FileUtils#fromFuseFile}.
      *
      * Copied from {@link ParcelFileDescriptor#getFile}
      */
@@ -7497,12 +7505,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    public File getFuseFile(File file) {
-        String filePath = file.getPath().replaceFirst(
-                "/storage/", "/mnt/user/" + UserHandle.myUserId() + "/");
-        return new File(filePath);
-    }
-
     private ParcelFileDescriptor openWithFuse(String filePath, int uid, int mediaCapabilitiesUid,
             int modeBits, boolean shouldRedact, boolean shouldTranscode, int transcodeReason)
             throws FileNotFoundException {
@@ -7519,7 +7521,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         try {
-            return FileUtils.openSafely(getFuseFile(new File(filePath)), modeBits);
+            return FileUtils.openSafely(toFuseFile(new File(filePath)), modeBits);
         } finally {
             synchronized (mPendingOpenInfo) {
                 mPendingOpenInfo.remove(tid);

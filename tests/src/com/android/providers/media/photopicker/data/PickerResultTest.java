@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
+
 import static com.android.compatibility.common.util.SystemUtil.runShellCommand;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -180,7 +182,7 @@ public class PickerResultTest {
         }
 
         return new Item(imageUri.getLastPathSegment(), "image/jpeg", /* dateTaken */ 0,
-                /* generationModified */ 0, /* duration */ 0, imageUri);
+                /* generationModified */ 0, /* duration */ 0, imageUri, _SPECIAL_FORMAT_NONE);
     }
 
     private Uri assertCreateNewImage() throws Exception {

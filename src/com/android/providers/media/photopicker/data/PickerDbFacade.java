@@ -16,17 +16,23 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
+import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
+import static com.android.providers.media.util.FileUtils.buildPrimaryVolumeFile;
+import static com.android.providers.media.util.SyntheticPathUtils.getPickerRelativePath;
+
 import android.content.ContentValues;
 import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.CloudMediaProviderContract;
-import android.provider.MediaStore.MediaColumns;
-import android.os.Bundle;
+import android.provider.MediaStore;
 import android.os.SystemProperties;
 import android.util.Log;
 
@@ -34,7 +40,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
-import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.data.model.Category;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,19 +52,19 @@ import java.util.List;
  */
 public class PickerDbFacade {
     private final Object mLock = new Object();
+    private final Context mContext;
     private final SQLiteDatabase mDatabase;
     private final String mLocalProvider;
     private String mCloudProvider;
 
     public PickerDbFacade(Context context) {
-        final PickerDatabaseHelper databaseHelper = new PickerDatabaseHelper(context);
-        mDatabase = databaseHelper.getWritableDatabase();
-        mLocalProvider = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
+        this(context, PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
     }
 
     @VisibleForTesting
     public PickerDbFacade(Context context, String localProvider) {
         final PickerDatabaseHelper databaseHelper = new PickerDatabaseHelper(context);
+        mContext = context;
         mDatabase = databaseHelper.getWritableDatabase();
         mLocalProvider = localProvider;
     }
@@ -70,6 +76,8 @@ public class PickerDbFacade {
     private static final int FAIL = -1;
 
     private static final String TABLE_MEDIA = "media";
+    private static final String PICKER_PATH = buildPrimaryVolumeFile(MediaStore.MY_USER_ID,
+            getPickerRelativePath()).getAbsolutePath();
 
     @VisibleForTesting
     public static final String KEY_ID = "_id";
@@ -82,6 +90,8 @@ public class PickerDbFacade {
     @VisibleForTesting
     public static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
     @VisibleForTesting
+    public static final String KEY_GENERATION_MODIFIED = "generation_modified";
+    @VisibleForTesting
     public static final String KEY_SIZE_BYTES = "size_bytes";
     @VisibleForTesting
     public static final String KEY_DURATION_MS = "duration_ms";
@@ -89,6 +99,11 @@ public class PickerDbFacade {
     public static final String KEY_MIME_TYPE = "mime_type";
     @VisibleForTesting
     public static final String KEY_IS_FAVORITE = "is_favorite";
+
+    @VisibleForTesting
+    public static final String IMAGE_FILE_EXTENSION = ".jpg";
+    @VisibleForTesting
+    public static final String VIDEO_FILE_EXTENSION = ".mp4";
 
     // We prefer cloud_id first and it only matters for cloud+local items. For those, the row
     // will already be associated with a cloud authority, see #getProjectionAuthorityLocked.
@@ -98,6 +113,9 @@ public class PickerDbFacade {
             KEY_LOCAL_ID, CloudMediaProviderContract.MediaColumns.ID);
     private static final String PROJECTION_DATE_TAKEN = String.format("%s AS %s", KEY_DATE_TAKEN_MS,
             CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS);
+    private static final String PROJECTION_GENERATION_MODIFIED = String.format("%s AS %s",
+            KEY_GENERATION_MODIFIED,
+            CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED);
     private static final String PROJECTION_SIZE = String.format("%s AS %s", KEY_SIZE_BYTES,
             CloudMediaProviderContract.MediaColumns.SIZE_BYTES);
     private static final String PROJECTION_DURATION = String.format("%s AS %s", KEY_DURATION_MS,
@@ -120,6 +138,23 @@ public class PickerDbFacade {
     private static final String WHERE_DATE_TAKEN_MS_BEFORE =
             String.format("%s < ? OR (%s = ? AND %s < ?)",
                     KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
+
+    private static final String[] PROJECTION_ALBUM_CURSOR = new String[] {
+        CloudMediaProviderContract.AlbumColumns.ID,
+        CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
+        CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME,
+        CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
+        CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID,
+        CloudMediaProviderContract.AlbumColumns.TYPE
+    };
+
+    private static final String[] PROJECTION_ALBUM_DB = new String[] {
+        "COUNT(" + KEY_ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
+        "MAX(" + KEY_DATE_TAKEN_MS + ") AS "
+        + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
+        String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
+                KEY_LOCAL_ID, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID)
+    };
 
     // Matches all media including cloud+local, cloud-only and local-only
     private static final SQLiteQueryBuilder QB_MATCH_ALL = createMediaQueryBuilder();
@@ -290,6 +325,10 @@ public class PickerDbFacade {
         synchronized (mLock) {
             return mCloudProvider;
         }
+    }
+
+    public String getLocalProvider() {
+        return mLocalProvider;
     }
 
     private boolean isLocal(String authority) {
@@ -533,6 +572,44 @@ public class PickerDbFacade {
         return null;
     }
 
+    /** Returns {@code null} if there are no favorited items matching {@code query} */
+    public Cursor getFavoriteAlbum(QueryFilter query) {
+        final String[] selectionArgs;
+        final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
+        qb.appendWhereStandalone(WHERE_IS_FAVORITE);
+        if (query.mimeType != null) {
+            qb.appendWhereStandalone(WHERE_MIME_TYPE);
+            selectionArgs = new String [] { query.mimeType.replace('*', '%') };
+        } else {
+            selectionArgs = null;
+        }
+
+        Cursor cursor = qb.query(mDatabase, PROJECTION_ALBUM_DB, /* selection */ null,
+                selectionArgs, /* groupBy */ null, /* having */ null,
+                /* orderBy */ null, /* limit */ null);
+
+        if (cursor == null || !cursor.moveToFirst()) {
+            return null;
+        }
+
+        long count = getCursorLong(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT);
+        if (count == 0) {
+            return null;
+        }
+
+        final MatrixCursor c = new MatrixCursor(PROJECTION_ALBUM_CURSOR);
+        final String[] projectionValue = new String[] {
+            Category.CATEGORY_FAVORITES,
+            getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS),
+            Category.getCategoryName(mContext, Category.CATEGORY_FAVORITES),
+            String.valueOf(count),
+            getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
+            CloudMediaProviderContract.AlbumColumns.TYPE_FAVORITES
+        };
+        c.addRow(projectionValue);
+        return c;
+    }
+
     public static boolean isPickerDbEnabled() {
         return SystemProperties.getBoolean("sys.photopicker.pickerdb.enabled", false);
     }
@@ -559,8 +636,10 @@ public class PickerDbFacade {
     private String[] getProjectionLocked() {
         return new String[] {
             getProjectionAuthorityLocked(),
+            getProjectionDataLocked(),
             PROJECTION_ID,
             PROJECTION_DATE_TAKEN,
+            PROJECTION_GENERATION_MODIFIED,
             PROJECTION_SIZE,
             PROJECTION_DURATION,
             PROJECTION_MIME_TYPE
@@ -568,13 +647,36 @@ public class PickerDbFacade {
     }
 
     private String getProjectionAuthorityLocked() {
-        if (mCloudProvider == null) {
-            return String.format("'%s' AS %s", mLocalProvider,
-                    CloudMediaProviderContract.MediaColumns.AUTHORITY);
-        }
-        return String.format("IIF(%s IS NULL, '%s', '%s') AS %s",
+        // Note that we prefer cloud_id over local_id here. It's important to remember that this
+        // logic is for computing the projection and doesn't affect the filtering of results which
+        // has already been done and ensures that only is_visible=true items are returned.
+        // Here, we need to distinguish between cloud+local and local-only items to determine the
+        // correct authority. Checking whether cloud_id IS NULL distinguishes the former from the
+        // latter.
+        return String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END AS %s",
                 KEY_CLOUD_ID, mLocalProvider, mCloudProvider,
                 CloudMediaProviderContract.MediaColumns.AUTHORITY);
+    }
+
+    private String getProjectionDataLocked() {
+        // _data format:
+        // /storage/emulated/<user-id>/.transforms/synthetic/<authority>/media/<media-id>
+        // See PickerUriResolver#getMediaUri
+        final String authority = String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
+                KEY_CLOUD_ID, mLocalProvider, mCloudProvider);
+        // See comment in #getProjectionAuthorityLocked for why cloud_id is preferred over local_id
+        final String mediaId = String.format("IFNULL(%s, %s)", KEY_CLOUD_ID, KEY_LOCAL_ID);
+        // TODO(b/195009139): Add .gif fileextension support
+        final String fileExtension =
+                String.format("CASE WHEN %s LIKE 'image/%%' THEN '%s' ELSE '%s' END",
+                        KEY_MIME_TYPE, IMAGE_FILE_EXTENSION, VIDEO_FILE_EXTENSION);
+        final String fullPath = "'" + PICKER_PATH + "/'"
+                + "||" + authority
+                + "||" + "'/" + CloudMediaProviderContract.URI_PATH_MEDIA + "/'"
+                + "||" + mediaId
+                + "||" + fileExtension;
+
+        return String.format("%s AS %s", fullPath, CloudMediaProviderContract.MediaColumns.DATA);
     }
 
     private static ContentValues cursorToContentValue(Cursor cursor, boolean isLocal) {
@@ -601,6 +703,9 @@ public class PickerDbFacade {
                     break;
                 case CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS:
                     values.put(KEY_DATE_TAKEN_MS, cursor.getLong(index));
+                    break;
+                case CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED:
+                    values.put(KEY_GENERATION_MODIFIED, cursor.getLong(index));
                     break;
                 case CloudMediaProviderContract.MediaColumns.SIZE_BYTES:
                     values.put(KEY_SIZE_BYTES, cursor.getLong(index));
@@ -647,7 +752,7 @@ public class PickerDbFacade {
 
         if (query.mimeType != null) {
             qb.appendWhereStandalone(WHERE_MIME_TYPE);
-            selectArgs.add(query.mimeType.replace('*', '%'));
+            selectArgs.add(replaceMatchAnyChar(query.mimeType));
         }
 
         if (query.isFavorite) {

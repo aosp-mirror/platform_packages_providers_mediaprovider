@@ -23,8 +23,8 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
-import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,15 +40,18 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     public static final int COLUMN_COUNT = 3;
 
     private List<Item> mItemList = new ArrayList<>();
-    private ImageLoader mImageLoader;
-    private View.OnClickListener mOnClickListener;
-    private PickerViewModel mPickerViewModel;
+    private final ImageLoader mImageLoader;
+    private final View.OnClickListener mOnClickListener;
+    private final View.OnLongClickListener mOnLongClickListener;
+    private final Selection mSelection;
 
-    public PhotosTabAdapter(@NonNull PickerViewModel pickerViewModel,
-            @NonNull ImageLoader imageLoader, @NonNull View.OnClickListener listener) {
+    public PhotosTabAdapter(@NonNull Selection selection, @NonNull ImageLoader imageLoader,
+            @NonNull View.OnClickListener onClickListener,
+            @NonNull View.OnLongClickListener onLongClickListener) {
         mImageLoader = imageLoader;
-        mPickerViewModel = pickerViewModel;
-        mOnClickListener = listener;
+        mSelection = selection;
+        mOnClickListener = onClickListener;
+        mOnLongClickListener = onLongClickListener;
     }
 
     @NonNull
@@ -58,7 +61,7 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             return new DateHeaderHolder(viewGroup.getContext(), viewGroup);
         }
         return new PhotoGridHolder(viewGroup.getContext(), viewGroup, mImageLoader,
-                mPickerViewModel.canSelectMultiple());
+                mSelection.canSelectMultiple());
     }
 
     @Override
@@ -68,10 +71,8 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
         if (getItemViewType(position) == ITEM_TYPE_PHOTO) {
             itemHolder.itemView.setOnClickListener(mOnClickListener);
-            final boolean isItemSelected =
-                    mPickerViewModel.getSelectedItems().getValue().containsKey(
-                            item.getContentUri());
-            itemHolder.itemView.setSelected(isItemSelected);
+            itemHolder.itemView.setOnLongClickListener(mOnLongClickListener);
+            itemHolder.itemView.setSelected(mSelection.isItemSelected(item));
         }
         itemHolder.bind();
     }

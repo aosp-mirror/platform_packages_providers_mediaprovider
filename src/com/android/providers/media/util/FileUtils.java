@@ -1650,4 +1650,15 @@ public class FileUtils {
     public static File buildPrimaryVolumeFile(int userId, String... segments) {
         return buildPath(new File("/storage/emulated/" + userId), segments);
     }
+
+    private static final String LOWER_FS_PREFIX = "/storage/";
+    private static final String FUSE_FS_PREFIX = "/mnt/user/" + UserHandle.myUserId() + "/";
+
+    public static File toFuseFile(File file) {
+        return new File(file.getPath().replaceFirst(LOWER_FS_PREFIX, FUSE_FS_PREFIX));
+    }
+
+    public static File fromFuseFile(File file) {
+        return new File(file.getPath().replaceFirst(FUSE_FS_PREFIX, LOWER_FS_PREFIX));
+    }
 }

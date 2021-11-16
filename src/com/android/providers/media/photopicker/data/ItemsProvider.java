@@ -16,24 +16,29 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.RemoteException;
+import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
 
 import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryColumns;
 import com.android.providers.media.photopicker.data.model.Item.ItemColumns;
@@ -80,13 +85,12 @@ public class ItemsProvider {
      * if there are no such images/videos. The Cursor for each item contains {@link ItemColumns}
      *
      * @throws IllegalArgumentException thrown if unsupported values for {@code category} is passed.
-     * @throws IllegalStateException thrown if unsupported value for {@code userId} is passed.
      *
      */
     @Nullable
     public Cursor getItems(@Nullable @Category.CategoryType String category, int offset,
             int limit, @Nullable String mimeType, @Nullable UserId userId) throws
-            IllegalArgumentException, IllegalStateException {
+            IllegalArgumentException {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
@@ -97,7 +101,7 @@ public class ItemsProvider {
     @Nullable
     private Cursor getItemsInternal(@Nullable @Category.CategoryType String category,
             int offset, int limit, @Nullable String mimeType, @NonNull UserId userId) throws
-            IllegalArgumentException, IllegalStateException {
+            IllegalArgumentException {
         // Validate incoming params
         if (category != null && !Category.isValidCategory(category)) {
             throw new IllegalArgumentException("ItemsProvider does not support the given "
@@ -132,6 +136,11 @@ public class ItemsProvider {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
+
+        if (PickerDbFacade.isPickerDbEnabled()) {
+            return queryAlbums(mimeType, userId);
+        }
+
         return buildCategoriesCursor(Category.CATEGORIES_LIST, mimeType, userId);
     }
 
@@ -150,8 +159,7 @@ public class ItemsProvider {
     }
 
     private String[] getCategoryColumns(@Category.CategoryType String category,
-            @Nullable String mimeType, @NonNull UserId userId) throws IllegalArgumentException,
-            IllegalStateException {
+            @Nullable String mimeType, @NonNull UserId userId) throws IllegalArgumentException {
         if (!Category.isValidCategory(category)) {
             throw new IllegalArgumentException("Category type not supported");
         }
@@ -174,7 +182,7 @@ public class ItemsProvider {
     @Nullable
     private Cursor query(@NonNull String[] projection,
             @Nullable @Category.CategoryType String category, @Nullable String mimeType, int offset,
-            int limit, @NonNull UserId userId) throws IllegalStateException {
+            int limit, @NonNull UserId userId) {
         String selection = IMAGES_VIDEOS_WHERE_CLAUSE;
         String[] selectionArgs = null;
 
@@ -187,10 +195,8 @@ public class ItemsProvider {
             selectionArgs = new String[] {replaceMatchAnyChar(mimeType)};
         }
 
-        if (PickerDbFacade.isPickerDbEnabled() && category == null) {
-            // The picker db doesn't yet support categories, so only serve non-category queries
-            // from the picker db
-            return queryPickerDb(limit, mimeType, userId);
+        if (PickerDbFacade.isPickerDbEnabled()) {
+            return queryMedia(limit, mimeType, category, userId);
         }
         return queryMediaStore(projection, selection, selectionArgs, offset, limit, userId);
     }
@@ -198,7 +204,7 @@ public class ItemsProvider {
     @Nullable
     private Cursor queryMediaStore(@NonNull String[] projection,
             @Nullable String selection, @Nullable String[] selectionArgs, int offset,
-            int limit, @NonNull UserId userId) throws IllegalStateException {
+            int limit, @NonNull UserId userId) {
 
         if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
             // If external storage is not ready, we can't load any items from MediaStore.
@@ -233,31 +239,56 @@ public class ItemsProvider {
                     + " selectionArgs = " + Arrays.toString(selectionArgs)
                     + " limit = " + limit + " offset = " + offset + " userId = " + userId, e);
             return null;
-        }
-    }
-
-    @Nullable
-    private Cursor queryPickerDb(int limit, @Nullable String mimeType, @NonNull UserId userId)
-            throws IllegalStateException {
-        try (ContentProviderClient client = userId.getContentResolver(mContext)
-                .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
-            final Bundle extras = new Bundle();
-            extras.putInt(MediaStore.QUERY_ARG_LIMIT, limit);
-            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
-
-            return client.query(PickerUriResolver.PICKER_INTERNAL_URI, /* projection */ null,
-                    extras, /* cancellationSignal */ null);
-        } catch (RemoteException e) {
-            // Do nothing, return null.
-            Log.e(TAG, "RemoteException while querying picker database for items with"
-                            + " mimeType filter = " + mimeType
-                            + " limit = " + limit + " userId = " + userId, e);
+        } catch (NameNotFoundException e) {
+            Log.e(TAG, "Unable to get content resolver for the given userId: " + userId, e);
             return null;
         }
     }
 
-    private static String replaceMatchAnyChar(@NonNull String mimeType) {
-        return mimeType.replace('*', '%');
+    private Cursor queryMedia(int limit, @Nullable String mimeType,
+            @NonNull String category, @NonNull UserId userId)
+            throws IllegalStateException {
+        final Bundle extras = new Bundle();
+        try (ContentProviderClient client = userId.getContentResolver(mContext)
+                .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
+            extras.putInt(MediaStore.QUERY_ARG_LIMIT, limit);
+            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+            if (category != null) {
+                extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category);
+                extras.putString(MediaStore.QUERY_ARG_ALBUM_TYPE,
+                        Category.CATEGORY_FAVORITES.equals(category)
+                        ? AlbumColumns.TYPE_FAVORITES : AlbumColumns.TYPE_LOCAL);
+            }
+
+            final Uri uri = PickerUriResolver.PICKER_INTERNAL_URI.buildUpon()
+                    .appendPath(PickerUriResolver.MEDIA_PATH).build();
+
+            return client.query(uri, /* projection */ null, extras, /* cancellationSignal */ null);
+        } catch (RemoteException | NameNotFoundException ignored) {
+            // Do nothing, return null.
+            Log.e(TAG, "Failed to query merged media with extras: "
+                    + extras + ". userId = " + userId, ignored);
+            return null;
+        }
+    }
+
+    @Nullable
+    private Cursor queryAlbums(@Nullable String mimeType, @NonNull UserId userId) {
+        final Bundle extras = new Bundle();
+        try (ContentProviderClient client = userId.getContentResolver(mContext)
+                .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
+            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+
+            final Uri uri = PickerUriResolver.PICKER_INTERNAL_URI.buildUpon()
+                    .appendPath(PickerUriResolver.ALBUM_PATH).build();
+
+            return client.query(uri, /* projection */ null, extras, /* cancellationSignal */ null);
+        } catch (RemoteException | NameNotFoundException ignored) {
+            // Do nothing, return null.
+            Log.w(TAG, "Failed to query merged albums with extras: "
+                    + extras + ". userId = " + userId, ignored);
+            return null;
+        }
     }
 
     public static Uri getItemsUri(String id, String authority, UserId userId) {
@@ -267,10 +298,8 @@ public class ItemsProvider {
                     Long.parseLong(id));
         } else {
             // We only have authority after querying the picker db
-            final Uri providerUri = PickerUriResolver.getMediaUri(authority).buildUpon()
+            uri = PickerUriResolver.getMediaUri(authority).buildUpon()
                     .appendPath(id).build();
-            uri = PickerUriResolver.wrapProviderUri(providerUri,
-                    userId.getUserHandle().getIdentifier());
         }
 
         if (userId.equals(UserId.CURRENT_USER)) {

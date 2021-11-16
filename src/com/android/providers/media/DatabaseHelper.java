@@ -149,6 +149,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public interface OnFilesChangeListener {
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload);
+
         public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
                 long oldId, int oldMediaType, boolean oldIsDownload,
                 long newId, int newMediaType, boolean newIsDownload,

@@ -50,8 +50,36 @@
     <string name="add" msgid="2894574044585549298">"Pridať"</string>
     <string name="deselect" msgid="4297825044827769490">"Zrušiť výber"</string>
     <string name="select" msgid="2704765470563027689">"Vybrať"</string>
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="few">Vyberte maximálne <xliff:g id="COUNT_1">^1</xliff:g> položky</item>
+      <item quantity="many">Select up to <xliff:g id="COUNT_1">^1</xliff:g> items</item>
+      <item quantity="other">Vyberte maximálne <xliff:g id="COUNT_1">^1</xliff:g> položiek</item>
+      <item quantity="one">Vyberte maximálne <xliff:g id="COUNT_0">^1</xliff:g> položku</item>
+    </plurals>
     <string name="recent" msgid="6694613584743207874">"Nedávne"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Zobraziť vybrané"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"Fotky"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"Albumy"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Prepnúť na pracovný"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Prepnúť na osobný"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokované vaším správcom"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Prístup k pracovným údajom z osobnej aplikácie nie je povolený"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Prístup k osobným údajom z pracovnej aplikácie nie je povolený"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Pracovné aplikácie sú pozastavené"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ak chcete otvoriť pracovné fotky, zapnite pracovné aplikácie a skúste to znova"</string>
+    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
+      <item quantity="few"><xliff:g id="COUNT_1">^1</xliff:g> položky</item>
+      <item quantity="many"><xliff:g id="COUNT_1">^1</xliff:g> items</item>
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> položiek</item>
+      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> položka</item>
+    </plurals>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Pridať (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"Fotoaparát"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"Stiahnuté"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"Obľúbené"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"Snímky obrazovky"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="few">Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> zvukové súbory?</item>
       <item quantity="many">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> audio files?</item>

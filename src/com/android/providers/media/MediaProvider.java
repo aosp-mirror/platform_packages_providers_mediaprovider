@@ -72,6 +72,7 @@ import static com.android.providers.media.util.FileUtils.extractRelativePathForD
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
+import static com.android.providers.media.util.FileUtils.fromFuseFile;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
 import static com.android.providers.media.util.FileUtils.isCrossUserEnabled;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
@@ -79,6 +80,7 @@ import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
 import static com.android.providers.media.util.FileUtils.isObbOrChildPath;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
+import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 
@@ -2698,15 +2700,41 @@ public class MediaProvider extends ContentProvider {
             try (Cursor c = qb.query(helper,
                     new String[] { BaseColumns._ID }, null, null, null, null, null, null, null)) {
                 if (c.getCount() == 1) {
-                    return PackageManager.PERMISSION_GRANTED;
+                    c.moveToFirst();
+                    final long cursorId = c.getLong(0);
+
+                    long uriId = -1;
+                    try {
+                        uriId = ContentUris.parseId(uri);
+                    } catch (NumberFormatException ignored) {
+                        // if the id is not a number, the uri doesn't have a valid ID at the end of
+                        // the uri, (i.e., uri is uri of the table not of the item/row)
+                    }
+
+                    if (uriId != -1 && cursorId == uriId) {
+                        return PackageManager.PERMISSION_GRANTED;
+                    }
                 }
             }
 
-            try {
-                if (ContentUris.parseId(uri) != -1) {
+            // For the uri with id cases, if it isn't returned in above query section, the result
+            // isn't as expected. Don't grant the permission.
+            switch (table) {
+                case AUDIO_MEDIA_ID:
+                case IMAGES_MEDIA_ID:
+                case VIDEO_MEDIA_ID:
+                case DOWNLOADS_ID:
+                case FILES_ID:
+                case AUDIO_MEDIA_ID_GENRES_ID:
+                case AUDIO_GENRES_ID:
+                case AUDIO_PLAYLISTS_ID:
+                case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
+                case AUDIO_ARTISTS_ID:
+                case AUDIO_ALBUMS_ID:
                     return PackageManager.PERMISSION_DENIED;
-                }
-            } catch (NumberFormatException ignored) { }
+                default:
+                    // continue below
+            }
 
             // If the uri is a valid content uri and doesn't have a valid ID at the end of the uri,
             // (i.e., uri is uri of the table not of the item/row), and app doesn't request prefix
@@ -2716,9 +2744,6 @@ public class MediaProvider extends ContentProvider {
             if ((modeFlags & Intent.FLAG_GRANT_PREFIX_URI_PERMISSION) == 0) {
                 return PackageManager.PERMISSION_GRANTED;
             }
-
-            // For prefix grant on the uri with content uri without id, we don't allow apps to
-            // grant access as they might end up granting access to all files.
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -3530,7 +3555,7 @@ public class MediaProvider extends ContentProvider {
         if (path != null) {
             // Touch root of volume to update mTime on FUSE filesystem
             // This allows FileManagers that may be relying on mTime changes to update their UI
-            File fusePath = getFuseFile(path);
+            File fusePath = toFuseFile(path);
             if (fusePath != null) {
                 Log.i(TAG, "Touching FUSE path " + fusePath);
                 fusePath.setLastModified(System.currentTimeMillis());
@@ -5784,7 +5809,10 @@ public class MediaProvider extends ContentProvider {
             throws FileNotFoundException {
         try (ParcelFileDescriptor inputPfd =
                 extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR)) {
-            final File file = getFileFromFileDescriptor(inputPfd);
+            File file = getFileFromFileDescriptor(inputPfd);
+            // Convert from FUSE file to lower fs file because the supportsTranscode() check below
+            // expects a lower fs file format
+            file = fromFuseFile(file);
             if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
                 // Note that we should be checking if a file is a modern format and not just
                 // that it supports transcoding, unfortunately, checking modern format
@@ -5854,6 +5882,9 @@ public class MediaProvider extends ContentProvider {
     /**
      * Return the filesystem path of the real file on disk that is represented
      * by the given {@link ParcelFileDescriptor}.
+     *
+     * Note that the file may be a FUSE or lower fs file and depending on the purpose might need
+     * to be converted with {@link FileUtils#toFuseFile} or {@link FileUtils#fromFuseFile}.
      *
      * Copied from {@link ParcelFileDescriptor#getFile}
      */
@@ -7474,12 +7505,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    public File getFuseFile(File file) {
-        String filePath = file.getPath().replaceFirst(
-                "/storage/", "/mnt/user/" + UserHandle.myUserId() + "/");
-        return new File(filePath);
-    }
-
     private ParcelFileDescriptor openWithFuse(String filePath, int uid, int mediaCapabilitiesUid,
             int modeBits, boolean shouldRedact, boolean shouldTranscode, int transcodeReason)
             throws FileNotFoundException {
@@ -7496,7 +7521,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         try {
-            return FileUtils.openSafely(getFuseFile(new File(filePath)), modeBits);
+            return FileUtils.openSafely(toFuseFile(new File(filePath)), modeBits);
         } finally {
             synchronized (mPendingOpenInfo) {
                 mPendingOpenInfo.remove(tid);
@@ -8955,6 +8980,26 @@ public class MediaProvider extends ContentProvider {
                 if (mCallingIdentity.get().isOwned(id)) {
                     return true;
                 }
+                break;
+            default:
+                // continue below
+        }
+
+        // Check whether the uri is a specific table or not. Don't allow the global access to these
+        // table uris
+        switch (table) {
+            case AUDIO_MEDIA:
+            case IMAGES_MEDIA:
+            case VIDEO_MEDIA:
+            case DOWNLOADS:
+            case FILES:
+            case AUDIO_ALBUMS:
+            case AUDIO_ARTISTS:
+            case AUDIO_GENRES:
+            case AUDIO_PLAYLISTS:
+                return false;
+            default:
+                // continue below
         }
 
         // Outstanding grant means they get access

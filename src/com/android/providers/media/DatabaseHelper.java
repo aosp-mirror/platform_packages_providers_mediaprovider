@@ -34,6 +34,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.mtp.MtpConstants;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.RemoteException;
@@ -122,6 +123,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final boolean mEarlyUpgrade;
     final boolean mLegacyProvider;
     final @Nullable Class<? extends Annotation> mColumnAnnotation;
+    final @Nullable Class<? extends Annotation> mExportedSinceAnnotation;
     final @Nullable OnSchemaChangeListener mSchemaListener;
     final @Nullable OnFilesChangeListener mFilesListener;
     final @Nullable OnLegacyMigrationListener mMigrationListener;
@@ -155,37 +157,45 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public interface OnFilesChangeListener {
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload, boolean isPending);
+
         public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
                 long oldId, int oldMediaType, boolean oldIsDownload,
                 long newId, int newMediaType, boolean newIsDownload,
                 boolean oldIsTrashed, boolean newIsTrashed,
                 boolean oldIsPending, boolean newIsPending,
+                boolean oldIsFavorite, boolean newIsFavorite,
                 String oldOwnerPackage, String newOwnerPackage, String oldPath);
+
         public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload, String ownerPackage, String path);
     }
 
     public interface OnLegacyMigrationListener {
         public void onStarted(ContentProviderClient client, String volumeName);
+
         public void onProgress(ContentProviderClient client, String volumeName,
                 long progress, long total);
+
         public void onFinished(ContentProviderClient client, String volumeName);
     }
 
     public DatabaseHelper(Context context, String name,
             boolean earlyUpgrade, boolean legacyProvider,
             @Nullable Class<? extends Annotation> columnAnnotation,
+            @Nullable Class<? extends Annotation> exportedSinceAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
             @Nullable UnaryOperator<String> idGenerator) {
         this(context, name, getDatabaseVersion(context), earlyUpgrade, legacyProvider,
-                columnAnnotation, schemaListener, filesListener, migrationListener, idGenerator);
+                columnAnnotation, exportedSinceAnnotation, schemaListener, filesListener,
+                migrationListener, idGenerator);
     }
 
     public DatabaseHelper(Context context, String name, int version,
             boolean earlyUpgrade, boolean legacyProvider,
             @Nullable Class<? extends Annotation> columnAnnotation,
+            @Nullable Class<? extends Annotation> exportedSinceAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
@@ -204,6 +214,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mEarlyUpgrade = earlyUpgrade;
         mLegacyProvider = legacyProvider;
         mColumnAnnotation = columnAnnotation;
+        mExportedSinceAnnotation = exportedSinceAnnotation;
         mSchemaListener = schemaListener;
         mFilesListener = filesListener;
         mMigrationListener = migrationListener;
@@ -295,7 +306,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_UPDATE", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":", 14);
+                final String[] split = arg.split(":", 16);
                 final String volumeName = split[0];
                 final long oldId = Long.parseLong(split[1]);
                 final int oldMediaType = Integer.parseInt(split[2]);
@@ -307,16 +318,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final boolean newIsTrashed = Integer.parseInt(split[8]) != 0;
                 final boolean oldIsPending = Integer.parseInt(split[9]) != 0;
                 final boolean newIsPending = Integer.parseInt(split[10]) != 0;
-                final String oldOwnerPackage = split[11];
-                final String newOwnerPackage = split[12];
-                final String oldPath = split[13];
+                final boolean oldIsFavorite = Integer.parseInt(split[11]) != 0;
+                final boolean newIsFavorite = Integer.parseInt(split[12]) != 0;
+                final String oldOwnerPackage = split[13];
+                final String newOwnerPackage = split[14];
+                final String oldPath = split[15];
 
                 Trace.beginSection("_UPDATE");
                 try {
                     mFilesListener.onUpdate(DatabaseHelper.this, volumeName, oldId,
                             oldMediaType, oldIsDownload, newId, newMediaType, newIsDownload,
                             oldIsTrashed, newIsTrashed, oldIsPending, newIsPending,
-                            oldOwnerPackage, newOwnerPackage, oldPath);
+                            oldIsFavorite, newIsFavorite, oldOwnerPackage, newOwnerPackage,
+                            oldPath);
                 } finally {
                     Trace.endSection();
                 }
@@ -450,10 +464,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     map = new ArrayMap<>();
                     try {
                         for (Field field : clazz.getFields()) {
-                            if (Objects.equals(field.getName(), "_ID")
-                                    || field.isAnnotationPresent(mColumnAnnotation)) {
-                                final String column = (String) field.get(null);
-                                map.put(column, column);
+                            if (Objects.equals(field.getName(), "_ID") || (mColumnAnnotation != null
+                                    && field.isAnnotationPresent(mColumnAnnotation))) {
+                                boolean shouldIgnoreByOsVersion = shouldBeIgnoredByOsVersion(field);
+                                if (!shouldIgnoreByOsVersion) {
+                                    final String column = (String) field.get(null);
+                                    map.put(column, column);
+                                }
                             }
                         }
                     } catch (ReflectiveOperationException e) {
@@ -851,7 +868,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "_transcode_status INTEGER DEFAULT 0, _video_codec_type TEXT DEFAULT NULL,"
                 + "_modifier INTEGER DEFAULT 0, is_recording INTEGER DEFAULT 0,"
                 + "redacted_uri_id TEXT DEFAULT NULL, _user_id INTEGER DEFAULT "
-                + UserHandle.myUserId() + ")");
+                + UserHandle.myUserId() + ", _special_format INTEGER DEFAULT NULL)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         db.execSQL("CREATE TABLE deleted_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
@@ -1333,6 +1350,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
                         + "||':'||old.is_trashed||':'||new.is_trashed"
                         + "||':'||old.is_pending||':'||new.is_pending"
+                        + "||':'||old.is_favorite||':'||new.is_favorite"
                         + "||':'||ifnull(old.owner_package_name,'null')"
                         + "||':'||ifnull(new.owner_package_name,'null')||':'||old._data";
         final String deleteArg =
@@ -1507,6 +1525,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("ALTER TABLE files ADD COLUMN _transcode_status INTEGER DEFAULT 0;");
     }
 
+    private static void updateAddSpecialFormat(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN _special_format INTEGER DEFAULT NULL;");
+    }
+
+    private static void updateSpecialFormatToNotDetected(SQLiteDatabase db) {
+        db.execSQL("UPDATE files SET _special_format=NULL WHERE _special_format=0");
+    }
 
     private static void updateAddVideoCodecType(SQLiteDatabase db) {
         db.execSQL("ALTER TABLE files ADD COLUMN _video_codec_type TEXT DEFAULT NULL;");
@@ -1670,7 +1695,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_S = 1209;
     // Leave some gaps in database version tagging to allow S schema changes
     // to go independent of T schema changes.
-    static final int VERSION_T = 1301;
+    static final int VERSION_T = 1304;
     public static final int VERSION_LATEST = VERSION_T;
 
     /**
@@ -1848,6 +1873,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (fromVersion < 1301) {
                 updateAddDeletedMediaTable(db);
             }
+            if (fromVersion < 1302) {
+                updateAddSpecialFormat(db);
+            }
+            if (fromVersion < 1303) {
+                // Empty version bump to ensure views are recreated
+            }
+            if (fromVersion < 1304) {
+                updateSpecialFormatToNotDetected(db);
+            }
 
             // If this is the legacy database, it's not worth recomputing data
             // values locally, since they'll be recomputed after the migration
@@ -1967,6 +2001,31 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             Log.i(TAG, "Waiting for passthrough to be mounted...");
             SystemClock.sleep(100);
+        }
+    }
+
+    private boolean shouldBeIgnoredByOsVersion(@NonNull Field field) {
+        if (mExportedSinceAnnotation == null) {
+            return false;
+        }
+
+        if (!field.isAnnotationPresent(mExportedSinceAnnotation)) {
+            return false;
+        }
+
+        try {
+            final Annotation annotation = field.getAnnotation(mExportedSinceAnnotation);
+            final int exportedSinceOSVersion = (int) annotation.annotationType().getMethod(
+                    "osVersion").invoke(annotation);
+            final boolean shouldIgnore = exportedSinceOSVersion > Build.VERSION.SDK_INT;
+            if (shouldIgnore) {
+                Log.d(TAG, "Ignoring column " + field.get(null) + " with version "
+                        + exportedSinceOSVersion + " in OS version " + Build.VERSION.SDK_INT);
+            }
+            return shouldIgnore;
+        } catch (Exception e) {
+            Log.e(TAG, "Can't parse the OS version in ExportedSince annotation", e);
+            return false;
         }
     }
 

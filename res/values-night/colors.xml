@@ -27,6 +27,7 @@
     <color name="picker_toolbar_icon_color">#E8EAED</color>
     <color name="picker_toolbar_chip_text_color">#E8EAED</color>
     <color name="picker_toolbar_title_color">#FFFFFF</color>
+    <color name="picker_drag_bar_color">#686868</color>
 
     <!-- PhotoPicker Profile Button -->
     <color name="picker_profile_button_content_color">#A8C7FA</color>

@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import android.content.ClipData;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -35,14 +36,15 @@ import android.util.Log;
 import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Item;
-import com.android.providers.media.photopicker.data.model.ItemTest;
-import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +61,7 @@ public class PickerResultTest {
     }
 
     /**
-     * Tests {@link PickerResult#getPickerResponseIntent(Context, List)} with single item
+     * Tests {@link PickerResult#getPickerResponseIntent(boolean, List)} with single item
      * @throws Exception
      */
     @Test
@@ -67,18 +69,28 @@ public class PickerResultTest {
         List<Item> items = null;
         try {
             items = createItemSelection(1);
-            final Intent intent = PickerResult.getPickerResponseIntent(mContext, items);
+            final Uri expectedPickerUri = PickerResult.getPickerUri(items.get(0).getContentUri(),
+                    items.get(0).getId());
+            final Intent intent = PickerResult.getPickerResponseIntent(
+                    /* canSelectMultiple */ false, items);
 
             final Uri result = intent.getData();
-            assertPickerUri(result);
+            assertPickerUriFormat(result);
+            assertThat(result).isEqualTo(expectedPickerUri);
             assertThat(mContext.getContentResolver().getType(result)).isEqualTo("image/jpeg");
+
+            final ClipData clipData = intent.getClipData();
+            assertThat(clipData).isNotNull();
+            final int count = clipData.getItemCount();
+            assertThat(count).isEqualTo(1);
+            assertThat(clipData.getItemAt(0).getUri()).isEqualTo(expectedPickerUri);
         } finally {
             deleteFiles(items);
         }
     }
 
     /**
-     * Tests {@link PickerResult#getPickerResponseIntent(Context, List)} with multiple items
+     * Tests {@link PickerResult#getPickerResponseIntent(boolean, List)} with multiple items
      * @throws Exception
      */
     @Test
@@ -87,20 +99,54 @@ public class PickerResultTest {
         try {
             final int itemCount = 3;
             items = createItemSelection(itemCount);
-            final Intent intent = PickerResult.getPickerResponseIntent(mContext, items);
+            List<Uri> expectedPickerUris = new ArrayList<>();
+            for (Item item: items) {
+                expectedPickerUris.add(PickerResult.getPickerUri(item.getContentUri(),
+                        item.getId()));
+            }
+            final Intent intent = PickerResult.getPickerResponseIntent(/* canSelectMultiple */ true,
+                    items);
 
             final ClipData clipData = intent.getClipData();
             final int count = clipData.getItemCount();
             assertThat(count).isEqualTo(itemCount);
             for (int i = 0; i < count; i++) {
-                assertPickerUri(clipData.getItemAt(i).getUri());
+                Uri uri = clipData.getItemAt(i).getUri();
+                assertPickerUriFormat(uri);
+                assertThat(uri).isEqualTo(expectedPickerUris.get(i));
             }
         } finally {
             deleteFiles(items);
         }
     }
 
-    private void assertPickerUri(Uri uri) {
+    /**
+     * Tests {@link PickerResult#getPickerResponseIntent(boolean, List)} when the user selected
+     * only one item in multi-select mode
+     * @throws Exception
+     */
+    @Test
+    public void testGetResultMultiple_onlyOneItemSelected() throws Exception {
+        ArrayList<Item> items = null;
+        try {
+            final int itemCount = 1;
+            items = createItemSelection(itemCount);
+            final Uri expectedPickerUri = PickerResult.getPickerUri(items.get(0).getContentUri(),
+                    items.get(0).getId());
+            final Intent intent = PickerResult.getPickerResponseIntent(/* canSelectMultiple */ true,
+                    items);
+
+            final ClipData clipData = intent.getClipData();
+            final int count = clipData.getItemCount();
+            assertThat(count).isEqualTo(itemCount);
+            assertPickerUriFormat(clipData.getItemAt(0).getUri());
+            assertThat(clipData.getItemAt(0).getUri()).isEqualTo(expectedPickerUri);
+        } finally {
+            deleteFiles(items);
+        }
+    }
+
+    private void assertPickerUriFormat(Uri uri) {
         final String pickerUriPrefix = PickerUriResolver.PICKER_URI.toString();
         assertThat(uri.toString().startsWith(pickerUriPrefix)).isTrue();
     }
@@ -122,16 +168,19 @@ public class PickerResultTest {
      */
     private Item createImageItem() throws Exception {
         // Create an image and revoke test app's access on it
-        final Uri imageUri = assertCreateNewImage();
+        Uri imageUri = assertCreateNewImage();
         clearMediaOwner(imageUri, mContext.getUserId());
+        if (PickerDbFacade.isPickerDbEnabled()) {
+            // Create with a picker URI with picker db enabled
+            imageUri = PickerUriResolver
+                    .getMediaUri(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                    .buildUpon()
+                    .appendPath(String.valueOf(ContentUris.parseId(imageUri)))
+                    .build();
+        }
 
-        // Create an item for the selection, since PickerResult only uses Item#getContentUri(),
-        // no need to create actual item, and can mock the class.
-        final Item imageItem = mock(Item.class);
-        when(imageItem.getContentUri()).thenReturn(imageUri);
-        when(imageItem.getId()).thenReturn(imageUri.getLastPathSegment());
-
-        return imageItem;
+        return new Item(imageUri.getLastPathSegment(), "image/jpeg", /* dateTaken */ 0,
+                /* generationModified */ 0, /* duration */ 0, imageUri);
     }
 
     private Uri assertCreateNewImage() throws Exception {
@@ -141,7 +190,15 @@ public class PickerResultTest {
     private Uri assertCreateNewFile(File dir, String fileName) throws Exception {
         final File file = new File(dir, fileName);
         assertThat(file.createNewFile()).isTrue();
-        return MediaStore.scanFile(mContext.getContentResolver(), file);
+
+        // Write 1 byte because 0byte files are not valid in the picker db
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(1);
+        }
+
+        final Uri uri = MediaStore.scanFile(mContext.getContentResolver(), file);
+        MediaStore.waitForIdle(mContext.getContentResolver());
+        return uri;
     }
 
     private String getImageFileName() {

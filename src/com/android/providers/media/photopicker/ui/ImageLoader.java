@@ -23,6 +23,7 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.signature.ObjectKey;
 
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -42,27 +43,43 @@ public class ImageLoader {
     /**
      * Load the thumbnail of the {@code category} and set it on the {@code imageView}
      *
-     * @param category the album
+     * @param category  the album
      * @param imageView the imageView shows the thumbnail
      */
     public void loadAlbumThumbnail(@NonNull Category category, @NonNull ImageView imageView) {
-        loadThumbnail(category.getCoverUri(), imageView);
+        // Always show all thumbnails as bitmap images instead of drawables
+        // This is to ensure that we do not animate any thumbnail (for eg GIF)
+        // TODO(b/194285082): Use drawable instead of bitmap, as it saves memory.
+        Glide.with(mContext)
+                .asBitmap()
+                .load(category.getCoverUri())
+                .thumbnail()
+                .into(imageView);
     }
 
     /**
      * Load the thumbnail of the photo item {@code item} and set it on the {@code imageView}
      *
-     * @param item the photo item
+     * @param item      the photo item
      * @param imageView the imageView shows the thumbnail
      */
     public void loadPhotoThumbnail(@NonNull Item item, @NonNull ImageView imageView) {
-        loadThumbnail(item.getContentUri(), imageView);
+        Uri uri = item.getContentUri();
+        // Always show all thumbnails as bitmap images instead of drawables
+        // This is to ensure that we do not animate any thumbnail (for eg GIF)
+        // TODO(b/194285082): Use drawable instead of bitmap, as it saves memory.
+        Glide.with(mContext)
+                .asBitmap()
+                .load(uri)
+                .signature(new ObjectKey(uri.toString() + item.getGenerationModified()))
+                .thumbnail()
+                .into(imageView);
     }
 
     /**
      * Load the image of the photo item {@code item} and set it on the {@code imageView}
      *
-     * @param item the photo item
+     * @param item      the photo item
      * @param imageView the imageView shows the image
      */
     public void loadImagePreview(@NonNull Item item, @NonNull ImageView imageView) {
@@ -76,17 +93,8 @@ public class ImageLoader {
         Glide.with(mContext)
                 .asBitmap()
                 .load(item.getContentUri())
-                .into(imageView);
-    }
-
-    private void loadThumbnail(@NonNull Uri uri, @NonNull ImageView imageView) {
-        // Always show all thumbnails as bitmap images instead of drawables
-        // This is to ensure that we do not animate any thumbnail (for eg GIF)
-        // TODO(b/194285082): Use drawable instead of bitmap, as it saves memory.
-        Glide.with(mContext)
-                .asBitmap()
-                .load(uri)
-                .thumbnail()
+                .signature(new ObjectKey(
+                        item.getContentUri().toString() + item.getGenerationModified()))
                 .into(imageView);
     }
 }

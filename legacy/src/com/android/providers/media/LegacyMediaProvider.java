@@ -80,9 +80,9 @@ public class LegacyMediaProvider extends ContentProvider {
         Logging.initPersistent(persistentDir);
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false, true, null,
-                null, null, null, null);
+                null, null, null, null, null);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, true, null,
-                null, null, null, null);
+                null, null, null, null, null);
 
         return true;
     }

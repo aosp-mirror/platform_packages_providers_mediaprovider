@@ -32,6 +32,8 @@ import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,54 +46,42 @@ public class PickerResult {
      * @return {@code Intent} which contains Uri that has been granted access on.
      */
     @NonNull
-    public static Intent getPickerResponseIntent(@NonNull Context context,
+    public static Intent getPickerResponseIntent(boolean canSelectMultiple,
             @NonNull List<Item> selectedItems) {
-        return getPickerResponseIntent(context, selectedItems, /* shouldReturnPickerUris */ true);
-    }
-
-    /**
-     * @return {@code Intent} which contains Uri that has been granted access on.
-     * TODO(b/168001592): Remove this method and merge it with actual method
-     * {@link PickerResult#getPickerResponseIntent(Context, List)} when intent-filter for
-     * ACTION_GET_CONTENT is removed or when we don't have to send redactedUris any more.
-     */
-    @NonNull
-    public static Intent getPickerResponseIntent(@NonNull Context context,
-            @NonNull List<Item> selectedItems, boolean shouldReturnPickerUris) {
         // 1. Get Picker Uris corresponding to the selected items
-        List<Uri> selectedUris;
-        if (shouldReturnPickerUris) {
-            selectedUris = getPickerUrisForItems(selectedItems);
-        } else {
-            selectedUris = getRedactedUrisForItems(context.getContentResolver(), selectedItems);
-        }
+        List<Uri> selectedUris = getPickerUrisForItems(selectedItems);
 
         // 2. Grant read access to picker Uris and return
         Intent intent = new Intent();
         final int size = selectedUris.size();
-        if (size == 1) {
-            intent.setData(selectedUris.get(0));
-        } else if (size > 1) {
-            // TODO (b/169737761): use correct mime types
-            String[] mimeTypes = new String[]{"image/*", "video/*"};
-            final ClipData clipData = new ClipData(null /* label */, mimeTypes,
-                    new ClipData.Item(selectedUris.get(0)));
-            for (int i = 1; i < size; i++) {
-                clipData.addItem(new ClipData.Item(selectedUris.get(i)));
-            }
-            intent.setClipData(clipData);
-        } else {
+        if (size < 1) {
             // TODO (b/168783994): check if this is ever possible. If yes, handle properly,
-            // if not, change the above "else if" block to "else" block.
+            // if not, remove this if block.
+            return intent;
         }
+        if (!canSelectMultiple) {
+            intent.setData(selectedUris.get(0));
+        }
+        // TODO (b/169737761): use correct mime types
+        String[] mimeTypes = new String[]{"image/*", "video/*"};
+        final ClipData clipData = new ClipData(null /* label */, mimeTypes,
+                new ClipData.Item(selectedUris.get(0)));
+        for (int i = 1; i < size; i++) {
+            clipData.addItem(new ClipData.Item(selectedUris.get(i)));
+        }
+        intent.setClipData(clipData);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         return intent;
     }
 
-    private static Uri getPickerUri(Uri uri, String id) {
+    @VisibleForTesting
+    static Uri getPickerUri(Uri uri, String id) {
         final String userInfo = uri.getUserInfo();
         final String userId = userInfo == null ? UserId.CURRENT_USER.toString() : userInfo;
+        if (PickerDbFacade.isPickerDbEnabled()) {
+            return PickerUriResolver.wrapProviderUri(uri, Integer.parseInt(userId));
+        }
         final Uri uriWithUserId =
                 PickerUriResolver.PICKER_URI.buildUpon().appendPath(userId).build();
         return uriWithUserId.buildUpon().appendPath(id).build();

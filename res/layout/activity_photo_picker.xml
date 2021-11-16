@@ -35,6 +35,24 @@
         app:behavior_hideable="true"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
+        <FrameLayout
+            android:id="@+id/drag_bar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/picker_drag_bar_height"
+            android:background="?android:attr/colorBackground">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="@dimen/picker_drag_margin_bottom"
+                android:layout_marginTop="@dimen/picker_drag_margin_top"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_drag"
+                android:contentDescription="@null"/>
+
+        </FrameLayout>
+
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/fragment_container"
             android:layout_width="match_parent"

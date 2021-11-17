@@ -34,7 +34,6 @@ import java.util.UUID;
  *
  * @hide
  */
-@SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
 public final class CloudMediaProviderContract {
     private static final String TAG = "CloudMediaProviderContract";
 
@@ -433,7 +432,6 @@ public final class CloudMediaProviderContract {
      *
      * {@hide}
      */
-    @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
     public static final String METHOD_GET_MEDIA_INFO = "android:getMediaInfo";
 
     /**

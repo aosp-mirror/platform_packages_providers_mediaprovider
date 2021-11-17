@@ -42,6 +42,7 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -86,6 +87,7 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, VIDEO_CONTAINER_ID);
     }
 
+    @Ignore("Re-enable this test coverage with actual GIF file b/202396821")
     @Test
     public void testPhotoGridLayout_gif() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));

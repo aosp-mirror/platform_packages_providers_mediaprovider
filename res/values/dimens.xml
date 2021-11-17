@@ -52,18 +52,19 @@
 
     <dimen name="picker_photo_item_spacing">3dp</dimen>
 
-    <dimen name="picker_chip_text_size">14sp</dimen>
+    <dimen name="picker_chip_text_size">16sp</dimen>
     <dimen name="picker_chip_touch_size">48dp</dimen>
     <dimen name="picker_chip_radius">16dp</dimen>
 
+    <dimen name="picker_drag_bar_height">24dp</dimen>
+    <dimen name="picker_drag_margin_top">8dp</dimen>
+    <dimen name="picker_drag_margin_bottom">12dp</dimen>
+
     <!-- PhotoPicker Preview -->
-    <dimen name="preview_buttons_margin_horizontal">16dp</dimen>
-    <dimen name="preview_buttons_margin_bottom">10dp</dimen>
+    <dimen name="preview_buttons_padding_horizontal">16dp</dimen>
     <dimen name="preview_deselect_padding_start">2dp</dimen>
     <dimen name="preview_viewpager_margin">20dp</dimen>
     <!-- PhotoPicker Preview text -->
-    <dimen name="preview_add_text_size">14sp</dimen>
-    <dimen name="preview_deselect_text_size">16sp</dimen>
     <dimen name="preview_toolbar_scrim_height">96dp</dimen>
     <dimen name="preview_deselect_scrim_height">240dp</dimen>
 

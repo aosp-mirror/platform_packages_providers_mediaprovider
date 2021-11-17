@@ -26,6 +26,7 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.File;
 import java.io.StringReader;
@@ -67,6 +68,16 @@ public class SpecialFormatDetector {
 
     private static final String SEMANTIC_PRIMARY = "Primary";
     private static final String SEMANTIC_MOTION_PHOTO = "MotionPhoto";
+
+    /**
+     * {@return} special format for a file
+     */
+    public static int detect(File file) throws Exception {
+        try (FileInputStream is = new FileInputStream(file)) {
+            final ExifInterface exif = new ExifInterface(is);
+            return detect(exif, file);
+        }
+    }
 
     /**
      * {@return} special format for a file

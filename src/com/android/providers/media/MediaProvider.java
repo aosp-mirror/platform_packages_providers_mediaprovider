@@ -25,6 +25,10 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
+import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE;
+import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
@@ -77,6 +81,7 @@ import static com.android.providers.media.util.FileUtils.extractRelativePathForD
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
+import static com.android.providers.media.util.FileUtils.fromFuseFile;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
 import static com.android.providers.media.util.FileUtils.isCrossUserEnabled;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
@@ -84,6 +89,9 @@ import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
 import static com.android.providers.media.util.FileUtils.isObbOrChildPath;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
+import static com.android.providers.media.util.FileUtils.toFuseFile;
+import static com.android.providers.media.util.Logging.LOGV;
+import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_PREFIX;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
 import static com.android.providers.media.util.SyntheticPathUtils.createSparseFile;
@@ -92,8 +100,6 @@ import static com.android.providers.media.util.SyntheticPathUtils.getRedactedRel
 import static com.android.providers.media.util.SyntheticPathUtils.isPickerPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isRedactedPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isSyntheticPath;
-import static com.android.providers.media.util.Logging.LOGV;
-import static com.android.providers.media.util.Logging.TAG;
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -228,6 +234,7 @@ import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
 import com.android.providers.media.util.SQLiteQueryBuilder;
+import com.android.providers.media.util.SpecialFormatDetector;
 import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XmpInterface;
 
@@ -1116,6 +1123,30 @@ public class MediaProvider extends ContentProvider {
         Log.d(TAG, "Pruned " + staleThumbnails + " unknown thumbnails");
 
         // Finished orphaning any content whose package no longer exists
+        pruneStalePackages(signal);
+
+        // Delete the expired items or extend them on mounted volumes
+        final int[] result = deleteOrExtendExpiredItems(signal);
+        final int deletedExpiredMedia = result[0];
+        Log.d(TAG, "Deleted " + deletedExpiredMedia + " expired items");
+        Log.d(TAG, "Extended " + result[1] + " expired items");
+
+        // Forget any stale volumes
+        deleteStaleVolumes(signal);
+
+        // Populate _SPECIAL_FORMAT column for files which have column value as NULL
+        detectSpecialFormat(signal);
+
+        final long itemCount = mExternalDatabase.runWithTransaction((db) -> {
+            return DatabaseHelper.getItemCount(db);
+        });
+
+        final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
+        Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
+                durationMillis, staleThumbnails, deletedExpiredMedia);
+    }
+
+    private void pruneStalePackages(CancellationSignal signal) {
         final int stalePackages = mExternalDatabase.runWithTransaction((db) -> {
             final ArraySet<String> unknownPackages = new ArraySet<>();
             try (Cursor c = db.query(true, "files", new String[] { "owner_package_name" },
@@ -1135,14 +1166,9 @@ public class MediaProvider extends ContentProvider {
             return unknownPackages.size();
         });
         Log.d(TAG, "Pruned " + stalePackages + " unknown packages");
+    }
 
-        // Delete the expired items or extend them on mounted volumes
-        final int[] result = deleteOrExtendExpiredItems(signal);
-        final int deletedExpiredMedia = result[0];
-        Log.d(TAG, "Deleted " + deletedExpiredMedia + " expired items");
-        Log.d(TAG, "Extended " + result[1] + " expired items");
-
-        // Forget any stale volumes
+    private void deleteStaleVolumes(CancellationSignal signal) {
         mExternalDatabase.runWithTransaction((db) -> {
             final Set<String> recentVolumeNames = MediaStore
                     .getRecentExternalVolumeNames(getContext());
@@ -1167,14 +1193,60 @@ public class MediaProvider extends ContentProvider {
         synchronized (mDirectoryCache) {
             mDirectoryCache.clear();
         }
+    }
 
-        final long itemCount = mExternalDatabase.runWithTransaction((db) -> {
-            return DatabaseHelper.getItemCount(db);
+    @VisibleForTesting
+    void detectSpecialFormat(@NonNull CancellationSignal signal) {
+        mExternalDatabase.runWithTransaction((db) -> {
+            updateSpecialFormatColumn(db, signal);
+            return null;
         });
+    }
 
-        final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
-        Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
-                durationMillis, staleThumbnails, deletedExpiredMedia);
+    private void updateSpecialFormatColumn(SQLiteDatabase db, @NonNull CancellationSignal signal) {
+        try (Cursor c = queryForPendingSpecialFormatColumns(db, signal)) {
+            while (c.moveToNext() && !signal.isCanceled()) {
+                final long id = c.getLong(0);
+                final String path = c.getString(1);
+                final ContentValues contentValues = getContentValuesForSpecialFormat(path);
+                if (contentValues == null) {
+                    continue;
+                }
+                final String whereClause = MediaColumns._ID + "=?";
+                final String[] whereArgs = new String[]{String.valueOf(id)};
+                db.update("files", contentValues, whereClause, whereArgs);
+            }
+        }
+    }
+
+    private ContentValues getContentValuesForSpecialFormat(String path) {
+        ContentValues contentValues = new ContentValues();
+        final File file = new File(path);
+        if (!file.exists()) {
+            // Ignore if the file does not exist. This may happen if a file was
+            // inserted and then not opened, or if a file was deleted but db is not
+            // updated yet.
+            return null;
+        }
+        try {
+            contentValues.put(_SPECIAL_FORMAT, SpecialFormatDetector.detect(file));
+        } catch (Exception e) {
+            // we tried our best, no need to run special detection again and again if it
+            // throws exception once, it is likely to do so everytime.
+            Log.d(TAG, "Failed to detect special format for file: " + file, e);
+            contentValues.put(_SPECIAL_FORMAT, _SPECIAL_FORMAT_NONE);
+        }
+        return contentValues;
+    }
+
+    private Cursor queryForPendingSpecialFormatColumns(SQLiteDatabase db,
+            @NonNull CancellationSignal signal) {
+        // Run special detection for images only
+        final String selection = _SPECIAL_FORMAT + " IS NULL AND "
+                + MEDIA_TYPE + "=" + MEDIA_TYPE_IMAGE;
+        final String[] projection = new String[] { MediaColumns._ID, MediaColumns.DATA };
+        return db.query(/* distinct */ true, "files", projection, selection, null, null, null,
+                null, null, signal);
     }
 
     /**
@@ -3707,7 +3779,7 @@ public class MediaProvider extends ContentProvider {
         if (path != null) {
             // Touch root of volume to update mTime on FUSE filesystem
             // This allows FileManagers that may be relying on mTime changes to update their UI
-            File fusePath = getFuseFile(path);
+            File fusePath = toFuseFile(path);
             if (fusePath != null) {
                 Log.i(TAG, "Touching FUSE path " + fusePath);
                 fusePath.setLastModified(System.currentTimeMillis());
@@ -5957,15 +6029,38 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
-            case MediaStore.SET_CLOUD_PROVIDER_CALL:
+            case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 // TODO(b/190713331): Remove after initial development
                 final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);
                 Log.i(TAG, "Developer initiated cloud provider switch: " + cloudProvider);
                 mPickerSyncController.setCloudProvider(cloudProvider);
                 // fall through
-            case MediaStore.SYNC_PROVIDERS_CALL:
+            }
+            case MediaStore.SYNC_PROVIDERS_CALL: {
                 syncPicker();
                 return new Bundle();
+            }
+            case MediaStore.GET_CLOUD_PROVIDER_CALL: {
+                final String cloudProvider = mPickerSyncController.getCloudProvider();
+
+                Bundle bundle = new Bundle();
+                bundle.putString(MediaStore.EXTRA_CLOUD_PROVIDER, cloudProvider);
+                return bundle;
+            }
+            case MediaStore.NOTIFY_CLOUD_EVENT_CALL: {
+                final boolean notifyCloudEventResult;
+                if (mPickerSyncController.isProviderEnabled(Binder.getCallingUid())) {
+                    mPickerSyncController.notifyMediaEvent();
+                    notifyCloudEventResult = true;
+                } else {
+                    notifyCloudEventResult = false;
+                }
+
+                Bundle bundle = new Bundle();
+                bundle.putBoolean(MediaStore.EXTRA_NOTIFY_CLOUD_EVENT_RESULT,
+                        notifyCloudEventResult);
+                return bundle;
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
@@ -5988,7 +6083,10 @@ public class MediaProvider extends ContentProvider {
             throws FileNotFoundException {
         try (ParcelFileDescriptor inputPfd =
                 extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR)) {
-            final File file = getFileFromFileDescriptor(inputPfd);
+            File file = getFileFromFileDescriptor(inputPfd);
+            // Convert from FUSE file to lower fs file because the supportsTranscode() check below
+            // expects a lower fs file format
+            file = fromFuseFile(file);
             if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
                 // Note that we should be checking if a file is a modern format and not just
                 // that it supports transcoding, unfortunately, checking modern format
@@ -6058,6 +6156,9 @@ public class MediaProvider extends ContentProvider {
     /**
      * Return the filesystem path of the real file on disk that is represented
      * by the given {@link ParcelFileDescriptor}.
+     *
+     * Note that the file may be a FUSE or lower fs file and depending on the purpose might need
+     * to be converted with {@link FileUtils#toFuseFile} or {@link FileUtils#fromFuseFile}.
      *
      * Copied from {@link ParcelFileDescriptor#getFile}
      */
@@ -7704,12 +7805,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    public File getFuseFile(File file) {
-        String filePath = file.getPath().replaceFirst(
-                "/storage/", "/mnt/user/" + UserHandle.myUserId() + "/");
-        return new File(filePath);
-    }
-
     private ParcelFileDescriptor openWithFuse(String filePath, int uid, int mediaCapabilitiesUid,
             int modeBits, boolean shouldRedact, boolean shouldTranscode, int transcodeReason)
             throws FileNotFoundException {
@@ -7726,7 +7821,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         try {
-            return FileUtils.openSafely(getFuseFile(new File(filePath)), modeBits);
+            return FileUtils.openSafely(toFuseFile(new File(filePath)), modeBits);
         } finally {
             synchronized (mPendingOpenInfo) {
                 mPendingOpenInfo.remove(tid);

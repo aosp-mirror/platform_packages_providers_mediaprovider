@@ -40,6 +40,7 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewTestU
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.not;
 
 import android.view.View;
 
@@ -80,6 +81,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         registerIdlingResourceAndWaitForIdle();
 
+        // No dragBar in preview
+        onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
+
         assertMultiSelectPreviewCommonLayoutDisplayed();
         // Verify ImageView is displayed
         onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
@@ -87,6 +91,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Click back button and verify we are back to photos tab
         onView(withContentDescription("Navigate up")).perform(click());
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Shows dragBar after we are back to Photos tab
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
     }
 
     @Test

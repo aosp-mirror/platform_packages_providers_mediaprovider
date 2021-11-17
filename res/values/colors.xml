@@ -20,6 +20,7 @@
 
     <!-- PhotoPicker -->
     <color name="picker_default_white">@android:color/white</color>
+    <color name="picker_drag_bar_color">#DADCE0</color>
 
     <!-- PhotoPicker photo grid -->
     <color name="picker_primary_color">#1A73E8</color>

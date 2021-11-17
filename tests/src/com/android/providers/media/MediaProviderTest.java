@@ -109,9 +109,7 @@ public class MediaProviderTest {
                         Manifest.permission.READ_DEVICE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS);
 
-        final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
-        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        resetIsolatedContext();
     }
 
     @AfterClass
@@ -254,9 +252,7 @@ public class MediaProviderTest {
     @Test
     public void testCanonicalize() throws Exception {
         // We might have old files lurking, so force a clean slate
-        final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
-        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        resetIsolatedContext();
 
         final File dir = Environment
                 .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -333,9 +329,7 @@ public class MediaProviderTest {
 
     private void testActionLongFileNameItemHasTrimmedFileName(String columnKey) throws Exception {
         // We might have old files lurking, so force a clean slate
-        final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
-        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        resetIsolatedContext();
         final String[] projection = new String[]{MediaColumns.DATA};
         final File dir = Environment
                 .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -1237,9 +1231,8 @@ public class MediaProviderTest {
 
     private void testQueryAudioViewsNoItemWithColumn(String columnKey) throws Exception {
         // We might have old files lurking, so force a clean slate
-        final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
-        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        resetIsolatedContext();
+
         final File dir = Environment
                 .getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
 
@@ -1358,9 +1351,7 @@ public class MediaProviderTest {
 
     private File createAudioRecordingFile() throws Exception {
         // We might have old files lurking, so force a clean slate
-        final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
-        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        resetIsolatedContext();
         final File dir = Environment
                 .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
         final File recordingDir = new File(dir, "Recordings");
@@ -1590,5 +1581,17 @@ public class MediaProviderTest {
         } finally {
             file.delete();
         }
+    }
+
+    private static void resetIsolatedContext() {
+        if (sIsolatedResolver != null) {
+            // This is necessary, we wait for all unfinished tasks to finish before we create a
+            // new IsolatedContext.
+            MediaStore.waitForIdle(sIsolatedResolver);
+        }
+
+        final Context context = InstrumentationRegistry.getTargetContext();
+        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
+        sIsolatedResolver = sIsolatedContext.getContentResolver();
     }
 }

@@ -132,6 +132,12 @@ android_test {
         "androidx.test.core",
         "androidx.arch.core_core-runtime",
         "glide-prebuilt",
+        "glide-gifdecoder-prebuilt",
+        "glide-disklrucache-prebuilt",
+        "glide-annotation-and-compiler-prebuilt",
+        "androidx.fragment_fragment",
+        "androidx.vectordrawable_vectordrawable-animated",
+        "androidx.exifinterface_exifinterface",
     ],
 
     certificate: "media",

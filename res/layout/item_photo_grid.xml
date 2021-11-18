@@ -52,10 +52,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end|top"
-                android:layout_marginEnd="@dimen/picker_item_gif_badge_margin"
-                android:layout_marginTop="@dimen/picker_item_gif_badge_margin"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_gif"
+                android:contentDescription="@null"/>
+
+            <ImageView
+                android:id="@+id/icon_motion_photo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end|top"
+                android:layout_marginEnd="@dimen/picker_item_badge_margin"
+                android:layout_marginTop="@dimen/picker_item_badge_margin"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_motion_photo"
                 android:contentDescription="@null"/>
 
             <LinearLayout

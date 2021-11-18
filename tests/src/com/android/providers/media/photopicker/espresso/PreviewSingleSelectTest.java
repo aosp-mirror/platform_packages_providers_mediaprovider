@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.espresso;
 
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
@@ -142,6 +143,10 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
     @Test
     public void testPreview_noScrimLayerAndHasSolidColorInPortrait() {
+        mRule.getScenario().onActivity(activity -> {
+            activity.setRequestedOrientation(SCREEN_ORIENTATION_PORTRAIT);
+        });
+
         mRule.getScenario().onActivity(activity -> {
             assertThat(activity.getResources().getConfiguration().orientation).isEqualTo(
                     Configuration.ORIENTATION_PORTRAIT);

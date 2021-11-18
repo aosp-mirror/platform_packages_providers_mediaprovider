@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.espresso;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
@@ -71,6 +72,9 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         // Verify image is previewed
         assertMultiSelectLongPressCommonLayoutMatches();
         onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+        // Verify no special format icon is previewed
+        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
 
         // Navigate back to Photo grid
         onView(withContentDescription("Navigate up")).perform(click());
@@ -95,20 +99,9 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         // Verify videoView is displayed
         assertMultiSelectLongPressCommonLayoutMatches();
         onView(withId(R.id.preview_videoView)).check(matches(isDisplayed()));
-    }
-
-    @Test
-    public void testPreview_multiSelect_longPress_gif() {
-        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-
-        // Navigate to preview
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 2, ICON_THUMBNAIL_ID);
-
-        registerIdlingResourceAndWaitForIdle();
-
-        // Verify imageView is displayed for gif preview
-        assertMultiSelectLongPressCommonLayoutMatches();
-        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+        // Verify no special format icon is previewed
+        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
     }
 
     @Test
@@ -156,38 +149,35 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
     public void testPreview_multiSelect_longPress_showsOnlyOne() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // Select two items - image and video item
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
+        // Select two items - first image and video item
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
 
-        final int position = 2;
-        // Long press gif item to preview the item.
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
+        // Long press second image item to preview the item.
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
 
         registerIdlingResourceAndWaitForIdle();
 
         mRule.getScenario().onActivity(activity -> {
             Selection selection
                     = new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
-            // Verify that we have two items(image and video) as selected items and
-            // 1 item  (gif) as item for preview
+            // Verify that we have two items(first image and video) as selected items and
+            // 1 item (second image) as item for preview
             assertThat(selection.getSelectedItemCount().getValue()).isEqualTo(2);
             assertThat(selection.getSelectedItemsForPreview().size()).isEqualTo(1);
         });
 
         final int imageViewId = R.id.preview_imageView;
-        // TODO(b/194281557): Check Gif badge to confirm this is the preview for gif item
         onView(withId(imageViewId)).check(matches(isDisplayed()));
 
         // Verify that only one item is being previewed. Swipe left and right, and verify we still
         // have ImageView in preview.
         swipeLeftAndWait();
-        // TODO(b/194281557): Check Gif badge to confirm this is the preview for gif item
         onView(withId(imageViewId)).check(matches(isDisplayed()));
+
         swipeRightAndWait();
-        // TODO(b/194281557): Check Gif badge to confirm this is the preview for gif item
         onView(withId(imageViewId)).check(matches(isDisplayed()));
     }
 

@@ -50,6 +50,15 @@
         <item name="android:textColor">?android:attr/textColorPrimary</item>
     </style>
 
+    <style name="MaterialBorderlessButtonStyle"
+           parent="@style/Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textAppearance">@style/PickerButtonTextAppearance</item>
+    </style>
+
+    <style name="MaterialButtonStyle" parent="@style/Widget.MaterialComponents.Button">
+        <item name="android:textAppearance">@style/PickerButtonTextAppearance</item>
+    </style>
+
     <style name="ProfileDialogTheme"
            parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog.Centered">
         <item name="android:dialogCornerRadius">@dimen/picker_profile_dialog_radius</item>

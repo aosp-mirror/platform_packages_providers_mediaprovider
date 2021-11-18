@@ -38,11 +38,40 @@
       <item quantity="one">他 <xliff:g id="COUNT_0">^1</xliff:g> 件の項目</item>
     </plurals>
     <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"アプリの一時ファイルの削除"</string>
-    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>が一部の一時ファイルを削除する権限を求めています。この処理により、電池やモバイルデータの使用量が増えることがあります。"</string>
+    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>が一部の一時ファイルを削除する権限を求めています。この処理により、バッテリーやモバイルデータの使用量が増えることがあります。"</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"アプリの一時ファイルを削除しています…"</string>
     <string name="clear" msgid="5524638938415865915">"削除"</string>
     <string name="allow" msgid="8885707816848569619">"許可"</string>
     <string name="deny" msgid="6040983710442068936">"許可しない"</string>
+    <string name="add" msgid="2894574044585549298">"追加"</string>
+    <string name="deselect" msgid="4297825044827769490">"選択を解除"</string>
+    <string name="select" msgid="2704765470563027689">"選択"</string>
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> 件まで選択できます</item>
+      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> 件まで選択できます</item>
+    </plurals>
+    <string name="recent" msgid="6694613584743207874">"最近"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"選択した写真を見る"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"写真"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"アルバム"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"仕事用に切り替える"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"個人用に切り替える"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"管理者によりブロックされています"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"個人用アプリから仕事用データにアクセスすることは認められていません"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"仕事用アプリから個人データにアクセスすることは認められていません"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"仕事用アプリは一時停止されています"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"仕事用の写真を開くには、仕事用アプリを有効にしてからもう一度試してください。"</string>
+    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> 件のアイテム</item>
+      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> 件のアイテム</item>
+    </plurals>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"追加（<xliff:g id="COUNT">^1</xliff:g> 件）"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"カメラ"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"ダウンロード"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"お気に入り"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"スクリーンショット"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルの変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
       <item quantity="one">この音声ファイルの変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>

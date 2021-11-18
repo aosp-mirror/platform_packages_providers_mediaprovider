@@ -21,7 +21,7 @@
     <string name="app_label" msgid="9035307001052716210">"मीडिया स्टोरेज"</string>
     <string name="artist_label" msgid="8105600993099120273">"कलाकार"</string>
     <string name="unknown" msgid="2059049215682829375">"अज्ञात"</string>
-    <string name="root_images" msgid="5861633549189045666">"Images"</string>
+    <string name="root_images" msgid="5861633549189045666">"इमेज"</string>
     <string name="root_videos" msgid="8792703517064649453">"व्हिडिओ"</string>
     <string name="root_audio" msgid="3505830755201326018">"ऑडिओ"</string>
     <string name="root_documents" msgid="3829103301363849237">"दस्तऐवज"</string>
@@ -43,6 +43,35 @@
     <string name="clear" msgid="5524638938415865915">"साफ करा"</string>
     <string name="allow" msgid="8885707816848569619">"अनुमती द्या"</string>
     <string name="deny" msgid="6040983710442068936">"नकार द्या"</string>
+    <string name="add" msgid="2894574044585549298">"जोडा"</string>
+    <string name="deselect" msgid="4297825044827769490">"निवड रद्द करा"</string>
+    <string name="select" msgid="2704765470563027689">"निवडा"</string>
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="other">कमाल <xliff:g id="COUNT_1">^1</xliff:g> आयटम निवडा</item>
+      <item quantity="one">कमाल <xliff:g id="COUNT_0">^1</xliff:g> आयटम निवडा</item>
+    </plurals>
+    <string name="recent" msgid="6694613584743207874">"अलीकडील"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"दृश्य निवडले"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"फोटो"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"अल्बम"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"ऑफिसवर स्विच करा"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"वैयक्तिकवर स्विच करा"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"तुमच्या ॲडमिनने ब्लॉक केले"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"वैयक्तिक ॲपवरून कामाशी संबंधित डेटा अ‍ॅक्सेस करण्याची परवानगी नाही"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"कामाशी संबंधित ॲपवरून वैयक्तिक डेटा अ‍ॅक्सेस करण्याची परवानगी नाही"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"कामाशी संबंधित अ‍ॅप्स थांबवली आहेत"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"कामाशी संबंधित फोटो उघडण्यासाठी, कामाशी संबंधित अ‍ॅप्स सुरू करा त्यानंतर पुन्हा प्रयत्न करा"</string>
+    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g>आयटम</item>
+      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> आयटम</item>
+    </plurals>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) जोडा"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"कॅमेरा"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"डाउनलोड"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"आवडते"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"स्क्रीनशॉट"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> ऑडिओ फाइल सुधारित करण्याची परवानगी द्यायची आहे का?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला ही ऑडिओ फाइल सुधारित करण्याची परवानगी द्यायची आहे का?</item>

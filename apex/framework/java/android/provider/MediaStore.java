@@ -33,6 +33,7 @@ import android.app.AppOpsManager;
 import android.app.PendingIntent;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.ClipData;
+import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -60,6 +61,7 @@ import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
 import android.os.Parcelable;
 import android.os.RemoteException;
+import android.os.UserHandle;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.text.TextUtils;
@@ -201,10 +203,6 @@ public final class MediaStore {
     public static final String FINISH_LEGACY_MIGRATION_CALL = "finish_legacy_migration";
 
     /** {@hide} */
-    public static final String GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL =
-            "get_original_media_format_file_descriptor";
-
-    /** {@hide} */
     @Deprecated
     public static final String EXTERNAL_STORAGE_PROVIDER_AUTHORITY =
             "com.android.externalstorage.documents";
@@ -220,6 +218,8 @@ public final class MediaStore {
     public static final String GET_REDACTED_MEDIA_URI_LIST_CALL = "get_redacted_media_uri_list";
     /** {@hide} */
     public static final String EXTRA_URI_LIST = "uri_list";
+    /** {@hide} */
+    public static final String QUERY_ARG_REDACTED_URI = "android:query-arg-redacted-uri";
 
     /** {@hide} */
     public static final String EXTRA_URI = "uri";
@@ -232,7 +232,6 @@ public final class MediaStore {
     public static final String EXTRA_CONTENT_VALUES = "content_values";
     /** {@hide} */
     public static final String EXTRA_RESULT = "result";
-
     /** {@hide} */
     public static final String EXTRA_FILE_DESCRIPTOR = "file_descriptor";
 
@@ -242,6 +241,30 @@ public final class MediaStore {
     public static final String EXTRA_IS_SYSTEM_GALLERY_UID = "is_system_gallery_uid";
     /** {@hide} */
     public static final String EXTRA_IS_SYSTEM_GALLERY_RESPONSE = "is_system_gallery_response";
+
+    /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_CALL = "get_cloud_provider";
+    /** {@hide} */
+    public static final String NOTIFY_CLOUD_EVENT_CALL = "notify_cloud_event";
+    /** {@hide} */
+    public static final String SYNC_PROVIDERS_CALL = "sync_providers";
+    /** {@hide} */
+    public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";
+    /** {@hide} */
+    public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
+    /** {@hide} */
+    public static final String EXTRA_NOTIFY_CLOUD_EVENT_RESULT = "notify_cloud_event_result";
+
+    /** {@hide} */
+    public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
+    /** {@hide} */
+    public static final String QUERY_ARG_MIME_TYPE = "android:query-arg-mime_type";
+    /** {@hide} */
+    public static final String QUERY_ARG_SIZE_BYTES = "android:query-arg-size_bytes";
+    /** {@hide} */
+    public static final String QUERY_ARG_ALBUM_ID = "android:query-arg-album_id";
+    /** {@hide} */
+    public static final String QUERY_ARG_ALBUM_TYPE = "android:query-arg-album_type";
 
     /**
      * This is for internal use by the media scanner only.
@@ -263,6 +286,16 @@ public final class MediaStore {
     public static final String PARAM_REQUIRE_ORIGINAL = "requireOriginal";
     /** {@hide} */
     public static final String PARAM_LIMIT = "limit";
+
+    /** {@hide} */
+    public static final int MY_USER_ID = UserHandle.myUserId();
+    /** {@hide} */
+    public static final int MY_UID = android.os.Process.myUid();
+    // Stolen from: UserHandle#getUserId
+    /** {@hide} */
+    public static final int PER_USER_RANGE = 100000;
+
+    private static final int PICK_IMAGES_MAX_LIMIT = 100;
 
     /**
      * Activity Action: Launch a music player.
@@ -638,6 +671,65 @@ public final class MediaStore {
     public final static String EXTRA_OUTPUT = "output";
 
     /**
+     * Activity Action: Allow the user to select images or videos provided by
+     * system and return it. This is different than {@link Intent#ACTION_PICK}
+     * and {@link Intent#ACTION_GET_CONTENT} in that
+     * <ul>
+     * <li> the data for this action is provided by the system
+     * <li> this action is only used for picking images and videos
+     * <li> caller gets read access to user picked items even without storage
+     * permissions
+     * </ul>
+     * <p>
+     * Callers can optionally specify MIME type (such as {@code image/*} or
+     * {@code video/*}), resulting in a range of content selection that the
+     * caller is interested in. The optional MIME type can be requested with
+     * {@link Intent#setType(String)}.
+     * <p>
+     * If the caller needs multiple returned items (or caller wants to allow
+     * multiple selection), then it can specify
+     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} to indicate this.
+     * <p>
+     * When the caller requests multiple selection, the value of
+     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} must be a positive integer
+     * greater than 1 and less than or equal to
+     * {@link MediaStore#getPickImagesMaxLimit}, otherwise
+     * {@link Activity#RESULT_CANCELED} is returned.
+     * <p>
+     * Output: MediaStore content URI(s) of the item(s) that was picked.
+     *
+     * @hide
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
+
+    /**
+     * The name of an optional intent-extra used to allow multiple selection of
+     * items and constrain maximum number of items that can be returned by
+     * {@link MediaStore#ACTION_PICK_IMAGES}, action may still return nothing
+     * (0 items) if the user chooses to cancel.
+     * <p>
+     * The value of this intent-extra should be a positive integer greater
+     * than 1 and less than or equal to
+     * {@link MediaStore#getPickImagesMaxLimit}, otherwise
+     * {@link Activity#RESULT_CANCELED} is returned.
+     *
+     * @hide
+     */
+    public final static String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
+
+    /**
+     * The maximum limit for the number of items that can be selected using
+     * {@link MediaStore#ACTION_PICK_IMAGES} when launched in multiple selection mode.
+     * This can be used as a constant value for {@link MediaStore#EXTRA_PICK_IMAGES_MAX}.
+     *
+     * @hide
+     */
+    public static int getPickImagesMaxLimit() {
+        return PICK_IMAGES_MAX_LIMIT;
+    }
+
+    /**
      * Specify that the caller wants to receive the original media format without transcoding.
      *
      * <b>Caution: using this flag can cause app
@@ -930,19 +1022,9 @@ public final class MediaStore {
             @NonNull ParcelFileDescriptor fileDescriptor) throws IOException {
         Bundle input = new Bundle();
         input.putParcelable(EXTRA_FILE_DESCRIPTOR, fileDescriptor);
-        ParcelFileDescriptor pfd;
-        try {
-            Bundle output = context.getContentResolver().call(AUTHORITY,
-                    GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL, null, input);
-            pfd = output.getParcelable(EXTRA_FILE_DESCRIPTOR);
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
 
-        if (pfd == null) {
-            throw new IOException("Input file descriptor already original");
-        }
-        return pfd;
+        return context.getContentResolver().openTypedAssetFileDescriptor(Files.EXTERNAL_CONTENT_URI,
+                "*/*", input).getParcelFileDescriptor();
     }
 
     /**
@@ -1189,11 +1271,7 @@ public final class MediaStore {
          * {@link ContentResolver#openFileDescriptor(Uri, String)} API is recommended for better
          * performance.
          *
-         * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-         *             may not update the value of this column. However they may read the file path
-         *             value from this column and use in file operations.
          */
-        @Deprecated
         @Column(Cursor.FIELD_TYPE_STRING)
         public static final String DATA = "_data";
 
@@ -1977,6 +2055,46 @@ public final class MediaStore {
              */
             // @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String _USER_ID = "_user_id";
+
+            /**
+             * Special format for a file.
+             *
+             * Photo Picker requires special format tagging for media files.
+             * This is essential as {@link Images} collection can include
+             * images of various formats like Motion Photos, GIFs etc, which
+             * is not identifiable by {@link #MIME_TYPE}
+             *
+             * @hide
+             */
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            public static final String _SPECIAL_FORMAT = "_special_format";
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file doesn't have any special format associated with it.
+             * TODO(b/199522401): Expose these as public API for cloud providers.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_NONE = 0;
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file is a GIF file.
+             * TODO(b/199522401): Expose these as public API for cloud providers.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_GIF = 1;
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file is a Motion Photo.
+             * TODO(b/199522401): Expose these as public API for cloud providers.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_MOTION_PHOTO = 2;
         }
     }
 
@@ -2629,12 +2747,7 @@ public final class MediaStore {
              *
              * As of {@link android.os.Build.VERSION_CODES#Q}, this thumbnail
              * has correct rotation, don't need to rotate it again.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -2809,66 +2922,36 @@ public final class MediaStore {
 
             /**
              * Non-zero if the audio file is music
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_MUSIC = "is_music";
 
             /**
              * Non-zero if the audio file is a podcast
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_PODCAST = "is_podcast";
 
             /**
              * Non-zero if the audio file may be a ringtone
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
-             * and {@link #IS_RECORDING}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RINGTONE = "is_ringtone";
 
             /**
              * Non-zero if the audio file may be an alarm
-             *
-             * This is mutually exclusive with {@link #IS_AUDIOBOOK},
-             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_ALARM = "is_alarm";
 
             /**
              * Non-zero if the audio file may be a notification sound
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_NOTIFICATION = "is_notification";
 
             /**
              * Non-zero if the audio file is an audiobook
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING}, and
-             * {@link #IS_RINGTONE}
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_AUDIOBOOK = "is_audiobook";
@@ -2876,12 +2959,8 @@ public final class MediaStore {
             /**
              * Non-zero if the audio file is a voice recording recorded
              * by voice recorder apps
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
-             * and {@link #IS_RINGTONE}.
              */
+            @ExportedSince(osVersion = Build.VERSION_CODES.S)
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RECORDING = "is_recording";
 
@@ -3186,12 +3265,7 @@ public final class MediaStore {
 
             /**
              * Path to the playlist file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -3604,12 +3678,7 @@ public final class MediaStore {
         public static class Thumbnails implements BaseColumns {
             /**
              * Path to the thumbnail file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -3941,12 +4010,7 @@ public final class MediaStore {
 
             /**
              * Path to the thumbnail file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -4278,6 +4342,50 @@ public final class MediaStore {
         return out.getBoolean(EXTRA_IS_SYSTEM_GALLERY_RESPONSE);
     }
 
+    private static Uri maybeRemoveUserId(@NonNull Uri uri) {
+        if (uri.getUserInfo() == null) return uri;
+
+        Uri.Builder builder = uri.buildUpon();
+        builder.authority(uri.getHost());
+        return builder.build();
+    }
+
+    private static List<Uri> maybeRemoveUserId(@NonNull List<Uri> uris) {
+        List<Uri> newUriList = new ArrayList<>();
+        for (Uri uri : uris) {
+            newUriList.add(maybeRemoveUserId(uri));
+        }
+        return newUriList;
+    }
+
+    private static int getUserIdFromUri(Uri uri) {
+        final String userId = uri.getUserInfo();
+        return userId == null ? MY_USER_ID : Integer.parseInt(userId);
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private static Uri maybeAddUserId(@NonNull Uri uri, String userId) {
+        if (userId == null) {
+            return uri;
+        }
+
+        return ContentProvider.createContentUriForUser(uri,
+            UserHandle.of(Integer.parseInt(userId)));
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private static List<Uri> maybeAddUserId(@NonNull List<Uri> uris, String userId) {
+        if (userId == null) {
+            return uris;
+        }
+
+        List<Uri> newUris = new ArrayList<>();
+        for (Uri uri : uris) {
+            newUris.add(maybeAddUserId(uri, userId));
+        }
+        return newUris;
+    }
+
     /**
      * Returns an EXIF redacted version of {@code uri} i.e. a {@link Uri} with metadata such as
      * location, GPS datestamp etc. redacted from the EXIF headers.
@@ -4298,15 +4406,33 @@ public final class MediaStore {
      * @throws SecurityException if the caller doesn't have the read access to {@code uri}
      * @see #getRedactedUri(ContentResolver, List)
      */
+    @RequiresApi(Build.VERSION_CODES.S)
     @Nullable
     public static Uri getRedactedUri(@NonNull ContentResolver resolver, @NonNull Uri uri) {
-        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+        final String authority = uri.getAuthority();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(authority)) {
             final Bundle in = new Bundle();
-            in.putParcelable(EXTRA_URI, uri);
+            final String userId = uri.getUserInfo();
+            // NOTE: The user-id in URI authority is ONLY required to find the correct MediaProvider
+            // process. Once in the correct process, the field is no longer required and may cause
+            // breakage in MediaProvider code. This is because per process logic is agnostic of
+            // user-id. Hence strip away the user ids from URI, if present.
+            in.putParcelable(EXTRA_URI, maybeRemoveUserId(uri));
             final Bundle out = client.call(GET_REDACTED_MEDIA_URI_CALL, null, in);
-            return out.getParcelable(EXTRA_URI);
+            // Add the user-id back to the URI if we had striped it earlier.
+            return maybeAddUserId((Uri) out.getParcelable(EXTRA_URI), userId);
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    private static void verifyUrisBelongToSingleUserId(@NonNull List<Uri> uris) {
+        final int userId = getUserIdFromUri(uris.get(0));
+        for (Uri uri : uris) {
+            if (userId != getUserIdFromUri(uri)) {
+                throw new IllegalArgumentException(
+                    "All the uris should belong to a single user-id");
+            }
         }
     }
 
@@ -4330,16 +4456,27 @@ public final class MediaStore {
      * when the corresponding {@link Uri} could not be found or is unsupported
      * @throws SecurityException if the caller doesn't have the read access to all the elements
      * in {@code uris}
+     * @throws IllegalArgumentException if all the uris in {@code uris} don't belong to same user id
      * @see #getRedactedUri(ContentResolver, Uri)
      */
+    @RequiresApi(Build.VERSION_CODES.S)
     @NonNull
     public static List<Uri> getRedactedUri(@NonNull ContentResolver resolver,
             @NonNull List<Uri> uris) {
-        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+        verifyUrisBelongToSingleUserId(uris);
+        final String authority = uris.get(0).getAuthority();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(authority)) {
+            final String userId = uris.get(0).getUserInfo();
             final Bundle in = new Bundle();
-            in.putParcelableArrayList(EXTRA_URI_LIST, (ArrayList<? extends Parcelable>) uris);
+            // NOTE: The user-id in URI authority is ONLY required to find the correct MediaProvider
+            // process. Once in the correct process, the field is no longer required and may cause
+            // breakage in MediaProvider code. This is because per process logic is agnostic of
+            // user-id. Hence strip away the user ids from URIs, if present.
+            in.putParcelableArrayList(EXTRA_URI_LIST,
+                (ArrayList<? extends Parcelable>) maybeRemoveUserId(uris));
             final Bundle out = client.call(GET_REDACTED_MEDIA_URI_LIST_CALL, null, in);
-            return out.getParcelableArrayList(EXTRA_URI_LIST);
+            // Add the user-id back to the URI if we had striped it earlier.
+            return maybeAddUserId(out.getParcelableArrayList(EXTRA_URI_LIST), userId);
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
         }
@@ -4435,5 +4572,39 @@ public final class MediaStore {
                 Log.w(TAG, "Unknown AppOpsManager mode " + opMode);
                 return false;
         }
+    }
+
+    /**
+     * Returns the authority of the currently enabled cloud provider or {@code null} if there's none
+     * enabled.
+     *
+     * See android.provider.CloudMediaProvider
+     */
+    // TODO(b/202733511): Convert See to @see tag after CloudMediaProvider API is unhidden
+    @Nullable
+    public static String getCloudProvider(@NonNull ContentResolver resolver) {
+        Objects.requireNonNull(resolver);
+
+        final Bundle out = resolver.call(AUTHORITY, GET_CLOUD_PROVIDER_CALL, null, null);
+        return out.getString(EXTRA_CLOUD_PROVIDER);
+    }
+
+    /**
+     * Notifies the OS about a cloud event requiring a full or incremental media collection sync
+     * for the currently enabled cloud provider.
+     *
+     * The OS will schedule the sync in the background and will attempt to batch frequent
+     * notifications into a single sync event.
+     *
+     * If the caller is not the currently enabled cloud provider as returned by
+     * {@link #getCloudProvider(ContentResolver)}, the request will be unsuccessful.
+     *
+     * @return {@code true} if the notification was successful, {@code false} otherwise
+     */
+    public static boolean notifyCloudEvent(@NonNull ContentResolver resolver) {
+        Objects.requireNonNull(resolver);
+
+        final Bundle out = resolver.call(AUTHORITY, NOTIFY_CLOUD_EVENT_CALL, null, null);
+        return out.getBoolean(EXTRA_NOTIFY_CLOUD_EVENT_RESULT);
     }
 }

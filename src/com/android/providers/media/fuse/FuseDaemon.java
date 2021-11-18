@@ -23,6 +23,7 @@ import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.GuardedBy;
 import com.android.providers.media.MediaProvider;
+import com.android.providers.media.util.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,18 +41,22 @@ public final class FuseDaemon extends Thread {
     private final MediaProvider mMediaProvider;
     private final int mFuseDeviceFd;
     private final String mPath;
+    private final String[] mSupportedTranscodingRelativePaths;
     private final ExternalStorageServiceImpl mService;
     @GuardedBy("mLock")
     private long mPtr;
 
     public FuseDaemon(@NonNull MediaProvider mediaProvider,
             @NonNull ExternalStorageServiceImpl service, @NonNull ParcelFileDescriptor fd,
-            @NonNull String sessionId, @NonNull String path) {
+            @NonNull String sessionId, @NonNull String path,
+            String[] supportedTranscodingRelativePaths) {
         mMediaProvider = Objects.requireNonNull(mediaProvider);
         mService = Objects.requireNonNull(service);
         setName(Objects.requireNonNull(sessionId));
         mFuseDeviceFd = Objects.requireNonNull(fd).detachFd();
         mPath = Objects.requireNonNull(path);
+        mSupportedTranscodingRelativePaths
+                = Objects.requireNonNull(supportedTranscodingRelativePaths);
     }
 
     /** Starts a FUSE session. Does not return until the lower filesystem is unmounted. */
@@ -67,7 +72,7 @@ public final class FuseDaemon extends Thread {
         }
 
         Log.i(TAG, "Starting thread for " + getName() + " ...");
-        native_start(ptr, mFuseDeviceFd, mPath); // Blocks
+        native_start(ptr, mFuseDeviceFd, mPath, mSupportedTranscodingRelativePaths); // Blocks
         Log.i(TAG, "Exiting thread for " + getName() + " ...");
 
         synchronized (mLock) {
@@ -95,7 +100,7 @@ public final class FuseDaemon extends Thread {
                 Log.e(TAG, "initializeDeviceId failed, FUSE daemon unavailable");
                 return;
             }
-            String path = mMediaProvider.getFuseFile(new File(mPath)).getAbsolutePath();
+            String path = FileUtils.toFuseFile(new File(mPath)).getAbsolutePath();
             native_initialize_device_id(mPtr, path);
         }
     }
@@ -180,7 +185,8 @@ public final class FuseDaemon extends Thread {
     private native long native_new(MediaProvider mediaProvider);
 
     // Takes ownership of the passed in file descriptor!
-    private native void native_start(long daemon, int deviceFd, String path);
+    private native void native_start(long daemon, int deviceFd, String path,
+            String[] supportedTranscodingRelativePaths);
 
     private native void native_delete(long daemon);
     private native boolean native_should_open_with_fuse(long daemon, String path, boolean readLock,

@@ -85,6 +85,10 @@ public class MediaService extends JobIntentService {
                     onScanFile(this, intent.getData());
                     break;
                 }
+                case Intent.ACTION_MEDIA_MOUNTED: {
+                    onMediaMountedBroadcast(this, intent);
+                    break;
+                }
                 case ACTION_SCAN_VOLUME: {
                     final MediaVolume volume = intent.getParcelableExtra(EXTRA_MEDIAVOLUME);
                     int reason = intent.getIntExtra(EXTRA_SCAN_REASON, REASON_DEMAND);
@@ -120,12 +124,24 @@ public class MediaService extends JobIntentService {
         }
     }
 
-    private static void onScanVolume(Context context, Intent intent, int reason)
+    private static void onMediaMountedBroadcast(Context context, Intent intent)
             throws IOException {
-
         final StorageVolume volume = intent.getParcelableExtra(StorageVolume.EXTRA_STORAGE_VOLUME);
         if (volume != null) {
-            onScanVolume(context, MediaVolume.fromStorageVolume(volume), reason);
+            MediaVolume mediaVolume = MediaVolume.fromStorageVolume(volume);
+            try (ContentProviderClient cpc = context.getContentResolver()
+                    .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+                if (!((MediaProvider)cpc.getLocalContentProvider()).isVolumeAttached(mediaVolume)) {
+                    // This can happen on some legacy app clone implementations, where the
+                    // framework is modified to send MEDIA_MOUNTED broadcasts for clone volumes
+                    // to u0 MediaProvider; these volumes are not reported through the usual
+                    // volume attach events, so we need to scan them here if they weren't
+                    // attached previously
+                    onScanVolume(context, mediaVolume, REASON_MOUNTED);
+                } else {
+                    Log.i(TAG, "Volume " + mediaVolume + " already attached");
+                }
+            }
         } else {
             Log.e(TAG, "Couldn't retrieve StorageVolume from intent");
         }

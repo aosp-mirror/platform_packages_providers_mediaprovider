@@ -98,20 +98,20 @@ public class ActiveProfileButtonTest extends PhotoPickerBaseTest {
         onView(withId(PROFILE_BUTTON)).check(matches(isDisplayed()));
 
         // Select 1st item thumbnail and verify profile button is not shown
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_CHECK_ID);
 
         onView(withId(PROFILE_BUTTON)).check(matches(not(isDisplayed())));
 
         // Deselect the item to check profile button is shown
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
-        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_CHECK_ID);
 
         onView(withId(PROFILE_BUTTON)).check(matches(isDisplayed()));
 
         // Select 1st item thumbnail and verify profile button is not shown
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_CHECK_ID);
         onView(withId(PROFILE_BUTTON)).check(matches(not(isDisplayed())));
 
         // Goto Albums page and verify profile button is not shown

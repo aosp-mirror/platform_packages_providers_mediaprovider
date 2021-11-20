@@ -177,10 +177,18 @@ public class ItemsProviderTest {
         // {@link ItemsProvider#getCategories(String, UserId)}
         final File screenshotsDir = getScreenshotsDir();
         File imageFile = assertCreateNewImage(screenshotsDir);
+        // Create 1 image file in Screenshots dir of Downloads dir
+        // {@link ItemsProvider#getCategories(String, UserId)}
+        final File screenshotsDirInDownloadsDir = getScreenshotsDirFromDownloadsDir();
+        File imageFileInScreenshotDirInDownloads =
+                assertCreateNewImage(screenshotsDirInDownloadsDir);
         try {
-            assertGetCategoriesMatchSingle(Category.CATEGORY_SCREENSHOTS, /* numberOfItems */ 1);
+            assertGetCategoriesMatchMultiple(Category.CATEGORY_SCREENSHOTS,
+                    Category.CATEGORY_DOWNLOADS, /* numberOfItemsInScreenshots */ 2,
+                                             /* numberOfItemsInDownloads */ 1);
         } finally {
             imageFile.delete();
+            imageFileInScreenshotDirInDownloads.delete();
         }
     }
 
@@ -787,6 +795,10 @@ public class ItemsProviderTest {
 
     private File getScreenshotsDir() {
         return new File(getPicturesDir(), Environment.DIRECTORY_SCREENSHOTS);
+    }
+
+    private File getScreenshotsDirFromDownloadsDir() {
+        return new File(getDownloadsDir(), Environment.DIRECTORY_SCREENSHOTS);
     }
 
     private File createHiddenDir() throws Exception {

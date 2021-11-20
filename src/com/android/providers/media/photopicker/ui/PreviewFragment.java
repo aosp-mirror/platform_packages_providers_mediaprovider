@@ -23,6 +23,9 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -70,6 +73,31 @@ public class PreviewFragment extends Fragment {
     private ViewPager2 mViewPager;
     private PreviewAdapter mAdapter;
     private ViewPager2.OnPageChangeCallback mOnPageChangeCallBack;
+    private boolean mShouldShowGifBadge;
+    private boolean mShouldShowMotionPhotoBadge;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Register with the activity to inform the system that the app bar fragment is
+        // participating in the population of the options menu
+        setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        inflater.inflate(R.menu.picker_preview_menu, menu);
+    }
+
+    @Override
+    public void onPrepareOptionsMenu(@NonNull Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        // All logic to hide/show an item in the menu must be in this method
+        final MenuItem gifItem = menu.findItem(R.id.preview_gif);
+        final MenuItem motionPhotoItem = menu.findItem(R.id.preview_motion_photo);
+        gifItem.setVisible(mShouldShowGifBadge);
+        motionPhotoItem.setVisible(mShouldShowMotionPhotoBadge);
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
@@ -186,6 +214,9 @@ public class PreviewFragment extends Fragment {
             addOrSelectButton.setOnClickListener(
                     v -> onClickSelect(addOrSelectButton, /* shouldUpdateButtonState */ false));
         }
+
+        // Set the appropriate special format icon based on the item in the preview
+        updateSpecialFormatIcon(mAdapter.getItem(0));
     }
 
     /**
@@ -276,6 +307,9 @@ public class PreviewFragment extends Fragment {
             // selection list.
             updateSelectButtonStateAndText(mSelectButton,
                     mSelection.isItemSelected(mAdapter.getItem(position)));
+
+            // Set the appropriate special format icon based on the item in the preview
+            updateSpecialFormatIcon(mAdapter.getItem(position));
         }
     }
 
@@ -283,6 +317,14 @@ public class PreviewFragment extends Fragment {
             boolean isSelected) {
         selectButton.setSelected(isSelected);
         updateSelectButtonText(selectButton, isSelected);
+    }
+
+    private void updateSpecialFormatIcon(Item item) {
+        mShouldShowGifBadge = item.isGif();
+        mShouldShowMotionPhotoBadge = item.isMotionPhoto();
+        // Invalidating options menu calls onPrepareOptionsMenu() where the logic for
+        // hiding/showing menu items is placed.
+        requireActivity().invalidateOptionsMenu();
     }
 
     private static void updateSelectButtonText(@NonNull Button selectButton, boolean isSelected) {

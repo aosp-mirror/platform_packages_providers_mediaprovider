@@ -17,6 +17,7 @@
 package android.provider;
 
 import android.annotation.SystemApi;
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
@@ -324,6 +325,30 @@ public final class CloudMediaProviderContract {
         public static final String MEDIA_COUNT = "media_count";
     }
 
+    /** Constants related to the account information */
+    public static final class AccountInfo {
+        private AccountInfo() {}
+
+        /**
+         * Name of the account owning the media collection synced from the cloud provider.
+         * <p>
+         * Type: STRING
+         *
+         * @see CloudMediaProvider#onGetAccountInfo
+         */
+        public static final String ACTIVE_ACCOUNT_NAME = "active_account_name";
+
+        /**
+         * {@link Intent} Intent to launch an {@link Activity} to allow users configure their media
+         * collection account information like the active account.
+         * <p>
+         * Type: PARCELABLE
+         *
+         * @see CloudMediaProvider#onGetAccountInfo
+         */
+        public static final String ACCOUNT_CONFIGURATION_INTENT = "account_configuration_intent";
+    }
+
     /**
      * Opaque pagination token to retrieve the next page (cursor) from a media or album query.
      * <p>
@@ -435,6 +460,14 @@ public final class CloudMediaProviderContract {
     public static final String METHOD_GET_MEDIA_INFO = "android:getMediaInfo";
 
     /**
+     * Constant used to execute {@link CloudMediaProvider#onGetAccountInfo} via
+     * {@link ContentProvider#call}.
+     *
+     * {@hide}
+     */
+    public static final String METHOD_GET_ACCOUNT_INFO = "android:getAccountInfo";
+
+    /**
      * URI path for {@link CloudMediaProvider#onQueryMedia}
      *
      * {@hide}
@@ -468,4 +501,11 @@ public final class CloudMediaProviderContract {
      * {@hide}
      */
     public static final String URI_PATH_MEDIA_INFO = "media_info";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onGetAccountInfo}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_ACCOUNT_INFO = "account_info";
 }

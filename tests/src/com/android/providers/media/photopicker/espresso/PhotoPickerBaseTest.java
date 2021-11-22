@@ -176,9 +176,9 @@ public class PhotoPickerBaseTest {
         // Create files and change dateModified so that we can predict the recyclerView item
         // position. Set modified date ahead of time, so that even if other files are created,
         // the below files always have positions 1, 2 and 3.
-        createFile(IMAGE_1_FILE, timeNow + 3000);
-        createFile(IMAGE_2_FILE, timeNow + 2000);
-        createFile(VIDEO_FILE, timeNow + 1000);
+        createFile(IMAGE_1_FILE, timeNow + 30000);
+        createFile(IMAGE_2_FILE, timeNow + 20000);
+        createFile(VIDEO_FILE, timeNow + 10000);
     }
 
     private static void pollForCondition(Supplier<Boolean> condition, String errorMessage)

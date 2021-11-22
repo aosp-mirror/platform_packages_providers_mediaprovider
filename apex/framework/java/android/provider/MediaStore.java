@@ -4579,6 +4579,8 @@ public final class MediaStore {
      * enabled.
      *
      * See android.provider.CloudMediaProvider
+     *
+     * @hide
      */
     // TODO(b/202733511): Convert See to @see tag after CloudMediaProvider API is unhidden
     @Nullable
@@ -4600,6 +4602,8 @@ public final class MediaStore {
      * {@link #getCloudProvider(ContentResolver)}, the request will be unsuccessful.
      *
      * @return {@code true} if the notification was successful, {@code false} otherwise
+     *
+     * @hide
      */
     public static boolean notifyCloudEvent(@NonNull ContentResolver resolver) {
         Objects.requireNonNull(resolver);

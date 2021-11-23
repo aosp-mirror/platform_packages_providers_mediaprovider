@@ -16,6 +16,7 @@
 
 package android.provider;
 
+import static android.provider.CloudMediaProviderContract.METHOD_GET_ACCOUNT_INFO;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_INFO;
 import static android.provider.CloudMediaProviderContract.URI_PATH_ALBUM;
 import static android.provider.CloudMediaProviderContract.URI_PATH_DELETED_MEDIA;
@@ -114,6 +115,25 @@ public abstract class CloudMediaProvider extends ContentProvider {
     }
 
     /**
+     * Returns account related information for the media collection.
+     * <p>
+     * This is useful for the OS to populate a settings page with account information and allow
+     * users configure their media collection account.
+     *
+     * @param extras containing keys to filter result:
+     * <ul>
+     * <li> {@link CloudMediaProviderContract.AccountInfo#ACTIVE_ACCOUNT_NAME}
+     * <li> {@link CloudMediaProviderContract.AccountInfo#ACCOUNT_CONFIGURATION_INTENT}
+     * </ul>
+     *
+     * @return {@link Bundle} containing {@link CloudMediaProviderContract.AccountInfo}
+     */
+    @NonNull
+    public Bundle onGetAccountInfo(@Nullable Bundle extras) {
+        throw new UnsupportedOperationException("getAccountInfo not supported");
+    }
+
+        /**
      * Returns metadata about the media collection itself.
      * <p>
      * This is useful for the OS to determine if its cache of media items in the collection is
@@ -279,6 +299,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
             throws FileNotFoundException {
         if (METHOD_GET_MEDIA_INFO.equals(method)) {
             return onGetMediaInfo(extras);
+        } else if (METHOD_GET_ACCOUNT_INFO.equals(method)) {
+            return onGetAccountInfo(extras);
         } else {
             throw new UnsupportedOperationException("Method not supported " + method);
         }

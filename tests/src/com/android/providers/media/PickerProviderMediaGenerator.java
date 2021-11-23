@@ -16,13 +16,16 @@
 
 package com.android.providers.media;
 
+import static android.provider.CloudMediaProviderContract.AccountInfo;
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.os.Bundle;
 import android.os.SystemClock;
 import android.provider.CloudMediaProvider;
 
@@ -73,6 +76,8 @@ public class PickerProviderMediaGenerator {
         private final List<TestAlbum> mAlbums = new ArrayList<>();
         private String mVersion;
         private long mGeneration;
+        private String mAccountName;
+        private Intent mAccountConfigurationIntent;
 
         public Cursor getMedia(long generation, String albumdId, String mimeType, long sizeBytes) {
             return getCursor(mMedia, generation, albumdId, mimeType, sizeBytes,
@@ -87,6 +92,20 @@ public class PickerProviderMediaGenerator {
             return getCursor(mDeletedMedia, generation, /* albumId */ STRING_DEFAULT,
                     /* mimeType */ STRING_DEFAULT, /* sizeBytes */ LONG_DEFAULT,
                     /* isDeleted */ true);
+        }
+
+        public Bundle getAccountInfo() {
+            Bundle bundle = new Bundle();
+            bundle.putString(AccountInfo.ACTIVE_ACCOUNT_NAME, mAccountName);
+            bundle.putParcelable(AccountInfo.ACCOUNT_CONFIGURATION_INTENT,
+                    mAccountConfigurationIntent);
+
+            return bundle;
+        }
+
+        public void setAccountInfo(String accountName, Intent configIntent) {
+            mAccountName = accountName;
+            mAccountConfigurationIntent = configIntent;
         }
 
         public void addMedia(String localId, String cloudId) {

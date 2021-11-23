@@ -9,6 +9,7 @@ package android.provider {
     method public final int delete(@NonNull android.net.Uri, @Nullable String, @Nullable String[]);
     method @NonNull public final String getType(@NonNull android.net.Uri);
     method @NonNull public final android.net.Uri insert(@NonNull android.net.Uri, @NonNull android.content.ContentValues);
+    method @NonNull public android.os.Bundle onGetAccountInfo(@Nullable android.os.Bundle);
     method @NonNull public abstract android.os.Bundle onGetMediaInfo(@Nullable android.os.Bundle);
     method @NonNull public abstract android.os.ParcelFileDescriptor onOpenMedia(@NonNull String, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
     method @NonNull public abstract android.content.res.AssetFileDescriptor onOpenThumbnail(@NonNull String, @NonNull android.graphics.Point, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
@@ -34,6 +35,11 @@ package android.provider {
     field public static final String EXTRA_PAGE_TOKEN = "android.provider.extra.PAGE_TOKEN";
     field public static final String MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION = "com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS";
     field public static final String PROVIDER_INTERFACE = "android.content.action.CLOUD_MEDIA_PROVIDER";
+  }
+
+  public static final class CloudMediaProviderContract.AccountInfo {
+    field public static final String ACCOUNT_CONFIGURATION_INTENT = "account_configuration_intent";
+    field public static final String ACTIVE_ACCOUNT_NAME = "active_account_name";
   }
 
   public static final class CloudMediaProviderContract.AlbumColumns {

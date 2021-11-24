@@ -20,4 +20,4 @@
           android:layout_height="wrap_content"
           android:minHeight="@dimen/picker_date_header_height"
           android:padding="@dimen/picker_date_header_padding"
-          android:textAppearance="@style/PickerDateHeader"/>
+          android:textAppearance="@style/PickerHeaderTextAppearance"/>

@@ -45,7 +45,7 @@
         android:layout_height="wrap_content"
         android:minHeight="@dimen/picker_album_name_min_height"
         android:layout_marginTop="@dimen/picker_album_name_margin"
-        android:textAppearance="?attr/textAppearanceSubtitle2"/>
+        android:textAppearance="@style/PickerHeaderTextAppearance"/>
 
     <TextView
         android:id="@+id/item_count"
@@ -53,6 +53,6 @@
         android:layout_height="wrap_content"
         android:minHeight="@dimen/picker_album_item_count_height"
         android:layout_marginTop="@dimen/picker_album_item_count_margin"
-        android:textAppearance="?attr/textAppearanceCaption"/>
+        android:textAppearance="@android:style/TextAppearance.DeviceDefault.Small"/>
 
 </LinearLayout>

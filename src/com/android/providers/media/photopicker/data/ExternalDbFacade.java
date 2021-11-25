@@ -66,6 +66,8 @@ public class ExternalDbFacade {
                 CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED,
         MediaColumns.SIZE + " AS " + CloudMediaProviderContract.MediaColumns.SIZE_BYTES,
         MediaColumns.MIME_TYPE + " AS " + CloudMediaProviderContract.MediaColumns.MIME_TYPE,
+        FileColumns._SPECIAL_FORMAT + " AS " +
+                CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
         MediaColumns.DURATION + " AS " + CloudMediaProviderContract.MediaColumns.DURATION_MS,
         MediaColumns.IS_FAVORITE + " AS " + CloudMediaProviderContract.MediaColumns.IS_FAVORITE
     };

@@ -462,8 +462,10 @@ public class PickerSyncControllerTest {
     }
 
     private static void addMedia(MediaGenerator generator, Pair<String, String> media,
-            String albumId, String mimeType, long sizeBytes, boolean isFavorite) {
-        generator.addMedia(media.first, media.second, albumId, mimeType, sizeBytes, isFavorite);
+            String albumId, String mimeType, int standardMimeTypeExtension, long sizeBytes,
+            boolean isFavorite) {
+        generator.addMedia(media.first, media.second, albumId, mimeType, standardMimeTypeExtension,
+                sizeBytes, isFavorite);
     }
 
     private static void deleteMedia(MediaGenerator generator, Pair<String, String> media) {

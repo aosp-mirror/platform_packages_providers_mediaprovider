@@ -62,7 +62,7 @@
             android:textAllCaps="false"
             android:text="@string/deselect"
             android:textColor="@color/picker_default_white"
-            style="?attr/borderlessButtonStyle"/>
+            style="@style/MaterialBorderlessButtonStyle"/>
 
         <Button
             android:id="@+id/preview_add_or_select_button"
@@ -73,6 +73,7 @@
             android:text="@string/add"
             android:textAllCaps="false"
             android:textColor="@color/preview_default_grey"
-            style="?attr/materialButtonStyle"/>
+            style="@style/MaterialButtonStyle"/>
+
     </FrameLayout>
 </FrameLayout>

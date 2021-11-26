@@ -82,6 +82,11 @@ public class AlbumsTabFragment extends TabFragment {
         return bottomBarSize + mBottomBarGap;
     }
 
+    @Override
+    protected String getEmptyMessage() {
+        return getString(R.string.picker_albums_empty_message);
+    }
+
     /**
      * Create the albums tab fragment and add it into the FragmentManager
      *

@@ -97,6 +97,11 @@
     <!-- Recent header for PhotoPicker. [CHAR LIMIT=50] -->
     <string name="recent">Recent</string>
 
+    <!-- The message for empty message on Photos tab in PhotoPicker when the item count is zero. [CHAR LIMIT=NONE] -->
+    <string name="picker_photos_empty_message">No photos or videos</string>
+    <!-- The message for empty message on Albums tab in PhotoPicker when the item count is zero. [CHAR LIMIT=NONE] -->
+    <string name="picker_albums_empty_message">No albums</string>
+
     <!-- PhotoPicker view selected action text. [CHAR LIMIT=80] -->
     <string name="picker_view_selected">View selected</string>
 

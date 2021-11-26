@@ -2630,8 +2630,8 @@ public class MediaProvider extends ContentProvider {
             final Bundle qbExtras = new Bundle();
             qbExtras.putStringArrayList(INCLUDED_DEFAULT_DIRECTORIES,
                     getIncludedDefaultDirectories());
-            final boolean wasHidden = FileUtils.isDirectoryHidden(new File(oldPath));
-            final boolean isHidden = FileUtils.isDirectoryHidden(new File(newPath));
+            final boolean wasHidden = FileUtils.shouldDirBeHidden(new File(oldPath));
+            final boolean isHidden = FileUtils.shouldDirBeHidden(new File(newPath));
             for (String filePath : fileList) {
                 final String newFilePath = newPath + "/" + filePath;
                 final String mimeType = MimeUtils.resolveMimeType(new File(newFilePath));
@@ -2689,21 +2689,6 @@ public class MediaProvider extends ContentProvider {
         return renameFileForFuse(oldPath, newPath, /* bypassRestrictions */ true) ;
     }
 
-    private static boolean shouldFileBeHidden(@NonNull File file) {
-        if (FileUtils.isFileHidden(file)) {
-            return true;
-        }
-        File parent = file.getParentFile();
-        while (parent != null) {
-            if (FileUtils.isDirectoryHidden(parent)) {
-                return true;
-            }
-            parent = parent.getParentFile();
-        }
-
-        return false;
-    }
-
     private int renameFileForFuse(String oldPath, String newPath, boolean bypassRestrictions) {
         final DatabaseHelper helper;
         try {
@@ -2712,8 +2697,8 @@ public class MediaProvider extends ContentProvider {
             throw new IllegalStateException("Failed to update database row with " + oldPath, e);
         }
 
-        final boolean wasHidden = shouldFileBeHidden(new File(oldPath));
-        final boolean isHidden = shouldFileBeHidden(new File(newPath));
+        final boolean wasHidden = FileUtils.shouldFileBeHidden(new File(oldPath));
+        final boolean isHidden = FileUtils.shouldFileBeHidden(new File(newPath));
         helper.beginTransaction();
         try {
             final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
@@ -2829,7 +2814,8 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
-            if (shouldBypassDatabaseAndSetDirtyForFuse(uid, newPath)) {
+            if (shouldBypassDatabaseAndSetDirtyForFuse(uid, oldPath)
+                    && shouldBypassDatabaseAndSetDirtyForFuse(uid, newPath)) {
                 return renameInLowerFs(oldPath, newPath);
             }
 
@@ -4165,7 +4151,8 @@ public class MediaProvider extends ContentProvider {
             if (isCallingPackageSelf() && values.containsKey(FileColumns.MEDIA_TYPE)) {
                 // Leave FileColumns.MEDIA_TYPE untouched if the caller is ModernMediaScanner and
                 // FileColumns.MEDIA_TYPE is already populated.
-            } else if (isFuseThread() && path != null && shouldFileBeHidden(new File(path))) {
+            } else if (isFuseThread() && path != null
+                    && FileUtils.shouldFileBeHidden(new File(path))) {
                 // We should only mark MEDIA_TYPE as MEDIA_TYPE_NONE for Fuse Thread.
                 // MediaProvider#insert() returns the uri by appending the "rowId" to the given
                 // uri, hence to ensure the correct working of the returned uri, we shouldn't
@@ -4231,7 +4218,8 @@ public class MediaProvider extends ContentProvider {
                 // Checking if the file/directory is hidden can be expensive based on the depth of
                 // the directory tree. Call shouldFileBeHidden() only when the caller of insert()
                 // cares about returned uri.
-                if (!isCallingPackageSelf() && !isFuseThread() && shouldFileBeHidden(file)) {
+                if (!isCallingPackageSelf() && !isFuseThread()
+                        && FileUtils.shouldFileBeHidden(file)) {
                     newUri = MediaStore.Files.getContentUri(MediaStore.getVolumeName(uri));
                 }
             }

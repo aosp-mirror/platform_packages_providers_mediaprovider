@@ -17,6 +17,7 @@ package com.android.providers.media.photopicker.ui;
 
 import static com.android.providers.media.photopicker.ui.PhotosTabAdapter.COLUMN_COUNT;
 
+import android.icu.text.MessageFormat;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -39,7 +40,10 @@ import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.text.NumberFormat;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
+import src.com.android.providers.media.util.StringUtils;
 
 /**
  * Photos tab fragment for showing the photos
@@ -136,6 +140,11 @@ public class PhotosTabFragment extends TabFragment {
         }
     }
 
+    @Override
+    protected String getEmptyMessage() {
+        return getString(R.string.picker_photos_empty_message);
+    }
+
     private void onItemClick(@NonNull View view) {
         if (mSelection.canSelectMultiple()) {
             final boolean isSelectedBefore = view.isSelected();
@@ -146,11 +155,12 @@ public class PhotosTabFragment extends TabFragment {
                 if (!mSelection.isSelectionAllowed()) {
                     final int maxCount = mSelection.getMaxSelectionLimit();
                     final CharSequence quantityText =
-                            getResources().getQuantityString(R.plurals.select_up_to, maxCount);
+                        StringUtils.getICUFormatString(
+                            getResources(), maxCount, R.string.select_up_to);
                     final String itemCountString = NumberFormat.getInstance(Locale.getDefault())
-                            .format(maxCount);
+                        .format(maxCount);
                     final CharSequence message = TextUtils.expandTemplate(quantityText,
-                            itemCountString);
+                        itemCountString);
                     Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
                     return;
                 } else {

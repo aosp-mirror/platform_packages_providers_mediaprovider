@@ -29,6 +29,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -516,6 +517,29 @@ public class PickerDataLayerTest {
 
             assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
+    }
+
+    @Test
+    public void testFetchCloudAccountInfo() {
+        // Cloud provider is not set so cloud account info is null
+        assertThat(mDataLayer.fetchCloudAccountInfo()).isNull();
+
+        // Set cloud provider
+        mFacade.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Still null since cloud provider doesn't return account info yet
+        assertThat(mDataLayer.fetchCloudAccountInfo()).isNull();
+
+        // Fake cloud provider cloud account info
+        final String expectedName = "bar";
+        final Intent expectedIntent = new Intent("foo");
+        mCloudPrimaryMediaGenerator.setAccountInfo(expectedName, expectedIntent);
+
+        // Verify account info
+        final PickerDataLayer.AccountInfo info = mDataLayer.fetchCloudAccountInfo();
+        assertThat(info).isNotNull();
+        assertThat(info.accountName).isEqualTo(expectedName);
+        assertThat(info.accountConfigurationIntent).isEqualTo(expectedIntent);
     }
 
     private static void waitForIdle() {

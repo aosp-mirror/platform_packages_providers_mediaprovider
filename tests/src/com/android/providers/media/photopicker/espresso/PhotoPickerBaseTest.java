@@ -163,12 +163,26 @@ public class PhotoPickerBaseTest {
 
     @AfterClass
     public static void destroyClass() {
-        IMAGE_1_FILE.delete();
-        IMAGE_2_FILE.delete();
-        VIDEO_FILE.delete();
+        deleteFiles(/* invalidateMediaStore */ false);
 
         InstrumentationRegistry.getInstrumentation()
                 .getUiAutomation().dropShellPermissionIdentity();
+    }
+
+    protected static void deleteFiles(boolean invalidateMediaStore) {
+        deleteFile(IMAGE_1_FILE, invalidateMediaStore);
+        deleteFile(IMAGE_2_FILE, invalidateMediaStore);
+        deleteFile(VIDEO_FILE, invalidateMediaStore);
+    }
+
+    private static void deleteFile(File file, boolean invalidateMediaStore) {
+        file.delete();
+        if (invalidateMediaStore) {
+            final Uri uri = MediaStore.scanFile(getIsolatedContext().getContentResolver(), file);
+            assertThat(uri).isNull();
+            // Force picker db sync for that db operation
+            MediaStore.waitForIdle(getIsolatedContext().getContentResolver());
+        }
     }
 
     private static void createFiles() throws Exception {

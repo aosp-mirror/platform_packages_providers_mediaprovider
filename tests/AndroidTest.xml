@@ -23,6 +23,11 @@
         <option name="install-arg" value="-g" />
     </target_preparer>
 
+    <option
+        name="config-descriptor:metadata"
+        key="mainline-param"
+        value="com.google.android.mediaprovider.apex" />
+
     <option name="test-suite-tag" value="apct" />
     <option name="test-suite-tag" value="framework-base-presubmit" />
     <option name="test-tag" value="MediaProviderTests" />

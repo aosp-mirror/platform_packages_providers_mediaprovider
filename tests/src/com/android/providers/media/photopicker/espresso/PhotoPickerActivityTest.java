@@ -35,6 +35,7 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewMatch
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.not;
 
 import android.app.Activity;
 
@@ -61,6 +62,7 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         onView(withId(R.id.toolbar)).check(matches(isDisplayed()));
         onView(withId(R.id.fragment_container)).check(matches(isDisplayed()));
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+        onView(withId(android.R.id.empty)).check(matches(not(isDisplayed())));
         onView(withContentDescription("Navigate up")).perform(click());
         assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
                 Activity.RESULT_CANCELED);

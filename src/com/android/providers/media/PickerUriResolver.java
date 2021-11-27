@@ -18,6 +18,7 @@ package com.android.providers.media;
 
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
+import static com.android.providers.media.util.FileUtils.toFuseFile;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -167,6 +168,11 @@ public class PickerUriResolver {
                 + CloudMediaProviderContract.URI_PATH_MEDIA_INFO);
     }
 
+    public static Uri getAccountInfoUri(String authority) {
+        return Uri.parse("content://" + authority + "/"
+                + CloudMediaProviderContract.URI_PATH_ACCOUNT_INFO);
+    }
+
     public static Uri getAlbumUri(String authority) {
         return Uri.parse("content://" + authority + "/"
                 + CloudMediaProviderContract.URI_PATH_ALBUM);
@@ -196,7 +202,7 @@ public class PickerUriResolver {
         if (file == null) {
             throw new FileNotFoundException("File not found for uri: " + uri);
         }
-        return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
+        return ParcelFileDescriptor.open(toFuseFile(file), ParcelFileDescriptor.MODE_READ_ONLY);
     }
 
     private File getPickerFileFromUri(Uri uri) {

@@ -1,9 +1,10 @@
 {
-    "mainline-presubmit": [
-        {
-            "name": "MediaProviderTests[com.google.android.mediaprovider.apex]"
-        }
-    ],
+    // TODO(b/204107787): Re-enable this once MP from master can be installed on R and S devices
+    // "mainline-presubmit": [
+    //     {
+    //         "name": "MediaProviderTests[com.google.android.mediaprovider.apex]"
+    //     }
+    // ],
     "presubmit": [
         {
             "name": "MediaProviderTests"

@@ -20,9 +20,6 @@ import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COL
 import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_FAVORITES;
 import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_LOCAL;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 import static com.google.common.truth.Truth.assertThat;
@@ -32,7 +29,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.MediaStore;
@@ -45,7 +41,6 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Item;
 
 import java.util.List;
 import java.util.Objects;
@@ -155,13 +150,14 @@ public class PickerDataLayerTest {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, /* albumId */ null, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ true);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ true);
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_2, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES - 1, /* isFavorite */ true);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES - 1,
+                /* isFavorite */ true);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
 
@@ -186,13 +182,14 @@ public class PickerDataLayerTest {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, /* albumId */ null, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ true);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ true);
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_2, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES - 1, /* isFavorite */ true);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES - 1,
+                /* isFavorite */ true);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
 
@@ -216,13 +213,14 @@ public class PickerDataLayerTest {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, /* albumId */ null, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ true);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ true);
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_2, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES - 1, /* isFavorite */ true);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES - 1,
+                /* isFavorite */ true);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
 
@@ -246,13 +244,14 @@ public class PickerDataLayerTest {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, /* albumId */ null, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ true);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ true);
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_2, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES - 1, /* isFavorite */ true);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES - 1,
+                /* isFavorite */ true);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
 
@@ -274,9 +273,9 @@ public class PickerDataLayerTest {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, /* albumId */ null, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle queryArgs = buildQueryArgs(IMAGE_MIME_TYPE, SIZE_BYTES_DEFAULT);
 
@@ -293,9 +292,10 @@ public class PickerDataLayerTest {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES - 1, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES - 1,
+                /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle queryArgs = buildQueryArgs(IMAGE_MIME_TYPE, SIZE_BYTES - 1);
 
@@ -312,11 +312,13 @@ public class PickerDataLayerTest {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, /* albumId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES - 1, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES - 1,
+                /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, /* albumId */ null, VIDEO_MIME_TYPE,
-                SIZE_BYTES - 1, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES - 1,
+                /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2, /* albumId */ null, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle queryArgs = buildQueryArgs(VIDEO_MIME_TYPE, SIZE_BYTES - 1);
 
@@ -336,13 +338,13 @@ public class PickerDataLayerTest {
         mCloudPrimaryMediaGenerator.createAlbum(ALBUM_ID_2);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, ALBUM_ID_1, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, ALBUM_ID_2, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_2, /* albumId */ null, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ true);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ true);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2, /* albumdId */ null, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ true);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ true);
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
 
@@ -401,13 +403,13 @@ public class PickerDataLayerTest {
         mCloudPrimaryMediaGenerator.createAlbum(ALBUM_ID_2);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, ALBUM_ID_1, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, ALBUM_ID_2, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_2, ALBUM_ID_1, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2, ALBUM_ID_2, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle mimeTypeQueryArgs = buildQueryArgs(IMAGE_MIME_TYPE, SIZE_BYTES_DEFAULT);
 
@@ -446,13 +448,15 @@ public class PickerDataLayerTest {
         mCloudPrimaryMediaGenerator.createAlbum(ALBUM_ID_2);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, ALBUM_ID_1, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, ALBUM_ID_2, VIDEO_MIME_TYPE,
-                SIZE_BYTES - 1, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES - 1,
+                /* isFavorite */ false);
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_2, ALBUM_ID_1, VIDEO_MIME_TYPE,
-                SIZE_BYTES - 1, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES - 1,
+                /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2, ALBUM_ID_2, IMAGE_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle sizeQueryArgs = buildQueryArgs(MIME_TYPE_DEFAULT, SIZE_BYTES - 1);
 
@@ -491,13 +495,15 @@ public class PickerDataLayerTest {
         mCloudPrimaryMediaGenerator.createAlbum(ALBUM_ID_2);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, ALBUM_ID_1, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, ALBUM_ID_2, VIDEO_MIME_TYPE,
-                SIZE_BYTES - 1, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES - 1,
+                /* isFavorite */ false);
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_2, ALBUM_ID_1, VIDEO_MIME_TYPE,
-                SIZE_BYTES - 1, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES - 1,
+                /* isFavorite */ false);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2, ALBUM_ID_2, VIDEO_MIME_TYPE,
-                SIZE_BYTES, /* isFavorite */ false);
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle mimeTypeAndSizeQueryArgs = buildQueryArgs(VIDEO_MIME_TYPE, SIZE_BYTES -1);
 
@@ -588,8 +594,10 @@ public class PickerDataLayerTest {
     }
 
     private static void addMedia(MediaGenerator generator, Pair<String, String> media,
-            String albumId, String mimeType, long sizeBytes, boolean isFavorite) {
-        generator.addMedia(media.first, media.second, albumId, mimeType, sizeBytes, isFavorite);
+            String albumId, String mimeType, int standardMimeTypeExtension, long sizeBytes,
+            boolean isFavorite) {
+        generator.addMedia(media.first, media.second, albumId, mimeType,
+                standardMimeTypeExtension, sizeBytes, isFavorite);
     }
 
     private static void deleteMedia(MediaGenerator generator, Pair<String, String> media) {

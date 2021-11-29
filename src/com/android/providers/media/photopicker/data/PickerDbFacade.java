@@ -98,6 +98,8 @@ public class PickerDbFacade {
     @VisibleForTesting
     public static final String KEY_MIME_TYPE = "mime_type";
     @VisibleForTesting
+    public static final String KEY_STANDARD_MIME_TYPE_EXTENSION = "standard_mime_type_extension";
+    @VisibleForTesting
     public static final String KEY_IS_FAVORITE = "is_favorite";
 
     @VisibleForTesting
@@ -122,6 +124,9 @@ public class PickerDbFacade {
             CloudMediaProviderContract.MediaColumns.DURATION_MS);
     private static final String PROJECTION_MIME_TYPE = String.format("%s AS %s", KEY_MIME_TYPE,
             CloudMediaProviderContract.MediaColumns.MIME_TYPE);
+    private static final String PROJECTION_STANDARD_MIME_TYPE_EXTENSION = String.format("%s AS %s",
+            KEY_STANDARD_MIME_TYPE_EXTENSION,
+            CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION);
 
     private static final String WHERE_ID = KEY_ID + " = ?";
     private static final String WHERE_LOCAL_ID = KEY_LOCAL_ID + " = ?";
@@ -642,7 +647,8 @@ public class PickerDbFacade {
             PROJECTION_GENERATION_MODIFIED,
             PROJECTION_SIZE,
             PROJECTION_DURATION,
-            PROJECTION_MIME_TYPE
+            PROJECTION_MIME_TYPE,
+            PROJECTION_STANDARD_MIME_TYPE_EXTENSION
         };
     }
 
@@ -713,6 +719,14 @@ public class PickerDbFacade {
                 case CloudMediaProviderContract.MediaColumns.MIME_TYPE:
                     values.put(KEY_MIME_TYPE, cursor.getString(index));
                     break;
+                case CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION:
+                    int standardMimeTypeExtension = cursor.getInt(index);
+                    if (isValidStandardMimeTypeExtension(standardMimeTypeExtension)) {
+                        values.put(KEY_STANDARD_MIME_TYPE_EXTENSION, standardMimeTypeExtension);
+                    } else {
+                        throw new IllegalArgumentException("Invalid standard mime type extension");
+                    }
+                    break;
                 case CloudMediaProviderContract.MediaColumns.DURATION_MS:
                     values.put(KEY_DURATION_MS, cursor.getLong(index));
                     break;
@@ -725,6 +739,16 @@ public class PickerDbFacade {
         }
 
         return values;
+    }
+
+    private static boolean isValidStandardMimeTypeExtension(int standardMimeTypeExtension) {
+        return (standardMimeTypeExtension ==
+                CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE) ||
+                (standardMimeTypeExtension ==
+                        CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF) ||
+                (standardMimeTypeExtension ==
+                        CloudMediaProviderContract.MediaColumns.
+                                STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO);
     }
 
     private static String[] buildSelectionArgs(SQLiteQueryBuilder qb, QueryFilter query) {

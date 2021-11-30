@@ -4,6 +4,7 @@ import static android.os.Build.VERSION.SDK_INT;
 import static android.provider.MediaStore.ACTION_PICK_IMAGES;
 import static android.provider.MediaStore.EXTRA_PICK_IMAGES_MAX;
 
+import android.annotation.SuppressLint;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -139,6 +140,9 @@ public class PhotoPickerToolActivity extends AppCompatActivity {
         mMaxCountText.setEnabled(isChecked);
     }
 
+    // We mistakenly get lint warning about using getPickImagesMaxLimit. The API is
+    // actually available in SX.
+    @SuppressLint("NewApi")
     private void onLaunchButtonClicked(View view) {
         final Intent intent;
         if (mGetContentCheckBox.isChecked()) {
@@ -156,6 +160,8 @@ public class PhotoPickerToolActivity extends AppCompatActivity {
             if (mGetContentCheckBox.isChecked()) {
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             } else {
+                // We mistakenly get lint warning about using getPickImagesMaxLimit. The API is
+                // actually available in SX.
                 intent.putExtra(EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit());
             }
         }
@@ -182,6 +188,9 @@ public class PhotoPickerToolActivity extends AppCompatActivity {
         }
     }
 
+    // We mistakenly get lint warning about using getExtensionVersion on API level < 32. The API is
+    // actually available in R+.
+    @SuppressLint("NewApi")
     private boolean isPhotoPickerAvailable() {
         return SDK_INT >= Build.VERSION_CODES.R
             && SdkExtensions.getExtensionVersion(Build.VERSION_CODES.R) >= 2;

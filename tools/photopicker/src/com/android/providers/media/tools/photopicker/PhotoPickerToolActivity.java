@@ -253,7 +253,7 @@ public class PhotoPickerToolActivity extends Activity {
     private ImageView generateImageView(Uri uri, LinearLayout.LayoutParams params) {
         final ImageView image = new ImageView(this);
         image.setLayoutParams(params);
-        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
         Glide.with(this)
                 .load(uri)
                 .thumbnail()

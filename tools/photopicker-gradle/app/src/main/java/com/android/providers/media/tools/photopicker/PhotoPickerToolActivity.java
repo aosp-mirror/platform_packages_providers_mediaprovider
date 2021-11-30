@@ -276,7 +276,7 @@ public class PhotoPickerToolActivity extends AppCompatActivity {
     private ImageView generateImageView(Uri uri, LinearLayout.LayoutParams params) {
         final ImageView image = new ImageView(this);
         image.setLayoutParams(params);
-        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
         image.setImageURI(uri);
         return image;
     }

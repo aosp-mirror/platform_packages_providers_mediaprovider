@@ -29,18 +29,8 @@
     <string name="permission_required_action" msgid="706370952366113539">"המשך"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"כן, זה בסדר"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"אני לא מרשה"</string>
-    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
-      <item quantity="two">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="many">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
-    </plurals>
-    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
-      <item quantity="two">ועוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים נוספים</item>
-      <item quantity="many">ועוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים נוספים</item>
-      <item quantity="other">ועוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים נוספים</item>
-      <item quantity="one">ועוד פריט אחד נוסף (<xliff:g id="COUNT_0">^1</xliff:g>)</item>
-    </plurals>
+    <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{עוד פריט אחד (<xliff:g id="COUNT_0">^1</xliff:g>)}two{עוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים}many{עוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים}other{עוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים}}"</string>
+    <string name="permission_more_text" msgid="2471785045095597753">"{count,plural, =1{ועוד פריט אחד (<xliff:g id="COUNT_0">^1</xliff:g>) נוסף}two{ועוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים נוספים}many{ועוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים נוספים}other{ועוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים נוספים}}"</string>
     <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"ניקוי קובצי אפליקציה זמניים"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"קיבלת בקשה מהאפליקציה <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> לניקוי של חלק מהקבצים הזמניים. הפעולה עשויה להגביר את השימוש בסוללה או בחבילת הגלישה."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"מתבצע ניקוי של קובצי אפליקציה זמניים…"</string>
@@ -50,13 +40,12 @@
     <string name="add" msgid="2894574044585549298">"הוספה"</string>
     <string name="deselect" msgid="4297825044827769490">"ביטול הבחירה"</string>
     <string name="select" msgid="2704765470563027689">"בחירה"</string>
-    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
-      <item quantity="two">יש לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר</item>
-      <item quantity="many">יש לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר</item>
-      <item quantity="other">יש לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר</item>
-      <item quantity="one">יש לבחור פריט אחד (<xliff:g id="COUNT_0">^1</xliff:g>) לכל היותר</item>
-    </plurals>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{יש לבחור פריט אחד (<xliff:g id="COUNT_0">^1</xliff:g>) לכל היותר}two{יש לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר}many{יש לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר}other{יש לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר}}"</string>
     <string name="recent" msgid="6694613584743207874">"אחרונות"</string>
+    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
+    <skip />
+    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
+    <skip />
     <string name="picker_view_selected" msgid="2266031384396143883">"הצגת הפריטים שנבחרו"</string>
     <string name="picker_photos" msgid="7415035516411087392">"תמונות"</string>
     <string name="picker_albums" msgid="4822511902115299142">"אלבומים"</string>
@@ -67,12 +56,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"אי אפשר לגשת למידע אישי דרך אפליקציה לעבודה"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"האפליקציות לעבודה מושהות"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"כדי לפתוח תמונות מפרופיל העבודה, צריך להפעיל את האפליקציות לעבודה ולנסות שוב"</string>
-    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
-      <item quantity="two"><xliff:g id="COUNT_1">^1</xliff:g> פריטים</item>
-      <item quantity="many"><xliff:g id="COUNT_1">^1</xliff:g> פריטים</item>
-      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> פריטים</item>
-      <item quantity="one">פריט אחד (<xliff:g id="COUNT_0">^1</xliff:g>)</item>
-    </plurals>
+    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{פריט אחד (<xliff:g id="COUNT_0">^1</xliff:g>)}two{<xliff:g id="COUNT_1">^1</xliff:g> פריטים}many{<xliff:g id="COUNT_1">^1</xliff:g> פריטים}other{<xliff:g id="COUNT_1">^1</xliff:g> פריטים}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"הוספה (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"מצלמה"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"הורדות"</string>
@@ -80,198 +64,39 @@
     <string name="picker_category_screenshots" msgid="7216102327587644284">"צילומי מסך"</string>
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
-    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את קובץ האודיו הזה?</item>
-    </plurals>
-    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="two">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…</item>
-      <item quantity="many">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…</item>
-      <item quantity="other">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…</item>
-      <item quantity="one">מתבצע שינוי בקובץ אודיו אחד…</item>
-    </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את הסרטון הזה?</item>
-    </plurals>
-    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
-      <item quantity="two">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> סרטונים…</item>
-      <item quantity="many">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> סרטונים…</item>
-      <item quantity="other">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> סרטונים…</item>
-      <item quantity="one">מתבצע שינוי בסרטון אחד…</item>
-    </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את התמונה הזו?</item>
-    </plurals>
-    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
-      <item quantity="two">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> תמונות…</item>
-      <item quantity="many">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> תמונות…</item>
-      <item quantity="other">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> תמונות…</item>
-      <item quantity="one">מתבצע שינוי בתמונה אחת…</item>
-    </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את הפריט הזה?</item>
-    </plurals>
-    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
-      <item quantity="two">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> פריטים…</item>
-      <item quantity="many">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> פריטים…</item>
-      <item quantity="other">מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> פריטים…</item>
-      <item quantity="one">מתבצע שינוי בפריט אחד…</item>
-    </plurals>
-    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו לאשפה?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו לאשפה?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו לאשפה?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את קובץ האודיו הזה לאשפה?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="two">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו לאשפה…</item>
-      <item quantity="many">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו לאשפה…</item>
-      <item quantity="other">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו לאשפה…</item>
-      <item quantity="one">מתבצעת העברה של קובץ אודיו אחד לאשפה…</item>
-    </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> סרטונים לאשפה?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> סרטונים לאשפה?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> סרטונים לאשפה?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את הסרטון הזה לאשפה?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
-      <item quantity="two">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> סרטונים לאשפה…</item>
-      <item quantity="many">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> סרטונים לאשפה…</item>
-      <item quantity="other">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> סרטונים לאשפה…</item>
-      <item quantity="one">מתבצעת העברה של סרטון אחד לאשפה…</item>
-    </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> תמונות לאשפה?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> תמונות לאשפה?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> תמונות לאשפה?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את התמונה הזו לאשפה?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
-      <item quantity="two">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> תמונות לאשפה…</item>
-      <item quantity="many">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> תמונות לאשפה…</item>
-      <item quantity="other">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> תמונות לאשפה…</item>
-      <item quantity="one">מתבצעת העברה של תמונה אחת לאשפה…</item>
-    </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> פריטים לאשפה?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> פריטים לאשפה?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> פריטים לאשפה?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את הפריט הזה לאשפה?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="two">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> פריטים לאשפה…</item>
-      <item quantity="many">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> פריטים לאשפה…</item>
-      <item quantity="other">מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> פריטים לאשפה…</item>
-      <item quantity="one">מתבצעת העברה של פריט אחד לאשפה…</item>
-    </plurals>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו מהאשפה?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו מהאשפה?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו מהאשפה?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להוציא את קובץ האודיו הזה מהאשפה?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="two">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו מהאשפה…</item>
-      <item quantity="many">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו מהאשפה…</item>
-      <item quantity="other">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו מהאשפה…</item>
-      <item quantity="one">מתבצעת הוצאה של קובץ אודיו אחד מהאשפה…</item>
-    </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> סרטונים מהאשפה?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> סרטונים מהאשפה?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> סרטונים מהאשפה?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להוציא את הסרטון הזה מהאשפה?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
-      <item quantity="two">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> סרטונים מהאשפה…</item>
-      <item quantity="many">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> סרטונים מהאשפה…</item>
-      <item quantity="other">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> סרטונים מהאשפה…</item>
-      <item quantity="one">מתבצעת הוצאה של סרטון אחד מהאשפה…</item>
-    </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> תמונות מהאשפה?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> תמונות מהאשפה?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> תמונות מהאשפה?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להוציא את התמונה הזו מהאשפה?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
-      <item quantity="two">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> תמונות מהאשפה…</item>
-      <item quantity="many">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> תמונות מהאשפה…</item>
-      <item quantity="other">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> תמונות מהאשפה…</item>
-      <item quantity="one">מתבצעת הוצאה של תמונה אחת מהאשפה…</item>
-    </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> פריטים מהאשפה?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> פריטים מהאשפה?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> פריטים מהאשפה?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להוציא את הפריט הזה מהאשפה?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
-      <item quantity="two">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> פריטים מהאשפה…</item>
-      <item quantity="many">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> פריטים מהאשפה…</item>
-      <item quantity="other">מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> פריטים מהאשפה…</item>
-      <item quantity="one">מתבצעת הוצאה של פריט אחד מהאשפה…</item>
-    </plurals>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את קובץ האודיו הזה?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="two">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…</item>
-      <item quantity="many">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…</item>
-      <item quantity="other">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…</item>
-      <item quantity="one">מתבצעת מחיקה של קובץ אודיו אחד…</item>
-    </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את הסרטון הזה?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
-      <item quantity="two">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> סרטונים…</item>
-      <item quantity="many">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> סרטונים…</item>
-      <item quantity="other">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> סרטונים…</item>
-      <item quantity="one">מתבצעת מחיקה של סרטון אחד</item>
-    </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את התמונה הזו?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
-      <item quantity="two">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> תמונות…</item>
-      <item quantity="many">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> תמונות…</item>
-      <item quantity="other">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> תמונות…</item>
-      <item quantity="one">מתבצעת מחיקה של תמונה אחת…</item>
-    </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
-      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
-      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
-      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
-      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את הפריט הזה?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
-      <item quantity="two">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> פריטים…</item>
-      <item quantity="many">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> פריטים…</item>
-      <item quantity="other">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> פריטים…</item>
-      <item quantity="one">מתבצעת מחיקה של פריט אחד…</item>
-    </plurals>
+    <string name="picker_motion_photo_text" msgid="5016603812468180816">"תמונה עם תנועה"</string>
+    <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את קובץ האודיו הזה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}}"</string>
+    <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{מתבצע שינוי בקובץ האודיו…}two{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}many{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}other{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}}"</string>
+    <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את הסרטון הזה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?}}"</string>
+    <string name="permission_progress_write_video" msgid="7014908418349819148">"{count,plural, =1{מתבצע שינוי בסרטון…}two{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> סרטונים…}many{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> סרטונים…}other{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> סרטונים…}}"</string>
+    <string name="permission_write_image" msgid="3518991791620523786">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את התמונה הזו?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> תמונות?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> תמונות?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> תמונות?}}"</string>
+    <string name="permission_progress_write_image" msgid="3623580315590025262">"{count,plural, =1{מתבצע שינוי בתמונה…}two{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> תמונות…}many{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> תמונות…}other{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> תמונות…}}"</string>
+    <string name="permission_write_generic" msgid="7431128739233656991">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את הפריט הזה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> פריטים?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> פריטים?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> פריטים?}}"</string>
+    <string name="permission_progress_write_generic" msgid="2806560971318391443">"{count,plural, =1{מתבצע שינוי בפריט…}two{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> פריטים…}many{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> פריטים…}other{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> פריטים…}}"</string>
+    <string name="permission_trash_audio" msgid="6554672354767742206">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את קובץ האודיו הזה לאשפה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו לאשפה?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו לאשפה?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו לאשפה?}}"</string>
+    <string name="permission_progress_trash_audio" msgid="3116279868733641329">"{count,plural, =1{מתבצעת העברה של קובץ האודיו לאשפה…}two{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו לאשפה…}many{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו לאשפה…}other{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו לאשפה…}}"</string>
+    <string name="permission_trash_video" msgid="7555850843259959642">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את הסרטון הזה לאשפה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> סרטונים לאשפה?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> סרטונים לאשפה?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> סרטונים לאשפה?}}"</string>
+    <string name="permission_progress_trash_video" msgid="4637821778329459681">"{count,plural, =1{מתבצעת העברה של הסרטון לאשפה…}two{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> סרטונים לאשפה…}many{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> סרטונים לאשפה…}other{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> סרטונים לאשפה…}}"</string>
+    <string name="permission_trash_image" msgid="3333128084684156675">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את התמונה הזו לאשפה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> תמונות לאשפה?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> תמונות לאשפה?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> תמונות לאשפה?}}"</string>
+    <string name="permission_progress_trash_image" msgid="3063857679090024764">"{count,plural, =1{מתבצעת העברה של התמונה לאשפה…}two{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> תמונות לאשפה…}many{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> תמונות לאשפה…}other{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> תמונות לאשפה…}}"</string>
+    <string name="permission_trash_generic" msgid="5545420534785075362">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את הפריט הזה לאשפה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> פריטים לאשפה?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> פריטים לאשפה?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> פריטים לאשפה?}}"</string>
+    <string name="permission_progress_trash_generic" msgid="7815124979717814057">"{count,plural, =1{מתבצעת העברה של הפריט לאשפה…}two{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> פריטים לאשפה…}many{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> פריטים לאשפה…}other{מתבצעת העברה של <xliff:g id="COUNT">^1</xliff:g> פריטים לאשפה…}}"</string>
+    <string name="permission_untrash_audio" msgid="8404597563284002472">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להוציא את קובץ האודיו הזה מהאשפה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו מהאשפה?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו מהאשפה?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו מהאשפה?}}"</string>
+    <string name="permission_progress_untrash_audio" msgid="2775372344946464508">"{count,plural, =1{מתבצעת הוצאה של קובץ האודיו מהאשפה…}two{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו מהאשפה…}many{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו מהאשפה…}other{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו מהאשפה…}}"</string>
+    <string name="permission_untrash_video" msgid="3178914827607608162">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להוציא את הסרטון הזה מהאשפה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> סרטונים מהאשפה?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> סרטונים מהאשפה?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> סרטונים מהאשפה?}}"</string>
+    <string name="permission_progress_untrash_video" msgid="5500929409733841567">"{count,plural, =1{מתבצעת הוצאה של הסרטון מהאשפה…}two{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> סרטונים מהאשפה…}many{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> סרטונים מהאשפה…}other{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> סרטונים מהאשפה…}}"</string>
+    <string name="permission_untrash_image" msgid="3397523279351032265">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להוציא את התמונה הזו מהאשפה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> תמונות מהאשפה?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> תמונות מהאשפה?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> תמונות מהאשפה?}}"</string>
+    <string name="permission_progress_untrash_image" msgid="5295061520504846264">"{count,plural, =1{מתבצעת הוצאה של התמונה מהאשפה…}two{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> תמונות מהאשפה…}many{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> תמונות מהאשפה…}other{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> תמונות מהאשפה…}}"</string>
+    <string name="permission_untrash_generic" msgid="2118366929431671046">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להוציא את הפריט הזה מהאשפה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> פריטים מהאשפה?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> פריטים מהאשפה?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> פריטים מהאשפה?}}"</string>
+    <string name="permission_progress_untrash_generic" msgid="1489511601966842579">"{count,plural, =1{מתבצעת הוצאה של הפריט מהאשפה…}two{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> פריטים מהאשפה…}many{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> פריטים מהאשפה…}other{מתבצעת הוצאה של <xliff:g id="COUNT">^1</xliff:g> פריטים מהאשפה…}}"</string>
+    <string name="permission_delete_audio" msgid="3326674742892796627">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את קובץ האודיו הזה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}}"</string>
+    <string name="permission_progress_delete_audio" msgid="1734871539021696401">"{count,plural, =1{מתבצעת מחיקה של קובץ האודיו…}two{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}many{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}other{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}}"</string>
+    <string name="permission_delete_video" msgid="604024971828349279">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את הסרטון הזה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> סרטונים?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> סרטונים?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> סרטונים?}}"</string>
+    <string name="permission_progress_delete_video" msgid="1846702435073793157">"{count,plural, =1{מתבצעת מחיקה של הסרטון}two{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> סרטונים…}many{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> סרטונים…}other{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> סרטונים…}}"</string>
+    <string name="permission_delete_image" msgid="3109056012794330510">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את התמונה הזו?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> תמונות?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> תמונות?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> תמונות?}}"</string>
+    <string name="permission_progress_delete_image" msgid="8580517204901148906">"{count,plural, =1{מתבצעת מחיקה של התמונה…}two{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> תמונות…}many{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> תמונות…}other{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> תמונות…}}"</string>
+    <string name="permission_delete_generic" msgid="7891939881065520271">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את הפריט הזה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> פריטים?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> פריטים?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> פריטים?}}"</string>
+    <string name="permission_progress_delete_generic" msgid="6709118146245087898">"{count,plural, =1{מתבצעת מחיקה של הפריט…}two{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> פריטים…}many{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> פריטים…}other{מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> פריטים…}}"</string>
     <string name="transcode_denied" msgid="6760546817138288976">"האפליקציה <xliff:g id="APP_NAME">%s</xliff:g> לא יכולה לעבד קובצי מדיה"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"עיבוד המדיה בוטל"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"שגיאה בעיבוד המדיה"</string>

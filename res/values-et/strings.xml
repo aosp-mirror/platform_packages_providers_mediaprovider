@@ -29,14 +29,8 @@
     <string name="permission_required_action" msgid="706370952366113539">"Jätka"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Luba"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Keela"</string>
-    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
-      <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
-    </plurals>
-    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
-      <item quantity="other">Veel <xliff:g id="COUNT_1">^1</xliff:g> lisaüksust</item>
-      <item quantity="one">Veel <xliff:g id="COUNT_0">^1</xliff:g> lisaüksus</item>
-    </plurals>
+    <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{+<xliff:g id="COUNT_0">^1</xliff:g>}other{+<xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
+    <string name="permission_more_text" msgid="2471785045095597753">"{count,plural, =1{Veel <xliff:g id="COUNT_0">^1</xliff:g> lisaüksus}other{Veel <xliff:g id="COUNT_1">^1</xliff:g> lisaüksust}}"</string>
     <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Rakenduse ajutiste failide kustutamine"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> soovib kustutada mõned ajutised failid. See võib aku või mobiilse andmeside kasutust suurendada."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Rakenduse ajutiste failide kustutamine …"</string>
@@ -46,11 +40,12 @@
     <string name="add" msgid="2894574044585549298">"Lisa"</string>
     <string name="deselect" msgid="4297825044827769490">"Tühista valik"</string>
     <string name="select" msgid="2704765470563027689">"Vali"</string>
-    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
-      <item quantity="other">Valige kuni <xliff:g id="COUNT_1">^1</xliff:g> üksust</item>
-      <item quantity="one">Valige kuni <xliff:g id="COUNT_0">^1</xliff:g> üksus</item>
-    </plurals>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Valige kuni <xliff:g id="COUNT_0">^1</xliff:g> üksus}other{Valige kuni <xliff:g id="COUNT_1">^1</xliff:g> üksust}}"</string>
     <string name="recent" msgid="6694613584743207874">"Hiljutised"</string>
+    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
+    <skip />
+    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
+    <skip />
     <string name="picker_view_selected" msgid="2266031384396143883">"Kuva valitud"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotod"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albumid"</string>
@@ -61,10 +56,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Juurdepääs isiklikele andmetele töörakenduse kaudu pole lubatud"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Töörakendused on peatatud"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Tööfotode avamiseks lülitage töörakendused sisse ja proovige uuesti"</string>
-    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
-      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> üksust</item>
-      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> üksus</item>
-    </plurals>
+    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> üksus}other{<xliff:g id="COUNT_1">^1</xliff:g> üksust}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Lisa (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kaamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Allalaadimised"</string>
@@ -72,134 +64,39 @@
     <string name="picker_category_screenshots" msgid="7216102327587644284">"Ekraanipildid"</string>
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
-    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> helifaili muuta?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda helifaili muuta?</item>
-    </plurals>
-    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> helifaili töötlemine …</item>
-      <item quantity="one">Helifaili töötlemine …</item>
-    </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> videot muuta?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda videot muuta?</item>
-    </plurals>
-    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> video töötlemine …</item>
-      <item quantity="one">Video töötlemine …</item>
-    </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> fotot muuta?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda fotot muuta?</item>
-    </plurals>
-    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> foto töötlemine …</item>
-      <item quantity="one">Foto töötlemine …</item>
-    </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> üksust muuta?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda üksust muuta?</item>
-    </plurals>
-    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> üksuse töötlemine …</item>
-      <item quantity="one">Üksuse töötlemine …</item>
-    </plurals>
-    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> helifaili prügikasti teisaldada?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> see helifail prügikasti teisaldada?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> helifaili teisaldamine prügikasti …</item>
-      <item quantity="one">Helifaili teisaldamine prügikasti …</item>
-    </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> videot prügikasti teisaldada?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> see video prügikasti teisaldada?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> video teisaldamine prügikasti …</item>
-      <item quantity="one">Video teisaldamine prügikasti …</item>
-    </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> fotot prügikasti teisaldada?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> see foto prügikasti teisaldada?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> foto teisaldamine prügikasti …</item>
-      <item quantity="one">Foto teisaldamine prügikasti …</item>
-    </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> üksust prügikasti teisaldada?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> see üksus prügikasti teisaldada?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> üksuse teisaldamine prügikasti …</item>
-      <item quantity="one">Üksuse teisaldamine prügikasti …</item>
-    </plurals>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> helifaili prügikastist taastada?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle helifaili prügikastist taastada?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> helifaili taastamine prügikastist …</item>
-      <item quantity="one">Helifaili taastamine prügikastist …</item>
-    </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> videot prügikastist taastada?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle video prügikastist taastada?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> video taastamine prügikastist …</item>
-      <item quantity="one">Video taastamine prügikastist …</item>
-    </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> fotot prügikastist taastada?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle foto prügikastist taastada?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> foto taastamine prügikastist …</item>
-      <item quantity="one">Foto taastamine prügikastist …</item>
-    </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> üksust prügikastist taastada?</item>
-      <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle üksuse prügikastist taastada?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> üksuse taastamine prügikastist …</item>
-      <item quantity="one">Üksuse taastamine prügikastist …</item>
-    </plurals>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="other">Kas soovite lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> kustutada <xliff:g id="COUNT">^2</xliff:g> helifaili?</item>
-      <item quantity="one">Kas soovite lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle helifaili kustutada?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> helifaili kustutamine …</item>
-      <item quantity="one">Helifaili kustutamine …</item>
-    </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
-      <item quantity="other">Kas soovite lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> kustutada <xliff:g id="COUNT">^2</xliff:g> videot?</item>
-      <item quantity="one">Kas soovite lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle video kustutada?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> video kustutamine …</item>
-      <item quantity="one">Video kustutamine …</item>
-    </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="other">Kas soovite lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> kustutada <xliff:g id="COUNT">^2</xliff:g> fotot?</item>
-      <item quantity="one">Kas soovite lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle foto kustutada?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> foto kustutamine …</item>
-      <item quantity="one">Foto kustutamine …</item>
-    </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
-      <item quantity="other">Kas soovite lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> kustutada <xliff:g id="COUNT">^2</xliff:g> üksust?</item>
-      <item quantity="one">Kas soovite lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle üksuse kustutada?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> üksuse kustutamine …</item>
-      <item quantity="one">Üksuse kustutamine …</item>
-    </plurals>
+    <string name="picker_motion_photo_text" msgid="5016603812468180816">"Liikuv foto"</string>
+    <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda helifaili muuta?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> helifaili muuta?}}"</string>
+    <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Helifaili muutmine …}other{<xliff:g id="COUNT">^1</xliff:g> helifaili muutmine …}}"</string>
+    <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda videot muuta?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> videot muuta?}}"</string>
+    <string name="permission_progress_write_video" msgid="7014908418349819148">"{count,plural, =1{Video muutmine …}other{<xliff:g id="COUNT">^1</xliff:g> video muutmine …}}"</string>
+    <string name="permission_write_image" msgid="3518991791620523786">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda fotot muuta?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> fotot muuta?}}"</string>
+    <string name="permission_progress_write_image" msgid="3623580315590025262">"{count,plural, =1{Foto muutmine …}other{<xliff:g id="COUNT">^1</xliff:g> foto muutmine …}}"</string>
+    <string name="permission_write_generic" msgid="7431128739233656991">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda üksust muuta?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> üksust muuta?}}"</string>
+    <string name="permission_progress_write_generic" msgid="2806560971318391443">"{count,plural, =1{Üksuse muutmine …}other{<xliff:g id="COUNT">^1</xliff:g> üksuse muutmine …}}"</string>
+    <string name="permission_trash_audio" msgid="6554672354767742206">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> see helifail prügikasti teisaldada?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> helifaili prügikasti teisaldada?}}"</string>
+    <string name="permission_progress_trash_audio" msgid="3116279868733641329">"{count,plural, =1{Helifaili teisaldamine prügikasti …}other{<xliff:g id="COUNT">^1</xliff:g> helifaili teisaldamine prügikasti …}}"</string>
+    <string name="permission_trash_video" msgid="7555850843259959642">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> see video prügikasti teisaldada?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> videot prügikasti teisaldada?}}"</string>
+    <string name="permission_progress_trash_video" msgid="4637821778329459681">"{count,plural, =1{Video teisaldamine prügikasti …}other{<xliff:g id="COUNT">^1</xliff:g> video teisaldamine prügikasti …}}"</string>
+    <string name="permission_trash_image" msgid="3333128084684156675">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> see foto prügikasti teisaldada?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> fotot prügikasti teisaldada?}}"</string>
+    <string name="permission_progress_trash_image" msgid="3063857679090024764">"{count,plural, =1{Foto teisaldamine prügikasti …}other{<xliff:g id="COUNT">^1</xliff:g> foto teisaldamine prügikasti …}}"</string>
+    <string name="permission_trash_generic" msgid="5545420534785075362">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> see üksus prügikasti teisaldada?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> üksust prügikasti teisaldada?}}"</string>
+    <string name="permission_progress_trash_generic" msgid="7815124979717814057">"{count,plural, =1{Üksuse teisaldamine prügikasti …}other{<xliff:g id="COUNT">^1</xliff:g> üksuse teisaldamine prügikasti …}}"</string>
+    <string name="permission_untrash_audio" msgid="8404597563284002472">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle helifaili prügikastist taastada?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> helifaili prügikastist taastada?}}"</string>
+    <string name="permission_progress_untrash_audio" msgid="2775372344946464508">"{count,plural, =1{Helifaili taastamine prügikastist …}other{<xliff:g id="COUNT">^1</xliff:g> helifaili taastamine prügikastist …}}"</string>
+    <string name="permission_untrash_video" msgid="3178914827607608162">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle video prügikastist taastada?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> videot prügikastist taastada?}}"</string>
+    <string name="permission_progress_untrash_video" msgid="5500929409733841567">"{count,plural, =1{Video taastamine prügikastist …}other{<xliff:g id="COUNT">^1</xliff:g> video taastamine prügikastist …}}"</string>
+    <string name="permission_untrash_image" msgid="3397523279351032265">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle foto prügikastist taastada?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> fotot prügikastist taastada?}}"</string>
+    <string name="permission_progress_untrash_image" msgid="5295061520504846264">"{count,plural, =1{Foto taastamine prügikastist …}other{<xliff:g id="COUNT">^1</xliff:g> foto taastamine prügikastist …}}"</string>
+    <string name="permission_untrash_generic" msgid="2118366929431671046">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle üksuse prügikastist taastada?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> üksust prügikastist taastada?}}"</string>
+    <string name="permission_progress_untrash_generic" msgid="1489511601966842579">"{count,plural, =1{Üksuse taastamine prügikastist …}other{<xliff:g id="COUNT">^1</xliff:g> üksuse taastamine prügikastist …}}"</string>
+    <string name="permission_delete_audio" msgid="3326674742892796627">"{count,plural, =1{Kas soovite lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle helifaili kustutada?}other{Kas soovite lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> kustutada <xliff:g id="COUNT">^2</xliff:g> helifaili?}}"</string>
+    <string name="permission_progress_delete_audio" msgid="1734871539021696401">"{count,plural, =1{Helifaili kustutamine …}other{<xliff:g id="COUNT">^1</xliff:g> helifaili kustutamine …}}"</string>
+    <string name="permission_delete_video" msgid="604024971828349279">"{count,plural, =1{Kas soovite lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle video kustutada?}other{Kas soovite lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> kustutada <xliff:g id="COUNT">^2</xliff:g> videot?}}"</string>
+    <string name="permission_progress_delete_video" msgid="1846702435073793157">"{count,plural, =1{Video kustutamine …}other{<xliff:g id="COUNT">^1</xliff:g> video kustutamine …}}"</string>
+    <string name="permission_delete_image" msgid="3109056012794330510">"{count,plural, =1{Kas soovite lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle foto kustutada?}other{Kas soovite lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> kustutada <xliff:g id="COUNT">^2</xliff:g> fotot?}}"</string>
+    <string name="permission_progress_delete_image" msgid="8580517204901148906">"{count,plural, =1{Foto kustutamine …}other{<xliff:g id="COUNT">^1</xliff:g> foto kustutamine …}}"</string>
+    <string name="permission_delete_generic" msgid="7891939881065520271">"{count,plural, =1{Kas soovite lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> selle üksuse kustutada?}other{Kas soovite lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> kustutada <xliff:g id="COUNT">^2</xliff:g> üksust?}}"</string>
+    <string name="permission_progress_delete_generic" msgid="6709118146245087898">"{count,plural, =1{Üksuse kustutamine …}other{<xliff:g id="COUNT">^1</xliff:g> üksuse kustutamine …}}"</string>
     <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> ei saa meediafaile töödelda"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Meedia töötlemine tühistati"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"Viga meedia töötlemisel"</string>

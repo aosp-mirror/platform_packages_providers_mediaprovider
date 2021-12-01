@@ -29,14 +29,8 @@
     <string name="permission_required_action" msgid="706370952366113539">"続行"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"許可"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"許可しない"</string>
-    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
-      <item quantity="other">他 <xliff:g id="COUNT_1">^1</xliff:g> 件</item>
-      <item quantity="one">他 <xliff:g id="COUNT_0">^1</xliff:g> 件</item>
-    </plurals>
-    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
-      <item quantity="other">他 <xliff:g id="COUNT_1">^1</xliff:g> 件の項目</item>
-      <item quantity="one">他 <xliff:g id="COUNT_0">^1</xliff:g> 件の項目</item>
-    </plurals>
+    <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{他 <xliff:g id="COUNT_0">^1</xliff:g> 件}other{他 <xliff:g id="COUNT_1">^1</xliff:g> 件}}"</string>
+    <string name="permission_more_text" msgid="2471785045095597753">"{count,plural, =1{他 <xliff:g id="COUNT_0">^1</xliff:g> 件のアイテム}other{他 <xliff:g id="COUNT_1">^1</xliff:g> 件のアイテム}}"</string>
     <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"アプリの一時ファイルの削除"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>が一部の一時ファイルを削除する権限を求めています。この処理により、バッテリーやモバイルデータの使用量が増えることがあります。"</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"アプリの一時ファイルを削除しています…"</string>
@@ -46,11 +40,12 @@
     <string name="add" msgid="2894574044585549298">"追加"</string>
     <string name="deselect" msgid="4297825044827769490">"選択を解除"</string>
     <string name="select" msgid="2704765470563027689">"選択"</string>
-    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
-      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> 件まで選択できます</item>
-      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> 件まで選択できます</item>
-    </plurals>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> 件まで選択できます}other{<xliff:g id="COUNT_1">^1</xliff:g> 件まで選択できます}}"</string>
     <string name="recent" msgid="6694613584743207874">"最近"</string>
+    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
+    <skip />
+    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
+    <skip />
     <string name="picker_view_selected" msgid="2266031384396143883">"選択した写真を見る"</string>
     <string name="picker_photos" msgid="7415035516411087392">"写真"</string>
     <string name="picker_albums" msgid="4822511902115299142">"アルバム"</string>
@@ -61,10 +56,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"仕事用アプリから個人データにアクセスすることは認められていません"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"仕事用アプリは一時停止されています"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"仕事用の写真を開くには、仕事用アプリを有効にしてからもう一度試してください。"</string>
-    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
-      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> 件のアイテム</item>
-      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> 件のアイテム</item>
-    </plurals>
+    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> 件のアイテム}other{<xliff:g id="COUNT_1">^1</xliff:g> 件のアイテム}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"追加（<xliff:g id="COUNT">^1</xliff:g> 件）"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"カメラ"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"ダウンロード"</string>
@@ -72,134 +64,39 @@
     <string name="picker_category_screenshots" msgid="7216102327587644284">"スクリーンショット"</string>
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
-    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルの変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この音声ファイルの変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 件の音声ファイルを変更しています…</item>
-      <item quantity="one">音声ファイルを変更しています…</item>
-    </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 本の動画の変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この動画の変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 本の動画を変更しています…</item>
-      <item quantity="one">動画を変更しています…</item>
-    </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 枚の写真の変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この写真の変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 枚の写真を変更しています…</item>
-      <item quantity="one">写真を変更しています…</item>
-    </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 件のアイテムの変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">このアイテムの変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 件のアイテムを変更しています…</item>
-      <item quantity="one">アイテムを変更しています…</item>
-    </plurals>
-    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルをゴミ箱に移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この音声ファイルをゴミ箱に移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 件の音声ファイルをゴミ箱に移動しています…</item>
-      <item quantity="one">音声ファイルをゴミ箱に移動しています…</item>
-    </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 本の動画をゴミ箱に移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この動画をゴミ箱に移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 本の動画をゴミ箱に移動しています…</item>
-      <item quantity="one">動画をゴミ箱に移動しています…</item>
-    </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 枚の写真をゴミ箱に移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この写真をゴミ箱に移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 枚の写真をゴミ箱に移動しています…</item>
-      <item quantity="one">写真をゴミ箱に移動しています…</item>
-    </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 件のアイテムをゴミ箱に移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">このアイテムをゴミ箱に移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 件のアイテムをゴミ箱に移動しています…</item>
-      <item quantity="one">アイテムをゴミ箱に移動しています…</item>
-    </plurals>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルをゴミ箱から移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この音声ファイルをゴミ箱から移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 件の音声ファイルをゴミ箱から移動しています…</item>
-      <item quantity="one">音声ファイルをゴミ箱から移動しています…</item>
-    </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 本の動画をゴミ箱から移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この動画をゴミ箱から移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 本の動画をゴミ箱から移動しています…</item>
-      <item quantity="one">動画をゴミ箱から移動しています…</item>
-    </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 枚の写真をゴミ箱から移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この写真をゴミ箱から移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 枚の写真をゴミ箱から移動しています…</item>
-      <item quantity="one">写真をゴミ箱から移動しています…</item>
-    </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 件のアイテムをゴミ箱から移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">このアイテムをゴミ箱から移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 件のアイテムをゴミ箱から移動しています…</item>
-      <item quantity="one">アイテムをゴミ箱から移動しています…</item>
-    </plurals>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルの削除を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この音声ファイルの削除を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 件の音声ファイルを削除しています…</item>
-      <item quantity="one">音声ファイルを削除しています…</item>
-    </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 本の動画の削除を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この動画の削除を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 本の動画を削除しています…</item>
-      <item quantity="one">動画を削除しています…</item>
-    </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 枚の写真の削除を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">この写真の削除を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 枚の写真を削除しています…</item>
-      <item quantity="one">写真を削除しています…</item>
-    </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> 件のアイテムの削除を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？</item>
-      <item quantity="one">このアイテムの削除を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？</item>
-    </plurals>
-    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> 件のアイテムを削除しています…</item>
-      <item quantity="one">アイテムを削除しています…</item>
-    </plurals>
+    <string name="picker_motion_photo_text" msgid="5016603812468180816">"モーション フォト"</string>
+    <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{この音声ファイルの変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルの変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{音声ファイルを変更しています…}other{<xliff:g id="COUNT">^1</xliff:g> 件の音声ファイルを変更しています…}}"</string>
+    <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{この動画の変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 本の動画の変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_write_video" msgid="7014908418349819148">"{count,plural, =1{動画を変更しています…}other{<xliff:g id="COUNT">^1</xliff:g> 本の動画を変更しています…}}"</string>
+    <string name="permission_write_image" msgid="3518991791620523786">"{count,plural, =1{この写真の変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 枚の写真の変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_write_image" msgid="3623580315590025262">"{count,plural, =1{写真を変更しています…}other{<xliff:g id="COUNT">^1</xliff:g> 枚の写真を変更しています…}}"</string>
+    <string name="permission_write_generic" msgid="7431128739233656991">"{count,plural, =1{このアイテムの変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 件のアイテムの変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_write_generic" msgid="2806560971318391443">"{count,plural, =1{アイテムを変更しています…}other{<xliff:g id="COUNT">^1</xliff:g> 件のアイテムを変更しています…}}"</string>
+    <string name="permission_trash_audio" msgid="6554672354767742206">"{count,plural, =1{この音声ファイルをゴミ箱に移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルをゴミ箱に移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_trash_audio" msgid="3116279868733641329">"{count,plural, =1{音声ファイルをゴミ箱に移動しています…}other{<xliff:g id="COUNT">^1</xliff:g> 件の音声ファイルをゴミ箱に移動しています…}}"</string>
+    <string name="permission_trash_video" msgid="7555850843259959642">"{count,plural, =1{この動画をゴミ箱に移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 本の動画をゴミ箱に移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_trash_video" msgid="4637821778329459681">"{count,plural, =1{動画をゴミ箱に移動しています…}other{<xliff:g id="COUNT">^1</xliff:g> 本の動画をゴミ箱に移動しています…}}"</string>
+    <string name="permission_trash_image" msgid="3333128084684156675">"{count,plural, =1{この写真をゴミ箱に移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 枚の写真をゴミ箱に移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_trash_image" msgid="3063857679090024764">"{count,plural, =1{写真をゴミ箱に移動しています…}other{<xliff:g id="COUNT">^1</xliff:g> 枚の写真をゴミ箱に移動しています…}}"</string>
+    <string name="permission_trash_generic" msgid="5545420534785075362">"{count,plural, =1{このアイテムをゴミ箱に移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 件のアイテムをゴミ箱に移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_trash_generic" msgid="7815124979717814057">"{count,plural, =1{アイテムをゴミ箱に移動しています…}other{<xliff:g id="COUNT">^1</xliff:g> 件のアイテムをゴミ箱に移動しています…}}"</string>
+    <string name="permission_untrash_audio" msgid="8404597563284002472">"{count,plural, =1{この音声ファイルをゴミ箱から移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルをゴミ箱から移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_untrash_audio" msgid="2775372344946464508">"{count,plural, =1{音声ファイルをゴミ箱から移動しています…}other{<xliff:g id="COUNT">^1</xliff:g> 件の音声ファイルをゴミ箱から移動しています…}}"</string>
+    <string name="permission_untrash_video" msgid="3178914827607608162">"{count,plural, =1{この動画をゴミ箱から移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 本の動画をゴミ箱から移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_untrash_video" msgid="5500929409733841567">"{count,plural, =1{動画をゴミ箱から移動しています…}other{<xliff:g id="COUNT">^1</xliff:g> 本の動画をゴミ箱から移動しています…}}"</string>
+    <string name="permission_untrash_image" msgid="3397523279351032265">"{count,plural, =1{この写真をゴミ箱から移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 枚の写真をゴミ箱から移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_untrash_image" msgid="5295061520504846264">"{count,plural, =1{写真をゴミ箱から移動しています…}other{<xliff:g id="COUNT">^1</xliff:g> 枚の写真をゴミ箱から移動しています…}}"</string>
+    <string name="permission_untrash_generic" msgid="2118366929431671046">"{count,plural, =1{このアイテムをゴミ箱から移動することを <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 件のアイテムをゴミ箱から移動することを <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_untrash_generic" msgid="1489511601966842579">"{count,plural, =1{アイテムをゴミ箱から移動しています…}other{<xliff:g id="COUNT">^1</xliff:g> 件のアイテムをゴミ箱から移動しています…}}"</string>
+    <string name="permission_delete_audio" msgid="3326674742892796627">"{count,plural, =1{この音声ファイルの削除を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルの削除を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_delete_audio" msgid="1734871539021696401">"{count,plural, =1{音声ファイルを削除しています…}other{<xliff:g id="COUNT">^1</xliff:g> 件の音声ファイルを削除しています…}}"</string>
+    <string name="permission_delete_video" msgid="604024971828349279">"{count,plural, =1{この動画の削除を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 本の動画の削除を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_delete_video" msgid="1846702435073793157">"{count,plural, =1{動画を削除しています…}other{<xliff:g id="COUNT">^1</xliff:g> 本の動画を削除しています…}}"</string>
+    <string name="permission_delete_image" msgid="3109056012794330510">"{count,plural, =1{この写真の削除を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 枚の写真の削除を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_delete_image" msgid="8580517204901148906">"{count,plural, =1{写真を削除しています…}other{<xliff:g id="COUNT">^1</xliff:g> 枚の写真を削除しています…}}"</string>
+    <string name="permission_delete_generic" msgid="7891939881065520271">"{count,plural, =1{このアイテムの削除を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 件のアイテムの削除を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
+    <string name="permission_progress_delete_generic" msgid="6709118146245087898">"{count,plural, =1{アイテムを削除しています…}other{<xliff:g id="COUNT">^1</xliff:g> 件のアイテムを削除しています…}}"</string>
     <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g>はメディア ファイルを処理できません"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"メディアの処理をキャンセルしました"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"メディア処理エラー"</string>

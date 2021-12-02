@@ -110,10 +110,9 @@ public class ExternalDbFacade {
     private static final String WHERE_MIME_TYPE = MediaStore.MediaColumns.MIME_TYPE
             + " LIKE ?";
 
-    // TODO(b/196071169): Include media that contains Environment#DIRECTORY_SCREENSHOTS in its
-    // relative_path.
-    public static final String RELATIVE_PATH_SCREENSHOTS = Environment.DIRECTORY_PICTURES + "/"
-            + Environment.DIRECTORY_SCREENSHOTS + "/%";
+    public static final String RELATIVE_PATH_SCREENSHOTS =
+            "%/" + Environment.DIRECTORY_SCREENSHOTS + "/%";
+
     public static final String RELATIVE_PATH_CAMERA = Environment.DIRECTORY_DCIM + "/Camera/%";
 
     private final DatabaseHelper mDatabaseHelper;

@@ -255,6 +255,7 @@ struct fuse {
           zero_addr(0),
           disable_dentry_cache(false),
           passthrough(false),
+          bpf(false),
           supported_transcoding_relative_paths(_supported_transcoding_relative_paths) {}
 
     inline bool IsRoot(const node* node) const { return node == root; }
@@ -329,6 +330,8 @@ struct fuse {
     std::atomic_bool* active;
     std::atomic_bool disable_dentry_cache;
     std::atomic_bool passthrough;
+    std::atomic_bool bpf;
+
     // FUSE device id.
     std::atomic_uint dev;
     const std::vector<string> supported_transcoding_relative_paths;
@@ -2146,6 +2149,11 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
     fuse->passthrough = android::base::GetBoolProperty("persist.sys.fuse.passthrough.enable", false);
     if (fuse->passthrough) {
         LOG(INFO) << "Using FUSE passthrough";
+    }
+
+    fuse->bpf = android::base::GetBoolProperty("persist.sys.fuse.bpf.enable", false);
+    if (fuse->bpf) {
+        LOG(INFO) << "Using FUSE BPF";
     }
 
     struct fuse_session

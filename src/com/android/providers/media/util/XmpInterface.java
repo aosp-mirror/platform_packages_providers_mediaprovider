@@ -22,6 +22,7 @@ import static org.xmlpull.v1.XmlPullParser.START_TAG;
 
 import android.media.ExifInterface;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.Xml;
 
 import androidx.annotation.NonNull;
@@ -52,6 +53,7 @@ import java.util.UUID;
  * any subsequent attempts to redefine that value.
  */
 public class XmpInterface {
+    private static final String TAG = "XmpInterface";
     private static final String NS_RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
     private static final String NS_XMP = "http://ns.adobe.com/xap/1.0/";
     private static final String NS_XMPMM = "http://ns.adobe.com/xap/1.0/mm/";
@@ -129,6 +131,9 @@ public class XmpInterface {
                 }
             }
         } catch (XmlPullParserException e) {
+            throw new IOException(e);
+        } catch (OutOfMemoryError e) {
+            Log.w(TAG, "Couldn't read large xmp", e);
             throw new IOException(e);
         }
     }

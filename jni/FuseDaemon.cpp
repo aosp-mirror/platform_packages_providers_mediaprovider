@@ -51,7 +51,6 @@
 #include <unistd.h>
 
 #include <iostream>
-#include <list>
 #include <map>
 #include <mutex>
 #include <queue>
@@ -72,7 +71,6 @@ using mediaprovider::fuse::dirhandle;
 using mediaprovider::fuse::handle;
 using mediaprovider::fuse::node;
 using mediaprovider::fuse::RedactionInfo;
-using std::list;
 using std::string;
 using std::vector;
 

@@ -66,6 +66,8 @@ public class ExternalDbFacade {
                 CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED,
         MediaColumns.SIZE + " AS " + CloudMediaProviderContract.MediaColumns.SIZE_BYTES,
         MediaColumns.MIME_TYPE + " AS " + CloudMediaProviderContract.MediaColumns.MIME_TYPE,
+        FileColumns._SPECIAL_FORMAT + " AS " +
+                CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
         MediaColumns.DURATION + " AS " + CloudMediaProviderContract.MediaColumns.DURATION_MS,
         MediaColumns.IS_FAVORITE + " AS " + CloudMediaProviderContract.MediaColumns.IS_FAVORITE
     };
@@ -108,10 +110,9 @@ public class ExternalDbFacade {
     private static final String WHERE_MIME_TYPE = MediaStore.MediaColumns.MIME_TYPE
             + " LIKE ?";
 
-    // TODO(b/196071169): Include media that contains Environment#DIRECTORY_SCREENSHOTS in its
-    // relative_path.
-    public static final String RELATIVE_PATH_SCREENSHOTS = Environment.DIRECTORY_PICTURES + "/"
-            + Environment.DIRECTORY_SCREENSHOTS + "/%";
+    public static final String RELATIVE_PATH_SCREENSHOTS =
+            "%/" + Environment.DIRECTORY_SCREENSHOTS + "/%";
+
     public static final String RELATIVE_PATH_CAMERA = Environment.DIRECTORY_DCIM + "/Camera/%";
 
     private final DatabaseHelper mDatabaseHelper;

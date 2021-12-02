@@ -29,16 +29,8 @@
     <string name="permission_required_action" msgid="706370952366113539">"Nastavi"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Dozvoli"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Odbij"</string>
-    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
-      <item quantity="one">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="few">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-    </plurals>
-    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
-      <item quantity="one">Još <xliff:g id="COUNT_1">^1</xliff:g> dodatna stavka</item>
-      <item quantity="few">Još <xliff:g id="COUNT_1">^1</xliff:g> dodatne stavke</item>
-      <item quantity="other">Još <xliff:g id="COUNT_1">^1</xliff:g> dodatnih stavki</item>
-    </plurals>
+    <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{i još <xliff:g id="COUNT_0">^1</xliff:g>}one{i još <xliff:g id="COUNT_1">^1</xliff:g>}few{i još <xliff:g id="COUNT_1">^1</xliff:g>}other{i još <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
+    <string name="permission_more_text" msgid="2471785045095597753">"{count,plural, =1{Još <xliff:g id="COUNT_0">^1</xliff:g> dodatna stavka}one{Još <xliff:g id="COUNT_1">^1</xliff:g> dodatna stavka}few{Još <xliff:g id="COUNT_1">^1</xliff:g> dodatne stavke}other{Još <xliff:g id="COUNT_1">^1</xliff:g> dodatnih stavki}}"</string>
     <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Brisanje privremenih fajlova aplikacija"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"Aplikacija <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> želi obrisati neke privremene fajlove. Ovo može dovesti do povećanog korištenja baterije ili prijenosa podataka na mobilnoj mreži."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Brisanje privremenih fajlova aplikacije…"</string>
@@ -48,12 +40,12 @@
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Poništi odabir"</string>
     <string name="select" msgid="2704765470563027689">"Odaberi"</string>
-    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
-      <item quantity="one">Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavku</item>
-      <item quantity="few">Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavke</item>
-      <item quantity="other">Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavki</item>
-    </plurals>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Odaberite najviše <xliff:g id="COUNT_0">^1</xliff:g> stavku}one{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavku}few{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavke}other{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="recent" msgid="6694613584743207874">"Nedavno"</string>
+    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
+    <skip />
+    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
+    <skip />
     <string name="picker_view_selected" msgid="2266031384396143883">"Prikaži odabrano"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotografije"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albumi"</string>
@@ -64,11 +56,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Pristupanje ličnim podacima iz poslovne aplikacije nije dozvoljeno"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Poslovne aplikacije su pauzirane"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Da otvorite poslovne fotografije, uključite poslovne aplikacije i pokušajte ponovo"</string>
-    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
-      <item quantity="one"><xliff:g id="COUNT_1">^1</xliff:g> stavka</item>
-      <item quantity="few"><xliff:g id="COUNT_1">^1</xliff:g> stavke</item>
-      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> stavki</item>
-    </plurals>
+    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> stavka}one{<xliff:g id="COUNT_1">^1</xliff:g> stavka}few{<xliff:g id="COUNT_1">^1</xliff:g> stavke}other{<xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Dodaj (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Preuzimanja"</string>
@@ -76,166 +64,39 @@
     <string name="picker_category_screenshots" msgid="7216102327587644284">"Snimci ekrana"</string>
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
-    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajl?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajla?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajlova?</item>
-    </plurals>
-    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="one">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…</item>
-      <item quantity="few">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…</item>
-      <item quantity="other">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajlova…</item>
-    </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapis?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?</item>
-    </plurals>
-    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
-      <item quantity="one">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…</item>
-      <item quantity="few">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…</item>
-      <item quantity="other">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…</item>
-    </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> fotografiju?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> fotografije?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> fotografija?</item>
-    </plurals>
-    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
-      <item quantity="one">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> fotografije…</item>
-      <item quantity="few">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> fotografije…</item>
-      <item quantity="other">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> fotografija…</item>
-    </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> stavku?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> stavke?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> stavki?</item>
-    </plurals>
-    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
-      <item quantity="one">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> stavke…</item>
-      <item quantity="few">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> stavke…</item>
-      <item quantity="other">Mijenjanje <xliff:g id="COUNT">^1</xliff:g> stavki…</item>
-    </plurals>
-    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajl u otpad?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajla u otpad?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajlova u otpad?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="one">Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajla u otpad…</item>
-      <item quantity="few">Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajla u otpad…</item>
-      <item quantity="other">Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajlova u otpad…</item>
-    </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapis u otpad?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapisa u otpad?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapisa u otpad?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
-      <item quantity="one">Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa u otpad…</item>
-      <item quantity="few">Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa u otpad…</item>
-      <item quantity="other">Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa u otpad…</item>
-    </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografiju u otpad?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografije u otpad?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografija u otpad?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
-      <item quantity="one">Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografije u otpad…</item>
-      <item quantity="few">Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografije u otpad…</item>
-      <item quantity="other">Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografija u otpad…</item>
-    </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavku u otpad?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavke u otpad?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavki u otpad?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="one">Premještanje <xliff:g id="COUNT">^1</xliff:g> stavke u otpad…</item>
-      <item quantity="few">Premještanje <xliff:g id="COUNT">^1</xliff:g> stavke u otpad…</item>
-      <item quantity="other">Premještanje <xliff:g id="COUNT">^1</xliff:g> stavki u otpad…</item>
-    </plurals>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajl iz otpada?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajla iz otpada?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajlova iz otpada?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="one">Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajla iz otpada…</item>
-      <item quantity="few">Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajla iz otpada…</item>
-      <item quantity="other">Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajlova iz otpada…</item>
-    </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapis iz otpada?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapisa iz otpada?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapisa iz otpada?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
-      <item quantity="one">Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa iz otpada…</item>
-      <item quantity="few">Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa iz otpada…</item>
-      <item quantity="other">Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa iz otpada…</item>
-    </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografiju iz otpada?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografije iz otpada?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografija iz otpada?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
-      <item quantity="one">Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografije iz otpada…</item>
-      <item quantity="few">Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografije iz otpada…</item>
-      <item quantity="other">Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografija iz otpada…</item>
-    </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavku iz otpada?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavke iz otpada?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavki iz otpada?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
-      <item quantity="one">Premještanje <xliff:g id="COUNT">^1</xliff:g> stavke iz otpada…</item>
-      <item quantity="few">Premještanje <xliff:g id="COUNT">^1</xliff:g> stavke iz otpada…</item>
-      <item quantity="other">Premještanje <xliff:g id="COUNT">^1</xliff:g> stavki iz otpada…</item>
-    </plurals>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> audio fajl?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> audio fajla?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> audio fajlova?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="one">Brisanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…</item>
-      <item quantity="few">Brisanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…</item>
-      <item quantity="other">Brisanje <xliff:g id="COUNT">^1</xliff:g> audio fajlova…</item>
-    </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> videozapis?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> videozapisa?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> videozapisa?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
-      <item quantity="one">Brisanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…</item>
-      <item quantity="few">Brisanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…</item>
-      <item quantity="other">Brisanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…</item>
-    </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> fotografiju?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> fotografije?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> fotografija?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
-      <item quantity="one">Brisanje <xliff:g id="COUNT">^1</xliff:g> fotografije…</item>
-      <item quantity="few">Brisanje <xliff:g id="COUNT">^1</xliff:g> fotografije…</item>
-      <item quantity="other">Brisanje <xliff:g id="COUNT">^1</xliff:g> fotografija…</item>
-    </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
-      <item quantity="one">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> stavku?</item>
-      <item quantity="few">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> stavke?</item>
-      <item quantity="other">Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> stavki?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
-      <item quantity="one">Brisanje <xliff:g id="COUNT">^1</xliff:g> stavke…</item>
-      <item quantity="few">Brisanje <xliff:g id="COUNT">^1</xliff:g> stavke…</item>
-      <item quantity="other">Brisanje <xliff:g id="COUNT">^1</xliff:g> stavki…</item>
-    </plurals>
+    <string name="picker_motion_photo_text" msgid="5016603812468180816">"Fotografija s videom"</string>
+    <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izmijeni ovaj audio fajl?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajl?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajla?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajlova?}}"</string>
+    <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Mijenjanje audio fajla…}one{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…}few{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…}other{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajlova…}}"</string>
+    <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izmijeni ovaj videozapis?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapis?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}}"</string>
+    <string name="permission_progress_write_video" msgid="7014908418349819148">"{count,plural, =1{Mijenjanje videozapisa…}one{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…}few{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…}other{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…}}"</string>
+    <string name="permission_write_image" msgid="3518991791620523786">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izmijeni ovu fotografiju?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> fotografiju?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> fotografije?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> fotografija?}}"</string>
+    <string name="permission_progress_write_image" msgid="3623580315590025262">"{count,plural, =1{Mijenjanje fotografije…}one{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> fotografije…}few{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> fotografije…}other{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> fotografija…}}"</string>
+    <string name="permission_write_generic" msgid="7431128739233656991">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izmijeni ovu stavku?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> stavku?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> stavke?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> stavki?}}"</string>
+    <string name="permission_progress_write_generic" msgid="2806560971318391443">"{count,plural, =1{Mijenjanje stavke…}one{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> stavke…}few{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> stavke…}other{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> stavki…}}"</string>
+    <string name="permission_trash_audio" msgid="6554672354767742206">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> premjesti ovaj audio fajl u otpad?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajl u otpad?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajla u otpad?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajlova u otpad?}}"</string>
+    <string name="permission_progress_trash_audio" msgid="3116279868733641329">"{count,plural, =1{Premještanje audio fajla u otpad…}one{Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajla u otpad…}few{Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajla u otpad…}other{Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajlova u otpad…}}"</string>
+    <string name="permission_trash_video" msgid="7555850843259959642">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> premjesti ovaj videozapis u otpad?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapis u otpad?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapisa u otpad?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapisa u otpad?}}"</string>
+    <string name="permission_progress_trash_video" msgid="4637821778329459681">"{count,plural, =1{Premještanje videozapisa u otpad…}one{Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa u otpad…}few{Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa u otpad…}other{Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa u otpad…}}"</string>
+    <string name="permission_trash_image" msgid="3333128084684156675">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> premjesti ovu fotografiju u otpad?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografiju u otpad?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografije u otpad?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografija u otpad?}}"</string>
+    <string name="permission_progress_trash_image" msgid="3063857679090024764">"{count,plural, =1{Premještanje fotografije u otpad…}one{Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografije u otpad…}few{Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografije u otpad…}other{Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografija u otpad…}}"</string>
+    <string name="permission_trash_generic" msgid="5545420534785075362">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> premjesti ovu stavku u otpad?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavku u otpad?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavke u otpad?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavki u otpad?}}"</string>
+    <string name="permission_progress_trash_generic" msgid="7815124979717814057">"{count,plural, =1{Premještanje stavke u otpad…}one{Premještanje <xliff:g id="COUNT">^1</xliff:g> stavke u otpad…}few{Premještanje <xliff:g id="COUNT">^1</xliff:g> stavke u otpad…}other{Premještanje <xliff:g id="COUNT">^1</xliff:g> stavki u otpad…}}"</string>
+    <string name="permission_untrash_audio" msgid="8404597563284002472">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> premjesti ovaj audio fajl iz otpada?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajl iz otpada?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajla iz otpada?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> audio fajlova iz otpada?}}"</string>
+    <string name="permission_progress_untrash_audio" msgid="2775372344946464508">"{count,plural, =1{Premještanje audio fajla iz otpada…}one{Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajla iz otpada…}few{Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajla iz otpada…}other{Premještanje <xliff:g id="COUNT">^1</xliff:g> audio fajlova iz otpada…}}"</string>
+    <string name="permission_untrash_video" msgid="3178914827607608162">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> premjesti ovaj videozapis iz otpada?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapis iz otpada?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapisa iz otpada?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> videozapisa iz otpada?}}"</string>
+    <string name="permission_progress_untrash_video" msgid="5500929409733841567">"{count,plural, =1{Premještanje videozapisa iz otpada…}one{Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa iz otpada…}few{Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa iz otpada…}other{Premještanje <xliff:g id="COUNT">^1</xliff:g> videozapisa iz otpada…}}"</string>
+    <string name="permission_untrash_image" msgid="3397523279351032265">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> premjesti ovu fotografiju iz otpada?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografiju iz otpada?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografije iz otpada?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> fotografija iz otpada?}}"</string>
+    <string name="permission_progress_untrash_image" msgid="5295061520504846264">"{count,plural, =1{Premještanje fotografije iz otpada…}one{Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografije iz otpada…}few{Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografije iz otpada…}other{Premještanje <xliff:g id="COUNT">^1</xliff:g> fotografija iz otpada…}}"</string>
+    <string name="permission_untrash_generic" msgid="2118366929431671046">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> premjesti ovu stavku iz otpada?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavku iz otpada?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavke iz otpada?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> premjesti <xliff:g id="COUNT">^2</xliff:g> stavki iz otpada?}}"</string>
+    <string name="permission_progress_untrash_generic" msgid="1489511601966842579">"{count,plural, =1{Premještanje stavke iz otpada…}one{Premještanje <xliff:g id="COUNT">^1</xliff:g> stavke iz otpada…}few{Premještanje <xliff:g id="COUNT">^1</xliff:g> stavke iz otpada…}other{Premještanje <xliff:g id="COUNT">^1</xliff:g> stavki iz otpada…}}"</string>
+    <string name="permission_delete_audio" msgid="3326674742892796627">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izbriše ovaj audio fajl?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> audio fajl?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> audio fajla?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> audio fajlova?}}"</string>
+    <string name="permission_progress_delete_audio" msgid="1734871539021696401">"{count,plural, =1{Brisanje audio fajla…}one{Brisanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…}few{Brisanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…}other{Brisanje <xliff:g id="COUNT">^1</xliff:g> audio fajlova…}}"</string>
+    <string name="permission_delete_video" msgid="604024971828349279">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izbriše ovaj videozapis?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> videozapis?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> videozapisa?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> videozapisa?}}"</string>
+    <string name="permission_progress_delete_video" msgid="1846702435073793157">"{count,plural, =1{Brisanje videozapisa…}one{Brisanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…}few{Brisanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…}other{Brisanje <xliff:g id="COUNT">^1</xliff:g> videozapisa…}}"</string>
+    <string name="permission_delete_image" msgid="3109056012794330510">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izbriše ovu fotografiju?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> fotografiju?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> fotografije?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> fotografija?}}"</string>
+    <string name="permission_progress_delete_image" msgid="8580517204901148906">"{count,plural, =1{Brisanje fotografije…}one{Brisanje <xliff:g id="COUNT">^1</xliff:g> fotografije…}few{Brisanje <xliff:g id="COUNT">^1</xliff:g> fotografije…}other{Brisanje <xliff:g id="COUNT">^1</xliff:g> fotografija…}}"</string>
+    <string name="permission_delete_generic" msgid="7891939881065520271">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izbriše ovu stavku?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> stavku?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> stavke?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izbriše <xliff:g id="COUNT">^2</xliff:g> stavki?}}"</string>
+    <string name="permission_progress_delete_generic" msgid="6709118146245087898">"{count,plural, =1{Brisanje stavke…}one{Brisanje <xliff:g id="COUNT">^1</xliff:g> stavke…}few{Brisanje <xliff:g id="COUNT">^1</xliff:g> stavke…}other{Brisanje <xliff:g id="COUNT">^1</xliff:g> stavki…}}"</string>
     <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> ne može obrađivati medijske fajlove"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Obrada medijskih fajlova je otkazana"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"Greška prilikom obrade medijskih fajlova"</string>

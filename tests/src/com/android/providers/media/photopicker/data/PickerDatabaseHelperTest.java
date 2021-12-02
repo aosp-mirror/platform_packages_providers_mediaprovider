@@ -22,6 +22,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.provider.CloudMediaProviderContract;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -48,6 +49,7 @@ public class PickerDatabaseHelperTest {
     private static final String KEY_SIZE_BYTES = "size_bytes";
     private static final String KEY_DURATION_MS = "duration_ms";
     private static final String KEY_MIME_TYPE = "mime_type";
+    private static final String KEY_STANDARD_MIME_TYPE_EXTENSION = "standard_mime_type_extension";
 
     private static final long LOCAL_ID = 50;
     private static final long SIZE_BYTES = 7000;
@@ -55,6 +57,8 @@ public class PickerDatabaseHelperTest {
     private static final long GENERATION_MODIFIED = 1L;
     private static final String CLOUD_ID = "asdfghjkl;";
     private static final String MIME_TYPE = "video/mp4";
+    private static final int STANDARD_MIME_TYPE_EXTENSION =
+            CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF;
     private static final long DURATION_MS = 0;
 
     private static Context sIsolatedContext;
@@ -75,7 +79,8 @@ public class PickerDatabaseHelperTest {
             KEY_GENERATION_MODIFIED,
             KEY_SIZE_BYTES,
             KEY_DURATION_MS,
-            KEY_MIME_TYPE
+            KEY_MIME_TYPE,
+            KEY_STANDARD_MIME_TYPE_EXTENSION
         };
 
         try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
@@ -99,6 +104,7 @@ public class PickerDatabaseHelperTest {
                     assertThat(cr.getLong(5)).isEqualTo(SIZE_BYTES);
                     assertThat(cr.getLong(6)).isEqualTo(DURATION_MS);
                     assertThat(cr.getString(7)).isEqualTo(MIME_TYPE);
+                    assertThat(cr.getInt(8)).isEqualTo(STANDARD_MIME_TYPE_EXTENSION);
                 }
             }
         }
@@ -313,6 +319,7 @@ public class PickerDatabaseHelperTest {
         values.put(KEY_GENERATION_MODIFIED, GENERATION_MODIFIED);
         values.put(KEY_DURATION_MS, DURATION_MS);
         values.put(KEY_MIME_TYPE, MIME_TYPE);
+        values.put(KEY_STANDARD_MIME_TYPE_EXTENSION, STANDARD_MIME_TYPE_EXTENSION);
         values.put(KEY_SIZE_BYTES, SIZE_BYTES);
 
         return values;

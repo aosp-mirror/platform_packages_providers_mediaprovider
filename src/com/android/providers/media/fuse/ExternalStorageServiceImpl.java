@@ -74,8 +74,11 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 // mounts of the lower filesystem.
                 final String[] supportedTranscodingRelativePaths =
                         mediaProvider.getSupportedTranscodingRelativePaths().toArray(new String[0]);
+                final String[] supportedUncachedRelativePaths =
+                        mediaProvider.getSupportedUncachedRelativePaths().toArray(new String[0]);
                 FuseDaemon daemon = new FuseDaemon(mediaProvider, this, deviceFd, sessionId,
-                        upperFileSystemPath.getPath(), supportedTranscodingRelativePaths);
+                        upperFileSystemPath.getPath(), supportedTranscodingRelativePaths,
+                        supportedUncachedRelativePaths);
                 daemon.start();
                 sFuseDaemons.put(sessionId, daemon);
             }

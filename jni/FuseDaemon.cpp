@@ -256,12 +256,13 @@ class FAdviser {
 
 /* Single FUSE mount */
 struct fuse {
-    explicit fuse(const std::string& _path, const ino_t _ino,
+    explicit fuse(const std::string& _path, const ino_t _ino, const bool _uncached_mode,
                   const std::vector<string>& _supported_transcoding_relative_paths,
                   const std::vector<string>& _supported_uncached_relative_paths)
         : path(_path),
           tracker(mediaprovider::fuse::NodeTracker(&lock)),
           root(node::CreateRoot(_path, &lock, _ino, &tracker)),
+          uncached_mode(_uncached_mode),
           mp(0),
           zero_addr(0),
           disable_dentry_cache(false),
@@ -329,6 +330,11 @@ struct fuse {
     }
 
     inline bool ShouldNotCache(const std::string& path) {
+        if (uncached_mode) {
+            // Cache is disabled for the entire volume.
+            return true;
+        }
+
         if (supported_uncached_relative_paths.empty()) {
             // By default there is no supported uncached path. Just return early in this case.
             return false;
@@ -353,6 +359,8 @@ struct fuse {
     mediaprovider::fuse::NodeTracker tracker;
     node* const root;
     struct fuse_session* se;
+
+    const bool uncached_mode;
 
     /*
      * Used to make JNI calls to MediaProvider.
@@ -2214,6 +2222,7 @@ bool FuseDaemon::IsStarted() const {
 }
 
 void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
+                       const bool uncached_mode,
                        const std::vector<std::string>& supported_transcoding_relative_paths,
                        const std::vector<std::string>& supported_uncached_relative_paths) {
     android::base::SetDefaultTag(LOG_TAG);
@@ -2240,7 +2249,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
         return;
     }
 
-    struct fuse fuse_default(path, stat.st_ino, supported_transcoding_relative_paths,
+    struct fuse fuse_default(path, stat.st_ino, uncached_mode, supported_transcoding_relative_paths,
                              supported_uncached_relative_paths);
     fuse_default.mp = &mp;
     // fuse_default is stack allocated, but it's safe to save it as an instance variable because

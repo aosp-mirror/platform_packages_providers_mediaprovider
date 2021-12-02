@@ -75,7 +75,7 @@ jlong com_android_providers_media_FuseDaemon_new(JNIEnv* env, jobject self,
 
 void com_android_providers_media_FuseDaemon_start(
         JNIEnv* env, jobject self, jlong java_daemon, jint fd, jstring java_path,
-        jobjectArray java_supported_transcoding_relative_paths,
+        jboolean uncached_mode, jobjectArray java_supported_transcoding_relative_paths,
         jobjectArray java_supported_uncached_relative_paths) {
     LOG(DEBUG) << "Starting the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
@@ -93,7 +93,7 @@ void com_android_providers_media_FuseDaemon_start(
     const std::vector<std::string>& uncached_relative_paths =
             get_supported_uncached_relative_paths(env, java_supported_uncached_relative_paths);
 
-    daemon->Start(std::move(ufd), utf_chars_path.c_str(), transcoding_relative_paths,
+    daemon->Start(std::move(ufd), utf_chars_path.c_str(), uncached_mode, transcoding_relative_paths,
                   uncached_relative_paths);
 }
 
@@ -171,7 +171,7 @@ bool com_android_providers_media_FuseDaemon_is_fuse_thread(JNIEnv* env, jclass c
 const JNINativeMethod methods[] = {
         {"native_new", "(Lcom/android/providers/media/MediaProvider;)J",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_new)},
-        {"native_start", "(JILjava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)V",
+        {"native_start", "(JILjava/lang/String;Z[Ljava/lang/String;[Ljava/lang/String;)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_start)},
         {"native_delete", "(J)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete)},

@@ -86,6 +86,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
 
         assertMultiSelectPreviewCommonLayoutDisplayed();
+        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(not(isDisplayed())));
+
         // Verify ImageView is displayed
         onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
 
@@ -111,7 +113,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         final String addButtonString =
                 getTargetContext().getResources().getString(R.string.add);
-        final int previewAddButtonId = R.id.preview_add_or_select_button;
+        final int previewAddButtonId = R.id.preview_add_button;
         final int previewSelectButtonId = R.id.preview_select_check_button;
         final String deselectString =
                 getTargetContext().getResources().getString(R.string.deselect);
@@ -369,7 +371,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
     private void assertMultiSelectPreviewCommonLayoutDisplayed() {
         onView(withId(PREVIEW_VIEW_PAGER_ID)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_add_or_select_button)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_add_button)).check(matches(isDisplayed()));
         onView(withId(R.id.preview_select_check_button)).check(matches(isDisplayed()));
         onView(withId(R.id.preview_select_check_button)).check(matches(isSelected()));
     }

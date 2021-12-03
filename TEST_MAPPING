@@ -4,6 +4,18 @@
     //     {
     //         "name": "MediaProviderTests[com.google.android.mediaprovider.apex]"
     //     }
+    //     {
+    //         "name": "MediaProviderTests[com.google.android.mediaprovider.apex]"
+    //     },
+    //     {
+    //         "name": "CtsScopedStorageCoreHostTest"
+    //     },
+    //     {
+    //         "name": "CtsScopedStorageHostTest"
+    //     },
+    //     {
+    //         "name": "CtsScopedStorageDeviceOnlyTest"
+    //     }
     // ],
     "presubmit": [
         {

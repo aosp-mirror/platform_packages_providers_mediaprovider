@@ -31,7 +31,6 @@
 
 namespace mediaprovider {
 namespace fuse {
-using android::base::GetBoolProperty;
 using std::string;
 
 namespace {

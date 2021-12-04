@@ -277,7 +277,7 @@ public class PickerUriResolverTest {
     public void testPickerUriResolver_userValid() throws Exception {
         updateReadUriPermission(sTestPickerUri, /* grant */ true);
 
-        testGetUserId(sTestPickerUri, UserHandle.of(TEST_USER));
+        assertThat(PickerUriResolver.getUserId(sTestPickerUri)).isEqualTo(TEST_USER);
         testOpenFile(sTestPickerUri);
         testOpenTypedAssetFile(sTestPickerUri);
         testQuery(sTestPickerUri);
@@ -325,11 +325,6 @@ public class PickerUriResolverTest {
             return PickerUriResolver.wrapProviderUri(providerUri, user);
         }
         return Uri.parse("content://media/picker/" + user + "/" + id);
-    }
-
-    private void testGetUserId(Uri uri, UserHandle userHandle) {
-        assertThat(PickerUriResolver.getUserId(uri).toString()).isEqualTo(
-                UserId.of(userHandle).toString());
     }
 
     private void testOpenFile(Uri uri) throws Exception {

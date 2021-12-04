@@ -29,14 +29,8 @@
     <string name="permission_required_action" msgid="706370952366113539">"Lanjutkan"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Izinkan"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Tolak"</string>
-    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
-      <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
-    </plurals>
-    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
-      <item quantity="other">Plus <xliff:g id="COUNT_1">^1</xliff:g> item tambahan</item>
-      <item quantity="one">Plus <xliff:g id="COUNT_0">^1</xliff:g> item tambahan</item>
-    </plurals>
+    <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{+<xliff:g id="COUNT_0">^1</xliff:g>}other{+<xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
+    <string name="permission_more_text" msgid="2471785045095597753">"{count,plural, =1{Plus <xliff:g id="COUNT_0">^1</xliff:g> item tambahan}other{Plus <xliff:g id="COUNT_1">^1</xliff:g> item tambahan}}"</string>
     <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Menghapus file aplikasi sementara"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ingin menghapus beberapa file sementara. Ini dapat meningkatkan penggunaan baterai atau data seluler."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Menghapus file aplikasi sementara…"</string>
@@ -46,11 +40,12 @@
     <string name="add" msgid="2894574044585549298">"Tambahkan"</string>
     <string name="deselect" msgid="4297825044827769490">"Batalkan pilihan"</string>
     <string name="select" msgid="2704765470563027689">"Pilih"</string>
-    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
-      <item quantity="other">Pilih hingga <xliff:g id="COUNT_1">^1</xliff:g> item</item>
-      <item quantity="one">Pilih hingga <xliff:g id="COUNT_0">^1</xliff:g> item</item>
-    </plurals>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Pilih hingga <xliff:g id="COUNT_0">^1</xliff:g> item}other{Pilih hingga <xliff:g id="COUNT_1">^1</xliff:g> item}}"</string>
     <string name="recent" msgid="6694613584743207874">"Terbaru"</string>
+    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
+    <skip />
+    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
+    <skip />
     <string name="picker_view_selected" msgid="2266031384396143883">"Lihat yang dipilih"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Foto"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Album"</string>
@@ -61,10 +56,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Mengakses data pribadi dari aplikasi kerja tidak diizinkan"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Aplikasi kerja dijeda"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Untuk membuka foto kerja, aktifkan aplikasi kerja lalu coba lagi"</string>
-    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
-      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> item</item>
-      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> item</item>
-    </plurals>
+    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> item}other{<xliff:g id="COUNT_1">^1</xliff:g> item}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Tambahkan (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Hasil download"</string>
@@ -72,134 +64,39 @@
     <string name="picker_category_screenshots" msgid="7216102327587644284">"Screenshot"</string>
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
-    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk mengubah <xliff:g id="COUNT">^2</xliff:g> file audio?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk mengubah file audio ini?</item>
-    </plurals>
-    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="other">Mengubah <xliff:g id="COUNT">^1</xliff:g> file audio …</item>
-      <item quantity="one">Mengubah file audio …</item>
-    </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk mengubah <xliff:g id="COUNT">^2</xliff:g> video?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk mengubah video ini?</item>
-    </plurals>
-    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
-      <item quantity="other">Mengubah <xliff:g id="COUNT">^1</xliff:g> video …</item>
-      <item quantity="one">Mengubah video …</item>
-    </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk mengubah <xliff:g id="COUNT">^2</xliff:g> foto?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk mengubah foto ini?</item>
-    </plurals>
-    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
-      <item quantity="other">Mengubah <xliff:g id="COUNT">^1</xliff:g> foto …</item>
-      <item quantity="one">Mengubah foto …</item>
-    </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk mengubah <xliff:g id="COUNT">^2</xliff:g> item?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk mengubah item ini?</item>
-    </plurals>
-    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
-      <item quantity="other">Mengubah <xliff:g id="COUNT">^1</xliff:g> item …</item>
-      <item quantity="one">Mengubah item …</item>
-    </plurals>
-    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk memindahkan <xliff:g id="COUNT">^2</xliff:g> file audio ke sampah?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk memindahkan file audio ini ke sampah?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="other">Memindahkan <xliff:g id="COUNT">^1</xliff:g> file audio ke sampah …</item>
-      <item quantity="one">Memindahkan file audio ke sampah …</item>
-    </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk memindahkan <xliff:g id="COUNT">^2</xliff:g> video ke sampah?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk memindahkan video ini ke sampah?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
-      <item quantity="other">Memindahkan <xliff:g id="COUNT">^1</xliff:g> video ke sampah …</item>
-      <item quantity="one">Memindahkan video ke sampah …</item>
-    </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk memindahkan <xliff:g id="COUNT">^2</xliff:g> foto ke sampah?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk memindahkan foto ini ke sampah?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
-      <item quantity="other">Memindahkan <xliff:g id="COUNT">^1</xliff:g> foto ke sampah …</item>
-      <item quantity="one">Memindahkan foto ke sampah …</item>
-    </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk memindahkan <xliff:g id="COUNT">^2</xliff:g> item ke sampah?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk memindahkan item ini ke sampah?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="other">Memindahkan <xliff:g id="COUNT">^1</xliff:g> item ke sampah …</item>
-      <item quantity="one">Memindahkan item ke sampah …</item>
-    </plurals>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk mengeluarkan <xliff:g id="COUNT">^2</xliff:g> file audio dari sampah?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk mengeluarkan file audio ini dari sampah?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="other">Memindahkan <xliff:g id="COUNT">^1</xliff:g> file audio dari sampah …</item>
-      <item quantity="one">Memindahkan file audio dari sampah …</item>
-    </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk mengeluarkan <xliff:g id="COUNT">^2</xliff:g> video dari sampah?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk mengeluarkan video ini dari sampah?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
-      <item quantity="other">Memindahkan <xliff:g id="COUNT">^1</xliff:g> video dari sampah …</item>
-      <item quantity="one">Memindahkan video dari sampah …</item>
-    </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk mengeluarkan <xliff:g id="COUNT">^2</xliff:g> foto dari sampah?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk mengeluarkan foto ini dari sampah?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
-      <item quantity="other">Memindahkan <xliff:g id="COUNT">^1</xliff:g> foto dari sampah …</item>
-      <item quantity="one">Memindahkan foto dari sampah …</item>
-    </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk mengeluarkan <xliff:g id="COUNT">^2</xliff:g> item dari sampah?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk mengeluarkan item ini dari sampah?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
-      <item quantity="other">Memindahkan <xliff:g id="COUNT">^1</xliff:g> item dari sampah …</item>
-      <item quantity="one">Memindahkan item dari sampah …</item>
-    </plurals>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk menghapus <xliff:g id="COUNT">^2</xliff:g> file audio?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk menghapus file audio ini?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="other">Menghapus <xliff:g id="COUNT">^1</xliff:g> file audio …</item>
-      <item quantity="one">Menghapus file audio …</item>
-    </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk menghapus <xliff:g id="COUNT">^2</xliff:g> video?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk menghapus video ini?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
-      <item quantity="other">Menghapus <xliff:g id="COUNT">^1</xliff:g> video …</item>
-      <item quantity="one">Menghapus video …</item>
-    </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk menghapus <xliff:g id="COUNT">^2</xliff:g> foto?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk menghapus foto ini?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
-      <item quantity="other">Menghapus <xliff:g id="COUNT">^1</xliff:g> foto …</item>
-      <item quantity="one">Menghapus foto …</item>
-    </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
-      <item quantity="other">Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> untuk menghapus <xliff:g id="COUNT">^2</xliff:g> item?</item>
-      <item quantity="one">Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> untuk menghapus item ini?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
-      <item quantity="other">Menghapus <xliff:g id="COUNT">^1</xliff:g> item …</item>
-      <item quantity="one">Menghapus item …</item>
-    </plurals>
+    <string name="picker_motion_photo_text" msgid="5016603812468180816">"Foto Motion"</string>
+    <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> mengubah file audio ini?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> mengubah <xliff:g id="COUNT">^2</xliff:g> file audio?}}"</string>
+    <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Mengubah file audio …}other{Mengubah <xliff:g id="COUNT">^1</xliff:g> file audio …}}"</string>
+    <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> mengubah video ini?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> mengubah <xliff:g id="COUNT">^2</xliff:g> video?}}"</string>
+    <string name="permission_progress_write_video" msgid="7014908418349819148">"{count,plural, =1{Mengubah video …}other{Mengubah <xliff:g id="COUNT">^1</xliff:g> video …}}"</string>
+    <string name="permission_write_image" msgid="3518991791620523786">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> mengubah foto ini?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> mengubah <xliff:g id="COUNT">^2</xliff:g> foto?}}"</string>
+    <string name="permission_progress_write_image" msgid="3623580315590025262">"{count,plural, =1{Mengubah foto …}other{Mengubah <xliff:g id="COUNT">^1</xliff:g> foto …}}"</string>
+    <string name="permission_write_generic" msgid="7431128739233656991">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> mengubah item ini?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> mengubah <xliff:g id="COUNT">^2</xliff:g> item?}}"</string>
+    <string name="permission_progress_write_generic" msgid="2806560971318391443">"{count,plural, =1{Mengubah item …}other{Mengubah <xliff:g id="COUNT">^1</xliff:g> item …}}"</string>
+    <string name="permission_trash_audio" msgid="6554672354767742206">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> memindahkan file audio ini ke sampah?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> memindahkan <xliff:g id="COUNT">^2</xliff:g> file audio ke sampah?}}"</string>
+    <string name="permission_progress_trash_audio" msgid="3116279868733641329">"{count,plural, =1{Memindahkan file audio ke sampah …}other{Memindahkan <xliff:g id="COUNT">^1</xliff:g> file audio ke sampah …}}"</string>
+    <string name="permission_trash_video" msgid="7555850843259959642">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> memindahkan video ini ke sampah?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> memindahkan <xliff:g id="COUNT">^2</xliff:g> video ke sampah?}}"</string>
+    <string name="permission_progress_trash_video" msgid="4637821778329459681">"{count,plural, =1{Memindahkan video ke sampah …}other{Memindahkan <xliff:g id="COUNT">^1</xliff:g> video ke sampah …}}"</string>
+    <string name="permission_trash_image" msgid="3333128084684156675">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> memindahkan foto ini ke sampah?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> memindahkan <xliff:g id="COUNT">^2</xliff:g> foto ke sampah?}}"</string>
+    <string name="permission_progress_trash_image" msgid="3063857679090024764">"{count,plural, =1{Memindahkan foto ke sampah …}other{Memindahkan <xliff:g id="COUNT">^1</xliff:g> foto ke sampah …}}"</string>
+    <string name="permission_trash_generic" msgid="5545420534785075362">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> memindahkan item ini ke sampah?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> memindahkan <xliff:g id="COUNT">^2</xliff:g> item ke sampah?}}"</string>
+    <string name="permission_progress_trash_generic" msgid="7815124979717814057">"{count,plural, =1{Memindahkan item ke sampah …}other{Memindahkan <xliff:g id="COUNT">^1</xliff:g> item ke sampah …}}"</string>
+    <string name="permission_untrash_audio" msgid="8404597563284002472">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> memindahkan file audio ini dari sampah?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> memindahkan <xliff:g id="COUNT">^2</xliff:g> file audio dari sampah?}}"</string>
+    <string name="permission_progress_untrash_audio" msgid="2775372344946464508">"{count,plural, =1{Memindahkan file audio dari sampah …}other{Memindahkan <xliff:g id="COUNT">^1</xliff:g> file audio dari sampah …}}"</string>
+    <string name="permission_untrash_video" msgid="3178914827607608162">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> memindahkan video ini dari sampah?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> memindahkan <xliff:g id="COUNT">^2</xliff:g> video dari sampah?}}"</string>
+    <string name="permission_progress_untrash_video" msgid="5500929409733841567">"{count,plural, =1{Memindahkan video dari sampah …}other{Memindahkan <xliff:g id="COUNT">^1</xliff:g> video dari sampah …}}"</string>
+    <string name="permission_untrash_image" msgid="3397523279351032265">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> memindahkan foto ini dari sampah?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> memindahkan <xliff:g id="COUNT">^2</xliff:g> foto dari sampah?}}"</string>
+    <string name="permission_progress_untrash_image" msgid="5295061520504846264">"{count,plural, =1{Memindahkan foto dari sampah …}other{Memindahkan <xliff:g id="COUNT">^1</xliff:g> foto dari sampah …}}"</string>
+    <string name="permission_untrash_generic" msgid="2118366929431671046">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> memindahkan item ini dari sampah?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> memindahkan <xliff:g id="COUNT">^2</xliff:g> item dari sampah?}}"</string>
+    <string name="permission_progress_untrash_generic" msgid="1489511601966842579">"{count,plural, =1{Memindahkan item dari sampah …}other{Memindahkan <xliff:g id="COUNT">^1</xliff:g> item dari sampah …}}"</string>
+    <string name="permission_delete_audio" msgid="3326674742892796627">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> menghapus file audio ini?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> menghapus <xliff:g id="COUNT">^2</xliff:g> file audio?}}"</string>
+    <string name="permission_progress_delete_audio" msgid="1734871539021696401">"{count,plural, =1{Menghapus file audio …}other{Menghapus <xliff:g id="COUNT">^1</xliff:g> file audio …}}"</string>
+    <string name="permission_delete_video" msgid="604024971828349279">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> menghapus video ini?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> menghapus <xliff:g id="COUNT">^2</xliff:g> video?}}"</string>
+    <string name="permission_progress_delete_video" msgid="1846702435073793157">"{count,plural, =1{Menghapus video …}other{Menghapus <xliff:g id="COUNT">^1</xliff:g> video …}}"</string>
+    <string name="permission_delete_image" msgid="3109056012794330510">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> menghapus foto ini?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> menghapus <xliff:g id="COUNT">^2</xliff:g> foto?}}"</string>
+    <string name="permission_progress_delete_image" msgid="8580517204901148906">"{count,plural, =1{Menghapus foto …}other{Menghapus <xliff:g id="COUNT">^1</xliff:g> foto …}}"</string>
+    <string name="permission_delete_generic" msgid="7891939881065520271">"{count,plural, =1{Izinkan <xliff:g id="APP_NAME_0">^1</xliff:g> menghapus item ini?}other{Izinkan <xliff:g id="APP_NAME_1">^1</xliff:g> menghapus <xliff:g id="COUNT">^2</xliff:g> item?}}"</string>
+    <string name="permission_progress_delete_generic" msgid="6709118146245087898">"{count,plural, =1{Menghapus item …}other{Menghapus <xliff:g id="COUNT">^1</xliff:g> item …}}"</string>
     <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> tidak dapat memproses file media"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Pemrosesan media dibatalkan"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"Pemrosesan media mengalami error"</string>

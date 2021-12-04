@@ -16,7 +16,6 @@
 
 package android.provider;
 
-import android.annotation.SystemApi;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
@@ -113,6 +112,36 @@ public final class CloudMediaProviderContract {
          * Type: STRING
          */
         public static final String MIME_TYPE = "mime_type";
+
+        /**
+         * Mime-type extension representing special format for a media item.
+         *
+         * Photo Picker requires special format tagging for media items.
+         * This is essential as media items can have various formats like
+         * Motion Photos, GIFs etc, which are not identifiable by
+         * {@link #MIME_TYPE}.
+         * <p>
+         * Type: INTEGER
+         */
+        public static final String STANDARD_MIME_TYPE_EXTENSION = "standard_mime_type_extension";
+
+        /**
+         * Constant for the {@link #STANDARD_MIME_TYPE_EXTENSION} column indicating
+         * that the media item doesn't have any special format associated with it.
+         */
+        public static final int STANDARD_MIME_TYPE_EXTENSION_NONE = 0;
+
+        /**
+         * Constant for the {@link #STANDARD_MIME_TYPE_EXTENSION} column indicating
+         * that the media item is a GIF.
+         */
+        public static final int STANDARD_MIME_TYPE_EXTENSION_GIF = 1;
+
+        /**
+         * Constant for the {@link #STANDARD_MIME_TYPE_EXTENSION} column indicating
+         * that the media item is a Motion Photo.
+         */
+        public static final int STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO = 2;
 
         /**
          * Size of a media file, in bytes.

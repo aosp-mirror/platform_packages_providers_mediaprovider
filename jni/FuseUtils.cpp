@@ -35,7 +35,7 @@ bool containsMount(const string& path) {
         return false;
     }
 
-    size_t pos = path.find_first_of("/", prefix.length());
+    size_t pos = path.find_first_of('/', prefix.length());
     if (pos == std::string::npos) {
         return false;
     }

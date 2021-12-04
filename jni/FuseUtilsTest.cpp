@@ -20,7 +20,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace mediaprovider::fuse;
+namespace mediaprovider::fuse {
 
 TEST(FuseUtilsTest, testContainsMount_isTrueForAndroidDataObb) {
     EXPECT_TRUE(containsMount("/storage/emulated/1234/Android"));
@@ -58,3 +58,5 @@ TEST(FuseUtilsTest, testContainsMount_isFalseForPathWithAdditionalSlash) {
     EXPECT_FALSE(containsMount("/storage/emulated//1234/Android/data"));
     EXPECT_FALSE(containsMount("/storage/emulated/1234//Android/data"));
 }
+
+}  // namespace mediaprovider::fuse

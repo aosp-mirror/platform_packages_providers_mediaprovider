@@ -1196,6 +1196,12 @@ public class MediaProvider extends ContentProvider {
     }
 
     @VisibleForTesting
+    public void setUriResolver(PickerUriResolver resolver) {
+        Log.w(TAG, "Changing the PickerUriResolver!!! Should only be called during test");
+        mPickerUriResolver = resolver;
+    }
+
+    @VisibleForTesting
     void detectSpecialFormat(@NonNull CancellationSignal signal) {
         mExternalDatabase.runWithTransaction((db) -> {
             updateSpecialFormatColumn(db, signal);

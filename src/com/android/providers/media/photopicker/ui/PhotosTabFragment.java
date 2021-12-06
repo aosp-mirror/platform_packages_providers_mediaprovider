@@ -17,7 +17,6 @@ package com.android.providers.media.photopicker.ui;
 
 import static com.android.providers.media.photopicker.ui.PhotosTabAdapter.COLUMN_COUNT;
 
-import android.icu.text.MessageFormat;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -40,9 +39,7 @@ import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.text.NumberFormat;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import src.com.android.providers.media.util.StringUtils;
 
 /**
@@ -80,14 +77,21 @@ public class PhotosTabFragment extends TabFragment {
 
         final PhotosTabAdapter adapter = new PhotosTabAdapter(mSelection, mImageLoader,
                 this::onItemClick, this::onItemLongClick);
-
+        setEmptyMessage(R.string.picker_photos_empty_message);
         mIsDefaultCategory = TextUtils.equals(Category.CATEGORY_DEFAULT, mCategoryType);
         if (mIsDefaultCategory) {
             mPickerViewModel.getItems().observe(this, itemList -> {
                 adapter.updateItemList(itemList);
+                // Handle emptyView's visibility
+                updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
             });
         } else {
             mPickerViewModel.getCategoryItems(mCategoryType).observe(this, itemList -> {
+                // If the item count of the albums is zero, albums are not shown on the Albums tab.
+                // The user can't launch the album items page when the album has zero items. So, we
+                // don't need to show emptyView in the case.
+                updateVisibilityForEmptyView(/* shouldShowEmptyView */ false);
+
                 adapter.updateItemList(itemList);
             });
         }
@@ -138,11 +142,6 @@ public class PhotosTabFragment extends TabFragment {
             ((PhotoPickerActivity) getActivity()).updateCommonLayouts(
                     LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB, categoryName);
         }
-    }
-
-    @Override
-    protected String getEmptyMessage() {
-        return getString(R.string.picker_photos_empty_message);
     }
 
     private void onItemClick(@NonNull View view) {

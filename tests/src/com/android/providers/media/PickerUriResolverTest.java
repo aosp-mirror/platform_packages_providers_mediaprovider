@@ -38,6 +38,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
@@ -74,12 +75,11 @@ public class PickerUriResolverTest {
     private static Context sCurrentContext;
     private static TestPickerUriResolver sTestPickerUriResolver;
     private static Uri sTestPickerUri;
-    private static PickerDbFacade sPickerDbFacade;
     private static String TEST_ID;
 
     private static class TestPickerUriResolver extends PickerUriResolver {
-        TestPickerUriResolver(Context context, PickerDbFacade facade) {
-            super(context, facade);
+        TestPickerUriResolver(Context context) {
+            super(context, new PickerDbFacade(getTargetContext()));
         }
 
         @Override
@@ -88,6 +88,31 @@ public class PickerUriResolverTest {
             // MediaStore.getRedactedUri as it depends on final methods which cannot be mocked as
             // well.
             return uri;
+        }
+
+        @Override
+        Cursor queryPickerUri(Uri uri) {
+            if (!uri.getLastPathSegment().equals(TEST_ID)) {
+                return super.queryPickerUri(uri);
+            }
+
+            final String[] projection = new String[] {
+                CloudMediaProviderContract.MediaColumns.ID,
+                CloudMediaProviderContract.MediaColumns.MIME_TYPE
+            };
+
+            final MatrixCursor c = new MatrixCursor(projection);
+            c.addRow(new String[] { TEST_ID, "image/jpeg"});
+            return c;
+        }
+
+        @Override
+        File getPickerFileFromUri(Uri uri) {
+            if (!uri.getLastPathSegment().equals(TEST_ID)) {
+                return super.getPickerFileFromUri(uri);
+            }
+
+            return TEST_FILE;
         }
     }
 
@@ -99,9 +124,10 @@ public class PickerUriResolverTest {
                         android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS);
         sCurrentContext = mock(Context.class);
+        when(sCurrentContext.getUser()).thenReturn(UserHandle.of(UserHandle.myUserId()));
+
         final Context otherUserContext = createOtherUserContext(TEST_USER);
-        sPickerDbFacade = new PickerDbFacade(otherUserContext);
-        sTestPickerUriResolver = new TestPickerUriResolver(sCurrentContext, sPickerDbFacade);
+        sTestPickerUriResolver = new TestPickerUriResolver(sCurrentContext);
 
         final Uri mediaStoreUriInOtherContext = createTestFileInContext(otherUserContext);
         TEST_ID = mediaStoreUriInOtherContext.getLastPathSegment();
@@ -289,8 +315,11 @@ public class PickerUriResolverTest {
         // For unit testing: IsolatedContext is the context of another User: user.
         // PickerUriResolver should correctly be able to call into other user's content resolver
         // from the current context.
-        final Context otherUserContext = new MediaScannerTest.IsolatedContext(getTargetContext(),
-                "databases", /* asFuseThread */ false);
+        final MediaScannerTest.IsolatedContext otherUserContext =
+                new MediaScannerTest.IsolatedContext(getTargetContext(), "databases",
+                        /* asFuseThread */ false, userHandle);
+        otherUserContext.setPickerUriResolver(new TestPickerUriResolver(otherUserContext));
+
         when(sCurrentContext.createPackageContextAsUser("android", /* flags= */ 0, userHandle)).
                 thenReturn(otherUserContext);
         return otherUserContext;

@@ -25,6 +25,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteConstraintException;
+import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.os.Environment;
 import android.provider.CloudMediaProviderContract;
@@ -52,8 +53,10 @@ public class ExternalDbFacade {
     @VisibleForTesting
     static final String TABLE_FILES = "files";
 
-    private static final String TABLE_DELETED_MEDIA = "deleted_media";
-    private static final String COLUMN_OLD_ID = "old_id";
+    @VisibleForTesting
+    static final String TABLE_DELETED_MEDIA = "deleted_media";
+    @VisibleForTesting
+    static final String COLUMN_OLD_ID = "old_id";
     private static final String COLUMN_OLD_ID_AS_ID = COLUMN_OLD_ID + " AS " +
             CloudMediaProviderContract.MediaColumns.ID;
     private static final String COLUMN_GENERATION_MODIFIED = MediaColumns.GENERATION_MODIFIED;
@@ -74,6 +77,10 @@ public class ExternalDbFacade {
     private static final String[] PROJECTION_MEDIA_INFO = new String[] {
         "COUNT(" + MediaColumns.GENERATION_MODIFIED + ") AS "
         + CloudMediaProviderContract.MediaInfo.MEDIA_COUNT,
+        "MAX(" + MediaColumns.GENERATION_MODIFIED + ") AS "
+        + CloudMediaProviderContract.MediaInfo.MEDIA_GENERATION
+    };
+    private static final String[] PROJECTION_DELETED_MEDIA_INFO = new String[] {
         "MAX(" + MediaColumns.GENERATION_MODIFIED + ") AS "
         + CloudMediaProviderContract.MediaInfo.MEDIA_GENERATION
     };
@@ -286,13 +293,47 @@ public class ExternalDbFacade {
      */
     public Cursor getMediaInfo(long generation) {
         final String[] selectionArgs = new String[] {String.valueOf(generation)};
+        final String[] projection = new String[] {
+            CloudMediaProviderContract.MediaInfo.MEDIA_COUNT,
+            CloudMediaProviderContract.MediaInfo.MEDIA_GENERATION
+        };
 
         return mDatabaseHelper.runWithTransaction(db -> {
-                SQLiteQueryBuilder qb = createMediaQueryBuilder();
-                qb.appendWhereStandalone(WHERE_GREATER_GENERATION);
+                SQLiteQueryBuilder qbMedia = createMediaQueryBuilder();
+                qbMedia.appendWhereStandalone(WHERE_GREATER_GENERATION);
+                SQLiteQueryBuilder qbDeletedMedia = createDeletedMediaQueryBuilder();
+                qbDeletedMedia.appendWhereStandalone(WHERE_GREATER_GENERATION);
 
-                return qb.query(db, PROJECTION_MEDIA_INFO, /* select */ null, selectionArgs,
-                        /* groupBy */ null, /* having */ null, /* orderBy */ null);
+                try (Cursor mediaCursor = query(qbMedia, db, PROJECTION_MEDIA_INFO, selectionArgs);
+                        Cursor deletedMediaCursor = query(qbDeletedMedia, db,
+                                PROJECTION_DELETED_MEDIA_INFO, selectionArgs)) {
+                    final int mediaCountIndex = mediaCursor.getColumnIndexOrThrow(
+                            CloudMediaProviderContract.MediaInfo.MEDIA_COUNT);
+                    final int mediaGenerationIndex = mediaCursor.getColumnIndexOrThrow(
+                            CloudMediaProviderContract.MediaInfo.MEDIA_GENERATION);
+                    final int deletedMediaGenerationIndex =
+                            deletedMediaCursor.getColumnIndexOrThrow(
+                                    CloudMediaProviderContract.MediaInfo.MEDIA_GENERATION);
+
+                    long mediaCount = 0;
+                    long mediaGeneration = 0;
+                    if (mediaCursor.moveToFirst()) {
+                        mediaCount = mediaCursor.getLong(mediaCountIndex);
+                        mediaGeneration = mediaCursor.getLong(mediaGenerationIndex);
+                    }
+
+                    long deletedMediaGeneration = 0;
+                    if (deletedMediaCursor.moveToFirst()) {
+                        deletedMediaGeneration = deletedMediaCursor.getLong(
+                                deletedMediaGenerationIndex);
+                    }
+
+                    long maxGeneration = Math.max(mediaGeneration, deletedMediaGeneration);
+                    MatrixCursor result = new MatrixCursor(projection);
+                    result.addRow(new Long[] { mediaCount, maxGeneration });
+
+                    return result;
+                }
             });
     }
 
@@ -343,6 +384,12 @@ public class ExternalDbFacade {
 
         return c;
     }
+
+        private static Cursor query(SQLiteQueryBuilder qb, SQLiteDatabase db, String[] projection,
+                String[] selectionArgs) {
+            return qb.query(db, PROJECTION_MEDIA_INFO, /* select */ null, selectionArgs,
+                    /* groupBy */ null, /* having */ null, /* orderBy */ null);
+        }
 
     private static List<String> appendWhere(SQLiteQueryBuilder qb, String albumId,
             String mimeType) {

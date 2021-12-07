@@ -184,9 +184,11 @@ public class SpecialFormatSingleSelectTest extends PhotoPickerBaseTest {
 
     private void assertSingleSelectCommonLayoutMatches() {
         onView(withId(R.id.preview_viewPager)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
-        onView(withId(R.id.preview_add_or_select_button)).check(matches(isDisplayed()));
+        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
         // Verify that the text in Add button
-        onView(withId(R.id.preview_add_or_select_button)).check(matches(withText(R.string.add)));
+        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.add)));
+
+        onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.preview_add_button)).check(matches(not(isDisplayed())));
     }
 }

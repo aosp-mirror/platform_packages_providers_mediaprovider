@@ -216,20 +216,22 @@ public class PickerUriResolver {
         if (file == null) {
             throw new FileNotFoundException("File not found for uri: " + uri);
         }
-        return ParcelFileDescriptor.open(toFuseFile(file), ParcelFileDescriptor.MODE_READ_ONLY);
+        return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
     }
 
-    private File getPickerFileFromUri(Uri uri) {
+    @VisibleForTesting
+    File getPickerFileFromUri(Uri uri) {
         try (Cursor cursor = queryPickerUri(uri)) {
             if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
                 String path = getCursorString(cursor, CloudMediaProviderContract.MediaColumns.DATA);
-                return new File(path);
+                return toFuseFile(new File(path));
             }
         }
         return null;
     }
 
-    private Cursor queryPickerUri(Uri uri) {
+    @VisibleForTesting
+    Cursor queryPickerUri(Uri uri) {
         uri = unwrapProviderUri(uri);
         return mDbFacade.queryMediaId(uri.getHost(), uri.getLastPathSegment());
     }
@@ -328,7 +330,7 @@ public class PickerUriResolver {
     private boolean canHandleUriInUser(Uri uri) {
         // If MPs user_id matches the URIs user_id, we can handle this URI in this MP user,
         // otherwise, we'd have to re-route to MP matching URI user_id
-        return getUserId(uri) == MediaStore.MY_USER_ID;
+        return getUserId(uri) == mContext.getUser().getIdentifier();
     }
 
     @VisibleForTesting

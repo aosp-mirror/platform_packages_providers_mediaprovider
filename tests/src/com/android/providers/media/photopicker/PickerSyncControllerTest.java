@@ -434,7 +434,7 @@ public class PickerSyncControllerTest {
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         controller.syncPicker();
 
-        try (Cursor cr = facade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build())) {
+        try (Cursor cr = queryMedia(facade)) {
             assertThat(cr.getCount()).isEqualTo(1);
 
             assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
@@ -451,14 +451,14 @@ public class PickerSyncControllerTest {
                 LOCAL_PROVIDER_AUTHORITY, /* syncDelay */ 0);
 
         // Initially empty db
-        try (Cursor cr = facade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build())) {
+        try (Cursor cr = queryMedia(facade)) {
             assertThat(cr.getCount()).isEqualTo(0);
         }
 
         controller.syncPicker();
 
         // Fully synced db
-        try (Cursor cr = facade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build())) {
+        try (Cursor cr = queryMedia(facade)) {
             assertThat(cr.getCount()).isEqualTo(1);
 
             assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
@@ -476,7 +476,7 @@ public class PickerSyncControllerTest {
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         controller.syncPicker();
 
-        try (Cursor cr = facade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build())) {
+        try (Cursor cr = queryMedia(facade)) {
             assertThat(cr.getCount()).isEqualTo(1);
 
             assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
@@ -490,14 +490,14 @@ public class PickerSyncControllerTest {
                 LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
 
         // Initially empty db
-        try (Cursor cr = facade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build())) {
+        try (Cursor cr = queryMedia(facade)) {
             assertThat(cr.getCount()).isEqualTo(0);
         }
 
         controller.syncPicker();
 
         // Fully synced db
-        try (Cursor cr = facade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build())) {
+        try (Cursor cr = queryMedia(facade)) {
             assertThat(cr.getCount()).isEqualTo(1);
 
             assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
@@ -515,7 +515,7 @@ public class PickerSyncControllerTest {
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         controller.syncPicker();
 
-        try (Cursor cr = facade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build())) {
+        try (Cursor cr = queryMedia(facade)) {
             assertThat(cr.getCount()).isEqualTo(1);
 
             assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
@@ -530,14 +530,14 @@ public class PickerSyncControllerTest {
                 LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
 
         // Initially empty db
-        try (Cursor cr = facade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build())) {
+        try (Cursor cr = queryMedia(facade)) {
             assertThat(cr.getCount()).isEqualTo(0);
         }
 
         controller.syncPicker();
 
         // Fully synced db
-        try (Cursor cr = facade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build())) {
+        try (Cursor cr = queryMedia(facade)) {
             assertThat(cr.getCount()).isEqualTo(1);
 
             assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
@@ -618,8 +618,14 @@ public class PickerSyncControllerTest {
         generator.deleteMedia(media.first, media.second);
     }
 
+    private static Cursor queryMedia(PickerDbFacade facade) {
+        return facade.queryMediaForUi(
+                new PickerDbFacade.QueryFilterBuilder(1000).build());
+    }
+
     private Cursor queryMedia() {
-        return mFacade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build());
+        return mFacade.queryMediaForUi(
+                new PickerDbFacade.QueryFilterBuilder(1000).build());
     }
 
     private void assertEmptyCursor() {

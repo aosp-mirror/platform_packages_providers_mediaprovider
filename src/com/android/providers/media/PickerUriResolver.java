@@ -169,7 +169,18 @@ public class PickerUriResolver {
 
         if (PickerDbFacade.isPickerDbEnabled()) {
             if (canHandleUriInUser(uri)) {
-                return queryPickerUri(uri);
+                if (projection == null || projection.length == 0) {
+                    projection = new String[] {
+                        MediaStore.PickerMediaColumns.DISPLAY_NAME,
+                        MediaStore.PickerMediaColumns.DATA,
+                        MediaStore.PickerMediaColumns.MIME_TYPE,
+                        MediaStore.PickerMediaColumns.DATE_TAKEN,
+                        MediaStore.PickerMediaColumns.SIZE,
+                        MediaStore.PickerMediaColumns.DURATION_MILLIS
+                    };
+                }
+
+                return queryPickerUri(uri, projection);
             }
             return resolver.query(uri, /* projection */ null, /* queryArgs */ null,
                     /* cancellationSignal */ null);
@@ -235,9 +246,10 @@ public class PickerUriResolver {
 
     @VisibleForTesting
     File getPickerFileFromUri(Uri uri) {
-        try (Cursor cursor = queryPickerUri(uri)) {
+        final String[] projection = new String[] { MediaStore.PickerMediaColumns.DATA };
+        try (Cursor cursor = queryPickerUri(uri, projection)) {
             if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
-                String path = getCursorString(cursor, CloudMediaProviderContract.MediaColumns.DATA);
+                String path = getCursorString(cursor, MediaStore.PickerMediaColumns.DATA);
                 return toFuseFile(new File(path));
             }
         }
@@ -245,9 +257,10 @@ public class PickerUriResolver {
     }
 
     @VisibleForTesting
-    Cursor queryPickerUri(Uri uri) {
+    Cursor queryPickerUri(Uri uri, String[] projection) {
         uri = unwrapProviderUri(uri);
-        return mDbFacade.queryMediaId(uri.getHost(), uri.getLastPathSegment());
+        return mDbFacade.queryMediaIdForApps(uri.getHost(), uri.getLastPathSegment(),
+                projection);
     }
 
     public static Uri wrapProviderUri(Uri uri, int userId) {

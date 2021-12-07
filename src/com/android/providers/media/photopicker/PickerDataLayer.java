@@ -68,7 +68,7 @@ public class PickerDataLayer {
 
         if (Objects.equals(queryExtras.getAlbumId(), STRING_DEFAULT) || queryExtras.isFavorite()) {
             // Fetch merged and deduped media from picker db
-            return mDbFacade.queryMedia(queryExtras.toQueryFilter());
+            return mDbFacade.queryMediaForUi(queryExtras.toQueryFilter());
         } else {
             // Fetch unique media directly from provider
             final String cloudProvider = validateCloudProvider(queryExtras);

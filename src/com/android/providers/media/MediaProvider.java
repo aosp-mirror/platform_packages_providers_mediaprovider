@@ -7802,6 +7802,26 @@ public class MediaProvider extends ContentProvider {
                 if (mCallingIdentity.get().isOwned(id)) {
                     return true;
                 }
+                break;
+            default:
+                // continue below
+        }
+
+        // Check whether the uri is a specific table or not. Don't allow the global access to these
+        // table uris
+        switch (table) {
+            case AUDIO_MEDIA:
+            case IMAGES_MEDIA:
+            case VIDEO_MEDIA:
+            case DOWNLOADS:
+            case FILES:
+            case AUDIO_ALBUMS:
+            case AUDIO_ARTISTS:
+            case AUDIO_GENRES:
+            case AUDIO_PLAYLISTS:
+                return false;
+            default:
+                // continue below
         }
 
         // Outstanding grant means they get access

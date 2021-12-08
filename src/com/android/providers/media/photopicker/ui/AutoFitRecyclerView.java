@@ -18,7 +18,6 @@ package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -32,50 +31,6 @@ public class AutoFitRecyclerView extends RecyclerView {
     private int mColumnWidth = -1;
     private int mMinimumSpanCount = 2;
     private boolean mIsGridLayout;
-    private View mEmptyView;
-    private AdapterDataObserver mAdapterDataObserver = new AdapterDataObserver() {
-        @Override
-        public void onChanged() {
-            super.onChanged();
-            checkIsEmpty();
-        }
-
-        /**
-         * If the user triggers {@link RecyclerView.Adapter#notifyItemInserted(int)}, this method
-         * will be triggered. We also need to check whether the dataset is empty or not to decide
-         * the visibility of the empty view.
-         */
-        @Override
-        public void onItemRangeInserted(int positionStart, int itemCount) {
-            super.onItemRangeInserted(positionStart, itemCount);
-            checkIsEmpty();
-        }
-
-        /**
-         * If the user triggers {@link RecyclerView.Adapter#notifyItemRemoved(int)}, this method
-         * will be triggered. We also need to check whether the dataset is empty or not to decide
-         * the visibility of the empty view.
-         */
-        @Override
-        public void onItemRangeRemoved(int positionStart, int itemCount) {
-            super.onItemRangeRemoved(positionStart, itemCount);
-            checkIsEmpty();
-        }
-
-        private void checkIsEmpty() {
-            if (mEmptyView == null) {
-                return;
-            }
-
-            if (getAdapter().getItemCount() == 0) {
-                mEmptyView.setVisibility(VISIBLE);
-                setVisibility(GONE);
-            } else {
-                mEmptyView.setVisibility(GONE);
-                setVisibility(VISIBLE);
-            }
-        }
-    };
 
     public AutoFitRecyclerView(Context context) {
         super(context);
@@ -102,25 +57,7 @@ public class AutoFitRecyclerView extends RecyclerView {
     @Override
     public void setLayoutManager(@Nullable RecyclerView.LayoutManager layoutManager) {
         super.setLayoutManager(layoutManager);
-        if (layoutManager instanceof GridLayoutManager) {
-            mIsGridLayout = true;
-        }
-    }
-
-    @Override
-    public void setAdapter(@Nullable RecyclerView.Adapter adapter) {
-        super.setAdapter(adapter);
-        if (adapter != null) {
-            adapter.registerAdapterDataObserver(mAdapterDataObserver);
-        }
-        mAdapterDataObserver.onChanged();
-    }
-
-    /**
-     * Set the empty view. If the empty view is not null, when the item count is zero, it is shown.
-     */
-    public void setEmptyView(@Nullable View emptyView) {
-        mEmptyView = emptyView;
+        mIsGridLayout = (layoutManager instanceof GridLayoutManager);
     }
 
     public void setColumnWidth(int columnWidth) {

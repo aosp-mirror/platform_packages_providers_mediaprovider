@@ -168,13 +168,11 @@ public class PreviewFragment extends Fragment {
                     + " is not set");
         }
 
-        final Button addOrSelectButton = view.findViewById(R.id.preview_add_or_select_button);
-        final Button selectCheckButton = view.findViewById(R.id.preview_select_check_button);
         final int previewType = args.getInt(PREVIEW_TYPE, -1);
         if (previewType == PREVIEW_ON_LONG_PRESS) {
-            setUpPreviewLayoutForLongPress(addOrSelectButton, selectCheckButton);
+            setUpPreviewLayoutForLongPress(view);
         } else if (previewType == PREVIEW_ON_VIEW_SELECTED) {
-            setUpPreviewLayoutForViewSelected(addOrSelectButton, selectCheckButton);
+            setUpPreviewLayoutForViewSelected(view);
         } else {
             // We are willing to crash PhotoPickerActivity because this error might only happen
             // during development.
@@ -185,15 +183,8 @@ public class PreviewFragment extends Fragment {
     /**
      * Adjusts the select/add button layout for preview on LongPress
      */
-    private void setUpPreviewLayoutForLongPress(@NonNull Button addOrSelectButton,
-            @NonNull Button selectCheckButton) {
-        final LayoutParams layoutParams
-                = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
-        addOrSelectButton.setLayoutParams(layoutParams);
-
-        // This button won't be visible in Preview on LongPress. Select/Deselect action for multi
-        // select mode is handled by addOrSelect button.
-        selectCheckButton.setVisibility(View.GONE);
+    private void setUpPreviewLayoutForLongPress(@NonNull View view) {
+        final Button addOrSelectButton = view.findViewById(R.id.preview_add_or_select_button);
 
         // Preview on Long Press will reuse AddOrSelect button as
         // * Add button - Button with text "Add" - for single select mode
@@ -222,14 +213,21 @@ public class PreviewFragment extends Fragment {
     /**
      * Adjusts the layout based on Multi select and adds appropriate onClick listeners
      */
-    private void setUpPreviewLayoutForViewSelected(@NonNull Button addButton,
-            @NonNull Button selectButton) {
+    private void setUpPreviewLayoutForViewSelected(@NonNull View view) {
+        // Hide addOrSelect button of long press, we have a separate add button for view selected
+        final Button addOrSelectButton = view.findViewById(R.id.preview_add_or_select_button);
+        addOrSelectButton.setVisibility(View.GONE);
+
+        final Button viewSelectedAddButton = view.findViewById(R.id.preview_add_button);
+        viewSelectedAddButton.setVisibility(View.VISIBLE);
         // On clicking add button we return the picker result to calling app.
         // This destroys PickerActivity and all fragments.
-        addButton.setOnClickListener(v -> {
+        viewSelectedAddButton.setOnClickListener(v -> {
             ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
         });
 
+        final Button selectButton = view.findViewById(R.id.preview_select_check_button);
+        selectButton.setVisibility(View.VISIBLE);
         // Update the select icon and text according to the state of selection while swiping
         // between photos
         mOnPageChangeCallBack = new OnPageChangeCallBack(selectButton);
@@ -237,7 +235,7 @@ public class PreviewFragment extends Fragment {
 
         // Update add button text to include number of items selected.
         mSelection.getSelectedItemCount().observe(this, selectedItemCount -> {
-            addButton.setText(generateAddButtonString(getContext(), selectedItemCount));
+            viewSelectedAddButton.setText(generateAddButtonString(getContext(), selectedItemCount));
         });
 
         selectButton.setOnClickListener(

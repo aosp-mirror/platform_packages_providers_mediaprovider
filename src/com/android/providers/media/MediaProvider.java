@@ -21,11 +21,27 @@ import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Environment.buildPath;
+import static android.os.ParcelFileDescriptor.MODE_APPEND;
+import static android.os.ParcelFileDescriptor.MODE_CREATE;
+import static android.os.ParcelFileDescriptor.MODE_READ_ONLY;
+import static android.os.ParcelFileDescriptor.MODE_READ_WRITE;
+import static android.os.ParcelFileDescriptor.MODE_TRUNCATE;
+import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
 import static android.os.Trace.TRACE_TAG_DATABASE;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
 import static android.provider.MediaStore.Downloads.isDownload;
 import static android.provider.MediaStore.getVolumeName;
+import static android.system.OsConstants.O_APPEND;
+import static android.system.OsConstants.O_CLOEXEC;
+import static android.system.OsConstants.O_CREAT;
+import static android.system.OsConstants.O_NOFOLLOW;
+import static android.system.OsConstants.O_RDONLY;
+import static android.system.OsConstants.O_RDWR;
+import static android.system.OsConstants.O_TRUNC;
+import static android.system.OsConstants.O_WRONLY;
+import static android.system.OsConstants.S_IRWXG;
+import static android.system.OsConstants.S_IRWXU;
 
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED;
@@ -5140,7 +5156,7 @@ public class MediaProvider extends ContentProvider {
                 final long albumId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Audio.Albums.getContentUri(volumeName), albumId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
+                return openSafely(ensureThumbnail(targetUri, signal),
                         ParcelFileDescriptor.MODE_READ_ONLY);
 
             }
@@ -5148,21 +5164,21 @@ public class MediaProvider extends ContentProvider {
                 final long audioId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Audio.Media.getContentUri(volumeName), audioId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
+                return openSafely(ensureThumbnail(targetUri, signal),
                         ParcelFileDescriptor.MODE_READ_ONLY);
             }
             case VIDEO_MEDIA_ID_THUMBNAIL: {
                 final long videoId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Video.Media.getContentUri(volumeName), videoId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
+                return openSafely(ensureThumbnail(targetUri, signal),
                         ParcelFileDescriptor.MODE_READ_ONLY);
             }
             case IMAGES_MEDIA_ID_THUMBNAIL: {
                 final long imageId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Images.Media.getContentUri(volumeName), imageId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
+                return openSafely(ensureThumbnail(targetUri, signal),
                         ParcelFileDescriptor.MODE_READ_ONLY);
             }
         }
@@ -5194,7 +5210,7 @@ public class MediaProvider extends ContentProvider {
         if (wantsThumb) {
             final File thumbFile = ensureThumbnail(uri, signal);
             return new AssetFileDescriptor(
-                    ParcelFileDescriptor.open(thumbFile, ParcelFileDescriptor.MODE_READ_ONLY),
+                    openSafely(thumbFile, ParcelFileDescriptor.MODE_READ_ONLY),
                     0, AssetFileDescriptor.UNKNOWN_LENGTH);
         }
 
@@ -5414,7 +5430,7 @@ public class MediaProvider extends ContentProvider {
                         redactionInfo.redactionRanges,
                         redactionInfo.freeOffsets);
             } else {
-                pfd = ParcelFileDescriptor.open(file, modeBits);
+                pfd = openSafely(file, modeBits);
             }
 
             // Second, wrap in any listener that we've requested
@@ -5430,6 +5446,61 @@ public class MediaProvider extends ContentProvider {
                 throw new IllegalStateException(e);
             }
         }
+    }
+
+    /**
+     * Drop-in replacement for {@link ParcelFileDescriptor#open(File, int)}
+     * which adds security features like {@link OsConstants#O_CLOEXEC} and
+     * {@link OsConstants#O_NOFOLLOW}.
+     */
+    private static @NonNull ParcelFileDescriptor openSafely(@NonNull File file, int pfdFlags)
+            throws FileNotFoundException {
+        final int posixFlags = translateModePfdToPosix(pfdFlags) | O_CLOEXEC | O_NOFOLLOW;
+        try {
+            final FileDescriptor fd = Os.open(file.getAbsolutePath(), posixFlags,
+                    S_IRWXU | S_IRWXG);
+            try {
+                return ParcelFileDescriptor.dup(fd);
+            } finally {
+                closeQuietly(fd);
+            }
+        } catch (IOException | ErrnoException e) {
+            throw new FileNotFoundException(e.getMessage());
+        }
+    }
+
+    private static void closeQuietly(@Nullable FileDescriptor fd) {
+        if (fd == null) return;
+        try {
+            Os.close(fd);
+        } catch (ErrnoException ignored) {
+        }
+    }
+
+    /**
+     * Shamelessly borrowed from {@code android.os.FileUtils}.
+     */
+    private static int translateModePfdToPosix(int mode) {
+        int res = 0;
+        if ((mode & MODE_READ_WRITE) == MODE_READ_WRITE) {
+            res = O_RDWR;
+        } else if ((mode & MODE_WRITE_ONLY) == MODE_WRITE_ONLY) {
+            res = O_WRONLY;
+        } else if ((mode & MODE_READ_ONLY) == MODE_READ_ONLY) {
+            res = O_RDONLY;
+        } else {
+            throw new IllegalArgumentException("Bad mode: " + mode);
+        }
+        if ((mode & MODE_CREATE) == MODE_CREATE) {
+            res |= O_CREAT;
+        }
+        if ((mode & MODE_TRUNCATE) == MODE_TRUNCATE) {
+            res |= O_TRUNC;
+        }
+        if ((mode & MODE_APPEND) == MODE_APPEND) {
+            res |= O_APPEND;
+        }
+        return res;
     }
 
     private void deleteIfAllowed(Uri uri, String path) {

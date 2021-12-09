@@ -41,13 +41,15 @@ import android.util.Pair;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
-import com.android.providers.media.util.BackgroundThread;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -392,6 +394,18 @@ public class PickerSyncControllerTest {
         assertThat(mController.isProviderEnabled(1000)).isFalse();
     }
 
+    private static void waitForIdle() {
+        final CountDownLatch latch = new CountDownLatch(1);
+        BackgroundThread.getExecutor().execute(() -> {
+            latch.countDown();
+        });
+        try {
+            latch.await(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+
+    }
     @Test
     public void testNotifyMediaEvent() {
         PickerSyncController controller = new PickerSyncController(mContext, mFacade,
@@ -400,12 +414,12 @@ public class PickerSyncControllerTest {
         // 1. Add media and notify
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         controller.notifyMediaEvent();
-        BackgroundThread.waitForIdle();
+        waitForIdle();
         assertEmptyCursor();
 
         // 2. Sleep for delay
         SystemClock.sleep(SYNC_DELAY_MS);
-        BackgroundThread.waitForIdle();
+        waitForIdle();
 
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(1);
@@ -419,8 +433,10 @@ public class PickerSyncControllerTest {
     }
 
     private static void addMedia(MediaGenerator generator, Pair<String, String> media,
-            String albumId, String mimeType, long sizeBytes, boolean isFavorite) {
-        generator.addMedia(media.first, media.second, albumId, mimeType, sizeBytes, isFavorite);
+            String albumId, String mimeType, int standardMimeTypeExtension, long sizeBytes,
+            boolean isFavorite) {
+        generator.addMedia(media.first, media.second, albumId, mimeType, standardMimeTypeExtension,
+                sizeBytes, isFavorite);
     }
 
     private static void deleteMedia(MediaGenerator generator, Pair<String, String> media) {

@@ -50,6 +50,15 @@
         <item name="android:textColor">?android:attr/textColorPrimary</item>
     </style>
 
+    <style name="MaterialBorderlessButtonStyle"
+           parent="@style/Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textAppearance">@style/PickerButtonTextAppearance</item>
+    </style>
+
+    <style name="MaterialButtonStyle" parent="@style/Widget.MaterialComponents.Button">
+        <item name="android:textAppearance">@style/PickerButtonTextAppearance</item>
+    </style>
+
     <style name="ProfileDialogTheme"
            parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog.Centered">
         <item name="android:dialogCornerRadius">@dimen/picker_profile_dialog_radius</item>
@@ -77,17 +86,21 @@
         <item name="android:layout_height">@dimen/picker_profile_dialog_icon_height</item>
     </style>
 
-    <style name="PickerDefaultTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="PickerDefaultTheme" parent="android:style/Theme.DeviceDefault.DayNight">
         <!-- Color section -->
         <item name="android:colorAccent">@color/picker_primary_color</item>
         <item name="android:colorBackground">@color/picker_background_color</item>
 
         <!-- System | Widget section -->
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:navigationBarColor">?android:attr/colorBackground</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">?android:colorBackground</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
-        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
     </style>
 

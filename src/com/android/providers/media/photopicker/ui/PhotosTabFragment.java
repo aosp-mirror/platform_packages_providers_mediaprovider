@@ -35,12 +35,12 @@ import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryType;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
+import com.android.providers.media.util.StringUtils;
 
 import com.google.android.material.snackbar.Snackbar;
 
 import java.text.NumberFormat;
 import java.util.Locale;
-import src.com.android.providers.media.util.StringUtils;
 
 /**
  * Photos tab fragment for showing the photos

@@ -119,6 +119,7 @@ java_library {
         "src/com/android/providers/media/util/ForegroundThread.java",
         "src/com/android/providers/media/util/Logging.java",
         "src/com/android/providers/media/util/MimeUtils.java",
+        "src/com/android/providers/media/util/StringUtils.java",
         "src/com/android/providers/media/playlist/*.java",
     ],
     sdk_version: "module_current",

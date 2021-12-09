@@ -102,6 +102,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // We use the device default theme as the base theme. Apply the material them for the
+        // material components. We use force "false" here, only values that are not already defined
+        // in the base theme will be copied.
+        getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
+
         super.onCreate(savedInstanceState);
 
         if (!isPhotoPickerEnabled()) {

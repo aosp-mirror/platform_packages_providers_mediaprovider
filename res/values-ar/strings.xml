@@ -29,22 +29,8 @@
     <string name="permission_required_action" msgid="706370952366113539">"متابعة"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"سماح"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"رفض"</string>
-    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
-      <item quantity="zero">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="two">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="few">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="many">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
-    </plurals>
-    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
-      <item quantity="zero">و<xliff:g id="COUNT_1">^1</xliff:g> عنصر إضافي</item>
-      <item quantity="two">وعنصران إضافيان (<xliff:g id="COUNT_1">^1</xliff:g>)</item>
-      <item quantity="few">و<xliff:g id="COUNT_1">^1</xliff:g> عناصر إضافية</item>
-      <item quantity="many">و<xliff:g id="COUNT_1">^1</xliff:g> عنصرًا إضافيًا</item>
-      <item quantity="other">و<xliff:g id="COUNT_1">^1</xliff:g> عنصر إضافي</item>
-      <item quantity="one">وعنصر إضافي واحد (<xliff:g id="COUNT_0">^1</xliff:g>)</item>
-    </plurals>
+    <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{+<xliff:g id="COUNT_0">^1</xliff:g>}zero{+<xliff:g id="COUNT_1">^1</xliff:g>}two{+<xliff:g id="COUNT_1">^1</xliff:g>}few{+<xliff:g id="COUNT_1">^1</xliff:g>}many{+<xliff:g id="COUNT_1">^1</xliff:g>}other{+<xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
+    <string name="permission_more_text" msgid="2471785045095597753">"{count,plural, =1{وعنصر إضافي واحد (<xliff:g id="COUNT_0">^1</xliff:g>)}zero{و<xliff:g id="COUNT_1">^1</xliff:g> عنصر إضافي}two{وعنصران إضافيان (<xliff:g id="COUNT_1">^1</xliff:g>)}few{و<xliff:g id="COUNT_1">^1</xliff:g> عناصر إضافية}many{و<xliff:g id="COUNT_1">^1</xliff:g> عنصرًا إضافيًا}other{و<xliff:g id="COUNT_1">^1</xliff:g> عنصر إضافي}}"</string>
     <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"محو ملفات التطبيق المؤقتة"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"يريد تطبيق <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> محو بعض الملفات المؤقتة. قد يؤدي هذا إلى زيادة استهلاك شحن البطارية أو بيانات شبكة الجوّال."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"جارٍ محو ملفات التطبيق المؤقتة…"</string>
@@ -54,15 +40,12 @@
     <string name="add" msgid="2894574044585549298">"إضافة"</string>
     <string name="deselect" msgid="4297825044827769490">"إلغاء الاختيار"</string>
     <string name="select" msgid="2704765470563027689">"اختيار"</string>
-    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
-      <item quantity="zero">اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصر.</item>
-      <item quantity="two">اختَر ما يصل إلى عنصرين (<xliff:g id="COUNT_1">^1</xliff:g>).</item>
-      <item quantity="few">اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عناصر.</item>
-      <item quantity="many">اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصرًا.</item>
-      <item quantity="other">اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصر.</item>
-      <item quantity="one">اختَر ما يصل إلى عنصر واحد (<xliff:g id="COUNT_0">^1</xliff:g>).</item>
-    </plurals>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{اختَر ما يصل إلى عنصر واحد (<xliff:g id="COUNT_0">^1</xliff:g>).}zero{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصر.}two{اختَر ما يصل إلى عنصرين (<xliff:g id="COUNT_1">^1</xliff:g>).}few{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عناصر.}many{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصرًا.}other{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصر.}}"</string>
     <string name="recent" msgid="6694613584743207874">"الأحدث"</string>
+    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
+    <skip />
+    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
+    <skip />
     <string name="picker_view_selected" msgid="2266031384396143883">"عرض المحتوى المحدّد"</string>
     <string name="picker_photos" msgid="7415035516411087392">"الصور"</string>
     <string name="picker_albums" msgid="4822511902115299142">"الألبومات"</string>
@@ -73,14 +56,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"غير مسموح بالوصول إلى البيانات الشخصية من تطبيق عمل."</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"تطبيقات العمل متوقفة مؤقتًا"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"لفتح صور العمل، عليك تفعيل تطبيقات العمل ثم إعادة المحاولة."</string>
-    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
-      <item quantity="zero"><xliff:g id="COUNT_1">^1</xliff:g> عنصر</item>
-      <item quantity="two">عنصران (<xliff:g id="COUNT_1">^1</xliff:g>)</item>
-      <item quantity="few"><xliff:g id="COUNT_1">^1</xliff:g> عناصر</item>
-      <item quantity="many"><xliff:g id="COUNT_1">^1</xliff:g> عنصرًا</item>
-      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> عنصر</item>
-      <item quantity="one">عنصر واحد (<xliff:g id="COUNT_0">^1</xliff:g>)</item>
-    </plurals>
+    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{عنصر واحد (<xliff:g id="COUNT_0">^1</xliff:g>)}zero{<xliff:g id="COUNT_1">^1</xliff:g> عنصر}two{عنصران (<xliff:g id="COUNT_1">^1</xliff:g>)}few{<xliff:g id="COUNT_1">^1</xliff:g> عناصر}many{<xliff:g id="COUNT_1">^1</xliff:g> عنصرًا}other{<xliff:g id="COUNT_1">^1</xliff:g> عنصر}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"إضافة (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"الكاميرا"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"العناصر التي تم تنزيلها"</string>
@@ -88,262 +64,39 @@
     <string name="picker_category_screenshots" msgid="7216102327587644284">"لقطات الشاشة"</string>
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
-    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل ملفين صوتيين (<xliff:g id="COUNT">^2</xliff:g>)؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملفات صوتية؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملفًا صوتيًا؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذا الملف الصوتي؟</item>
-    </plurals>
-    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="zero">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…</item>
-      <item quantity="two">جارٍ تعديل ملفَين صوتين (<xliff:g id="COUNT">^1</xliff:g>)…</item>
-      <item quantity="few">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملفات صوتية…</item>
-      <item quantity="many">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملفًا صوتيًا…</item>
-      <item quantity="other">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…</item>
-      <item quantity="one">جارٍ تعديل ملف صوتي واحد…</item>
-    </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل فيديوهين (<xliff:g id="COUNT">^2</xliff:g>)؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديوهات؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذا الفيديو؟</item>
-    </plurals>
-    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
-      <item quantity="zero">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> فيديو…</item>
-      <item quantity="two">جارٍ تعديل فيديوهين (<xliff:g id="COUNT">^1</xliff:g>)…</item>
-      <item quantity="few">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> فيديوهات…</item>
-      <item quantity="many">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> فيديو…</item>
-      <item quantity="other">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> فيديو…</item>
-      <item quantity="one">جارٍ تعديل فيديو واحد…</item>
-    </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> صورة؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل صورتين (<xliff:g id="COUNT">^2</xliff:g>)؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> صور؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> صورة؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> صورة؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذه الصورة؟</item>
-    </plurals>
-    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
-      <item quantity="zero">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> صورة…</item>
-      <item quantity="two">جارٍ تعديل صورتين (<xliff:g id="COUNT">^1</xliff:g>)…</item>
-      <item quantity="few">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> صور…</item>
-      <item quantity="many">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> صورة…</item>
-      <item quantity="other">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> صورة…</item>
-      <item quantity="one">جارٍ تعديل صورة واحدة…</item>
-    </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> عنصر؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل عنصرين (<xliff:g id="COUNT">^2</xliff:g>)؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> عناصر؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> عنصرًا؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> عنصر؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذا العنصر؟</item>
-    </plurals>
-    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
-      <item quantity="zero">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> عنصر…</item>
-      <item quantity="two">جارٍ تعديل عنصرين (<xliff:g id="COUNT">^1</xliff:g>)…</item>
-      <item quantity="few">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> عناصر…</item>
-      <item quantity="many">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> عنصرًا…</item>
-      <item quantity="other">جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> عنصر…</item>
-      <item quantity="one">جارٍ تعديل عنصر واحد…</item>
-    </plurals>
-    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي إلى المهملات؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل ملفين صوتيين (<xliff:g id="COUNT">^2</xliff:g>) إلى المهملات؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملفات صوتية إلى المهملات؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملفًا صوتية إلى المهملات؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي إلى المهملات؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذا الملف الصوتي إلى المهملات؟</item>
-    </plurals>
-    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="zero">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي إلى المهملات…</item>
-      <item quantity="two">جارٍ نقل ملفَين صوتين (<xliff:g id="COUNT">^1</xliff:g>) إلى المهملات…</item>
-      <item quantity="few">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> ملفات صوتية إلى المهملات…</item>
-      <item quantity="many">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> ملفًا صوتيًا إلى المهملات…</item>
-      <item quantity="other">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي إلى المهملات…</item>
-      <item quantity="one">جارٍ نقل ملف صوتي واحد إلى المهملات…</item>
-    </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو إلى المهملات؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل فيديوهين (<xliff:g id="COUNT">^2</xliff:g>) إلى المهملات؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديوهات إلى المهملات؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو إلى المهملات؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو إلى المهملات؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذا الفيديو إلى المهملات؟</item>
-    </plurals>
-    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
-      <item quantity="zero">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> فيديو إلى المهملات…</item>
-      <item quantity="two">جارٍ نقل فيديوهين (<xliff:g id="COUNT">^1</xliff:g>) إلى المهملات…</item>
-      <item quantity="few">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> فيديوهات إلى المهملات…</item>
-      <item quantity="many">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> فيديو إلى المهملات…</item>
-      <item quantity="other">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> فيديو إلى المهملات…</item>
-      <item quantity="one">جارٍ نقل فيديو واحد إلى المهملات…</item>
-    </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة إلى المهملات؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل صورتين (<xliff:g id="COUNT">^2</xliff:g>) إلى المهملات؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صور إلى المهملات؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة إلى المهملات؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة إلى المهملات؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذه الصورة إلى المهملات؟</item>
-    </plurals>
-    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
-      <item quantity="zero">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> صورة إلى المهملات…</item>
-      <item quantity="two">جارٍ نقل صورتين (<xliff:g id="COUNT">^1</xliff:g>) إلى المهملات…</item>
-      <item quantity="few">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> صور إلى المهملات…</item>
-      <item quantity="many">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> صورة إلى المهملات…</item>
-      <item quantity="other">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> صورة إلى المهملات…</item>
-      <item quantity="one">جارٍ نقل صورة واحدة إلى المهملات…</item>
-    </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصر إلى المهملات؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل عنصرين (<xliff:g id="COUNT">^2</xliff:g>) إلى المهملات؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عناصر إلى المهملات؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصرًا إلى المهملات؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصر إلى المهملات؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذا العنصر إلى المهملات؟</item>
-    </plurals>
-    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="zero">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> عنصر إلى المهملات…</item>
-      <item quantity="two">جارٍ نقل عنصرين (<xliff:g id="COUNT">^1</xliff:g>) إلى المهملات…</item>
-      <item quantity="few">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> عناصر إلى المهملات…</item>
-      <item quantity="many">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> عنصرًا إلى المهملات…</item>
-      <item quantity="other">جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> عنصر إلى المهملات…</item>
-      <item quantity="one">جارٍ نقل عنصر واحد إلى المهملات…</item>
-    </plurals>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي خارج المهملات؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل ملفين صوتيين (<xliff:g id="COUNT">^2</xliff:g>) خارج المهملات؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملفات صوتية خارج المهملات؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملفًا صوتيًا خارج المهملات؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي خارج المهملات؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل الملف الصوتي هذا خارج المهملات؟</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="zero">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> ملف صوتي من المهملات…</item>
-      <item quantity="two">جارٍ إخراج ملفَين صوتين (<xliff:g id="COUNT">^1</xliff:g>) من المهملات…</item>
-      <item quantity="few">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> ملفات صوتية من المهملات…</item>
-      <item quantity="many">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> ملفًا صوتيًا من المهملات…</item>
-      <item quantity="other">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> ملف صوتي من المهملات…</item>
-      <item quantity="one">جارٍ إخراج ملف صوتي واحد من المهملات…</item>
-    </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو خارج المهملات؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل فيديوهين (<xliff:g id="COUNT">^2</xliff:g>) خارج المهملات؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديوهات خارج المهملات؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو خارج المهملات؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو خارج المهملات؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذا الفيديو خارج المهملات؟</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
-      <item quantity="zero">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> فيديو من المهملات…</item>
-      <item quantity="two">جارٍ إخراج فيديوهين (<xliff:g id="COUNT">^1</xliff:g>) من المهملات…</item>
-      <item quantity="few">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> فيديوهات من المهملات…</item>
-      <item quantity="many">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> فيديو من المهملات…</item>
-      <item quantity="other">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> فيديو من المهملات…</item>
-      <item quantity="one">جارٍ إخراج فيديو واحد من المهملات…</item>
-    </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة خارج المهملات؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل صورتين (<xliff:g id="COUNT">^2</xliff:g>) خارج المهملات؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صور خارج المهملات؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة خارج المهملات؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة خارج المهملات؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذه الصورة خارج المهملات؟</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
-      <item quantity="zero">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> صورة من المهملات…</item>
-      <item quantity="two">جارٍ إخراج صورتين (<xliff:g id="COUNT">^1</xliff:g>) من المهملات…</item>
-      <item quantity="few">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> صور من المهملات…</item>
-      <item quantity="many">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> صورة من المهملات…</item>
-      <item quantity="other">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> صورة من المهملات…</item>
-      <item quantity="one">جارٍ إخراج صورة واحدة من المهملات…</item>
-    </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصر خارج المهملات؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل عنصرين (<xliff:g id="COUNT">^2</xliff:g>) خارج المهملات؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عناصر خارج المهملات؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصرًا خارج المهملات؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصر خارج المهملات؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذا العنصر خارج المهملات؟</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
-      <item quantity="zero">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> عنصر من المهملات…</item>
-      <item quantity="two">جارٍ إخراج عنصرين (<xliff:g id="COUNT">^1</xliff:g>) من المهملات…</item>
-      <item quantity="few">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> عناصر من المهملات…</item>
-      <item quantity="many">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> عنصرًا من المهملات…</item>
-      <item quantity="other">جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> عنصر من المهملات…</item>
-      <item quantity="one">جارٍ إخراج عنصر واحد من المهملات…</item>
-    </plurals>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف ملفين صوتيين (<xliff:g id="COUNT">^2</xliff:g>)؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> ملفات صوتية؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> ملفًا صوتيًا؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بحذف هذا الملف الصوتي؟</item>
-    </plurals>
-    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="zero">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…</item>
-      <item quantity="two">جارٍ حذف ملفَين صوتين (<xliff:g id="COUNT">^1</xliff:g>)…</item>
-      <item quantity="few">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> ملفات صوتية…</item>
-      <item quantity="many">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> ملفًا صوتيًا…</item>
-      <item quantity="other">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…</item>
-      <item quantity="one">جارٍ حذف ملف صوتي واحد…</item>
-    </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> فيديو؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف فيديوهين (<xliff:g id="COUNT">^2</xliff:g>)؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> فيديوهات؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> فيديو؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> فيديو؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بحذف هذا الفيديو؟</item>
-    </plurals>
-    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
-      <item quantity="zero">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> فيديو…</item>
-      <item quantity="two">جارٍ حذف فيديوهين (<xliff:g id="COUNT">^1</xliff:g>)…</item>
-      <item quantity="few">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> فيديوهات…</item>
-      <item quantity="many">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> فيديو…</item>
-      <item quantity="other">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> فيديو…</item>
-      <item quantity="one">جارٍ حذف فيديو واحد…</item>
-    </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> صورة؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف صورتين (<xliff:g id="COUNT">^2</xliff:g>)؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> صور؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> صورة؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> صورة؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بحذف صورة واحدة؟</item>
-    </plurals>
-    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
-      <item quantity="zero">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> صورة…</item>
-      <item quantity="two">جارٍ حذف صورتين (<xliff:g id="COUNT">^1</xliff:g>)…</item>
-      <item quantity="few">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> صور…</item>
-      <item quantity="many">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> صورة…</item>
-      <item quantity="other">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> صورة…</item>
-      <item quantity="one">جارٍ حذف صورة واحدة…</item>
-    </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
-      <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> عنصر؟</item>
-      <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف عنصرين (<xliff:g id="COUNT">^2</xliff:g>)؟</item>
-      <item quantity="few">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> عناصر؟</item>
-      <item quantity="many">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> عنصرًا؟</item>
-      <item quantity="other">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> عنصر؟</item>
-      <item quantity="one">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بحذف هذا العنصر؟</item>
-    </plurals>
-    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
-      <item quantity="zero">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> عنصر…</item>
-      <item quantity="two">جارٍ حذف عنصرين (<xliff:g id="COUNT">^1</xliff:g>)…</item>
-      <item quantity="few">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> عناصر…</item>
-      <item quantity="many">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> عنصرًا…</item>
-      <item quantity="other">جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> عنصر…</item>
-      <item quantity="one">جارٍ حذف عنصر واحد…</item>
-    </plurals>
+    <string name="picker_motion_photo_text" msgid="5016603812468180816">"الصورة الحيّة"</string>
+    <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذا الملف الصوتي؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل ملفَين صوتيين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملفات صوتية؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملفًا صوتيًا؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟}}"</string>
+    <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{جارٍ تعديل ملف صوتي واحد…}zero{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…}two{جارٍ تعديل ملفَين صوتين (<xliff:g id="COUNT">^1</xliff:g>)…}few{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملفات صوتية…}many{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملفًا صوتيًا…}other{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…}}"</string>
+    <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذا الفيديو؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل فيديوهين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديوهات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟}}"</string>
+    <string name="permission_progress_write_video" msgid="7014908418349819148">"{count,plural, =1{جارٍ تعديل فيديو واحد…}zero{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> فيديو…}two{جارٍ تعديل فيديوهين (<xliff:g id="COUNT">^1</xliff:g>)…}few{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> فيديوهات…}many{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> فيديو…}other{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> فيديو…}}"</string>
+    <string name="permission_write_image" msgid="3518991791620523786">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذه الصورة؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> صورة؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل صورتين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> صور؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> صورة؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> صورة؟}}"</string>
+    <string name="permission_progress_write_image" msgid="3623580315590025262">"{count,plural, =1{جارٍ تعديل صورة واحدة…}zero{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> صورة…}two{جارٍ تعديل صورتين (<xliff:g id="COUNT">^1</xliff:g>)…}few{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> صور…}many{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> صورة…}other{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> صورة…}}"</string>
+    <string name="permission_write_generic" msgid="7431128739233656991">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذا العنصر؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> عنصر؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل عنصرين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> عناصر؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> عنصرًا؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> عنصر؟}}"</string>
+    <string name="permission_progress_write_generic" msgid="2806560971318391443">"{count,plural, =1{جارٍ تعديل عنصر واحد…}zero{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> عنصر…}two{جارٍ تعديل عنصرين (<xliff:g id="COUNT">^1</xliff:g>)…}few{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> عناصر…}many{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> عنصرًا…}other{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> عنصر…}}"</string>
+    <string name="permission_trash_audio" msgid="6554672354767742206">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذا الملف الصوتي إلى المهملات؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي إلى المهملات؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل ملفَين صوتيين (<xliff:g id="COUNT">^2</xliff:g>) إلى المهملات؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملفات صوتية إلى المهملات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملفًا صوتيًا إلى المهملات؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي إلى المهملات؟}}"</string>
+    <string name="permission_progress_trash_audio" msgid="3116279868733641329">"{count,plural, =1{جارٍ نقل ملف صوتي واحد إلى المهملات…}zero{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي إلى المهملات…}two{جارٍ نقل ملفَين صوتين (<xliff:g id="COUNT">^1</xliff:g>) إلى المهملات…}few{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> ملفات صوتية إلى المهملات…}many{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> ملفًا صوتيًا إلى المهملات…}other{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي إلى المهملات…}}"</string>
+    <string name="permission_trash_video" msgid="7555850843259959642">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذا الفيديو إلى المهملات؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو إلى المهملات؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل فيديوهين (<xliff:g id="COUNT">^2</xliff:g>) إلى المهملات؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديوهات إلى المهملات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو إلى المهملات؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو إلى المهملات؟}}"</string>
+    <string name="permission_progress_trash_video" msgid="4637821778329459681">"{count,plural, =1{جارٍ نقل فيديو واحد إلى المهملات…}zero{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> فيديو إلى المهملات…}two{جارٍ نقل فيديوهين (<xliff:g id="COUNT">^1</xliff:g>) إلى المهملات…}few{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> فيديوهات إلى المهملات…}many{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> فيديو إلى المهملات…}other{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> فيديو إلى المهملات…}}"</string>
+    <string name="permission_trash_image" msgid="3333128084684156675">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذه الصورة إلى المهملات؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة إلى المهملات؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل صورتين (<xliff:g id="COUNT">^2</xliff:g>) إلى المهملات؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صور إلى المهملات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة إلى المهملات؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة إلى المهملات؟}}"</string>
+    <string name="permission_progress_trash_image" msgid="3063857679090024764">"{count,plural, =1{جارٍ نقل صورة واحدة إلى المهملات…}zero{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> صورة إلى المهملات…}two{جارٍ نقل صورتين (<xliff:g id="COUNT">^1</xliff:g>) إلى المهملات…}few{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> صور إلى المهملات…}many{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> صورة إلى المهملات…}other{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> صورة إلى المهملات…}}"</string>
+    <string name="permission_trash_generic" msgid="5545420534785075362">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذا العنصر إلى المهملات؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصر إلى المهملات؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل عنصرين (<xliff:g id="COUNT">^2</xliff:g>) إلى المهملات؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عناصر إلى المهملات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصرًا إلى المهملات؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصر إلى المهملات؟}}"</string>
+    <string name="permission_progress_trash_generic" msgid="7815124979717814057">"{count,plural, =1{جارٍ نقل عنصر واحد إلى المهملات…}zero{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> عنصر إلى المهملات…}two{جارٍ نقل عنصرين (<xliff:g id="COUNT">^1</xliff:g>) إلى المهملات…}few{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> عناصر إلى المهملات…}many{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> عنصرًا إلى المهملات…}other{جارٍ نقل <xliff:g id="COUNT">^1</xliff:g> عنصر إلى المهملات…}}"</string>
+    <string name="permission_untrash_audio" msgid="8404597563284002472">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل الملف الصوتي هذا خارج المهملات؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي خارج المهملات؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل ملفَين صوتيين (<xliff:g id="COUNT">^2</xliff:g>) خارج المهملات؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملفات صوتية خارج المهملات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملفًا صوتيًا خارج المهملات؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي خارج المهملات؟}}"</string>
+    <string name="permission_progress_untrash_audio" msgid="2775372344946464508">"{count,plural, =1{جارٍ إخراج ملف صوتي واحد من المهملات…}zero{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> ملف صوتي من المهملات…}two{جارٍ إخراج ملفَين صوتين (<xliff:g id="COUNT">^1</xliff:g>) من المهملات…}few{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> ملفات صوتية من المهملات…}many{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> ملفًا صوتيًا من المهملات…}other{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> ملف صوتي من المهملات…}}"</string>
+    <string name="permission_untrash_video" msgid="3178914827607608162">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذا الفيديو خارج المهملات؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو خارج المهملات؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل فيديوهين (<xliff:g id="COUNT">^2</xliff:g>) خارج المهملات؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديوهات خارج المهملات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو خارج المهملات؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> فيديو خارج المهملات؟}}"</string>
+    <string name="permission_progress_untrash_video" msgid="5500929409733841567">"{count,plural, =1{جارٍ إخراج فيديو واحد من المهملات…}zero{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> فيديو من المهملات…}two{جارٍ إخراج فيديوهين (<xliff:g id="COUNT">^1</xliff:g>) من المهملات…}few{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> فيديوهات من المهملات…}many{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> فيديو من المهملات…}other{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> فيديو من المهملات…}}"</string>
+    <string name="permission_untrash_image" msgid="3397523279351032265">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذه الصورة خارج المهملات؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة خارج المهملات؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل صورتين (<xliff:g id="COUNT">^2</xliff:g>) خارج المهملات؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صور خارج المهملات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة خارج المهملات؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> صورة خارج المهملات؟}}"</string>
+    <string name="permission_progress_untrash_image" msgid="5295061520504846264">"{count,plural, =1{جارٍ إخراج صورة واحدة من المهملات…}zero{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> صورة من المهملات…}two{جارٍ إخراج صورتين (<xliff:g id="COUNT">^1</xliff:g>) من المهملات…}few{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> صور من المهملات…}many{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> صورة من المهملات…}other{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> صورة من المهملات…}}"</string>
+    <string name="permission_untrash_generic" msgid="2118366929431671046">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بنقل هذا العنصر خارج المهملات؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصر خارج المهملات؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل عنصرين (<xliff:g id="COUNT">^2</xliff:g>) خارج المهملات؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عناصر خارج المهملات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصرًا خارج المهملات؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بنقل <xliff:g id="COUNT">^2</xliff:g> عنصر خارج المهملات؟}}"</string>
+    <string name="permission_progress_untrash_generic" msgid="1489511601966842579">"{count,plural, =1{جارٍ إخراج عنصر واحد من المهملات…}zero{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> عنصر من المهملات…}two{جارٍ إخراج عنصرين (<xliff:g id="COUNT">^1</xliff:g>) من المهملات…}few{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> عناصر من المهملات…}many{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> عنصرًا من المهملات…}other{جارٍ إخراج <xliff:g id="COUNT">^1</xliff:g> عنصر من المهملات…}}"</string>
+    <string name="permission_delete_audio" msgid="3326674742892796627">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بحذف هذا الملف الصوتي؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف ملفَين صوتيين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> ملفات صوتية؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> ملفًا صوتيًا؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟}}"</string>
+    <string name="permission_progress_delete_audio" msgid="1734871539021696401">"{count,plural, =1{جارٍ حذف ملف صوتي واحد…}zero{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…}two{جارٍ حذف ملفَين صوتين (<xliff:g id="COUNT">^1</xliff:g>)…}few{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> ملفات صوتية…}many{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> ملفًا صوتيًا…}other{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…}}"</string>
+    <string name="permission_delete_video" msgid="604024971828349279">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بحذف هذا الفيديو؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> فيديو؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف فيديوهين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> فيديوهات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> فيديو؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> فيديو؟}}"</string>
+    <string name="permission_progress_delete_video" msgid="1846702435073793157">"{count,plural, =1{جارٍ حذف فيديو واحد…}zero{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> فيديو…}two{جارٍ حذف فيديوهين (<xliff:g id="COUNT">^1</xliff:g>)…}few{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> فيديوهات…}many{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> فيديو…}other{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> فيديو…}}"</string>
+    <string name="permission_delete_image" msgid="3109056012794330510">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بحذف هذه الصورة؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> صورة؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف صورتين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> صور؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> صورة؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> صورة؟}}"</string>
+    <string name="permission_progress_delete_image" msgid="8580517204901148906">"{count,plural, =1{جارٍ حذف صورة واحدة…}zero{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> صورة…}two{جارٍ حذف صورتين (<xliff:g id="COUNT">^1</xliff:g>)…}few{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> صور…}many{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> صورة…}other{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> صورة…}}"</string>
+    <string name="permission_delete_generic" msgid="7891939881065520271">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بحذف هذا العنصر؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> عنصر؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف عنصرين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> عناصر؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> عنصرًا؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بحذف <xliff:g id="COUNT">^2</xliff:g> عنصر؟}}"</string>
+    <string name="permission_progress_delete_generic" msgid="6709118146245087898">"{count,plural, =1{جارٍ حذف عنصر واحد…}zero{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> عنصر…}two{جارٍ حذف عنصرين (<xliff:g id="COUNT">^1</xliff:g>)…}few{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> عناصر…}many{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> عنصرًا…}other{جارٍ حذف <xliff:g id="COUNT">^1</xliff:g> عنصر…}}"</string>
     <string name="transcode_denied" msgid="6760546817138288976">"يتعذّر على التطبيق <xliff:g id="APP_NAME">%s</xliff:g> معالجة ملفات الوسائط."</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"تم إلغاء معالجة الوسائط."</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"حدث خطأ أثناء معالجة الوسائط."</string>

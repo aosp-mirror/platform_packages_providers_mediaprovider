@@ -29,14 +29,8 @@
     <string name="permission_required_action" msgid="706370952366113539">"सुरू ठेवा"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"अनुमती द्या"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"नाकारा"</string>
-    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
-      <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
-    </plurals>
-    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
-      <item quantity="other">आणखी <xliff:g id="COUNT_1">^1</xliff:g> अतिरिक्त आयटम</item>
-      <item quantity="one">आणखी <xliff:g id="COUNT_0">^1</xliff:g> अतिरिक्त आयटम</item>
-    </plurals>
+    <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{+<xliff:g id="COUNT_0">^1</xliff:g>}other{+<xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
+    <string name="permission_more_text" msgid="2471785045095597753">"{count,plural, =1{आणखी <xliff:g id="COUNT_0">^1</xliff:g> अतिरिक्त आयटम}other{आणखी <xliff:g id="COUNT_1">^1</xliff:g> अतिरिक्त आयटम}}"</string>
     <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"तात्पुरत्या अ‍ॅप फाइल साफ करा"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ला काही तात्पुरत्या फाइल साफ करायच्या आहेत. यामुळे बॅटरी किंवा सेल्युलर डेटाच्या वापरात वाढ होऊ शकते."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"तात्‍पुरत्‍या ॲप फाइल काढून टाकत आहे…"</string>
@@ -46,11 +40,12 @@
     <string name="add" msgid="2894574044585549298">"जोडा"</string>
     <string name="deselect" msgid="4297825044827769490">"निवड रद्द करा"</string>
     <string name="select" msgid="2704765470563027689">"निवडा"</string>
-    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
-      <item quantity="other">कमाल <xliff:g id="COUNT_1">^1</xliff:g> आयटम निवडा</item>
-      <item quantity="one">कमाल <xliff:g id="COUNT_0">^1</xliff:g> आयटम निवडा</item>
-    </plurals>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{कमाल <xliff:g id="COUNT_0">^1</xliff:g> आयटम निवडा}other{कमाल <xliff:g id="COUNT_1">^1</xliff:g> आयटम निवडा}}"</string>
     <string name="recent" msgid="6694613584743207874">"अलीकडील"</string>
+    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
+    <skip />
+    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
+    <skip />
     <string name="picker_view_selected" msgid="2266031384396143883">"दृश्य निवडले"</string>
     <string name="picker_photos" msgid="7415035516411087392">"फोटो"</string>
     <string name="picker_albums" msgid="4822511902115299142">"अल्बम"</string>
@@ -61,10 +56,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"कामाशी संबंधित ॲपवरून वैयक्तिक डेटा अ‍ॅक्सेस करण्याची परवानगी नाही"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"कामाशी संबंधित अ‍ॅप्स थांबवली आहेत"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"कामाशी संबंधित फोटो उघडण्यासाठी, कामाशी संबंधित अ‍ॅप्स सुरू करा त्यानंतर पुन्हा प्रयत्न करा"</string>
-    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
-      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g>आयटम</item>
-      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> आयटम</item>
-    </plurals>
+    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> आयटम}other{<xliff:g id="COUNT_1">^1</xliff:g> आयटम}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) जोडा"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"कॅमेरा"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"डाउनलोड"</string>
@@ -72,134 +64,39 @@
     <string name="picker_category_screenshots" msgid="7216102327587644284">"स्क्रीनशॉट"</string>
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
-    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> ऑडिओ फाइल सुधारित करण्याची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला ही ऑडिओ फाइल सुधारित करण्याची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ऑडिओ फाइल बदलत आहे…</item>
-      <item quantity="one">ऑडिओ फाइल बदलत आहे…</item>
-    </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> व्हिडिओ सुधारित करण्याची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा व्हिडिओ सुधारित करण्याची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> व्हिडिओ बदलत आहे…</item>
-      <item quantity="one">व्हिडिओ बदलत आहे…</item>
-    </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> फोटो सुधारित करण्याची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा फोटो सुधारित करण्याची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> फोटो बदलत आहे…</item>
-      <item quantity="one">फोटो बदलत आहे…</item>
-    </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> आयटम सुधारित करण्याची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा आयटम सुधारित करण्याची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> आयटम बदलत आहे…</item>
-      <item quantity="one">आयटम बदलत आहे…</item>
-    </plurals>
-    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> ऑडिओ फाइल कचऱ्यामध्ये हलवायची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला ही ऑडिओ फाइल कचऱ्यामध्ये हलवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ऑडिओ ट्रॅशमध्ये हलवत आहे…</item>
-      <item quantity="one">ऑडिओ ट्रॅशमध्ये हलवत आहे…</item>
-    </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> व्हिडिओ कचऱ्यामध्ये हलवायची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा व्हिडिओ कचऱ्यामध्ये हलवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> व्हिडिओ ट्रॅशमध्ये हलवत आहे…</item>
-      <item quantity="one">व्हिडिओ ट्रॅशमध्ये हलवत आहे…</item>
-    </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> फोटो कचऱ्यामध्ये हलवायची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा फोटो कचऱ्यामध्ये हलवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> फोटो ट्रॅशमध्ये हलवत आहे…</item>
-      <item quantity="one">फोटो ट्रॅशमध्ये हलवत आहे…</item>
-    </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> आयटम कचऱ्यामध्ये हलवण्याची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा आयटम कचऱ्यामध्ये हलवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> आयटम ट्रॅशमध्ये हलवत आहे…</item>
-      <item quantity="one">आयटम ट्रॅशमध्ये हलवत आहे…</item>
-    </plurals>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> ऑडिओ फाइल कचऱ्यामधून बाहेर हलवायची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला ही ऑडिओ फाइल कचऱ्यामधून बाहेर हलवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ऑडिओ फाइल ट्रॅशमधून बाहेर हलवत आहे…</item>
-      <item quantity="one">ऑडिओ फाइल ट्रॅशमधून बाहेर हलवत आहे…</item>
-    </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> व्हिडिओ कचऱ्यामधून बाहेर हलवायची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा व्हिडिओ कचऱ्यामधून बाहेर हलवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> व्हिडिओ ट्रॅशमधून बाहेर हलवत आहे…</item>
-      <item quantity="one">व्हिडिओ ट्रॅशमधून बाहेर हलवत आहे…</item>
-    </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> फोटो कचऱ्यामधून बाहेर हलवायची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा फोटो कचऱ्यामधून बाहेर हलवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> फोटो ट्रॅशमधून बाहेर हलवत आहे…</item>
-      <item quantity="one">फोटो ट्रॅशमधून बाहेर हलवत आहे…</item>
-    </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> आयटम कचऱ्यामधून बाहेर हलवायची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा आयटम कचऱ्यामधून बाहेर हलवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> आयटम ट्रॅशमधून बाहेर हलवत आहे…</item>
-      <item quantity="one">आयटम ट्रॅशमधून बाहेर हलवत आहे…</item>
-    </plurals>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> ऑडिओ फाइल हटवायची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला ही ऑडिओ फाइल हटवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ऑडिओ फाइल हटवत आहे…</item>
-      <item quantity="one">ऑडिओ फाइल हटवत आहे…</item>
-    </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> व्हिडिओ हटवायची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा व्हिडिओ हटवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> व्हिडिओ हटवत आहे…</item>
-      <item quantity="one">व्हिडिओ हटवत आहे…</item>
-    </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> फोटो हटवायची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा फोटो हटवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> फोटो हटवत आहे…</item>
-      <item quantity="one">फोटो हटवत आहे…</item>
-    </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> आयटम हटवायची परवानगी द्यायची आहे का?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ला हा आयटम हटवायची परवानगी द्यायची आहे का?</item>
-    </plurals>
-    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> आयटम हटवत आहे…</item>
-      <item quantity="one">आयटम हटवत आहे…</item>
-    </plurals>
+    <string name="picker_motion_photo_text" msgid="5016603812468180816">"मोशन फोटो"</string>
+    <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला या ऑडिओ फाइलमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> ऑडिओ फाइलमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ऑडिओ फाइलमध्ये फेरबदल करत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> ऑडिओ फाइलमध्ये फेरबदल करत आहे…}}"</string>
+    <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला या व्हिडिओमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> व्हिडिओमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_write_video" msgid="7014908418349819148">"{count,plural, =1{व्हिडिओमध्ये फेरबदल करत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> व्हिडिओमध्ये फेरबदल करत आहे…}}"</string>
+    <string name="permission_write_image" msgid="3518991791620523786">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला या फोटोमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> फोटोमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_write_image" msgid="3623580315590025262">"{count,plural, =1{फोटोमध्ये फेरबदल करत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> फोटोमध्ये फेरबदल करत आहे…}}"</string>
+    <string name="permission_write_generic" msgid="7431128739233656991">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला या आयटममध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> आयटममध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_write_generic" msgid="2806560971318391443">"{count,plural, =1{आयटममध्ये फेरबदल करत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> आयटममध्ये फेरबदल करत आहे…}}"</string>
+    <string name="permission_trash_audio" msgid="6554672354767742206">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला ही ऑडिओ फाइल ट्रॅशमध्ये हलवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> ऑडिओ फाइल ट्रॅशमध्ये हलवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_trash_audio" msgid="3116279868733641329">"{count,plural, =1{ऑडिओ फाइल ट्रॅशमध्ये हलवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> ऑडिओ फाइल ट्रॅशमध्ये हलवत आहे…}}"</string>
+    <string name="permission_trash_video" msgid="7555850843259959642">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला हा व्हिडिओ ट्रॅशमध्ये हलवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> व्हिडिओ ट्रॅशमध्ये हलवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_trash_video" msgid="4637821778329459681">"{count,plural, =1{व्हिडिओ ट्रॅशमध्ये हलवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> व्हिडिओ ट्रॅशमध्ये हलवत आहे…}}"</string>
+    <string name="permission_trash_image" msgid="3333128084684156675">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला हा फोटो ट्रॅशमध्ये हलवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> फोटो ट्रॅशमध्ये हलवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_trash_image" msgid="3063857679090024764">"{count,plural, =1{फोटो ट्रॅशमध्ये हलवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> फोटो ट्रॅशमध्ये हलवत आहे…}}"</string>
+    <string name="permission_trash_generic" msgid="5545420534785075362">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला हा आयटम ट्रॅशमध्ये हलवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> आयटम ट्रॅशमध्ये हलवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_trash_generic" msgid="7815124979717814057">"{count,plural, =1{आयटम ट्रॅशमध्ये हलवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> आयटम ट्रॅशमध्ये हलवत आहे…}}"</string>
+    <string name="permission_untrash_audio" msgid="8404597563284002472">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला ही ऑडिओ फाइल ट्रॅशमधून हलवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> ऑडिओ फाइल ट्रॅशमधून हलवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_untrash_audio" msgid="2775372344946464508">"{count,plural, =1{ऑडिओ फाइल ट्रॅशमधून हलवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> ऑडिओ फाइल ट्रॅशमधून हलवत आहे…}}"</string>
+    <string name="permission_untrash_video" msgid="3178914827607608162">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला हा व्हिडिओ ट्रॅशमधून हलवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> व्हिडिओ ट्रॅशमधून हलवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_untrash_video" msgid="5500929409733841567">"{count,plural, =1{व्हिडिओ ट्रॅशमधून हलवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> व्हिडिओ ट्रॅशमधून हलवत आहे…}}"</string>
+    <string name="permission_untrash_image" msgid="3397523279351032265">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला हा फोटो ट्रॅशमधून हलवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> फोटो ट्रॅशमधून हलवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_untrash_image" msgid="5295061520504846264">"{count,plural, =1{फोटो ट्रॅशमधून हलवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> फोटो ट्रॅशमधून हलवत आहे…}}"</string>
+    <string name="permission_untrash_generic" msgid="2118366929431671046">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला हा आयटम ट्रॅशमधून हलवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> आयटम ट्रॅशमधून हलवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_untrash_generic" msgid="1489511601966842579">"{count,plural, =1{आयटम ट्रॅशमधून हलवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> आयटम ट्रॅशमधून हलवत आहे…}}"</string>
+    <string name="permission_delete_audio" msgid="3326674742892796627">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला ही ऑडिओ फाइल हटवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> ऑडिओ फाइल हटवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_delete_audio" msgid="1734871539021696401">"{count,plural, =1{ऑडिओ फाइल हटवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> ऑडिओ फाइल हटवत आहे…}}"</string>
+    <string name="permission_delete_video" msgid="604024971828349279">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला हा व्हिडिओ हटवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> व्हिडिओ हटवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_delete_video" msgid="1846702435073793157">"{count,plural, =1{व्हिडिओ हटवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> व्हिडिओ हटवत आहे…}}"</string>
+    <string name="permission_delete_image" msgid="3109056012794330510">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला हा फोटो हटवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> फोटो हटवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_delete_image" msgid="8580517204901148906">"{count,plural, =1{फोटो हटवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> फोटो हटवत आहे…}}"</string>
+    <string name="permission_delete_generic" msgid="7891939881065520271">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला हा आयटम हटवण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> आयटम हटवण्याची अनुमती द्यायची आहे का?}}"</string>
+    <string name="permission_progress_delete_generic" msgid="6709118146245087898">"{count,plural, =1{आयटम हटवत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> आयटम हटवत आहे…}}"</string>
     <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> मीडिया फाइलवर प्रक्रिया करू नाही"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"मीडियावर प्रक्रिया करणे रद्द केले"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"मीडियावर प्रक्रिया करण्यासंबंधित एरर"</string>

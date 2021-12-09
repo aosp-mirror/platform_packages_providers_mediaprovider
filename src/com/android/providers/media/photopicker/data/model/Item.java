@@ -51,8 +51,8 @@ public class Item {
         public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MS;
         public static String SIZE = CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
         public static String AUTHORITY = CloudMediaProviderContract.MediaColumns.AUTHORITY;
-        // TODO(b/204837343): Replace by CloudMediaProviderContract constant
-        public static String SPECIAL_FORMAT = MediaStore.Files.FileColumns._SPECIAL_FORMAT;
+        public static String SPECIAL_FORMAT =
+                CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION;
 
         public static final String[] ALL_COLUMNS = {
                 ID,

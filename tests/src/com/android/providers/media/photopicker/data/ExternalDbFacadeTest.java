@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.photopicker.data.ExternalDbFacade.COLUMN_OLD_ID;
+import static com.android.providers.media.photopicker.data.ExternalDbFacade.TABLE_DELETED_MEDIA;
 import static com.android.providers.media.photopicker.data.ExternalDbFacade.TABLE_FILES;
 import static com.google.common.truth.Truth.assertThat;
 
@@ -605,7 +607,7 @@ public class ExternalDbFacadeTest {
     }
 
     @Test
-    public void testGetMediaInfo() throws Exception {
+    public void testGetMediaInfoFiltering() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
             ExternalDbFacade facade = new ExternalDbFacade(sIsolatedContext, helper);
 
@@ -635,6 +637,28 @@ public class ExternalDbFacadeTest {
 
                 cursor.moveToFirst();
                 assertMediaInfo(facade, cursor, /* count */ 0, /* generation */ 0);
+            }
+        }
+    }
+
+    @Test
+    public void testGetMediaInfoWithDeleted() throws Exception {
+        try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
+            ExternalDbFacade facade = new ExternalDbFacade(sIsolatedContext, helper);
+
+            ContentValues cv = getContentValues(DATE_TAKEN_MS1, GENERATION_MODIFIED1);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            ContentValues cvDeleted = new ContentValues();
+            cvDeleted.put(COLUMN_OLD_ID, ID2);
+            cvDeleted.put(MediaColumns.GENERATION_MODIFIED, GENERATION_MODIFIED2);
+            helper.runWithTransaction(db -> db.insert(TABLE_DELETED_MEDIA, null, cvDeleted));
+
+            try (Cursor cursor = facade.getMediaInfo(/* generation */ 0)) {
+                assertThat(cursor.getCount()).isEqualTo(1);
+
+                cursor.moveToFirst();
+                assertMediaInfo(facade, cursor, /* count */ 1, /* generation */ 2);
             }
         }
     }

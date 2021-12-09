@@ -19,6 +19,8 @@ package com.android.providers.media.util;
 import android.os.Handler;
 import android.os.HandlerThread;
 
+import com.android.modules.utils.HandlerExecutor;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;

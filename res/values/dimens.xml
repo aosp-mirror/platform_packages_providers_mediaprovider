@@ -32,10 +32,9 @@
 
     <dimen name="picker_item_check_size">24dp</dimen>
     <dimen name="picker_item_check_margin">6dp</dimen>
-    <dimen name="picker_item_badge_margin">5dp</dimen>
+    <dimen name="picker_item_badge_margin">4dp</dimen>
     <dimen name="picker_item_badge_text_margin">3dp</dimen>
     <dimen name="picker_item_badge_text_size">10dp</dimen>
-    <dimen name="picker_item_gif_badge_margin">3dp</dimen>
     <dimen name="picker_item_gradient_height">56dp</dimen>
 
     <dimen name="picker_date_header_height">56dp</dimen>
@@ -60,11 +59,20 @@
     <dimen name="picker_drag_margin_top">8dp</dimen>
     <dimen name="picker_drag_margin_bottom">12dp</dimen>
 
+    <dimen name="picker_empty_text_margin">20dp</dimen>
+    <dimen name="picker_empty_text_size">18sp</dimen>
+
     <!-- PhotoPicker Preview -->
     <dimen name="preview_buttons_padding_horizontal">16dp</dimen>
     <dimen name="preview_deselect_padding_start">2dp</dimen>
     <dimen name="preview_viewpager_margin">20dp</dimen>
+    <dimen name="preview_gif_icon_size">32dp</dimen>
+    <dimen name="preview_add_or_select_width">328dp</dimen>
+
     <!-- PhotoPicker Preview text -->
+    <dimen name="preview_special_format_text_size">12sp</dimen>
+    <dimen name="preview_special_format_text_margin">8dp</dimen>
+    <dimen name="preview_special_format_padding_end">16dp</dimen>
     <dimen name="preview_toolbar_scrim_height">96dp</dimen>
     <dimen name="preview_deselect_scrim_height">240dp</dimen>
 

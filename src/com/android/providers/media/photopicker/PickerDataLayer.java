@@ -17,8 +17,10 @@
 package com.android.providers.media.photopicker;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
+import static android.provider.CloudMediaProviderContract.METHOD_GET_ACCOUNT_INFO;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
+import static com.android.providers.media.PickerUriResolver.getAccountInfoUri;
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.PickerUriResolver.getDeletedMediaUri;
@@ -28,11 +30,13 @@ import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryF
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MergeCursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -118,6 +122,32 @@ public class PickerDataLayer {
         return mergeCursor;
     }
 
+    public AccountInfo fetchCloudAccountInfo() {
+        final String cloudProvider = mDbFacade.getCloudProvider();
+        if (cloudProvider == null) {
+            return null;
+        }
+
+        try {
+            final Bundle accountBundle = mContext.getContentResolver().call(
+                    getAccountInfoUri(cloudProvider), METHOD_GET_ACCOUNT_INFO, /* arg */ null,
+                    /* extras */ null);
+            final String accountName = accountBundle.getString(
+                    CloudMediaProviderContract.AccountInfo.ACTIVE_ACCOUNT_NAME);
+            final Intent configIntent = (Intent) accountBundle.getParcelable(
+                    CloudMediaProviderContract.AccountInfo.ACCOUNT_CONFIGURATION_INTENT);
+
+            if (accountName == null) {
+                return null;
+            }
+
+            return new AccountInfo(accountName, configIntent);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to fetch account info from cloud provider: " + cloudProvider, e);
+            return null;
+        }
+    }
+
     private Cursor queryProviderAlbums(String authority, Bundle queryArgs) {
         if (authority == null) {
             // Can happen if there is no cloud provider
@@ -151,5 +181,15 @@ public class PickerDataLayer {
 
         // Cloud provider has switched since last query, so no longer valid
         return null;
+    }
+
+    public static class AccountInfo {
+        public final String accountName;
+        public final Intent accountConfigurationIntent;
+
+        public AccountInfo(String accountName, Intent accountConfigurationIntent) {
+            this.accountName = accountName;
+            this.accountConfigurationIntent = accountConfigurationIntent;
+        }
     }
 }

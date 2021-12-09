@@ -40,6 +40,7 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.text.NumberFormat;
 import java.util.Locale;
+import src.com.android.providers.media.util.StringUtils;
 
 /**
  * Photos tab fragment for showing the photos
@@ -76,14 +77,21 @@ public class PhotosTabFragment extends TabFragment {
 
         final PhotosTabAdapter adapter = new PhotosTabAdapter(mSelection, mImageLoader,
                 this::onItemClick, this::onItemLongClick);
-
+        setEmptyMessage(R.string.picker_photos_empty_message);
         mIsDefaultCategory = TextUtils.equals(Category.CATEGORY_DEFAULT, mCategoryType);
         if (mIsDefaultCategory) {
             mPickerViewModel.getItems().observe(this, itemList -> {
                 adapter.updateItemList(itemList);
+                // Handle emptyView's visibility
+                updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
             });
         } else {
             mPickerViewModel.getCategoryItems(mCategoryType).observe(this, itemList -> {
+                // If the item count of the albums is zero, albums are not shown on the Albums tab.
+                // The user can't launch the album items page when the album has zero items. So, we
+                // don't need to show emptyView in the case.
+                updateVisibilityForEmptyView(/* shouldShowEmptyView */ false);
+
                 adapter.updateItemList(itemList);
             });
         }
@@ -146,11 +154,12 @@ public class PhotosTabFragment extends TabFragment {
                 if (!mSelection.isSelectionAllowed()) {
                     final int maxCount = mSelection.getMaxSelectionLimit();
                     final CharSequence quantityText =
-                            getResources().getQuantityString(R.plurals.select_up_to, maxCount);
+                        StringUtils.getICUFormatString(
+                            getResources(), maxCount, R.string.select_up_to);
                     final String itemCountString = NumberFormat.getInstance(Locale.getDefault())
-                            .format(maxCount);
+                        .format(maxCount);
                     final CharSequence message = TextUtils.expandTemplate(quantityText,
-                            itemCountString);
+                        itemCountString);
                     Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
                     return;
                 } else {

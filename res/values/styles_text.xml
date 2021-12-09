@@ -16,18 +16,19 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <style name="PickerDateHeader" parent="@android:style/TextAppearance.Material.Title">
+    <style name="PickerHeaderTextAppearance"
+           parent="@android:style/TextAppearance.DeviceDefault.WindowTitle">
         <item name="android:textColor">@color/picker_date_header_text_color</item>
         <item name="android:textSize">16sp</item>
     </style>
 
-    <style name="PickerChipText" parent="@android:style/TextAppearance.Material.Title">
+    <style name="PickerChipTextAppearance"
+           parent="@android:style/TextAppearance.DeviceDefault.Widget.Button">
         <item name="android:textSize">@dimen/picker_chip_text_size</item>
     </style>
 
-    <style name="PickerProfileButton" parent="@android:style/TextAppearance.Material.Button">
-        <item name="android:textAllCaps">false</item>
-    </style>
+    <style name="PickerButtonTextAppearance"
+           parent="@android:style/TextAppearance.DeviceDefault.Widget.Button"/>
 
     <style name="PickerProfileDialogTitle"
            parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">

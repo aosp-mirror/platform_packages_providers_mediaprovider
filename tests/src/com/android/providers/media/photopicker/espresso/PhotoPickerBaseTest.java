@@ -65,6 +65,10 @@ public class PhotoPickerBaseTest {
     protected static final int DRAG_BAR_ID = R.id.drag_bar;
     protected static final int PREVIEW_GIF_ID = R.id.preview_gif;
     protected static final int PREVIEW_MOTION_PHOTO_ID = R.id.preview_motion_photo;
+    protected static final int PREVIEW_ADD_OR_SELECT_BUTTON_ID = R.id.preview_add_or_select_button;
+
+    protected static final int DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH
+            = R.dimen.preview_add_or_select_width;
 
     /**
      * The position of the first image item in the grid on the Photos tab

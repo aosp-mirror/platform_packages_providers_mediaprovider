@@ -18,6 +18,8 @@ package com.android.providers.media.photopicker.espresso;
 
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+import static android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
@@ -38,10 +40,10 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
 import android.app.Activity;
-import android.content.res.Configuration;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.view.View;
+import android.widget.Button;
 
 import androidx.appcompat.widget.Toolbar;
 import androidx.test.espresso.Espresso;
@@ -148,8 +150,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         });
 
         mRule.getScenario().onActivity(activity -> {
-            assertThat(activity.getResources().getConfiguration().orientation).isEqualTo(
-                    Configuration.ORIENTATION_PORTRAIT);
+            assertThat(activity.getResources().getConfiguration().orientation)
+                    .isEqualTo(ORIENTATION_PORTRAIT);
         });
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
@@ -173,8 +175,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         });
 
         mRule.getScenario().onActivity(activity -> {
-            assertThat(activity.getResources().getConfiguration().orientation).isEqualTo(
-                    Configuration.ORIENTATION_LANDSCAPE);
+            assertThat(activity.getResources().getConfiguration().orientation)
+                    .isEqualTo(ORIENTATION_LANDSCAPE);
         });
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
@@ -189,6 +191,46 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
         mRule.getScenario().onActivity(activity -> {
             assertBackgroundColorOnToolbarAndBottomBar(activity, android.R.color.transparent);
+        });
+    }
+
+    @Test
+    public void testPreview_addButtonWidth() {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+        // Navigate to preview
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+
+        registerIdlingResourceAndWaitForIdle();
+        // Check that Add button is visible
+        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
+        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.add)));
+
+        mRule.getScenario().onActivity(activity -> {
+            activity.setRequestedOrientation(ORIENTATION_PORTRAIT);
+        });
+        mRule.getScenario().onActivity(activity -> {
+            assertThat(activity.getResources().getConfiguration().orientation)
+                    .isEqualTo(ORIENTATION_PORTRAIT);
+            final Button addOrSelectButton
+                    = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
+            final int expectedAddOrSelectButtonWidth = activity.getResources()
+                    .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
+            // Check that button width in portrait mode is = R.dimen.preview_add_or_select_width
+            assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
+        });
+
+        mRule.getScenario().onActivity(activity -> {
+            activity.setRequestedOrientation(SCREEN_ORIENTATION_LANDSCAPE);
+        });
+        mRule.getScenario().onActivity(activity -> {
+            assertThat(activity.getResources().getConfiguration().orientation)
+                    .isEqualTo(ORIENTATION_LANDSCAPE);
+            final Button addOrSelectButton
+                    = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
+            final int expectedAddOrSelectButtonWidth = activity.getResources()
+                    .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
+            // Check that button width in landscape mode is == R.dimen.preview_add_or_select_width
+            assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
         });
     }
 
@@ -216,9 +258,11 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
     private void assertSingleSelectCommonLayoutMatches() {
         onView(withId(R.id.preview_viewPager)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
-        onView(withId(R.id.preview_add_or_select_button)).check(matches(isDisplayed()));
+        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
         // Verify that the text in Add button
-        onView(withId(R.id.preview_add_or_select_button)).check(matches(withText(R.string.add)));
+        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.add)));
+
+        onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.preview_add_button)).check(matches(not(isDisplayed())));
     }
 }

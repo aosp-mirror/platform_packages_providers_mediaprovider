@@ -616,7 +616,7 @@ public class PickerDbFacade {
     }
 
     public static boolean isPickerDbEnabled() {
-        return SystemProperties.getBoolean("sys.photopicker.pickerdb.enabled", false);
+        return SystemProperties.getBoolean("sys.photopicker.pickerdb.enabled", true);
     }
 
     private Cursor queryMedia(SQLiteQueryBuilder qb, String[] selectionArgs, int limit) {

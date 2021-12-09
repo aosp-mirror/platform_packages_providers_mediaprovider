@@ -874,7 +874,17 @@ public class MediaProvider extends ContentProvider {
             // folders should not be automatically created inside them.
             return;
         }
-        final String key = "created_default_folders_" + volume.getId();
+        final String volumeName = volume.getName();
+        String key;
+        if (volumeName.equals(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            // For the primary volume, we use the ID, because we may be handling
+            // the primary volume for multiple users
+            key = "created_default_folders_" + volume.getId();
+        } else {
+            // For others, like public volumes, just use the name, because the id
+            // might not change when re-formatted
+            key = "created_default_folders_" + volumeName;
+        }
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
         if (prefs.getInt(key, 0) == 0) {

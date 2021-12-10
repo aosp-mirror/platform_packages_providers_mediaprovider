@@ -78,6 +78,12 @@ public class UserCache {
                 // Before S, we only handle the owner user
                 return;
             }
+
+            // App cloning is not supported for profile users like AFW.
+            if (mUserManager.isProfile()) {
+                return;
+            }
+
             // And find all profiles that share media with us
             for (UserHandle profile : profiles) {
                 if (!profile.equals(mContext.getUser())) {

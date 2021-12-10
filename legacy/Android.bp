@@ -13,18 +13,19 @@ android_app {
     manifest: "AndroidManifest.xml",
 
     static_libs: [
+        "mediaprovider-database",
         "androidx.appcompat_appcompat",
         "androidx.core_core",
-        "guava",
-        "modules-utils-build",
     ],
 
-    libs: ["app-compat-annotations"],
+    libs: [
+        "app-compat-annotations",
+        "framework-mediaprovider",
+    ],
 
     srcs: [
         "src/**/*.aidl",
         "src/**/*.java",
-        ":mediaprovider-database-sources",
     ],
 
     platform_apis: true,

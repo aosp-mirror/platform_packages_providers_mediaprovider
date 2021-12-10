@@ -101,6 +101,7 @@ import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
+import com.android.providers.media.util.SpecialFormatDetector;
 import com.android.providers.media.util.XmpInterface;
 
 import java.io.File;
@@ -658,6 +659,8 @@ public class ModernMediaScanner implements MediaScanner {
             synchronized (mPendingCleanDirectories) {
                 if (mIsDirectoryTreeDirty) {
                     // Directory tree is dirty, continue scanning subtree.
+                } else if (FileUtils.getTopLevelNoMedia(dir.toFile()) == null) {
+                  // No nomedia file found, continue scanning.
                 } else if (FileUtils.isDirectoryDirty(FileUtils.getTopLevelNoMedia(dir.toFile()))) {
                     // Track the directory dirty status for directory tree in mIsDirectoryDirty.
                     // This removes additional dirty state check for subdirectories of nomedia
@@ -1381,6 +1384,7 @@ public class ModernMediaScanner implements MediaScanner {
             final XmpInterface xmp = XmpInterface.fromContainer(exif);
             withXmpValues(op, xmp, mimeType);
 
+            op.withValue(FileColumns._SPECIAL_FORMAT, SpecialFormatDetector.detect(exif, file));
         } catch (Exception e) {
             logTroubleScanning(file, e);
         }

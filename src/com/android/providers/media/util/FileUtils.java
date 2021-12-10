@@ -88,6 +88,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -1565,7 +1566,8 @@ public class FileUtils {
     }
 
     /**
-     * @return {@code true} if {@code dir} is dirty and should be scanned, {@code false} otherwise.
+     * @return {@code true} if {@code dir} has nomedia and it is dirty directory, so it should be
+     * scanned. Returns {@code false} otherwise.
      */
     public static boolean isDirectoryDirty(File dir) {
         File nomedia = new File(dir, ".nomedia");
@@ -1580,7 +1582,7 @@ public class FileUtils {
                 Log.w(TAG, "Failed to read directory dirty" + dir);
             }
         }
-        return true;
+        return false;
     }
 
     /**
@@ -1643,5 +1645,20 @@ public class FileUtils {
         }
 
         return null;
+    }
+
+    public static File buildPrimaryVolumeFile(int userId, String... segments) {
+        return buildPath(new File("/storage/emulated/" + userId), segments);
+    }
+
+    private static final String LOWER_FS_PREFIX = "/storage/";
+    private static final String FUSE_FS_PREFIX = "/mnt/user/" + UserHandle.myUserId() + "/";
+
+    public static File toFuseFile(File file) {
+        return new File(file.getPath().replaceFirst(LOWER_FS_PREFIX, FUSE_FS_PREFIX));
+    }
+
+    public static File fromFuseFile(File file) {
+        return new File(file.getPath().replaceFirst(FUSE_FS_PREFIX, LOWER_FS_PREFIX));
     }
 }

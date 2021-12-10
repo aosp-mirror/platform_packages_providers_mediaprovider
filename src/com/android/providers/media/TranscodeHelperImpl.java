@@ -32,6 +32,7 @@ import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED;
+import static com.android.providers.media.util.SyntheticPathUtils.createSparseFile;
 
 import android.annotation.IntRange;
 import android.annotation.LongDef;
@@ -49,9 +50,12 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.InstallSourceInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.Property;
+import android.content.res.Resources;
+import android.content.res.Resources.NotFoundException;
 import android.content.res.XmlResourceParser;
 import android.database.Cursor;
 import android.media.ApplicationMediaCapabilities;
+import android.media.MediaCodec;
 import android.media.MediaFeature;
 import android.media.MediaFormat;
 import android.media.MediaTranscodingManager;
@@ -90,8 +94,8 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
-import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.SQLiteQueryBuilder;
@@ -103,13 +107,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -143,6 +149,9 @@ public class TranscodeHelperImpl implements TranscodeHelper {
 
     private static final int MY_UID = android.os.Process.myUid();
     private static final int MAX_TRANSCODE_DURATION_MS = (int) TimeUnit.MINUTES.toMillis(1);
+
+    // Whether the device has HDR plugin for transcoding HDR to SDR video.
+    private boolean mHasHdrPlugin = false;
 
     /**
      * Force enable an app to support the HEVC media capability
@@ -225,6 +234,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     private final StorageManager mStorageManager;
     private final ActivityManager mActivityManager;
     private final File mTranscodeDirectory;
+    private final List<String> mSupportedRelativePaths;
     @GuardedBy("mLock")
     private UUID mTranscodeVolumeUuid;
 
@@ -276,11 +286,43 @@ public class TranscodeHelperImpl implements TranscodeHelper {
                         MAX_TRANSCODE_DURATION_MS);
         mTranscodeDenialController = new TranscodeDenialController(mActivityManager,
                 mTranscodingUiNotifier, maxTranscodeDurationMs);
+        mSupportedRelativePaths = verifySupportedRelativePaths(getStringArrayConfig(
+                        R.array.config_supported_transcoding_relative_paths));
+        mHasHdrPlugin = hasHDRPlugin();
 
         parseTranscodeCompatManifest();
         // The storage namespace is a boot namespace so we actually don't expect this to be changed
         // after boot, but it is useful for tests
         mMediaProvider.addOnPropertiesChangedListener(properties -> parseTranscodeCompatManifest());
+    }
+
+    private boolean hasHDRPlugin() {
+        MediaCodec decoder = null;
+        boolean hasPlugin = false;
+        try {
+            decoder = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_HEVC);
+            // We could query the HDR plugin with any resolution. But as normal HDR video is at
+            // least 1080P(1920x1080), so we create a 1080P video format to query.
+            MediaFormat decoderFormat = MediaFormat.createVideoFormat(
+                    MediaFormat.MIMETYPE_VIDEO_HEVC, 1920, 1080);
+            decoderFormat.setInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST,
+                    MediaFormat.COLOR_TRANSFER_SDR_VIDEO);
+            decoder.configure(decoderFormat, null, null, 0);
+            MediaFormat inputFormat = decoder.getInputFormat();
+            if (inputFormat.getInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST)
+                    == MediaFormat.COLOR_TRANSFER_SDR_VIDEO) {
+                hasPlugin = true;
+            }
+        } catch (Exception ioe) {
+            hasPlugin = false;
+        } finally {
+            if (decoder != null) {
+                decoder.stop();
+                decoder.release();
+            }
+        }
+        Log.i(TAG, "Device HDR Plugin is available: " + hasPlugin);
+        return hasPlugin;
     }
 
     /**
@@ -515,7 +557,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
      * @param uid app requesting IO
      *
      */
-    public String getIoPath(String path, int uid) {
+    public String prepareIoPath(String path, int uid) {
         // This can only happen when we are in a version that supports transcoding.
         // So, no need to check for the SDK version here.
 
@@ -541,18 +583,12 @@ public class TranscodeHelperImpl implements TranscodeHelper {
             updateTranscodeStatus(path, TRANSCODE_EMPTY);
         }
 
-        final File file = new File(path);
-        long maxFileSize = (long) (file.length() * 2);
-        mTranscodeDirectory.mkdirs();
-        try (RandomAccessFile raf = new RandomAccessFile(transcodeFile, "rw")) {
-            raf.setLength(maxFileSize);
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to initialise transcoding for file " + path, e);
-            transcodeFile.delete();
+        final long maxFileSize = (long) (new File(path).length() * 2);
+        if (createSparseFile(transcodeFile, maxFileSize)) {
             return transcodePath;
         }
 
-        return transcodePath;
+        return "";
     }
 
     private static int getMediaCapabilitiesUid(int uid, Bundle bundle) {
@@ -778,10 +814,22 @@ public class TranscodeHelperImpl implements TranscodeHelper {
             }
 
             int result = 0;
+            boolean isHdr10Plus = isHdr10Plus(cursor.getInt(1), cursor.getInt(2));
+            // If the video is a HDR video and the device does not have HDR plugin, we will return
+            // the original file regardless whether the app supports HEVC due to not all the devices
+            // support transcoding 10bit HEVC to 8bit AVC. This check needs to be removed when
+            // devices add support for it.
+            boolean isTranscodeUnsupported = isHdr10Plus && !mHasHdrPlugin;
+            if (isTranscodeUnsupported) {
+                return Pair.create(0, 0L);
+            }
+
             if (isHevc(cursor.getString(0))) {
                 result |= FLAG_HEVC;
             }
-            if (isHdr10Plus(cursor.getInt(1), cursor.getInt(2))) {
+            // Set the HDR flag if the device has HDR plugin. If HDR plugin is not available,
+            // we will make the transcode decision based on whether the app supports HEVC or not.
+            if (isHdr10Plus) {
                 result |= FLAG_HDR_10_PLUS;
             }
             return Pair.create(result, cursor.getLong(3));
@@ -803,14 +851,48 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     }
 
     public boolean supportsTranscode(String path) {
-        File file = new File(path);
-        String name = file.getName();
-        final String cameraRelativePath =
-                String.format("%s/%s/", Environment.DIRECTORY_DCIM, DIRECTORY_CAMERA);
+        final File file = new File(path);
+        final String name = file.getName();
+        final String relativePath = FileUtils.extractRelativePath(path);
 
-        return !isTranscodeFile(path) && name.toLowerCase(Locale.ROOT).endsWith(".mp4")
-                && path.startsWith("/storage/emulated/")
-                && cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
+        if (isTranscodeFile(path) || !name.toLowerCase(Locale.ROOT).endsWith(".mp4")
+                || !path.startsWith("/storage/emulated/")) {
+            return false;
+        }
+
+        for (String supportedRelativePath : mSupportedRelativePaths) {
+            if (supportedRelativePath.equalsIgnoreCase(relativePath)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static List<String> verifySupportedRelativePaths(List<String> relativePaths) {
+        final List<String> verifiedPaths = new ArrayList<>();
+        final String lowerCaseDcimDir = Environment.DIRECTORY_DCIM.toLowerCase(Locale.ROOT) + "/";
+
+        for (String path : relativePaths) {
+            if (path.toLowerCase(Locale.ROOT).startsWith(lowerCaseDcimDir) && path.endsWith("/")) {
+                verifiedPaths.add(path);
+            } else {
+                Log.w(TAG, "Transcoding relative path must be a descendant of DCIM/ and end with"
+                        + " '/'. Ignoring: " + path);
+            }
+        }
+
+        return verifiedPaths;
+    }
+
+    private List<String> getStringArrayConfig(int resId) {
+        final Resources res = mContext.getResources();
+        try {
+            final String[] configValue = res.getStringArray(resId);
+            return Arrays.asList(configValue);
+        } catch (NotFoundException e) {
+            return new ArrayList<String>();
+        }
     }
 
     private Optional<Boolean> checkAppCompatSupport(int uid, int fileFlags) {
@@ -1147,6 +1229,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
                         .setSourceFileDescriptor(srcPfd)
                         .setDestinationFileDescriptor(dstPfd)
                         .build();
+
         TranscodingSession session = mediaTranscodeManager.enqueueRequest(request,
                 ForegroundThread.getExecutor(),
                 s -> {
@@ -1458,9 +1541,14 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         synchronized (mLock) {
             writer.println("mAppCompatMediaCapabilities=" + mAppCompatMediaCapabilities);
             writer.println("mStorageTranscodingSessions=" + mStorageTranscodingSessions);
-
+            writer.println("mSupportedTranscodingRelativePaths=" + mSupportedRelativePaths);
+            writer.println("mHasHdrPlugin=" + mHasHdrPlugin);
             dumpFinishedSessions(writer);
         }
+    }
+
+    public List<String> getSupportedRelativePaths() {
+        return mSupportedRelativePaths;
     }
 
     private void dumpFinishedSessions(PrintWriter writer) {

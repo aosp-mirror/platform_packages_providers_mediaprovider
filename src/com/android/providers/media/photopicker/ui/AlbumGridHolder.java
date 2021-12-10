@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.icu.text.MessageFormat;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,7 +30,10 @@ import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Category;
 
 import java.text.NumberFormat;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
+import src.com.android.providers.media.util.StringUtils;
 
 /**
  * ViewHolder of a album item within a RecyclerView.
@@ -66,9 +70,9 @@ public class AlbumGridHolder extends BaseViewHolder {
         } else {
             mItemCount.setVisibility(View.VISIBLE);
             final int itemCount = category.getItemCount();
-            final String quantityText = itemView.getResources().getQuantityString(
-                    R.plurals.picker_album_item_count, itemCount);
-
+            final String quantityText =
+                    StringUtils.getICUFormatString(
+                        itemView.getResources(), itemCount, R.string.picker_album_item_count);
             final String itemCountString = NumberFormat.getInstance(Locale.getDefault()).format(
                     itemCount);
             mItemCount.setText(TextUtils.expandTemplate(quantityText, itemCountString));

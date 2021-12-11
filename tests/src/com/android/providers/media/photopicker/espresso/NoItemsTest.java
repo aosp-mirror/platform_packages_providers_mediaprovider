@@ -30,6 +30,8 @@ import static org.hamcrest.Matchers.not;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
+import android.provider.MediaStore;
+
 import com.android.providers.media.R;
 
 import org.junit.AfterClass;
@@ -44,6 +46,7 @@ public class NoItemsTest extends PhotoPickerBaseTest {
     public static void setupClass() throws Exception {
         PhotoPickerBaseTest.setupClass();
         deleteFiles(/* invalidateMediaStore */ true);
+        MediaStore.waitForIdle(getIsolatedContext().getContentResolver());
     }
 
     /**

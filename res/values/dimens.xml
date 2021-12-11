@@ -67,6 +67,8 @@
     <dimen name="preview_deselect_padding_start">2dp</dimen>
     <dimen name="preview_viewpager_margin">20dp</dimen>
     <dimen name="preview_gif_icon_size">32dp</dimen>
+    <dimen name="preview_add_or_select_width">328dp</dimen>
+
     <!-- PhotoPicker Preview text -->
     <dimen name="preview_special_format_text_size">12sp</dimen>
     <dimen name="preview_special_format_text_margin">8dp</dimen>

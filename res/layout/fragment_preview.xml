@@ -50,6 +50,19 @@
         android:layout_height="@dimen/picker_bottom_bar_size"
         android:paddingHorizontal="@dimen/preview_buttons_padding_horizontal">
 
+        <!-- Buttons for Preview on Long press. Visible by default -->
+        <Button
+            android:id="@+id/preview_add_or_select_button"
+            android:layout_width="@dimen/preview_add_or_select_width"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:backgroundTint="@color/preview_default_blue"
+            android:text="@string/add"
+            android:textAllCaps="false"
+            android:textColor="@color/preview_default_grey"
+            style="@style/MaterialButtonStyle"/>
+
+        <!-- Buttons for Preview on View Selected. Hidden by default -->
         <Button
             android:id="@+id/preview_select_check_button"
             android:layout_width="wrap_content"
@@ -62,10 +75,11 @@
             android:textAllCaps="false"
             android:text="@string/deselect"
             android:textColor="@color/picker_default_white"
+            android:visibility="gone"
             style="@style/MaterialBorderlessButtonStyle"/>
 
         <Button
-            android:id="@+id/preview_add_or_select_button"
+            android:id="@+id/preview_add_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end|center_vertical"
@@ -73,7 +87,7 @@
             android:text="@string/add"
             android:textAllCaps="false"
             android:textColor="@color/preview_default_grey"
+            android:visibility="gone"
             style="@style/MaterialButtonStyle"/>
-
     </FrameLayout>
 </FrameLayout>

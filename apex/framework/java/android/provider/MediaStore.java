@@ -2062,7 +2062,7 @@ public final class MediaStore {
              * Photo Picker requires special format tagging for media files.
              * This is essential as {@link Images} collection can include
              * images of various formats like Motion Photos, GIFs etc, which
-             * is not identifiable by {@link #MIME_TYPE}
+             * is not identifiable by {@link #MIME_TYPE}.
              *
              * @hide
              */
@@ -2072,29 +2072,30 @@ public final class MediaStore {
             /**
              * Constant for the {@link #_SPECIAL_FORMAT} column indicating
              * that the file doesn't have any special format associated with it.
-             * TODO(b/199522401): Expose these as public API for cloud providers.
              *
              * @hide
              */
-            public static final int _SPECIAL_FORMAT_NONE = 0;
+            public static final int _SPECIAL_FORMAT_NONE =
+                    CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE;
 
             /**
              * Constant for the {@link #_SPECIAL_FORMAT} column indicating
              * that the file is a GIF file.
-             * TODO(b/199522401): Expose these as public API for cloud providers.
              *
              * @hide
              */
-            public static final int _SPECIAL_FORMAT_GIF = 1;
+            public static final int _SPECIAL_FORMAT_GIF =
+                    CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF;
 
             /**
              * Constant for the {@link #_SPECIAL_FORMAT} column indicating
              * that the file is a Motion Photo.
-             * TODO(b/199522401): Expose these as public API for cloud providers.
              *
              * @hide
              */
-            public static final int _SPECIAL_FORMAT_MOTION_PHOTO = 2;
+            public static final int _SPECIAL_FORMAT_MOTION_PHOTO =
+                    CloudMediaProviderContract.MediaColumns.
+                            STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO;
         }
     }
 
@@ -4579,6 +4580,8 @@ public final class MediaStore {
      * enabled.
      *
      * See android.provider.CloudMediaProvider
+     *
+     * @hide
      */
     // TODO(b/202733511): Convert See to @see tag after CloudMediaProvider API is unhidden
     @Nullable
@@ -4600,6 +4603,8 @@ public final class MediaStore {
      * {@link #getCloudProvider(ContentResolver)}, the request will be unsuccessful.
      *
      * @return {@code true} if the notification was successful, {@code false} otherwise
+     *
+     * @hide
      */
     public static boolean notifyCloudEvent(@NonNull ContentResolver resolver) {
         Objects.requireNonNull(resolver);

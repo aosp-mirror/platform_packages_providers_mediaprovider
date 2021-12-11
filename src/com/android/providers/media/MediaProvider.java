@@ -210,6 +210,7 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
@@ -222,7 +223,6 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
-import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -264,6 +264,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -1193,6 +1195,12 @@ public class MediaProvider extends ContentProvider {
         synchronized (mDirectoryCache) {
             mDirectoryCache.clear();
         }
+    }
+
+    @VisibleForTesting
+    public void setUriResolver(PickerUriResolver resolver) {
+        Log.w(TAG, "Changing the PickerUriResolver!!! Should only be called during test");
+        mPickerUriResolver = resolver;
     }
 
     @VisibleForTesting
@@ -3661,8 +3669,8 @@ public class MediaProvider extends ContentProvider {
                 // gallery is not allowed to create non-default top level directory.
                 final boolean createNonDefaultTopLevelDir = primary != null &&
                         !FileUtils.buildPath(volumePath, primary).exists();
-                validPath = !createNonDefaultTopLevelDir &&
-                        canAccessMediaFile(res.getAbsolutePath(), /*allowLegacy*/ false);
+                validPath = !createNonDefaultTopLevelDir && canAccessMediaFile(
+                        res.getAbsolutePath(), /*excludeNonSystemGallery*/ true);
             }
 
             // Nothing left to check; caller can't use this path
@@ -5848,7 +5856,15 @@ public class MediaProvider extends ContentProvider {
                 // db after the sync
                 syncPicker();
                 ForegroundThread.waitForIdle();
-                BackgroundThread.waitForIdle();
+                final CountDownLatch latch = new CountDownLatch(1);
+                BackgroundThread.getExecutor().execute(() -> {
+                    latch.countDown();
+                });
+                try {
+                    latch.await(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    throw new IllegalStateException(e);
+                }
                 return null;
             }
             case MediaStore.SCAN_FILE_CALL:
@@ -7039,8 +7055,8 @@ public class MediaProvider extends ContentProvider {
 
         // 2. Check if the calling package is a special app which has global access
         if (isCallingPackageManager() ||
-                (canAccessMediaFile(srcPath, /* allowLegacy */ false) &&
-                        (canAccessMediaFile(destPath, /* allowLegacy */ false)))) {
+                (canAccessMediaFile(srcPath, /* excludeNonSystemGallery */ true) &&
+                        (canAccessMediaFile(destPath, /* excludeNonSystemGallery */ true)))) {
             return true;
         }
 
@@ -8117,8 +8133,8 @@ public class MediaProvider extends ContentProvider {
         return MimeUtils.resolveMediaType(mimeType);
     }
 
-    private boolean canAccessMediaFile(String filePath, boolean allowLegacy) {
-        if (!allowLegacy && isCallingPackageRequestingLegacy()) {
+    private boolean canAccessMediaFile(String filePath, boolean excludeNonSystemGallery) {
+        if (excludeNonSystemGallery && !isCallingPackageSystemGallery()) {
             return false;
         }
         switch (getFileMediaType(filePath)) {
@@ -8160,7 +8176,7 @@ public class MediaProvider extends ContentProvider {
 
         // Apps with write access to images and/or videos can bypass our restrictions if all of the
         // the files they're accessing are of the compatible media type.
-        if (canAccessMediaFile(filePath, /*allowLegacy*/ true)) {
+        if (canAccessMediaFile(filePath, /*excludeNonSystemGallery*/ false)) {
             return true;
         }
 

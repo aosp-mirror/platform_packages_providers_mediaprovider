@@ -734,8 +734,8 @@ public class FileUtils {
                 extFromMimeType = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
             }
 
-            if (MimeUtils.equalIgnoreCase(mimeType, mimeTypeFromExt)
-                    || MimeUtils.equalIgnoreCase(ext, extFromMimeType)) {
+            if (StringUtils.equalIgnoreCase(mimeType, mimeTypeFromExt)
+                    || StringUtils.equalIgnoreCase(ext, extFromMimeType)) {
                 // Extension maps back to requested MIME type; allow it
             } else {
                 // No match; insist that create file matches requested MIME
@@ -1185,7 +1185,7 @@ public class FileUtils {
         if (relativePath != null) {
             final String externalMediaDir = (crossUserRoot == null || crossUserRoot.isEmpty())
                     ? "Android/media" : crossUserRoot + "/Android/media";
-            return relativePath.startsWith(externalMediaDir);
+            return StringUtils.startsWithIgnoreCase(relativePath, externalMediaDir);
         }
         return false;
     }

@@ -887,15 +887,23 @@ public class FileUtilsTest {
     public void testExtractPathOwnerPackageName() {
         assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/data/foo"))
                 .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/android/data/foo"))
+                .isEqualTo("foo");
         assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/obb/foo"))
                 .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/android/obb/foo"))
+                .isEqualTo("foo");
         assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/media/foo"))
+                .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/android/media/foo"))
                 .isEqualTo("foo");
         assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/Android/data/foo"))
                 .isEqualTo("foo");
         assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/Android/obb/foo"))
                 .isEqualTo("foo");
         assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/Android/media/foo"))
+                .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/android/media/foo"))
                 .isEqualTo("foo");
 
         assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/data")).isNull();
@@ -1038,6 +1046,7 @@ public class FileUtilsTest {
                 "/storage/0000-0000/AppClone/"
         }) {
             assertTrue(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "AppClone"));
+            assertTrue(isExternalMediaDirectory(prefix + "android/mEdia/foo.jpg", "AppClone"));
             assertFalse(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "NotAppClone"));
         }
     }

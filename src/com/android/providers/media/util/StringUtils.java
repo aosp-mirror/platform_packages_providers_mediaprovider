@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package src.com.android.providers.media.util;
+package com.android.providers.media.util;
 
 import android.icu.text.MessageFormat;
-import java.io.File;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+
 import android.content.res.Resources;
+
+import androidx.annotation.Nullable;
 
 public class StringUtils {
 
@@ -36,5 +39,24 @@ public class StringUtils {
     Map<String, Object> arguments = new HashMap<>();
     arguments.put("count", count);
     return msgFormat.format(arguments);
+  }
+
+
+  /**
+   * Variant of {@link String#startsWith(String)} but which tests with
+   * case-insensitivity.
+   */
+  public static boolean startsWithIgnoreCase(@Nullable String target, @Nullable String other) {
+    if (target == null || other == null) return false;
+    if (other.length() > target.length()) return false;
+    return target.regionMatches(true, 0, other, 0, other.length());
+  }
+
+  /**
+   * Variant of {@link Objects#equal(Object, Object)} but which tests with
+   * case-insensitivity.
+   */
+  public static boolean equalIgnoreCase(@Nullable String a, @Nullable String b) {
+      return (a != null) && a.equalsIgnoreCase(b);
   }
 }

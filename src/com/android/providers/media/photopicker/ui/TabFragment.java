@@ -22,6 +22,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -55,6 +56,8 @@ public abstract class TabFragment extends Fragment {
     private ExtendedFloatingActionButton mProfileButton;
     private UserIdManager mUserIdManager;
     private boolean mHideProfileButton;
+    private View mEmptyView;
+    private TextView mEmptyTextView;
 
     @Override
     @NonNull
@@ -73,6 +76,9 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setHasFixedSize(true);
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
         mSelection = mPickerViewModel.getSelection();
+
+        mEmptyView = view.findViewById(android.R.id.empty);
+        mEmptyTextView = mEmptyView.findViewById(R.id.empty_text_view);
 
         mProfileButton = view.findViewById(R.id.profile_button);
         mUserIdManager = mPickerViewModel.getUserIdManager();
@@ -114,13 +120,33 @@ public abstract class TabFragment extends Fragment {
                 }
             });
         }
+
+        mProfileButton.setOnClickListener(v -> onClickProfileButton());
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy > 0) {
+                    mProfileButton.hide();
+                } else if (shouldShowProfileButton()) {
+                        mProfileButton.show();
+                }
+            }
+        });
     }
 
     @Override
     public void onResume() {
         super.onResume();
-
         updateProfileButtonAsync();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mRecyclerView != null) {
+            mRecyclerView.clearOnScrollListeners();
+        }
     }
 
     private void updateProfileButtonAsync() {
@@ -135,30 +161,11 @@ public abstract class TabFragment extends Fragment {
         if (!mUserIdManager.isMultiUserProfiles()) {
             if (mProfileButton.getVisibility() == View.VISIBLE) {
                 mProfileButton.setVisibility(View.GONE);
-                mRecyclerView.clearOnScrollListeners();
             }
             return;
         }
-
         if (shouldShowProfileButton()) {
             mProfileButton.setVisibility(View.VISIBLE);
-
-            // TODO(b/199473568): Set up listeners for profile button only once for a fragment or
-            // when the value of isMultiUserProfile changes to true
-            mProfileButton.setOnClickListener(v -> onClickProfileButton());
-            mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-                @Override
-                public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                    super.onScrolled(recyclerView, dx, dy);
-                    if (dy > 0) {
-                        mProfileButton.hide();
-                    } else {
-                        if (shouldShowProfileButton()) {
-                            mProfileButton.show();
-                        }
-                    }
-                }
-            });
         }
 
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
@@ -239,6 +246,19 @@ public abstract class TabFragment extends Fragment {
         } else if (mUserIdManager.isMultiUserProfiles() && shouldShowProfileButton()) {
             mProfileButton.show();
         }
+    }
+
+    protected void setEmptyMessage(int resId) {
+        mEmptyTextView.setText(resId);
+    }
+
+    /**
+     * If we show the {@link #mEmptyView}, hide the {@link #mRecyclerView}. If we don't hide the
+     * {@link #mEmptyView}, show the {@link #mRecyclerView}
+     */
+    protected void updateVisibilityForEmptyView(boolean shouldShowEmptyView) {
+        mEmptyView.setVisibility(shouldShowEmptyView ? View.VISIBLE : View.GONE);
+        mRecyclerView.setVisibility(shouldShowEmptyView ? View.GONE : View.VISIBLE);
     }
 
     private static String generateAddButtonString(Context context, int size) {

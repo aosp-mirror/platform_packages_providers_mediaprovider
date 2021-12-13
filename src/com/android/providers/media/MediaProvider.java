@@ -81,6 +81,7 @@ import static com.android.providers.media.util.FileUtils.extractRelativePathForD
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
+import static com.android.providers.media.util.FileUtils.fromFuseFile;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
 import static com.android.providers.media.util.FileUtils.isCrossUserEnabled;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
@@ -88,6 +89,7 @@ import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
 import static com.android.providers.media.util.FileUtils.isObbOrChildPath;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
+import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_PREFIX;
@@ -208,6 +210,7 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
@@ -220,7 +223,6 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
-import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -262,6 +264,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -1191,6 +1195,12 @@ public class MediaProvider extends ContentProvider {
         synchronized (mDirectoryCache) {
             mDirectoryCache.clear();
         }
+    }
+
+    @VisibleForTesting
+    public void setUriResolver(PickerUriResolver resolver) {
+        Log.w(TAG, "Changing the PickerUriResolver!!! Should only be called during test");
+        mPickerUriResolver = resolver;
     }
 
     @VisibleForTesting
@@ -3659,8 +3669,8 @@ public class MediaProvider extends ContentProvider {
                 // gallery is not allowed to create non-default top level directory.
                 final boolean createNonDefaultTopLevelDir = primary != null &&
                         !FileUtils.buildPath(volumePath, primary).exists();
-                validPath = !createNonDefaultTopLevelDir &&
-                        canAccessMediaFile(res.getAbsolutePath(), /*allowLegacy*/ false);
+                validPath = !createNonDefaultTopLevelDir && canAccessMediaFile(
+                        res.getAbsolutePath(), /*excludeNonSystemGallery*/ true);
             }
 
             // Nothing left to check; caller can't use this path
@@ -3777,7 +3787,7 @@ public class MediaProvider extends ContentProvider {
         if (path != null) {
             // Touch root of volume to update mTime on FUSE filesystem
             // This allows FileManagers that may be relying on mTime changes to update their UI
-            File fusePath = getFuseFile(path);
+            File fusePath = toFuseFile(path);
             if (fusePath != null) {
                 Log.i(TAG, "Touching FUSE path " + fusePath);
                 fusePath.setLastModified(System.currentTimeMillis());
@@ -5846,7 +5856,15 @@ public class MediaProvider extends ContentProvider {
                 // db after the sync
                 syncPicker();
                 ForegroundThread.waitForIdle();
-                BackgroundThread.waitForIdle();
+                final CountDownLatch latch = new CountDownLatch(1);
+                BackgroundThread.getExecutor().execute(() -> {
+                    latch.countDown();
+                });
+                try {
+                    latch.await(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    throw new IllegalStateException(e);
+                }
                 return null;
             }
             case MediaStore.SCAN_FILE_CALL:
@@ -6027,15 +6045,38 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
-            case MediaStore.SET_CLOUD_PROVIDER_CALL:
+            case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 // TODO(b/190713331): Remove after initial development
                 final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);
                 Log.i(TAG, "Developer initiated cloud provider switch: " + cloudProvider);
                 mPickerSyncController.setCloudProvider(cloudProvider);
                 // fall through
-            case MediaStore.SYNC_PROVIDERS_CALL:
+            }
+            case MediaStore.SYNC_PROVIDERS_CALL: {
                 syncPicker();
                 return new Bundle();
+            }
+            case MediaStore.GET_CLOUD_PROVIDER_CALL: {
+                final String cloudProvider = mPickerSyncController.getCloudProvider();
+
+                Bundle bundle = new Bundle();
+                bundle.putString(MediaStore.EXTRA_CLOUD_PROVIDER, cloudProvider);
+                return bundle;
+            }
+            case MediaStore.NOTIFY_CLOUD_EVENT_CALL: {
+                final boolean notifyCloudEventResult;
+                if (mPickerSyncController.isProviderEnabled(Binder.getCallingUid())) {
+                    mPickerSyncController.notifyMediaEvent();
+                    notifyCloudEventResult = true;
+                } else {
+                    notifyCloudEventResult = false;
+                }
+
+                Bundle bundle = new Bundle();
+                bundle.putBoolean(MediaStore.EXTRA_NOTIFY_CLOUD_EVENT_RESULT,
+                        notifyCloudEventResult);
+                return bundle;
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
@@ -6058,7 +6099,10 @@ public class MediaProvider extends ContentProvider {
             throws FileNotFoundException {
         try (ParcelFileDescriptor inputPfd =
                 extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR)) {
-            final File file = getFileFromFileDescriptor(inputPfd);
+            File file = getFileFromFileDescriptor(inputPfd);
+            // Convert from FUSE file to lower fs file because the supportsTranscode() check below
+            // expects a lower fs file format
+            file = fromFuseFile(file);
             if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
                 // Note that we should be checking if a file is a modern format and not just
                 // that it supports transcoding, unfortunately, checking modern format
@@ -6128,6 +6172,9 @@ public class MediaProvider extends ContentProvider {
     /**
      * Return the filesystem path of the real file on disk that is represented
      * by the given {@link ParcelFileDescriptor}.
+     *
+     * Note that the file may be a FUSE or lower fs file and depending on the purpose might need
+     * to be converted with {@link FileUtils#toFuseFile} or {@link FileUtils#fromFuseFile}.
      *
      * Copied from {@link ParcelFileDescriptor#getFile}
      */
@@ -7008,8 +7055,8 @@ public class MediaProvider extends ContentProvider {
 
         // 2. Check if the calling package is a special app which has global access
         if (isCallingPackageManager() ||
-                (canAccessMediaFile(srcPath, /* allowLegacy */ false) &&
-                        (canAccessMediaFile(destPath, /* allowLegacy */ false)))) {
+                (canAccessMediaFile(srcPath, /* excludeNonSystemGallery */ true) &&
+                        (canAccessMediaFile(destPath, /* excludeNonSystemGallery */ true)))) {
             return true;
         }
 
@@ -7774,12 +7821,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    public File getFuseFile(File file) {
-        String filePath = file.getPath().replaceFirst(
-                "/storage/", "/mnt/user/" + UserHandle.myUserId() + "/");
-        return new File(filePath);
-    }
-
     private ParcelFileDescriptor openWithFuse(String filePath, int uid, int mediaCapabilitiesUid,
             int modeBits, boolean shouldRedact, boolean shouldTranscode, int transcodeReason)
             throws FileNotFoundException {
@@ -7796,7 +7837,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         try {
-            return FileUtils.openSafely(getFuseFile(new File(filePath)), modeBits);
+            return FileUtils.openSafely(toFuseFile(new File(filePath)), modeBits);
         } finally {
             synchronized (mPendingOpenInfo) {
                 mPendingOpenInfo.remove(tid);
@@ -8092,8 +8133,8 @@ public class MediaProvider extends ContentProvider {
         return MimeUtils.resolveMediaType(mimeType);
     }
 
-    private boolean canAccessMediaFile(String filePath, boolean allowLegacy) {
-        if (!allowLegacy && isCallingPackageRequestingLegacy()) {
+    private boolean canAccessMediaFile(String filePath, boolean excludeNonSystemGallery) {
+        if (excludeNonSystemGallery && !isCallingPackageSystemGallery()) {
             return false;
         }
         switch (getFileMediaType(filePath)) {
@@ -8135,7 +8176,7 @@ public class MediaProvider extends ContentProvider {
 
         // Apps with write access to images and/or videos can bypass our restrictions if all of the
         // the files they're accessing are of the compatible media type.
-        if (canAccessMediaFile(filePath, /*allowLegacy*/ true)) {
+        if (canAccessMediaFile(filePath, /*excludeNonSystemGallery*/ false)) {
             return true;
         }
 

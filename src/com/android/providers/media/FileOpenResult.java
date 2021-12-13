@@ -23,12 +23,23 @@ public final class FileOpenResult {
     public final int status;
     public final int uid;
     public final int transformsUid;
+    public final int nativeFd;
     public final long[] redactionRanges;
 
     public FileOpenResult(int status, int uid, int transformsUid, long[] redactionRanges) {
+        this(status, uid, transformsUid, /* nativeFd */ -1, redactionRanges);
+    }
+
+    public FileOpenResult(int status, int uid, int transformsUid, int nativeFd,
+            long[] redactionRanges) {
         this.status = status;
         this.uid = uid;
         this.transformsUid = transformsUid;
+        this.nativeFd = nativeFd;
         this.redactionRanges = redactionRanges;
+    }
+
+    public static FileOpenResult createError(int errorCode, int uid) {
+        return new FileOpenResult(errorCode, uid, /* transformsUid */ 0, new long[0]);
     }
 }

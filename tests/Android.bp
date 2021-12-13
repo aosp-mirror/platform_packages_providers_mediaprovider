@@ -12,7 +12,7 @@ android_test_helper_app {
     target_sdk_version: "30",
     min_sdk_version: "30",
     test_suites: [
-        "device-tests",
+        "general-tests",
         "mts-mediaprovider",
     ],
 }
@@ -31,7 +31,7 @@ android_test_helper_app {
     target_sdk_version: "30",
     min_sdk_version: "30",
     test_suites: [
-        "device-tests",
+        "general-tests",
         "mts-mediaprovider",
     ],
 }
@@ -50,7 +50,7 @@ android_test_helper_app {
     target_sdk_version: "30",
     min_sdk_version: "30",
     test_suites: [
-        "device-tests",
+        "general-tests",
         "mts-mediaprovider",
     ],
 }
@@ -69,7 +69,7 @@ android_test_helper_app {
     target_sdk_version: "28",
     min_sdk_version: "30",
     test_suites: [
-        "device-tests",
+        "general-tests",
         "mts-mediaprovider",
     ],
 }
@@ -91,7 +91,7 @@ package {
 android_test {
     name: "MediaProviderTests",
     test_suites: [
-        "device-tests",
+        "general-tests",
         "mts-mediaprovider",
     ],
     compile_multilib: "both",
@@ -119,6 +119,7 @@ android_test {
 
     static_libs: [
         "androidx.appcompat_appcompat",
+        "modules-utils-backgroundthread",
         "androidx.core_core",
         "androidx.test.rules",
         "guava",
@@ -132,6 +133,12 @@ android_test {
         "androidx.test.core",
         "androidx.arch.core_core-runtime",
         "glide-prebuilt",
+        "glide-gifdecoder-prebuilt",
+        "glide-disklrucache-prebuilt",
+        "glide-annotation-and-compiler-prebuilt",
+        "androidx.fragment_fragment",
+        "androidx.vectordrawable_vectordrawable-animated",
+        "androidx.exifinterface_exifinterface",
     ],
 
     certificate: "media",

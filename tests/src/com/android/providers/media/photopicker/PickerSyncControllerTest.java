@@ -16,28 +16,43 @@
 
 package com.android.providers.media.photopicker;
 
+import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_CLOUD;
+import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_FAVORITES;
+import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_LOCAL;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
+import static com.android.providers.media.photopicker.PickerSyncController.CloudProviderInfo;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
-
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 import static com.google.common.truth.Truth.assertThat;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.os.Bundle;
+import android.os.Process;
 import android.os.SystemClock;
+import android.provider.CloudMediaProviderContract.AlbumColumns;
+import android.provider.CloudMediaProviderContract.MediaColumns;
+import android.provider.MediaStore;
 import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
-import com.android.providers.media.util.BackgroundThread;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,6 +81,12 @@ public class PickerSyncControllerTest {
     private static final String CLOUD_ID_1 = "1";
     private static final String CLOUD_ID_2 = "2";
 
+    private static final String ALBUM_ID_1 = "1";
+    private static final String ALBUM_ID_2 = "2";
+
+    private static final String MIME_TYPE_DEFAULT = STRING_DEFAULT;
+    private static final long SIZE_BYTES_DEFAULT = LONG_DEFAULT;
+
     private static final Pair<String, String> LOCAL_ONLY_1 = Pair.create(LOCAL_ID_1, null);
     private static final Pair<String, String> LOCAL_ONLY_2 = Pair.create(LOCAL_ID_2, null);
     private static final Pair<String, String> CLOUD_ONLY_1 = Pair.create(null, CLOUD_ID_1);
@@ -75,6 +96,10 @@ public class PickerSyncControllerTest {
 
     private static final String VERSION_1 = "1";
     private static final String VERSION_2 = "2";
+
+    private static final String IMAGE_MIME_TYPE = "image/jpeg";
+    private static final String VIDEO_MIME_TYPE = "video/mp4";
+    private static final long SIZE_BYTES = 50;
 
     private static final long SYNC_DELAY_MS = 1000;
 
@@ -99,6 +124,7 @@ public class PickerSyncControllerTest {
 
         mFacade.resetMedia(LOCAL_PROVIDER_AUTHORITY);
         mFacade.resetMedia(null);
+        Assume.assumeTrue(PickerDbFacade.isPickerDbEnabled());
     }
 
     @After
@@ -339,12 +365,47 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testGetSupportedCloudProviders() {
-        List<String> providers = mController.getSupportedCloudProviders();
+        List<CloudProviderInfo> providers = mController.getSupportedCloudProviders();
 
-        assertThat(providers).containsExactly(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
-                CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        CloudProviderInfo primaryInfo = new CloudProviderInfo(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
+                Process.myUid());
+        CloudProviderInfo secondaryInfo = new CloudProviderInfo(CLOUD_SECONDARY_PROVIDER_AUTHORITY,
+                Process.myUid());
+
+        assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
     }
 
+    @Test
+    public void testIsProviderAuthorityEnabled() {
+        assertThat(mController.isProviderEnabled(LOCAL_PROVIDER_AUTHORITY)).isTrue();
+        assertThat(mController.isProviderEnabled(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isFalse();
+        assertThat(mController.isProviderEnabled(CLOUD_SECONDARY_PROVIDER_AUTHORITY)).isFalse();
+
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        assertThat(mController.isProviderEnabled(LOCAL_PROVIDER_AUTHORITY)).isTrue();
+        assertThat(mController.isProviderEnabled(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
+        assertThat(mController.isProviderEnabled(CLOUD_SECONDARY_PROVIDER_AUTHORITY)).isFalse();
+    }
+
+    @Test
+    public void testIsProviderUidEnabled() {
+        assertThat(mController.isProviderEnabled(Process.myUid())).isTrue();
+        assertThat(mController.isProviderEnabled(1000)).isFalse();
+    }
+
+    private static void waitForIdle() {
+        final CountDownLatch latch = new CountDownLatch(1);
+        BackgroundThread.getExecutor().execute(() -> {
+            latch.countDown();
+        });
+        try {
+            latch.await(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+
+    }
     @Test
     public void testNotifyMediaEvent() {
         PickerSyncController controller = new PickerSyncController(mContext, mFacade,
@@ -353,12 +414,12 @@ public class PickerSyncControllerTest {
         // 1. Add media and notify
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         controller.notifyMediaEvent();
-        BackgroundThread.waitForIdle();
+        waitForIdle();
         assertEmptyCursor();
 
         // 2. Sleep for delay
         SystemClock.sleep(SYNC_DELAY_MS);
-        BackgroundThread.waitForIdle();
+        waitForIdle();
 
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(1);
@@ -369,6 +430,13 @@ public class PickerSyncControllerTest {
 
     private static void addMedia(MediaGenerator generator, Pair<String, String> media) {
         generator.addMedia(media.first, media.second);
+    }
+
+    private static void addMedia(MediaGenerator generator, Pair<String, String> media,
+            String albumId, String mimeType, int standardMimeTypeExtension, long sizeBytes,
+            boolean isFavorite) {
+        generator.addMedia(media.first, media.second, albumId, mimeType, standardMimeTypeExtension,
+                sizeBytes, isFavorite);
     }
 
     private static void deleteMedia(MediaGenerator generator, Pair<String, String> media) {
@@ -385,11 +453,22 @@ public class PickerSyncControllerTest {
         }
     }
 
-    private static void assertCursor(Cursor cursor, String id, String authority) {
+    private static void assertCursor(Cursor cursor, String id, String expectedAuthority) {
         cursor.moveToNext();
-        assertThat(cursor.getString(cursor.getColumnIndex(Item.ItemColumns.ID)))
+        assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.ID)))
                 .isEqualTo(id);
-        assertThat(cursor.getString(cursor.getColumnIndex(Item.ItemColumns.AUTHORITY)))
-                .isEqualTo(authority);
+
+        final int authorityIdx = cursor.getColumnIndex(MediaColumns.AUTHORITY);
+        final String authority;
+        if (authorityIdx >= 0) {
+            // Cursor from picker db has authority as a column
+            authority = cursor.getString(authorityIdx);
+        } else {
+            // Cursor from provider directly doesn't have an authority column but will
+            // have the authority set as an extra
+            final Bundle bundle = cursor.getExtras();
+            authority = bundle.getString(MediaColumns.AUTHORITY);
+        }
+        assertThat(authority).isEqualTo(expectedAuthority);
     }
 }

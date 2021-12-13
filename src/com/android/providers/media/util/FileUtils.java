@@ -88,6 +88,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -735,8 +736,8 @@ public class FileUtils {
                 extFromMimeType = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
             }
 
-            if (MimeUtils.equalIgnoreCase(mimeType, mimeTypeFromExt)
-                    || MimeUtils.equalIgnoreCase(ext, extFromMimeType)) {
+            if (StringUtils.equalIgnoreCase(mimeType, mimeTypeFromExt)
+                    || StringUtils.equalIgnoreCase(ext, extFromMimeType)) {
                 // Extension maps back to requested MIME type; allow it
             } else {
                 // No match; insist that create file matches requested MIME
@@ -1166,7 +1167,7 @@ public class FileUtils {
         if (relativePath != null) {
             final String externalMediaDir = (crossUserRoot == null || crossUserRoot.isEmpty())
                     ? "Android/media" : crossUserRoot + "/Android/media";
-            return relativePath.startsWith(externalMediaDir);
+            return StringUtils.startsWithIgnoreCase(relativePath, externalMediaDir);
         }
         return false;
     }
@@ -1644,5 +1645,20 @@ public class FileUtils {
         }
 
         return null;
+    }
+
+    public static File buildPrimaryVolumeFile(int userId, String... segments) {
+        return buildPath(new File("/storage/emulated/" + userId), segments);
+    }
+
+    private static final String LOWER_FS_PREFIX = "/storage/";
+    private static final String FUSE_FS_PREFIX = "/mnt/user/" + UserHandle.myUserId() + "/";
+
+    public static File toFuseFile(File file) {
+        return new File(file.getPath().replaceFirst(LOWER_FS_PREFIX, FUSE_FS_PREFIX));
+    }
+
+    public static File fromFuseFile(File file) {
+        return new File(file.getPath().replaceFirst(FUSE_FS_PREFIX, LOWER_FS_PREFIX));
     }
 }

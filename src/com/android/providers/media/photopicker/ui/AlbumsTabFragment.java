@@ -36,6 +36,8 @@ import com.android.providers.media.photopicker.util.LayoutModeUtils;
  */
 public class AlbumsTabFragment extends TabFragment {
 
+    private static final int MINIMUM_SPAN_COUNT = 2;
+
     private int mBottomBarGap;
 
     @Override
@@ -44,10 +46,14 @@ public class AlbumsTabFragment extends TabFragment {
 
         mBottomBarGap = getResources().getDimensionPixelSize(R.dimen.picker_album_bottom_bar_gap);
 
+        setEmptyMessage(R.string.picker_albums_empty_message);
+
         final AlbumsTabAdapter adapter = new AlbumsTabAdapter(mImageLoader, this::onItemClick,
                 mPickerViewModel.hasMimeTypeFilter());
         mPickerViewModel.getCategories().observe(this, categoryList -> {
             adapter.updateCategoryList(categoryList);
+            // Handle emptyView's visibility
+            updateVisibilityForEmptyView(/* shouldShowEmptyView */ categoryList.size() == 0);
         });
         final GridLayoutManager layoutManager = new GridLayoutManager(getContext(), COLUMN_COUNT);
         final AlbumsTabItemDecoration itemDecoration = new AlbumsTabItemDecoration(
@@ -56,6 +62,7 @@ public class AlbumsTabFragment extends TabFragment {
         final int spacing = getResources().getDimensionPixelSize(R.dimen.picker_album_item_spacing);
         final int albumSize = getResources().getDimensionPixelSize(R.dimen.picker_album_size);
         mRecyclerView.setColumnWidth(albumSize + spacing);
+        mRecyclerView.setMinimumSpanCount(MINIMUM_SPAN_COUNT);
 
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setAdapter(adapter);

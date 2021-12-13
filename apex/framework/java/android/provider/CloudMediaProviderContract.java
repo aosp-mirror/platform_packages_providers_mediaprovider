@@ -16,7 +16,7 @@
 
 package android.provider;
 
-import android.annotation.SystemApi;
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
@@ -31,6 +31,8 @@ import java.util.UUID;
  * provides a foundational implementation of this contract.
  *
  * @see CloudMediaProvider
+ *
+ * @hide
  */
 public final class CloudMediaProviderContract {
     private static final String TAG = "CloudMediaProviderContract";
@@ -88,12 +90,58 @@ public final class CloudMediaProviderContract {
         public static final String DATE_TAKEN_MS = "date_taken_ms";
 
         /**
+         * Generation number associated with a media item.
+         * <p>
+         * Providers should associate a monotonically increasing generation number to each media
+         * item which is expected to increase for each atomic modification on the media item. This
+         * is useful for the OS to quickly identify that a media item has changed since a previous
+         * point in time. Note that this does not need to be unique across all media items, i.e.,
+         * multiple media items can have the same GENERATION_MODIFIED value. However, the
+         * modification of a media item should increase the {@link MediaInfo#MEDIA_GENERATION}.
+         * <p>
+         * Type: LONG
+         *
+         * @see MediaInfo#MEDIA_GENERATION
+         */
+        public static final String GENERATION_MODIFIED = "generation_modified";
+
+        /**
          * Concrete MIME type of a media file. For example, "image/png" or
          * "video/mp4".
          * <p>
          * Type: STRING
          */
         public static final String MIME_TYPE = "mime_type";
+
+        /**
+         * Mime-type extension representing special format for a media item.
+         *
+         * Photo Picker requires special format tagging for media items.
+         * This is essential as media items can have various formats like
+         * Motion Photos, GIFs etc, which are not identifiable by
+         * {@link #MIME_TYPE}.
+         * <p>
+         * Type: INTEGER
+         */
+        public static final String STANDARD_MIME_TYPE_EXTENSION = "standard_mime_type_extension";
+
+        /**
+         * Constant for the {@link #STANDARD_MIME_TYPE_EXTENSION} column indicating
+         * that the media item doesn't have any special format associated with it.
+         */
+        public static final int STANDARD_MIME_TYPE_EXTENSION_NONE = 0;
+
+        /**
+         * Constant for the {@link #STANDARD_MIME_TYPE_EXTENSION} column indicating
+         * that the media item is a GIF.
+         */
+        public static final int STANDARD_MIME_TYPE_EXTENSION_GIF = 1;
+
+        /**
+         * Constant for the {@link #STANDARD_MIME_TYPE_EXTENSION} column indicating
+         * that the media item is a Motion Photo.
+         */
+        public static final int STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO = 2;
 
         /**
          * Size of a media file, in bytes.
@@ -143,6 +191,15 @@ public final class CloudMediaProviderContract {
          * @hide
          */
         public static final String AUTHORITY = "authority";
+
+        /**
+         * File path of the media item
+         * <p>
+         * Type: STRING
+         *
+         * @hide
+         */
+        public static final String DATA = "data";
     }
 
     /** Constants related to an album item, including {@link Cursor} column names */
@@ -202,6 +259,44 @@ public final class CloudMediaProviderContract {
          * Type: LONG
          */
         public static final String MEDIA_COUNT = "album_media_count";
+
+        /**
+         * Type of album: {@link #TYPE_LOCAL}, {@link TYPE_CLOUD}, {@link TYPE_FAVORITES},
+         * {@link TYPE_UNRELIABLE_VOLUME}
+         * <p>
+         * Type: STRING
+         *
+         * @hide
+         */
+        public static final String TYPE = "type";
+
+        /**
+         * Constant representing a type of album from a local provider except favorites
+         *
+         * @hide
+         */
+        public static final String TYPE_LOCAL = "LOCAL";
+
+        /**
+         * Constant representing a type of album from a cloud provider
+         *
+         * @hide
+         */
+        public static final String TYPE_CLOUD = null;
+
+        /**
+         * Constant representing a type of album from merged favorites of a local and cloud provider
+         *
+         * @hide
+         */
+        public static final String TYPE_FAVORITES = "FAVORITES";
+
+        /**
+         * Constant representing a type of album from an unreliable volume
+         *
+         * @hide
+         */
+        public static final String TYPE_UNRELIABLE_VOLUME = "UNRELIABLE_VOLUME";
     }
 
     /** Constants related to the entire media collection */
@@ -242,6 +337,7 @@ public final class CloudMediaProviderContract {
          *
          * @see CloudMediaProviderContract#EXTRA_GENERATION
          * @see CloudMediaProvider#onGetMediaInfo
+         * @see CloudMediaProviderContract.MediaColumns#GENERATION_MODIFIED
          */
         public static final String MEDIA_GENERATION = "media_generation";
 
@@ -256,6 +352,30 @@ public final class CloudMediaProviderContract {
          * @see CloudMediaProvider#onGetMediaInfo
          */
         public static final String MEDIA_COUNT = "media_count";
+    }
+
+    /** Constants related to the account information */
+    public static final class AccountInfo {
+        private AccountInfo() {}
+
+        /**
+         * Name of the account owning the media collection synced from the cloud provider.
+         * <p>
+         * Type: STRING
+         *
+         * @see CloudMediaProvider#onGetAccountInfo
+         */
+        public static final String ACTIVE_ACCOUNT_NAME = "active_account_name";
+
+        /**
+         * {@link Intent} Intent to launch an {@link Activity} to allow users configure their media
+         * collection account information like the active account.
+         * <p>
+         * Type: PARCELABLE
+         *
+         * @see CloudMediaProvider#onGetAccountInfo
+         */
+        public static final String ACCOUNT_CONFIGURATION_INTENT = "account_configuration_intent";
     }
 
     /**
@@ -366,8 +486,15 @@ public final class CloudMediaProviderContract {
      *
      * {@hide}
      */
-    @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
     public static final String METHOD_GET_MEDIA_INFO = "android:getMediaInfo";
+
+    /**
+     * Constant used to execute {@link CloudMediaProvider#onGetAccountInfo} via
+     * {@link ContentProvider#call}.
+     *
+     * {@hide}
+     */
+    public static final String METHOD_GET_ACCOUNT_INFO = "android:getAccountInfo";
 
     /**
      * URI path for {@link CloudMediaProvider#onQueryMedia}
@@ -403,4 +530,11 @@ public final class CloudMediaProviderContract {
      * {@hide}
      */
     public static final String URI_PATH_MEDIA_INFO = "media_info";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onGetAccountInfo}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_ACCOUNT_INFO = "account_info";
 }

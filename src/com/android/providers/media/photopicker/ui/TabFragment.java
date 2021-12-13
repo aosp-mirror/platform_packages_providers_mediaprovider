@@ -22,6 +22,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -32,6 +33,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
+import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import com.android.providers.media.util.ForegroundThread;
@@ -45,10 +47,8 @@ import java.util.Locale;
  * The base abstract Tab fragment
  */
 public abstract class TabFragment extends Fragment {
-
-    private static final String TAG =  "PhotoPickerTabFragment";
-
     protected PickerViewModel mPickerViewModel;
+    protected Selection mSelection;
     protected ImageLoader mImageLoader;
     protected AutoFitRecyclerView mRecyclerView;
 
@@ -56,6 +56,8 @@ public abstract class TabFragment extends Fragment {
     private ExtendedFloatingActionButton mProfileButton;
     private UserIdManager mUserIdManager;
     private boolean mHideProfileButton;
+    private View mEmptyView;
+    private TextView mEmptyTextView;
 
     @Override
     @NonNull
@@ -70,14 +72,18 @@ public abstract class TabFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         mImageLoader = new ImageLoader(getContext());
-        mRecyclerView = view.findViewById(R.id.photo_list);
+        mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
         mRecyclerView.setHasFixedSize(true);
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
+        mSelection = mPickerViewModel.getSelection();
+
+        mEmptyView = view.findViewById(android.R.id.empty);
+        mEmptyTextView = mEmptyView.findViewById(R.id.empty_text_view);
 
         mProfileButton = view.findViewById(R.id.profile_button);
         mUserIdManager = mPickerViewModel.getUserIdManager();
 
-        final boolean canSelectMultiple = mPickerViewModel.canSelectMultiple();
+        final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
             final Button addButton = view.findViewById(R.id.button_add);
             addButton.setOnClickListener(v -> {
@@ -87,19 +93,20 @@ public abstract class TabFragment extends Fragment {
             final Button viewSelectedButton = view.findViewById(R.id.button_view_selected);
             // Transition to PreviewFragment on clicking "View Selected".
             viewSelectedButton.setOnClickListener(v -> {
-                PreviewFragment.show(getActivity().getSupportFragmentManager());
+                mSelection.prepareSelectedItemsForPreviewAll();
+                PreviewFragment.show(getActivity().getSupportFragmentManager(),
+                        PreviewFragment.getArgsForPreviewOnViewSelected());
             });
             mBottomBarSize = (int) getResources().getDimension(R.dimen.picker_bottom_bar_size);
 
-            mPickerViewModel.getSelectedItems().observe(this, selectedItemList -> {
+            mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
                 final View bottomBar = view.findViewById(R.id.picker_bottom_bar);
-                final int size = selectedItemList.size();
                 int dimen = 0;
-                if (size == 0) {
+                if (selectedItemListSize == 0) {
                     bottomBar.setVisibility(View.GONE);
                 } else {
                     bottomBar.setVisibility(View.VISIBLE);
-                    addButton.setText(generateAddButtonString(getContext(), size));
+                    addButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
                     dimen = getBottomGapForRecyclerView(mBottomBarSize);
                 }
                 mRecyclerView.setPadding(0, 0, 0, dimen);
@@ -113,13 +120,33 @@ public abstract class TabFragment extends Fragment {
                 }
             });
         }
+
+        mProfileButton.setOnClickListener(v -> onClickProfileButton());
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy > 0) {
+                    mProfileButton.hide();
+                } else if (shouldShowProfileButton()) {
+                        mProfileButton.show();
+                }
+            }
+        });
     }
 
     @Override
     public void onResume() {
         super.onResume();
-
         updateProfileButtonAsync();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mRecyclerView != null) {
+            mRecyclerView.clearOnScrollListeners();
+        }
     }
 
     private void updateProfileButtonAsync() {
@@ -134,30 +161,11 @@ public abstract class TabFragment extends Fragment {
         if (!mUserIdManager.isMultiUserProfiles()) {
             if (mProfileButton.getVisibility() == View.VISIBLE) {
                 mProfileButton.setVisibility(View.GONE);
-                mRecyclerView.clearOnScrollListeners();
             }
             return;
         }
-
         if (shouldShowProfileButton()) {
             mProfileButton.setVisibility(View.VISIBLE);
-
-            // TODO(b/199473568): Set up listeners for profile button only once for a fragment or
-            // when the value of isMultiUserProfile changes to true
-            mProfileButton.setOnClickListener(v -> onClickProfileButton());
-            mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-                @Override
-                public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                    super.onScrolled(recyclerView, dx, dy);
-                    if (dy > 0) {
-                        mProfileButton.hide();
-                    } else {
-                        if (shouldShowProfileButton()) {
-                            mProfileButton.show();
-                        }
-                    }
-                }
-            });
         }
 
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
@@ -165,9 +173,9 @@ public abstract class TabFragment extends Fragment {
     }
 
     private boolean shouldShowProfileButton() {
-        return (!mPickerViewModel.canSelectMultiple() ||
-                mPickerViewModel.getSelectedItems().getValue().size() == 0) &&
-                !mHideProfileButton;
+        return !mHideProfileButton &&
+                (!mSelection.canSelectMultiple() ||
+                        mSelection.getSelectedItemCount().getValue() == 0);
     }
 
     private void onClickProfileButton() {
@@ -238,6 +246,19 @@ public abstract class TabFragment extends Fragment {
         } else if (mUserIdManager.isMultiUserProfiles() && shouldShowProfileButton()) {
             mProfileButton.show();
         }
+    }
+
+    protected void setEmptyMessage(int resId) {
+        mEmptyTextView.setText(resId);
+    }
+
+    /**
+     * If we show the {@link #mEmptyView}, hide the {@link #mRecyclerView}. If we don't hide the
+     * {@link #mEmptyView}, show the {@link #mRecyclerView}
+     */
+    protected void updateVisibilityForEmptyView(boolean shouldShowEmptyView) {
+        mEmptyView.setVisibility(shouldShowEmptyView ? View.VISIBLE : View.GONE);
+        mRecyclerView.setVisibility(shouldShowEmptyView ? View.GONE : View.VISIBLE);
     }
 
     private static String generateAddButtonString(Context context, int size) {

@@ -235,6 +235,7 @@ import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.SpecialFormatDetector;
+import com.android.providers.media.util.StringUtils;
 import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XmpInterface;
 
@@ -2271,7 +2272,7 @@ public class MediaProvider extends ContentProvider {
                 supportedPrimaryMimeType = ClipDescription.MIMETYPE_UNKNOWN;
         }
         return (supportedPrimaryMimeType.equalsIgnoreCase(ClipDescription.MIMETYPE_UNKNOWN) ||
-                MimeUtils.startsWithIgnoreCase(mimeType, supportedPrimaryMimeType));
+                StringUtils.startsWithIgnoreCase(mimeType, supportedPrimaryMimeType));
     }
 
     /**
@@ -7599,7 +7600,7 @@ public class MediaProvider extends ContentProvider {
 
         // Offer thumbnail of media, when requested
         final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
-                && MimeUtils.startsWithIgnoreCase(mimeTypeFilter, "image/");
+                && StringUtils.startsWithIgnoreCase(mimeTypeFilter, "image/");
         if (wantsThumb) {
             final ParcelFileDescriptor pfd = ensureThumbnail(uri, signal);
             return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);

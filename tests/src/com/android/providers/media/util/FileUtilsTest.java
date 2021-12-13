@@ -944,6 +944,7 @@ public class FileUtilsTest {
                 "/storage/0000-0000/AppClone/"
         }) {
             assertTrue(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "AppClone"));
+            assertTrue(isExternalMediaDirectory(prefix + "android/mEdia/foo.jpg", "AppClone"));
             assertFalse(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "NotAppClone"));
         }
     }

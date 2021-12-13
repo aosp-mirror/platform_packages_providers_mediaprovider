@@ -120,12 +120,33 @@ public abstract class TabFragment extends Fragment {
                 }
             });
         }
+
+        mProfileButton.setOnClickListener(v -> onClickProfileButton());
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy > 0) {
+                    mProfileButton.hide();
+                } else if (shouldShowProfileButton()) {
+                        mProfileButton.show();
+                }
+            }
+        });
     }
 
     @Override
     public void onResume() {
         super.onResume();
         updateProfileButtonAsync();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mRecyclerView != null) {
+            mRecyclerView.clearOnScrollListeners();
+        }
     }
 
     private void updateProfileButtonAsync() {
@@ -140,30 +161,11 @@ public abstract class TabFragment extends Fragment {
         if (!mUserIdManager.isMultiUserProfiles()) {
             if (mProfileButton.getVisibility() == View.VISIBLE) {
                 mProfileButton.setVisibility(View.GONE);
-                mRecyclerView.clearOnScrollListeners();
             }
             return;
         }
-
         if (shouldShowProfileButton()) {
             mProfileButton.setVisibility(View.VISIBLE);
-
-            // TODO(b/199473568): Set up listeners for profile button only once for a fragment or
-            // when the value of isMultiUserProfile changes to true
-            mProfileButton.setOnClickListener(v -> onClickProfileButton());
-            mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-                @Override
-                public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                    super.onScrolled(recyclerView, dx, dy);
-                    if (dy > 0) {
-                        mProfileButton.hide();
-                    } else {
-                        if (shouldShowProfileButton()) {
-                            mProfileButton.show();
-                        }
-                    }
-                }
-            });
         }
 
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());

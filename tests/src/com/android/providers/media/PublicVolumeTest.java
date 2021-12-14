@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 import android.content.Context;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
@@ -42,6 +43,9 @@ import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
 public class PublicVolumeTest {
+    static final int POLL_DELAY_MS = 500;
+    static final int WAIT_FOR_DEFAULT_FOLDERS_MS = 30000;
+
     @BeforeClass
     public static void setUp() throws Exception {
         createNewPublicVolume();
@@ -62,18 +66,36 @@ public class PublicVolumeTest {
         return true;
     }
 
+    private boolean pollContainsDefaultFolders(String rootPath) {
+        // Default folders are created by MediaProvider after receiving a callback from
+        // the StorageManagerService that the volume has been mounted.
+        // Unfortunately, we don't have a reliable way to determine when this callback has
+        // happened, so poll here.
+        for (int i = 0; i < WAIT_FOR_DEFAULT_FOLDERS_MS / POLL_DELAY_MS; i++) {
+            if (containsDefaultFolders(rootPath)) {
+                return true;
+            }
+            try {
+                Thread.sleep(POLL_DELAY_MS);
+            } catch (InterruptedException e) {
+            }
+        }
+        return false;
+    }
+
     @Test
     public void testPublicVolumeDefaultFolders() throws Exception {
         Context context = InstrumentationRegistry.getTargetContext();
 
         // Reformat the volume, which should make sure we have default folders
         partitionPublicVolume();
+
         List<StorageVolume> volumes = context.
                 getSystemService(StorageManager.class).getStorageVolumes();
         for (StorageVolume volume : volumes) {
             // We only want to verify reliable public volumes (not OTG)
             if (!volume.isPrimary() && volume.getPath().startsWith("/storage")) {
-                assertTrue(containsDefaultFolders(volume.getPath()));
+                assertTrue(pollContainsDefaultFolders(volume.getPath()));
             }
         }
 
@@ -85,7 +107,7 @@ public class PublicVolumeTest {
         for (StorageVolume volume : volumes) {
             // We only want to verify reliable public volumes (not OTG)
             if (!volume.isPrimary() && volume.getPath().startsWith("/storage")) {
-                assertTrue(containsDefaultFolders(volume.getPath()));
+                assertTrue(pollContainsDefaultFolders(volume.getPath()));
             }
         }
     }

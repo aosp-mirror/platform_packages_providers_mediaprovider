@@ -73,6 +73,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.MediaProvider.LocalUriMatcher;
 import com.android.providers.media.util.Metrics;
+import com.android.providers.media.util.StringUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -85,7 +86,6 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
-import src.com.android.providers.media.util.StringUtils;
 
 /**
  * Permission dialog that asks for user confirmation before performing a

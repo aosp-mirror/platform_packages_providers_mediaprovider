@@ -19,14 +19,21 @@ package com.android.providers.media.photopicker.espresso;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 
+import android.view.View;
+
 import androidx.test.espresso.Espresso;
+import androidx.test.espresso.UiController;
 import androidx.test.espresso.ViewAction;
 import androidx.test.espresso.action.GeneralLocation;
 import androidx.test.espresso.action.GeneralSwipeAction;
 import androidx.test.espresso.action.Press;
 import androidx.test.espresso.action.Swipe;
+import androidx.test.espresso.action.ViewActions;
+import androidx.test.espresso.matcher.ViewMatchers;
 
 import com.android.providers.media.R;
+
+import org.hamcrest.Matcher;
 
 public class CustomSwipeAction {
     private static final int PREVIEW_VIEW_PAGER_ID = R.id.preview_viewPager;
@@ -56,5 +63,32 @@ public class CustomSwipeAction {
         // Use customSwipeRight to avoid system gestures taking over ViewActions#swipeRight
         onView(withId(PREVIEW_VIEW_PAGER_ID)).perform(customSwipeRight());
         Espresso.onIdle();
+    }
+
+    /**
+     * A custom swipeDown method to avoid 90% visibility criteria on a view
+     */
+    public static ViewAction customSwipeDownPartialScreen() {
+        return withCustomConstraints(ViewActions.swipeDown(),
+                ViewMatchers.isDisplayingAtLeast(/* areaPercentage */ 60));
+    }
+
+    private static ViewAction withCustomConstraints(ViewAction action, Matcher<View> constraints) {
+        return new ViewAction() {
+            @Override
+            public Matcher<View> getConstraints() {
+                return constraints;
+            }
+
+            @Override
+            public String getDescription() {
+                return action.getDescription();
+            }
+
+            @Override
+            public void perform(UiController uiController, View view) {
+                action.perform(uiController, view);
+            }
+        };
     }
 }

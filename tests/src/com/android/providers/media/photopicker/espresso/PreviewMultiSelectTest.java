@@ -31,6 +31,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.BottomSheetTestUtils.assertBottomSheetState;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
@@ -38,16 +39,19 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewTestU
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
+import android.app.Activity;
 import android.view.View;
 
 import androidx.lifecycle.ViewModelProvider;
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.IdlingRegistry;
+import androidx.test.espresso.action.ViewActions;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import androidx.viewpager2.widget.ViewPager2;
@@ -74,6 +78,11 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     @Test
     public void testPreview_multiSelect_common() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+        registerBottomSheetStateIdlingResource();
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+        mRule.getScenario().onActivity(activity -> {
+            assertBottomSheetState(activity, STATE_EXPANDED);
+        });
 
         // Select two items and Navigate to preview
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
@@ -84,6 +93,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         // No dragBar in preview
         onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
+        mRule.getScenario().onActivity(activity -> {
+            assertBottomSheetState(activity, STATE_EXPANDED);
+        });
 
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(not(isDisplayed())));
@@ -97,6 +109,15 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         // Shows dragBar after we are back to Photos tab
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+        mRule.getScenario().onActivity(activity -> {
+            assertBottomSheetState(activity, STATE_EXPANDED);
+        });
+
+        // Swiping down on drag bar or toolbar is not closing the bottom sheet as closing the
+        // bottomsheet requires a stronger downward swipe.
+        onView(withId(R.id.bottom_sheet)).perform(ViewActions.swipeDown());
+        assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
+                Activity.RESULT_CANCELED);
     }
 
     @Test
@@ -401,5 +422,10 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
                 new ViewPager2IdlingResource(activity.findViewById(PREVIEW_VIEW_PAGER_ID)))));
         Espresso.onIdle();
+    }
+
+    private void registerBottomSheetStateIdlingResource() {
+        mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
+                new BottomSheetIdlingResource(activity.findViewById(R.id.bottom_sheet)))));
     }
 }

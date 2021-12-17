@@ -19,6 +19,7 @@ package com.android.providers.media.photopicker.ui;
 import android.content.Context;
 import android.view.View;
 
+import androidx.viewpager2.widget.CompositePageTransformer;
 import androidx.viewpager2.widget.MarginPageTransformer;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -45,12 +46,15 @@ class ViewPager2Wrapper {
 
         final Context context = mViewPager.getContext();
 
-        mAdapter = new PreviewAdapter(new ImageLoader(context));
+        mAdapter = new PreviewAdapter(context);
         mAdapter.updateItemList(selectedItems);
         mViewPager.setAdapter(mAdapter);
 
-        mViewPager.setPageTransformer(new MarginPageTransformer(
+        CompositePageTransformer compositePageTransformer = new CompositePageTransformer();
+        compositePageTransformer.addTransformer(new MarginPageTransformer(
                 context.getResources().getDimensionPixelSize(R.dimen.preview_viewpager_margin)));
+        compositePageTransformer.addTransformer(new PlayerPageTransformer());
+        mViewPager.setPageTransformer(compositePageTransformer);
     }
 
     /**
@@ -74,14 +78,31 @@ class ViewPager2Wrapper {
         return mAdapter.getItem(position);
     }
 
-    public void onResume() {
-        // This is necessary to ensure we call ViewHolder#bind() onResume()
-        mAdapter.notifyDataSetChanged();
+    public void onStop() {
+        mAdapter.onStop();
+    }
+
+    public void onStart() {
+        // TODO(b/197083539): Restore the playback state here.
+        // This forces PageTransformer#transformPage call and assists in ExoPlayer initialization.
+        mViewPager.requestTransform();
     }
 
     public void onDestroy() {
         for (ViewPager2.OnPageChangeCallback callback : mOnPageChangeCallbacks) {
             mViewPager.unregisterOnPageChangeCallback(callback);
+        }
+        mOnPageChangeCallbacks.clear();
+    }
+
+    private class PlayerPageTransformer implements ViewPager2.PageTransformer {
+        @Override
+        public void transformPage(View view, float position) {
+            // We are only interested in position == 0.0. Only position=0.0 indicates that the page
+            // is selected.
+            if (position != 0) return;
+
+            mAdapter.handlePageSelected(view);
         }
     }
 }

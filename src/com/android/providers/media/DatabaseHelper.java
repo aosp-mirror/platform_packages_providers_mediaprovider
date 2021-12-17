@@ -1641,7 +1641,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_R = 1115;
     // Leave some gaps in database version tagging to allow R schema changes
     // to go independent of S schema changes.
-    static final int VERSION_S = 1209;
+    static final int VERSION_S = 1210;
     static final int VERSION_LATEST = VERSION_S;
 
     /**
@@ -1817,7 +1817,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (fromVersion < 1209) {
                 // Empty version bump to ensure views are recreated
             }
-
+            if (fromVersion < 1210) {
+                // Empty version bump to ensure views are recreated
+            }
+            
             // If this is the legacy database, it's not worth recomputing data
             // values locally, since they'll be recomputed after the migration
             if (mLegacyProvider) {

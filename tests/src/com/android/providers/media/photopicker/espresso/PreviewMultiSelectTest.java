@@ -69,7 +69,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
-    private static final int VIDEO_VIEW_ID = R.id.preview_videoView;
+    private static final int PLAYER_VIEW_ID = R.id.preview_player_view;
 
     @Rule
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule
@@ -211,11 +211,12 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         assertSpecialFormatBadgeDoesNotExist();
 
         swipeLeftAndWait();
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
         // 3. Video item
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        // TODO(b/197083539): We don't check the video image to be visible or not because its
+        // visibility is time sensitive. Try waiting till player is ready and assert that video
+        // image is no more visible.
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PLAYER_VIEW_ID))
                 .check(matches(isDisplayed()));
         // Verify no special format icon is previewed
         assertSpecialFormatBadgeDoesNotExist();
@@ -313,21 +314,19 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
         registerIdlingResourceAndWaitForIdle();
 
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
         assertMultiSelectPreviewCommonLayoutDisplayed();
 
         // Verify that "View Selected" shows the video item, not the image item that was previewed
         // earlier with preview on long press
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PLAYER_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         // Swipe and verify we don't preview the image item
         swipeLeftAndWait();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PLAYER_VIEW_ID))
                 .check(matches(isDisplayed()));
         swipeRightAndWait();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PLAYER_VIEW_ID))
                 .check(matches(isDisplayed()));
     }
 

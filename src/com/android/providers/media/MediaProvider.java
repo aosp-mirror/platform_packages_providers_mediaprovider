@@ -75,9 +75,10 @@ import static com.android.providers.media.util.FileUtils.buildPrimaryVolumeFile;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileExtension;
 import static com.android.providers.media.util.FileUtils.extractFileName;
+import static com.android.providers.media.util.FileUtils.extractOwnerPackageNameFromRelativePath;
 import static com.android.providers.media.util.FileUtils.extractPathOwnerPackageName;
 import static com.android.providers.media.util.FileUtils.extractRelativePath;
-import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
+import static com.android.providers.media.util.FileUtils.extractRelativePathWithDisplayName;
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
@@ -85,9 +86,10 @@ import static com.android.providers.media.util.FileUtils.fromFuseFile;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
 import static com.android.providers.media.util.FileUtils.isCrossUserEnabled;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
+import static com.android.providers.media.util.FileUtils.isDataOrObbRelativePath;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
-import static com.android.providers.media.util.FileUtils.isObbOrChildPath;
+import static com.android.providers.media.util.FileUtils.isObbOrChildRelativePath;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.Logging.LOGV;
@@ -235,6 +237,7 @@ import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.SpecialFormatDetector;
+import com.android.providers.media.util.StringUtils;
 import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XmpInterface;
 
@@ -324,7 +327,6 @@ public class MediaProvider extends ContentProvider {
 
     private static final String DIRECTORY_MEDIA = "media";
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
-    private static final List<String> PRIVATE_SUBDIRECTORIES_ANDROID = Arrays.asList("data", "obb");
 
     /**
      * Hard-coded filename where the current value of
@@ -864,7 +866,17 @@ public class MediaProvider extends ContentProvider {
      * deleted manually.
      */
     private void ensureDefaultFolders(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
-        final String key = "created_default_folders_" + volume.getId();
+        final String volumeName = volume.getName();
+        String key;
+        if (volumeName.equals(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            // For the primary volume, we use the ID, because we may be handling
+            // the primary volume for multiple users
+            key = "created_default_folders_" + volume.getId();
+        } else {
+            // For others, like public volumes, just use the name, because the id
+            // might not change when re-formatted
+            key = "created_default_folders_" + volumeName;
+        }
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
         if (prefs.getInt(key, 0) == 0) {
@@ -2203,7 +2215,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             // Get relative path for the contents of given directory.
-            String relativePath = extractRelativePathForDirectory(path);
+            String relativePath = extractRelativePathWithDisplayName(path);
 
             if (relativePath == null) {
                 // Path is /storage/emulated/, if relativePath is null, MediaProvider doesn't
@@ -2271,7 +2283,7 @@ public class MediaProvider extends ContentProvider {
                 supportedPrimaryMimeType = ClipDescription.MIMETYPE_UNKNOWN;
         }
         return (supportedPrimaryMimeType.equalsIgnoreCase(ClipDescription.MIMETYPE_UNKNOWN) ||
-                MimeUtils.startsWithIgnoreCase(mimeType, supportedPrimaryMimeType));
+                StringUtils.startsWithIgnoreCase(mimeType, supportedPrimaryMimeType));
     }
 
     /**
@@ -2477,8 +2489,8 @@ public class MediaProvider extends ContentProvider {
             throws IllegalArgumentException {
         // Try a simple check to see if the caller has full access to the given collections first
         // before falling back to performing a query to probe for access.
-        final String oldRelativePath = extractRelativePathForDirectory(oldPath);
-        final String newRelativePath = extractRelativePathForDirectory(newPath);
+        final String oldRelativePath = extractRelativePathWithDisplayName(oldPath);
+        final String newRelativePath = extractRelativePathWithDisplayName(newPath);
         boolean hasFullAccessToOldPath = false;
         boolean hasFullAccessToNewPath = false;
         for (String defaultDir : getIncludedDefaultDirectories()) {
@@ -3726,37 +3738,41 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Check that values don't contain any external private path.
-     * NOTE: The checks are gated on targetSDK S.
+     * For apps targetSdk >= S: Check that values does not contain any external private path.
+     * For all apps: Check that values does not contain any other app's external private paths.
      */
     private void assertPrivatePathNotInValues(ContentValues values)
             throws IllegalArgumentException {
-        if (!CompatChanges.isChangeEnabled(ENABLE_CHECKS_FOR_PRIVATE_FILES,
-                Binder.getCallingUid())) {
-            // For legacy apps, let the behaviour be as it is.
-            return;
-        }
-
         ArrayList<String> relativePaths = new ArrayList<String>();
         relativePaths.add(extractRelativePath(values.getAsString(MediaColumns.DATA)));
         relativePaths.add(values.getAsString(MediaColumns.RELATIVE_PATH));
-        /**
-         * Don't allow apps to insert/update database row to files in Android/data or
-         * Android/obb dirs. These are app private directories and files in these private
-         * directories can't be added to public media collection.
-         */
+
         for (final String relativePath : relativePaths) {
-            if (relativePath == null) continue;
+            if (!isDataOrObbRelativePath(relativePath)) {
+                continue;
+            }
 
-            final String[] relativePathSegments = relativePath.split("/", 3);
-            final String primary =
-                    (relativePathSegments.length > 0) ? relativePathSegments[0] : null;
-            final String secondary =
-                    (relativePathSegments.length > 1) ? relativePathSegments[1] : "";
+            /**
+             * Don't allow apps to insert/update database row to files in Android/data or
+             * Android/obb dirs. These are app private directories and files in these private
+             * directories can't be added to public media collection.
+             *
+             * Note: For backwards compatibility we allow apps with targetSdk < S to insert private
+             * files to MediaProvider
+             */
+            if (CompatChanges.isChangeEnabled(ENABLE_CHECKS_FOR_PRIVATE_FILES,
+                    Binder.getCallingUid())) {
+                throw new IllegalArgumentException(
+                        "Inserting private file: " + relativePath + " is not allowed.");
+            }
 
-            if (DIRECTORY_ANDROID_LOWER_CASE.equalsIgnoreCase(primary)
-                    && PRIVATE_SUBDIRECTORIES_ANDROID.contains(
-                    secondary.toLowerCase(Locale.ROOT))) {
+            /**
+             * Restrict all (legacy and non-legacy) apps from inserting paths in other
+             * app's private directories.
+             * Allow legacy apps to insert/update files in app private directories for backward
+             * compatibility but don't allow them to do so in other app's private directories.
+             */
+            if (!isCallingIdentityAllowedAccessToDataOrObbPath(relativePath)) {
                 throw new IllegalArgumentException(
                         "Inserting private file: " + relativePath + " is not allowed.");
             }
@@ -7599,7 +7615,7 @@ public class MediaProvider extends ContentProvider {
 
         // Offer thumbnail of media, when requested
         final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
-                && MimeUtils.startsWithIgnoreCase(mimeTypeFilter, "image/");
+                && StringUtils.startsWithIgnoreCase(mimeTypeFilter, "image/");
         if (wantsThumb) {
             final ParcelFileDescriptor pfd = ensureThumbnail(uri, signal);
             return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
@@ -9170,25 +9186,28 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
-            // Files under the apps own private directory
-            final String appSpecificDir = extractPathOwnerPackageName(path);
-
-            if (appSpecificDir != null && isCallingIdentitySharedPackageName(appSpecificDir)) {
-                return true;
-            }
-            // This is a private-package path; return true if accessible by the caller
-            return isUidAllowedSpecialPrivatePathAccess(uid, path);
+            return isCallingIdentityAllowedAccessToDataOrObbPath(
+                    extractRelativePathWithDisplayName(path));
         } finally {
             restoreLocalCallingIdentity(token);
         }
     }
 
+    private boolean isCallingIdentityAllowedAccessToDataOrObbPath(String relativePath) {
+        // Files under the apps own private directory
+        final String appSpecificDir = extractOwnerPackageNameFromRelativePath(relativePath);
+
+        if (appSpecificDir != null && isCallingIdentitySharedPackageName(appSpecificDir)) {
+            return true;
+        }
+        // This is a private-package relativePath; return true if accessible by the caller
+        return isCallingIdentityAllowedSpecialPrivatePathAccess(relativePath);
+    }
+
     /**
      * @return true iff the caller has installer privileges which gives write access to obb dirs.
-     * <p> Assumes that {@code mCallingIdentity} has been properly set to reflect the calling
-     * package.
      */
-    private boolean isCallingIdentityAllowedInstallerAccess(int uid) {
+    private boolean isCallingIdentityAllowedInstallerAccess() {
         final boolean hasWrite = mCallingIdentity.get().
                 hasPermission(PERMISSION_WRITE_EXTERNAL_STORAGE);
 
@@ -9237,15 +9256,15 @@ public class MediaProvider extends ContentProvider {
         return DocumentsContract.EXTERNAL_STORAGE_PROVIDER_AUTHORITY;
     }
 
-    private boolean isCallingIdentityDownloadProvider(int uid) {
-        return uid == mDownloadsAuthorityAppId;
+    private boolean isCallingIdentityDownloadProvider() {
+        return getCallingUidOrSelf() == mDownloadsAuthorityAppId;
     }
 
-    private boolean isCallingIdentityExternalStorageProvider(int uid) {
-        return uid == mExternalStorageAuthorityAppId;
+    private boolean isCallingIdentityExternalStorageProvider() {
+        return getCallingUidOrSelf() == mExternalStorageAuthorityAppId;
     }
 
-    private boolean isCallingIdentityMtp(int uid) {
+    private boolean isCallingIdentityMtp() {
         return mCallingIdentity.get().hasPermission(PERMISSION_ACCESS_MTP);
     }
 
@@ -9259,30 +9278,25 @@ public class MediaProvider extends ContentProvider {
      *
      * Installer apps can only access private-app directories on Android/obb.
      *
-     * @param uid UID of the calling package
-     * @param path the path of the file to access
+     * @param relativePath the relative path of the file to access
      */
-    private boolean isUidAllowedSpecialPrivatePathAccess(int uid, String path) {
-        final LocalCallingIdentity token =
-            clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
-        try {
-            if (SdkLevel.isAtLeastS()) {
-                return isMountModeAllowedPrivatePathAccess(uid, getCallingPackage(), path);
-            } else {
-                if (isCallingIdentityDownloadProvider(uid) ||
-                        isCallingIdentityExternalStorageProvider(uid) || isCallingIdentityMtp(
-                        uid)) {
-                    return true;
-                }
-                return (isObbOrChildPath(path) && isCallingIdentityAllowedInstallerAccess(uid));
+    private boolean isCallingIdentityAllowedSpecialPrivatePathAccess(String relativePath) {
+        if (SdkLevel.isAtLeastS()) {
+            return isMountModeAllowedPrivatePathAccess(getCallingUidOrSelf(), getCallingPackage(),
+                    relativePath);
+        } else {
+            if (isCallingIdentityDownloadProvider() ||
+                    isCallingIdentityExternalStorageProvider() || isCallingIdentityMtp()) {
+                return true;
             }
-        } finally {
-            restoreLocalCallingIdentity(token);
+            return (isObbOrChildRelativePath(relativePath) &&
+                    isCallingIdentityAllowedInstallerAccess());
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
-    private boolean isMountModeAllowedPrivatePathAccess(int uid, String packageName, String path) {
+    private boolean isMountModeAllowedPrivatePathAccess(int uid, String packageName,
+            String relativePath) {
         // This is required as only MediaProvider (package with WRITE_MEDIA_STORAGE) can access
         // mount modes.
         final CallingIdentity token = clearCallingIdentity();
@@ -9293,7 +9307,7 @@ public class MediaProvider extends ContentProvider {
                 case StorageManager.MOUNT_MODE_EXTERNAL_PASS_THROUGH:
                     return true;
                 case StorageManager.MOUNT_MODE_EXTERNAL_INSTALLER:
-                    return isObbOrChildPath(path);
+                    return isObbOrChildRelativePath(relativePath);
             }
         } catch (Exception e) {
             Log.w(TAG, "Caller does not have the permissions to access mount modes: ", e);

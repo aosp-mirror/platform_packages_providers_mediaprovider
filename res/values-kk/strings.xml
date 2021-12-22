@@ -38,14 +38,12 @@
     <string name="allow" msgid="8885707816848569619">"Рұқсат ету"</string>
     <string name="deny" msgid="6040983710442068936">"Тыйым салу"</string>
     <string name="add" msgid="2894574044585549298">"Қосу"</string>
-    <string name="deselect" msgid="4297825044827769490">"Белгісін алу"</string>
+    <string name="deselect" msgid="4297825044827769490">"Таңдамау"</string>
     <string name="select" msgid="2704765470563027689">"Таңдау"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> элементке дейін таңдаңыз.}other{<xliff:g id="COUNT_1">^1</xliff:g> элементке дейін таңдаңыз.}}"</string>
     <string name="recent" msgid="6694613584743207874">"Соңғы"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"Фотосуреттер немесе бейнелер жоқ."</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Альбомдар жоқ."</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Таңдалғанды көру"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Фотосуреттер"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Aльбомдар"</string>

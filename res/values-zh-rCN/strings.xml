@@ -40,12 +40,10 @@
     <string name="add" msgid="2894574044585549298">"添加"</string>
     <string name="deselect" msgid="4297825044827769490">"取消选择"</string>
     <string name="select" msgid="2704765470563027689">"选择"</string>
-    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{最多选择 <xliff:g id="COUNT_0">^1</xliff:g> 项}other{最多选择 <xliff:g id="COUNT_1">^1</xliff:g> 项}}"</string>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{最多可选择 <xliff:g id="COUNT_0">^1</xliff:g> 项}other{最多可选择 <xliff:g id="COUNT_1">^1</xliff:g> 项}}"</string>
     <string name="recent" msgid="6694613584743207874">"最近"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"无照片或视频"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"无影集"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"查看所选内容"</string>
     <string name="picker_photos" msgid="7415035516411087392">"照片"</string>
     <string name="picker_albums" msgid="4822511902115299142">"影集"</string>
@@ -57,7 +55,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"工作应用已暂停"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"如需打开工作照片，请打开您的工作应用，然后重试"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> 个}other{<xliff:g id="COUNT_1">^1</xliff:g> 个}}"</string>
-    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"添加（<xliff:g id="COUNT">^1</xliff:g> 个）"</string>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"添加（<xliff:g id="COUNT">^1</xliff:g> 项）"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"相机"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"下载内容"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"收藏"</string>

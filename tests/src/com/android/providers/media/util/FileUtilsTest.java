@@ -1042,12 +1042,22 @@ public class FileUtilsTest {
     @Test
     public void testIsExternalMediaDirectory() throws Exception {
         for (String prefix : new String[] {
-                "/storage/emulated/0/AppClone/",
-                "/storage/0000-0000/AppClone/"
+                "/storage/emulated/0/",
+                "/storage/0000-0000/",
         }) {
+            assertTrue(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", null));
+            assertTrue(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", ""));
+            assertTrue(isExternalMediaDirectory(prefix + "Android/mEdia/foo.jpg", ""));
+            assertFalse(isExternalMediaDirectory(prefix + "Android/data/foo.jpg", ""));
             assertTrue(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "AppClone"));
             assertTrue(isExternalMediaDirectory(prefix + "android/mEdia/foo.jpg", "AppClone"));
-            assertFalse(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "NotAppClone"));
+            assertTrue(isExternalMediaDirectory(prefix + "AppClone/Android/media/foo.jpg", "AppClone"));
+            assertTrue(isExternalMediaDirectory(prefix + "AppClone/Android/mEdia/foo.jpg", "AppClone"));
+            assertTrue(isExternalMediaDirectory(prefix + "Appclone/Android/mEdia/foo.jpg", "AppClone"));
+            assertFalse(isExternalMediaDirectory(prefix + "AppClone/Android/media/foo.jpg", null));
+            assertFalse(isExternalMediaDirectory(prefix + "AppClone/Android/mEdia/foo.jpg", null));
+            assertFalse(isExternalMediaDirectory(prefix + "AppClone/Android/media/foo.jpg", ""));
+            assertFalse(isExternalMediaDirectory(prefix + "AppClone/Android/media/foo.jpg", "NotAppClone"));
         }
     }
 

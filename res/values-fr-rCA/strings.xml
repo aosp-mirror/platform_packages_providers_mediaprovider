@@ -41,12 +41,10 @@
     <string name="deselect" msgid="4297825044827769490">"Désélectionner"</string>
     <string name="select" msgid="2704765470563027689">"Sélectionner"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Sélectionnez jusqu\'à <xliff:g id="COUNT_0">^1</xliff:g> élément}one{Sélectionnez jusqu\'à <xliff:g id="COUNT_1">^1</xliff:g> élément}other{Sélectionnez jusqu\'à <xliff:g id="COUNT_1">^1</xliff:g> éléments}}"</string>
-    <string name="recent" msgid="6694613584743207874">"Récent"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
-    <string name="picker_view_selected" msgid="2266031384396143883">"Afficher le contenu sélectionné"</string>
+    <string name="recent" msgid="6694613584743207874">"Récentes"</string>
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"Aucune photo ni aucune vidéo"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Aucun album"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Afficher la sélection"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Photos"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albums"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Passez au profil professionnel"</string>

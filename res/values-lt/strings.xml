@@ -42,10 +42,8 @@
     <string name="select" msgid="2704765470563027689">"Pasirinkti"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Pasirinkite iki <xliff:g id="COUNT_0">^1</xliff:g> elemento}one{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elemento}few{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elementų}many{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elemento}other{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elementų}}"</string>
     <string name="recent" msgid="6694613584743207874">"Naujausios"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"Nėra jokių nuotraukų ar vaizdo įrašų"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nėra jokių albumų"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Žiūrėti pasirinktus"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Nuotraukos"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albumai"</string>

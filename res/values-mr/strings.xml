@@ -42,11 +42,9 @@
     <string name="select" msgid="2704765470563027689">"निवडा"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{कमाल <xliff:g id="COUNT_0">^1</xliff:g> आयटम निवडा}other{कमाल <xliff:g id="COUNT_1">^1</xliff:g> आयटम निवडा}}"</string>
     <string name="recent" msgid="6694613584743207874">"अलीकडील"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
-    <string name="picker_view_selected" msgid="2266031384396143883">"दृश्य निवडले"</string>
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"कोणतेही फोटो किंवा व्हिडिओ नाहीत"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"कोणतेही अल्बम नाहीत"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"निवडलेले पहा"</string>
     <string name="picker_photos" msgid="7415035516411087392">"फोटो"</string>
     <string name="picker_albums" msgid="4822511902115299142">"अल्बम"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ऑफिसवर स्विच करा"</string>

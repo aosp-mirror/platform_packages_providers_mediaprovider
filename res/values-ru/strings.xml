@@ -42,10 +42,8 @@
     <string name="select" msgid="2704765470563027689">"Выбрать"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Выберите не более <xliff:g id="COUNT_0">^1</xliff:g> объекта.}one{Выберите не более <xliff:g id="COUNT_1">^1</xliff:g> объекта.}few{Выберите не более <xliff:g id="COUNT_1">^1</xliff:g> объектов.}many{Выберите не более <xliff:g id="COUNT_1">^1</xliff:g> объектов.}other{Выберите не более <xliff:g id="COUNT_1">^1</xliff:g> объекта.}}"</string>
     <string name="recent" msgid="6694613584743207874">"Недавние"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"Фото или видео нет."</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Альбомов нет."</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Смотреть выбранное"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Фотографии"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Альбомы"</string>
@@ -59,7 +57,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> объект}one{<xliff:g id="COUNT_1">^1</xliff:g> объект}few{<xliff:g id="COUNT_1">^1</xliff:g> объекта}many{<xliff:g id="COUNT_1">^1</xliff:g> объектов}other{<xliff:g id="COUNT_1">^1</xliff:g> объекта}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Добавить (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Камера"</string>
-    <string name="picker_category_downloads" msgid="793866660287361900">"Скачивания"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"Скачанные"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Избранное"</string>
     <string name="picker_category_screenshots" msgid="7216102327587644284">"Скриншоты"</string>
     <!-- no translation found for picker_category_videos (1478458836380241356) -->

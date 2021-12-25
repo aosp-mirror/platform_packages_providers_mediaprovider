@@ -42,11 +42,9 @@
     <string name="select" msgid="2704765470563027689">"Chọn"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Chọn tối đa <xliff:g id="COUNT_0">^1</xliff:g> mục}other{Chọn tối đa <xliff:g id="COUNT_1">^1</xliff:g> mục}}"</string>
     <string name="recent" msgid="6694613584743207874">"Gần đây"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
-    <string name="picker_view_selected" msgid="2266031384396143883">"Đã chọn Chế độ xem"</string>
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"Không có ảnh hoặc video nào"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Không có đĩa nhạc nào"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Xem các mục được chọn"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Ảnh"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Album"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Chuyển sang hồ sơ công việc"</string>

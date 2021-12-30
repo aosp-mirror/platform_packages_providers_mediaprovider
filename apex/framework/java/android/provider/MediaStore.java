@@ -2955,7 +2955,6 @@ public final class MediaStore {
              * Non-zero if the audio file is a voice recording recorded
              * by voice recorder apps
              */
-            @ExportedSince(osVersion = Build.VERSION_CODES.S)
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RECORDING = "is_recording";
 

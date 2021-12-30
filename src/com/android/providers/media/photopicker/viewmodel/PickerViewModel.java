@@ -126,9 +126,8 @@ public class PickerViewModel extends AndroidViewModel {
         return mItemList;
     }
 
-    private List<Item> loadItems(@Nullable @CategoryType String category) {
+    private List<Item> loadItems(@Nullable @CategoryType String category, UserId userId) {
         final List<Item> items = new ArrayList<>();
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
 
         try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
                 /* limit */ -1, mMimeTypeFilter, userId)) {
@@ -181,8 +180,9 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private void loadItemsAsync() {
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mItemList.postValue(loadItems(/* category= */ null));
+            mItemList.postValue(loadItems(/* category= */ null, userId));
         });
     }
 
@@ -209,8 +209,9 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private void loadCategoryItemsAsync(@NonNull @CategoryType String category) {
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mCategoryItemList.postValue(loadItems(category));
+            mCategoryItemList.postValue(loadItems(category, userId));
         });
     }
 
@@ -234,9 +235,8 @@ public class PickerViewModel extends AndroidViewModel {
         return mCategoryList;
     }
 
-    private List<Category> loadCategories() {
+    private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
@@ -256,8 +256,9 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private void loadCategoriesAsync() {
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mCategoryList.postValue(loadCategories());
+            mCategoryList.postValue(loadCategories(userId));
         });
     }
 

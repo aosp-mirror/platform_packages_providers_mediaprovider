@@ -1274,6 +1274,7 @@ public class MediaProviderTest {
 
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R, maxSdkVersion = Build.VERSION_CODES.R)
+    @Ignore("b/211068960")
     public void testQueryAudioTableNoIsRecordingColumnInR() throws Exception {
         final File file = createAudioRecordingFile();
         final Uri audioUri =
@@ -1292,6 +1293,7 @@ public class MediaProviderTest {
 
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R, maxSdkVersion = Build.VERSION_CODES.R)
+    @Ignore("b/211068960")
     public void testQueryIsRecordingInAudioTableExceptionInR() throws Exception {
         final File file = createAudioRecordingFile();
         final Uri audioUri =

@@ -63,10 +63,14 @@ public class PickerDbFacade {
 
     @VisibleForTesting
     public PickerDbFacade(Context context, String localProvider) {
-        final PickerDatabaseHelper databaseHelper = new PickerDatabaseHelper(context);
+        this(context, localProvider, new PickerDatabaseHelper(context));
+    }
+
+    @VisibleForTesting
+    public PickerDbFacade(Context context, String localProvider, PickerDatabaseHelper dbHelper) {
         mContext = context;
-        mDatabase = databaseHelper.getWritableDatabase();
         mLocalProvider = localProvider;
+        mDatabase = dbHelper.getWritableDatabase();
     }
 
     private static final String TAG = "PickerDbFacade";

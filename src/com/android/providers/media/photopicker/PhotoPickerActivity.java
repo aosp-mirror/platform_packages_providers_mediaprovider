@@ -21,6 +21,7 @@ import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_
 
 import android.annotation.IntDef;
 import android.app.Activity;
+import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -76,6 +77,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private static final int TAB_CHIP_TYPE_PHOTOS = 0;
     private static final int TAB_CHIP_TYPE_ALBUMS = 1;
 
+    private static final float BOTTOM_SHEET_PEEK_HEIGHT_PERCENTAGE = 0.60f;
+
     @IntDef(prefix = { "TAB_CHIP_TYPE" }, value = {
             TAB_CHIP_TYPE_PHOTOS,
             TAB_CHIP_TYPE_ALBUMS
@@ -102,6 +105,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // We use the device default theme as the base theme. Apply the material them for the
+        // material components. We use force "false" here, only values that are not already defined
+        // in the base theme will be copied.
+        getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
+
         super.onCreate(savedInstanceState);
 
         if (!isPhotoPickerEnabled()) {
@@ -312,15 +320,19 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private void initStateForBottomSheet() {
         if (!mSelection.canSelectMultiple() && !isOrientationLandscape()) {
-            final WindowManager windowManager = getSystemService(WindowManager.class);
-            final Rect displayBounds = windowManager.getCurrentWindowMetrics().getBounds();
-            final int peekHeight = (int) (displayBounds.height() * 0.60);
+            final int peekHeight = getBottomSheetPeekHeight(this);
             mBottomSheetBehavior.setPeekHeight(peekHeight);
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         } else {
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             mBottomSheetBehavior.setSkipCollapsed(true);
         }
+    }
+
+    private static int getBottomSheetPeekHeight(Context context) {
+        final WindowManager windowManager = context.getSystemService(WindowManager.class);
+        final Rect displayBounds = windowManager.getCurrentWindowMetrics().getBounds();
+        return (int) (displayBounds.height() * BOTTOM_SHEET_PEEK_HEIGHT_PERCENTAGE);
     }
 
     private void restoreBottomSheetState() {

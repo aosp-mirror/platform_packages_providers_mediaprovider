@@ -23,6 +23,7 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.signature.ObjectKey;
 
 import com.android.providers.media.photopicker.data.model.Category;
@@ -86,15 +87,31 @@ public class ImageLoader {
         if (item.isGif()) {
             Glide.with(mContext)
                     .load(item.getContentUri())
+                    .signature(new ObjectKey(
+                            item.getContentUri().toString() + item.getGenerationModified()))
                     .into(imageView);
             return;
         }
+
         // Preview as bitmap image for all other image types
         Glide.with(mContext)
                 .asBitmap()
                 .load(item.getContentUri())
                 .signature(new ObjectKey(
                         item.getContentUri().toString() + item.getGenerationModified()))
+                .into(imageView);
+    }
+
+    /**
+     * Loads the image from first frame of the given video item
+     */
+    public void loadImageFromVideoForPreview(@NonNull Item item, @NonNull ImageView imageView) {
+        Glide.with(mContext)
+                .asBitmap()
+                .load(item.getContentUri())
+                .apply(new RequestOptions().frame(1000))
+                .signature(new ObjectKey("Preview"
+                        + item.getContentUri().toString() + item.getGenerationModified()))
                 .into(imageView);
     }
 }

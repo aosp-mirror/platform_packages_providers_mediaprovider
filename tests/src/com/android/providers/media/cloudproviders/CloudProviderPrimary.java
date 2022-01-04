@@ -101,4 +101,9 @@ public class CloudProviderPrimary extends CloudMediaProvider {
 
         return bundle;
     }
+
+    @Override
+    public Bundle onGetAccountInfo(Bundle extras) {
+        return mMediaGenerator.getAccountInfo();
+    }
 }

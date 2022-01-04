@@ -40,11 +40,18 @@ import static com.android.providers.media.util.FileUtils.buildUniqueFile;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileExtension;
 import static com.android.providers.media.util.FileUtils.extractFileName;
+import static com.android.providers.media.util.FileUtils.extractOwnerPackageNameFromRelativePath;
+import static com.android.providers.media.util.FileUtils.extractPathOwnerPackageName;
 import static com.android.providers.media.util.FileUtils.extractRelativePath;
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
+import static com.android.providers.media.util.FileUtils.fromFuseFile;
+import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
+import static com.android.providers.media.util.FileUtils.isDataOrObbRelativePath;
 import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
+import static com.android.providers.media.util.FileUtils.isObbOrChildRelativePath;
+import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.FileUtils.translateModeAccessToPosix;
 import static com.android.providers.media.util.FileUtils.translateModePfdToPosix;
 import static com.android.providers.media.util.FileUtils.translateModePosixToPfd;
@@ -876,6 +883,95 @@ public class FileUtilsTest {
         assertThat(FileUtils.isDirectoryDirty(null)).isFalse();
     }
 
+    @Test
+    public void testExtractPathOwnerPackageName() {
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/data/foo"))
+                .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/obb/foo"))
+                .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/media/foo"))
+                .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/Android/data/foo"))
+                .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/Android/obb/foo"))
+                .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/Android/media/foo"))
+                .isEqualTo("foo");
+
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/data")).isNull();
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/obb")).isNull();
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/media")).isNull();
+        assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/Android/media")).isNull();
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/Pictures/foo")).isNull();
+        assertThat(extractPathOwnerPackageName("Android/data")).isNull();
+        assertThat(extractPathOwnerPackageName("Android/obb")).isNull();
+    }
+
+    @Test
+    public void testExtractOwnerPackageNameFromRelativePath() {
+        assertThat(extractOwnerPackageNameFromRelativePath("Android/data/foo")).isEqualTo("foo");
+        assertThat(extractOwnerPackageNameFromRelativePath("Android/obb/foo")).isEqualTo("foo");
+        assertThat(extractOwnerPackageNameFromRelativePath("Android/media/foo")).isEqualTo("foo");
+        assertThat(extractOwnerPackageNameFromRelativePath("Android/media/foo.com/files"))
+                .isEqualTo("foo.com");
+
+        assertThat(extractOwnerPackageNameFromRelativePath("/storage/emulated/0/Android/data/foo"))
+                .isNull();
+        assertThat(extractOwnerPackageNameFromRelativePath("Android/data")).isNull();
+        assertThat(extractOwnerPackageNameFromRelativePath("Android/obb")).isNull();
+        assertThat(extractOwnerPackageNameFromRelativePath("Android/media")).isNull();
+        assertThat(extractOwnerPackageNameFromRelativePath("Pictures/foo")).isNull();
+    }
+
+    @Test
+    public void testIsDataOrObbPath() {
+        assertThat(isDataOrObbPath("/storage/emulated/0/Android/data")).isTrue();
+        assertThat(isDataOrObbPath("/storage/emulated/0/Android/obb")).isTrue();
+        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/data")).isTrue();
+        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/obb")).isTrue();
+        assertThat(isDataOrObbPath("/storage/emulated/0/Android/data/foo")).isTrue();
+        assertThat(isDataOrObbPath("/storage/emulated/0/Android/obb/foo")).isTrue();
+        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/data/foo")).isTrue();
+        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/obb/foo")).isTrue();
+
+        assertThat(isDataOrObbPath("/storage/emulated/0/Android/")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated/0/Android/media/")).isFalse();
+        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/media/")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated/0/Pictures/")).isFalse();
+        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/obbfoo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated/0/Android/datafoo")).isFalse();
+        assertThat(isDataOrObbPath("Android/")).isFalse();
+        assertThat(isDataOrObbPath("Android/media/")).isFalse();
+    }
+
+    @Test
+    public void testIsDataOrObbRelativePath() {
+        assertThat(isDataOrObbRelativePath("Android/data")).isTrue();
+        assertThat(isDataOrObbRelativePath("Android/obb")).isTrue();
+        assertThat(isDataOrObbRelativePath("Android/data/foo")).isTrue();
+        assertThat(isDataOrObbRelativePath("Android/obb/foo")).isTrue();
+
+        assertThat(isDataOrObbRelativePath("/storage/emulated/0/Android/data")).isFalse();
+        assertThat(isDataOrObbRelativePath("Android/")).isFalse();
+        assertThat(isDataOrObbRelativePath("Android/media/")).isFalse();
+        assertThat(isDataOrObbRelativePath("Pictures/")).isFalse();
+    }
+
+    @Test
+    public void testIsObbOrChildRelativePath() {
+        assertThat(isObbOrChildRelativePath("Android/obb")).isTrue();
+        assertThat(isObbOrChildRelativePath("Android/obb/")).isTrue();
+        assertThat(isObbOrChildRelativePath("Android/obb/foo.com")).isTrue();
+
+        assertThat(isObbOrChildRelativePath("/storage/emulated/0/Android/obb")).isFalse();
+        assertThat(isObbOrChildRelativePath("/storage/emulated/0/Android/")).isFalse();
+        assertThat(isObbOrChildRelativePath("Android/")).isFalse();
+        assertThat(isObbOrChildRelativePath("Android/media/")).isFalse();
+        assertThat(isObbOrChildRelativePath("Pictures/")).isFalse();
+        assertThat(isObbOrChildRelativePath("Android/obbfoo")).isFalse();
+        assertThat(isObbOrChildRelativePath("Android/data")).isFalse();
+    }
+
     private File getNewDirInDownload(String name) {
         File file = new File(mTestDownloadDir, name);
         assertTrue(file.mkdir());
@@ -942,7 +1038,30 @@ public class FileUtilsTest {
                 "/storage/0000-0000/AppClone/"
         }) {
             assertTrue(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "AppClone"));
+            assertTrue(isExternalMediaDirectory(prefix + "android/mEdia/foo.jpg", "AppClone"));
             assertFalse(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "NotAppClone"));
         }
+    }
+
+    @Test
+    public void testToAndFromFuseFile() throws Exception {
+        final File fuseFilePrimary = new File("/mnt/user/0/emulated/0/foo");
+        final File fuseFileSecondary = new File("/mnt/user/0/0000-0000/foo");
+
+        final File lowerFsFilePrimary = new File("/storage/emulated/0/foo");
+        final File lowerFsFileSecondary = new File("/storage/0000-0000/foo");
+
+        final File unexpectedFile = new File("/mnt/pass_through/0/emulated/0/foo");
+
+        assertThat(fromFuseFile(fuseFilePrimary)).isEqualTo(lowerFsFilePrimary);
+        assertThat(fromFuseFile(fuseFileSecondary)).isEqualTo(lowerFsFileSecondary);
+        assertThat(fromFuseFile(lowerFsFilePrimary)).isEqualTo(lowerFsFilePrimary);
+
+        assertThat(toFuseFile(lowerFsFilePrimary)).isEqualTo(fuseFilePrimary);
+        assertThat(toFuseFile(lowerFsFileSecondary)).isEqualTo(fuseFileSecondary);
+        assertThat(toFuseFile(fuseFilePrimary)).isEqualTo(fuseFilePrimary);
+
+        assertThat(toFuseFile(unexpectedFile)).isEqualTo(unexpectedFile);
+        assertThat(fromFuseFile(unexpectedFile)).isEqualTo(unexpectedFile);
     }
 }

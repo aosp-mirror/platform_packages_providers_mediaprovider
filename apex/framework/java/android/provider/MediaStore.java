@@ -243,11 +243,17 @@ public final class MediaStore {
     public static final String EXTRA_IS_SYSTEM_GALLERY_RESPONSE = "is_system_gallery_response";
 
     /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_CALL = "get_cloud_provider";
+    /** {@hide} */
+    public static final String NOTIFY_CLOUD_EVENT_CALL = "notify_cloud_event";
+    /** {@hide} */
     public static final String SYNC_PROVIDERS_CALL = "sync_providers";
     /** {@hide} */
     public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";
     /** {@hide} */
     public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
+    /** {@hide} */
+    public static final String EXTRA_NOTIFY_CLOUD_EVENT_RESULT = "notify_cloud_event_result";
 
     /** {@hide} */
     public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
@@ -2056,7 +2062,7 @@ public final class MediaStore {
              * Photo Picker requires special format tagging for media files.
              * This is essential as {@link Images} collection can include
              * images of various formats like Motion Photos, GIFs etc, which
-             * is not identifiable by {@link #MIME_TYPE}
+             * is not identifiable by {@link #MIME_TYPE}.
              *
              * @hide
              */
@@ -2066,29 +2072,30 @@ public final class MediaStore {
             /**
              * Constant for the {@link #_SPECIAL_FORMAT} column indicating
              * that the file doesn't have any special format associated with it.
-             * TODO(b/199522401): Expose these as public API for cloud providers.
              *
              * @hide
              */
-            public static final int _SPECIAL_FORMAT_NONE = 0;
+            public static final int _SPECIAL_FORMAT_NONE =
+                    CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE;
 
             /**
              * Constant for the {@link #_SPECIAL_FORMAT} column indicating
              * that the file is a GIF file.
-             * TODO(b/199522401): Expose these as public API for cloud providers.
              *
              * @hide
              */
-            public static final int _SPECIAL_FORMAT_GIF = 1;
+            public static final int _SPECIAL_FORMAT_GIF =
+                    CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF;
 
             /**
              * Constant for the {@link #_SPECIAL_FORMAT} column indicating
              * that the file is a Motion Photo.
-             * TODO(b/199522401): Expose these as public API for cloud providers.
              *
              * @hide
              */
-            public static final int _SPECIAL_FORMAT_MOTION_PHOTO = 2;
+            public static final int _SPECIAL_FORMAT_MOTION_PHOTO =
+                    CloudMediaProviderContract.MediaColumns.
+                            STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO;
         }
     }
 
@@ -2954,7 +2961,6 @@ public final class MediaStore {
              * Non-zero if the audio file is a voice recording recorded
              * by voice recorder apps
              */
-            @ExportedSince(osVersion = Build.VERSION_CODES.S)
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RECORDING = "is_recording";
 
@@ -4566,5 +4572,43 @@ public final class MediaStore {
                 Log.w(TAG, "Unknown AppOpsManager mode " + opMode);
                 return false;
         }
+    }
+
+    /**
+     * Returns the authority of the currently enabled cloud provider or {@code null} if there's none
+     * enabled.
+     *
+     * See android.provider.CloudMediaProvider
+     *
+     * @hide
+     */
+    // TODO(b/202733511): Convert See to @see tag after CloudMediaProvider API is unhidden
+    @Nullable
+    public static String getCloudProvider(@NonNull ContentResolver resolver) {
+        Objects.requireNonNull(resolver);
+
+        final Bundle out = resolver.call(AUTHORITY, GET_CLOUD_PROVIDER_CALL, null, null);
+        return out.getString(EXTRA_CLOUD_PROVIDER);
+    }
+
+    /**
+     * Notifies the OS about a cloud event requiring a full or incremental media collection sync
+     * for the currently enabled cloud provider.
+     *
+     * The OS will schedule the sync in the background and will attempt to batch frequent
+     * notifications into a single sync event.
+     *
+     * If the caller is not the currently enabled cloud provider as returned by
+     * {@link #getCloudProvider(ContentResolver)}, the request will be unsuccessful.
+     *
+     * @return {@code true} if the notification was successful, {@code false} otherwise
+     *
+     * @hide
+     */
+    public static boolean notifyCloudEvent(@NonNull ContentResolver resolver) {
+        Objects.requireNonNull(resolver);
+
+        final Bundle out = resolver.call(AUTHORITY, NOTIFY_CLOUD_EVENT_CALL, null, null);
+        return out.getBoolean(EXTRA_NOTIFY_CLOUD_EVENT_RESULT);
     }
 }

@@ -30,7 +30,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/bottom_sheet"
-        android:background="?android:attr/colorBackground"
+        android:background="@color/picker_background_color"
         android:clipToOutline="true"
         app:behavior_hideable="true"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
@@ -39,7 +39,7 @@
             android:id="@+id/drag_bar"
             android:layout_width="match_parent"
             android:layout_height="@dimen/picker_drag_bar_height"
-            android:background="?android:attr/colorBackground">
+            android:background="@color/picker_background_color">
 
             <ImageView
                 android:layout_width="wrap_content"
@@ -69,8 +69,8 @@
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="?android:attr/colorBackground"
-                app:titleTextColor="@color/picker_toolbar_title_color">
+                android:background="@color/picker_background_color"
+                app:titleTextColor="?attr/pickerTextColor">
 
                 <LinearLayout
                     android:id="@+id/chip_container"

@@ -42,6 +42,7 @@ import android.view.ViewOutlineProvider;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 
+import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatActivity;
@@ -100,6 +101,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
     @TabChipType
     private int mSelectedTabChipType;
 
+    @ColorInt
+    private int mDefaultBackgroundColor;
+
+    @ColorInt
+    private int mToolBarIconColor;
+
     private int mToolbarHeight = 0;
     private int mDragBarHeight = 0;
 
@@ -122,12 +129,14 @@ public class PhotoPickerActivity extends AppCompatActivity {
         setSupportActionBar(mToolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        final int[] attrs = new int[] {R.attr.actionBarSize};
+        final int[] attrs = new int[]{R.attr.actionBarSize, R.attr.pickerTextColor};
         final TypedArray ta = obtainStyledAttributes(attrs);
         // Save toolbar height so that we can use it as padding for FragmentContainerView
-        mToolbarHeight = ta.getDimensionPixelSize(0, -1);
+        mToolbarHeight = ta.getDimensionPixelSize(/* index */ 0, /* defValue */ -1);
+        mToolBarIconColor = ta.getColor(/* index */ 1,/* defValue */ -1);
         ta.recycle();
 
+        mDefaultBackgroundColor = getColor(R.color.picker_background_color);
         mPickerViewModel = createViewModel();
         mSelection = mPickerViewModel.getSelection();
 
@@ -457,7 +466,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 toolbarColor = new ColorDrawable(getColor(R.color.preview_scrim_solid_color));
             }
         } else {
-            toolbarColor = new ColorDrawable(getColor(R.color.picker_background_color));
+            toolbarColor = new ColorDrawable(mDefaultBackgroundColor);
         }
         getSupportActionBar().setBackgroundDrawable(toolbarColor);
 
@@ -468,7 +477,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         } else {
             icon = getDrawable(R.drawable.ic_arrow_back);
             // Preview mode has dark background, hence icons will be WHITE in color
-            icon.setTint(isPreview ? Color.WHITE : getColor(R.color.picker_toolbar_icon_color));
+            icon.setTint(isPreview ? Color.WHITE : mToolBarIconColor);
         }
         getSupportActionBar().setHomeAsUpIndicator(icon);
 
@@ -487,11 +496,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
      */
     private void updateStatusBarAndNavigationBar(@NonNull LayoutModeUtils.Mode mode) {
         final boolean isPreview = mode.isPreview;
-        final int navigationBarColor = isPreview ? getColor(R.color.preview_default_black) :
-                getColor(R.color.picker_background_color);
+        final int navigationBarColor = isPreview ? getColor(R.color.preview_background_color) :
+                mDefaultBackgroundColor;
         getWindow().setNavigationBarColor(navigationBarColor);
 
-        final int statusBarColor = isPreview ? getColor(R.color.preview_default_black) :
+        final int statusBarColor = isPreview ? getColor(R.color.preview_background_color) :
                 getColor(android.R.color.transparent);
         getWindow().setStatusBarColor(statusBarColor);
 

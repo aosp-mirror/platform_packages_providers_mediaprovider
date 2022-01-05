@@ -93,7 +93,14 @@ public class PickerUriResolver {
 
         checkUriPermission(uri, callingPid, callingUid);
 
-        final ContentResolver resolver = getContentResolverForUserId(uri);
+        final ContentResolver resolver;
+        try {
+            resolver = getContentResolverForUserId(uri);
+        } catch (IllegalArgumentException e) {
+            // This is to be consistent with MediaProvider's response when a file is not found.
+            Log.e(TAG, "No item at " + uri, e);
+            throw new FileNotFoundException("No item at " + uri);
+        }
         if (PickerDbFacade.isPickerDbEnabled()) {
             if (canHandleUriInUser(uri)) {
                 return openPickerFile(uri);
@@ -115,7 +122,14 @@ public class PickerUriResolver {
             throws FileNotFoundException {
         checkUriPermission(uri, callingPid, callingUid);
 
-        final ContentResolver resolver = getContentResolverForUserId(uri);
+        final ContentResolver resolver;
+        try {
+            resolver = getContentResolverForUserId(uri);
+        } catch (IllegalArgumentException e) {
+            // This is to be consistent with MediaProvider's response when a file is not found.
+            Log.e(TAG, "No item at " + uri, e);
+            throw new FileNotFoundException("No item at " + uri);
+        }
         if (PickerDbFacade.isPickerDbEnabled()) {
             if (canHandleUriInUser(uri)) {
                 return new AssetFileDescriptor(openPickerFile(uri), 0,
@@ -139,8 +153,10 @@ public class PickerUriResolver {
 
         try {
             return queryInternal(uri, projection, queryArgs, signal);
-        } catch (FileNotFoundException e) {
-            Log.d(TAG, "File not found for uri: " + uri, e);
+        } catch (IllegalArgumentException e) {
+            // This is to be consistent with MediaProvider, it returns an empty cursor if the row
+            // does not exist.
+            Log.e(TAG, "File not found for uri: " + uri, e);
             return new MatrixCursor(projection == null ? new String[] {} : projection);
         }
     }
@@ -148,7 +164,7 @@ public class PickerUriResolver {
     // TODO(b/191362529): Restrict projection values when we start querying picker db.
     // Add PickerColumns and add checks for projection.
     private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
-            CancellationSignal signal) throws FileNotFoundException {
+            CancellationSignal signal) {
         final ContentResolver resolver = getContentResolverForUserId(uri);
 
         if (PickerDbFacade.isPickerDbEnabled()) {
@@ -179,8 +195,6 @@ public class PickerUriResolver {
                 return getCursorString(cursor,
                         CloudMediaProviderContract.MediaColumns.MIME_TYPE);
             }
-        } catch (FileNotFoundException e) {
-            throw new IllegalArgumentException(e.getMessage());
         }
 
         throw new IllegalArgumentException("Failed to getType for uri: " + uri);
@@ -334,13 +348,12 @@ public class PickerUriResolver {
     }
 
     @VisibleForTesting
-    ContentResolver getContentResolverForUserId(Uri uri) throws FileNotFoundException {
-        final UserId userId = UserId.of(UserHandle.of(getUserId(uri)));
+    ContentResolver getContentResolverForUserId(Uri uri) {
+            final UserId userId = UserId.of(UserHandle.of(getUserId(uri)));
         try {
             return userId.getContentResolver(mContext);
         } catch (NameNotFoundException e) {
-            throw new FileNotFoundException("File not found due to unavailable content resolver "
-                    + "for uri: " + uri + " ; error: " + e);
+            throw new IllegalArgumentException("Cannot find content resolver for uri: " + uri, e);
         }
     }
 }

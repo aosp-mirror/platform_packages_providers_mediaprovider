@@ -75,6 +75,48 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    public void testDoesNotShowProfileButton() {
+        // Register bottom sheet idling resource so that we don't read bottom sheet state when
+        // in between changing states
+        registerBottomSheetStateIdlingResource();
+
+        // Single select PhotoPicker is launched in partial screen mode
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+        mRule.getScenario().onActivity(activity -> {
+            assertBottomSheetState(activity, STATE_COLLAPSED);
+        });
+        // Partial screen does not show profile button
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+
+        // Swipe up and check that the PhotoPicker is in full screen mode
+        onView(withId(DRAG_BAR_ID)).perform(ViewActions.swipeUp());
+        mRule.getScenario().onActivity(activity -> {
+            assertBottomSheetState(activity, STATE_EXPANDED);
+        });
+        // Full screen does not show profile button as well
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+
+        // Navigate to Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .perform(click());
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+
+        final int cameraStringId = R.string.picker_category_camera;
+        // Navigate to photos in Camera album
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+
+        // Click back button
+        onView(withContentDescription("Navigate up")).perform(click());
+
+        // on clicking back button we are back to Album grid
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                .check(matches(isSelected()));
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+    }
+
+    @Test
     public void testBottomSheetState() {
         // Register bottom sheet idling resource so that we don't read bottom sheet state when
         // in between changing states

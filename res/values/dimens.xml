@@ -27,15 +27,17 @@
 
     <dimen name="picker_bottom_bar_size">56dp</dimen>
     <dimen name="picker_bottom_bar_horizontal_gap">16dp</dimen>
-    <dimen name="picker_bottom_bar_vertical_gap">10dp</dimen>
+    <dimen name="picker_bottom_bar_buttons_vertical_gap">10dp</dimen>
     <dimen name="picker_bottom_bar_elevation">8dp</dimen>
+
+    <dimen name="picker_viewselected_icon_padding">10dp</dimen>
 
     <dimen name="picker_item_check_size">24dp</dimen>
     <dimen name="picker_item_check_margin">6dp</dimen>
     <dimen name="picker_item_badge_margin">4dp</dimen>
     <dimen name="picker_item_badge_text_margin">3dp</dimen>
     <dimen name="picker_item_badge_text_size">10dp</dimen>
-    <dimen name="picker_item_gradient_height">56dp</dimen>
+    <dimen name="picker_item_gradient_height">40dp</dimen>
 
     <dimen name="picker_date_header_height">56dp</dimen>
     <dimen name="picker_date_header_padding">16dp</dimen>
@@ -54,6 +56,7 @@
     <dimen name="picker_chip_text_size">16sp</dimen>
     <dimen name="picker_chip_touch_size">48dp</dimen>
     <dimen name="picker_chip_radius">16dp</dimen>
+    <dimen name="picker_chip_horizontal_gap">4dp</dimen>
 
     <dimen name="picker_drag_bar_height">24dp</dimen>
     <dimen name="picker_drag_margin_top">8dp</dimen>

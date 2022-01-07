@@ -1182,11 +1182,17 @@ public class FileUtils {
     @VisibleForTesting
     static boolean isExternalMediaDirectory(@NonNull String path, String crossUserRoot) {
         final String relativePath = extractRelativePath(path);
-        if (relativePath != null) {
-            final String externalMediaDir = (crossUserRoot == null || crossUserRoot.isEmpty())
-                    ? "Android/media" : crossUserRoot + "/Android/media";
-            return StringUtils.startsWithIgnoreCase(relativePath, externalMediaDir);
+        if (relativePath == null) {
+            return false;
         }
+
+        if (StringUtils.startsWithIgnoreCase(relativePath, "Android/media")) {
+            return true;
+        }
+        if (!TextUtils.isEmpty(crossUserRoot)) {
+            return StringUtils.startsWithIgnoreCase(relativePath, crossUserRoot + "/Android/media");
+        }
+
         return false;
     }
 

@@ -20,6 +20,7 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_gravity="center"
+    android:layout_marginHorizontal="@dimen/picker_chip_horizontal_gap"
     android:textAppearance="@style/PickerChipTextAppearance"
     android:textColor="@color/picker_chip_text_color"
     app:chipBackgroundColor="@color/picker_chip_background_color"

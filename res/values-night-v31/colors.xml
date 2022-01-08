@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (C) 2020 The Android Open Source Project
+  ~ Copyright (C) 2021 The Android Open Source Project
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -16,15 +16,8 @@
   -->
 
 <resources>
-    <color name="thumb_gray_color">#3C4043</color>
-    <color name="clear_cache_icon_color">#DADCE0</color>
 
     <!-- PhotoPicker -->
-    <color name="picker_background_color">#202124</color>
-    <color name="picker_drag_bar_color">#686868</color>
-
-    <!-- PhotoPicker Profile Button -->
-    <color name="picker_profile_disabled_button_content_color">#E3E3E3</color>
-    <color name="picker_profile_disabled_button_background_color">#DADADA</color>
+    <color name="picker_background_color">@android:color/system_neutral1_800</color>
 
 </resources>

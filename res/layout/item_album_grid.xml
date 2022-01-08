@@ -28,7 +28,8 @@
         android:elevation="0dp"
         android:duplicateParentState="true"
         app:cardCornerRadius="@dimen/picker_album_grid_radius"
-        app:cardElevation="0dp">
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp">
 
         <com.android.providers.media.photopicker.ui.SquareImageView
             android:id="@+id/icon_thumbnail"

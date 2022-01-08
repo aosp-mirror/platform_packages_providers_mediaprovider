@@ -40,12 +40,10 @@
     <string name="add" msgid="2894574044585549298">"הוספה"</string>
     <string name="deselect" msgid="4297825044827769490">"ביטול הבחירה"</string>
     <string name="select" msgid="2704765470563027689">"בחירה"</string>
-    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{יש לבחור פריט אחד (<xliff:g id="COUNT_0">^1</xliff:g>) לכל היותר}two{יש לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר}many{יש לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר}other{יש לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר}}"</string>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{ניתן לבחור פריט אחד (<xliff:g id="COUNT_0">^1</xliff:g>) לכל היותר}two{ניתן לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר}many{ניתן לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר}other{ניתן לבחור <xliff:g id="COUNT_1">^1</xliff:g> פריטים לכל היותר}}"</string>
     <string name="recent" msgid="6694613584743207874">"אחרונות"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"אין תמונות או סרטונים"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"אין אלבומים"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"הצגת הפריטים שנבחרו"</string>
     <string name="picker_photos" msgid="7415035516411087392">"תמונות"</string>
     <string name="picker_albums" msgid="4822511902115299142">"אלבומים"</string>

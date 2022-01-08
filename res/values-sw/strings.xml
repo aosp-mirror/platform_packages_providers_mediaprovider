@@ -42,11 +42,9 @@
     <string name="select" msgid="2704765470563027689">"Chagua"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Chagua hadi kipengee <xliff:g id="COUNT_0">^1</xliff:g>}other{Chagua hadi vipengee <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="recent" msgid="6694613584743207874">"Za hivi majuzi"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
-    <string name="picker_view_selected" msgid="2266031384396143883">"Angalia uliyochagua"</string>
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"Hakuna picha au video"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Hakuna albamu"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Angalia ulizochagua"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Picha"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albamu"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Badili uweke wasifu wa kazini"</string>

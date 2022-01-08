@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.media.client;
+package com.android.providers.media.tests.utils;
 
 import android.app.UiAutomation;
 import android.os.Environment;
@@ -37,16 +37,29 @@ import java.util.function.Supplier;
 /**
  * Helper methods for public volume setup.
  */
-class PublicVolumeSetupHelper {
+public class PublicVolumeSetupHelper {
     private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(2);
     private static final long POLLING_SLEEP_MILLIS = 100;
     private static final String TAG = "TestUtils";
     private static boolean usingExistingPublicVolume = false;
 
     /**
+     * (Re-)partitions an already created pulic volume
+     */
+    public static void partitionPublicVolume() throws Exception {
+        pollForCondition(() -> partitionDisk(), "Timed out while waiting for"
+                + " disk partitioning");
+        // Poll twice to avoid using previous mount status
+        pollForCondition(() -> isPublicVolumeMounted(), "Timed out while waiting for"
+                + " the public volume to mount");
+        pollForCondition(() -> isExternalStorageStateMounted(), "Timed out while"
+                + " waiting for ExternalStorageState to be MEDIA_MOUNTED");
+    }
+
+    /**
      * Creates a new virtual public volume and returns the volume's name.
      */
-    static void createNewPublicVolume() throws Exception {
+    public static void createNewPublicVolume() throws Exception {
         // Skip public volume setup if we can use already available public volume on the device.
         if (getCurrentPublicVolumeString() != null && isPublicVolumeMounted()) {
             usingExistingPublicVolume = true;
@@ -54,13 +67,8 @@ class PublicVolumeSetupHelper {
         }
         executeShellCommand("sm set-force-adoptable on");
         executeShellCommand("sm set-virtual-disk true");
-        pollForCondition(() -> partitionDisk(), "Timed out while waiting for"
-                + " disk partitioning");
-        // Poll twice to avoid using previous mount status
-        pollForCondition(() -> isPublicVolumeMounted(), "Timed out while waiting for"
-                + " the public volume to mount");
-        pollForCondition(() -> isExternalStorageStateMounted(), "Timed out while"
-               + " waiting for ExternalStorageState to be MEDIA_MOUNTED");
+
+        partitionPublicVolume();
     }
 
     private static boolean isExternalStorageStateMounted() {
@@ -112,7 +120,7 @@ class PublicVolumeSetupHelper {
     /**
      * @return the currently mounted public volume string, if any.
      */
-    private static String getCurrentPublicVolumeString() {
+    static String getCurrentPublicVolumeString() {
         final String[] allPublicVolumeDetails;
         try {
             allPublicVolumeDetails = executeShellCommand("sm list-volumes public")
@@ -134,15 +142,15 @@ class PublicVolumeSetupHelper {
         return null;
     }
 
-    static void mountPublicVolume() throws Exception {
+    public static void mountPublicVolume() throws Exception {
         executeShellCommand("sm mount " + getPublicVolumeString());
     }
 
-    static void unmountPublicVolume() throws Exception {
+    public static void unmountPublicVolume() throws Exception {
         executeShellCommand("sm unmount " + getPublicVolumeString());
     }
 
-    static void deletePublicVolumes() throws Exception {
+    public static void deletePublicVolumes() throws Exception {
         if (!usingExistingPublicVolume) {
             executeShellCommand("sm set-virtual-disk false");
             // Wait for the public volume to disappear.
@@ -181,7 +189,7 @@ class PublicVolumeSetupHelper {
         }
     }
 
-    static void pollForCondition(Supplier<Boolean> condition, String errorMessage)
+    public static void pollForCondition(Supplier<Boolean> condition, String errorMessage)
             throws Exception {
         for (int i = 0; i < POLLING_TIMEOUT_MILLIS / POLLING_SLEEP_MILLIS; i++) {
             if (condition.get()) {

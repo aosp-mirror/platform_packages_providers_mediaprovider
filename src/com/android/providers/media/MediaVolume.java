@@ -63,9 +63,9 @@ public final class MediaVolume implements Parcelable {
     private final @Nullable String mId;
 
     /**
-     * Whether the volume is a stub volume (a volume managed from outside Android).
+     * Whether the volume is managed from outside Android.
      */
-    private final boolean mStub;
+    private final boolean mExternallyManaged;
 
     public @NonNull String getName() {
         return mName;
@@ -83,17 +83,17 @@ public final class MediaVolume implements Parcelable {
         return mId;
     }
 
-    public boolean isStub() {
-        return mStub;
+    public boolean isExternallyManaged() {
+        return mExternallyManaged;
     }
 
     private MediaVolume (@NonNull String name, UserHandle user, File path, String id,
-                         boolean stub) {
+                         boolean externallyManaged) {
         this.mName = name;
         this.mUser = user;
         this.mPath = path;
         this.mId = id;
-        this.mStub = stub;
+        this.mExternallyManaged = externallyManaged;
     }
 
     private MediaVolume (Parcel in) {
@@ -101,7 +101,7 @@ public final class MediaVolume implements Parcelable {
         this.mUser = in.readParcelable(null);
         this.mPath  = new File(in.readString());
         this.mId = in.readString();
-        this.mStub = in.readInt() != 0;
+        this.mExternallyManaged = in.readInt() != 0;
     }
 
     @Override
@@ -116,12 +116,12 @@ public final class MediaVolume implements Parcelable {
         return Objects.equals(mName, that.mName) &&
                 Objects.equals(mUser, that.mUser) &&
                 Objects.equals(mId, that.mId) &&
-                (mStub == that.mStub);
+                (mExternallyManaged == that.mExternallyManaged);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mName, mUser, mId, mStub);
+        return Objects.hash(mName, mUser, mId, mExternallyManaged);
     }
 
     public boolean isVisibleToUser(UserHandle user) {
@@ -134,8 +134,9 @@ public final class MediaVolume implements Parcelable {
         UserHandle user = storageVolume.getOwner();
         File path = storageVolume.getDirectory();
         String id = storageVolume.getId();
-        boolean stub = SdkLevel.isAtLeastT() ? storageVolume.isStub() : false;
-        return new MediaVolume(name, user, path, id, stub);
+        boolean externallyManaged =
+                SdkLevel.isAtLeastT() ? storageVolume.isExternallyManaged() : false;
+        return new MediaVolume(name, user, path, id, externallyManaged);
     }
 
     public static MediaVolume fromInternal() {
@@ -155,13 +156,13 @@ public final class MediaVolume implements Parcelable {
         dest.writeParcelable(mUser, flags);
         dest.writeString(mPath.toString());
         dest.writeString(mId);
-        dest.writeInt(mStub ? 1 : 0);
+        dest.writeInt(mExternallyManaged ? 1 : 0);
     }
 
     @Override
     public String toString() {
         return "MediaVolume name: [" + mName + "] id: [" + mId + "] user: [" + mUser + "] path: ["
-                + mPath + "] stub: [" + mStub + "]";
+                + mPath + "] externallyManaged: [" + mExternallyManaged + "]";
     }
 
     public static final @android.annotation.NonNull Creator<MediaVolume> CREATOR

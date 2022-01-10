@@ -77,6 +77,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         try {
             bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
             onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_COLLAPSED);
             });
@@ -89,6 +90,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
             // No dragBar in preview
             bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
             onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
+            // No privacy text in preview
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_EXPANDED);
             });
@@ -106,8 +109,9 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
             onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
             bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            // Shows dragBar after we are back to Photos tab
+            // Shows dragBar and privacy text after we are back to Photos tab
             onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_COLLAPSED);
             });

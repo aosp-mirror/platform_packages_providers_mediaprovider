@@ -65,6 +65,7 @@ public class WorkAppsOffProfileButtonTest extends PhotoPickerBaseTest {
             // Single select PhotoPicker is launched in half sheet mode
             bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
             onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_COLLAPSED);
             });
@@ -74,7 +75,7 @@ public class WorkAppsOffProfileButtonTest extends PhotoPickerBaseTest {
             onView(withId(profileButtonId)).check(matches(not(isDisplayed())));
 
             bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
-            onView(withId(DRAG_BAR_ID)).perform(ViewActions.swipeUp());
+            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_EXPANDED);
             });

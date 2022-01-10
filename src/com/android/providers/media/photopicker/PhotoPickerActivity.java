@@ -59,7 +59,6 @@ import com.android.providers.media.photopicker.ui.PreviewFragment;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
-import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback;
 import com.google.android.material.chip.Chip;
@@ -96,6 +95,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private View mBottomSheetView;
     private View mFragmentContainerView;
     private View mDragBar;
+    private View mPrivacyText;
     private Toolbar mToolbar;
 
     @TabChipType
@@ -108,7 +108,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private int mToolBarIconColor;
 
     private int mToolbarHeight = 0;
-    private int mDragBarHeight = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -148,7 +147,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         }
 
         mDragBar = findViewById(R.id.drag_bar);
-        mDragBarHeight = getResources().getDimensionPixelSize(R.dimen.picker_drag_bar_height);
+        mPrivacyText = findViewById(R.id.privacy_text);
 
         mTabChipContainer = findViewById(R.id.chip_container);
         initTabChips();
@@ -437,7 +436,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         updateStatusBarAndNavigationBar(mode);
         updateBottomSheetBehavior(mode);
         updateFragmentContainerViewPadding(mode);
-        updateDragBar(mode);
+        updateDragBarVisibility(mode);
+        updatePrivacyTextVisibility(mode);
     }
 
     private void updateTitle(String title) {
@@ -451,7 +451,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
      */
     private void updateToolbar(@NonNull LayoutModeUtils.Mode mode) {
         final boolean isPreview = mode.isPreview;
-        final boolean shouldShowTabChips = mode.shouldShowTabChips;
+        final boolean shouldShowTabChips = mode.isPhotosTabOrAlbumsTab;
         // 1. Set the tabChip visibility
         mTabChipContainer.setVisibility(shouldShowTabChips ? View.VISIBLE : View.GONE);
 
@@ -480,13 +480,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
             icon.setTint(isPreview ? Color.WHITE : mToolBarIconColor);
         }
         getSupportActionBar().setHomeAsUpIndicator(icon);
-
-        // 4. Update the toolbar margin based on whether drag bar is visible or not
-        final int top = isPreview ? 0 : mDragBarHeight;
-        final AppBarLayout.LayoutParams layoutParams = new AppBarLayout.LayoutParams(
-                mToolbar.getLayoutParams());
-        layoutParams.setMargins(/* left */ 0, top, /* right */ 0, /* bottom */ 0);
-        mToolbar.setLayoutParams(layoutParams);
     }
 
     /**
@@ -549,9 +542,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
      * Updates the FragmentContainerView padding.
      * <p>
      * For Preview mode, toolbar overlaps the Fragment content, hence the padding will be set to 0.
-     * For Non-Preview mode, toolbar doesn't overlap the contents of the fragment and we have drag
-     * icon, hence we set the top padding as the sum of the height of the toolbar and the height of
-     * the drag bar.
+     * For Non-Preview mode, toolbar doesn't overlap the contents of the fragment, hence we set the
+     * padding as the height of the toolbar.
      */
     private void updateFragmentContainerViewPadding(@NonNull LayoutModeUtils.Mode mode) {
         if (mFragmentContainerView == null) return;
@@ -560,7 +552,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         if (mode.isPreview) {
             topPadding = 0;
         } else {
-            topPadding = mToolbarHeight + mDragBarHeight;
+            topPadding = mToolbarHeight;
         }
 
         mFragmentContainerView.setPadding(mFragmentContainerView.getPaddingLeft(),
@@ -568,8 +560,14 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 mFragmentContainerView.getPaddingBottom());
     }
 
-    private void updateDragBar(@NonNull LayoutModeUtils.Mode mode) {
+    private void updateDragBarVisibility(@NonNull LayoutModeUtils.Mode mode) {
         final boolean shouldShowDragBar = !mode.isPreview;
         mDragBar.setVisibility(shouldShowDragBar ? View.VISIBLE : View.GONE);
+    }
+
+    private void updatePrivacyTextVisibility(@NonNull LayoutModeUtils.Mode mode) {
+        // The privacy text is only shown on the Photos tab and Albums tab
+        final boolean shouldShowPrivacyMessage = mode.isPhotosTabOrAlbumsTab;
+        mPrivacyText.setVisibility(shouldShowPrivacyMessage ? View.VISIBLE : View.GONE);
     }
 }

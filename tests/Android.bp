@@ -139,6 +139,7 @@ android_test {
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
+        "exoplayer2.15.1"
     ],
 
     certificate: "media",

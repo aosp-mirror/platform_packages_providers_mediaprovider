@@ -16,6 +16,6 @@
   -->
 
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_selected="true" android:color="?android:colorAccent"/>
-    <item android:state_enabled="true" android:color="@color/picker_toolbar_chip_text_color"/>
+    <item android:state_selected="true" android:color="?attr/pickerSelectedChipTextColor"/>
+    <item android:state_enabled="true" android:color="?android:attr/textColorSecondary"/>
 </selector>

@@ -1471,6 +1471,48 @@ public class FileUtils {
     }
 
     /**
+     * Returns true if the given File should be hidden (if it or any of its parents is hidden).
+     * This can be called before the file is created, to check if it will be hidden once created.
+     */
+    @VisibleForTesting
+    public static boolean shouldFileBeHidden(@NonNull File file) {
+        if (isFileHidden(file)) {
+            return true;
+        }
+
+        File parent = file.getParentFile();
+        while (parent != null) {
+            if (isDirectoryHidden(parent)) {
+                return true;
+            }
+            parent = parent.getParentFile();
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns true if the given dir should be hidden (if it or any of its parents is hidden).
+     * This can be called before the file is created, to check if it will be hidden once created.
+     */
+    @VisibleForTesting
+    public static boolean shouldDirBeHidden(@NonNull File file) {
+        if (isDirectoryHidden(file)) {
+            return true;
+        }
+
+        File parent = file.getParentFile();
+        while (parent != null) {
+            if (isDirectoryHidden(parent)) {
+                return true;
+            }
+            parent = parent.getParentFile();
+        }
+
+        return false;
+    }
+
+    /**
      * Test if this given directory should be considered hidden.
      */
     @VisibleForTesting
@@ -1604,18 +1646,28 @@ public class FileUtils {
      */
     public static boolean isDirectoryDirty(File dir) {
         File nomedia = new File(dir, ".nomedia");
-        if (nomedia.exists()) {
-            try {
-                Optional<String> expectedPath = readString(nomedia);
-                // Returns true If .nomedia file is empty or content doesn't match |dir|
-                // Returns false otherwise
-                return !expectedPath.isPresent()
-                        || !expectedPath.get().equals(dir.getPath());
-            } catch (IOException e) {
-                Log.w(TAG, "Failed to read directory dirty" + dir);
-            }
+
+        // We return false for directories that don't have .nomedia
+        if (!nomedia.exists()) {
+            return false;
         }
-        return false;
+
+        // We don't write to ".nomedia" dirs, only to ".nomedia" files. If this ".nomedia" is not
+        // a file, then don't try to read it.
+        if (!nomedia.isFile()) {
+            return true;
+        }
+
+        try {
+            Optional<String> expectedPath = readString(nomedia);
+            // Returns true If .nomedia file is empty or content doesn't match |dir|
+            // Returns false otherwise
+            return !expectedPath.isPresent()
+                    || !expectedPath.get().equals(dir.getPath());
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to read directory dirty" + dir);
+            return true;
+        }
     }
 
     /**
@@ -1624,7 +1676,7 @@ public class FileUtils {
      */
     public static void setDirectoryDirty(File dir, boolean isDirty) {
         File nomedia = new File(dir, ".nomedia");
-        if (nomedia.exists()) {
+        if (nomedia.exists() && nomedia.isFile()) {
             try {
                 writeString(nomedia, isDirty ? Optional.of("") : Optional.of(dir.getPath()));
             } catch (IOException e) {

@@ -137,13 +137,7 @@ public abstract class TabFragment extends Fragment {
                 }
                 mRecyclerView.setPadding(0, 0, 0, dimen);
 
-                if (mUserIdManager.isMultiUserProfiles()) {
-                    if (shouldShowProfileButton()) {
-                        mProfileButton.show();
-                    } else {
-                        mProfileButton.hide();
-                    }
-                }
+                updateProfileButtonVisibility();
             });
         }
 
@@ -154,8 +148,8 @@ public abstract class TabFragment extends Fragment {
                 super.onScrolled(recyclerView, dx, dy);
                 if (dy > 0) {
                     mProfileButton.hide();
-                } else if (shouldShowProfileButton()) {
-                        mProfileButton.show();
+                } else {
+                    updateProfileButtonVisibility();
                 }
             }
         });
@@ -184,14 +178,9 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void setUpProfileButton() {
+        updateProfileButtonVisibility();
         if (!mUserIdManager.isMultiUserProfiles()) {
-            if (mProfileButton.getVisibility() == View.VISIBLE) {
-                mProfileButton.setVisibility(View.GONE);
-            }
             return;
-        }
-        if (shouldShowProfileButton()) {
-            mProfileButton.setVisibility(View.VISIBLE);
         }
 
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
@@ -199,7 +188,7 @@ public abstract class TabFragment extends Fragment {
     }
 
     private boolean shouldShowProfileButton() {
-        return !mHideProfileButton &&
+        return mUserIdManager.isMultiUserProfiles() && !mHideProfileButton &&
                 (!mSelection.canSelectMultiple() ||
                         mSelection.getSelectedItemCount().getValue() == 0);
     }
@@ -261,10 +250,14 @@ public abstract class TabFragment extends Fragment {
 
     protected void hideProfileButton(boolean hide) {
         mHideProfileButton = hide;
-        if (hide) {
-            mProfileButton.hide();
-        } else if (mUserIdManager.isMultiUserProfiles() && shouldShowProfileButton()) {
+        updateProfileButtonVisibility();
+    }
+
+    private void updateProfileButtonVisibility() {
+        if (shouldShowProfileButton()) {
             mProfileButton.show();
+        } else {
+            mProfileButton.hide();
         }
     }
 

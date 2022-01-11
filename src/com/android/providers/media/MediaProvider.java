@@ -6147,7 +6147,6 @@ public class MediaProvider extends ContentProvider {
                     0 /* transcodeReason */);
             return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
         } catch (IOException e) {
-            Log.w(TAG, "Failed to fetch original file descriptor", e);
             throw new FileNotFoundException("Failed to fetch original file descriptor");
         } catch (ErrnoException e) {
             Log.w(TAG, "Failed to fetch access mode for file descriptor", e);

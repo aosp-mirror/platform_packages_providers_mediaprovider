@@ -53,6 +53,11 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getMultiSelectionIntent());
 
     @Test
+    public void testMultiSelectDoesNotShowProfileButton() {
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+    }
+
+    @Test
     public void testMultiselect_showDragBar() {
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
     }

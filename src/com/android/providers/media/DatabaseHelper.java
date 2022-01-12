@@ -80,6 +80,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -134,6 +135,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     long mScanStopTime;
 
     /**
+     * Unfortunately we can have multiple instances of DatabaseHelper, causing
+     * onUpgrade() to be called multiple times if those instances happen to run in
+     * parallel. To prevent that, keep track of which databases we've already upgraded.
+     *
+     */
+    static final Set<String> sDatabaseUpgraded = new HashSet<>();
+    static final Object sLock = new Object();
+    /**
      * Lock used to guard against deadlocks in SQLite; the write lock is used to
      * guard any schema changes, and the read lock is used for all other
      * database operations.
@@ -150,33 +159,34 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private static Object sMigrationLockExternal = new Object();
 
     public interface OnSchemaChangeListener {
-        public void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
+        void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
                 long itemCount, long durationMillis, String databaseUuid);
     }
 
     public interface OnFilesChangeListener {
-        public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
+        void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload, boolean isPending);
 
-        public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
+        void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
                 long oldId, int oldMediaType, boolean oldIsDownload,
                 long newId, int newMediaType, boolean newIsDownload,
                 boolean oldIsTrashed, boolean newIsTrashed,
                 boolean oldIsPending, boolean newIsPending,
                 boolean oldIsFavorite, boolean newIsFavorite,
+                int oldSpecialFormat, int newSpecialFormat,
                 String oldOwnerPackage, String newOwnerPackage, String oldPath);
 
-        public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
+        void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload, String ownerPackage, String path);
     }
 
     public interface OnLegacyMigrationListener {
-        public void onStarted(ContentProviderClient client, String volumeName);
+        void onStarted(ContentProviderClient client, String volumeName);
 
-        public void onProgress(ContentProviderClient client, String volumeName,
+        void onProgress(ContentProviderClient client, String volumeName,
                 long progress, long total);
 
-        public void onFinished(ContentProviderClient client, String volumeName);
+        void onFinished(ContentProviderClient client, String volumeName);
     }
 
     public DatabaseHelper(Context context, String name,
@@ -277,6 +287,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     @VisibleForTesting
     SQLiteDatabase getWritableDatabaseForTest() {
+        // Tests rely on creating multiple instances of DatabaseHelper to test upgrade
+        // scenarios; so clear this state before returning databases to test.
+        synchronized (sLock) {
+            sDatabaseUpgraded.clear();
+        }
         return super.getWritableDatabase();
     }
 
@@ -306,7 +321,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_UPDATE", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":", 16);
+                final String[] split = arg.split(":", 18);
                 final String volumeName = split[0];
                 final long oldId = Long.parseLong(split[1]);
                 final int oldMediaType = Integer.parseInt(split[2]);
@@ -320,17 +335,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final boolean newIsPending = Integer.parseInt(split[10]) != 0;
                 final boolean oldIsFavorite = Integer.parseInt(split[11]) != 0;
                 final boolean newIsFavorite = Integer.parseInt(split[12]) != 0;
-                final String oldOwnerPackage = split[13];
-                final String newOwnerPackage = split[14];
-                final String oldPath = split[15];
+                final int oldSpecialFormat = Integer.parseInt(split[13]);
+                final int newSpecialFormat = Integer.parseInt(split[14]);
+                final String oldOwnerPackage = split[15];
+                final String newOwnerPackage = split[16];
+                final String oldPath = split[17];
 
                 Trace.beginSection("_UPDATE");
                 try {
                     mFilesListener.onUpdate(DatabaseHelper.this, volumeName, oldId,
                             oldMediaType, oldIsDownload, newId, newMediaType, newIsDownload,
                             oldIsTrashed, newIsTrashed, oldIsPending, newIsPending,
-                            oldIsFavorite, newIsFavorite, oldOwnerPackage, newOwnerPackage,
-                            oldPath);
+                            oldIsFavorite, newIsFavorite, oldSpecialFormat, newSpecialFormat,
+                            oldOwnerPackage, newOwnerPackage, oldPath);
                 } finally {
                     Trace.endSection();
                 }
@@ -387,6 +404,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         Log.v(TAG, "onUpgrade() for " + mName + " from " + oldV + " to " + newV);
         mSchemaLock.writeLock().lock();
         try {
+            synchronized (sLock) {
+                if (sDatabaseUpgraded.contains(mName)) {
+                    Log.v(TAG, "Skipping onUpgrade() for " + mName +
+                            " because it was already upgraded.");
+                    return;
+                } else {
+                    sDatabaseUpgraded.add(mName);
+                }
+            }
             updateDatabase(db, oldV, newV);
         } finally {
             mSchemaLock.writeLock().unlock();
@@ -1351,6 +1377,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "||':'||old.is_trashed||':'||new.is_trashed"
                         + "||':'||old.is_pending||':'||new.is_pending"
                         + "||':'||old.is_favorite||':'||new.is_favorite"
+                        + "||':'||ifnull(old._special_format,0)"
+                        + "||':'||ifnull(new._special_format,0)"
                         + "||':'||ifnull(old.owner_package_name,'null')"
                         + "||':'||ifnull(new.owner_package_name,'null')||':'||old._data";
         final String deleteArg =
@@ -1695,7 +1723,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_S = 1209;
     // Leave some gaps in database version tagging to allow S schema changes
     // to go independent of T schema changes.
-    static final int VERSION_T = 1304;
+    static final int VERSION_T = 1306;
     public static final int VERSION_LATEST = VERSION_T;
 
     /**
@@ -1881,6 +1909,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1304) {
                 updateSpecialFormatToNotDetected(db);
+            }
+            if (fromVersion < 1305) {
+                // Empty version bump to ensure views are recreated
+            }
+            if (fromVersion < 1306) {
+                // Empty version bump to ensure views are recreated
             }
 
             // If this is the legacy database, it's not worth recomputing data

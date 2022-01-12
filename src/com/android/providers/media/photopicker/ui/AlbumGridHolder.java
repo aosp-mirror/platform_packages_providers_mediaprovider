@@ -28,12 +28,12 @@ import androidx.annotation.NonNull;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.util.StringUtils;
 
 import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import src.com.android.providers.media.util.StringUtils;
 
 /**
  * ViewHolder of a album item within a RecyclerView.

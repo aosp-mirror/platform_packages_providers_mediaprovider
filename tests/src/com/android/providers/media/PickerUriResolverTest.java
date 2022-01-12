@@ -392,9 +392,7 @@ public class PickerUriResolverTest {
             fail("Invalid user specified in the picker uri: " + uri);
         } catch (FileNotFoundException expected) {
             // expected
-            assertThat(expected.getMessage()).isEqualTo("File not found due to unavailable content"
-                    + " resolver for uri: " + uri
-                    + " ; error: android.content.pm.PackageManager$NameNotFoundException");
+            assertThat(expected.getMessage()).isEqualTo("No item at " + uri);
         }
     }
 
@@ -405,9 +403,7 @@ public class PickerUriResolverTest {
             fail("Invalid user specified in the picker uri: " + uri);
         } catch (FileNotFoundException expected) {
             // expected
-            assertThat(expected.getMessage()).isEqualTo("File not found due to unavailable content"
-                    + " resolver for uri: " + uri
-                    + " ; error: android.content.pm.PackageManager$NameNotFoundException");
+            assertThat(expected.getMessage()).isEqualTo("No item at " + uri);
         }
     }
 
@@ -424,9 +420,8 @@ public class PickerUriResolverTest {
             fail("Invalid user specified in the picker uri: " + uri);
         } catch (IllegalArgumentException expected) {
             // expected
-            assertThat(expected.getMessage()).isEqualTo("File not found due to unavailable "
-                    + "content resolver for uri: " + uri
-                    + " ; error: android.content.pm.PackageManager$NameNotFoundException");
+            assertThat(expected.getMessage()).isEqualTo("Cannot find content resolver for uri: "
+                    + uri);
         }
     }
 

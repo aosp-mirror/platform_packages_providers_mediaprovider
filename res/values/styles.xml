@@ -35,21 +35,6 @@
         <item name="android:alertDialogTheme">@style/AlertDialogTheme</item>
     </style>
 
-    <style name="CacheClearingAlertDialogTitle"
-           parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:gravity">center</item>
-        <item name="android:textColor">?android:attr/textColorPrimary</item>
-        <item name="android:textSize">16sp</item>
-        <item name="android:textStyle">bold</item>
-    </style>
-
-    <style name="PermissionAlertDialogTitle"
-           parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
-        <item name="android:textColor">?android:attr/textColorPrimary</item>
-    </style>
-
     <style name="MaterialBorderlessButtonStyle"
            parent="@style/Widget.MaterialComponents.Button.TextButton">
         <item name="android:textAppearance">@style/PickerButtonTextAppearance</item>
@@ -81,19 +66,15 @@
 
     <style name="MaterialAlertDialogIconStyle"
            parent="@style/MaterialAlertDialog.MaterialComponents.Title.Icon.CenterStacked">
-        <item name="android:tint">@color/picker_profile_dialog_icon_and_button_color</item>
+        <item name="android:tint">?android:attr/colorAccent</item>
         <item name="android:layout_width">@dimen/picker_profile_dialog_icon_width</item>
         <item name="android:layout_height">@dimen/picker_profile_dialog_icon_height</item>
     </style>
 
-    <style name="PickerDefaultTheme" parent="android:style/Theme.DeviceDefault.DayNight">
-        <!-- Color section -->
-        <item name="android:colorAccent">@color/picker_primary_color</item>
-        <item name="android:colorBackground">@color/picker_background_color</item>
-
+    <style name="PickerDefaultTheme" parent="@android:style/Theme.DeviceDefault.DayNight">
         <!-- System | Widget section -->
         <item name="android:backgroundDimEnabled">true</item>
-        <item name="android:navigationBarColor">?android:attr/colorBackground</item>
+        <item name="android:navigationBarColor">@color/picker_background_color</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
@@ -102,6 +83,15 @@
 
     <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
+        <item name="pickerChipBackgroundColor">@color/picker_background_color</item>
+        <item name="pickerHighlightColor">?android:attr/colorAccent</item>
+        <item name="pickerHighlightTextColor">@android:color/white</item>
+        <item name="pickerProfileButtonColor">#E8F0FE</item>
+        <item name="pickerProfileButtonTextColor">#0B57D0</item>
+        <item name="pickerSelectedChipBackgroundColor">#E8F0FE</item>
+        <item name="pickerSelectedChipTextColor">#185ABC</item>
+        <item name="pickerTextColor">?android:attr/textColorPrimary</item>
+        <item name="pickerSelectedColor">?android:attr/colorAccent</item>
     </style>
 
 </resources>

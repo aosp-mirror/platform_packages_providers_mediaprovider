@@ -22,18 +22,24 @@ import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_CRE
 import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_DELETE;
 
 import android.Manifest;
+import android.app.UiAutomation;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.system.OsConstants;
+import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
+import com.google.common.io.ByteStreams;
 import com.google.common.truth.Truth;
 
 import org.junit.AfterClass;
@@ -42,15 +48,19 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.Arrays;
 
 /**
- * This class is purely here to convince internal code coverage tools that
- * {@code FuseDaemonHostTest} is actually covering all of these methods; the
- * current coverage infrastructure doesn't support host tests yet.
+ * Unit tests for {@link MediaProvider} forFuse methods. {@code CtsScopedStorageHostTest} (and
+ * similar) are the host tests for these scenarios.
  */
 @RunWith(AndroidJUnit4.class)
 public class MediaProviderForFuseTest {
+
+    private static final String TAG = "MediaProviderForFuseTest";
 
     private static Context sIsolatedContext;
     private static ContentResolver sIsolatedResolver;
@@ -129,21 +139,101 @@ public class MediaProviderForFuseTest {
 
     @Test
     public void testRenameDirectory() throws Exception {
-        sTestDir = new File(sTestDir, "subdir" + System.nanoTime());
-        sTestDir.mkdirs();
+        File file = createSubdirWithOneFile(sTestDir);
+        File oldDir = file.getParentFile();
 
-        // Create test directory and file
-        final File file = new File(sTestDir, "test" + System.nanoTime() + ".jpg");
+        // Rename directory should bring along files
+        final File renamedDir = new File(sTestDir, "renamed" + System.nanoTime());
+        Truth.assertThat(sMediaProvider.renameForFuse(
+                oldDir.getPath(), renamedDir.getPath(), sTestUid)).isEqualTo(0);
+        Truth.assertThat(Arrays.asList(sMediaProvider.getFilesInDirectoryForFuse(
+                renamedDir.getPath(), sTestUid))).contains(file.getName());
+
+        // Querying renamed dir shows the file inside
+        final Bundle queryArgs = queryArgsForDirContents(renamedDir);
+        try (Cursor cursor = sIsolatedResolver
+                .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null, queryArgs, null)) {
+            Truth.assertThat(cursor.getCount()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    public void testRenameDirectory_WhenParentDirectoryIsHidden() throws Exception {
+        // Create parent dir with nomedia file
+        final File parent = new File(sTestDir, "hidden" + System.nanoTime());
+        parent.mkdirs();
+        createNomediaFile(parent);
+        // Create dir in hidden parent dir
+        File file = createSubdirWithOneFile(parent);
+        File oldDir = file.getParentFile();
+
+        // Rename dir within hidden parent.
+        final File renamedDir = new File(parent, "renamed" + System.nanoTime());
+        Truth.assertThat(sMediaProvider.renameForFuse(
+                oldDir.getPath(), renamedDir.getPath(), sTestUid)).isEqualTo(0);
+
+        // Files should be in renamed dir.
+        Truth.assertThat(Arrays.asList(sMediaProvider.getFilesInDirectoryForFuse(
+                renamedDir.getPath(), sTestUid))).contains(file.getName());
+
+        // Querying renamed dir doesn't show the file inside (because parent is hidden)
+        final Bundle queryArgs = queryArgsForDirContents(renamedDir);
+        try (Cursor cursor = sIsolatedResolver
+                .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null, queryArgs, null)) {
+            Truth.assertThat(cursor.getCount()).isEqualTo(0);
+        }
+    }
+
+    private @NonNull File createNomediaFile(@NonNull File dir) throws IOException {
+        final File nomediaFile = new File(dir, ".nomedia");
+        executeShellCommand("touch " + nomediaFile.getAbsolutePath());
+        Truth.assertWithMessage("cannot create nomedia file: " + nomediaFile.getAbsolutePath())
+                .that(nomediaFile.exists())
+                .isTrue();
+        return nomediaFile;
+    }
+
+    private Bundle queryArgsForDirContents(File renamedDir) {
+        final Bundle queryArgs = new Bundle();
+        queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, "_data like ?");
+        queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
+                new String[]{renamedDir.getPath() + "/%"});
+        return queryArgs;
+    }
+
+    /**
+     * Executes a shell command.
+     */
+    private static String executeShellCommand(String command) throws IOException {
+        int attempt = 0;
+        while (attempt++ < 5) {
+            try {
+                return executeShellCommandInternal(command);
+            } catch (InterruptedIOException e) {
+                Log.v(TAG, "Trouble executing " + command + "; trying again", e);
+            }
+        }
+        throw new IOException("Failed to execute " + command);
+    }
+
+    private static String executeShellCommandInternal(String cmd) throws IOException {
+        UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        try (FileInputStream output = new FileInputStream(
+                uiAutomation.executeShellCommand(cmd).getFileDescriptor())) {
+            return new String(ByteStreams.toByteArray(output));
+        }
+    }
+
+    private File createSubdirWithOneFile(@NonNull File parent) throws Exception {
+        final File subDir = new File(parent, "subdir" + System.nanoTime());
+        subDir.mkdirs();
+
+        final File file = new File(subDir, "test" + System.nanoTime() + ".jpg");
         Truth.assertThat(sMediaProvider.insertFileIfNecessaryForFuse(
                 file.getPath(), sTestUid)).isEqualTo(0);
         Truth.assertThat(file.createNewFile()).isTrue();
 
-        // Rename directory should bring along files
-        final File renamed = new File(sTestDir.getParentFile(), "renamed" + System.nanoTime());
-        Truth.assertThat(sMediaProvider.renameForFuse(
-                sTestDir.getPath(), renamed.getPath(), sTestUid)).isEqualTo(0);
-        Truth.assertThat(Arrays.asList(sMediaProvider.getFilesInDirectoryForFuse(
-                renamed.getPath(), sTestUid))).contains(file.getName());
+        return file;
     }
 
     @Test

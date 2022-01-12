@@ -858,6 +858,73 @@ public class FileUtilsTest {
     }
 
     @Test
+    public void testShouldFileBeHidden() throws Exception {
+        File dir = getNewDirInDownload("testDirectory2");
+
+        // We don't create the files since shouldFileBeHidden needs to work even if the file has
+        // not been created yet.
+
+        File file = new File(dir, ".test-file");
+        assertThat(FileUtils.shouldFileBeHidden(file)).isTrue();
+
+        File hiddenFile = new File(dir, ".hidden-file");
+        assertThat(FileUtils.shouldFileBeHidden(hiddenFile)).isTrue();
+    }
+
+    @Test
+    public void testShouldFileBeHidden_hiddenParent() throws Exception {
+        File hiddenDirName = getNewDirInDownload(".testDirectory");
+
+        // We don't create the file since shouldFileBeHidden needs to work even if the file has
+        // not been created yet.
+
+        File fileInHiddenParent = new File(hiddenDirName, "testDirectory.txt");
+        assertThat(FileUtils.shouldFileBeHidden(fileInHiddenParent)).isTrue();
+    }
+
+    // Visibility of default dirs is tested in ModernMediaScannerTest#testVisibleDefaultFolders.
+    @Test
+    public void testShouldDirBeHidden() throws Exception {
+        final File root = new File("storage/emulated/0");
+        assertThat(FileUtils.shouldDirBeHidden(root)).isFalse();
+
+        // We don't create the dirs since shouldDirBeHidden needs to work even if the dir has
+        // not been created yet.
+
+        File visibleDir = new File(mTestDownloadDir, "testDirectory");
+        assertThat(FileUtils.shouldDirBeHidden(visibleDir)).isFalse();
+
+        File hiddenDir = new File(mTestDownloadDir, ".testDirectory");
+        assertThat(FileUtils.shouldDirBeHidden(hiddenDir)).isTrue();
+    }
+
+    @Test
+    public void testShouldDirBeHidden_hiddenParent() throws Exception {
+        File hiddenDirName = getNewDirInDownload(".testDirectory");
+
+        // We don't create the dirs since shouldDirBeHidden needs to work even if the dir has
+        // not been created yet.
+
+        File dirInHiddenParent = new File(hiddenDirName, "testDirectory");
+        assertThat(FileUtils.shouldDirBeHidden(dirInHiddenParent)).isTrue();
+    }
+
+    // Visibility of default dirs is tested in ModernMediaScannerTest#testVisibleDefaultFolders.
+    @Test
+    public void testIsDirectoryHidden() throws Exception {
+        File visibleDir = getNewDirInDownload("testDirectory");
+        assertThat(FileUtils.isDirectoryHidden(visibleDir)).isFalse();
+
+        File hiddenDirName = getNewDirInDownload(".testDirectory");
+        assertThat(FileUtils.isDirectoryHidden(hiddenDirName)).isTrue();
+
+        File hiddenDirNomedia = getNewDirInDownload("testDirectory2");
+        File nomedia = new File(hiddenDirNomedia, ".nomedia");
+        assertThat(nomedia.createNewFile()).isTrue();
+        assertThat(FileUtils.isDirectoryHidden(hiddenDirNomedia)).isTrue();
+    }
+
+    @Test
     public void testDirectoryDirty() throws Exception {
         File dirInDownload = getNewDirInDownload("testDirectoryDirty");
 
@@ -875,6 +942,23 @@ public class FileUtilsTest {
 
         // Marking as dirty with a .nomedia file works
         FileUtils.setDirectoryDirty(dirInDownload, true);
+        assertTrue(FileUtils.isDirectoryDirty(dirInDownload));
+    }
+
+    @Test
+    public void testDirectoryDirty_noMediaDirectory() throws Exception {
+        File dirInDownload = getNewDirInDownload("testDirectoryDirty");
+
+        // Directory without nomedia is clean
+        assertFalse(FileUtils.isDirectoryDirty(dirInDownload));
+
+        // Creating a .nomedia directory makes directory dirty
+        File nomedia = new File(dirInDownload, ".nomedia");
+        assertTrue(nomedia.mkdir());
+        assertTrue(FileUtils.isDirectoryDirty(dirInDownload));
+
+        // Marking as clean with a .nomedia directory has no effect
+        FileUtils.setDirectoryDirty(dirInDownload, false);
         assertTrue(FileUtils.isDirectoryDirty(dirInDownload));
     }
 

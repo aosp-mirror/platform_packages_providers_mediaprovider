@@ -16,6 +16,6 @@
   -->
 
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_selected="true" android:color="@color/picker_highlight_color"/>
-    <item android:state_enabled="true" android:color="?android:attr/colorBackground"/>
+    <item android:state_selected="true" android:color="?attr/pickerSelectedChipBackgroundColor"/>
+    <item android:state_enabled="true" android:color="?attr/pickerChipBackgroundColor"/>
 </selector>

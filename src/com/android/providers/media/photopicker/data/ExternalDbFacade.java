@@ -150,7 +150,8 @@ public class ExternalDbFacade {
      */
     public boolean onFileUpdated(long oldId, int oldMediaType, int newMediaType,
             boolean oldIsTrashed, boolean newIsTrashed, boolean oldIsPending,
-            boolean newIsPending, boolean oldIsFavorite, boolean newIsFavorite) {
+            boolean newIsPending, boolean oldIsFavorite, boolean newIsFavorite,
+            int oldSpecialFormat, int newSpecialFormat) {
         if (!mDatabaseHelper.isExternal()) {
             return false;
         }
@@ -175,7 +176,7 @@ public class ExternalDbFacade {
         }
 
         if (newIsVisibleMedia) {
-            return oldIsFavorite != newIsFavorite;
+            return (oldIsFavorite != newIsFavorite) || (oldSpecialFormat != newSpecialFormat);
         }
 
 

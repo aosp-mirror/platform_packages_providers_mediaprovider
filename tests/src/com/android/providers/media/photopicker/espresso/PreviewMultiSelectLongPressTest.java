@@ -101,12 +101,9 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
 
         registerIdlingResourceAndWaitForIdle();
 
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
-
-        // Verify videoView is displayed
+        // Verify video player is displayed
         assertMultiSelectLongPressCommonLayoutMatches();
-        onView(withId(R.id.preview_videoView)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_player_view)).check(matches(isDisplayed()));
         // Verify no special format icon is previewed
         onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
         onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());

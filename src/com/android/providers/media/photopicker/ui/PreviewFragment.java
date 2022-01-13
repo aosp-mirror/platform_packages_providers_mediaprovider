@@ -241,9 +241,23 @@ public class PreviewFragment extends Fragment {
 
         ((PhotoPickerActivity) getActivity()).updateCommonLayouts(LayoutModeUtils.MODE_PREVIEW,
                 /* title */"");
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
 
         if (mViewPager2Wrapper != null) {
-            mViewPager2Wrapper.onResume();
+            mViewPager2Wrapper.onStop();
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        if (mViewPager2Wrapper != null) {
+            mViewPager2Wrapper.onStart();
         }
     }
 

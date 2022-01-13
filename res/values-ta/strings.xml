@@ -42,11 +42,9 @@
     <string name="select" msgid="2704765470563027689">"தேர்ந்தெடு"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> படத்தைத் தேர்ந்தெடுங்கள்}other{<xliff:g id="COUNT_1">^1</xliff:g> படங்களைத் தேர்ந்தெடுங்கள்}}"</string>
     <string name="recent" msgid="6694613584743207874">"சமீபத்தியவை"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
-    <string name="picker_view_selected" msgid="2266031384396143883">"தேர்ந்தெடுத்தவற்றைக் காட்டு"</string>
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"படங்களோ வீடியோக்களோ இல்லை"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"ஆல்பங்கள் இல்லை"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"தேர்ந்தெடுத்ததைக் காட்டு"</string>
     <string name="picker_photos" msgid="7415035516411087392">"படங்கள்"</string>
     <string name="picker_albums" msgid="4822511902115299142">"ஆல்பங்கள்"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"பணிச் சுயவிவரத்திற்கு மாறு"</string>

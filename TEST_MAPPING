@@ -15,7 +15,10 @@
     //     },
     //     {
     //         "name": "CtsScopedStorageDeviceOnlyTest"
-    //     }
+    //     },
+    //    {
+    //        "name": "CtsMediaProviderTranscodeTests[com.google.android.mediaprovider.apex]"
+    //    }
     // ],
     "presubmit": [
         {

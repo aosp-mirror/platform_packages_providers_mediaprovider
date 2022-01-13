@@ -3588,9 +3588,23 @@ public class MediaProvider extends ContentProvider {
 
         // Generate path when undefined
         if (TextUtils.isEmpty(values.getAsString(MediaColumns.DATA))) {
+            // Note that just the volume name isn't enough to determine the path,
+            // since we can manage different volumes with the same name for
+            // different users. Instead, if we have a current path (which implies
+            // an already existing file to be renamed), use that to derive the
+            // user-id of the file, and in turn use that to derive the correct
+            // volume. Cross-user renames are not supported without a specified
+            // DATA column.
             File volumePath;
+            UserHandle userHandle = mCallingIdentity.get().getUser();
+            if (currentPath != null) {
+                int userId = FileUtils.extractUserId(currentPath);
+                if (userId != -1) {
+                    userHandle = UserHandle.of(userId);
+                }
+            }
             try {
-                volumePath = getVolumePath(resolvedVolumeName);
+                volumePath = mVolumeCache.getVolumePath(resolvedVolumeName, userHandle);
             } catch (FileNotFoundException e) {
                 throw new IllegalArgumentException(e);
             }
@@ -6147,7 +6161,6 @@ public class MediaProvider extends ContentProvider {
                     0 /* transcodeReason */);
             return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
         } catch (IOException e) {
-            Log.w(TAG, "Failed to fetch original file descriptor", e);
             throw new FileNotFoundException("Failed to fetch original file descriptor");
         } catch (ErrnoException e) {
             Log.w(TAG, "Failed to fetch access mode for file descriptor", e);

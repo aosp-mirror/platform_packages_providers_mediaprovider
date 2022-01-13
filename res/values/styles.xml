@@ -40,7 +40,8 @@
         <item name="android:textAppearance">@style/PickerButtonTextAppearance</item>
     </style>
 
-    <style name="MaterialButtonStyle" parent="@style/Widget.MaterialComponents.Button">
+    <style name="MaterialButtonStyle"
+           parent="@style/Widget.MaterialComponents.Button.UnelevatedButton">
         <item name="android:textAppearance">@style/PickerButtonTextAppearance</item>
     </style>
 

@@ -32,8 +32,11 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.BottomSheetTestUtils.assertBottomSheetState;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.hamcrest.Matchers.allOf;
@@ -68,6 +71,12 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
     public void testPreview_singleSelect_image() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
+        registerBottomSheetStateIdlingResource();
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+        mRule.getScenario().onActivity(activity -> {
+            assertBottomSheetState(activity, STATE_COLLAPSED);
+        });
+
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
@@ -75,6 +84,9 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
         // No dragBar in preview
         onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
+        mRule.getScenario().onActivity(activity -> {
+            assertBottomSheetState(activity, STATE_EXPANDED);
+        });
 
         // Verify image is previewed
         assertSingleSelectCommonLayoutMatches();
@@ -89,6 +101,9 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
         // Shows dragBar after we are back to Photos tab
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+        mRule.getScenario().onActivity(activity -> {
+            assertBottomSheetState(activity, STATE_COLLAPSED);
+        });
     }
 
     @Test
@@ -100,12 +115,9 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
         registerIdlingResourceAndWaitForIdle();
 
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
-
-        // Verify videoView is displayed
+        // Verify video player is displayed
         assertSingleSelectCommonLayoutMatches();
-        onView(withId(R.id.preview_videoView)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_player_view)).check(matches(isDisplayed()));
         // Verify no special format icon is previewed
         onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
         onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
@@ -238,6 +250,11 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
                 new ViewPager2IdlingResource(activity.findViewById(R.id.preview_viewPager)))));
         Espresso.onIdle();
+    }
+
+    private void registerBottomSheetStateIdlingResource() {
+        mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
+                new BottomSheetIdlingResource(activity.findViewById(R.id.bottom_sheet)))));
     }
 
     private void assertBackgroundColorOnToolbarAndBottomBar(Activity activity, int colorResId) {

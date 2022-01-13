@@ -40,12 +40,10 @@
     <string name="add" msgid="2894574044585549298">"추가"</string>
     <string name="deselect" msgid="4297825044827769490">"선택 해제"</string>
     <string name="select" msgid="2704765470563027689">"선택"</string>
-    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{최대 <xliff:g id="COUNT_0">^1</xliff:g>개 항목 선택}other{최대 <xliff:g id="COUNT_1">^1</xliff:g>개 항목 선택}}"</string>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{최대 <xliff:g id="COUNT_0">^1</xliff:g>개 항목을 선택하세요}other{최대 <xliff:g id="COUNT_1">^1</xliff:g>개 항목을 선택하세요}}"</string>
     <string name="recent" msgid="6694613584743207874">"최근"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"사진 또는 동영상 없음"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"앨범 없음"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"선택 항목 보기"</string>
     <string name="picker_photos" msgid="7415035516411087392">"사진"</string>
     <string name="picker_albums" msgid="4822511902115299142">"앨범"</string>

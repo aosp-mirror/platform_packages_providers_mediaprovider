@@ -101,6 +101,8 @@ public class PhotoPickerToolActivity extends Activity {
                 try {
                     mMaxCount = Integer.parseInt(mMaxCountText.getText().toString().trim());
                 } catch (NumberFormatException ex) {
+                    // The input is not an integer type, set the mMaxCount to -1.
+                    mMaxCount = -1;
                     final String wrongFormatWarning =
                             "The count format is wrong! Please input correct number!";
                     Snackbar.make(mMaxCountText, wrongFormatWarning, Snackbar.LENGTH_LONG).show();

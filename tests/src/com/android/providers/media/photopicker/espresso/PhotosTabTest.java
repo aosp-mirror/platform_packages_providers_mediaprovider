@@ -42,7 +42,6 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -133,8 +132,8 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         // Verify that first item is TODAY
         onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
                 .atPositionOnView(0, dateHeaderTitleId))
-                .check(matches(withText(DateTimeUtils.getDateTimeString(getTargetContext(),
-                        System.currentTimeMillis()))));
+                .check(matches(
+                        withText(DateTimeUtils.getDateTimeString(System.currentTimeMillis()))));
 
         final int photoItemPosition = 1;
         // Verify first item is image and has no other icons other than thumbnail

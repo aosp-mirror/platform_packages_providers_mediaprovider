@@ -20,9 +20,11 @@ import static android.icu.text.DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SE
 import static android.icu.text.RelativeDateTimeFormatter.Style.LONG;
 
 import android.content.Context;
+import android.icu.text.DateFormat;
+import android.icu.text.DisplayContext;
 import android.icu.text.RelativeDateTimeFormatter;
-import android.icu.text.RelativeDateTimeFormatter.Direction;
 import android.icu.text.RelativeDateTimeFormatter.AbsoluteUnit;
+import android.icu.text.RelativeDateTimeFormatter.Direction;
 import android.icu.util.ULocale;
 import android.text.format.DateUtils;
 
@@ -41,6 +43,9 @@ import java.util.Locale;
  */
 public class DateTimeUtils {
 
+    private static final String DATE_FORMAT_SKELETON = "EMMMd";
+    private static final String DATE_FORMAT_SKELETON_WITH_YEAR = "EMMMdy";
+
     /**
      * Formats a time according to the local conventions.
      *
@@ -57,16 +62,16 @@ public class DateTimeUtils {
      *                since January 1, 1970 00:00:00.0 UTC.
      * @return the formatted string
      */
-    public static String getDateTimeString(Context context, long when) {
+    public static String getDateTimeString(long when) {
         // Get the system time zone
         final ZoneId zoneId = ZoneId.systemDefault();
         final LocalDate nowDate = LocalDate.now(zoneId);
 
-        return getDateTimeString(context, when, nowDate);
+        return getDateTimeString(when, nowDate);
     }
 
     @VisibleForTesting
-    static String getDateTimeString(Context context, long when, LocalDate nowDate) {
+    static String getDateTimeString(long when, LocalDate nowDate) {
         // Get the system time zone
         final ZoneId zoneId = ZoneId.systemDefault();
         final LocalDate whenDate = LocalDateTime.ofInstant(Instant.ofEpochMilli(when),
@@ -80,15 +85,22 @@ public class DateTimeUtils {
         } else if (dayDiff > 0 && dayDiff < 7) {
             return whenDate.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.getDefault());
         } else {
-            int flags = DateUtils.FORMAT_SHOW_WEEKDAY | DateUtils.FORMAT_SHOW_DATE
-                    | DateUtils.FORMAT_ABBREV_ALL;
+            final String skeleton;
             if (whenDate.getYear() == nowDate.getYear()) {
-                flags |= DateUtils.FORMAT_NO_YEAR;
+                skeleton = DATE_FORMAT_SKELETON;
             } else {
-                flags |= DateUtils.FORMAT_SHOW_YEAR;
+                skeleton = DATE_FORMAT_SKELETON_WITH_YEAR;
             }
-            return DateUtils.formatDateTime(context, when, flags);
+
+            return getDateTimeString(when, skeleton, Locale.getDefault());
         }
+    }
+
+    @VisibleForTesting
+    static String getDateTimeString(long when, String skeleton, Locale locale) {
+        final DateFormat format = DateFormat.getInstanceForSkeleton(skeleton, locale);
+        format.setContext(DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE);
+        return format.format(when);
     }
 
     /**

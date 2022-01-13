@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import android.content.Context;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -36,9 +38,11 @@ public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     private List<Item> mItemList = new ArrayList<>();
     private ImageLoader mImageLoader;
+    private final PlaybackHandler mPlaybackHandler;
 
-    public PreviewAdapter(ImageLoader imageLoader) {
-        mImageLoader = imageLoader;
+    public PreviewAdapter(Context context) {
+        mImageLoader = new ImageLoader(context);
+        mPlaybackHandler = new PlaybackHandler(context, mImageLoader);
     }
 
     @NonNull
@@ -52,28 +56,32 @@ public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     }
 
     @Override
-    public void onBindViewHolder(@NonNull BaseViewHolder photoHolder, int position) {
+    public void onBindViewHolder(@NonNull BaseViewHolder holder, int position) {
         final Item item = getItem(position);
-        photoHolder.itemView.setTag(item);
-        photoHolder.bind();
+        holder.itemView.setTag(item);
+        holder.bind();
+
+        if (item.isVideo()) {
+            mPlaybackHandler.onBind(holder.itemView);
+        }
     }
 
     @Override
     public void onViewAttachedToWindow(BaseViewHolder holder) {
         super.onViewAttachedToWindow(holder);
-        holder.onViewAttachedToWindow();
+
+        final Item item = (Item) holder.itemView.getTag();
+        if (item.isVideo()) {
+            mPlaybackHandler.onViewAttachedToWindow(holder.itemView);
+        }
     }
 
-    @Override
-    public void onViewDetachedFromWindow(BaseViewHolder holder) {
-        super.onViewDetachedFromWindow(holder);
-        holder.onViewDetachedFromWindow();
+    public void handlePageSelected(View itemView) {
+        mPlaybackHandler.handleVideoPlayback(itemView);
     }
 
-    @Override
-    public void onViewRecycled(BaseViewHolder holder) {
-        super.onViewRecycled(holder);
-        holder.onViewRecycled();
+    public void onStop() {
+        mPlaybackHandler.releaseResources();
     }
 
     @Override

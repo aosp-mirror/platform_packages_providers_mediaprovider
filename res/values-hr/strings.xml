@@ -42,10 +42,8 @@
     <string name="select" msgid="2704765470563027689">"Odaberi"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Odaberite najviše <xliff:g id="COUNT_0">^1</xliff:g> stavku}one{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavku}few{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavke}other{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="recent" msgid="6694613584743207874">"Nedavno"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"Nema fotografija i videozapisa"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nema albuma"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Prikaži odabrano"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotografije"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albumi"</string>

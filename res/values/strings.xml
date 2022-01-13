@@ -131,6 +131,9 @@
     content, but work profile is off. [CHAR LIMIT=NONE] -->
     <string name="picker_profile_work_paused_msg">To open work photos, turn on your work apps then try again</string>
 
+    <!-- PhotoPicker privacy message. [CHAR LIMIT=80] -->
+    <string name="picker_privacy_message">This app can only access the photos you select</string>
+
     <!-- Text shown on the album item in PhotoPicker. [CHAR LIMIT=30]  -->
     <string name="picker_album_item_count"> {count, plural,
         =1    {<xliff:g id="count" example="1">^1</xliff:g> item}

@@ -42,11 +42,9 @@
     <string name="select" msgid="2704765470563027689">"ជ្រើសរើស"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{ជ្រើសរើស​ធាតុ​រហូតដល់ <xliff:g id="COUNT_0">^1</xliff:g>}other{ជ្រើសរើស​ធាតុ​រហូតដល់ <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="recent" msgid="6694613584743207874">"ថ្មីៗ"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
-    <string name="picker_view_selected" msgid="2266031384396143883">"បានជ្រើសរើស​ទិដ្ឋភាព"</string>
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"គ្មានរូបថត ឬវីដេអូទេ"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"គ្មាន​អាល់ប៊ុម​ទេ"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"មើលអ្វីដែលបានជ្រើសរើស"</string>
     <string name="picker_photos" msgid="7415035516411087392">"រូបថត"</string>
     <string name="picker_albums" msgid="4822511902115299142">"អាល់ប៊ុម"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ប្ដូរទៅ​កម្រងព័ត៌មាន​ការងារ"</string>

@@ -697,9 +697,26 @@ public final class MediaStore {
      * {@link Activity#RESULT_CANCELED} is returned.
      * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
+     * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
+     * expose a limited set of read-only operations. Specifically, picker URIs
+     * can only be opened for read and queried for columns in {@link PickerMediaColumns}.
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
+
+    /**
+     * Activity Action: Launch settings controlling images or videos selection with
+     * {@link #ACTION_PICK_IMAGES}.
+     *
+     * The settings page allows a user to change the enabled {@link CloudMediaProvider} on the
+     * device and other media selection configurations.
+     *
+     * @see #ACTION_PICK_IMAGES
+     * @see #getCloudProvider(ContentResolver)
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    public static final String ACTION_PICK_IMAGES_SETTINGS =
+            "android.provider.action.PICK_IMAGES_SETTINGS";
 
     /**
      * The name of an optional intent-extra used to allow multiple selection of
@@ -1771,6 +1788,69 @@ public final class MediaStore {
         // COLOR_RANGE is ignored
         // SAMPLERATE is ignored
         // BITS_PER_SAMPLE is ignored
+    }
+
+    /**
+     * Photo picker metadata columns.
+     *
+     * @see #ACTION_PICK_IMAGES
+     */
+    public static class PickerMediaColumns {
+        private PickerMediaColumns() {}
+
+        /**
+         * This is identical to {@link MediaColumns#DATA}, however, apps should not assume that the
+         * file is always available because the file may be backed by a {@link CloudMediaProvider}
+         * fetching content over a network. Therefore, apps must be prepared to handle any
+         * additional file-based I/O errors that could occur as a result of network errors.
+         *
+         * @see MediaColumns#DATA
+         */
+        @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+        public static final String DATA = MediaColumns.DATA;
+
+        /**
+         * This is identical to {@link MediaColumns#SIZE}.
+         *
+         * @see MediaColumns#SIZE
+         */
+        @BytesLong
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String SIZE = MediaColumns.SIZE;
+
+        /**
+         * This is identical to {@link MediaColumns#DISPLAY_NAME}.
+         *
+         * @see MediaColumns#DISPLAY_NAME
+         */
+        @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+        public static final String DISPLAY_NAME = MediaColumns.DISPLAY_NAME;
+
+        /**
+         * This is identical to {@link MediaColumns#DATE_TAKEN}.
+         *
+         * @see MediaColumns#DATE_TAKEN
+         */
+        @CurrentTimeMillisLong
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String DATE_TAKEN = MediaColumns.DATE_TAKEN;
+
+        /**
+         * This is identical to {@link MediaColumns#MIME_TYPE}.
+         *
+         * @see MediaColumns#MIME_TYPE
+         */
+        @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+        public static final String MIME_TYPE = MediaColumns.MIME_TYPE;
+
+        /**
+         * This is identical to {@link MediaColumns#DURATION}.
+         *
+         * @see MediaColumns#DURATION
+         */
+        @DurationMillisLong
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String DURATION_MILLIS = MediaColumns.DURATION;
     }
 
     /**

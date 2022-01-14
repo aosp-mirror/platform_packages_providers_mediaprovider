@@ -100,6 +100,7 @@ package android.provider {
     field public static final String ACTION_IMAGE_CAPTURE = "android.media.action.IMAGE_CAPTURE";
     field public static final String ACTION_IMAGE_CAPTURE_SECURE = "android.media.action.IMAGE_CAPTURE_SECURE";
     field public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
+    field public static final String ACTION_PICK_IMAGES_SETTINGS = "android.provider.action.PICK_IMAGES_SETTINGS";
     field public static final String ACTION_REVIEW = "android.provider.action.REVIEW";
     field public static final String ACTION_REVIEW_SECURE = "android.provider.action.REVIEW_SECURE";
     field public static final String ACTION_VIDEO_CAPTURE = "android.media.action.VIDEO_CAPTURE";
@@ -431,6 +432,15 @@ package android.provider {
     field public static final String WRITER = "writer";
     field public static final String XMP = "xmp";
     field public static final String YEAR = "year";
+  }
+
+  public static class MediaStore.PickerMediaColumns {
+    field public static final String DATA = "_data";
+    field public static final String DATE_TAKEN = "datetaken";
+    field public static final String DISPLAY_NAME = "_display_name";
+    field public static final String DURATION_MILLIS = "duration";
+    field public static final String MIME_TYPE = "mime_type";
+    field public static final String SIZE = "_size";
   }
 
   public static final class MediaStore.Video {

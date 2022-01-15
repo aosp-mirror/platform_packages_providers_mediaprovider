@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static android.provider.CloudMediaProviderContract.MediaColumns;
+import static android.provider.MediaStore.PickerMediaColumns;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
@@ -36,6 +38,7 @@ import android.provider.MediaStore;
 import android.os.SystemProperties;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
@@ -110,27 +113,6 @@ public class PickerDbFacade {
     public static final String IMAGE_FILE_EXTENSION = ".jpg";
     @VisibleForTesting
     public static final String VIDEO_FILE_EXTENSION = ".mp4";
-
-    // We prefer cloud_id first and it only matters for cloud+local items. For those, the row
-    // will already be associated with a cloud authority, see #getProjectionAuthorityLocked.
-    // Note that hidden cloud+local items will not be returned in the query, so there's no concern
-    // of preferring the cloud_id in a cloud+local item over the local_id in a local-only item.
-    private static final String PROJECTION_ID = String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
-            KEY_LOCAL_ID, CloudMediaProviderContract.MediaColumns.ID);
-    private static final String PROJECTION_DATE_TAKEN = String.format("%s AS %s", KEY_DATE_TAKEN_MS,
-            CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS);
-    private static final String PROJECTION_GENERATION_MODIFIED = String.format("%s AS %s",
-            KEY_GENERATION_MODIFIED,
-            CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED);
-    private static final String PROJECTION_SIZE = String.format("%s AS %s", KEY_SIZE_BYTES,
-            CloudMediaProviderContract.MediaColumns.SIZE_BYTES);
-    private static final String PROJECTION_DURATION = String.format("%s AS %s", KEY_DURATION_MS,
-            CloudMediaProviderContract.MediaColumns.DURATION_MS);
-    private static final String PROJECTION_MIME_TYPE = String.format("%s AS %s", KEY_MIME_TYPE,
-            CloudMediaProviderContract.MediaColumns.MIME_TYPE);
-    private static final String PROJECTION_STANDARD_MIME_TYPE_EXTENSION = String.format("%s AS %s",
-            KEY_STANDARD_MIME_TYPE_EXTENSION,
-            CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION);
 
     private static final String WHERE_ID = KEY_ID + " = ?";
     private static final String WHERE_LOCAL_ID = KEY_LOCAL_ID + " = ?";
@@ -546,22 +528,31 @@ public class PickerDbFacade {
         }
     }
 
-    /*
+    /**
      * Returns sorted and deduped cloud and local media items from the picker db.
      *
-     * Returns a {@link Cursor} containing picker db media rows sorted in reverse chronological
-     * order, i.e. newest first, up to a maximum of {@code limit}.
+     * Returns a {@link Cursor} containing picker db media rows with columns as
+     * {@link CloudMediaProviderContract#MediaColumns}.
      *
-     * The results can be filtered with {@code query}.
+     * The result is sorted in reverse chronological order, i.e. newest first, up to a maximum of
+     * {@code limit}. They can also be filtered with {@code query}.
      */
-    public Cursor queryMedia(QueryFilter query) {
+    public Cursor queryMediaForUi(QueryFilter query) {
         final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
         final String[] selectionArgs = buildSelectionArgs(qb, query);
 
-        return queryMedia(qb, selectionArgs, query.limit);
+        return queryMediaForUi(qb, selectionArgs, query.limit);
     }
 
-    public Cursor queryMediaId(String authority, String mediaId) {
+    /**
+     * Returns an individual cloud or local item from the picker db matching {@code authority} and
+     * {@code mediaId}.
+     *
+     * Returns a {@link Cursor} containing picker db media rows with columns as {@code projection},
+     * a subset of {@link PickerMediaColumns}.
+     */
+    public Cursor queryMediaIdForApps(String authority, String mediaId,
+            @NonNull String[] projection) {
         final String[] selectionArgs = new String[] { mediaId };
         final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
         if (isLocal(authority)) {
@@ -572,9 +563,9 @@ public class PickerDbFacade {
 
         synchronized (mLock) {
             if (authority.equals(mLocalProvider) || authority.equals(mCloudProvider)) {
-                return qb.query(mDatabase, getProjectionLocked(), /* selection */ null,
-                        selectionArgs, /* groupBy */ null, /* having */ null, /* orderBy */ null,
-                        /* limitStr */ null);
+                return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
+                        /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
+                        /* orderBy */ null, /* limitStr */ null);
             }
         }
 
@@ -623,7 +614,8 @@ public class PickerDbFacade {
         return SystemProperties.getBoolean("sys.photopicker.pickerdb.enabled", true);
     }
 
-    private Cursor queryMedia(SQLiteQueryBuilder qb, String[] selectionArgs, int limit) {
+    private Cursor queryMediaForUi(SQLiteQueryBuilder qb, String[] selectionArgs,
+            int limit) {
         // Use the <table>.<column> form to order _id to avoid ordering against the projection '_id'
         final String orderBy = "date_taken_ms DESC," + TABLE_MEDIA + "._id DESC";
         final String limitStr = String.valueOf(limit);
@@ -637,23 +629,60 @@ public class PickerDbFacade {
                 qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
             }
 
-            return qb.query(mDatabase, getProjectionLocked(), /* selection */ null, selectionArgs,
-                    /* groupBy */ null, /* having */ null, orderBy, limitStr);
+            return qb.query(mDatabase, getCloudMediaProjectionLocked(), /* selection */ null,
+                    selectionArgs, /* groupBy */ null, /* having */ null, orderBy, limitStr);
         }
     }
 
-    private String[] getProjectionLocked() {
+    private String[] getCloudMediaProjectionLocked() {
         return new String[] {
             getProjectionAuthorityLocked(),
-            getProjectionDataLocked(),
-            PROJECTION_ID,
-            PROJECTION_DATE_TAKEN,
-            PROJECTION_GENERATION_MODIFIED,
-            PROJECTION_SIZE,
-            PROJECTION_DURATION,
-            PROJECTION_MIME_TYPE,
-            PROJECTION_STANDARD_MIME_TYPE_EXTENSION
+            getProjectionDataLocked(MediaColumns.DATA),
+            getProjectionId(MediaColumns.ID),
+            getProjectionSimple(KEY_DATE_TAKEN_MS, MediaColumns.DATE_TAKEN_MS),
+            getProjectionSimple(KEY_GENERATION_MODIFIED, MediaColumns.GENERATION_MODIFIED),
+            getProjectionSimple(KEY_SIZE_BYTES, MediaColumns.SIZE_BYTES),
+            getProjectionSimple(KEY_DURATION_MS, MediaColumns.DURATION_MS),
+            getProjectionSimple(KEY_MIME_TYPE, MediaColumns.MIME_TYPE),
+            getProjectionSimple(KEY_STANDARD_MIME_TYPE_EXTENSION,
+                    MediaColumns.STANDARD_MIME_TYPE_EXTENSION),
         };
+    }
+
+    private String[] getMediaStoreProjectionLocked(String[] columns) {
+        final String[] projection = new String[columns.length];
+
+        for (int i = 0; i < projection.length; i++) {
+            switch (columns[i]) {
+                case PickerMediaColumns.DATA:
+                    projection[i] = getProjectionDataLocked(PickerMediaColumns.DATA);
+                    break;
+                case PickerMediaColumns.DISPLAY_NAME:
+                    projection[i] = getProjectionSimple(getDisplayNameSql(),
+                            PickerMediaColumns.DISPLAY_NAME);
+                    break;
+                case PickerMediaColumns.MIME_TYPE:
+                    projection[i] = getProjectionSimple(KEY_MIME_TYPE,
+                            PickerMediaColumns.MIME_TYPE);
+                    break;
+                case PickerMediaColumns.DATE_TAKEN:
+                    projection[i] = getProjectionSimple(KEY_DATE_TAKEN_MS,
+                            PickerMediaColumns.DATE_TAKEN);
+                    break;
+                case PickerMediaColumns.SIZE:
+                    projection[i] = getProjectionSimple(KEY_SIZE_BYTES, PickerMediaColumns.SIZE);
+                    break;
+                case PickerMediaColumns.DURATION_MILLIS:
+                    projection[i] = getProjectionSimple(KEY_DURATION_MS,
+                            PickerMediaColumns.DURATION_MILLIS);
+                    break;
+                default:
+                    projection[i] = "";
+                    Log.w(TAG, "Unexpected MediaStore column: " + columns[i]);
+            }
+        }
+
+        return projection;
     }
 
     private String getProjectionAuthorityLocked() {
@@ -664,29 +693,47 @@ public class PickerDbFacade {
         // correct authority. Checking whether cloud_id IS NULL distinguishes the former from the
         // latter.
         return String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END AS %s",
-                KEY_CLOUD_ID, mLocalProvider, mCloudProvider,
-                CloudMediaProviderContract.MediaColumns.AUTHORITY);
+                KEY_CLOUD_ID, mLocalProvider, mCloudProvider, MediaColumns.AUTHORITY);
     }
 
-    private String getProjectionDataLocked() {
+    private String getProjectionDataLocked(String asColumn) {
         // _data format:
-        // /storage/emulated/<user-id>/.transforms/synthetic/<authority>/media/<media-id>
+        // /storage/emulated/<user-id>/.transforms/synthetic/<authority>/media/<display-name>
         // See PickerUriResolver#getMediaUri
         final String authority = String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
                 KEY_CLOUD_ID, mLocalProvider, mCloudProvider);
+        final String fullPath = "'" + PICKER_PATH + "/'"
+                + "||" + authority
+                + "||" + "'/" + CloudMediaProviderContract.URI_PATH_MEDIA + "/'"
+                + "||" + getDisplayNameSql();
+
+        return String.format("%s AS %s", fullPath, asColumn);
+    }
+
+    private String getProjectionId(String asColumn) {
+        // We prefer cloud_id first and it only matters for cloud+local items. For those, the row
+        // will already be associated with a cloud authority, see #getProjectionAuthorityLocked.
+        // Note that hidden cloud+local items will not be returned in the query, so there's no
+        // concern of preferring the cloud_id in a cloud+local item over the local_id in a
+        // local-only item.
+        return String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID, KEY_LOCAL_ID, asColumn);
+    }
+
+    private static String getProjectionSimple(String dbColumn, String column) {
+        return String.format("%s AS %s", dbColumn, column);
+    }
+
+    private String getDisplayNameSql() {
+        // _display_name format:
+        // <media-id>.<file-extension>
         // See comment in #getProjectionAuthorityLocked for why cloud_id is preferred over local_id
         final String mediaId = String.format("IFNULL(%s, %s)", KEY_CLOUD_ID, KEY_LOCAL_ID);
         // TODO(b/195009139): Add .gif fileextension support
         final String fileExtension =
                 String.format("CASE WHEN %s LIKE 'image/%%' THEN '%s' ELSE '%s' END",
                         KEY_MIME_TYPE, IMAGE_FILE_EXTENSION, VIDEO_FILE_EXTENSION);
-        final String fullPath = "'" + PICKER_PATH + "/'"
-                + "||" + authority
-                + "||" + "'/" + CloudMediaProviderContract.URI_PATH_MEDIA + "/'"
-                + "||" + mediaId
-                + "||" + fileExtension;
 
-        return String.format("%s AS %s", fullPath, CloudMediaProviderContract.MediaColumns.DATA);
+        return mediaId + "||" + fileExtension;
     }
 
     private static ContentValues cursorToContentValue(Cursor cursor, boolean isLocal) {

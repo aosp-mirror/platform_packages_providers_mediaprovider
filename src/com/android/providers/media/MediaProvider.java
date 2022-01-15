@@ -1823,10 +1823,10 @@ public class MediaProvider extends ContentProvider {
     private boolean preparePickerMediaIdPathSegment(File file, String authority, String fileName) {
         final String mediaId = extractFileName(fileName);
 
-        try (Cursor cursor = mPickerDbFacade.queryMediaId(authority, mediaId)) {
+        try (Cursor cursor = mPickerDbFacade.queryMediaIdForApps(authority, mediaId,
+                        new String[] { MediaStore.PickerMediaColumns.SIZE })) {
             if (cursor != null && cursor.moveToFirst()) {
-                final int sizeBytesIdx = cursor.getColumnIndex(
-                        CloudMediaProviderContract.MediaColumns.SIZE_BYTES);
+                final int sizeBytesIdx = cursor.getColumnIndex(MediaStore.PickerMediaColumns.SIZE);
 
                 if (sizeBytesIdx != -1) {
                     return createSparseFile(file, cursor.getLong(sizeBytesIdx));

@@ -54,6 +54,8 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Bạn không được phép truy cập dữ liệu cá nhân từ một ứng dụng công việc"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ứng dụng công việc đã tạm dừng"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Để mở ảnh trong hồ sơ công việc, hãy bật ứng dụng công việc rồi thử lại"</string>
+    <!-- no translation found for picker_privacy_message (9132700451027116817) -->
+    <skip />
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> mục}other{<xliff:g id="COUNT_1">^1</xliff:g> mục}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Thêm (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Máy ảnh"</string>

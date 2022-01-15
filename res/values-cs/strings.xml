@@ -54,6 +54,8 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Z pracovní aplikace není přístup k osobním datům povolen"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Pracovní aplikace jsou pozastaveny"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Pokud chcete otevřít pracovní fotky, zapněte pracovní aplikace a zkuste to znovu"</string>
+    <!-- no translation found for picker_privacy_message (9132700451027116817) -->
+    <skip />
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> položka}few{<xliff:g id="COUNT_1">^1</xliff:g> položky}many{<xliff:g id="COUNT_1">^1</xliff:g> položky}other{<xliff:g id="COUNT_1">^1</xliff:g> položek}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Přidat (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Fotoaparát"</string>

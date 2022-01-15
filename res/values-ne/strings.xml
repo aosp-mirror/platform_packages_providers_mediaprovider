@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"कामसम्बन्धी एपमार्फत व्यक्तिगत जानकारी हेर्ने वा प्रयोग गर्ने अनुमति दिइएको छैन।"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"कामसम्बन्धी एपहरू पज गरिएका छन्"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"कामसम्बन्धी फोटोहरू खोल्न आफ्ना कामसम्बन्धी एपहरू अन गर्नुहोस् अनि फेरि प्रयास गर्नुहोस्"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"यो एपले तपाईंले चयन गरेका फोटो मात्र प्रयोग गर्न सक्छ"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> वटा वस्तु}other{<xliff:g id="COUNT_1">^1</xliff:g> वटा वस्तु}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"थप्नुहोस् (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"क्यामेरा"</string>

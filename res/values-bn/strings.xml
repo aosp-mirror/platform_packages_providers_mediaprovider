@@ -21,7 +21,7 @@
     <string name="app_label" msgid="9035307001052716210">"মিডিয়া স্টোরেজ"</string>
     <string name="artist_label" msgid="8105600993099120273">"শিল্পী"</string>
     <string name="unknown" msgid="2059049215682829375">"অজানা"</string>
-    <string name="root_images" msgid="5861633549189045666">"Images"</string>
+    <string name="root_images" msgid="5861633549189045666">"ছবি"</string>
     <string name="root_videos" msgid="8792703517064649453">"ভিডিও"</string>
     <string name="root_audio" msgid="3505830755201326018">"অডিও"</string>
     <string name="root_documents" msgid="3829103301363849237">"ডকুমেন্ট"</string>

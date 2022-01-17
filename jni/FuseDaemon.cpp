@@ -291,6 +291,14 @@ struct fuse {
         return node::FromInode(inode, &tracker);
     }
 
+    inline node* FromInodeNoThrow(__u64 inode) {
+        if (inode == FUSE_ROOT_ID) {
+            return root;
+        }
+
+        return node::FromInodeNoThrow(inode, &tracker);
+    }
+
     inline __u64 ToInode(node* node) const {
         if (IsRoot(node)) {
             return FUSE_ROOT_ID;
@@ -1225,8 +1233,14 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
         return ENOENT;
     }
 
-    node* new_parent_node = fuse->FromInode(new_parent);
-    if (!new_parent_node) return ENOENT;
+    node* new_parent_node;
+    if (fuse->bpf) {
+        new_parent_node = fuse->FromInodeNoThrow(new_parent);
+        if (!new_parent_node) return EXDEV;
+    } else {
+        new_parent_node = fuse->FromInode(new_parent);
+        if (!new_parent_node) return ENOENT;
+    }
     const string new_parent_path = new_parent_node->BuildPath();
     if (!is_app_accessible_path(fuse, new_parent_path, ctx->uid)) {
         return ENOENT;

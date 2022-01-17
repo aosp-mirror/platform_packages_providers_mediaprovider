@@ -43,11 +43,14 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
+import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 
+import java.io.File;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -102,6 +105,10 @@ public class PickerSyncControllerTest {
     private static final long SIZE_BYTES = 50;
 
     private static final long SYNC_DELAY_MS = 1000;
+
+    private static final int DB_VERSION_1 = 1;
+    private static final int DB_VERSION_2 = 2;
+    private static final String DB_NAME = "test_db";
 
     private Context mContext;
     private PickerDbFacade mFacade;
@@ -394,18 +401,6 @@ public class PickerSyncControllerTest {
         assertThat(mController.isProviderEnabled(1000)).isFalse();
     }
 
-    private static void waitForIdle() {
-        final CountDownLatch latch = new CountDownLatch(1);
-        BackgroundThread.getExecutor().execute(() -> {
-            latch.countDown();
-        });
-        try {
-            latch.await(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
-
-    }
     @Test
     public void testNotifyMediaEvent() {
         PickerSyncController controller = new PickerSyncController(mContext, mFacade,
@@ -428,6 +423,186 @@ public class PickerSyncControllerTest {
         }
     }
 
+    @Test
+    public void testSyncAfterDbCreate() {
+        PickerDatabaseHelper dbHelper = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
+        PickerDbFacade facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+                dbHelper);
+        PickerSyncController controller = new PickerSyncController(mContext, facade,
+                LOCAL_PROVIDER_AUTHORITY, /* syncDelay */ 0);
+
+        addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
+        controller.syncPicker();
+
+        try (Cursor cr = queryMedia(facade)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        dbHelper.close();
+
+        // Delete db so it's recreated on next access
+        final File dbPath = mContext.getDatabasePath(DB_NAME);
+        dbPath.delete();
+
+        facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, dbHelper);
+        controller = new PickerSyncController(mContext, facade,
+                LOCAL_PROVIDER_AUTHORITY, /* syncDelay */ 0);
+
+        // Initially empty db
+        try (Cursor cr = queryMedia(facade)) {
+            assertThat(cr.getCount()).isEqualTo(0);
+        }
+
+        controller.syncPicker();
+
+        // Fully synced db
+        try (Cursor cr = queryMedia(facade)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
+    public void testSyncAfterDbUpgrade() {
+        PickerDatabaseHelper dbHelperV1 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
+        PickerDbFacade facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+                dbHelperV1);
+        PickerSyncController controller = new PickerSyncController(mContext, facade,
+                LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
+
+        addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
+        controller.syncPicker();
+
+        try (Cursor cr = queryMedia(facade)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        // Upgrade db version
+        dbHelperV1.close();
+        PickerDatabaseHelper dbHelperV2 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_2);
+        facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, dbHelperV2);
+        controller = new PickerSyncController(mContext, facade,
+                LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
+
+        // Initially empty db
+        try (Cursor cr = queryMedia(facade)) {
+            assertThat(cr.getCount()).isEqualTo(0);
+        }
+
+        controller.syncPicker();
+
+        // Fully synced db
+        try (Cursor cr = queryMedia(facade)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
+    public void testSyncAfterDbDowngrade() {
+        PickerDatabaseHelper dbHelperV2 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_2);
+        PickerDbFacade facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+                dbHelperV2);
+        PickerSyncController controller = new PickerSyncController(mContext, facade,
+                LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
+
+        addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
+        controller.syncPicker();
+
+        try (Cursor cr = queryMedia(facade)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        // Downgrade db version
+        dbHelperV2.close();
+        PickerDatabaseHelper dbHelperV1 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
+        facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+                dbHelperV1);
+        controller = new PickerSyncController(mContext, facade,
+                LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
+
+        // Initially empty db
+        try (Cursor cr = queryMedia(facade)) {
+            assertThat(cr.getCount()).isEqualTo(0);
+        }
+
+        controller.syncPicker();
+
+        // Fully synced db
+        try (Cursor cr = queryMedia(facade)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
+    public void testUserPrefsAfterDbUpgrade() {
+        PickerDatabaseHelper dbHelperV1 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
+        PickerDbFacade facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+                dbHelperV1);
+        PickerSyncController controller = new PickerSyncController(mContext, facade,
+                LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
+
+        controller.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertThat(controller.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Downgrade db version
+        dbHelperV1.close();
+        PickerDatabaseHelper dbHelperV2 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_2);
+        facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+                dbHelperV2);
+        controller = new PickerSyncController(mContext, facade,
+                LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
+
+        assertThat(controller.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+    }
+
+    private static void waitForIdle() {
+        final CountDownLatch latch = new CountDownLatch(1);
+        BackgroundThread.getExecutor().execute(() -> {
+            latch.countDown();
+        });
+        try {
+            latch.await(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+
+    }
+
+    private static Bundle buildQueryArgs(String mimeType, long sizeBytes) {
+        final Bundle queryArgs = new Bundle();
+
+        queryArgs.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+        queryArgs.putLong(MediaStore.QUERY_ARG_SIZE_BYTES, sizeBytes);
+
+        return queryArgs;
+    }
+
+    private static Bundle buildQueryArgs(String albumId, String albumType, String mimeType,
+            long sizeBytes) {
+        final Bundle queryArgs = buildQueryArgs(mimeType, sizeBytes);
+
+        queryArgs.putString(MediaStore.QUERY_ARG_ALBUM_ID, albumId);
+        queryArgs.putString(MediaStore.QUERY_ARG_ALBUM_TYPE, albumType);
+
+        if (Objects.equals(albumType, ALBUM_COLUMN_TYPE_CLOUD)) {
+            queryArgs.putString(MediaStore.EXTRA_CLOUD_PROVIDER,
+                    CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+
+        return queryArgs;
+    }
+
     private static void addMedia(MediaGenerator generator, Pair<String, String> media) {
         generator.addMedia(media.first, media.second);
     }
@@ -443,8 +618,14 @@ public class PickerSyncControllerTest {
         generator.deleteMedia(media.first, media.second);
     }
 
+    private static Cursor queryMedia(PickerDbFacade facade) {
+        return facade.queryMediaForUi(
+                new PickerDbFacade.QueryFilterBuilder(1000).build());
+    }
+
     private Cursor queryMedia() {
-        return mFacade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build());
+        return mFacade.queryMediaForUi(
+                new PickerDbFacade.QueryFilterBuilder(1000).build());
     }
 
     private void assertEmptyCursor() {

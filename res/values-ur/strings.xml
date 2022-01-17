@@ -42,10 +42,8 @@
     <string name="select" msgid="2704765470563027689">"منتخب کریں"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> آئٹم تک منتخب کریں}other{<xliff:g id="COUNT_1">^1</xliff:g> آئٹمز تک منتخب کریں}}"</string>
     <string name="recent" msgid="6694613584743207874">"حالیہ"</string>
-    <!-- no translation found for picker_photos_empty_message (5980619500554575558) -->
-    <skip />
-    <!-- no translation found for picker_albums_empty_message (8341079772950966815) -->
-    <skip />
+    <string name="picker_photos_empty_message" msgid="5980619500554575558">"کوئی تصویر یا ویڈیو نہیں"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"کوئی البم نہیں"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"منتخب کردہ دیکھیں"</string>
     <string name="picker_photos" msgid="7415035516411087392">"تصاویر"</string>
     <string name="picker_albums" msgid="4822511902115299142">"البمز"</string>

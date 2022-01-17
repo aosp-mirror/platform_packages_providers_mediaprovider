@@ -209,6 +209,13 @@ public class PickerUriResolverTest {
     }
 
     @Test
+    public void testCreateSurfaceControllerUri() throws Exception {
+        final String authority = "foo";
+        final Uri uri = Uri.parse("content://foo/surface_controller");
+        assertThat(PickerUriResolver.createSurfaceControllerUri(authority)).isEqualTo(uri);
+    }
+
+    @Test
     public void testOpenFile_mode_w() throws Exception {
         updateReadUriPermission(sTestPickerUri, /* grant */ true);
         try {

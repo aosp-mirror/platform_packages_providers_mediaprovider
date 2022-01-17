@@ -16,7 +16,6 @@
 
 package com.android.providers.media.cloudproviders;
 
-import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 

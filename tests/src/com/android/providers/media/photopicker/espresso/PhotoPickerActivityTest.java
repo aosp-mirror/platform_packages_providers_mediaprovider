@@ -78,74 +78,89 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     public void testDoesNotShowProfileButton() {
         // Register bottom sheet idling resource so that we don't read bottom sheet state when
         // in between changing states
-        registerBottomSheetStateIdlingResource();
+        final BottomSheetIdlingResource bottomSheetIdlingResource =
+                BottomSheetIdlingResource.register(mRule);
 
-        // Single select PhotoPicker is launched in partial screen mode
-        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_COLLAPSED);
-        });
-        // Partial screen does not show profile button
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+        try {
+            // Single select PhotoPicker is launched in partial screen mode
+            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_COLLAPSED);
+            });
+            // Partial screen does not show profile button
+            onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
 
-        // Swipe up and check that the PhotoPicker is in full screen mode
-        onView(withId(DRAG_BAR_ID)).perform(ViewActions.swipeUp());
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_EXPANDED);
-        });
-        // Full screen does not show profile button as well
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+            // Swipe up and check that the PhotoPicker is in full screen mode
+            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
+            onView(withId(DRAG_BAR_ID)).perform(ViewActions.swipeUp());
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
+            // Full screen does not show profile button as well
+            onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
 
-        // Navigate to Albums tab
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
-                .perform(click());
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+            // Navigate to Albums tab
+            onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                    .perform(click());
+            onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
 
-        final int cameraStringId = R.string.picker_category_camera;
-        // Navigate to photos in Camera album
-        onView(allOf(withText(cameraStringId),
-                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+            final int cameraStringId = R.string.picker_category_camera;
+            // Navigate to photos in Camera album
+            onView(allOf(withText(cameraStringId),
+                    isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
+            onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
 
-        // Click back button
-        onView(withContentDescription("Navigate up")).perform(click());
+            // Click back button
+            onView(withContentDescription("Navigate up")).perform(click());
 
-        // on clicking back button we are back to Album grid
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
-                .check(matches(isSelected()));
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+            // on clicking back button we are back to Album grid
+            onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+                    .check(matches(isSelected()));
+            onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+        } finally {
+            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
+        }
     }
 
     @Test
     public void testBottomSheetState() {
         // Register bottom sheet idling resource so that we don't read bottom sheet state when
         // in between changing states
-        registerBottomSheetStateIdlingResource();
+        final BottomSheetIdlingResource bottomSheetIdlingResource =
+                BottomSheetIdlingResource.register(mRule);
 
-        // Single select PhotoPicker is launched in partial screen mode
-        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_COLLAPSED);
-        });
+        try {
+            // Single select PhotoPicker is launched in partial screen mode
+            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_COLLAPSED);
+            });
 
-        // Swipe up and check that the PhotoPicker is in full screen mode
-        onView(withId(DRAG_BAR_ID)).perform(ViewActions.swipeUp());
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_EXPANDED);
-        });
+            // Swipe up and check that the PhotoPicker is in full screen mode
+            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
+            onView(withId(DRAG_BAR_ID)).perform(ViewActions.swipeUp());
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
 
-        // Swipe down and check that the PhotoPicker is in partial screen mode
-        onView(withId(DRAG_BAR_ID)).perform(ViewActions.swipeDown());
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_COLLAPSED);
-        });
+            // Swipe down and check that the PhotoPicker is in partial screen mode
+            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+            onView(withId(DRAG_BAR_ID)).perform(ViewActions.swipeDown());
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_COLLAPSED);
+            });
 
-        // Swiping down on drag bar is not strong enough as closing the bottomsheet requires a
-        // stronger downward swipe using espresso.
-        // Simply swiping down on R.id.bottom_sheet throws an error from espresso, as the view is
-        // only 60% visible, but downward swipe is only successful on an element which is 90%
-        // visible.
-        onView(withId(R.id.bottom_sheet)).perform(customSwipeDownPartialScreen());
+            // Swiping down on drag bar is not strong enough as closing the bottomsheet requires a
+            // stronger downward swipe using espresso.
+            // Simply swiping down on R.id.bottom_sheet throws an error from espresso, as the view
+            // is only 60% visible, but downward swipe is only successful on an element which is 90%
+            // visible.
+            onView(withId(R.id.bottom_sheet)).perform(customSwipeDownPartialScreen());
+        } finally {
+            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
+        }
         assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
                 Activity.RESULT_CANCELED);
     }
@@ -197,10 +212,5 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
                 .atPositionOnView(0, R.id.date_header_title))
                 .check(matches(withText(R.string.recent)));
-    }
-
-    private void registerBottomSheetStateIdlingResource() {
-        mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
-                new BottomSheetIdlingResource(activity.findViewById(R.id.bottom_sheet)))));
     }
 }

@@ -262,7 +262,7 @@ public class DatabaseHelperTest {
 
     @Test
     public void testTtoS() throws Exception {
-        assertDowngrade(DatabaseHelperT.class, DatabaseHelperR.class);
+        assertDowngrade(DatabaseHelperT.class, DatabaseHelperS.class);
     }
 
     private void assertDowngrade(Class<? extends DatabaseHelper> before,

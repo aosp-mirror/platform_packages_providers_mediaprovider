@@ -663,7 +663,9 @@ public class PermissionActivity extends Activity {
             final ImageView thumbFull = bodyView.requireViewById(R.id.thumb_full);
             if (result.full != null) {
                 result.bindFull(thumbFull);
-            } else {
+            } else if (result.thumbnail != null) {
+                result.bindThumbnail(thumbFull, /* shouldClip */ false);
+            } else if (result.mimeIcon != null) {
                 thumbFull.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 thumbFull.setBackground(new ColorDrawable(getColor(R.color.thumb_gray_color)));
                 result.bindMimeIcon(thumbFull);
@@ -719,8 +721,8 @@ public class PermissionActivity extends Activity {
                 final Description desc = visualResults.get(i);
                 final ImageView imageView = thumbs.get(i);
                 if (desc.thumbnail != null) {
-                    desc.bindThumbnail(imageView);
-                } else {
+                    desc.bindThumbnail(imageView, /* shouldClip */ true);
+                } else if (desc.mimeIcon != null) {
                     desc.bindMimeIcon(imageView);
                 }
             }
@@ -816,12 +818,12 @@ public class PermissionActivity extends Activity {
             return thumbnail != null || full != null || mimeIcon != null;
         }
 
-        public void bindThumbnail(ImageView imageView) {
+        public void bindThumbnail(ImageView imageView, boolean shouldClip) {
             Objects.requireNonNull(thumbnail);
             imageView.setImageBitmap(thumbnail);
             imageView.setContentDescription(contentDescription);
             imageView.setVisibility(View.VISIBLE);
-            imageView.setClipToOutline(true);
+            imageView.setClipToOutline(shouldClip);
         }
 
         public void bindFull(ImageView imageView) {

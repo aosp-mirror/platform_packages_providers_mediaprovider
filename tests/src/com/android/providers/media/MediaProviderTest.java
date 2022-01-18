@@ -1256,20 +1256,24 @@ public class MediaProviderTest {
 
         Uri result = sIsolatedResolver.insert(audioUri, values);
 
+        final long genreId;
         // Check the audio file is inserted correctly
         try (Cursor c = sIsolatedResolver.query(result,
-                new String[]{MediaColumns.DISPLAY_NAME, columnKey}, null, null)) {
+                new String[]{MediaColumns.DISPLAY_NAME, AudioColumns.GENRE_ID, columnKey},
+                null, null)) {
             assertNotNull(c);
             assertEquals(1, c.getCount());
             assertTrue(c.moveToFirst());
             assertEquals(displayName, c.getString(0));
-            assertEquals(1, c.getInt(1));
+            assertEquals(1, c.getInt(2));
+            genreId = c.getLong(1);
         }
 
         final String volume = MediaStore.VOLUME_EXTERNAL_PRIMARY;
         assertQueryResultNoItems(MediaStore.Audio.Albums.getContentUri(volume));
         assertQueryResultNoItems(MediaStore.Audio.Artists.getContentUri(volume));
         assertQueryResultNoItems(MediaStore.Audio.Genres.getContentUri(volume));
+        assertQueryResultNoItems(MediaStore.Audio.Genres.Members.getContentUri(volume, genreId));
     }
 
     @Test

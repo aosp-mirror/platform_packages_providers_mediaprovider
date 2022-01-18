@@ -91,17 +91,17 @@ public class PickerUriResolverTest {
         }
 
         @Override
-        Cursor queryPickerUri(Uri uri) {
+        Cursor queryPickerUri(Uri uri, String[] projection) {
             if (!uri.getLastPathSegment().equals(TEST_ID)) {
-                return super.queryPickerUri(uri);
+                return super.queryPickerUri(uri, projection);
             }
 
-            final String[] projection = new String[] {
+            final String[] p = new String[] {
                 CloudMediaProviderContract.MediaColumns.ID,
                 CloudMediaProviderContract.MediaColumns.MIME_TYPE
             };
 
-            final MatrixCursor c = new MatrixCursor(projection);
+            final MatrixCursor c = new MatrixCursor(p);
             c.addRow(new String[] { TEST_ID, "image/jpeg"});
             return c;
         }

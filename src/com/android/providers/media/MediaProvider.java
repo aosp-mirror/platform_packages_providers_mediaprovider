@@ -1808,10 +1808,10 @@ public class MediaProvider extends ContentProvider {
     private boolean preparePickerMediaIdPathSegment(File file, String authority, String fileName) {
         final String mediaId = extractFileName(fileName);
 
-        try (Cursor cursor = mPickerDbFacade.queryMediaId(authority, mediaId)) {
+        try (Cursor cursor = mPickerDbFacade.queryMediaIdForApps(authority, mediaId,
+                        new String[] { MediaStore.PickerMediaColumns.SIZE })) {
             if (cursor != null && cursor.moveToFirst()) {
-                final int sizeBytesIdx = cursor.getColumnIndex(
-                        CloudMediaProviderContract.MediaColumns.SIZE_BYTES);
+                final int sizeBytesIdx = cursor.getColumnIndex(MediaStore.PickerMediaColumns.SIZE);
 
                 if (sizeBytesIdx != -1) {
                     return createSparseFile(file, cursor.getLong(sizeBytesIdx));
@@ -3574,9 +3574,23 @@ public class MediaProvider extends ContentProvider {
 
         // Generate path when undefined
         if (TextUtils.isEmpty(values.getAsString(MediaColumns.DATA))) {
+            // Note that just the volume name isn't enough to determine the path,
+            // since we can manage different volumes with the same name for
+            // different users. Instead, if we have a current path (which implies
+            // an already existing file to be renamed), use that to derive the
+            // user-id of the file, and in turn use that to derive the correct
+            // volume. Cross-user renames are not supported without a specified
+            // DATA column.
             File volumePath;
+            UserHandle userHandle = mCallingIdentity.get().getUser();
+            if (currentPath != null) {
+                int userId = FileUtils.extractUserId(currentPath);
+                if (userId != -1) {
+                    userHandle = UserHandle.of(userId);
+                }
+            }
             try {
-                volumePath = getVolumePath(resolvedVolumeName);
+                volumePath = mVolumeCache.getVolumePath(resolvedVolumeName, userHandle);
             } catch (FileNotFoundException e) {
                 throw new IllegalArgumentException(e);
             }

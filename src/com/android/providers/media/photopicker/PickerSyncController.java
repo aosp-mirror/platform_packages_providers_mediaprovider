@@ -61,12 +61,13 @@ import java.util.Objects;
  */
 public class PickerSyncController {
     private static final String TAG = "PickerSyncController";
-    private static final String PREFS_NAME = "picker_provider_media_info";
     private static final String PREFS_KEY_CLOUD_PROVIDER = "cloud_provider";
     private static final String PREFS_KEY_CLOUD_PROVIDER_UID = "cloud_provider_uid";
     private static final String PREFS_KEY_CLOUD_PREFIX = "cloud_provider:";
     private static final String PREFS_KEY_LOCAL_PREFIX = "local_provider:";
 
+    private static final String PICKER_USER_PREFS_FILE_NAME = "picker_user_prefs";
+    public static final String PICKER_SYNC_PREFS_FILE_NAME = "picker_sync_prefs";
     public static final String LOCAL_PICKER_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker";
 
@@ -93,7 +94,8 @@ public class PickerSyncController {
     private final Object mLock = new Object();
     private final PickerDbFacade mDbFacade;
     private final Context mContext;
-    private final SharedPreferences mPrefs;
+    private final SharedPreferences mSyncPrefs;
+    private final SharedPreferences mUserPrefs;
     private final String mLocalProvider;
     private final long mSyncDelayMs;
 
@@ -109,14 +111,17 @@ public class PickerSyncController {
     PickerSyncController(Context context, PickerDbFacade dbFacade,
             String localProvider, long syncDelayMs) {
         mContext = context;
-        mPrefs = mContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        mSyncPrefs = mContext.getSharedPreferences(PICKER_SYNC_PREFS_FILE_NAME,
+                Context.MODE_PRIVATE);
+        mUserPrefs = mContext.getSharedPreferences(PICKER_USER_PREFS_FILE_NAME,
+                Context.MODE_PRIVATE);
         mDbFacade = dbFacade;
         mLocalProvider = localProvider;
         mSyncDelayMs = syncDelayMs;
 
-        final String cloudProvider = mPrefs.getString(PREFS_KEY_CLOUD_PROVIDER,
+        final String cloudProvider = mUserPrefs.getString(PREFS_KEY_CLOUD_PROVIDER,
                 DEFAULT_CLOUD_PROVIDER_PKG);
-        final int cloudProviderUid = mPrefs.getInt(PREFS_KEY_CLOUD_PROVIDER_UID,
+        final int cloudProviderUid = mUserPrefs.getInt(PREFS_KEY_CLOUD_PROVIDER_UID,
                 DEFAULT_CLOUD_PROVIDER_UID);
         if (cloudProvider == null) {
             mCloudProviderInfo = CloudProviderInfo.EMPTY;
@@ -341,7 +346,7 @@ public class PickerSyncController {
             mCloudProviderInfo = info;
         }
 
-        final SharedPreferences.Editor editor = mPrefs.edit();
+        final SharedPreferences.Editor editor = mUserPrefs.edit();
 
         if (info.isEmpty()) {
             editor.remove(PREFS_KEY_CLOUD_PROVIDER);
@@ -360,7 +365,7 @@ public class PickerSyncController {
             return;
         }
 
-        final SharedPreferences.Editor editor = mPrefs.edit();
+        final SharedPreferences.Editor editor = mSyncPrefs.edit();
 
         if (bundle == null) {
             editor.remove(getPrefsKey(authority, MediaInfo.MEDIA_VERSION));
@@ -386,11 +391,11 @@ public class PickerSyncController {
     private Bundle getCachedMediaInfo(String authority) {
         final Bundle bundle = new Bundle();
 
-        final String version = mPrefs.getString(getPrefsKey(authority, MediaInfo.MEDIA_VERSION),
+        final String version = mSyncPrefs.getString(getPrefsKey(authority, MediaInfo.MEDIA_VERSION),
                 /* default */ null);
-        final long generation = mPrefs.getLong(getPrefsKey(authority, MediaInfo.MEDIA_GENERATION),
-                /* default */ -1);
-        final long count = mPrefs.getLong(getPrefsKey(authority, MediaInfo.MEDIA_COUNT),
+        final long generation = mSyncPrefs.getLong(
+                getPrefsKey(authority, MediaInfo.MEDIA_GENERATION), /* default */ -1);
+        final long count = mSyncPrefs.getLong(getPrefsKey(authority, MediaInfo.MEDIA_COUNT),
                 /* default */ -1);
 
         bundle.putString(MediaInfo.MEDIA_VERSION, version);

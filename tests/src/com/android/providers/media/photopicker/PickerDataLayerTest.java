@@ -605,7 +605,8 @@ public class PickerDataLayerTest {
     }
 
     private Cursor queryMedia() {
-        return mFacade.queryMedia(new PickerDbFacade.QueryFilterBuilder(1000).build());
+        return mFacade.queryMediaForUi(
+                new PickerDbFacade.QueryFilterBuilder(1000).build());
     }
 
     private void assertEmptyCursor() {

@@ -7819,8 +7819,14 @@ public class MediaProvider extends ContentProvider {
      */
     Cursor queryForSingleItem(Uri uri, String[] projection, String selection,
             String[] selectionArgs, CancellationSignal signal) throws FileNotFoundException {
-        final Cursor c = query(uri, projection,
-                DatabaseUtils.createSqlQueryBundle(selection, selectionArgs, null), signal, true);
+        Cursor c = null;
+        try {
+            c = query(uri, projection,
+                    DatabaseUtils.createSqlQueryBundle(selection, selectionArgs, null),
+                    signal, true);
+        } catch (IllegalArgumentException  e) {
+            throw new FileNotFoundException("Volume not found for " + uri);
+        }
         if (c == null) {
             throw new FileNotFoundException("Missing cursor for " + uri);
         } else if (c.getCount() < 1) {

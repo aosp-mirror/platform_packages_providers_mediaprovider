@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Ажлын аппаас хувийн өгөгдөлд хандахыг зөвшөөрдөггүй"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ажлын аппуудыг түр зогсоосон"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ажлын зургуудаа нээхийн тулд ажлын аппуудaa асааж, дараа нь дахин оролдоно уу"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Энэ апп зөвхөн таны сонгосон зургуудад хандах боломжтой"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> зүйл}other{<xliff:g id="COUNT_1">^1</xliff:g> зүйл}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Нэмэх (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Камер"</string>

@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"କୌଣସି ୱାର୍କ ଆପରୁ ବ୍ୟକ୍ତିଗତ ଡାଟାକୁ ଆକ୍ସେସ୍ କରିବା ପାଇଁ ଅନୁମତି ଦିଆଯାଇନାହିଁ"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ୱାର୍କ ଆପଗୁଡ଼ିକୁ ବିରତ କରାଯାଇଛି"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ୱାର୍କ ଫଟୋଗୁଡ଼ିକୁ ଖୋଲିବାକୁ, ଆପଣଙ୍କ ୱାର୍କ ଆପଗୁଡ଼ିକୁ ଚାଲୁ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"ଏହି ଆପ କେବଳ ଆପଣ ଚୟନ କରିଥିବା ଫଟୋଗୁଡ଼ିକୁ ଆକ୍ସେସ କରିପାରିବ"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g>ଟି ଆଇଟମ}other{<xliff:g id="COUNT_1">^1</xliff:g>ଟି ଆଇଟମ}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>)ଟି ଯୋଗ କରନ୍ତୁ"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"କ୍ୟାମେରା"</string>

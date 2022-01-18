@@ -31,12 +31,15 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.RemoteException;
+import android.os.UserHandle;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Category;
@@ -304,8 +307,48 @@ public class ItemsProvider {
 
         if (userId.equals(UserId.CURRENT_USER)) {
             return uri;
-        } else {
-            return ContentProvider.createContentUriForUser(uri, userId.getUserHandle());
         }
+
+        return createContentUriForUser(uri, userId.getUserHandle());
+    }
+
+    private static Uri createContentUriForUser(Uri uri, UserHandle userHandle) {
+        if (SdkLevel.isAtLeastS()) {
+            return ContentProvider.createContentUriForUser(uri, userHandle);
+        }
+
+        return createContentUriForUserImpl(uri, userHandle);
+    }
+
+    /**
+     * This method is a copy of {@link ContentProvider#createContentUriForUser(Uri, UserHandle)}
+     * which is a System API added in Android S.
+     */
+    private static Uri createContentUriForUserImpl(Uri uri, UserHandle userHandle) {
+        if (!ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())) {
+            throw new IllegalArgumentException(String.format(
+                    "Given URI [%s] is not a content URI: ", uri));
+        }
+
+        int userId = userHandle.getIdentifier();
+        if (uriHasUserId(uri)) {
+            if (String.valueOf(userId).equals(uri.getUserInfo())) {
+                return uri;
+            }
+            throw new IllegalArgumentException(String.format(
+                    "Given URI [%s] already has a user ID, different from given user handle [%s]",
+                    uri,
+                    userId));
+        }
+
+        Uri.Builder builder = uri.buildUpon();
+        builder.encodedAuthority(
+                "" + userHandle.getIdentifier() + "@" + uri.getEncodedAuthority());
+        return builder.build();
+    }
+
+    private static boolean uriHasUserId(Uri uri) {
+        if (uri == null) return false;
+        return !TextUtils.isEmpty(uri.getUserInfo());
     }
 }

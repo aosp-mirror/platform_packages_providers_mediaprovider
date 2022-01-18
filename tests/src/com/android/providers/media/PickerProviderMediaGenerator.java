@@ -16,13 +16,16 @@
 
 package com.android.providers.media;
 
+import static android.provider.CloudMediaProviderContract.AccountInfo;
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.os.Bundle;
 import android.os.SystemClock;
 import android.provider.CloudMediaProvider;
 
@@ -42,6 +45,7 @@ public class PickerProviderMediaGenerator {
         MediaColumns.ID,
         MediaColumns.MEDIA_STORE_URI,
         MediaColumns.MIME_TYPE,
+        MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
         MediaColumns.DATE_TAKEN_MS,
         MediaColumns.GENERATION_MODIFIED,
         MediaColumns.SIZE_BYTES,
@@ -73,6 +77,8 @@ public class PickerProviderMediaGenerator {
         private final List<TestAlbum> mAlbums = new ArrayList<>();
         private String mVersion;
         private long mGeneration;
+        private String mAccountName;
+        private Intent mAccountConfigurationIntent;
 
         public Cursor getMedia(long generation, String albumdId, String mimeType, long sizeBytes) {
             return getCursor(mMedia, generation, albumdId, mimeType, sizeBytes,
@@ -89,16 +95,31 @@ public class PickerProviderMediaGenerator {
                     /* isDeleted */ true);
         }
 
+        public Bundle getAccountInfo() {
+            Bundle bundle = new Bundle();
+            bundle.putString(AccountInfo.ACTIVE_ACCOUNT_NAME, mAccountName);
+            bundle.putParcelable(AccountInfo.ACCOUNT_CONFIGURATION_INTENT,
+                    mAccountConfigurationIntent);
+
+            return bundle;
+        }
+
+        public void setAccountInfo(String accountName, Intent configIntent) {
+            mAccountName = accountName;
+            mAccountConfigurationIntent = configIntent;
+        }
+
         public void addMedia(String localId, String cloudId) {
             mDeletedMedia.remove(createPlaceholderMedia(localId, cloudId));
             mMedia.add(0, createTestMedia(localId, cloudId));
         }
 
         public void addMedia(String localId, String cloudId, String albumId, String mimeType,
-                long sizeBytes, boolean isFavorite) {
+                int standardMimeTypeExtension, long sizeBytes, boolean isFavorite) {
             mDeletedMedia.remove(createPlaceholderMedia(localId, cloudId));
             mMedia.add(0,
-                    createTestMedia(localId, cloudId, albumId, mimeType, sizeBytes, isFavorite));
+                    createTestMedia(localId, cloudId, albumId, mimeType, standardMimeTypeExtension,
+                            sizeBytes, isFavorite));
         }
 
         public void deleteMedia(String localId, String cloudId) {
@@ -143,10 +164,11 @@ public class PickerProviderMediaGenerator {
         }
 
         private TestMedia createTestMedia(String localId, String cloudId, String albumId,
-                String mimeType, long sizeBytes, boolean isFavorite) {
+                String mimeType, int standardMimeTypeExtension, long sizeBytes,
+                boolean isFavorite) {
             // Increase generation
-            return new TestMedia(localId, cloudId, albumId, mimeType, sizeBytes, /* durationMs */ 0,
-                    ++mGeneration, isFavorite);
+            return new TestMedia(localId, cloudId, albumId, mimeType, standardMimeTypeExtension,
+                    sizeBytes, /* durationMs */ 0, ++mGeneration, isFavorite);
         }
 
         private static TestMedia createPlaceholderMedia(String localId, String cloudId) {
@@ -192,6 +214,7 @@ public class PickerProviderMediaGenerator {
         public final String cloudId;
         public final String albumId;
         public final String mimeType;
+        public final int standardMimeTypeExtension;
         public final long sizeBytes;
         public final long dateTakenMs;
         public final long durationMs;
@@ -199,16 +222,20 @@ public class PickerProviderMediaGenerator {
         public final boolean isFavorite;
 
         public TestMedia(String localId, String cloudId, long generation) {
-            this(localId, cloudId, /* albumId */ null, "image/jpeg", /* sizeBytes */ 4096,
-                    /* durationMs */ 0, generation, /* isFavorite */ false);
+            this(localId, cloudId, /* albumId */ null, "image/jpeg",
+                    /* standardMimeTypeExtension */ MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE,
+                    /* sizeBytes */ 4096, /* durationMs */ 0, generation,
+                    /* isFavorite */ false);
         }
 
         public TestMedia(String localId, String cloudId, String albumId, String mimeType,
-                long sizeBytes, long durationMs, long generation, boolean isFavorite) {
+                int standardMimeTypeExtension, long sizeBytes, long durationMs, long generation,
+                boolean isFavorite) {
             this.localId = localId;
             this.cloudId = cloudId;
             this.albumId = albumId;
             this.mimeType = mimeType;
+            this.standardMimeTypeExtension = standardMimeTypeExtension;
             this.sizeBytes = sizeBytes;
             this.dateTakenMs = System.currentTimeMillis();
             this.durationMs = durationMs;
@@ -226,6 +253,7 @@ public class PickerProviderMediaGenerator {
                 getId(),
                 localId == null ? null : "content://media/external/files/" + localId,
                 mimeType,
+                String.valueOf(standardMimeTypeExtension),
                 String.valueOf(dateTakenMs),
                 String.valueOf(generation),
                 String.valueOf(sizeBytes),

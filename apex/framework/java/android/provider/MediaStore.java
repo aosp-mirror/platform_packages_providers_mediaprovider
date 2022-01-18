@@ -697,7 +697,9 @@ public final class MediaStore {
      * {@link Activity#RESULT_CANCELED} is returned.
      * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
-     *
+     * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
+     * expose a limited set of read-only operations. Specifically, picker URIs
+     * can only be opened for read and queried for columns in {@link PickerMediaColumns}.
      * @hide
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
@@ -1780,6 +1782,71 @@ public final class MediaStore {
     }
 
     /**
+     * Photo picker metadata columns.
+     *
+     * @see #ACTION_PICK_IMAGES
+     * @hide
+     */
+    // TODO(b/205291616): Unhide before release
+    public static class PickerMediaColumns {
+        private PickerMediaColumns() {}
+
+        /**
+         * This is identical to {@link MediaColumns#DATA}, however, apps should not assume that the
+         * file is always available because the file may be backed by a {@link CloudMediaProvider}
+         * fetching content over a network. Therefore, apps must be prepared to handle any
+         * additional file-based I/O errors that could occur as a result of network errors.
+         *
+         * @see MediaColumns#DATA
+         */
+        @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+        public static final String DATA = MediaColumns.DATA;
+
+        /**
+         * This is identical to {@link MediaColumns#SIZE}.
+         *
+         * @see MediaColumns#SIZE
+         */
+        @BytesLong
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String SIZE = MediaColumns.SIZE;
+
+        /**
+         * This is identical to {@link MediaColumns#DISPLAY_NAME}.
+         *
+         * @see MediaColumns#DISPLAY_NAME
+         */
+        @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+        public static final String DISPLAY_NAME = MediaColumns.DISPLAY_NAME;
+
+        /**
+         * This is identical to {@link MediaColumns#DATE_TAKEN}.
+         *
+         * @see MediaColumns#DATE_TAKEN
+         */
+        @CurrentTimeMillisLong
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String DATE_TAKEN = MediaColumns.DATE_TAKEN;
+
+        /**
+         * This is identical to {@link MediaColumns#MIME_TYPE}.
+         *
+         * @see MediaColumns#MIME_TYPE
+         */
+        @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+        public static final String MIME_TYPE = MediaColumns.MIME_TYPE;
+
+        /**
+         * This is identical to {@link MediaColumns#DURATION}.
+         *
+         * @see MediaColumns#DURATION
+         */
+        @DurationMillisLong
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String DURATION_MILLIS = MediaColumns.DURATION;
+    }
+
+    /**
      * Media provider table containing an index of all files in the media storage,
      * including non-media files.  This should be used by applications that work with
      * non-media file types (text, HTML, PDF, etc) as well as applications that need to
@@ -2062,7 +2129,7 @@ public final class MediaStore {
              * Photo Picker requires special format tagging for media files.
              * This is essential as {@link Images} collection can include
              * images of various formats like Motion Photos, GIFs etc, which
-             * is not identifiable by {@link #MIME_TYPE}
+             * is not identifiable by {@link #MIME_TYPE}.
              *
              * @hide
              */
@@ -2072,29 +2139,30 @@ public final class MediaStore {
             /**
              * Constant for the {@link #_SPECIAL_FORMAT} column indicating
              * that the file doesn't have any special format associated with it.
-             * TODO(b/199522401): Expose these as public API for cloud providers.
              *
              * @hide
              */
-            public static final int _SPECIAL_FORMAT_NONE = 0;
+            public static final int _SPECIAL_FORMAT_NONE =
+                    CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE;
 
             /**
              * Constant for the {@link #_SPECIAL_FORMAT} column indicating
              * that the file is a GIF file.
-             * TODO(b/199522401): Expose these as public API for cloud providers.
              *
              * @hide
              */
-            public static final int _SPECIAL_FORMAT_GIF = 1;
+            public static final int _SPECIAL_FORMAT_GIF =
+                    CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF;
 
             /**
              * Constant for the {@link #_SPECIAL_FORMAT} column indicating
              * that the file is a Motion Photo.
-             * TODO(b/199522401): Expose these as public API for cloud providers.
              *
              * @hide
              */
-            public static final int _SPECIAL_FORMAT_MOTION_PHOTO = 2;
+            public static final int _SPECIAL_FORMAT_MOTION_PHOTO =
+                    CloudMediaProviderContract.MediaColumns.
+                            STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO;
         }
     }
 
@@ -2960,7 +3028,6 @@ public final class MediaStore {
              * Non-zero if the audio file is a voice recording recorded
              * by voice recorder apps
              */
-            @ExportedSince(osVersion = Build.VERSION_CODES.S)
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RECORDING = "is_recording";
 
@@ -4579,6 +4646,8 @@ public final class MediaStore {
      * enabled.
      *
      * See android.provider.CloudMediaProvider
+     *
+     * @hide
      */
     // TODO(b/202733511): Convert See to @see tag after CloudMediaProvider API is unhidden
     @Nullable
@@ -4600,6 +4669,8 @@ public final class MediaStore {
      * {@link #getCloudProvider(ContentResolver)}, the request will be unsuccessful.
      *
      * @return {@code true} if the notification was successful, {@code false} otherwise
+     *
+     * @hide
      */
     public static boolean notifyCloudEvent(@NonNull ContentResolver resolver) {
         Objects.requireNonNull(resolver);

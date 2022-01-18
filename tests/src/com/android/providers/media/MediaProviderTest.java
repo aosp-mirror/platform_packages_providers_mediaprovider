@@ -19,7 +19,7 @@ package com.android.providers.media;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractRelativePath;
-import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
+import static com.android.providers.media.util.FileUtils.extractRelativePathWithDisplayName;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isDownloadDir;
 
@@ -1081,7 +1081,7 @@ public class MediaProviderTest {
                 "Foo.jpg",
                 "storage/Foo"
         }) {
-            assertEquals(null, FileUtils.extractRelativePathForDirectory(path));
+            assertEquals(null, FileUtils.extractRelativePathWithDisplayName(path));
         }
     }
 
@@ -1256,24 +1256,29 @@ public class MediaProviderTest {
 
         Uri result = sIsolatedResolver.insert(audioUri, values);
 
+        final long genreId;
         // Check the audio file is inserted correctly
         try (Cursor c = sIsolatedResolver.query(result,
-                new String[]{MediaColumns.DISPLAY_NAME, columnKey}, null, null)) {
+                new String[]{MediaColumns.DISPLAY_NAME, AudioColumns.GENRE_ID, columnKey},
+                null, null)) {
             assertNotNull(c);
             assertEquals(1, c.getCount());
             assertTrue(c.moveToFirst());
             assertEquals(displayName, c.getString(0));
-            assertEquals(1, c.getInt(1));
+            assertEquals(1, c.getInt(2));
+            genreId = c.getLong(1);
         }
 
         final String volume = MediaStore.VOLUME_EXTERNAL_PRIMARY;
         assertQueryResultNoItems(MediaStore.Audio.Albums.getContentUri(volume));
         assertQueryResultNoItems(MediaStore.Audio.Artists.getContentUri(volume));
         assertQueryResultNoItems(MediaStore.Audio.Genres.getContentUri(volume));
+        assertQueryResultNoItems(MediaStore.Audio.Genres.Members.getContentUri(volume, genreId));
     }
 
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R, maxSdkVersion = Build.VERSION_CODES.R)
+    @Ignore("b/211068960")
     public void testQueryAudioTableNoIsRecordingColumnInR() throws Exception {
         final File file = createAudioRecordingFile();
         final Uri audioUri =
@@ -1292,6 +1297,7 @@ public class MediaProviderTest {
 
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R, maxSdkVersion = Build.VERSION_CODES.R)
+    @Ignore("b/211068960")
     public void testQueryIsRecordingInAudioTableExceptionInR() throws Exception {
         final File file = createAudioRecordingFile();
         final Uri audioUri =
@@ -1382,7 +1388,7 @@ public class MediaProviderTest {
 
     private static void assertRelativePathForDirectory(String directoryPath, String relativePath) {
         assertWithMessage("extractRelativePathForDirectory(" + directoryPath + ") :")
-                .that(extractRelativePathForDirectory(directoryPath))
+                .that(extractRelativePathWithDisplayName(directoryPath))
                 .isEqualTo(relativePath);
     }
 

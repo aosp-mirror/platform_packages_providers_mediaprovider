@@ -1,4 +1,21 @@
 {
+    "mainline-presubmit": [
+        {
+            "name": "MediaProviderTests[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsScopedStorageCoreHostTest[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsScopedStorageHostTest[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsScopedStorageDeviceOnlyTest[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsMediaProviderTranscodeTests[com.google.android.mediaprovider.apex]"
+        }
+    ],
     "presubmit": [
         {
             "name": "MediaProviderTests"

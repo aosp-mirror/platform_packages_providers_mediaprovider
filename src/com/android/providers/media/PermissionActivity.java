@@ -47,6 +47,7 @@ import android.graphics.ImageDecoder.ImageInfo;
 import android.graphics.ImageDecoder.Source;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Icon;
+import android.icu.text.MessageFormat;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -72,11 +73,15 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.MediaProvider.LocalUriMatcher;
 import com.android.providers.media.util.Metrics;
+import com.android.providers.media.util.StringUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
@@ -506,11 +511,11 @@ public class PermissionActivity extends Activity {
      */
     private @Nullable CharSequence resolveTitleText() {
         final String resName = "permission_" + verb + "_" + data;
-        final int resId = getResources().getIdentifier(resName, "plurals",
+        final int resId = getResources().getIdentifier(resName, "string",
                 getResources().getResourcePackageName(R.string.app_label));
         if (resId != 0) {
             final int count = uris.size();
-            final CharSequence text = getResources().getQuantityText(resId, count);
+            final CharSequence text = StringUtils.getICUFormatString(getResources(), count, resId);
             return TextUtils.expandTemplate(text, label, String.valueOf(count));
         } else {
             // We always need a string to prompt the user with
@@ -524,11 +529,11 @@ public class PermissionActivity extends Activity {
      */
     private @Nullable CharSequence resolveProgressMessageText() {
         final String resName = "permission_progress_" + verb + "_" + data;
-        final int resId = getResources().getIdentifier(resName, "plurals",
+        final int resId = getResources().getIdentifier(resName, "string",
                 getResources().getResourcePackageName(R.string.app_label));
         if (resId != 0) {
             final int count = uris.size();
-            final CharSequence text = getResources().getQuantityText(resId, count);
+            final CharSequence text = StringUtils.getICUFormatString(getResources(), count, resId);
             return TextUtils.expandTemplate(text, String.valueOf(count));
         } else {
             // Only some actions have a progress message string; it's okay if
@@ -658,7 +663,9 @@ public class PermissionActivity extends Activity {
             final ImageView thumbFull = bodyView.requireViewById(R.id.thumb_full);
             if (result.full != null) {
                 result.bindFull(thumbFull);
-            } else {
+            } else if (result.thumbnail != null) {
+                result.bindThumbnail(thumbFull, /* shouldClip */ false);
+            } else if (result.mimeIcon != null) {
                 thumbFull.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 thumbFull.setBackground(new ColorDrawable(getColor(R.color.thumb_gray_color)));
                 result.bindMimeIcon(thumbFull);
@@ -693,9 +700,11 @@ public class PermissionActivity extends Activity {
 
                 final int shownCount = Math.min(visualResults.size(), MAX_THUMBS - 1);
                 final int moreCount = results.size() - shownCount;
-                final CharSequence moreText = TextUtils.expandTemplate(res.getQuantityText(
-                        R.plurals.permission_more_thumb, moreCount), String.valueOf(moreCount));
-
+                final CharSequence moreText =
+                    TextUtils.expandTemplate(
+                        StringUtils.getICUFormatString(
+                            res, moreCount, R.string.permission_more_thumb),
+                        String.valueOf(moreCount));
                 thumbMoreText.setText(moreText);
                 thumbMoreContainer.setVisibility(View.VISIBLE);
                 gradientView.setVisibility(View.VISIBLE);
@@ -712,8 +721,8 @@ public class PermissionActivity extends Activity {
                 final Description desc = visualResults.get(i);
                 final ImageView imageView = thumbs.get(i);
                 if (desc.thumbnail != null) {
-                    desc.bindThumbnail(imageView);
-                } else {
+                    desc.bindThumbnail(imageView, /* shouldClip */ true);
+                } else if (desc.mimeIcon != null) {
                     desc.bindMimeIcon(imageView);
                 }
             }
@@ -733,8 +742,11 @@ public class PermissionActivity extends Activity {
 
                 if (list.size() >= MAX_THUMBS && results.size() > list.size()) {
                     final int moreCount = results.size() - list.size();
-                    final CharSequence moreText = TextUtils.expandTemplate(res.getQuantityText(
-                            R.plurals.permission_more_text, moreCount), String.valueOf(moreCount));
+                    final CharSequence moreText =
+                        TextUtils.expandTemplate(
+                            StringUtils.getICUFormatString(
+                                res, moreCount, R.string.permission_more_text),
+                            String.valueOf(moreCount));
                     list.add(moreText);
                     break;
                 }
@@ -806,12 +818,12 @@ public class PermissionActivity extends Activity {
             return thumbnail != null || full != null || mimeIcon != null;
         }
 
-        public void bindThumbnail(ImageView imageView) {
+        public void bindThumbnail(ImageView imageView, boolean shouldClip) {
             Objects.requireNonNull(thumbnail);
             imageView.setImageBitmap(thumbnail);
             imageView.setContentDescription(contentDescription);
             imageView.setVisibility(View.VISIBLE);
-            imageView.setClipToOutline(true);
+            imageView.setClipToOutline(shouldClip);
         }
 
         public void bindFull(ImageView imageView) {

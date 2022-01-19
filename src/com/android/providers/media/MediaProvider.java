@@ -5110,6 +5110,17 @@ public class MediaProvider extends ContentProvider {
                     // owner, so callers need to hold READ_MEDIA_AUDIO
                     appendWhereStandalone(qb, "0");
                 }
+                // In order to be consistent with other audio views like audio_artist, audio_albums,
+                // and audio_genres, exclude pending and trashed item
+                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, MATCH_EXCLUDE, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, MATCH_EXCLUDE, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite, uri);
+                if (honored != null) {
+                    honored.accept(QUERY_ARG_MATCH_FAVORITE);
+                }
+                if (!includeAllVolumes) {
+                    appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
+                }
                 break;
             }
             case AUDIO_PLAYLISTS_ID:

@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.data.glide;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
@@ -27,6 +28,7 @@ import com.bumptech.glide.Priority;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.data.DataFetcher;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 /**
@@ -49,16 +51,17 @@ public class PickerThumbnailFetcher implements DataFetcher<ParcelFileDescriptor>
 
     @Override
     public void loadData(Priority priority, DataCallback<? super ParcelFileDescriptor> callback) {
-        try {
-            ContentResolver contentResolver = context.getContentResolver();
-            final Bundle opts = new Bundle();
-            opts.putParcelable(ContentResolver.EXTRA_SIZE, new Point(width, height));
-
-            ParcelFileDescriptor pfd = contentResolver.openTypedAssetFileDescriptor(
-                    model, /* mimeType */ "image/*", opts, /* cancellationSignal */ null)
-                    .getParcelFileDescriptor();
-
-            callback.onDataReady(pfd);
+        ContentResolver contentResolver = context.getContentResolver();
+        final Bundle opts = new Bundle();
+        opts.putParcelable(ContentResolver.EXTRA_SIZE, new Point(width, height));
+        try (AssetFileDescriptor afd = contentResolver.openTypedAssetFileDescriptor(model,
+                /* mimeType */ "image/*", opts, /* cancellationSignal */ null)) {
+            if (afd == null) {
+                final String err = "Failed to load data for " + model;
+                callback.onLoadFailed(new FileNotFoundException(err));
+                return;
+            }
+            callback.onDataReady(afd.getParcelFileDescriptor());
         } catch (IOException e) {
             callback.onLoadFailed(e);
         }

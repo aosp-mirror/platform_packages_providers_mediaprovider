@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Iz delovne aplikacije ni dovoljeno dostopati do osebnih podatkov."</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Delovne aplikacije so začasno zaustavljene"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Če želite odpreti delovne fotografije, vklopite delovne aplikacije in poskusite znova."</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Ta aplikacija ima dostop samo do fotografij, ki jih izberete."</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> element}one{<xliff:g id="COUNT_1">^1</xliff:g> element}two{<xliff:g id="COUNT_1">^1</xliff:g> elementa}few{<xliff:g id="COUNT_1">^1</xliff:g> elementi}other{<xliff:g id="COUNT_1">^1</xliff:g> elementov}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Dodaj (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Fotoaparat"</string>

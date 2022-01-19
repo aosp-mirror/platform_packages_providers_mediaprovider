@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ഔദ്യോഗിക ആപ്പിലൂടെ വ്യക്തിപരമായ ഡാറ്റ ആക്‌സസ് ചെയ്യുന്നത് അനുവദനീയമല്ല"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ഔദ്യോഗിക ആപ്പുകൾ തൽക്കാലികമായി നിർത്തിയിരിക്കുന്നു"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ഔദ്യോഗിക ഫോട്ടോകൾ തുറക്കാൻ, നിങ്ങളുടെ ഔദ്യോഗിക ആപ്പുകൾ ഓണാക്കി വീണ്ടും ശ്രമിക്കുക"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"നിങ്ങൾ തിരഞ്ഞെടുത്ത ഫോട്ടോകൾ മാത്രമേ ഈ ആപ്പിന് ആക്‌സസ് ചെയ്യാനാകൂ"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ഇനം}other{<xliff:g id="COUNT_1">^1</xliff:g> ഇനങ്ങൾ}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) ചേർക്കുക"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"ക്യാമറ"</string>

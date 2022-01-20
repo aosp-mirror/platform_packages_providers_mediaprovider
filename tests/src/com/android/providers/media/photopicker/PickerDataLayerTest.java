@@ -42,7 +42,6 @@ import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Category;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -118,8 +117,14 @@ public class PickerDataLayerTest {
         mController = new PickerSyncController(mContext, mFacade, LOCAL_PROVIDER_AUTHORITY,
                         /* syncDelay */ 0);
 
-        mFacade.resetMedia(LOCAL_PROVIDER_AUTHORITY);
-        mFacade.resetMedia(null);
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginResetMediaOperation(LOCAL_PROVIDER_AUTHORITY)) {
+            operation.setSuccess();
+        }
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginResetMediaOperation(null /* authority */)) {
+            operation.setSuccess();
+        }
         Assume.assumeTrue(PickerDbFacade.isPickerDbEnabled());
     }
 

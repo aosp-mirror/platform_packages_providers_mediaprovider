@@ -9,7 +9,7 @@ package android.provider {
     method public final int delete(@NonNull android.net.Uri, @Nullable String, @Nullable String[]);
     method @NonNull public final String getType(@NonNull android.net.Uri);
     method @NonNull public final android.net.Uri insert(@NonNull android.net.Uri, @NonNull android.content.ContentValues);
-    method @Nullable public android.provider.CloudMediaProvider.SurfaceController onCreateSurfaceController(@Nullable android.os.Bundle);
+    method @Nullable public android.provider.CloudMediaProvider.SurfaceController onCreateSurfaceController(@NonNull android.os.Bundle, @NonNull android.provider.CloudMediaProvider.SurfaceEventCallback);
     method @NonNull public android.os.Bundle onGetAccountInfo(@Nullable android.os.Bundle);
     method @NonNull public abstract android.os.Bundle onGetMediaInfo(@Nullable android.os.Bundle);
     method @NonNull public abstract android.os.ParcelFileDescriptor onOpenMedia(@NonNull String, @Nullable android.os.Bundle, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
@@ -30,6 +30,7 @@ package android.provider {
 
   public abstract static class CloudMediaProvider.SurfaceController {
     ctor public CloudMediaProvider.SurfaceController();
+    method public abstract void onConfigChange(@NonNull android.os.Bundle);
     method public abstract void onDestroy();
     method public abstract void onMediaPause(int);
     method public abstract void onMediaPlay(int);
@@ -41,6 +42,17 @@ package android.provider {
     method public abstract void onSurfaceDestroyed(int);
   }
 
+  public static final class CloudMediaProvider.SurfaceEventCallback {
+    method public void onPlaybackEvent(int, int, @Nullable android.os.Bundle);
+    field public static final int PLAYBACK_EVENT_BUFFERING = 1; // 0x1
+    field public static final int PLAYBACK_EVENT_COMPLETED = 5; // 0x5
+    field public static final int PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE = 7; // 0x7
+    field public static final int PLAYBACK_EVENT_ERROR_RETRIABLE_FAILURE = 6; // 0x6
+    field public static final int PLAYBACK_EVENT_PAUSED = 4; // 0x4
+    field public static final int PLAYBACK_EVENT_READY = 2; // 0x2
+    field public static final int PLAYBACK_EVENT_STARTED = 3; // 0x3
+  }
+
   public final class CloudMediaProviderContract {
     field public static final String EXTRA_FILTER_ALBUM = "android.provider.extra.FILTER_ALBUM";
     field public static final String EXTRA_FILTER_MIME_TYPE = "android.provider.extra.FILTER_MIME_TYPE";
@@ -48,6 +60,7 @@ package android.provider {
     field public static final String EXTRA_LOOPING_PLAYBACK_ENABLED = "android.provider.extra.LOOPING_PLAYBACK_ENABLED";
     field public static final String EXTRA_PAGE_TOKEN = "android.provider.extra.PAGE_TOKEN";
     field public static final String EXTRA_PREVIEW_THUMBNAIL = "android.provider.extra.PREVIEW_THUMBNAIL";
+    field public static final String EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED = "android.provider.extra.SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED";
     field public static final String MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION = "com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS";
     field public static final String PROVIDER_INTERFACE = "android.content.action.CLOUD_MEDIA_PROVIDER";
   }

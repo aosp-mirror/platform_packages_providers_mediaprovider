@@ -15,6 +15,10 @@
  */
 package com.android.providers.media.photopicker.ui;
 
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.SWITCH_TO_PERSONAL_MESSAGE;
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.SWITCH_TO_WORK_MESSAGE;
+
+import android.app.admin.DevicePolicyManager;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
@@ -220,17 +224,20 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void updateProfileButtonContent(boolean isManagedUserSelected) {
+        DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
         final int iconResId;
-        final int textResId;
+        final String text;
         if (isManagedUserSelected) {
             iconResId = R.drawable.ic_personal_mode;
-            textResId = R.string.picker_personal_profile;
+            text = dpm.getString(SWITCH_TO_PERSONAL_MESSAGE, () ->
+                    getContext().getString(R.string.picker_personal_profile));
         } else {
             iconResId = R.drawable.ic_work_outline;
-            textResId = R.string.picker_work_profile;
+            text = dpm.getString(SWITCH_TO_WORK_MESSAGE, () ->
+                    getContext().getString(R.string.picker_work_profile));
         }
         mProfileButton.setIconResource(iconResId);
-        mProfileButton.setText(textResId);
+        mProfileButton.setText(text);
     }
 
     private void updateProfileButtonColor(boolean isDisabled) {

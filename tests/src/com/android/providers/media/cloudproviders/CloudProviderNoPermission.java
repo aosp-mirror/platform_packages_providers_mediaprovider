@@ -54,14 +54,14 @@ public class CloudProviderNoPermission extends CloudMediaProvider {
     }
 
     @Override
-    public AssetFileDescriptor onOpenThumbnail(String mediaId, Point size,
+    public AssetFileDescriptor onOpenPreview(String mediaId, Point size, Bundle extras,
             CancellationSignal signal) throws FileNotFoundException {
-        throw new UnsupportedOperationException("onOpenThumbnail not supported");
+        throw new UnsupportedOperationException("onOpenPreview not supported");
     }
 
     @Override
-    public ParcelFileDescriptor onOpenMedia(String mediaId, CancellationSignal signal)
-            throws FileNotFoundException {
+    public ParcelFileDescriptor onOpenMedia(String mediaId, Bundle extras,
+            CancellationSignal signal) throws FileNotFoundException {
         throw new UnsupportedOperationException("onOpenMedia not supported");
     }
 

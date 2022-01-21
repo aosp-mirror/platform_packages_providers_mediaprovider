@@ -990,12 +990,12 @@ public class PickerDbFacadeTest {
         String[] projectionKey = new String[] {
             MediaColumns.ID,
             MediaColumns.MEDIA_STORE_URI,
-            MediaColumns.DATE_TAKEN_MS,
+            MediaColumns.DATE_TAKEN_MILLIS,
             MediaColumns.GENERATION_MODIFIED,
             MediaColumns.SIZE_BYTES,
             MediaColumns.MIME_TYPE,
             MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
-            MediaColumns.DURATION_MS,
+            MediaColumns.DURATION_MILLIS,
             MediaColumns.IS_FAVORITE
         };
 
@@ -1055,7 +1055,7 @@ public class PickerDbFacadeTest {
                 .isEqualTo(displayName);
         assertThat(cursor.getString(cursor.getColumnIndex(AlbumColumns.MEDIA_COVER_ID)))
                 .isEqualTo(mediaCoverId);
-        assertThat(cursor.getLong(cursor.getColumnIndex(AlbumColumns.DATE_TAKEN_MS)))
+        assertThat(cursor.getLong(cursor.getColumnIndex(AlbumColumns.DATE_TAKEN_MILLIS)))
                 .isEqualTo(dateTakenMs);
         assertThat(cursor.getLong(cursor.getColumnIndex(AlbumColumns.MEDIA_COUNT)))
                 .isEqualTo(mediaCount);
@@ -1081,13 +1081,13 @@ public class PickerDbFacadeTest {
                 .isEqualTo(VIDEO_MIME_TYPE);
         assertThat(cursor.getInt(cursor.getColumnIndex(MediaColumns.STANDARD_MIME_TYPE_EXTENSION)))
                 .isEqualTo(STANDARD_MIME_TYPE_EXTENSION);
-        assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.DATE_TAKEN_MS)))
+        assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.DATE_TAKEN_MILLIS)))
                 .isEqualTo(dateTakenMs);
         assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.GENERATION_MODIFIED)))
                 .isEqualTo(GENERATION_MODIFIED);
         assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.SIZE_BYTES)))
                 .isEqualTo(SIZE_BYTES);
-        assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.DURATION_MS)))
+        assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.DURATION_MILLIS)))
                 .isEqualTo(DURATION_MS);
     }
 

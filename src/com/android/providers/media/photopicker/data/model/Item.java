@@ -44,12 +44,12 @@ public class Item {
     public static class ItemColumns {
         public static String ID = CloudMediaProviderContract.MediaColumns.ID;
         public static String MIME_TYPE = CloudMediaProviderContract.MediaColumns.MIME_TYPE;
-        public static String DATE_TAKEN = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS;
+        public static String DATE_TAKEN = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS;
         // TODO(b/195009139): Remove after fully switching to picker db
         public static String DATE_MODIFIED = MediaStore.MediaColumns.DATE_MODIFIED;
         public static String GENERATION_MODIFIED =
                 CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED;
-        public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MS;
+        public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MILLIS;
         public static String SIZE = CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
         public static String AUTHORITY = CloudMediaProviderContract.MediaColumns.AUTHORITY;
         public static String SPECIAL_FORMAT =

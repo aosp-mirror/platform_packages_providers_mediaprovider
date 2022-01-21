@@ -132,7 +132,7 @@ public class PickerDbFacade {
 
     private static final String[] PROJECTION_ALBUM_CURSOR = new String[] {
         CloudMediaProviderContract.AlbumColumns.ID,
-        CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
+        CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
         CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME,
         CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
         CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID,
@@ -142,7 +142,7 @@ public class PickerDbFacade {
     private static final String[] PROJECTION_ALBUM_DB = new String[] {
         "COUNT(" + KEY_ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
         "MAX(" + KEY_DATE_TAKEN_MS + ") AS "
-        + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
+        + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
         String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
                 KEY_LOCAL_ID, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID)
     };
@@ -668,7 +668,7 @@ public class PickerDbFacade {
         final MatrixCursor c = new MatrixCursor(PROJECTION_ALBUM_CURSOR);
         final String[] projectionValue = new String[] {
             Category.CATEGORY_FAVORITES,
-            getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS),
+            getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS),
             Category.getCategoryName(mContext, Category.CATEGORY_FAVORITES),
             String.valueOf(count),
             getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
@@ -711,10 +711,10 @@ public class PickerDbFacade {
             getProjectionAuthorityLocked(),
             getProjectionDataLocked(MediaColumns.DATA),
             getProjectionId(MediaColumns.ID),
-            getProjectionSimple(KEY_DATE_TAKEN_MS, MediaColumns.DATE_TAKEN_MS),
+            getProjectionSimple(KEY_DATE_TAKEN_MS, MediaColumns.DATE_TAKEN_MILLIS),
             getProjectionSimple(KEY_GENERATION_MODIFIED, MediaColumns.GENERATION_MODIFIED),
             getProjectionSimple(KEY_SIZE_BYTES, MediaColumns.SIZE_BYTES),
-            getProjectionSimple(KEY_DURATION_MS, MediaColumns.DURATION_MS),
+            getProjectionSimple(KEY_DURATION_MS, MediaColumns.DURATION_MILLIS),
             getProjectionSimple(KEY_MIME_TYPE, MediaColumns.MIME_TYPE),
             getProjectionSimple(KEY_STANDARD_MIME_TYPE_EXTENSION,
                     MediaColumns.STANDARD_MIME_TYPE_EXTENSION),
@@ -830,7 +830,7 @@ public class PickerDbFacade {
                         values.put(KEY_LOCAL_ID, ContentUris.parseId(uri));
                     }
                     break;
-                case CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS:
+                case CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS:
                     values.put(KEY_DATE_TAKEN_MS, cursor.getLong(index));
                     break;
                 case CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED:
@@ -850,7 +850,7 @@ public class PickerDbFacade {
                         throw new IllegalArgumentException("Invalid standard mime type extension");
                     }
                     break;
-                case CloudMediaProviderContract.MediaColumns.DURATION_MS:
+                case CloudMediaProviderContract.MediaColumns.DURATION_MILLIS:
                     values.put(KEY_DURATION_MS, cursor.getLong(index));
                     break;
                 case CloudMediaProviderContract.MediaColumns.IS_FAVORITE:

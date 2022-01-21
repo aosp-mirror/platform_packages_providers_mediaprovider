@@ -82,10 +82,10 @@ public final class CloudMediaProviderContract {
          * <p>
          * Type: LONG
          *
-         * @see CloudMediaProviderContract.AlbumColumns#DATE_TAKEN_MS
+         * @see CloudMediaProviderContract.AlbumColumns#DATE_TAKEN_MILLIS
          * @see System#currentTimeMillis()
          */
-        public static final String DATE_TAKEN_MS = "date_taken_ms";
+        public static final String DATE_TAKEN_MILLIS = "date_taken_millis";
 
         /**
          * Generation number associated with a media item.
@@ -177,7 +177,7 @@ public final class CloudMediaProviderContract {
          * <p>
          * Type: LONG
          */
-        public static final String DURATION_MS = "duration_ms";
+        public static final String DURATION_MILLIS = "duration_millis";
 
         /**
          * Whether the item has been favourited in the media collection. If {@code non-zero}, this
@@ -238,10 +238,10 @@ public final class CloudMediaProviderContract {
          * <p>
          * Type: LONG
          *
-         * @see CloudMediaProviderContract.MediaColumns#DATE_TAKEN_MS
+         * @see CloudMediaProviderContract.MediaColumns#DATE_TAKEN_MILLIS
          * @see System#currentTimeMillis()
          */
-        public static final String DATE_TAKEN_MS = "date_taken_ms";
+        public static final String DATE_TAKEN_MILLIS = "date_taken_millis";
 
         /**
          * Media id to use as the album cover photo.
@@ -258,7 +258,10 @@ public final class CloudMediaProviderContract {
         /**
          * Total count of all media within the album, including photos and videos.
          * <p>
-         * If this field is not provided, albums will be shown without a count in the Photo Picker
+         * If this field is not provided, albums will be shown without a count in the Photo Picker.
+         * <p>
+         * Empty albums should be omitted from the {@link CloudMediaProvider#onQueryAlbums} result,
+         * i.e. zero is not a valid media count.
          * <p>
          * Type: LONG
          */
@@ -459,17 +462,14 @@ public final class CloudMediaProviderContract {
     /**
      * Limits the query results to only media items matching the give mimetype.
      * <p>
-     * The provider should handle an asterisk in the subtype, e.g. {@code image/*} should match
-     * {@code image/jpeg} and {@code image/png}.
-     * <p>
-     * This is only intended for the MediaProvider to implement for cross-user communication. Not
-     * for third party apps.
+     * This may be a pattern, such as *&#47;*, to query for all available MIME types that match the
+     * pattern, e.g. {@code image/*} should match {@code image/jpeg} and {@code image/png}.
      *
      * @see CloudMediaProvider#onQueryMedia
      * <p>
      * Type: STRING
      */
-    public static final String EXTRA_FILTER_MIMETYPE = "android.provider.extra.FILTER_MIMETYPE";
+    public static final String EXTRA_FILTER_MIME_TYPE = "android.provider.extra.FILTER_MIME_TYPE";
 
     /**
      * Limits the query results to only media items less than the given file size in bytes.
@@ -480,8 +480,21 @@ public final class CloudMediaProviderContract {
      * @see CloudMediaProvider#onQueryMedia
      * <p>
      * Type: LONG
+     * @hide
      */
     public static final String EXTRA_FILTER_SIZE_BYTES = "android.provider.extra.FILTER_SIZE_BYTES";
+
+    /**
+     * Forces the {@link CloudMediaProvider#onOpenPreview} file descriptor to return a thumbnail
+     * image. This is only useful for videos where the OS can either request a video or image
+     * for preview.
+     *
+     * @see CloudMediaProvider#onOpenPreview
+     * <p>
+     * Type: BOOLEAN
+     */
+    public static final String EXTRA_PREVIEW_THUMBNAIL =
+            "android.provider.extra.PREVIEW_THUMBNAIL";
 
     /**
      * Constant used to execute {@link CloudMediaProvider#onGetMediaInfo} via

@@ -60,6 +60,7 @@ package android.provider {
     field public static final String MIME_TYPE = "mime_type";
     field public static final String SIZE_BYTES = "size_bytes";
     field public static final String STANDARD_MIME_TYPE_EXTENSION = "standard_mime_type_extension";
+    field public static final int STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP = 3; // 0x3
     field public static final int STANDARD_MIME_TYPE_EXTENSION_GIF = 1; // 0x1
     field public static final int STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO = 2; // 0x2
     field public static final int STANDARD_MIME_TYPE_EXTENSION_NONE = 0; // 0x0

@@ -99,7 +99,8 @@ public class UserCache {
                 if (!profile.equals(mContext.getUser())) {
                     // Check if it's a profile that shares media with us
                     Context userContext = getContextForUser(profile);
-                    if (userContext.getSystemService(UserManager.class).isMediaSharedWithParent()) {
+                    UserManager userManager = userContext.getSystemService(UserManager.class);
+                    if (userManager.isUserUnlocked() && userManager.isMediaSharedWithParent()) {
                         mUsers.add(profile);
                     }
                 }

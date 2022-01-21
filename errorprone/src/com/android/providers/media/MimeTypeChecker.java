@@ -85,7 +85,8 @@ public final class MimeTypeChecker extends BugChecker
         public boolean matches(ExpressionTree tree, VisitorState state) {
             // This is a pretty rough way to match raw names, but it works
             final String string = tree.toString();
-            return string.toLowerCase().contains("mime") && !string.contains("toUpperCase")
+            return string.toLowerCase().contains("mime") && !string.toLowerCase().contains(
+                    "standardmimetypeextension") && !string.contains("toUpperCase")
                     && !string.contains("toLowerCase");
         }
 

@@ -706,6 +706,21 @@ public final class MediaStore {
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
 
     /**
+     * Activity Action: Launch settings controlling images or videos selection with
+     * {@link #ACTION_PICK_IMAGES}.
+     *
+     * The settings page allows a user to change the enabled {@link CloudMediaProvider} on the
+     * device and other media selection configurations.
+     *
+     * @see #ACTION_PICK_IMAGES
+     * @see #getCloudProvider(ContentResolver)
+     * @hide
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    public static final String ACTION_PICK_IMAGES_SETTINGS =
+            "android.provider.action.PICK_IMAGES_SETTINGS";
+
+    /**
      * The name of an optional intent-extra used to allow multiple selection of
      * items and constrain maximum number of items that can be returned by
      * {@link MediaStore#ACTION_PICK_IMAGES}, action may still return nothing
@@ -2163,6 +2178,16 @@ public final class MediaStore {
             public static final int _SPECIAL_FORMAT_MOTION_PHOTO =
                     CloudMediaProviderContract.MediaColumns.
                             STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO;
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file is an Animated Webp.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_ANIMATED_WEBP =
+                    CloudMediaProviderContract.MediaColumns.
+                            STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP;
         }
     }
 

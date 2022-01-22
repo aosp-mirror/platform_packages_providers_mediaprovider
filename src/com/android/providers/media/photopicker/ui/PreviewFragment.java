@@ -29,7 +29,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.FrameLayout.LayoutParams;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -328,7 +327,7 @@ public class PreviewFragment extends Fragment {
     }
 
     private void updateSpecialFormatIcon(Item item) {
-        mShouldShowGifBadge = item.isGif();
+        mShouldShowGifBadge = item.isGifOrAnimatedWebp();
         mShouldShowMotionPhotoBadge = item.isMotionPhoto();
         // Invalidating options menu calls onPrepareOptionsMenu() where the logic for
         // hiding/showing menu items is placed.

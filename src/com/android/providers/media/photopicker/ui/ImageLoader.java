@@ -17,7 +17,10 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.graphics.ImageDecoder;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.util.Log;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
@@ -35,6 +38,7 @@ import com.android.providers.media.photopicker.data.model.Item;
  */
 public class ImageLoader {
 
+    private static final String TAG = "ImageLoader";
     private final Context mContext;
 
     public ImageLoader(Context context) {
@@ -72,7 +76,7 @@ public class ImageLoader {
         Glide.with(mContext)
                 .asBitmap()
                 .load(uri)
-                .signature(new ObjectKey(uri.toString() + item.getGenerationModified()))
+                .signature(getGlideSignature(item, /* prefix */ ""))
                 .thumbnail()
                 .into(imageView);
     }
@@ -83,13 +87,17 @@ public class ImageLoader {
      * @param item      the photo item
      * @param imageView the imageView shows the image
      */
-    public void loadImagePreview(@NonNull Item item, @NonNull ImageView imageView) {
+    public void loadImagePreview(@NonNull Item item, @NonNull ImageView imageView)  {
         if (item.isGif()) {
             Glide.with(mContext)
                     .load(item.getContentUri())
-                    .signature(new ObjectKey(
-                            item.getContentUri().toString() + item.getGenerationModified()))
+                    .signature(getGlideSignature(item, /* prefix */ ""))
                     .into(imageView);
+            return;
+        }
+
+        if (item.isAnimatedWebp()) {
+            loadAnimatedWebpPreview(item, imageView);
             return;
         }
 
@@ -97,8 +105,27 @@ public class ImageLoader {
         Glide.with(mContext)
                 .asBitmap()
                 .load(item.getContentUri())
-                .signature(new ObjectKey(
-                        item.getContentUri().toString() + item.getGenerationModified()))
+                .signature(getGlideSignature(item, /* prefix */ ""))
+                .into(imageView);
+    }
+
+    private void loadAnimatedWebpPreview(@NonNull Item item, @NonNull ImageView imageView) {
+        final Uri uri = item.getContentUri();
+        final ImageDecoder.Source source = ImageDecoder.createSource(mContext.getContentResolver(),
+                uri);
+        Drawable drawable = null;
+        try {
+            drawable = ImageDecoder.decodeDrawable(source);
+        } catch (Exception e) {
+            Log.d(TAG, "Failed to decode drawable for uri: " + uri, e);
+        }
+
+        // If we failed to decode drawable for a source using ImageDecoder, then try using uri
+        // directly. Glide will show static image for an animated webp. That is okay as we tried our
+        // best to load animated webp but couldn't, and we anyway show the GIF badge in preview.
+        Glide.with(mContext)
+                .load(drawable == null ? uri : drawable)
+                .signature(getGlideSignature(item, /* prefix */ ""))
                 .into(imageView);
     }
 
@@ -110,8 +137,12 @@ public class ImageLoader {
                 .asBitmap()
                 .load(item.getContentUri())
                 .apply(new RequestOptions().frame(1000))
-                .signature(new ObjectKey("Preview"
-                        + item.getContentUri().toString() + item.getGenerationModified()))
+                .signature(getGlideSignature(item, "Preview"))
                 .into(imageView);
+    }
+
+    private ObjectKey getGlideSignature(Item item, String prefix) {
+        return new ObjectKey(prefix + item.getContentUri().toString() +
+                item.getGenerationModified());
     }
 }

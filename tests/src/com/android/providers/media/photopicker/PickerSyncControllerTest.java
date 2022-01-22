@@ -54,7 +54,6 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -111,6 +110,7 @@ public class PickerSyncControllerTest {
     private static final String DB_NAME = "test_db";
 
     private Context mContext;
+    private PickerDatabaseHelper mDbHelper;
     private PickerDbFacade mFacade;
     private PickerSyncController mController;
 
@@ -125,20 +125,21 @@ public class PickerSyncControllerTest {
         mCloudSecondaryMediaGenerator.setVersion(VERSION_1);
 
         mContext = InstrumentationRegistry.getTargetContext();
-        mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY);
+
+        // Delete db so it's recreated on next access and previous test state is cleared
+        final File dbPath = mContext.getDatabasePath(DB_NAME);
+        dbPath.delete();
+
+        mDbHelper = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
+        mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
         mController = new PickerSyncController(mContext, mFacade, LOCAL_PROVIDER_AUTHORITY,
                 /* syncDelay */ 0);
 
-        mFacade.resetMedia(LOCAL_PROVIDER_AUTHORITY);
-        mFacade.resetMedia(null);
-        Assume.assumeTrue(PickerDbFacade.isPickerDbEnabled());
-    }
-
-    @After
-    public void tearDown() {
         // Set cloud provider to null to avoid trying to sync it during other tests
         // that might be using an IsolatedContext
         mController.setCloudProvider(null);
+
+        Assume.assumeTrue(PickerDbFacade.isPickerDbEnabled());
     }
 
     @Test

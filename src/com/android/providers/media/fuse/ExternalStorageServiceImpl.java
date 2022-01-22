@@ -23,6 +23,7 @@ import android.content.ContentProviderClient;
 import android.os.Environment;
 import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
+import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
 import android.service.storage.ExternalStorageService;
@@ -31,6 +32,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.MediaService;
 import com.android.providers.media.MediaVolume;
@@ -64,6 +66,17 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
 
         MediaProvider mediaProvider = getMediaProvider();
 
+        boolean uncachedMode = false;
+        if (SdkLevel.isAtLeastT()) {
+            StorageVolume vol =
+                    getSystemService(StorageManager.class).getStorageVolume(upperFileSystemPath);
+            if (vol != null && vol.isExternallyManaged()) {
+                // Cache should be disabled when the volume is externally managed.
+                Log.i(TAG, "Disabling cache for externally managed volume " + upperFileSystemPath);
+                uncachedMode = true;
+            }
+        }
+
         synchronized (sLock) {
             if (sFuseDaemons.containsKey(sessionId)) {
                 Log.w(TAG, "Session already started with id: " + sessionId);
@@ -74,8 +87,11 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 // mounts of the lower filesystem.
                 final String[] supportedTranscodingRelativePaths =
                         mediaProvider.getSupportedTranscodingRelativePaths().toArray(new String[0]);
+                final String[] supportedUncachedRelativePaths =
+                        mediaProvider.getSupportedUncachedRelativePaths().toArray(new String[0]);
                 FuseDaemon daemon = new FuseDaemon(mediaProvider, this, deviceFd, sessionId,
-                        upperFileSystemPath.getPath(), supportedTranscodingRelativePaths);
+                        upperFileSystemPath.getPath(), uncachedMode,
+                        supportedTranscodingRelativePaths, supportedUncachedRelativePaths);
                 daemon.start();
                 sFuseDaemons.put(sessionId, daemon);
             }

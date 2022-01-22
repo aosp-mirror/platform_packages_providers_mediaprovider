@@ -256,17 +256,20 @@ class FAdviser {
 
 /* Single FUSE mount */
 struct fuse {
-    explicit fuse(const std::string& _path, const ino_t _ino,
-                  const std::vector<string>& _supported_transcoding_relative_paths)
+    explicit fuse(const std::string& _path, const ino_t _ino, const bool _uncached_mode,
+                  const std::vector<string>& _supported_transcoding_relative_paths,
+                  const std::vector<string>& _supported_uncached_relative_paths)
         : path(_path),
           tracker(mediaprovider::fuse::NodeTracker(&lock)),
           root(node::CreateRoot(_path, &lock, _ino, &tracker)),
+          uncached_mode(_uncached_mode),
           mp(0),
           zero_addr(0),
           disable_dentry_cache(false),
           passthrough(false),
           bpf(false),
-          supported_transcoding_relative_paths(_supported_transcoding_relative_paths) {}
+          supported_transcoding_relative_paths(_supported_transcoding_relative_paths),
+          supported_uncached_relative_paths(_supported_uncached_relative_paths) {}
 
     inline bool IsRoot(const node* node) const { return node == root; }
 
@@ -323,12 +326,49 @@ struct fuse {
         return false;
     }
 
+    inline bool IsUncachedPath(const std::string& path) {
+        const std::string base_path = GetEffectiveRootPath() + "/";
+        for (const std::string& relative_path : supported_uncached_relative_paths) {
+            if (android::base::StartsWithIgnoreCase(path, base_path + relative_path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    inline bool ShouldNotCache(const std::string& path) {
+        if (uncached_mode) {
+            // Cache is disabled for the entire volume.
+            return true;
+        }
+
+        if (supported_uncached_relative_paths.empty()) {
+            // By default there is no supported uncached path. Just return early in this case.
+            return false;
+        }
+
+        if (!android::base::StartsWithIgnoreCase(path, PRIMARY_VOLUME_PREFIX)) {
+            // Uncached path config applies only to primary volumes.
+            return false;
+        }
+
+        if (android::base::EndsWith(path, "/")) {
+            return IsUncachedPath(path);
+        } else {
+            // Append a slash at the end to make sure that the exact match is picked up.
+            return IsUncachedPath(path + "/");
+        }
+    }
+
     std::recursive_mutex lock;
     const string path;
     // The Inode tracker associated with this FUSE instance.
     mediaprovider::fuse::NodeTracker tracker;
     node* const root;
     struct fuse_session* se;
+
+    const bool uncached_mode;
 
     /*
      * Used to make JNI calls to MediaProvider.
@@ -355,6 +395,7 @@ struct fuse {
     // FUSE device id.
     std::atomic_uint dev;
     const std::vector<string> supported_transcoding_relative_paths;
+    const std::vector<string> supported_uncached_relative_paths;
 };
 
 struct OpenInfo {
@@ -462,9 +503,9 @@ static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child
 static double get_entry_timeout(const string& path, bool should_inval, struct fuse* fuse) {
     string media_path = fuse->GetEffectiveRootPath() + "/Android/media";
     if (fuse->disable_dentry_cache || should_inval || is_package_owned_path(path, fuse->path) ||
-        android::base::StartsWithIgnoreCase(path, media_path)) {
+        android::base::StartsWithIgnoreCase(path, media_path) || fuse->ShouldNotCache(path)) {
         // We set dentry timeout to 0 for the following reasons:
-        // 1. The dentry cache was completely disabled
+        // 1. The dentry cache was completely disabled for the entire volume.
         // 2.1 Case-insensitive lookups need to invalidate other case-insensitive dentry matches
         // 2.2 Nodes supporting transforms need to be invalidated, so that subsequent lookups by a
         // uid requiring a transform is guaranteed to come to the FUSE daemon.
@@ -474,6 +515,7 @@ static double get_entry_timeout(const string& path, bool should_inval, struct fu
         // 4. Installd might delete Android/media/<package> dirs when app data is cleared.
         // This can leave a stale entry in the kernel dcache, and break subsequent creation of the
         // dir via FUSE.
+        // 5. The dentry cache was completely disabled for the given path.
         return 0;
     }
     return std::numeric_limits<double>::max();
@@ -1340,7 +1382,7 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
                 (redaction_needed && !has_redacted) || (!redaction_needed && has_redacted);
         bool is_cached_file_open = node->HasCachedHandle();
         bool direct_io = open_info_direct_io || (is_cached_file_open && is_redaction_change) ||
-                         is_file_locked(fd, path);
+                         is_file_locked(fd, path) || fuse->ShouldNotCache(path);
 
         if (!is_cached_file_open && is_redaction_change) {
             node->SetRedactedCache(redaction_needed);
@@ -2194,7 +2236,9 @@ bool FuseDaemon::IsStarted() const {
 }
 
 void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
-                       const std::vector<std::string>& supported_transcoding_relative_paths) {
+                       const bool uncached_mode,
+                       const std::vector<std::string>& supported_transcoding_relative_paths,
+                       const std::vector<std::string>& supported_uncached_relative_paths) {
     android::base::SetDefaultTag(LOG_TAG);
 
     struct fuse_args args;
@@ -2219,7 +2263,8 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
         return;
     }
 
-    struct fuse fuse_default(path, stat.st_ino, supported_transcoding_relative_paths);
+    struct fuse fuse_default(path, stat.st_ino, uncached_mode, supported_transcoding_relative_paths,
+                             supported_uncached_relative_paths);
     fuse_default.mp = &mp;
     // fuse_default is stack allocated, but it's safe to save it as an instance variable because
     // this method blocks and FuseDaemon#active tells if we are currently blocking

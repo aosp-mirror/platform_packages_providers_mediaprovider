@@ -2170,6 +2170,16 @@ public final class MediaStore {
             public static final int _SPECIAL_FORMAT_MOTION_PHOTO =
                     CloudMediaProviderContract.MediaColumns.
                             STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO;
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file is an Animated Webp.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_ANIMATED_WEBP =
+                    CloudMediaProviderContract.MediaColumns.
+                            STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP;
         }
     }
 

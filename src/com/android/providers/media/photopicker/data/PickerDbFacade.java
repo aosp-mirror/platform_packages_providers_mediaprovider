@@ -865,13 +865,15 @@ public class PickerDbFacade {
     }
 
     private static boolean isValidStandardMimeTypeExtension(int standardMimeTypeExtension) {
-        return (standardMimeTypeExtension ==
-                CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE) ||
-                (standardMimeTypeExtension ==
-                        CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF) ||
-                (standardMimeTypeExtension ==
-                        CloudMediaProviderContract.MediaColumns.
-                                STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO);
+        switch (standardMimeTypeExtension) {
+            case CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE:
+            case CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF:
+            case CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO:
+            case CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP:
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static String[] buildSelectionArgs(SQLiteQueryBuilder qb, QueryFilter query) {

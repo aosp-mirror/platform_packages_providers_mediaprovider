@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.data.model;
 
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
 
@@ -118,8 +119,16 @@ public class Item {
         return mIsVideo;
     }
 
+    public boolean isGifOrAnimatedWebp() {
+        return isGif() || isAnimatedWebp();
+    }
+
     public boolean isGif() {
         return mSpecialFormat == _SPECIAL_FORMAT_GIF;
+    }
+
+    public boolean isAnimatedWebp() {
+        return mSpecialFormat == _SPECIAL_FORMAT_ANIMATED_WEBP;
     }
 
     public boolean isMotionPhoto() {

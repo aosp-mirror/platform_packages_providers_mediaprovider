@@ -142,6 +142,12 @@ public final class CloudMediaProviderContract {
         public static final int STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO = 2;
 
         /**
+         * Constant for the {@link #STANDARD_MIME_TYPE_EXTENSION} column indicating
+         * that the media item is an Animated Webp.
+         */
+        public static final int STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP = 3;
+
+        /**
          * Size of a media file, in bytes.
          * <p>
          * Type: LONG

@@ -9787,6 +9787,12 @@ public class MediaProvider extends ContentProvider {
         return mTranscodeHelper.getSupportedRelativePaths();
     }
 
+    public List<String> getSupportedUncachedRelativePaths() {
+        return StringUtils.verifySupportedUncachedRelativePaths(
+                       StringUtils.getStringArrayConfig(getContext(),
+                               R.array.config_supported_uncached_relative_paths));
+    }
+
     /**
      * Creating a new method for Transcoding to avoid any merge conflicts.
      * TODO(b/170465810): Remove this when the code is refactored.

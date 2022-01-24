@@ -71,39 +71,49 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
     public void testPreview_singleSelect_image() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        registerBottomSheetStateIdlingResource();
-        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_COLLAPSED);
-        });
+        final BottomSheetIdlingResource bottomSheetIdlingResource =
+                BottomSheetIdlingResource.register(mRule);
 
-        // Navigate to preview
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        try {
+            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_COLLAPSED);
+            });
 
-        registerIdlingResourceAndWaitForIdle();
+            // Navigate to preview
+            longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
-        // No dragBar in preview
-        onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_EXPANDED);
-        });
+            registerIdlingResourceAndWaitForIdle();
 
-        // Verify image is previewed
-        assertSingleSelectCommonLayoutMatches();
-        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
-        // Verify no special format icon is previewed
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
-        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+            // No dragBar in preview
+            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
+            onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
 
-        // Navigate back to Photo grid
-        onView(withContentDescription("Navigate up")).perform(click());
+            // Verify image is previewed
+            assertSingleSelectCommonLayoutMatches();
+            onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+            // Verify no special format icon is previewed
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+            onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
 
-        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-        // Shows dragBar after we are back to Photos tab
-        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_COLLAPSED);
-        });
+            // Navigate back to Photo grid
+            onView(withContentDescription("Navigate up")).perform(click());
+
+            onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+            // Shows dragBar after we are back to Photos tab
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_COLLAPSED);
+            });
+        } finally {
+            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
+        }
     }
 
     @Test
@@ -250,11 +260,6 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
                 new ViewPager2IdlingResource(activity.findViewById(R.id.preview_viewPager)))));
         Espresso.onIdle();
-    }
-
-    private void registerBottomSheetStateIdlingResource() {
-        mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
-                new BottomSheetIdlingResource(activity.findViewById(R.id.bottom_sheet)))));
     }
 
     private void assertBackgroundColorOnToolbarAndBottomBar(Activity activity, int colorResId) {

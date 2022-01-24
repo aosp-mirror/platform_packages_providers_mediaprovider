@@ -278,6 +278,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
@@ -613,6 +614,32 @@ public class MediaProvider extends ContentProvider {
             }
         }
     };
+
+    private BroadcastReceiver mUserIntentReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getAction()) {
+                case Intent.ACTION_USER_REMOVED:
+                    /**
+                     * Removing media files for user being deleted. This would impact if the deleted
+                     * user have been using same MediaProvider as the current user i.e. when
+                     * isMediaSharedWithParent is true.On removal of such user profile,
+                     * the owner's MediaProvider would need to clean any media files stored
+                     * by the removed user profile.
+                     */
+                    UserHandle userToBeRemoved  = intent.getParcelableExtra(Intent.EXTRA_USER);
+                    if(userToBeRemoved.getIdentifier() != sUserId){
+                        mExternalDatabase.runWithTransaction((db) -> {
+                            db.execSQL("delete from files where _user_id=?",
+                                    new String[]{String.valueOf(userToBeRemoved.getIdentifier())});
+                            return null ;
+                        });
+                    }
+                    break;
+            }
+        }
+    };
+
 
     private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
         synchronized (mCachedCallingIdentityForFuse) {
@@ -1014,6 +1041,12 @@ public class MediaProvider extends ContentProvider {
         packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         context.registerReceiver(mPackageReceiver, packageFilter);
 
+        // Creating intent broadcast receiver for user actions like Intent.ACTION_USER_REMOVED,
+        // where we would need to remove files stored by removed user.
+        final IntentFilter userIntentFilter = new IntentFilter();
+        userIntentFilter.addAction(Intent.ACTION_USER_REMOVED);
+        context.registerReceiver(mUserIntentReceiver, userIntentFilter);
+
         // Watch for invalidation of cached volumes
         mStorageManager.registerStorageVolumeCallback(context.getMainExecutor(),
                 new StorageVolumeCallback() {
@@ -1127,7 +1160,6 @@ public class MediaProvider extends ContentProvider {
 
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
         final long startTime = SystemClock.elapsedRealtime();
-
         // Trim any stale log files before we emit new events below
         Logging.trimPersistent();
 
@@ -1174,9 +1206,49 @@ public class MediaProvider extends ContentProvider {
             return DatabaseHelper.getItemCount(db);
         });
 
+        // Cleaning media files for users that have been removed
+        cleanMediaFilesForRemovedUser(signal);
+
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
                 durationMillis, staleThumbnails, deletedExpiredMedia);
+    }
+
+    /**
+     * This function find and clean the files related to user who have been removed
+     */
+    private void cleanMediaFilesForRemovedUser(CancellationSignal signal) {
+        //Finding userIds that are available in database
+        final List<String> userIds = mExternalDatabase.runWithTransaction((db) -> {
+            final List<String> userIdsPresent = new ArrayList<>();
+            try (Cursor c = db.query(true, "files", new String[] { "_user_id" },
+                    null, null, null, null, null,
+                    null, signal)) {
+                while (c.moveToNext()) {
+                    final String userId = c.getString(0);
+                    userIdsPresent.add(userId);
+                }
+            }
+            return userIdsPresent;
+        });
+
+        //removing calling userId
+        userIds.remove(String.valueOf(sUserId));
+        //removing all the valid/existing user, remaining userIds would be users who would have been
+        //removed
+        userIds.removeAll(mUserManager.getEnabledProfiles().stream()
+                .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
+                        Collectors.toList()));
+
+        // Cleaning media files of users who have been removed
+        mExternalDatabase.runWithTransaction((db) -> {
+            userIds.stream().forEach(userId ->{
+                Log.d(TAG, "Removing media files associated with user : " + userId);
+                db.execSQL("delete from files where _user_id=?",
+                        new String[]{String.valueOf(userId)});
+            });
+            return null ;
+        });
     }
 
     private void pruneStalePackages(CancellationSignal signal) {

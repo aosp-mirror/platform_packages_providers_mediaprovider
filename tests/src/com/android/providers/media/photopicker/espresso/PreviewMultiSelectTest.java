@@ -78,44 +78,52 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     @Test
     public void testPreview_multiSelect_common() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-        registerBottomSheetStateIdlingResource();
-        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_EXPANDED);
-        });
+        final BottomSheetIdlingResource bottomSheetIdlingResource =
+                BottomSheetIdlingResource.register(mRule);
 
-        // Select two items and Navigate to preview
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
-        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+        try {
+            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
 
-        registerIdlingResourceAndWaitForIdle();
+            // Select two items and Navigate to preview
+            clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+            clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+            onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
-        // No dragBar in preview
-        onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_EXPANDED);
-        });
+            registerIdlingResourceAndWaitForIdle();
 
-        assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(not(isDisplayed())));
+            // No dragBar in preview
+            onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
 
-        // Verify ImageView is displayed
-        onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
+            assertMultiSelectPreviewCommonLayoutDisplayed();
+            onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(not(isDisplayed())));
 
-        // Click back button and verify we are back to photos tab
-        onView(withContentDescription("Navigate up")).perform(click());
-        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+            // Verify ImageView is displayed
+            onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
 
-        // Shows dragBar after we are back to Photos tab
-        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_EXPANDED);
-        });
+            // Click back button and verify we are back to photos tab
+            onView(withContentDescription("Navigate up")).perform(click());
+            onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // Swiping down on drag bar or toolbar is not closing the bottom sheet as closing the
-        // bottomsheet requires a stronger downward swipe.
-        onView(withId(R.id.bottom_sheet)).perform(ViewActions.swipeDown());
+            // Shows dragBar after we are back to Photos tab
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
+
+            // Swiping down on drag bar or toolbar is not closing the bottom sheet as closing the
+            // bottomsheet requires a stronger downward swipe.
+            onView(withId(R.id.bottom_sheet)).perform(ViewActions.swipeDown());
+        } finally {
+            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
+        }
+
         assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
                 Activity.RESULT_CANCELED);
     }
@@ -421,10 +429,5 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
                 new ViewPager2IdlingResource(activity.findViewById(PREVIEW_VIEW_PAGER_ID)))));
         Espresso.onIdle();
-    }
-
-    private void registerBottomSheetStateIdlingResource() {
-        mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
-                new BottomSheetIdlingResource(activity.findViewById(R.id.bottom_sheet)))));
     }
 }

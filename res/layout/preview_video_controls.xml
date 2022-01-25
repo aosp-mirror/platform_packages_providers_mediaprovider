@@ -13,17 +13,28 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@id/exo_center_controls"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_gravity="center"
-    android:background="@android:color/transparent"
-    android:gravity="center"
-    android:padding="@dimen/exo_styled_controls_padding"
-    android:clipToPadding="false">
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@id/exo_center_controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@android:color/transparent"
+        android:gravity="center"
+        android:padding="@dimen/exo_styled_controls_padding"
+        android:clipToPadding="false">
 
-    <ImageButton android:id="@id/exo_play_pause"
-        style="@style/ExoStyledControls.Button.Center.PlayPause"/>
+       <ImageButton android:id="@id/exo_play_pause"
+           style="@style/ExoStyledControls.Button.Center.PlayPause"/>
+    </FrameLayout>
 
-</FrameLayout>
+    <ImageButton android:id="@+id/preview_mute"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:src="@drawable/preview_mute"
+        android:layout_gravity="end|bottom"
+        android:layout_marginTop="@dimen/exo_styled_bottom_bar_margin_top"
+        android:layout_marginEnd="@dimen/preview_mute_marginEnd"
+        android:layout_marginBottom="@dimen/preview_mute_marginBottom"
+        android:background="@android:color/transparent" />
+</merge>

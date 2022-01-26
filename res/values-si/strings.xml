@@ -54,8 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"කාර්යාල යෙදුමකින් පුද්ගලික දත්තවලට ප්‍රවේශ වීමට අවසර නොදේ"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"කාර්යාල යෙදුම් විරාම කර ඇත"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"කාර්යාල ඡායාරූප විවෘත කිරීමට, ඔබගේ කාර්යාල යෙදුම් ක්‍රියාත්මක කර නැවත උත්සාහ කරන්න"</string>
-    <!-- no translation found for picker_privacy_message (9132700451027116817) -->
-    <skip />
+    <string name="picker_privacy_message" msgid="9132700451027116817">"මෙම යෙදුමට ප්‍රවේශ විය හැක්කේ ඔබ තෝරන ඡායාරූපවලට පමණි"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{අයිතම <xliff:g id="COUNT_0">^1</xliff:g>}one{අයිතම <xliff:g id="COUNT_1">^1</xliff:g>}other{අයිතම <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"එක් කරන්න (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"කැමරාව"</string>

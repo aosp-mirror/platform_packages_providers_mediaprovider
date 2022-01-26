@@ -27,9 +27,11 @@ import com.google.errorprone.bugpatterns.BugChecker.SwitchTreeMatcher;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
 import com.google.errorprone.matchers.Matchers;
+import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.SwitchTree;
+import com.sun.tools.javac.code.Type;
 
 import java.util.function.Predicate;
 
@@ -70,6 +72,12 @@ public final class MimeTypeChecker extends BugChecker
 
     @Override
     public Description matchSwitch(SwitchTree tree, VisitorState state) {
+        // Ignore non-string switch-case
+        final Type switchType = ASTHelpers.getType(tree.getExpression());
+        if (switchType != null && !String.class.getName().equals(switchType.toString())) {
+            return Description.NO_MATCH;
+        }
+
         if (MIME_WITHOUT_CASE_FOLDING.matches(tree.getExpression(), state)) {
             return buildDescription(tree).setMessage(MESSAGE).build();
         }
@@ -85,9 +93,8 @@ public final class MimeTypeChecker extends BugChecker
         public boolean matches(ExpressionTree tree, VisitorState state) {
             // This is a pretty rough way to match raw names, but it works
             final String string = tree.toString();
-            return string.toLowerCase().contains("mime") && !string.toLowerCase().contains(
-                    "standardmimetypeextension") && !string.contains("toUpperCase")
-                    && !string.contains("toLowerCase");
+            return string.toLowerCase().contains("mime") &&
+                    !string.contains("toUpperCase") && !string.contains("toLowerCase");
         }
 
         @Override

@@ -68,6 +68,7 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         onView(withId(R.id.toolbar)).check(matches(isDisplayed()));
         onView(withId(R.id.fragment_container)).check(matches(isDisplayed()));
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+        onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
         onView(withId(android.R.id.empty)).check(matches(not(isDisplayed())));
         onView(withContentDescription("Navigate up")).perform(click());
         assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
@@ -85,6 +86,7 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
             // Single select PhotoPicker is launched in partial screen mode
             bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
             onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_COLLAPSED);
             });
@@ -93,7 +95,7 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
 
             // Swipe up and check that the PhotoPicker is in full screen mode
             bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
-            onView(withId(DRAG_BAR_ID)).perform(ViewActions.swipeUp());
+            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_EXPANDED);
             });
@@ -134,20 +136,21 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
             // Single select PhotoPicker is launched in partial screen mode
             bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
             onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_COLLAPSED);
             });
 
             // Swipe up and check that the PhotoPicker is in full screen mode
             bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
-            onView(withId(DRAG_BAR_ID)).perform(ViewActions.swipeUp());
+            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_EXPANDED);
             });
 
             // Swipe down and check that the PhotoPicker is in partial screen mode
             bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            onView(withId(DRAG_BAR_ID)).perform(ViewActions.swipeDown());
+            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeDown());
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_COLLAPSED);
             });

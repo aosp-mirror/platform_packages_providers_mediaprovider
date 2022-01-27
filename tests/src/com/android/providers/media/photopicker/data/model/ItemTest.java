@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.data.model;
 
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
@@ -27,11 +28,9 @@ import static com.google.common.truth.Truth.assertThat;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.UserHandle;
 import android.provider.MediaStore;
 
-import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Test;
@@ -64,7 +63,7 @@ public class ItemTest {
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isTrue();
         assertThat(item.isVideo()).isFalse();
-        assertThat(item.isGif()).isFalse();
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
     }
 
@@ -90,10 +89,11 @@ public class ItemTest {
         assertThat(item.getDuration()).isEqualTo(duration);
         assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://10@media/external/file/1"));
 
-        assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isTrue();
+
+        assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
-        assertThat(item.isGif()).isFalse();
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
     }
 
@@ -107,9 +107,10 @@ public class ItemTest {
         final Item item = generateItem(id, mimeType, dateTaken, generationModified, duration);
 
         assertThat(item.isImage()).isTrue();
+
         assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
-        assertThat(item.isGif()).isFalse();
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
     }
 
@@ -123,9 +124,10 @@ public class ItemTest {
         final Item item = generateItem(id, mimeType, dateTaken, generationModified, duration);
 
         assertThat(item.isVideo()).isTrue();
+
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isFalse();
-        assertThat(item.isGif()).isFalse();
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
     }
 
@@ -141,25 +143,40 @@ public class ItemTest {
 
         assertThat(item.isMotionPhoto()).isTrue();
         assertThat(item.isImage()).isTrue();
-        assertThat(item.isGif()).isFalse();
+
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
     }
 
     @Test
-    public void testIsGif() {
+    public void testIsGifOrAnimatedWebp() {
         final String id = "1";
         final long dateTaken = 12345678L;
         final long generationModified = 1L;
         final String mimeType = "image/jpeg";
         final long duration = 1000;
-        final Item item = generateSpecialFormatItem(id, mimeType, dateTaken, generationModified,
+        final Item gifItem = generateSpecialFormatItem(id, mimeType, dateTaken, generationModified,
                 duration, _SPECIAL_FORMAT_GIF);
 
-        assertThat(item.isGif()).isTrue();
-        assertThat(item.isDate()).isFalse();
-        assertThat(item.isImage()).isTrue();
-        assertThat(item.isVideo()).isFalse();
+        assertThat(gifItem.isGifOrAnimatedWebp()).isTrue();
+        assertThat(gifItem.isGif()).isTrue();
+        assertThat(gifItem.isImage()).isTrue();
+
+        assertThat(gifItem.isAnimatedWebp()).isFalse();
+        assertThat(gifItem.isDate()).isFalse();
+        assertThat(gifItem.isVideo()).isFalse();
+
+        final Item animatedWebpItem = generateSpecialFormatItem(id, mimeType, dateTaken,
+                generationModified, duration, _SPECIAL_FORMAT_ANIMATED_WEBP);
+
+        assertThat(animatedWebpItem.isGifOrAnimatedWebp()).isTrue();
+        assertThat(animatedWebpItem.isAnimatedWebp()).isTrue();
+        assertThat(animatedWebpItem.isImage()).isTrue();
+
+        assertThat(animatedWebpItem.isGif()).isFalse();
+        assertThat(animatedWebpItem.isDate()).isFalse();
+        assertThat(animatedWebpItem.isVideo()).isFalse();
     }
 
     @Test
@@ -173,7 +190,8 @@ public class ItemTest {
                 duration, _SPECIAL_FORMAT_NONE);
 
         assertThat(item.isImage()).isTrue();
-        assertThat(item.isGif()).isFalse();
+
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();

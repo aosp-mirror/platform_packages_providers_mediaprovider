@@ -80,6 +80,7 @@ public class PickerProviderMediaGenerator {
         private String mAccountName;
         private Intent mAccountConfigurationIntent;
 
+        // TODO(b/214592293): Add pagination support for testing purposes.
         public Cursor getMedia(long generation, String albumdId, String mimeType, long sizeBytes) {
             return getCursor(mMedia, generation, albumdId, mimeType, sizeBytes,
                     /* isDeleted */ false);
@@ -89,6 +90,7 @@ public class PickerProviderMediaGenerator {
             return getCursor(mAlbums, mimeType, sizeBytes, isLocal);
         }
 
+        // TODO(b/214592293): Add pagination support for testing purposes.
         public Cursor getDeletedMedia(long generation) {
             return getCursor(mDeletedMedia, generation, /* albumId */ STRING_DEFAULT,
                     /* mimeType */ STRING_DEFAULT, /* sizeBytes */ LONG_DEFAULT,

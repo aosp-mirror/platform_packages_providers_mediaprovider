@@ -16,7 +16,14 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.BLOCKED_BY_ADMIN_TITLE;
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.BLOCKED_FROM_PERSONAL_MESSAGE;
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.BLOCKED_FROM_WORK_MESSAGE;
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.WORK_PROFILE_PAUSED_MESSAGE;
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.WORK_PROFILE_PAUSED_TITLE;
+
 import android.app.Dialog;
+import android.app.admin.DevicePolicyManager;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -41,20 +48,30 @@ public class ProfileDialogFragment extends DialogFragment {
         final PickerViewModel pickerViewModel = new ViewModelProvider(requireActivity()).get(
                 PickerViewModel.class);
         final UserIdManager userIdManager = pickerViewModel.getUserIdManager();
+        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
 
         final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getActivity());
         if (userIdManager.isBlockedByAdmin()) {
             builder.setIcon(R.drawable.ic_lock);
-            builder.setTitle(getString(R.string.picker_profile_admin_title));
-            final String message = userIdManager.isManagedUserSelected() ?
-                    getString(R.string.picker_profile_admin_msg_from_work) :
-                    getString(R.string.picker_profile_admin_msg_from_personal);
+
+            builder.setTitle(dpm.getString(BLOCKED_BY_ADMIN_TITLE, () ->
+                    getString(R.string.picker_profile_admin_title)));
+
+            final String message = userIdManager.isManagedUserSelected()
+                    ? dpm.getString(BLOCKED_FROM_WORK_MESSAGE, () ->
+                            getString(R.string.picker_profile_admin_msg_from_work))
+                    : dpm.getString(BLOCKED_FROM_PERSONAL_MESSAGE, () ->
+                            getString(R.string.picker_profile_admin_msg_from_personal));
+
             builder.setMessage(message);
             builder.setPositiveButton(android.R.string.ok, null);
         } else if (userIdManager.isWorkProfileOff()) {
             builder.setIcon(R.drawable.ic_work_outline);
-            builder.setTitle(getString(R.string.picker_profile_work_paused_title));
-            builder.setMessage(getString(R.string.picker_profile_work_paused_msg));
+
+            builder.setTitle(dpm.getString(WORK_PROFILE_PAUSED_TITLE, () ->
+                    getString(R.string.picker_profile_work_paused_title)));
+            builder.setMessage(dpm.getString(WORK_PROFILE_PAUSED_MESSAGE, () ->
+                    getString(R.string.picker_profile_work_paused_msg)));
             // TODO(b/197199728): Add listener to turn on apps. This maybe a bit tricky because
             // after turning on Work profile, work profile MediaProvider may not be available
             // immediately.

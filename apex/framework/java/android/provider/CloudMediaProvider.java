@@ -183,7 +183,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
     /**
      * Returns a cursor representing all media items in the media collection optionally filtered by
      * {@code extras} and sorted in reverse chronological order of
-     * {@link CloudMediaProviderContract.MediaColumns#DATE_TAKEN_MS}, i.e. most recent items first.
+     * {@link CloudMediaProviderContract.MediaColumns#DATE_TAKEN_MILLIS}, i.e. most recent items
+     * first.
      * <p>
      * If the cloud media provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
@@ -226,7 +227,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
     /**
      * Returns a cursor representing all album items in the media collection optionally filtered
      * by {@code extras} and sorted in reverse chronological order of
-     * {@link CloudMediaProviderContract.AlbumColumns#DATE_TAKEN_MS}, i.e. most recent items first.
+     * {@link CloudMediaProviderContract.AlbumColumns#DATE_TAKEN_MILLIS}, i.e. most recent items
+     * first.
      * <p>
      * If the provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
@@ -247,7 +249,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
     }
 
     /**
-     * Returns a thumbnail of {@code size} for a media item identified by {@code mediaId}.
+     * Returns a preview of {@code size} for a media item identified by {@code mediaId}.
      * <p>
      * This is expected to be a much lower resolution version than the item returned by
      * {@link #onOpenMedia}.
@@ -260,15 +262,20 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * have to match the {@code size} precisely because the OS will adjust the dimensions before
      * usage. Implementations can return close approximations especially if the approximation is
      * already locally on the device and doesn't require downloading from the cloud.
+     * @param extras to modify the way the fd is opened, e.g. for video files we may request a
+     * thumbnail image instead of a video with
+     * {@link CloudMediaProviderContract#EXTRA_PREVIEW_THUMBNAIL}
      * @param signal used by the OS to signal if the request should be cancelled
      * @return read-only file descriptor for accessing the thumbnail for the media file
      *
      * @see #onOpenMedia
+     * @see CloudMediaProviderContract#EXTRA_PREVIEW_THUMBNAIL
      */
     @SuppressWarnings("unused")
     @NonNull
-    public abstract AssetFileDescriptor onOpenThumbnail(@NonNull String mediaId,
-            @NonNull Point size, @Nullable CancellationSignal signal) throws FileNotFoundException;
+    public abstract AssetFileDescriptor onOpenPreview(@NonNull String mediaId,
+            @NonNull Point size, @Nullable Bundle extras, @Nullable CancellationSignal signal)
+            throws FileNotFoundException;
 
     /**
      * Returns the full size media item identified by {@code mediaId}.
@@ -277,15 +284,18 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * {@link CancellationSignal#isCanceled()} to abort abandoned open requests.
      *
      * @param mediaId the media item to return
+     * @param extras to modify the way the fd is opened, there's none at the moment, but some
+     * might be implemented in the future
      * @param signal used by the OS to signal if the request should be cancelled
      * @return read-only file descriptor for accessing the media file
      *
-     * @see #onOpenThumbnail
+     * @see #onOpenPreview
      */
     @SuppressWarnings("unused")
     @NonNull
     public abstract ParcelFileDescriptor onOpenMedia(@NonNull String mediaId,
-            @Nullable CancellationSignal signal) throws FileNotFoundException;
+            @Nullable Bundle extras, @Nullable CancellationSignal signal)
+            throws FileNotFoundException;
 
     /**
      * Returns a {@link SurfaceController} used for rendering the preview of media items, or null
@@ -366,13 +376,13 @@ public abstract class CloudMediaProvider extends ContentProvider {
             @Nullable CancellationSignal signal) throws FileNotFoundException {
         String mediaId = uri.getLastPathSegment();
 
-        return onOpenMedia(mediaId, signal);
+        return onOpenMedia(mediaId, /* extras */ null, signal);
     }
 
     /**
      * Implementation is provided by the parent class. Cannot be overridden.
      *
-     * @see #onOpenThumbnail
+     * @see #onOpenPreview
      * @see #onOpenMedia
      */
     @NonNull
@@ -385,7 +395,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
     /**
      * Implementation is provided by the parent class. Cannot be overridden.
      *
-     * @see #onOpenThumbnail
+     * @see #onOpenPreview
      * @see #onOpenMedia
      */
     @NonNull
@@ -398,9 +408,9 @@ public abstract class CloudMediaProvider extends ContentProvider {
                 && mimeTypeFilter.startsWith("image/");
         if (wantsThumb) {
             Point point = (Point) opts.getParcelable(ContentResolver.EXTRA_SIZE);
-            return onOpenThumbnail(mediaId, point, signal);
+            return onOpenPreview(mediaId, point, opts, signal);
         }
-        return new AssetFileDescriptor(onOpenMedia(mediaId, signal), 0 /* startOffset */,
+        return new AssetFileDescriptor(onOpenMedia(mediaId, opts, signal), 0 /* startOffset */,
                 AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 

@@ -113,8 +113,9 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     }
 
     @Override
-    public AssetFileDescriptor onOpenThumbnail(@NonNull String mediaId, @NonNull Point size,
-            @NonNull CancellationSignal signal) throws FileNotFoundException {
+    public AssetFileDescriptor onOpenPreview(@NonNull String mediaId, @NonNull Point size,
+            @NonNull Bundle extras, @NonNull CancellationSignal signal)
+            throws FileNotFoundException {
         final Bundle opts = new Bundle();
         opts.putParcelable(ContentResolver.EXTRA_SIZE, size);
 
@@ -128,7 +129,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
 
     @Override
     public ParcelFileDescriptor onOpenMedia(@NonNull String mediaId,
-            @NonNull CancellationSignal signal)
+            @NonNull Bundle extras, @NonNull CancellationSignal signal)
             throws FileNotFoundException {
         final LocalCallingIdentity token = mMediaProvider.clearLocalCallingIdentity();
         try {

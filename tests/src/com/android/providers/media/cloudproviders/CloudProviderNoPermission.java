@@ -16,9 +16,6 @@
 
 package com.android.providers.media.cloudproviders;
 
-import static android.provider.CloudMediaProviderContract.MediaInfo;
-import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
-
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Point;

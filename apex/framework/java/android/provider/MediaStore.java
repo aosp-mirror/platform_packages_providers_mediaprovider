@@ -254,6 +254,8 @@ public final class MediaStore {
     public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
     /** {@hide} */
     public static final String EXTRA_NOTIFY_CLOUD_EVENT_RESULT = "notify_cloud_event_result";
+    /** {@hide} */
+    public static final String CREATE_SURFACE_CONTROLLER = "create_surface_controller";
 
     /** {@hide} */
     public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;

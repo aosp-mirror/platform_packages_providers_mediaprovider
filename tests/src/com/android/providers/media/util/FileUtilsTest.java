@@ -1166,4 +1166,38 @@ public class FileUtilsTest {
         assertThat(toFuseFile(unexpectedFile)).isEqualTo(unexpectedFile);
         assertThat(fromFuseFile(unexpectedFile)).isEqualTo(unexpectedFile);
     }
+
+    @Test
+    public void testComputeValuesFromData() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DATA, "/storage/emulated/0/Pictures/foo.jpg");
+
+        FileUtils.computeValuesFromData(values, false);
+
+        assertEquals("external_primary", values.getAsString(MediaColumns.VOLUME_NAME));
+        assertEquals("Pictures/", values.getAsString(MediaColumns.RELATIVE_PATH));
+        assertEquals(0, (int) values.getAsInteger(MediaColumns.IS_TRASHED));
+        assertTrue(values.containsKey(MediaColumns.DATE_EXPIRES));
+        assertNull(values.get(MediaColumns.DATE_EXPIRES));
+        assertEquals("foo.jpg", values.getAsString(MediaColumns.DISPLAY_NAME));
+        assertTrue(values.containsKey(MediaColumns.BUCKET_DISPLAY_NAME));
+        assertEquals("Pictures", values.get(MediaColumns.BUCKET_DISPLAY_NAME));
+    }
+
+    @Test
+    public void testComputeValuesFromData_withTopLevelFile() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DATA, "/storage/emulated/0/foo.jpg");
+
+        FileUtils.computeValuesFromData(values, false);
+
+        assertEquals("external_primary", values.getAsString(MediaColumns.VOLUME_NAME));
+        assertEquals("/", values.getAsString(MediaColumns.RELATIVE_PATH));
+        assertEquals(0, (int) values.getAsInteger(MediaColumns.IS_TRASHED));
+        assertTrue(values.containsKey(MediaColumns.DATE_EXPIRES));
+        assertNull(values.get(MediaColumns.DATE_EXPIRES));
+        assertEquals("foo.jpg", values.getAsString(MediaColumns.DISPLAY_NAME));
+        assertTrue(values.containsKey(MediaColumns.BUCKET_DISPLAY_NAME));
+        assertNull(values.get(MediaColumns.BUCKET_DISPLAY_NAME));
+    }
 }

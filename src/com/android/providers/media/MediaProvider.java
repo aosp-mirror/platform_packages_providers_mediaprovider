@@ -173,7 +173,6 @@ import android.os.storage.StorageManager.StorageVolumeCallback;
 import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
-import android.provider.CloudMediaProviderContract;
 import android.provider.Column;
 import android.provider.DeviceConfig;
 import android.provider.DeviceConfig.OnPropertiesChangedListener;
@@ -212,8 +211,8 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.BackgroundThread;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
@@ -7616,7 +7615,16 @@ public class MediaProvider extends ContentProvider {
 
     private AssetFileDescriptor openTypedAssetFileCommon(Uri uri, String mimeTypeFilter,
             Bundle opts, CancellationSignal signal) throws FileNotFoundException {
-        uri = safeUncanonicalize(uri);
+        final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
+                && StringUtils.startsWithIgnoreCase(mimeTypeFilter, "image/");
+        String mode = "r";
+
+        // If request is not for thumbnail and arising from MediaProvider, then check for EXTRA_MODE
+        if (opts != null && !wantsThumb && isCallingPackageSelf()) {
+            mode = opts.getString(MediaStore.EXTRA_MODE, "r");
+        } else if (opts != null) {
+            opts.remove(MediaStore.EXTRA_MODE);
+        }
 
         if (opts != null && opts.containsKey(MediaStore.EXTRA_FILE_DESCRIPTOR)) {
             // This is called as part of MediaStore#getOriginalMediaFormatFileDescriptor
@@ -7644,15 +7652,13 @@ public class MediaProvider extends ContentProvider {
         // TODO: enforce that caller has access to this uri
 
         // Offer thumbnail of media, when requested
-        final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
-                && StringUtils.startsWithIgnoreCase(mimeTypeFilter, "image/");
         if (wantsThumb) {
             final ParcelFileDescriptor pfd = ensureThumbnail(uri, signal);
             return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
         }
 
         // Worst case, return the underlying file
-        return new AssetFileDescriptor(openFileCommon(uri, "r", signal, opts), 0,
+        return new AssetFileDescriptor(openFileCommon(uri, mode, signal, opts), 0,
                 AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 

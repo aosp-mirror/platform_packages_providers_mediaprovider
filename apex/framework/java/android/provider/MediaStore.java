@@ -801,6 +801,13 @@ public final class MediaStore {
             "android.provider.extra.MEDIA_CAPABILITIES_UID";
 
     /**
+     * Flag used to set file mode in bundle for opening a document.
+     *
+     * @hide
+     */
+    public static final String EXTRA_MODE = "android.provider.extra.MODE";
+
+    /**
       * The string that is used when a media attribute is not known. For example,
       * if an audio file does not have any meta data, the artist and album columns
       * will be set to this value.

@@ -45,6 +45,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
+import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.net.Uri;
@@ -58,6 +59,9 @@ import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.system.ErrnoException;
+import android.system.Os;
+import android.system.OsConstants;
 import android.util.ArrayMap;
 import android.util.Log;
 
@@ -82,7 +86,9 @@ import org.junit.runner.RunWith;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -99,6 +105,7 @@ public class MediaProviderTest {
     static final String PERMISSIONLESS_APP = "com.android.providers.media.testapp.withoutperms";
 
     private static Context sIsolatedContext;
+    private static Context sContext;
     private static ContentResolver sIsolatedResolver;
 
     @BeforeClass
@@ -1559,6 +1566,32 @@ public class MediaProviderTest {
         testRedactionForFileExtension(R.raw.lg_g4_iso_800_jpg, ".jpg");
     }
 
+    @Test
+    public void testOpenTypedAssetFile_setModeInBundle_failsWrite() throws IOException {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+        final File file = new File(dir, "test" + System.nanoTime() + ".txt");
+        stage(R.raw.test_txt, file);
+        Uri mediaUri = MediaStore.scanFile(sContext.getContentResolver(), file);
+        Bundle opts = new Bundle();
+        opts.putString(MediaStore.EXTRA_MODE, "w");
+
+        try {
+            AssetFileDescriptor afd = sContext.getContentResolver().openTypedAssetFile(mediaUri,
+                    "*/*", opts, null);
+            String rawText = "Hello";
+            Os.write(afd.getFileDescriptor(), rawText.getBytes(StandardCharsets.UTF_8),
+                    0, rawText.length());
+            fail("Expected failure in write to fail with ErrnoException.");
+        } catch (ErrnoException expected) {
+            // Expecting ErrnoException: Bad File Descriptor. Mode set in bundle would not be
+            // respected if calling app is not MediaProvider itself.
+            assertThat(expected.errno).isEqualTo(OsConstants.EBADF);
+        } finally {
+            file.delete();
+        }
+    }
+
     private void testRedactionForFileExtension(int resId, String extension) throws Exception {
         final File dir = Environment
                 .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -1596,8 +1629,8 @@ public class MediaProviderTest {
             MediaStore.waitForIdle(sIsolatedResolver);
         }
 
-        final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
+        sContext = InstrumentationRegistry.getTargetContext();
+        sIsolatedContext = new IsolatedContext(sContext, "modern", /*asFuseThread*/ false);
         sIsolatedResolver = sIsolatedContext.getContentResolver();
     }
 }

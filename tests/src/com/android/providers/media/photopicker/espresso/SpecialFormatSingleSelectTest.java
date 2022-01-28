@@ -23,10 +23,13 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.BottomSheetTestUtils.assertBottomSheetState;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotDisplayed;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
+
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.hamcrest.Matchers.not;
@@ -38,6 +41,7 @@ import android.provider.MediaStore;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.IdlingRegistry;
+import androidx.test.espresso.action.ViewActions;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.providers.media.R;
@@ -135,32 +139,66 @@ public class SpecialFormatSingleSelectTest extends PhotoPickerBaseTest {
     public void testPreview_singleSelect_gif() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // Navigate to preview
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
+        // Register bottom sheet idling resource so that we don't read bottom sheet state when
+        // in between changing states
+        final BottomSheetIdlingResource bottomSheetIdlingResource =
+                BottomSheetIdlingResource.register(mRule);
 
-        registerIdlingResourceAndWaitForIdle();
+        try {
+            // Swipe up and check that the PhotoPicker is in full screen mode to make sure all items
+            // are shown in the screen
+            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
+            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
 
-        // Verify gif icon is displayed for gif preview
-        assertSingleSelectCommonLayoutMatches();
-        onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+            // Navigate to preview
+            longClickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
+
+            registerIdlingResourceAndWaitForIdle();
+
+            // Verify gif icon is displayed for gif preview
+            assertSingleSelectCommonLayoutMatches();
+            onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
+            onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        } finally {
+            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
+        }
     }
 
     @Test
     public void testPreview_singleSelect_motionPhoto() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // Navigate to preview
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_THUMBNAIL_ID);
+        // Register bottom sheet idling resource so that we don't read bottom sheet state when
+        // in between changing states
+        final BottomSheetIdlingResource bottomSheetIdlingResource =
+                BottomSheetIdlingResource.register(mRule);
 
-        registerIdlingResourceAndWaitForIdle();
+        try {
+            // Swipe up and check that the PhotoPicker is in full screen mode to make sure all items
+            // are shown in the screen
+            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
+            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
 
-        // Verify motion photo icon is displayed for motion photo preview
-        assertSingleSelectCommonLayoutMatches();
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
-        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+            // Navigate to preview
+            longClickItem(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_THUMBNAIL_ID);
+
+            registerIdlingResourceAndWaitForIdle();
+
+            // Verify motion photo icon is displayed for motion photo preview
+            assertSingleSelectCommonLayoutMatches();
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(matches(isDisplayed()));
+            onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+            onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+        } finally {
+            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
+        }
     }
 
     private static void createFile(File file, int resId) throws IOException {

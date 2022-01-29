@@ -17,13 +17,8 @@
 package com.android.providers.media.photopicker;
 
 import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_CLOUD;
-import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_FAVORITES;
-import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_LOCAL;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 import static com.android.providers.media.photopicker.PickerSyncController.CloudProviderInfo;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 import static com.google.common.truth.Truth.assertThat;
@@ -45,8 +40,6 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Item;
 
 import java.io.File;
 import java.util.List;

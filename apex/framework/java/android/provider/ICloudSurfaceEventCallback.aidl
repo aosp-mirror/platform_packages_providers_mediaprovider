@@ -16,25 +16,12 @@
 
 package android.provider;
 
-import android.view.Surface;
+import android.os.Bundle;
 
 /**
+ * Interface through which Photo Picker receives playback events from the CloudMediaProviders
  * @hide
  */
-interface ICloudMediaSurfaceController {
-
-    void onPlayerCreate();
-    void onPlayerRelease();
-
-    void onSurfaceCreated(int surfaceId, in Surface surface, @utf8InCpp String mediaId);
-    void onSurfaceChanged(int surfaceId, int format, int width, int height);
-    void onSurfaceDestroyed(int surfaceId);
-
-    void onMediaPlay(int surfaceId);
-    void onMediaPause(int surfaceId);
-    void onMediaSeekTo(int surfaceId, long timestampMillis);
-
-    void onConfigChange(in Bundle config);
-
-    void onDestroy();
+interface ICloudSurfaceEventCallback {
+    void onPlaybackEvent(int surfaceId, int eventType, in Bundle eventInfo);
 }

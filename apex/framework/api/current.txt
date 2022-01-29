@@ -9,10 +9,11 @@ package android.provider {
     method public final int delete(@NonNull android.net.Uri, @Nullable String, @Nullable String[]);
     method @NonNull public final String getType(@NonNull android.net.Uri);
     method @NonNull public final android.net.Uri insert(@NonNull android.net.Uri, @NonNull android.content.ContentValues);
+    method @Nullable public android.provider.CloudMediaProvider.SurfaceController onCreateSurfaceController(@Nullable android.os.Bundle);
     method @NonNull public android.os.Bundle onGetAccountInfo(@Nullable android.os.Bundle);
     method @NonNull public abstract android.os.Bundle onGetMediaInfo(@Nullable android.os.Bundle);
-    method @NonNull public abstract android.os.ParcelFileDescriptor onOpenMedia(@NonNull String, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
-    method @NonNull public abstract android.content.res.AssetFileDescriptor onOpenThumbnail(@NonNull String, @NonNull android.graphics.Point, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
+    method @NonNull public abstract android.os.ParcelFileDescriptor onOpenMedia(@NonNull String, @Nullable android.os.Bundle, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
+    method @NonNull public abstract android.content.res.AssetFileDescriptor onOpenPreview(@NonNull String, @NonNull android.graphics.Point, @Nullable android.os.Bundle, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
     method @NonNull public android.database.Cursor onQueryAlbums(@Nullable android.os.Bundle);
     method @NonNull public abstract android.database.Cursor onQueryDeletedMedia(@Nullable android.os.Bundle);
     method @NonNull public abstract android.database.Cursor onQueryMedia(@NonNull String);
@@ -27,12 +28,26 @@ package android.provider {
     method public final int update(@NonNull android.net.Uri, @NonNull android.content.ContentValues, @Nullable String, @Nullable String[]);
   }
 
+  public abstract static class CloudMediaProvider.SurfaceController {
+    ctor public CloudMediaProvider.SurfaceController();
+    method public abstract void onDestroy();
+    method public abstract void onMediaPause(int);
+    method public abstract void onMediaPlay(int);
+    method public abstract void onMediaSeekTo(int, long);
+    method public abstract void onPlayerCreate();
+    method public abstract void onPlayerRelease();
+    method public abstract void onSurfaceChanged(int, int, int, int);
+    method public abstract void onSurfaceCreated(int, @NonNull android.view.Surface, @NonNull String);
+    method public abstract void onSurfaceDestroyed(int);
+  }
+
   public final class CloudMediaProviderContract {
     field public static final String EXTRA_FILTER_ALBUM = "android.provider.extra.FILTER_ALBUM";
-    field public static final String EXTRA_FILTER_MIMETYPE = "android.provider.extra.FILTER_MIMETYPE";
-    field public static final String EXTRA_FILTER_SIZE_BYTES = "android.provider.extra.FILTER_SIZE_BYTES";
+    field public static final String EXTRA_FILTER_MIME_TYPE = "android.provider.extra.FILTER_MIME_TYPE";
     field public static final String EXTRA_GENERATION = "android.provider.extra.GENERATION";
+    field public static final String EXTRA_LOOPING_PLAYBACK_ENABLED = "android.provider.extra.LOOPING_PLAYBACK_ENABLED";
     field public static final String EXTRA_PAGE_TOKEN = "android.provider.extra.PAGE_TOKEN";
+    field public static final String EXTRA_PREVIEW_THUMBNAIL = "android.provider.extra.PREVIEW_THUMBNAIL";
     field public static final String MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION = "com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS";
     field public static final String PROVIDER_INTERFACE = "android.content.action.CLOUD_MEDIA_PROVIDER";
   }
@@ -43,7 +58,7 @@ package android.provider {
   }
 
   public static final class CloudMediaProviderContract.AlbumColumns {
-    field public static final String DATE_TAKEN_MS = "date_taken_ms";
+    field public static final String DATE_TAKEN_MILLIS = "date_taken_millis";
     field public static final String DISPLAY_NAME = "display_name";
     field public static final String ID = "id";
     field public static final String MEDIA_COUNT = "album_media_count";
@@ -51,8 +66,8 @@ package android.provider {
   }
 
   public static final class CloudMediaProviderContract.MediaColumns {
-    field public static final String DATE_TAKEN_MS = "date_taken_ms";
-    field public static final String DURATION_MS = "duration_ms";
+    field public static final String DATE_TAKEN_MILLIS = "date_taken_millis";
+    field public static final String DURATION_MILLIS = "duration_millis";
     field public static final String GENERATION_MODIFIED = "generation_modified";
     field public static final String ID = "id";
     field public static final String IS_FAVORITE = "is_favorite";

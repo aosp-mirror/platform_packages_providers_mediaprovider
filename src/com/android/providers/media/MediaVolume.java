@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import android.annotation.SuppressLint;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.UserHandle;
@@ -128,6 +129,12 @@ public final class MediaVolume implements Parcelable {
         return mUser == null || user.equals(mUser);
     }
 
+    /**
+     * Adding NewApi Suppress Lint to fix some build errors after making
+     * {@link StorageVolume#getOwner()} a public Api
+     */
+    // TODO(b/213658045) : Remove this once the related changes are submitted.
+    @SuppressLint("NewApi")
     @NonNull
     public static MediaVolume fromStorageVolume(StorageVolume storageVolume) {
         String name = storageVolume.getMediaStoreVolumeName();

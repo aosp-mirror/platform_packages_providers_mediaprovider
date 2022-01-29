@@ -254,6 +254,8 @@ public final class MediaStore {
     public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
     /** {@hide} */
     public static final String EXTRA_NOTIFY_CLOUD_EVENT_RESULT = "notify_cloud_event_result";
+    /** {@hide} */
+    public static final String CREATE_SURFACE_CONTROLLER = "create_surface_controller";
 
     /** {@hide} */
     public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
@@ -797,6 +799,13 @@ public final class MediaStore {
      */
     public static final String EXTRA_MEDIA_CAPABILITIES_UID =
             "android.provider.extra.MEDIA_CAPABILITIES_UID";
+
+    /**
+     * Flag used to set file mode in bundle for opening a document.
+     *
+     * @hide
+     */
+    public static final String EXTRA_MODE = "android.provider.extra.MODE";
 
     /**
       * The string that is used when a media attribute is not known. For example,

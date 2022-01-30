@@ -44,6 +44,10 @@ final class RemotePreviewSession {
         this.mSurfaceController = surfaceController;
     }
 
+    int getSurfaceId() {
+        return mSurfaceId;
+    }
+
     @NonNull
     String getMediaId() {
         return mMediaId;

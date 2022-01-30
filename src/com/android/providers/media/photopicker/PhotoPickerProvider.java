@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
+import static android.provider.CloudMediaProvider.SurfaceEventCallback.PLAYBACK_EVENT_READY;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
 
 import android.annotation.DurationMillisLong;
@@ -161,11 +162,12 @@ public class PhotoPickerProvider extends CloudMediaProvider {
 
     @Override
     @Nullable
-    public SurfaceController onCreateSurfaceController(@Nullable Bundle extras) {
+    public SurfaceController onCreateSurfaceController(@Nullable Bundle config,
+            SurfaceEventCallback callback) {
         if (RemotePreviewHandler.isRemotePreviewEnabled()) {
-            boolean enableLoop = extras != null && extras.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED,
+            boolean enableLoop = config != null && config.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED,
                     false);
-            return new SurfaceControllerImpl(getContext(), enableLoop);
+            return new SurfaceControllerImpl(getContext(), enableLoop, callback);
         }
         return null;
     }
@@ -205,12 +207,14 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                         BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS).build();
 
         private final Context mContext;
+        private final SurfaceEventCallback mCallback;
         private final Handler mHandler = new Handler(Looper.getMainLooper());
         private final boolean mEnableLoop;
         private ExoPlayer mPlayer;
         private int mCurrentSurfaceId = -1;
 
-        SurfaceControllerImpl(Context context, boolean enableLoop) {
+        SurfaceControllerImpl(Context context, boolean enableLoop, SurfaceEventCallback callback) {
+            mCallback = callback;
             mContext = context;
             mEnableLoop = enableLoop;
             Log.d(TAG, "Surface controller created.");
@@ -249,10 +253,8 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                     mPlayer.setVideoSurface(surface);
                     mCurrentSurfaceId = surfaceId;
                     mPlayer.prepare();
-                    // TODO(b/215175249): Don't directly start playback here, just send an event
-                    // instead. It should be up to the photo picker to decide when to start
-                    // playback.
-                    mPlayer.setPlayWhenReady(true);
+
+                    mCallback.onPlaybackEvent(surfaceId, PLAYBACK_EVENT_READY, null);
 
                     Log.d(TAG, "Surface prepared: " + surfaceId + ". Surface: " + surface
                             + ". MediaId: " + mediaId);
@@ -310,6 +312,13 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                 mPlayer.seekTo((int) timestampMillis);
                 Log.d(TAG, "Media seeked: " + surfaceId + ". Timestamp: " + timestampMillis);
             });
+        }
+
+        @Override
+        public void onConfigChange(@NonNull Bundle config) {
+            // TODO(b/195009562): Implement mute/unmute audio and loop enabled/disabled
+            // for video preview
+            Log.d(TAG, "Config changed. Updated config params: " + config);
         }
 
         @Override

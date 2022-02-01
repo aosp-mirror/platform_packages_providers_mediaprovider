@@ -199,6 +199,7 @@ import android.util.ArraySet;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.LongSparseArray;
+import android.util.Pair;
 import android.util.Size;
 import android.util.SparseArray;
 import android.webkit.MimeTypeMap;
@@ -1085,8 +1086,9 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.set(token);
     }
 
-    private boolean isPackageKnown(@NonNull String packageName) {
-        final PackageManager pm = getContext().getPackageManager();
+    private boolean isPackageKnown(@NonNull String packageName, int userId) {
+        final Context context = mUserCache.getContextForUser(UserHandle.of(userId));
+        final PackageManager pm = context.getPackageManager();
 
         // First, is the app actually installed?
         try {
@@ -1162,20 +1164,23 @@ public class MediaProvider extends ContentProvider {
 
     private void pruneStalePackages(CancellationSignal signal) {
         final int stalePackages = mExternalDatabase.runWithTransaction((db) -> {
-            final ArraySet<String> unknownPackages = new ArraySet<>();
-            try (Cursor c = db.query(true, "files", new String[] { "owner_package_name" },
+            final ArraySet<Pair<String, Integer>> unknownPackages = new ArraySet<>();
+            try (Cursor c = db.query(true, "files",
+                    new String[] { "owner_package_name", "_user_id" },
                     null, null, null, null, null, null, signal)) {
                 while (c.moveToNext()) {
                     final String packageName = c.getString(0);
                     if (TextUtils.isEmpty(packageName)) continue;
 
-                    if (!isPackageKnown(packageName)) {
-                        unknownPackages.add(packageName);
+                    final int userId = c.getInt(1);
+
+                    if (!isPackageKnown(packageName, userId)) {
+                        unknownPackages.add(Pair.create(packageName, userId));
                     }
                 }
             }
-            for (String packageName : unknownPackages) {
-                onPackageOrphaned(db, packageName);
+            for (Pair<String, Integer> pair : unknownPackages) {
+                onPackageOrphaned(db, pair.first, pair.second);
             }
             return unknownPackages.size();
         });
@@ -1410,33 +1415,62 @@ public class MediaProvider extends ContentProvider {
      * Orphan any content of the given package. This will delete Android/media orphaned files from
      * the database.
      */
-    public void onPackageOrphaned(String packageName) {
+    public void onPackageOrphaned(String packageName, int uid) {
         mExternalDatabase.runWithTransaction((db) -> {
-            onPackageOrphaned(db, packageName);
+            final int userId = uid / PER_USER_RANGE;
+            onPackageOrphaned(db, packageName, userId);
             return null;
         });
     }
 
     /**
      * Orphan any content of the given package from the given database. This will delete
-     * Android/media orphaned files from the database.
+     * Android/media files from the database if the underlying file no longe exists.
      */
-    public void onPackageOrphaned(@NonNull SQLiteDatabase db, @NonNull String packageName) {
-        // Delete files from Android/media.
-        String relativePath = "Android/media/" + DatabaseUtils.escapeForLike(packageName) + "/%";
-        final int countDeleted = db.delete(
-                "files",
-                "relative_path LIKE ? ESCAPE '\\' AND owner_package_name=?",
-                new String[] {relativePath, packageName});
-        Log.d(TAG, "Deleted " + countDeleted + " Android/media items belonging to "
-                + packageName + " on " + db.getPath());
+    public void onPackageOrphaned(@NonNull SQLiteDatabase db,
+            @NonNull String packageName, int userId) {
+        // Delete Android/media entries.
+        deleteAndroidMediaEntries(db, packageName, userId);
+        // Orphan rest of entries.
+        orphanEntries(db, packageName, userId);
+    }
 
-        // Orphan rest of files.
+    private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
+        String relativePath = "Android/media/" + DatabaseUtils.escapeForLike(packageName) + "/%";
+        try (Cursor cursor = db.query(
+                "files",
+                new String[] { MediaColumns._ID, MediaColumns.DATA },
+                "relative_path LIKE ? ESCAPE '\\' AND owner_package_name=? AND _user_id=?",
+                new String[] { relativePath, packageName, "" + userId },
+                /* groupBy= */ null,
+                /* having= */ null,
+                /* orderBy= */null,
+                /* limit= */ null)) {
+            int countDeleted = 0;
+            if (cursor != null) {
+                while (cursor.moveToNext()) {
+                    File file = new File(cursor.getString(1));
+                    // We check for existence to be sure we don't delete files that still exist.
+                    // This can happen even if the pair (package, userid) is unknown,
+                    // since some framework implementations may rely on special userids.
+                    if (!file.exists()) {
+                        countDeleted +=
+                                db.delete("files", "_id=?", new String[]{cursor.getString(0)});
+                    }
+                }
+            }
+            Log.d(TAG, "Deleted " + countDeleted + " Android/media items belonging to "
+                    + packageName + " on " + db.getPath());
+        }
+    }
+
+    private void orphanEntries(
+            @NonNull SQLiteDatabase db, @NonNull String packageName, int userId) {
         final ContentValues values = new ContentValues();
         values.putNull(FileColumns.OWNER_PACKAGE_NAME);
 
         final int countOrphaned = db.update("files", values,
-                "owner_package_name=?", new String[] { packageName });
+                "owner_package_name=? AND _user_id=?", new String[] { packageName, "" + userId });
         if (countOrphaned > 0) {
             Log.d(TAG, "Orphaned " + countOrphaned + " items belonging to "
                     + packageName + " on " + db.getPath());

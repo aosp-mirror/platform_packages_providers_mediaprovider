@@ -93,6 +93,7 @@ class ViewPager2Wrapper {
             mViewPager.unregisterOnPageChangeCallback(callback);
         }
         mOnPageChangeCallbacks.clear();
+        mAdapter.onDestroy();
     }
 
     private class PlayerPageTransformer implements ViewPager2.PageTransformer {
@@ -102,7 +103,7 @@ class ViewPager2Wrapper {
             // is selected.
             if (position != 0) return;
 
-            mAdapter.handlePageSelected(view);
+            mAdapter.onHandlePageSelected(view);
         }
     }
 }

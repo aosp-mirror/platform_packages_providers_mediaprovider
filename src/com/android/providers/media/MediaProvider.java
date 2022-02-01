@@ -10011,6 +10011,7 @@ public class MediaProvider extends ContentProvider {
     static final int PICKER_ID = 901;
     static final int PICKER_INTERNAL_MEDIA = 902;
     static final int PICKER_INTERNAL_ALBUMS = 903;
+    static final int PICKER_INTERNAL_SURFACE_CONTROLLER = 904;
     static final int PICKER_UNRELIABLE_VOLUME = 904;
 
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
@@ -10113,6 +10114,8 @@ public class MediaProvider extends ContentProvider {
 
             mHidden.addURI(auth, "picker_internal/media", PICKER_INTERNAL_MEDIA);
             mHidden.addURI(auth, "picker_internal/albums", PICKER_INTERNAL_ALBUMS);
+            mHidden.addURI(auth, "picker_internal/surface_controller",
+                    PICKER_INTERNAL_SURFACE_CONTROLLER);
             mHidden.addURI(auth, "*", VOLUMES_ID);
             mHidden.addURI(auth, null, VOLUMES);
 

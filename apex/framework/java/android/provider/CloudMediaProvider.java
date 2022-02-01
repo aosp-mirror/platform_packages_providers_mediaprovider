@@ -16,6 +16,8 @@
 
 package android.provider;
 
+import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
+import static android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_ACCOUNT_INFO;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_INFO;
 import static android.provider.CloudMediaProviderContract.URI_PATH_ALBUM;
@@ -23,9 +25,12 @@ import static android.provider.CloudMediaProviderContract.URI_PATH_DELETED_MEDIA
 import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA;
 import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_EXACT;
 import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_INFO;
+import static android.provider.CloudMediaProviderContract.URI_PATH_SURFACE_CONTROLLER;
 
+import android.annotation.DurationMillisLong;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.SuppressLint;
 import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -34,11 +39,15 @@ import android.content.UriMatcher;
 import android.content.pm.ProviderInfo;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
+import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
+import android.view.Surface;
+import android.view.SurfaceHolder;
 
 import java.io.FileNotFoundException;
 
@@ -94,6 +103,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
     private static final int MATCH_DELETED_MEDIAS = 3;
     private static final int MATCH_ALBUMS = 4;
     private static final int MATCH_MEDIA_INFO = 5;
+    private static final int MATCH_SURFACE_CONTROLLER = 6;
 
     private final UriMatcher mMatcher = new UriMatcher(UriMatcher.NO_MATCH);
     private volatile int mMediaStoreAuthorityAppId;
@@ -114,6 +124,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
         mMatcher.addURI(authority, URI_PATH_DELETED_MEDIA, MATCH_DELETED_MEDIAS);
         mMatcher.addURI(authority, URI_PATH_ALBUM, MATCH_ALBUMS);
         mMatcher.addURI(authority, URI_PATH_MEDIA_INFO, MATCH_MEDIA_INFO);
+        mMatcher.addURI(authority, URI_PATH_SURFACE_CONTROLLER, MATCH_SURFACE_CONTROLLER);
     }
 
     /**
@@ -135,7 +146,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
         throw new UnsupportedOperationException("getAccountInfo not supported");
     }
 
-        /**
+    /**
      * Returns metadata about the media collection itself.
      * <p>
      * This is useful for the OS to determine if its cache of media items in the collection is
@@ -289,6 +300,23 @@ public abstract class CloudMediaProvider extends ContentProvider {
             throws FileNotFoundException;
 
     /**
+     * Returns a {@link SurfaceController} used for rendering the preview of media items, or null
+     * if preview rendering is not supported.
+     *
+     * <p>This is meant to be called on the main thread, hence the implementation should not block
+     * by performing any heavy operation.
+     *
+     * @param extras containing configuration parameters for {@link SurfaceController}
+     * <ul>
+     * <li> {@link CloudMediaProviderContract#EXTRA_LOOPING_PLAYBACK_ENABLED}
+     * </ul>
+     */
+    @Nullable
+    public SurfaceController onCreateSurfaceController(@Nullable Bundle extras) {
+        return null;
+    }
+
+    /**
      * Implementation is provided by the parent class. Cannot be overridden.
      */
     @Override
@@ -313,7 +341,16 @@ public abstract class CloudMediaProvider extends ContentProvider {
             return onGetMediaInfo(extras);
         } else if (METHOD_GET_ACCOUNT_INFO.equals(method)) {
             return onGetAccountInfo(extras);
-        } else {
+        } else if (METHOD_CREATE_SURFACE_CONTROLLER.equals(method)) {
+            SurfaceController controller = onCreateSurfaceController(extras);
+            Bundle bundle = new Bundle();
+            if (controller == null) {
+                return bundle;
+            }
+            bundle.putBinder(EXTRA_SURFACE_CONTROLLER,
+                    new SurfaceControllerWrapper(controller).asBinder());
+            return bundle;
+        }  else {
             throw new UnsupportedOperationException("Method not supported " + method);
         }
     }
@@ -480,5 +517,173 @@ public abstract class CloudMediaProvider extends ContentProvider {
     public final int update(@NonNull Uri uri, @NonNull ContentValues values,
             @Nullable String selection, @Nullable String[] selectionArgs) {
         throw new UnsupportedOperationException("Update not supported");
+    }
+
+    /**
+     * Manages rendering the preview of media items on given instances of {@link Surface}.
+     *
+     * <p>The methods of this class are meant to be asynchronous, and should not block by performing
+     * any heavy operation.
+     * <p>Note that a single SurfaceController instance would be responsible for
+     * rendering multiple media items associated with multiple surfaces.
+     */
+    @SuppressLint("PackageLayering") // We need to pass in a Surface which can be prepared for
+    // rendering a media item.
+    public static abstract class SurfaceController {
+
+        /**
+         * Creates any player resource(s) needed for rendering.
+         */
+        public abstract void onPlayerCreate();
+
+        /**
+         * Releases any player resource(s) used for rendering.
+         */
+        public abstract void onPlayerRelease();
+
+        /**
+         * Indicates creation of the given {@link Surface} with given {@code surfaceId} for
+         * rendering the preview of a media item with given {@code mediaId}.
+         *
+         * <p>This is called immediately after the surface is first created. Implementations of this
+         * should start up whatever rendering code they desire.
+         * <p>Note that the given media item remains associated with the given surface id till the
+         * {@link Surface} is destroyed.
+         *
+         * @param surfaceId id which uniquely identifies the {@link Surface} for rendering
+         * @param surface instance of the {@link Surface} on which the media item should be rendered
+         * @param mediaId id which uniquely identifies the media to be rendered
+         *
+         * @see SurfaceHolder.Callback#surfaceCreated(SurfaceHolder)
+         */
+        public abstract void onSurfaceCreated(int surfaceId, @NonNull Surface surface,
+                @NonNull String mediaId);
+
+        /**
+         * Indicates structural changes (format or size) in the {@link Surface} for rendering.
+         *
+         * <p>This method is always called at least once, after {@link #onSurfaceCreated}.
+         *
+         * @param surfaceId id which uniquely identifies the {@link Surface} for rendering
+         * @param format the new {@link PixelFormat} of the surface
+         * @param width the new width of the {@link Surface}
+         * @param height the new height of the {@link Surface}
+         *
+         * @see SurfaceHolder.Callback#surfaceChanged(SurfaceHolder, int, int, int)
+         */
+        public abstract void onSurfaceChanged(int surfaceId, int format, int width, int height);
+
+        /**
+         * Indicates destruction of a {@link Surface} with given {@code surfaceId}.
+         *
+         * <p>This is called immediately before a surface is being destroyed. After returning from
+         * this call, you should no longer try to access this surface.
+         *
+         * @param surfaceId id which uniquely identifies the {@link Surface} for rendering
+         *
+         * @see SurfaceHolder.Callback#surfaceDestroyed(SurfaceHolder)
+         */
+        public abstract void onSurfaceDestroyed(int surfaceId);
+
+        /**
+         * Start playing the preview of the media associated with the given surface id. If
+         * playback had previously been paused, playback will continue from where it was paused.
+         * If playback had been stopped, or never started before, playback will start at the
+         * beginning.
+         *
+         * @param surfaceId id which uniquely identifies the {@link Surface} for rendering
+         */
+        public abstract void onMediaPlay(int surfaceId);
+
+        /**
+         * Pauses the playback of the media associated with the given surface id.
+         *
+         * @param surfaceId id which uniquely identifies the {@link Surface} for rendering
+         */
+        public abstract void onMediaPause(int surfaceId);
+
+        /**
+         * Seeks the media associated with the given surface id to specified timestamp.
+         *
+         * @param surfaceId id which uniquely identifies the {@link Surface} for rendering
+         * @param timestampMillis the timestamp in milliseconds from the start to seek to
+         */
+        public abstract void onMediaSeekTo(int surfaceId,
+                @DurationMillisLong long timestampMillis);
+
+        /**
+         * Indicates destruction of this SurfaceController object.
+         *
+         * <p>This SurfaceController object should no longer be in use after this method has been
+         * called.
+         */
+        public abstract void onDestroy();
+    }
+
+    /** @hide */
+    private static class SurfaceControllerWrapper extends ICloudMediaSurfaceController.Stub {
+
+        final private SurfaceController mSurfaceController;
+
+        SurfaceControllerWrapper(SurfaceController surfaceController) {
+            mSurfaceController = surfaceController;
+        }
+
+        @Override
+        public void onPlayerCreate() {
+            Log.i(TAG, "Creating player.");
+            mSurfaceController.onPlayerCreate();
+        }
+
+        @Override
+        public void onPlayerRelease() {
+            Log.i(TAG, "Releasing player.");
+            mSurfaceController.onPlayerRelease();
+        }
+
+        @Override
+        public void onSurfaceCreated(int surfaceId, @NonNull Surface surface,
+                @NonNull String mediaId) {
+            Log.i(TAG, "Surface prepared. SurfaceId: " + surfaceId + ". MediaId: " + mediaId);
+            mSurfaceController.onSurfaceCreated(surfaceId, surface, mediaId);
+        }
+
+        @Override
+        public void onSurfaceChanged(int surfaceId, int format, int width, int height) {
+            Log.i(TAG, "Surface changed. SurfaceId: " + surfaceId + ". Format: " + format
+                    + ". Width: " + width + ". Height: " + height);
+            mSurfaceController.onSurfaceChanged(surfaceId, format, width, height);
+        }
+
+        @Override
+        public void onSurfaceDestroyed(int surfaceId) {
+            Log.i(TAG, "Surface released. SurfaceId: " + surfaceId);
+            mSurfaceController.onSurfaceDestroyed(surfaceId);
+        }
+
+        @Override
+        public void onMediaPlay(int surfaceId) {
+            Log.i(TAG, "Media played. SurfaceId: " + surfaceId);
+            mSurfaceController.onMediaPlay(surfaceId);
+        }
+
+        @Override
+        public void onMediaPause(int surfaceId) {
+            Log.i(TAG, "Media paused. SurfaceId: " + surfaceId);
+            mSurfaceController.onMediaPause(surfaceId);
+        }
+
+        @Override
+        public void onMediaSeekTo(int surfaceId, @DurationMillisLong long timestampMillis) {
+            Log.i(TAG, "Media seeked. SurfaceId: " + surfaceId + ". Seek timestamp(ms): "
+                    + timestampMillis);
+            mSurfaceController.onMediaSeekTo(surfaceId, timestampMillis);
+        }
+
+        @Override
+        public void onDestroy() {
+            Log.i(TAG, "Controller destroyed");
+            mSurfaceController.onDestroy();
+        }
     }
 }

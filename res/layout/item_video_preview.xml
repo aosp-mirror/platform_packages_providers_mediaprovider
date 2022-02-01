@@ -26,7 +26,11 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone"
-        app:use_controller="false" />
+        app:use_controller="true"
+        app:animation_enabled="true"
+        app:show_timeout="0"
+        app:auto_show="false"
+        app:controller_layout_id="@layout/preview_video_controls"/>
 
     <ImageView
         android:id="@+id/preview_video_image"

@@ -24,6 +24,7 @@ import android.view.View;
 import android.widget.ImageView;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import com.google.android.exoplayer2.ui.StyledPlayerView;
@@ -41,8 +42,8 @@ class PlaybackHandler {
     private final ExoPlayerWrapper mExoPlayerWrapper;
     private final ImageLoader mImageLoader;
 
-    PlaybackHandler(Context context, ImageLoader imageLoader) {
-        mExoPlayerWrapper = new ExoPlayerWrapper(context);
+    PlaybackHandler(Context context, ImageLoader imageLoader, MuteStatus muteStatus) {
+        mExoPlayerWrapper = new ExoPlayerWrapper(context, muteStatus);
         mImageLoader = imageLoader;
     }
 

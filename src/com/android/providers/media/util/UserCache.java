@@ -97,15 +97,21 @@ public class UserCache {
             // And find all profiles that share media with us
             for (UserHandle profile : profiles) {
                 if (!profile.equals(mContext.getUser())) {
-                    // Check if it's a profile that shares media with us
-                    Context userContext = getContextForUser(profile);
-                    UserManager userManager = userContext.getSystemService(UserManager.class);
-                    if (userManager.isUserUnlocked() && userManager.isMediaSharedWithParent()) {
+                    // Check if it's unlocked, and it's a profile that shares media with us
+                    if (isUnlockedAndMediaSharedWithParent(profile)) {
                         mUsers.add(profile);
                     }
                 }
             }
         }
+    }
+
+    private boolean isUnlockedAndMediaSharedWithParent(@NonNull UserHandle profile) {
+        Context userContext = getContextForUser(profile);
+        UserManager userManager = userContext.getSystemService(UserManager.class);
+        return (SdkLevel.isAtLeastT() ?
+                userManager.isUserUnlocked() : userManager.isUserUnlocked(profile))
+                && userManager.isMediaSharedWithParent();
     }
 
     public @NonNull List<UserHandle> updateAndGetUsers() {

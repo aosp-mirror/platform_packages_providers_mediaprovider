@@ -29,7 +29,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.FrameLayout.LayoutParams;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -241,9 +240,23 @@ public class PreviewFragment extends Fragment {
 
         ((PhotoPickerActivity) getActivity()).updateCommonLayouts(LayoutModeUtils.MODE_PREVIEW,
                 /* title */"");
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
 
         if (mViewPager2Wrapper != null) {
-            mViewPager2Wrapper.onResume();
+            mViewPager2Wrapper.onStop();
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        if (mViewPager2Wrapper != null) {
+            mViewPager2Wrapper.onStart();
         }
     }
 
@@ -314,7 +327,7 @@ public class PreviewFragment extends Fragment {
     }
 
     private void updateSpecialFormatIcon(Item item) {
-        mShouldShowGifBadge = item.isGif();
+        mShouldShowGifBadge = item.isGifOrAnimatedWebp();
         mShouldShowMotionPhotoBadge = item.isMotionPhoto();
         // Invalidating options menu calls onPrepareOptionsMenu() where the logic for
         // hiding/showing menu items is placed.

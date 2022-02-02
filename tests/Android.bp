@@ -115,6 +115,7 @@ android_test {
         "android.test.mock",
         "android.test.runner",
         "unsupportedappusage",
+        "framework-mediaprovider.impl",
     ],
 
     static_libs: [
@@ -139,6 +140,7 @@ android_test {
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
+        "exoplayer2.15.1"
     ],
 
     certificate: "media",

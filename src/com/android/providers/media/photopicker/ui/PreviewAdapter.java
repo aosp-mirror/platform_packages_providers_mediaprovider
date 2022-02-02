@@ -16,12 +16,15 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import android.content.Context;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.ui.remotepreview.RemotePreviewHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,16 +32,22 @@ import java.util.List;
 /**
  * Adapter for Preview RecyclerView to preview all images and videos.
  */
-public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
+class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     private static final int ITEM_TYPE_IMAGE = 1;
     private static final int ITEM_TYPE_VIDEO = 2;
 
     private List<Item> mItemList = new ArrayList<>();
-    private ImageLoader mImageLoader;
+    private final ImageLoader mImageLoader;
+    private final RemotePreviewHandler mRemotePreviewHandler;
+    private final PlaybackHandler mPlaybackHandler;
+    private final boolean mIsRemotePreviewEnabled =
+            RemotePreviewHandler.isRemotePreviewEnabled();
 
-    public PreviewAdapter(ImageLoader imageLoader) {
-        mImageLoader = imageLoader;
+    PreviewAdapter(Context context) {
+        mImageLoader = new ImageLoader(context);
+        mRemotePreviewHandler = new RemotePreviewHandler(context);
+        mPlaybackHandler = new PlaybackHandler(context, mImageLoader);
     }
 
     @NonNull
@@ -47,33 +56,37 @@ public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         if (viewType == ITEM_TYPE_IMAGE) {
             return new PreviewImageHolder(viewGroup.getContext(), viewGroup, mImageLoader);
         } else {
-            return new PreviewVideoHolder(viewGroup.getContext(), viewGroup);
+            return new PreviewVideoHolder(viewGroup.getContext(), viewGroup,
+                    mIsRemotePreviewEnabled);
         }
     }
 
     @Override
-    public void onBindViewHolder(@NonNull BaseViewHolder photoHolder, int position) {
+    public void onBindViewHolder(@NonNull BaseViewHolder holder, int position) {
         final Item item = getItem(position);
-        photoHolder.itemView.setTag(item);
-        photoHolder.bind();
+        holder.itemView.setTag(item);
+        holder.bind();
+
+        if (item.isVideo() && !mIsRemotePreviewEnabled) {
+            mPlaybackHandler.onBind(holder.itemView);
+        }
     }
 
     @Override
-    public void onViewAttachedToWindow(BaseViewHolder holder) {
+    public void onViewAttachedToWindow(@NonNull BaseViewHolder holder) {
         super.onViewAttachedToWindow(holder);
-        holder.onViewAttachedToWindow();
-    }
 
-    @Override
-    public void onViewDetachedFromWindow(BaseViewHolder holder) {
-        super.onViewDetachedFromWindow(holder);
-        holder.onViewDetachedFromWindow();
-    }
+        final Item item = (Item) holder.itemView.getTag();
+        if (item.isVideo()) {
+            if (mIsRemotePreviewEnabled) {
+                // TODO(b/216420946): Show thumbnail in preview till remote playback starts.
+                mRemotePreviewHandler.onViewAttachedToWindow(
+                        ((PreviewVideoHolder) holder).getSurfaceView(), item);
+                return;
+            }
 
-    @Override
-    public void onViewRecycled(BaseViewHolder holder) {
-        super.onViewRecycled(holder);
-        holder.onViewRecycled();
+            mPlaybackHandler.onViewAttachedToWindow(holder.itemView);
+        }
     }
 
     @Override
@@ -91,11 +104,40 @@ public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         return ITEM_TYPE_IMAGE;
     }
 
-    public Item getItem(int position) {
+    void onHandlePageSelected(View itemView) {
+        if (mIsRemotePreviewEnabled) {
+            final Item item = (Item) itemView.getTag();
+
+            if (item.isVideo()) {
+                mRemotePreviewHandler.onHandlePageSelected(item);
+            }
+            return;
+        }
+
+        mPlaybackHandler.handleVideoPlayback(itemView);
+    }
+
+    void onStop() {
+        if (mIsRemotePreviewEnabled) {
+            mRemotePreviewHandler.onStop();
+            return;
+        }
+
+        mPlaybackHandler.releaseResources();
+
+    }
+
+    void onDestroy() {
+        if (mIsRemotePreviewEnabled) {
+            mRemotePreviewHandler.onDestroy();
+        }
+    }
+
+    Item getItem(int position) {
         return mItemList.get(position);
     }
 
-    public void updateItemList(List<Item> itemList) {
+    void updateItemList(List<Item> itemList) {
         mItemList = itemList;
         notifyDataSetChanged();
     }

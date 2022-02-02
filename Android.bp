@@ -37,6 +37,7 @@ android_app {
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
+        "exoplayer2.15.1",
     ],
 
     libs: [
@@ -61,6 +62,9 @@ android_app {
     ],
 
     optimize: {
+        shrink: true,
+        optimize: false,
+        obfuscate: false,
         proguard_flags_files: ["proguard.flags"],
     },
 
@@ -72,7 +76,7 @@ android_app {
 
     sdk_version: "module_current",
     min_sdk_version: "30",
-    target_sdk_version: "30",
+    target_sdk_version: "31",
 
     certificate: "media",
     privileged: true,
@@ -120,6 +124,7 @@ java_library {
         "src/com/android/providers/media/util/ForegroundThread.java",
         "src/com/android/providers/media/util/Logging.java",
         "src/com/android/providers/media/util/MimeUtils.java",
+        "src/com/android/providers/media/util/StringUtils.java",
         "src/com/android/providers/media/playlist/*.java",
     ],
     sdk_version: "module_current",

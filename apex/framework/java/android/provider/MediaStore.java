@@ -254,6 +254,8 @@ public final class MediaStore {
     public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
     /** {@hide} */
     public static final String EXTRA_NOTIFY_CLOUD_EVENT_RESULT = "notify_cloud_event_result";
+    /** {@hide} */
+    public static final String CREATE_SURFACE_CONTROLLER = "create_surface_controller";
 
     /** {@hide} */
     public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
@@ -697,11 +699,28 @@ public final class MediaStore {
      * {@link Activity#RESULT_CANCELED} is returned.
      * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
-     *
+     * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
+     * expose a limited set of read-only operations. Specifically, picker URIs
+     * can only be opened for read and queried for columns in {@link PickerMediaColumns}.
      * @hide
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
+
+    /**
+     * Activity Action: Launch settings controlling images or videos selection with
+     * {@link #ACTION_PICK_IMAGES}.
+     *
+     * The settings page allows a user to change the enabled {@link CloudMediaProvider} on the
+     * device and other media selection configurations.
+     *
+     * @see #ACTION_PICK_IMAGES
+     * @see #getCloudProvider(ContentResolver)
+     * @hide
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    public static final String ACTION_PICK_IMAGES_SETTINGS =
+            "android.provider.action.PICK_IMAGES_SETTINGS";
 
     /**
      * The name of an optional intent-extra used to allow multiple selection of
@@ -786,6 +805,13 @@ public final class MediaStore {
      */
     public static final String EXTRA_MEDIA_CAPABILITIES_UID =
             "android.provider.extra.MEDIA_CAPABILITIES_UID";
+
+    /**
+     * Flag used to set file mode in bundle for opening a document.
+     *
+     * @hide
+     */
+    public static final String EXTRA_MODE = "android.provider.extra.MODE";
 
     /**
       * The string that is used when a media attribute is not known. For example,
@@ -1780,6 +1806,71 @@ public final class MediaStore {
     }
 
     /**
+     * Photo picker metadata columns.
+     *
+     * @see #ACTION_PICK_IMAGES
+     * @hide
+     */
+    // TODO(b/205291616): Unhide before release
+    public static class PickerMediaColumns {
+        private PickerMediaColumns() {}
+
+        /**
+         * This is identical to {@link MediaColumns#DATA}, however, apps should not assume that the
+         * file is always available because the file may be backed by a {@link CloudMediaProvider}
+         * fetching content over a network. Therefore, apps must be prepared to handle any
+         * additional file-based I/O errors that could occur as a result of network errors.
+         *
+         * @see MediaColumns#DATA
+         */
+        @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+        public static final String DATA = MediaColumns.DATA;
+
+        /**
+         * This is identical to {@link MediaColumns#SIZE}.
+         *
+         * @see MediaColumns#SIZE
+         */
+        @BytesLong
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String SIZE = MediaColumns.SIZE;
+
+        /**
+         * This is identical to {@link MediaColumns#DISPLAY_NAME}.
+         *
+         * @see MediaColumns#DISPLAY_NAME
+         */
+        @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+        public static final String DISPLAY_NAME = MediaColumns.DISPLAY_NAME;
+
+        /**
+         * This is identical to {@link MediaColumns#DATE_TAKEN}.
+         *
+         * @see MediaColumns#DATE_TAKEN
+         */
+        @CurrentTimeMillisLong
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String DATE_TAKEN = MediaColumns.DATE_TAKEN;
+
+        /**
+         * This is identical to {@link MediaColumns#MIME_TYPE}.
+         *
+         * @see MediaColumns#MIME_TYPE
+         */
+        @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+        public static final String MIME_TYPE = MediaColumns.MIME_TYPE;
+
+        /**
+         * This is identical to {@link MediaColumns#DURATION}.
+         *
+         * @see MediaColumns#DURATION
+         */
+        @DurationMillisLong
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String DURATION_MILLIS = MediaColumns.DURATION;
+    }
+
+    /**
      * Media provider table containing an index of all files in the media storage,
      * including non-media files.  This should be used by applications that work with
      * non-media file types (text, HTML, PDF, etc) as well as applications that need to
@@ -2096,6 +2187,16 @@ public final class MediaStore {
             public static final int _SPECIAL_FORMAT_MOTION_PHOTO =
                     CloudMediaProviderContract.MediaColumns.
                             STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO;
+
+            /**
+             * Constant for the {@link #_SPECIAL_FORMAT} column indicating
+             * that the file is an Animated Webp.
+             *
+             * @hide
+             */
+            public static final int _SPECIAL_FORMAT_ANIMATED_WEBP =
+                    CloudMediaProviderContract.MediaColumns.
+                            STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP;
         }
     }
 
@@ -2961,7 +3062,6 @@ public final class MediaStore {
              * Non-zero if the audio file is a voice recording recorded
              * by voice recorder apps
              */
-            @ExportedSince(osVersion = Build.VERSION_CODES.S)
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RECORDING = "is_recording";
 

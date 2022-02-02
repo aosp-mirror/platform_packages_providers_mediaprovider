@@ -77,6 +77,9 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         // No dragBar in preview
         onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
 
+        // No privacy text in preview
+        onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
+
         // Verify image is previewed
         assertMultiSelectLongPressCommonLayoutMatches();
         onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
@@ -88,8 +91,9 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         onView(withContentDescription("Navigate up")).perform(click());
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-        // Shows dragBar after we are back to Photos tab
+        // Shows dragBar and privacy text after we are back to Photos tab
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+        onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
     }
 
     @Test
@@ -101,12 +105,9 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
 
         registerIdlingResourceAndWaitForIdle();
 
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
-
-        // Verify videoView is displayed
+        // Verify video player is displayed
         assertMultiSelectLongPressCommonLayoutMatches();
-        onView(withId(R.id.preview_videoView)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_player_view)).check(matches(isDisplayed()));
         // Verify no special format icon is previewed
         onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
         onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());

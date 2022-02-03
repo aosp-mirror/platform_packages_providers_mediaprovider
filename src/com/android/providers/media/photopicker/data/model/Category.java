@@ -73,17 +73,13 @@ public class Category {
     public static final String CATEGORY_DEFAULT = "default";
 
     /**
-     * Includes images/videos that are present in the
-     * {@link Environment#DIRECTORY_PICTURES}/{@link Environment#DIRECTORY_SCREENSHOTS} directory.
-     *
-     * TODO(b/192932740): Include media that contains {@link Environment#DIRECTORY_SCREENSHOTS}
-     * in its relative_path.
+     * Includes media present in any directory containing
+     * {@link Environment#DIRECTORY_SCREENSHOTS} in relative path
      */
     public static final String CATEGORY_SCREENSHOTS = "Screenshots";
     private static final String SCREENSHOTS_WHERE_CLAUSE =
             "(" + MediaStore.MediaColumns.RELATIVE_PATH + " LIKE '" +
-                    Environment.DIRECTORY_PICTURES + "/" +
-                    Environment.DIRECTORY_SCREENSHOTS + "/%')";
+                    "%/" + Environment.DIRECTORY_SCREENSHOTS + "/%')";
 
     /**
      * Includes images/videos that are present in the {@link Environment#DIRECTORY_DCIM}/Camera

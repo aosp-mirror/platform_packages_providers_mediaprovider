@@ -16,6 +16,11 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
+
+import static com.android.providers.media.photopicker.data.ExternalDbFacade.COLUMN_OLD_ID;
+import static com.android.providers.media.photopicker.data.ExternalDbFacade.TABLE_DELETED_MEDIA;
 import static com.android.providers.media.photopicker.data.ExternalDbFacade.TABLE_FILES;
 import static com.google.common.truth.Truth.assertThat;
 
@@ -156,7 +161,9 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_NONE, FileColumns.MEDIA_TYPE_NONE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
                             /* oldIsPending */ false, /* newIsPending */ false,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isFalse();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isFalse();
             assertDeletedMediaEmpty(facade);
 
             // Media -> non-media: added to deleted_media
@@ -164,7 +171,9 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_NONE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
                             /* oldIsPending */ false, /* newIsPending */ false,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isTrue();
             assertDeletedMedia(facade, ID1);
 
             // Non-media -> non-media: no-op
@@ -172,7 +181,9 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_NONE, FileColumns.MEDIA_TYPE_NONE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
                             /* oldIsPending */ false, /* newIsPending */ false,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isFalse();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isFalse();
             assertDeletedMedia(facade, ID1);
 
             // Non-media -> media: remove from deleted_media
@@ -180,7 +191,9 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_NONE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
                             /* oldIsPending */ false, /* newIsPending */ false,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isTrue();
             assertDeletedMediaEmpty(facade);
 
             // Non-media -> media: no-op
@@ -188,7 +201,9 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_NONE, FileColumns.MEDIA_TYPE_NONE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
                             /* oldIsPending */ false, /* newIsPending */ false,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isFalse();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isFalse();
             assertDeletedMediaEmpty(facade);
         }
     }
@@ -203,7 +218,9 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ true, /* newIsTrashed */ false,
                             /* oldIsPending */ false, /* newIsPending */ false,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isTrue();
             assertDeletedMediaEmpty(facade);
 
             // Was not trashed but is now trashed
@@ -211,7 +228,9 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ true,
                             /* oldIsPending */ false, /* newIsPending */ false,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isTrue();
             assertDeletedMedia(facade, ID1);
 
             // Was trashed but is now neither trashed nor pending
@@ -219,7 +238,9 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ true, /* newIsTrashed */ false,
                             /* oldIsPending */ false, /* newIsPending */ false,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isTrue();
             assertDeletedMediaEmpty(facade);
         }
     }
@@ -234,7 +255,9 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
                             /* oldIsPending */ true, /* newIsPending */ false,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isTrue();
             assertDeletedMediaEmpty(facade);
 
             // Was not pending but is now pending
@@ -242,7 +265,9 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
                             /* oldIsPending */ false, /* newIsPending */ true,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isTrue();
             assertDeletedMedia(facade, ID1);
 
             // Was pending but is now neither trashed nor pending
@@ -250,7 +275,9 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
                             /* oldIsPending */ true, /* newIsPending */ false,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ false)).isTrue();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isTrue();
             assertDeletedMediaEmpty(facade);
         }
     }
@@ -265,14 +292,18 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
                             /* oldIsPending */ false, /* newIsPending */ false,
-                            /* oldIsFavorite */ true, /* newIsFavorite */ false)).isTrue();
+                            /* oldIsFavorite */ true, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isTrue();
 
             // Was not favorite but is now favorited
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
                             /* oldIsPending */ false, /* newIsPending */ false,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ true)).isTrue();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ true,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isTrue();
         }
     }
 
@@ -286,14 +317,68 @@ public class ExternalDbFacadeTest {
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ true, /* newIsTrashed */ true,
                             /* oldIsPending */ false, /* newIsPending */ false,
-                            /* oldIsFavorite */ true, /* newIsFavorite */ false)).isFalse();
+                            /* oldIsFavorite */ true, /* newIsFavorite */ false,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isFalse();
 
             // Was not favorite but is now favorited
             assertThat(facade.onFileUpdated(ID1,
                             FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
                             /* oldIsTrashed */ false, /* newIsTrashed */ false,
                             /* oldIsPending */ true, /* newIsPending */ true,
-                            /* oldIsFavorite */ false, /* newIsFavorite */ true)).isFalse();
+                            /* oldIsFavorite */ false, /* newIsFavorite */ true,
+                            /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                            /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isFalse();
+        }
+    }
+
+    @Test
+    public void testOnUpdate_visibleSpecialFormat() throws Exception {
+        try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
+            ExternalDbFacade facade = new ExternalDbFacade(sIsolatedContext, helper);
+
+            // Was _SPECIAL_FORMAT_NONE but is now _SPECIAL_FORMAT_GIF
+            assertThat(facade.onFileUpdated(ID1,
+                    FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
+                    /* oldIsTrashed */ false, /* newIsTrashed */ false,
+                    /* oldIsPending */ false, /* newIsPending */ false,
+                    /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                    /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                    /* newSpecialFormat */ _SPECIAL_FORMAT_GIF)).isTrue();
+
+            // Was _SPECIAL_FORMAT_GIF but is now _SPECIAL_FORMAT_NONE
+            assertThat(facade.onFileUpdated(ID1,
+                    FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
+                    /* oldIsTrashed */ false, /* newIsTrashed */ false,
+                    /* oldIsPending */ false, /* newIsPending */ false,
+                    /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                    /* oldSpecialFormat */ _SPECIAL_FORMAT_GIF,
+                    /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isTrue();
+        }
+    }
+
+    @Test
+    public void testOnUpdate_hiddenSpecialFormat() throws Exception {
+        try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
+            ExternalDbFacade facade = new ExternalDbFacade(sIsolatedContext, helper);
+
+            // Was _SPECIAL_FORMAT_NONE but is now _SPECIAL_FORMAT_GIF
+            assertThat(facade.onFileUpdated(ID1,
+                    FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
+                    /* oldIsTrashed */ true, /* newIsTrashed */ true,
+                    /* oldIsPending */ false, /* newIsPending */ false,
+                    /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                    /* oldSpecialFormat */ _SPECIAL_FORMAT_NONE,
+                    /* newSpecialFormat */ _SPECIAL_FORMAT_GIF)).isFalse();
+
+            // Was _SPECIAL_FORMAT_NONE but is now _SPECIAL_FORMAT_GIF
+            assertThat(facade.onFileUpdated(ID1,
+                    FileColumns.MEDIA_TYPE_IMAGE, FileColumns.MEDIA_TYPE_IMAGE,
+                    /* oldIsTrashed */ false, /* newIsTrashed */ false,
+                    /* oldIsPending */ true, /* newIsPending */ true,
+                    /* oldIsFavorite */ false, /* newIsFavorite */ false,
+                    /* oldSpecialFormat */ _SPECIAL_FORMAT_GIF,
+                    /* newSpecialFormat */ _SPECIAL_FORMAT_NONE)).isFalse();
         }
     }
 
@@ -605,7 +690,7 @@ public class ExternalDbFacadeTest {
     }
 
     @Test
-    public void testGetMediaInfo() throws Exception {
+    public void testGetMediaInfoFiltering() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
             ExternalDbFacade facade = new ExternalDbFacade(sIsolatedContext, helper);
 
@@ -635,6 +720,28 @@ public class ExternalDbFacadeTest {
 
                 cursor.moveToFirst();
                 assertMediaInfo(facade, cursor, /* count */ 0, /* generation */ 0);
+            }
+        }
+    }
+
+    @Test
+    public void testGetMediaInfoWithDeleted() throws Exception {
+        try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
+            ExternalDbFacade facade = new ExternalDbFacade(sIsolatedContext, helper);
+
+            ContentValues cv = getContentValues(DATE_TAKEN_MS1, GENERATION_MODIFIED1);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            ContentValues cvDeleted = new ContentValues();
+            cvDeleted.put(COLUMN_OLD_ID, ID2);
+            cvDeleted.put(MediaColumns.GENERATION_MODIFIED, GENERATION_MODIFIED2);
+            helper.runWithTransaction(db -> db.insert(TABLE_DELETED_MEDIA, null, cvDeleted));
+
+            try (Cursor cursor = facade.getMediaInfo(/* generation */ 0)) {
+                assertThat(cursor.getCount()).isEqualTo(1);
+
+                cursor.moveToFirst();
+                assertMediaInfo(facade, cursor, /* count */ 1, /* generation */ 2);
             }
         }
     }
@@ -809,12 +916,12 @@ public class ExternalDbFacadeTest {
             long dateTakenMs, int isFavorite, String mimeType) {
         int idIndex = cursor.getColumnIndex(CloudMediaProviderContract.MediaColumns.ID);
         int dateTakenIndex = cursor.getColumnIndex(
-                CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS);
+                CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS);
         int sizeIndex = cursor.getColumnIndex(CloudMediaProviderContract.MediaColumns.SIZE_BYTES);
         int mimeTypeIndex = cursor.getColumnIndex(
                 CloudMediaProviderContract.MediaColumns.MIME_TYPE);
         int durationIndex = cursor.getColumnIndex(
-                CloudMediaProviderContract.MediaColumns.DURATION_MS);
+                CloudMediaProviderContract.MediaColumns.DURATION_MILLIS);
         int isFavoriteIndex = cursor.getColumnIndex(
                 CloudMediaProviderContract.MediaColumns.IS_FAVORITE);
 
@@ -832,7 +939,7 @@ public class ExternalDbFacadeTest {
                 CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME);
         int idIndex = cursor.getColumnIndex(CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID);
         int dateTakenIndex = cursor.getColumnIndex(
-                CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS);
+                CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS);
         int countIndex = cursor.getColumnIndex(CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT);
 
         assertThat(cursor.getString(displayNameIndex)).isEqualTo(displayName);

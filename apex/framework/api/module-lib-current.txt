@@ -1,9 +1,1 @@
 // Signature format: 2.0
-package android.provider {
-
-  public final class CloudMediaProviderContract {
-    field public static final String METHOD_GET_MEDIA_INFO = "android:getMediaInfo";
-  }
-
-}
-

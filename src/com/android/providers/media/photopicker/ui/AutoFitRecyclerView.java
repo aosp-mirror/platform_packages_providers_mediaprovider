@@ -57,9 +57,7 @@ public class AutoFitRecyclerView extends RecyclerView {
     @Override
     public void setLayoutManager(@Nullable RecyclerView.LayoutManager layoutManager) {
         super.setLayoutManager(layoutManager);
-        if (layoutManager instanceof GridLayoutManager) {
-            mIsGridLayout = true;
-        }
+        mIsGridLayout = (layoutManager instanceof GridLayoutManager);
     }
 
     public void setColumnWidth(int columnWidth) {

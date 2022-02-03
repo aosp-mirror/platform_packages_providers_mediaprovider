@@ -49,6 +49,7 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PhotosTabTest extends PhotoPickerBaseTest {
     private static final int ICON_GIF_ID = R.id.icon_gif;
+    private static final int ICON_MOTION_PHOTO_ID = R.id.icon_motion_photo;
     private static final int VIDEO_CONTAINER_ID = R.id.video_container;
     private static final int OVERLAY_GRADIENT_ID = R.id.overlay_gradient;
 
@@ -77,28 +78,14 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Verify we have the thumbnail
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
-        // Verify check icon, gif icon and video icon are not displayed
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, OVERLAY_GRADIENT_ID);
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_GIF_ID);
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, VIDEO_CONTAINER_ID);
-    }
-
-    @Test
-    public void testPhotoGridLayout_gif() {
-        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-
-        // Verify we have the thumbnail
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
-        // Verify gif icon is displayed
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, OVERLAY_GRADIENT_ID);
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_GIF_ID);
-
-        // Verify check icon and video icon are not displayed
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_CHECK_ID);
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, VIDEO_CONTAINER_ID);
+        // Verify check icon, gif icon, motion photo icon and video icon are not displayed
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, OVERLAY_GRADIENT_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_CHECK_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_GIF_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_MOTION_PHOTO_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, VIDEO_CONTAINER_ID);
     }
 
     @Test
@@ -117,9 +104,10 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
                 .atPositionOnView(VIDEO_POSITION, R.id.video_duration))
                 .check(matches(withText(containsString("0"))));
 
-        // Verify check icon and gif icon are not displayed
+        // Verify check icon and gif icon and motion photo icon are not displayed
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_CHECK_ID);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_GIF_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_MOTION_PHOTO_ID);
     }
 
     @Test
@@ -133,6 +121,19 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         onView(allOf(withText(cameraStringId),
                 isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
 
+        // Verify that toolbar has the title as category name
+        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
+                .check(matches(isDisplayed()));
+
+        // Verify that tab chips are not shown on the toolbar
+        onView(withId(CHIP_CONTAINER_ID)).check(matches(not(isDisplayed())));
+
+        // Verify that privacy text is not shown
+        onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
+
+        // Verify that drag bar is shown
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+
         final int dateHeaderTitleId = R.id.date_header_title;
         final int recentHeaderPosition = 0;
         // Verify that first item is not a recent header
@@ -144,25 +145,19 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         // Verify that first item is TODAY
         onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
                 .atPositionOnView(0, dateHeaderTitleId))
-                .check(matches(withText(DateTimeUtils.getDateTimeString(getTargetContext(),
-                        System.currentTimeMillis()))));
+                .check(matches(
+                        withText(DateTimeUtils.getDateTimeString(System.currentTimeMillis()))));
 
         final int photoItemPosition = 1;
         // Verify first item is image and has no other icons other than thumbnail
         assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, ICON_THUMBNAIL_ID);
 
-        // Verify check icon, gif icon and video icon are not displayed
+        // Verify check icon, gif icon, motion photo icon and video icon are not displayed
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, OVERLAY_GRADIENT_ID);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, ICON_CHECK_ID);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, ICON_GIF_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, ICON_MOTION_PHOTO_ID);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, VIDEO_CONTAINER_ID);
-
-        // Verify that toolbar has the title as category name
-        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
-                .check(matches(isDisplayed()));
-
-        // Verify that tab chips are not shown on the toolbar
-        onView(withId(CHIP_CONTAINER_ID)).check(matches(not(isDisplayed())));
 
         // Click back button
         onView(withContentDescription("Navigate up")).perform(click());

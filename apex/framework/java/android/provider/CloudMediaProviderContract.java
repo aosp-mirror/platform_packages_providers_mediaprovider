@@ -16,7 +16,7 @@
 
 package android.provider;
 
-import android.annotation.SystemApi;
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
@@ -31,6 +31,8 @@ import java.util.UUID;
  * provides a foundational implementation of this contract.
  *
  * @see CloudMediaProvider
+ *
+ * @hide
  */
 public final class CloudMediaProviderContract {
     private static final String TAG = "CloudMediaProviderContract";
@@ -82,10 +84,10 @@ public final class CloudMediaProviderContract {
          * <p>
          * Type: LONG
          *
-         * @see CloudMediaProviderContract.AlbumColumns#DATE_TAKEN_MS
+         * @see CloudMediaProviderContract.AlbumColumns#DATE_TAKEN_MILLIS
          * @see System#currentTimeMillis()
          */
-        public static final String DATE_TAKEN_MS = "date_taken_ms";
+        public static final String DATE_TAKEN_MILLIS = "date_taken_millis";
 
         /**
          * Generation number associated with a media item.
@@ -110,6 +112,42 @@ public final class CloudMediaProviderContract {
          * Type: STRING
          */
         public static final String MIME_TYPE = "mime_type";
+
+        /**
+         * Mime-type extension representing special format for a media item.
+         *
+         * Photo Picker requires special format tagging for media items.
+         * This is essential as media items can have various formats like
+         * Motion Photos, GIFs etc, which are not identifiable by
+         * {@link #MIME_TYPE}.
+         * <p>
+         * Type: INTEGER
+         */
+        public static final String STANDARD_MIME_TYPE_EXTENSION = "standard_mime_type_extension";
+
+        /**
+         * Constant for the {@link #STANDARD_MIME_TYPE_EXTENSION} column indicating
+         * that the media item doesn't have any special format associated with it.
+         */
+        public static final int STANDARD_MIME_TYPE_EXTENSION_NONE = 0;
+
+        /**
+         * Constant for the {@link #STANDARD_MIME_TYPE_EXTENSION} column indicating
+         * that the media item is a GIF.
+         */
+        public static final int STANDARD_MIME_TYPE_EXTENSION_GIF = 1;
+
+        /**
+         * Constant for the {@link #STANDARD_MIME_TYPE_EXTENSION} column indicating
+         * that the media item is a Motion Photo.
+         */
+        public static final int STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO = 2;
+
+        /**
+         * Constant for the {@link #STANDARD_MIME_TYPE_EXTENSION} column indicating
+         * that the media item is an Animated Webp.
+         */
+        public static final int STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP = 3;
 
         /**
          * Size of a media file, in bytes.
@@ -141,7 +179,7 @@ public final class CloudMediaProviderContract {
          * <p>
          * Type: LONG
          */
-        public static final String DURATION_MS = "duration_ms";
+        public static final String DURATION_MILLIS = "duration_millis";
 
         /**
          * Whether the item has been favourited in the media collection. If {@code non-zero}, this
@@ -202,10 +240,10 @@ public final class CloudMediaProviderContract {
          * <p>
          * Type: LONG
          *
-         * @see CloudMediaProviderContract.MediaColumns#DATE_TAKEN_MS
+         * @see CloudMediaProviderContract.MediaColumns#DATE_TAKEN_MILLIS
          * @see System#currentTimeMillis()
          */
-        public static final String DATE_TAKEN_MS = "date_taken_ms";
+        public static final String DATE_TAKEN_MILLIS = "date_taken_millis";
 
         /**
          * Media id to use as the album cover photo.
@@ -222,7 +260,10 @@ public final class CloudMediaProviderContract {
         /**
          * Total count of all media within the album, including photos and videos.
          * <p>
-         * If this field is not provided, albums will be shown without a count in the Photo Picker
+         * If this field is not provided, albums will be shown without a count in the Photo Picker.
+         * <p>
+         * Empty albums should be omitted from the {@link CloudMediaProvider#onQueryAlbums} result,
+         * i.e. zero is not a valid media count.
          * <p>
          * Type: LONG
          */
@@ -322,6 +363,30 @@ public final class CloudMediaProviderContract {
         public static final String MEDIA_COUNT = "media_count";
     }
 
+    /** Constants related to the account information */
+    public static final class AccountInfo {
+        private AccountInfo() {}
+
+        /**
+         * Name of the account owning the media collection synced from the cloud provider.
+         * <p>
+         * Type: STRING
+         *
+         * @see CloudMediaProvider#onGetAccountInfo
+         */
+        public static final String ACTIVE_ACCOUNT_NAME = "active_account_name";
+
+        /**
+         * {@link Intent} Intent to launch an {@link Activity} to allow users configure their media
+         * collection account information like the active account.
+         * <p>
+         * Type: PARCELABLE
+         *
+         * @see CloudMediaProvider#onGetAccountInfo
+         */
+        public static final String ACCOUNT_CONFIGURATION_INTENT = "account_configuration_intent";
+    }
+
     /**
      * Opaque pagination token to retrieve the next page (cursor) from a media or album query.
      * <p>
@@ -400,17 +465,14 @@ public final class CloudMediaProviderContract {
     /**
      * Limits the query results to only media items matching the give mimetype.
      * <p>
-     * The provider should handle an asterisk in the subtype, e.g. {@code image/*} should match
-     * {@code image/jpeg} and {@code image/png}.
-     * <p>
-     * This is only intended for the MediaProvider to implement for cross-user communication. Not
-     * for third party apps.
+     * This may be a pattern, such as *&#47;*, to query for all available MIME types that match the
+     * pattern, e.g. {@code image/*} should match {@code image/jpeg} and {@code image/png}.
      *
      * @see CloudMediaProvider#onQueryMedia
      * <p>
      * Type: STRING
      */
-    public static final String EXTRA_FILTER_MIMETYPE = "android.provider.extra.FILTER_MIMETYPE";
+    public static final String EXTRA_FILTER_MIME_TYPE = "android.provider.extra.FILTER_MIME_TYPE";
 
     /**
      * Limits the query results to only media items less than the given file size in bytes.
@@ -421,8 +483,21 @@ public final class CloudMediaProviderContract {
      * @see CloudMediaProvider#onQueryMedia
      * <p>
      * Type: LONG
+     * @hide
      */
     public static final String EXTRA_FILTER_SIZE_BYTES = "android.provider.extra.FILTER_SIZE_BYTES";
+
+    /**
+     * Forces the {@link CloudMediaProvider#onOpenPreview} file descriptor to return a thumbnail
+     * image. This is only useful for videos where the OS can either request a video or image
+     * for preview.
+     *
+     * @see CloudMediaProvider#onOpenPreview
+     * <p>
+     * Type: BOOLEAN
+     */
+    public static final String EXTRA_PREVIEW_THUMBNAIL =
+            "android.provider.extra.PREVIEW_THUMBNAIL";
 
     /**
      * Constant used to execute {@link CloudMediaProvider#onGetMediaInfo} via
@@ -430,8 +505,42 @@ public final class CloudMediaProviderContract {
      *
      * {@hide}
      */
-    @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
     public static final String METHOD_GET_MEDIA_INFO = "android:getMediaInfo";
+
+    /**
+     * Constant used to execute {@link CloudMediaProvider#onGetAccountInfo} via
+     * {@link ContentProvider#call}.
+     *
+     * {@hide}
+     */
+    public static final String METHOD_GET_ACCOUNT_INFO = "android:getAccountInfo";
+
+    /**
+     * Constant used to execute {@link CloudMediaProvider#onCreateSurfaceController} via
+     * {@link ContentProvider#call}.
+     *
+     * {@hide}
+     */
+    public static final String METHOD_CREATE_SURFACE_CONTROLLER = "android:createSurfaceController";
+
+    /**
+     * Gets surface controller from {@link CloudMediaProvider#onCreateSurfaceController}.
+     * {@hide}
+     */
+    public static final String EXTRA_SURFACE_CONTROLLER =
+            "android.provider.extra.SURFACE_CONTROLLER";
+
+    /**
+     * Indicates whether to enable looping playback of media items.
+     * <p>
+     * In case this is not present, the default value should be false.
+     *
+     * @see CloudMediaProvider#onCreateSurfaceController(Bundle)
+     * <p>
+     * Type: BOOLEAN
+     */
+    public static final String EXTRA_LOOPING_PLAYBACK_ENABLED =
+            "android.provider.extra.LOOPING_PLAYBACK_ENABLED";
 
     /**
      * URI path for {@link CloudMediaProvider#onQueryMedia}
@@ -467,4 +576,18 @@ public final class CloudMediaProviderContract {
      * {@hide}
      */
     public static final String URI_PATH_MEDIA_INFO = "media_info";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onGetAccountInfo}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_ACCOUNT_INFO = "account_info";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onCreateSurfaceController}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_SURFACE_CONTROLLER = "surface_controller";
 }

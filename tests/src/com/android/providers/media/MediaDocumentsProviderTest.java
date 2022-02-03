@@ -22,6 +22,7 @@ import static com.android.providers.media.scan.MediaScannerTest.stage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import android.Manifest;
 import android.content.ContentResolver;
@@ -29,6 +30,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
 import android.provider.DocumentsContract.Document;
 import android.provider.DocumentsContract.Root;
@@ -53,6 +55,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Arrays;
 
@@ -126,6 +129,31 @@ public class MediaDocumentsProviderTest {
                 MediaDocumentsProvider.TYPE_DOCUMENT,
         }) {
             assertProbe(resolver, "document", item);
+        }
+    }
+
+    @Test
+    public void testOpenFile() throws Exception {
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context isolatedContext = new IsolatedContext(context, "modern",
+                /*asFuseThread*/ false);
+        final ContentResolver resolver = isolatedContext.getContentResolver();
+
+        // Give ourselves some basic media to work with
+        stageTestMedia(isolatedContext);
+
+        for (String item : new String[] {
+                MediaDocumentsProvider.TYPE_ARTIST,
+                MediaDocumentsProvider.TYPE_ALBUM,
+                MediaDocumentsProvider.TYPE_VIDEOS_BUCKET,
+                MediaDocumentsProvider.TYPE_IMAGES_BUCKET,
+                MediaDocumentsProvider.TYPE_DOCUMENTS_BUCKET,
+                MediaDocumentsProvider.TYPE_AUDIO,
+                MediaDocumentsProvider.TYPE_VIDEO,
+                MediaDocumentsProvider.TYPE_IMAGE,
+                MediaDocumentsProvider.TYPE_DOCUMENT,
+        }) {
+            assertOpenFile(resolver, item);
         }
     }
 
@@ -261,5 +289,23 @@ public class MediaDocumentsProviderTest {
 
         final MediaScanner scanner = new ModernMediaScanner(context);
         scanner.scanDirectory(dir, REASON_UNKNOWN);
+    }
+
+    private void assertOpenFile(ContentResolver resolver, String item)
+            throws FileNotFoundException {
+        final Uri.Builder probe = Uri.parse("content://" + MediaDocumentsProvider.AUTHORITY)
+                .buildUpon().appendPath(MediaDocumentsProvider.TYPE_DOCUMENT).appendPath(item);
+        try (Cursor c = resolver.query(probe.build(), null, Bundle.EMPTY, null)) {
+            while (c.moveToNext()) {
+                final Uri uri = DocumentsContract.buildDocumentUri(AUTHORITY,
+                        getDocIdForIdent(item, c.getLong(0)));
+                assertNotNull(resolver.openFile(uri, "r", null));
+                assertNotNull(resolver.openFile(uri, "rw", null));
+            }
+        }
+    }
+
+    private static String getDocIdForIdent(String type, long id) {
+        return type + ":" + id;
     }
 }

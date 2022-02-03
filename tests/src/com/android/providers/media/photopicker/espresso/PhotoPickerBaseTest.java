@@ -63,16 +63,23 @@ public class PhotoPickerBaseTest {
     protected static final int VIEW_SELECTED_BUTTON_ID = R.id.button_view_selected;
     protected static final int PREVIEW_IMAGE_VIEW_ID = R.id.preview_imageView;
     protected static final int DRAG_BAR_ID = R.id.drag_bar;
+    protected static final int PREVIEW_GIF_ID = R.id.preview_gif;
+    protected static final int PREVIEW_MOTION_PHOTO_ID = R.id.preview_motion_photo;
+    protected static final int PREVIEW_ADD_OR_SELECT_BUTTON_ID = R.id.preview_add_or_select_button;
+    protected static final int PRIVACY_TEXT_ID = R.id.privacy_text;
+
+    protected static final int DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH
+            = R.dimen.preview_add_or_select_width;
 
     /**
-     * The position of the image item in the grid on the Photos tab
+     * The position of the first image item in the grid on the Photos tab
      */
-    protected static final int IMAGE_POSITION = 1;
+    protected static final int IMAGE_1_POSITION = 1;
 
     /**
-     * The position of the gif item in the grid on the Photos tab
+     * The position of the second item in the grid on the Photos tab
      */
-    protected static final int GIF_POSITION = 2;
+    protected static final int IMAGE_2_POSITION = 2;
 
     /**
      * The position of the video item in the grid on the Photos tab
@@ -95,11 +102,11 @@ public class PhotoPickerBaseTest {
         sMultiSelectionIntent.putExtras(extras);
     }
 
-    private static final File IMAGE_FILE = new File(Environment.getExternalStorageDirectory(),
+    private static final File IMAGE_1_FILE = new File(Environment.getExternalStorageDirectory(),
             Environment.DIRECTORY_DCIM + "/Camera"
                     + "/image_" + System.currentTimeMillis() + ".jpeg");
-    private static final File GIF_FILE = new File(Environment.getExternalStorageDirectory(),
-            Environment.DIRECTORY_DOWNLOADS + "/gif_" + System.currentTimeMillis() + ".gif");
+    private static final File IMAGE_2_FILE = new File(Environment.getExternalStorageDirectory(),
+            Environment.DIRECTORY_DOWNLOADS + "/image_" + System.currentTimeMillis() + ".jpeg");
     private static final File VIDEO_FILE = new File(Environment.getExternalStorageDirectory(),
             Environment.DIRECTORY_MOVIES + "/video_" + System.currentTimeMillis() + ".mp4");
 
@@ -161,21 +168,36 @@ public class PhotoPickerBaseTest {
 
     @AfterClass
     public static void destroyClass() {
-        IMAGE_FILE.delete();
-        GIF_FILE.delete();
-        VIDEO_FILE.delete();
+        deleteFiles(/* invalidateMediaStore */ false);
 
         InstrumentationRegistry.getInstrumentation()
                 .getUiAutomation().dropShellPermissionIdentity();
     }
 
+    protected static void deleteFiles(boolean invalidateMediaStore) {
+        deleteFile(IMAGE_1_FILE, invalidateMediaStore);
+        deleteFile(IMAGE_2_FILE, invalidateMediaStore);
+        deleteFile(VIDEO_FILE, invalidateMediaStore);
+    }
+
+    private static void deleteFile(File file, boolean invalidateMediaStore) {
+        file.delete();
+        if (invalidateMediaStore) {
+            final Uri uri = MediaStore.scanFile(getIsolatedContext().getContentResolver(), file);
+            assertThat(uri).isNull();
+            // Force picker db sync for that db operation
+            MediaStore.waitForIdle(getIsolatedContext().getContentResolver());
+        }
+    }
+
     private static void createFiles() throws Exception {
         long timeNow = System.currentTimeMillis();
         // Create files and change dateModified so that we can predict the recyclerView item
-        // position
-        createFile(IMAGE_FILE, timeNow + 2000);
-        createFile(GIF_FILE, timeNow + 1000);
-        createFile(VIDEO_FILE, timeNow);
+        // position. Set modified date ahead of time, so that even if other files are created,
+        // the below files always have positions 1, 2 and 3.
+        createFile(IMAGE_1_FILE, timeNow + 30000);
+        createFile(IMAGE_2_FILE, timeNow + 20000);
+        createFile(VIDEO_FILE, timeNow + 10000);
     }
 
     private static void pollForCondition(Supplier<Boolean> condition, String errorMessage)

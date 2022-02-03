@@ -104,6 +104,19 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * Reset to personal profile mode.
+     */
+    public void resetToPersonalProfile() {
+        // 1. Clear Selected items
+        mSelection.clearSelectedItems();
+        // 2. Change profile to personal user
+        mUserIdManager.setPersonalAsCurrentUserProfile();
+        // 3. Update Item and Category lists
+        updateItems();
+        updateCategories();
+    }
+
+    /**
      * @return the list of Items with all photos and videos {@link #mItemList} on the device.
      */
     public LiveData<List<Item>> getItems() {

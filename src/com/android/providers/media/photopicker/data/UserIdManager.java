@@ -18,16 +18,19 @@ package com.android.providers.media.photopicker.data;
 
 import static androidx.core.util.Preconditions.checkNotNull;
 
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.WorkerThread;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.util.Log;
+
+import androidx.lifecycle.MutableLiveData;
 
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
@@ -122,10 +125,34 @@ public interface UserIdManager {
     void setIntentAndCheckRestrictions(Intent intent);
 
     /**
-     * Updates cross profile restrictions values
+     * Waits for Media Provider of the work profile to be available.
      */
     @WorkerThread
-    void updateCrossProfileValues();
+    void waitForMediaProviderToBeAvailable();
+
+    /**
+     * Checks if work profile is switched off and updates the data.
+     */
+    @WorkerThread
+    void updateWorkProfileOffValue();
+
+    /**
+     * Resets the user ids. This is usually called as a result of receiving broadcast that
+     * managed profile has been added or removed.
+     */
+    void resetUserIds();
+
+    /**
+     * @return {@link MutableLiveData} to check if cross profile interaction allowed or not
+     */
+    @NonNull
+    MutableLiveData<Boolean> getCrossProfileAllowed();
+
+    /**
+     * @return {@link MutableLiveData} to check if there are multiple user profiles or not
+     */
+    @NonNull
+    MutableLiveData<Boolean> getIsMultiUserProfiles();
 
     /**
      * Creates an implementation of {@link UserIdManager}.
@@ -141,8 +168,15 @@ public interface UserIdManager {
 
         private static final String TAG = "UserIdManager";
 
+        // These values are copied from DocumentsUI
+        private static final int PROVIDER_AVAILABILITY_MAX_RETRIES = 10;
+        private static final long PROVIDER_AVAILABILITY_CHECK_DELAY = 4000;
+
         private final Context mContext;
         private final UserId mCurrentUser;
+        private final Handler mHandler;
+
+        private Runnable mIsProviderAvailableRunnable;
 
         @GuardedBy("mLock")
         private final Object mLock = new Object();
@@ -154,22 +188,12 @@ public interface UserIdManager {
         @GuardedBy("mLock")
         private UserId mCurrentUserProfile = null;
 
-        private Intent mIntent = null;
         // Set default values to negative case, only set as false if checks pass.
         private boolean mIsBlockedByAdmin = true;
         private boolean mIsWorkProfileOff = true;
 
-        private final BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
-
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                synchronized (mLock) {
-                    mPersonalUser = null;
-                    mManagedUser = null;
-                    setUserIds();
-                }
-            }
-        };
+        private final MutableLiveData<Boolean> mIsMultiUserProfiles = new MutableLiveData<>();
+        private final MutableLiveData<Boolean> mIsCrossProfileAllowed = new MutableLiveData<>();
 
         private RuntimeUserIdManager(Context context) {
             this(context, UserId.CURRENT_USER);
@@ -180,12 +204,25 @@ public interface UserIdManager {
             mContext = context.getApplicationContext();
             mCurrentUser = checkNotNull(currentUser);
             mCurrentUserProfile = mCurrentUser;
+            mHandler = new Handler(Looper.getMainLooper());
             setUserIds();
+        }
 
-            IntentFilter filter = new IntentFilter();
-            filter.addAction(Intent.ACTION_MANAGED_PROFILE_ADDED);
-            filter.addAction(Intent.ACTION_MANAGED_PROFILE_REMOVED);
-            mContext.registerReceiver(mIntentReceiver, filter);
+        @Override
+        public MutableLiveData<Boolean> getCrossProfileAllowed() {
+            return mIsCrossProfileAllowed;
+        }
+
+        @Override
+        public MutableLiveData<Boolean> getIsMultiUserProfiles() {
+            return mIsMultiUserProfiles;
+        }
+
+        @Override
+        public void resetUserIds() {
+            synchronized (mLock) {
+                setUserIds();
+            }
         }
 
         @Override
@@ -228,8 +265,9 @@ public interface UserIdManager {
 
         @Override
         public void setIntentAndCheckRestrictions(Intent intent) {
-            mIntent = intent;
-            updateCrossProfileValues();
+            if (isMultiUserProfiles()) {
+                updateCrossProfileValues(intent);
+            }
         }
 
         public boolean isCurrentUserSelected() {
@@ -258,6 +296,7 @@ public interface UserIdManager {
             synchronized (mLock) {
                 setUserIdsInternalLocked();
             }
+            mIsMultiUserProfiles.postValue(isMultiUserProfiles());
         }
 
         private void setCurrentUserProfileId(UserId userId) {
@@ -268,6 +307,8 @@ public interface UserIdManager {
 
         @GuardedBy("mLock")
         private void setUserIdsInternalLocked() {
+            mPersonalUser = null;
+            mManagedUser = null;
             UserManager userManager =  mContext.getSystemService(UserManager.class);
             if (userManager == null) {
                 Log.e(TAG, "Cannot obtain user manager");
@@ -322,35 +363,98 @@ public interface UserIdManager {
         }
 
         @Override
-        @WorkerThread
-        public void updateCrossProfileValues() {
-            setCrossProfileValues();
+        public void updateWorkProfileOffValue() {
+            mIsWorkProfileOff = isWorkProfileOffInternal(getManagedUserId());
+            mIsCrossProfileAllowed.postValue(isCrossProfileAllowed());
         }
 
-        @WorkerThread
-        private void setCrossProfileValues() {
-            final PackageManager packageManager = mContext.getPackageManager();
+        @Override
+        public void waitForMediaProviderToBeAvailable() {
+            final UserId managedUserProfileId = getManagedUserId();
+            if (CrossProfileUtils.isMediaProviderAvailable(managedUserProfileId, mContext)) {
+                mIsWorkProfileOff = false;
+                mIsCrossProfileAllowed.postValue(isCrossProfileAllowed());
+                stopWaitingForProviderToBeAvailable();
+                return;
+            }
+            waitForProviderToBeAvailable(managedUserProfileId, /* numOfTries */ 1);
+        }
+
+        private void updateCrossProfileValues(Intent intent) {
+            setCrossProfileValues(intent);
+            mIsCrossProfileAllowed.postValue(isCrossProfileAllowed());
+        }
+
+        private void setCrossProfileValues(Intent intent) {
             // 1. Check if PICK_IMAGES intent is allowed by admin to show cross user content
-            if (mIntent == null) {
+            setBlockedByAdminValue(intent);
+
+            // 2. Check if work profile is off
+            updateWorkProfileOffValue();
+
+            // 3. For first initial setup, wait for MediaProvider to be on.
+            // (This is not blocking)
+            if (mIsWorkProfileOff) {
+                waitForMediaProviderToBeAvailable();
+            }
+        }
+
+        private void setBlockedByAdminValue(Intent intent) {
+            if (intent == null) {
                 Log.e(TAG, "No intent specified to check if cross profile forwarding is"
                         + " allowed.");
                 return;
             }
-            if (!CrossProfileUtils.isIntentAllowedCrossProfileAccess(mIntent, packageManager)) {
+            final PackageManager packageManager = mContext.getPackageManager();
+            if (!CrossProfileUtils.isIntentAllowedCrossProfileAccess(intent, packageManager)) {
                 mIsBlockedByAdmin = true;
                 return;
             }
             mIsBlockedByAdmin = false;
+        }
 
-            // 2. Check if work profile is off
-            if (!isManagedUserSelected()) {
-                final UserId managedUserProfileId = getManagedUserId();
-                if (!CrossProfileUtils.isMediaProviderAvailable(managedUserProfileId, mContext)) {
-                    mIsWorkProfileOff = true;
+        private boolean isWorkProfileOffInternal(UserId managedUserProfileId) {
+            return CrossProfileUtils.isQuietModeEnabled(managedUserProfileId, mContext) ||
+                    !CrossProfileUtils.isMediaProviderAvailable(managedUserProfileId, mContext);
+        }
+
+        private void waitForProviderToBeAvailable(UserId userId, int numOfTries) {
+            // The runnable should make sure to post update on the live data if it is changed.
+            mIsProviderAvailableRunnable = () -> {
+                // We stop the recursive check when
+                // 1. the provider is available
+                // 2. the profile is in quiet mode, i.e. provider will not be available
+                // 3. after maximum retries
+                if (CrossProfileUtils.isMediaProviderAvailable(userId, mContext)) {
+                    mIsWorkProfileOff = false;
+                    mIsCrossProfileAllowed.postValue(isCrossProfileAllowed());
                     return;
                 }
+
+                if (CrossProfileUtils.isQuietModeEnabled(userId, mContext)) {
+                    return;
+                }
+
+                if (numOfTries <= PROVIDER_AVAILABILITY_MAX_RETRIES) {
+                    Log.d(TAG, "MediaProvider is not available. Retry after " +
+                            PROVIDER_AVAILABILITY_CHECK_DELAY);
+                    waitForProviderToBeAvailable(userId, numOfTries + 1);
+                    return;
+                }
+
+                Log.w(TAG, "Failed waiting for MediaProvider for user:" + userId +
+                        " to be available");
+            };
+
+            mHandler.postDelayed(mIsProviderAvailableRunnable, PROVIDER_AVAILABILITY_CHECK_DELAY);
+        }
+
+        private void stopWaitingForProviderToBeAvailable() {
+            if (mIsProviderAvailableRunnable == null) {
+                return;
             }
-            mIsWorkProfileOff = false;
+            mHandler.removeCallbacks(mIsProviderAvailableRunnable);
+            mIsProviderAvailableRunnable = null;
         }
     }
 }

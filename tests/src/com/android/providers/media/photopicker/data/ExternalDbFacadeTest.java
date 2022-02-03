@@ -916,12 +916,12 @@ public class ExternalDbFacadeTest {
             long dateTakenMs, int isFavorite, String mimeType) {
         int idIndex = cursor.getColumnIndex(CloudMediaProviderContract.MediaColumns.ID);
         int dateTakenIndex = cursor.getColumnIndex(
-                CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS);
+                CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS);
         int sizeIndex = cursor.getColumnIndex(CloudMediaProviderContract.MediaColumns.SIZE_BYTES);
         int mimeTypeIndex = cursor.getColumnIndex(
                 CloudMediaProviderContract.MediaColumns.MIME_TYPE);
         int durationIndex = cursor.getColumnIndex(
-                CloudMediaProviderContract.MediaColumns.DURATION_MS);
+                CloudMediaProviderContract.MediaColumns.DURATION_MILLIS);
         int isFavoriteIndex = cursor.getColumnIndex(
                 CloudMediaProviderContract.MediaColumns.IS_FAVORITE);
 
@@ -939,7 +939,7 @@ public class ExternalDbFacadeTest {
                 CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME);
         int idIndex = cursor.getColumnIndex(CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID);
         int dateTakenIndex = cursor.getColumnIndex(
-                CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS);
+                CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS);
         int countIndex = cursor.getColumnIndex(CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT);
 
         assertThat(cursor.getString(displayNameIndex)).isEqualTo(displayName);

@@ -64,14 +64,14 @@ public class ExternalDbFacade {
     private static final String[] PROJECTION_MEDIA_COLUMNS = new String[] {
         MediaColumns._ID + " AS " + CloudMediaProviderContract.MediaColumns.ID,
         "COALESCE(" + MediaColumns.DATE_TAKEN + "," + MediaColumns.DATE_MODIFIED +
-                    "* 1000) AS " + CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS,
+                    "* 1000) AS " + CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS,
         MediaColumns.GENERATION_MODIFIED + " AS " +
                 CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED,
         MediaColumns.SIZE + " AS " + CloudMediaProviderContract.MediaColumns.SIZE_BYTES,
         MediaColumns.MIME_TYPE + " AS " + CloudMediaProviderContract.MediaColumns.MIME_TYPE,
         FileColumns._SPECIAL_FORMAT + " AS " +
                 CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
-        MediaColumns.DURATION + " AS " + CloudMediaProviderContract.MediaColumns.DURATION_MS,
+        MediaColumns.DURATION + " AS " + CloudMediaProviderContract.MediaColumns.DURATION_MILLIS,
         MediaColumns.IS_FAVORITE + " AS " + CloudMediaProviderContract.MediaColumns.IS_FAVORITE
     };
     private static final String[] PROJECTION_MEDIA_INFO = new String[] {
@@ -87,13 +87,13 @@ public class ExternalDbFacade {
     private static final String[] PROJECTION_ALBUM_DB = new String[] {
         "COUNT(" + MediaColumns._ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
         "MAX(COALESCE(" + MediaColumns.DATE_TAKEN + "," + MediaColumns.DATE_MODIFIED +
-                    "* 1000)) AS " + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
+                    "* 1000)) AS " + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
         MediaColumns._ID + " AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID,
     };
 
     private static final String[] PROJECTION_ALBUM_CURSOR = new String[] {
             CloudMediaProviderContract.AlbumColumns.ID,
-            CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
+            CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
             CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME,
             CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
             CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID,
@@ -260,7 +260,7 @@ public class ExternalDbFacade {
      */
     public Cursor queryMediaGeneration(long generation, String albumId, String mimeType) {
         final List<String> selectionArgs = new ArrayList<>();
-        final String orderBy = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS + " DESC";
+        final String orderBy = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS + " DESC";
 
         return mDatabaseHelper.runWithTransaction(db -> {
                 SQLiteQueryBuilder qb = createMediaQueryBuilder();
@@ -373,7 +373,7 @@ public class ExternalDbFacade {
 
             final String[] projectionValue = new String[] {
                 category,
-                getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS),
+                getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS),
                 Category.getCategoryName(mContext, category),
                 String.valueOf(count),
                 getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),

@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Não é permitido o acesso a dados pessoais em um app de trabalho"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Os apps de trabalho foram pausados"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Para abrir as fotos de trabalho, ative os apps de trabalho e tente novamente"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Este app só pode acessar as fotos que você selecionar"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> item}one{<xliff:g id="COUNT_1">^1</xliff:g> item}other{<xliff:g id="COUNT_1">^1</xliff:g> itens}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Adicionar (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Câmera"</string>

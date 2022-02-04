@@ -24,6 +24,7 @@ import androidx.viewpager2.widget.MarginPageTransformer;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import java.util.ArrayList;
@@ -41,12 +42,12 @@ class ViewPager2Wrapper {
     private final PreviewAdapter mAdapter;
     private final List<ViewPager2.OnPageChangeCallback> mOnPageChangeCallbacks = new ArrayList<>();
 
-    ViewPager2Wrapper(ViewPager2 viewPager, List<Item> selectedItems) {
+    ViewPager2Wrapper(ViewPager2 viewPager, List<Item> selectedItems, MuteStatus muteStatus) {
         mViewPager = viewPager;
 
         final Context context = mViewPager.getContext();
 
-        mAdapter = new PreviewAdapter(context);
+        mAdapter = new PreviewAdapter(context, muteStatus);
         mAdapter.updateItemList(selectedItems);
         mViewPager.setAdapter(mAdapter);
 

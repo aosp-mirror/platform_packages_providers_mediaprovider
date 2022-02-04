@@ -90,6 +90,23 @@ public class SelectionTest {
     }
 
     @Test
+    public void testClearSelectedItem() {
+        final String id = "1";
+        final Item item = generateFakeImageItem(id);
+        final String id2 = "2";
+        final Item item2 = generateFakeImageItem(id2);
+
+        assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(0);
+
+        mSelection.addSelectedItem(item);
+        mSelection.addSelectedItem(item2);
+        assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(2);
+
+        mSelection.clearSelectedItems();
+        assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(0);
+    }
+
+    @Test
     public void testSetSelectedItem() {
         final String id1 = "1";
         final Item item1 = generateFakeImageItem(id1);

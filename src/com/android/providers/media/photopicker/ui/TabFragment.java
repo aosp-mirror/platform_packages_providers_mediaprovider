@@ -39,6 +39,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -48,7 +50,6 @@ import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
-import com.android.providers.media.util.ForegroundThread;
 
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
@@ -59,6 +60,7 @@ import java.util.Locale;
  * The base abstract Tab fragment
  */
 public abstract class TabFragment extends Fragment {
+
     protected PickerViewModel mPickerViewModel;
     protected Selection mSelection;
     protected ImageLoader mImageLoader;
@@ -151,6 +153,25 @@ public abstract class TabFragment extends Fragment {
             });
         }
 
+        // Initial setup
+        setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
+
+        // Observe for cross profile access changes.
+        final LiveData<Boolean> crossProfileAllowed = mUserIdManager.getCrossProfileAllowed();
+        if (crossProfileAllowed != null) {
+            crossProfileAllowed.observe(this, isCrossProfileAllowed -> {
+                setUpProfileButton();
+            });
+        }
+
+        // Observe for multi-user changes.
+        final LiveData<Boolean> isMultiUserProfiles = mUserIdManager.getIsMultiUserProfiles();
+        if (isMultiUserProfiles != null) {
+            isMultiUserProfiles.observe(this, this::setUpProfileButtonWithListeners);
+        }
+    }
+
+    private void setUpListenersForProfileButton() {
         mProfileButton.setOnClickListener(v -> onClickProfileButton());
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -166,12 +187,6 @@ public abstract class TabFragment extends Fragment {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        updateProfileButtonAsync();
-    }
-
-    @Override
     public void onDestroy() {
         super.onDestroy();
         if (mRecyclerView != null) {
@@ -179,12 +194,13 @@ public abstract class TabFragment extends Fragment {
         }
     }
 
-    private void updateProfileButtonAsync() {
-        ForegroundThread.getExecutor().execute(() -> {
-            mUserIdManager.updateCrossProfileValues();
-
-            getActivity().runOnUiThread(() -> setUpProfileButton());
-        });
+    private void setUpProfileButtonWithListeners(boolean isMultiUserProfile) {
+        if (isMultiUserProfile) {
+            setUpListenersForProfileButton();
+        } else {
+            mRecyclerView.clearOnScrollListeners();
+        }
+        setUpProfileButton();
     }
 
     private void setUpProfileButton() {

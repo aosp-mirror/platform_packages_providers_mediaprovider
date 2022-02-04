@@ -220,6 +220,11 @@ public class ItemsProvider {
         final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
+            if (client == null) {
+                Log.e(TAG, "Unable to acquire unstable content provider for "
+                        + MediaStore.AUTHORITY);
+                return null;
+            }
             Bundle extras = new Bundle();
             extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
             extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
@@ -254,6 +259,11 @@ public class ItemsProvider {
         final Bundle extras = new Bundle();
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
+            if (client == null) {
+                Log.e(TAG, "Unable to acquire unstable content provider for "
+                        + MediaStore.AUTHORITY);
+                return null;
+            }
             extras.putInt(MediaStore.QUERY_ARG_LIMIT, limit);
             extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
             if (category != null) {
@@ -280,6 +290,11 @@ public class ItemsProvider {
         final Bundle extras = new Bundle();
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
+            if (client == null) {
+                Log.e(TAG, "Unable to acquire unstable content provider for "
+                        + MediaStore.AUTHORITY);
+                return null;
+            }
             extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
 
             final Uri uri = PickerUriResolver.PICKER_INTERNAL_URI.buildUpon()

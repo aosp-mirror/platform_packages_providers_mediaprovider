@@ -17,11 +17,15 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.media.AudioManager;
 import android.net.Uri;
+import android.util.Log;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.MuteStatus;
 
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
@@ -43,6 +47,7 @@ import com.google.android.exoplayer2.util.Clock;
  * that all its public methods are called from main thread only.
  */
 class ExoPlayerWrapper {
+    private static final String TAG = "ExoPlayerWrapper";
     // The minimum duration of media that the player will attempt to ensure is buffered at all
     // times.
     private static final int MIN_BUFFER_MS = 1000;
@@ -62,12 +67,14 @@ class ExoPlayerWrapper {
     private static final long PLAYER_CONTROL_ON_PLAY_TIMEOUT_MS = 1000;
 
     private final Context mContext;
+    private final MuteStatus mMuteStatus;
     private ExoPlayer mExoPlayer;
     private boolean mIsPlayerReleased = true;
     private boolean mShouldShowControlsForNext = true;
 
-    public ExoPlayerWrapper(Context context) {
+    public ExoPlayerWrapper(Context context, MuteStatus muteStatus) {
         mContext = context;
+        mMuteStatus = muteStatus;
     }
 
     /**
@@ -171,6 +178,34 @@ class ExoPlayerWrapper {
                 styledPlayerView.postDelayed(() -> styledPlayerView.hideController(),
                         PLAYER_CONTROL_ON_PLAY_TIMEOUT_MS);
             }
+        });
+
+        // Step3: Set-up mute button
+        final ImageButton muteButton = styledPlayerView.findViewById(R.id.preview_mute);
+        final boolean isVolumeMuted = mMuteStatus.isVolumeMuted();
+        // Set the status of the muteButton according to previous status of the mute button
+        muteButton.setSelected(isVolumeMuted);
+        if (isVolumeMuted) {
+            // If the previous volume was muted, set the volume status to mute.
+            mExoPlayer.setVolume(0f);
+        }
+
+        // Add click listeners for mute button
+        muteButton.setOnClickListener(v -> {
+            if (mMuteStatus.isVolumeMuted()) {
+                AudioManager audioManager = mContext.getSystemService(AudioManager.class);
+                if (audioManager == null) {
+                    Log.e(TAG, "Couldn't find AudioManager while trying to set volume,"
+                            + " unable to set volume");
+                    return;
+                }
+                mExoPlayer.setVolume(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
+                mMuteStatus.setVolumeMuted(false);
+            } else {
+                mExoPlayer.setVolume(0f);
+                mMuteStatus.setVolumeMuted(true);
+            }
+            muteButton.setSelected(mMuteStatus.isVolumeMuted());
         });
     }
 

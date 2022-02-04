@@ -34,6 +34,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
@@ -53,8 +54,9 @@ public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
 
     private static final int RECENT_MINIMUM_COUNT = 12;
- 
+
     private final Selection mSelection;
+    private final MuteStatus mMuteStatus;
 
     // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
     // data set to reduce memories.
@@ -77,6 +79,7 @@ public class PickerViewModel extends AndroidViewModel {
         mItemsProvider = new ItemsProvider(context);
         mSelection = new Selection();
         mUserIdManager = UserIdManager.create(context);
+        mMuteStatus = new MuteStatus();
     }
 
     @VisibleForTesting
@@ -101,6 +104,14 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public Selection getSelection() {
         return mSelection;
+    }
+
+
+    /**
+     * @return {@code mMuteStatus} that tracks the volume mute status of the video preview
+     */
+    public MuteStatus getMuteStatus() {
+        return mMuteStatus;
     }
 
     /**

@@ -57,7 +57,9 @@ public class SelectionTest {
 
         final Context context = InstrumentationRegistry.getTargetContext();
         when(mApplication.getApplicationContext()).thenReturn(context);
-        mSelection = new PickerViewModel(mApplication).getSelection();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            mSelection = new PickerViewModel(mApplication).getSelection();
+        });
     }
 
     @Test

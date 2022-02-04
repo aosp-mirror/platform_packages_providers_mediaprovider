@@ -18,7 +18,9 @@ package com.android.providers.media.photopicker.ui.remotepreview;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
+import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_EVENT_CALLBACK;
 import static android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER;
+import static android.provider.CloudMediaProvider.SurfaceEventCallback.PLAYBACK_EVENT_READY;
 
 import static com.android.providers.media.PickerUriResolver.createSurfaceControllerUri;
 
@@ -29,6 +31,8 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.SystemProperties;
 import android.provider.ICloudMediaSurfaceController;
+
+import android.provider.ICloudSurfaceEventCallback;
 import android.util.ArrayMap;
 import android.util.Log;
 import android.view.Surface;
@@ -56,6 +60,7 @@ public final class RemotePreviewHandler {
     private final Map<String, SurfaceControllerProxy> mControllers =
             new ArrayMap<>();
     private final SurfaceHolder.Callback mSurfaceHolderCallback = new PreviewSurfaceCallback();
+    private final SurfaceEventCallbackWrapper mSurfaceEventCallbackWrapper;
 
     private Item mCurrentPreviewItem;
     private boolean mIsInBackground = false;
@@ -67,6 +72,7 @@ public final class RemotePreviewHandler {
 
     public RemotePreviewHandler(Context context) {
         mContext = context;
+        mSurfaceEventCallbackWrapper = new SurfaceEventCallbackWrapper();
     }
 
     /**
@@ -164,6 +170,15 @@ public final class RemotePreviewHandler {
         return null;
     }
 
+    private RemotePreviewSession getSessionForSurfaceId(int surfaceId) {
+        for (RemotePreviewSession session : mSessionMap.values()) {
+            if (session.getSurfaceId() == surfaceId) {
+                return session;
+            }
+        }
+        return null;
+    }
+
     @Nullable
     private SurfaceControllerProxy getSurfaceController(String authority) {
         if (mControllers.containsKey(authority)) {
@@ -197,6 +212,7 @@ public final class RemotePreviewHandler {
         Log.i(TAG, "Creating new SurfaceController for authority: " + authority);
         Bundle extras = new Bundle();
         extras.putBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, true);
+        extras.putBinder(EXTRA_SURFACE_EVENT_CALLBACK, mSurfaceEventCallbackWrapper);
         final Bundle surfaceControllerBundle = mContext.getContentResolver().call(
                 createSurfaceControllerUri(authority),
                 METHOD_CREATE_SURFACE_CONTROLLER, /* arg */ null, extras);
@@ -204,6 +220,32 @@ public final class RemotePreviewHandler {
         return binder != null ? new SurfaceControllerProxy(
                 ICloudMediaSurfaceController.Stub.asInterface(binder))
                 : null;
+    }
+
+    /**
+     * Wrapper class for {@link ICloudSurfaceEventCallback} interface implementation.
+     */
+    private final class SurfaceEventCallbackWrapper extends ICloudSurfaceEventCallback.Stub {
+
+        @Override
+        public void onPlaybackEvent(int surfaceId, int eventType, Bundle eventInfo) {
+            final RemotePreviewSession session = getSessionForSurfaceId(surfaceId);
+
+            if (session == null) {
+                Log.w(TAG, "No RemotePreviewSession found.");
+                return;
+            }
+            switch (eventType) {
+                case PLAYBACK_EVENT_READY:
+                    session.playMedia();
+                    return;
+                default:
+                    Log.d(TAG, "RemotePreviewHandler onPlaybackEvent for surfaceId: " +
+                            surfaceId + " ; media id: " + session.getMediaId() +
+                            " ; eventType: " + eventType + " ; eventInfo: " + eventInfo);
+
+            }
+        }
     }
 
     private final class PreviewSurfaceCallback implements SurfaceHolder.Callback {

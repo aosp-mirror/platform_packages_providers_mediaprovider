@@ -391,12 +391,12 @@ public class ItemsProviderTest {
     public void testGetItems_sortOrder() throws Exception {
         try {
             final long timeNow = System.nanoTime() / 1000;
+            final Uri imageFileDateNowPlus1Uri = prepareFileAndGetUri(
+                    new File(getDownloadsDir(),  "latest_" + IMAGE_FILE_NAME), timeNow + 1000);
             final Uri imageFileDateNowUri
-                    = createFileAndGet(getDcimDir(), IMAGE_FILE_NAME, timeNow);
+                    = prepareFileAndGetUri(new File(getDcimDir(), IMAGE_FILE_NAME), timeNow);
             final Uri videoFileDateNowUri
-                    = createFileAndGet(getCameraDir(), VIDEO_FILE_NAME, timeNow);
-            final Uri imageFileDateNowPlus1Uri = createFileAndGet(getDownloadsDir(),
-                    "latest_" + IMAGE_FILE_NAME, timeNow + 1000);
+                    = prepareFileAndGetUri(new File(getCameraDir(), VIDEO_FILE_NAME), timeNow);
 
             // This is the list of uris based on the expected sort order of items returned by
             // ItemsProvider#getItems
@@ -747,19 +747,16 @@ public class ItemsProviderTest {
         return assertCreateNewFile(getDownloadsDir(), IMAGE_FILE_NAME);
     }
 
-    private File assertCreateNewFile(File dir, String fileName) throws Exception {
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-        assertThat(dir.exists()).isTrue();
-
-        final File file = new File(dir, fileName);
-        createAndPrepareFile(file);
+    private File assertCreateNewFile(File parentDir, String fileName) throws Exception {
+        final File file = new File(parentDir, fileName);
+        prepareFileAndGetUri(file, /* lastModifiedTime */ -1);
 
         return file;
     }
 
-    private Uri createAndPrepareFile(File file) throws IOException {
+    private Uri prepareFileAndGetUri(File file, long lastModifiedTime) throws IOException {
+        ensureParentExists(file.getParentFile());
+
         assertThat(file.createNewFile()).isTrue();
 
         // Write 1 byte because 0byte files are not valid in the picker db
@@ -767,10 +764,24 @@ public class ItemsProviderTest {
             fos.write(1);
         }
 
+        if (lastModifiedTime != -1) {
+            file.setLastModified(lastModifiedTime);
+        }
+
         final Uri uri = MediaStore.scanFile(mIsolatedResolver, file);
+        assertWithMessage("Uri obtained by scanning file " + file)
+                .that(uri).isNotNull();
+        // Wait for picker db sync
         MediaStore.waitForIdle(mIsolatedResolver);
 
         return uri;
+    }
+
+    private void ensureParentExists(File parent) {
+        if (!parent.exists()) {
+            parent.mkdirs();
+        }
+        assertThat(parent.exists()).isTrue();
     }
 
     private File getDownloadsDir() {
@@ -824,15 +835,5 @@ public class ItemsProviderTest {
             }
         }
 
-    }
-
-    private Uri createFileAndGet(File parent, String fileName, long lastModifiedTime)
-            throws IOException {
-        final File file = new File(parent, fileName);
-        final Uri uri = createAndPrepareFile(file);
-
-        assertWithMessage("Uri obtained by scanning file " + file)
-                .that(uri).isNotNull();
-        return uri;
     }
 }

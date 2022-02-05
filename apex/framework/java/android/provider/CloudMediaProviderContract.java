@@ -516,6 +516,58 @@ public final class CloudMediaProviderContract {
     public static final String METHOD_GET_ACCOUNT_INFO = "android:getAccountInfo";
 
     /**
+     * Constant used to execute {@link CloudMediaProvider#onCreateSurfaceController} via
+     * {@link ContentProvider#call}.
+     *
+     * {@hide}
+     */
+    public static final String METHOD_CREATE_SURFACE_CONTROLLER = "android:createSurfaceController";
+
+    /**
+     * Gets surface controller from {@link CloudMediaProvider#onCreateSurfaceController}.
+     * {@hide}
+     */
+    public static final String EXTRA_SURFACE_CONTROLLER =
+            "android.provider.extra.SURFACE_CONTROLLER";
+
+    /**
+     * Indicates whether to enable looping playback of media items.
+     * <p>
+     * In case this is not present, the default value should be false.
+     *
+     * @see CloudMediaProvider#onCreateSurfaceController
+     * @see CloudMediaProvider.SurfaceController#onConfigChange
+     * <p>
+     * Type: BOOLEAN
+     * By default, the value is true
+     */
+    public static final String EXTRA_LOOPING_PLAYBACK_ENABLED =
+            "android.provider.extra.LOOPING_PLAYBACK_ENABLED";
+
+    /**
+     * Indicates whether to mute audio during preview of media items.
+     *
+     * @see CloudMediaProvider#onCreateSurfaceController
+     * @see CloudMediaProvider.SurfaceController#onConfigChange
+     * <p>
+     * Type: BOOLEAN
+     * By default, the value is false
+     */
+    public static final String EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED =
+            "android.provider.extra.SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED";
+
+    /**
+     * Gets surface event callback from picker launched via
+     * {@link MediaStore#ACTION_PICK_IMAGES}).
+     *
+     * @see MediaStore#ACTION_PICK_IMAGES
+     *
+     * {@hide}
+     */
+    public static final String EXTRA_SURFACE_EVENT_CALLBACK =
+            "android.provider.extra.SURFACE_EVENT_CALLBACK";
+
+    /**
      * URI path for {@link CloudMediaProvider#onQueryMedia}
      *
      * {@hide}
@@ -556,4 +608,11 @@ public final class CloudMediaProviderContract {
      * {@hide}
      */
     public static final String URI_PATH_ACCOUNT_INFO = "account_info";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onCreateSurfaceController}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_SURFACE_CONTROLLER = "surface_controller";
 }

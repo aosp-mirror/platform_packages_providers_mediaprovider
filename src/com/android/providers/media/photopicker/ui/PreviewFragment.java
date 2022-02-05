@@ -39,6 +39,7 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
@@ -71,6 +72,7 @@ public class PreviewFragment extends Fragment {
     private ViewPager2Wrapper mViewPager2Wrapper;
     private boolean mShouldShowGifBadge;
     private boolean mShouldShowMotionPhotoBadge;
+    private MuteStatus mMuteStatus;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -98,8 +100,10 @@ public class PreviewFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
             Bundle savedInstanceState) {
-        mSelection = new ViewModelProvider(requireActivity())
-                .get(PickerViewModel.class).getSelection();
+        mSelection = new ViewModelProvider(requireActivity()).get(PickerViewModel.class)
+                .getSelection();
+        mMuteStatus = new ViewModelProvider(requireActivity()).get(PickerViewModel.class)
+                .getMuteStatus();
         return inflater.inflate(R.layout.fragment_preview, parent, /* attachToRoot */ false);
     }
 
@@ -123,7 +127,7 @@ public class PreviewFragment extends Fragment {
             throw new IllegalStateException("Expected to find ViewPager2 in " + view
                     + ", but found null");
         }
-        mViewPager2Wrapper = new ViewPager2Wrapper(viewPager, selectedItemsList);
+        mViewPager2Wrapper = new ViewPager2Wrapper(viewPager, selectedItemsList, mMuteStatus);
 
         setUpPreviewLayout(view, getArguments());
         setupScrimLayerAndBottomBar(view);

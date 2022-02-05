@@ -23,6 +23,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.remotepreview.RemotePreviewHandler;
 
@@ -44,10 +45,10 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private final boolean mIsRemotePreviewEnabled =
             RemotePreviewHandler.isRemotePreviewEnabled();
 
-    PreviewAdapter(Context context) {
+    PreviewAdapter(Context context, MuteStatus muteStatus) {
         mImageLoader = new ImageLoader(context);
         mRemotePreviewHandler = new RemotePreviewHandler(context);
-        mPlaybackHandler = new PlaybackHandler(context, mImageLoader);
+        mPlaybackHandler = new PlaybackHandler(context, mImageLoader, muteStatus);
     }
 
     @NonNull

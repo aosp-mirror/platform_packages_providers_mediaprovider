@@ -16,7 +16,6 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
@@ -27,7 +26,6 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProvider;
-import android.provider.CloudMediaProviderContract;
 
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;

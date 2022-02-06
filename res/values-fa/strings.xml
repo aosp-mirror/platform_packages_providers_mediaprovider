@@ -27,7 +27,7 @@
     <string name="root_documents" msgid="3829103301363849237">"اسناد"</string>
     <string name="permission_required" msgid="1460820436132943754">"برای اصلاح یا حذف این مورد مجوز لازم است."</string>
     <string name="permission_required_action" msgid="706370952366113539">"ادامه"</string>
-    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"مجاز بودن"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"مجاز است"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"مجاز نبودن"</string>
     <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
       <item quantity="one">‎+<xliff:g id="COUNT_1">^1</xliff:g>‎</item>

@@ -17,28 +17,35 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
-import android.view.View;
+import android.view.SurfaceView;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 
 import androidx.viewpager2.widget.ViewPager2;
 
-import com.google.android.exoplayer2.ui.StyledPlayerView;
-
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.data.model.Item;
 
 /**
  * ViewHolder of a video item within the {@link ViewPager2}
  */
 public class PreviewVideoHolder extends BaseViewHolder {
-    public PreviewVideoHolder(Context context, ViewGroup parent) {
-        super(context, parent, R.layout.item_video_preview);
+
+    private SurfaceView mSurfaceView;
+
+    public PreviewVideoHolder(Context context, ViewGroup parent, boolean enabledCloudMediaPreview) {
+        super(context, parent, enabledCloudMediaPreview ? R.layout.item_cloud_video_preview
+                : R.layout.item_video_preview);
+        if (enabledCloudMediaPreview) {
+            mSurfaceView = itemView.findViewById(R.id.preview_player_view);
+        }
     }
 
     @Override
     public void bind() {
         // Video playback needs granular page state events and hence video playback is initiated by
         // ViewPagerWrapper and handled by PlaybackHandler#handleVideoPlayback
+    }
+
+    public SurfaceView getSurfaceView() {
+        return mSurfaceView;
     }
 }

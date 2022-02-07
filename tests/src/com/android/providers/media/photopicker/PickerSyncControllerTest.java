@@ -28,7 +28,6 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Process;
 import android.os.SystemClock;
-import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.MediaStore;
 import android.util.Pair;
@@ -626,14 +625,6 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(0);
         }
-    }
-
-    private static void assertAlbumCursor(Cursor cursor, String id, String type) {
-        cursor.moveToNext();
-        assertThat(cursor.getString(cursor.getColumnIndex(AlbumColumns.ID)))
-                .isEqualTo(id);
-        assertThat(cursor.getString(cursor.getColumnIndex(AlbumColumns.TYPE)))
-                .isEqualTo(type);
     }
 
     private static void assertCursor(Cursor cursor, String id, String expectedAuthority) {

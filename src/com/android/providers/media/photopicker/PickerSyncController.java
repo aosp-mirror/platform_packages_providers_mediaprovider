@@ -358,7 +358,7 @@ public class PickerSyncController {
             editor.putInt(PREFS_KEY_CLOUD_PROVIDER_UID, info.uid);
         }
 
-        editor.commit();
+        editor.apply();
     }
 
     private void cacheMediaInfo(String authority, Bundle bundle) {
@@ -383,7 +383,7 @@ public class PickerSyncController {
             editor.putLong(getPrefsKey(authority, MediaInfo.MEDIA_COUNT), count);
         }
 
-        editor.commit();
+        editor.apply();
     }
 
     private void resetCachedMediaInfo(String authority) {

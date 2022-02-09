@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"অফিস অ্যাপ থেকে ব্যক্তিগত ডেটা অ্যাক্সেস করার অনুমতি নেই"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"অফিসের অ্যাপ পজ করা আছে"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"অফিস প্রোফাইলের ফটো দেখতে, অফিসের অ্যাপ চালু করে আবার চেষ্টা করুন"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"এই অ্যাপ শুধুমাত্র আপনার বেছে নেওয়া ছবি অ্যাক্সেস করতে পারবে"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g>টি আইটেম}one{<xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম}other{<xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>)টি যোগ করুন"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"ক্যামেরা"</string>

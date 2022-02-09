@@ -121,6 +121,19 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         onView(allOf(withText(cameraStringId),
                 isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
 
+        // Verify that toolbar has the title as category name
+        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
+                .check(matches(isDisplayed()));
+
+        // Verify that tab chips are not shown on the toolbar
+        onView(withId(CHIP_CONTAINER_ID)).check(matches(not(isDisplayed())));
+
+        // Verify that privacy text is not shown
+        onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
+
+        // Verify that drag bar is shown
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+
         final int dateHeaderTitleId = R.id.date_header_title;
         final int recentHeaderPosition = 0;
         // Verify that first item is not a recent header
@@ -145,13 +158,6 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, ICON_GIF_ID);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, ICON_MOTION_PHOTO_ID);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, VIDEO_CONTAINER_ID);
-
-        // Verify that toolbar has the title as category name
-        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
-                .check(matches(isDisplayed()));
-
-        // Verify that tab chips are not shown on the toolbar
-        onView(withId(CHIP_CONTAINER_ID)).check(matches(not(isDisplayed())));
 
         // Click back button
         onView(withContentDescription("Navigate up")).perform(click());

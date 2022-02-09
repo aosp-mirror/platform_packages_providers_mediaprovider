@@ -46,17 +46,17 @@ public class PickerProviderMediaGenerator {
         MediaColumns.MEDIA_STORE_URI,
         MediaColumns.MIME_TYPE,
         MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
-        MediaColumns.DATE_TAKEN_MS,
+        MediaColumns.DATE_TAKEN_MILLIS,
         MediaColumns.GENERATION_MODIFIED,
         MediaColumns.SIZE_BYTES,
-        MediaColumns.DURATION_MS,
+        MediaColumns.DURATION_MILLIS,
         MediaColumns.IS_FAVORITE,
     };
 
     private static final String[] ALBUM_PROJECTION = new String[] {
         AlbumColumns.ID,
         AlbumColumns.DISPLAY_NAME,
-        AlbumColumns.DATE_TAKEN_MS,
+        AlbumColumns.DATE_TAKEN_MILLIS,
         AlbumColumns.MEDIA_COVER_ID,
         AlbumColumns.MEDIA_COUNT,
         AlbumColumns.TYPE,
@@ -80,6 +80,7 @@ public class PickerProviderMediaGenerator {
         private String mAccountName;
         private Intent mAccountConfigurationIntent;
 
+        // TODO(b/214592293): Add pagination support for testing purposes.
         public Cursor getMedia(long generation, String albumdId, String mimeType, long sizeBytes) {
             return getCursor(mMedia, generation, albumdId, mimeType, sizeBytes,
                     /* isDeleted */ false);
@@ -89,6 +90,7 @@ public class PickerProviderMediaGenerator {
             return getCursor(mAlbums, mimeType, sizeBytes, isLocal);
         }
 
+        // TODO(b/214592293): Add pagination support for testing purposes.
         public Cursor getDeletedMedia(long generation) {
             return getCursor(mDeletedMedia, generation, /* albumId */ STRING_DEFAULT,
                     /* mimeType */ STRING_DEFAULT, /* sizeBytes */ LONG_DEFAULT,

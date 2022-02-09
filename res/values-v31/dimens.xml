@@ -20,4 +20,6 @@
 
     <dimen name="picker_bottom_bar_size">72dp</dimen>
 
+    <dimen name="preview_mute_marginBottom">88dp</dimen>
+
 </resources>

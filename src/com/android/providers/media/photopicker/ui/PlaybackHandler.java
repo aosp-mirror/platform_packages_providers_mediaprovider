@@ -24,6 +24,7 @@ import android.view.View;
 import android.widget.ImageView;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import com.google.android.exoplayer2.ui.StyledPlayerView;
@@ -41,8 +42,8 @@ class PlaybackHandler {
     private final ExoPlayerWrapper mExoPlayerWrapper;
     private final ImageLoader mImageLoader;
 
-    PlaybackHandler(Context context, ImageLoader imageLoader) {
-        mExoPlayerWrapper = new ExoPlayerWrapper(context);
+    PlaybackHandler(Context context, ImageLoader imageLoader, MuteStatus muteStatus) {
+        mExoPlayerWrapper = new ExoPlayerWrapper(context, muteStatus);
         mImageLoader = imageLoader;
     }
 
@@ -70,8 +71,9 @@ class PlaybackHandler {
         final Item item = (Item) tag;
         if (!item.isVideo()) {
             // We only need to handle video playback. For everything else, try releasing ExoPlayer
-            // if there is a prepared ExoPlayer of the previous page.
-            mExoPlayerWrapper.releaseIfNecessary();
+            // if there is a prepared ExoPlayer of the previous page, also reset any player states
+            // when necessary.
+            mExoPlayerWrapper.resetPlayerIfNecessary();
             mVideoUri = null;
             return;
         }
@@ -112,6 +114,8 @@ class PlaybackHandler {
 
         imageView.setVisibility(View.VISIBLE);
         styledPlayerView.setVisibility(View.GONE);
+        styledPlayerView.setControllerVisibilityListener(null);
+        styledPlayerView.hideController();
     }
 
     /**
@@ -121,7 +125,7 @@ class PlaybackHandler {
         assertMainThread();
 
         mVideoUri = null;
-        mExoPlayerWrapper.releaseIfNecessary();
+        mExoPlayerWrapper.resetPlayerIfNecessary();
     }
 
     private void assertMainThread() {

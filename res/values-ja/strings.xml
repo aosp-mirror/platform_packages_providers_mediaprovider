@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"仕事用アプリから個人データにアクセスすることは認められていません"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"仕事用アプリは一時停止されています"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"仕事用の写真を開くには、仕事用アプリを有効にしてからもう一度試してください。"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"このアプリは、選択した写真にのみアクセスできます。"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> 件のアイテム}other{<xliff:g id="COUNT_1">^1</xliff:g> 件のアイテム}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"追加（<xliff:g id="COUNT">^1</xliff:g> 件）"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"カメラ"</string>

@@ -236,6 +236,11 @@ public class PickerUriResolver {
                 + CloudMediaProviderContract.URI_PATH_ALBUM);
     }
 
+    public static Uri createSurfaceControllerUri(String authority) {
+        return Uri.parse("content://" + authority + "/"
+                + CloudMediaProviderContract.URI_PATH_SURFACE_CONTROLLER);
+    }
+
     private ParcelFileDescriptor openPickerFile(Uri uri) throws FileNotFoundException {
         final File file = getPickerFileFromUri(uri);
         if (file == null) {

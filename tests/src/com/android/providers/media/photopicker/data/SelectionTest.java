@@ -57,7 +57,9 @@ public class SelectionTest {
 
         final Context context = InstrumentationRegistry.getTargetContext();
         when(mApplication.getApplicationContext()).thenReturn(context);
-        mSelection = new PickerViewModel(mApplication).getSelection();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            mSelection = new PickerViewModel(mApplication).getSelection();
+        });
     }
 
     @Test
@@ -86,6 +88,23 @@ public class SelectionTest {
         assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(1);
 
         mSelection.removeSelectedItem(item);
+        assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(0);
+    }
+
+    @Test
+    public void testClearSelectedItem() {
+        final String id = "1";
+        final Item item = generateFakeImageItem(id);
+        final String id2 = "2";
+        final Item item2 = generateFakeImageItem(id2);
+
+        assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(0);
+
+        mSelection.addSelectedItem(item);
+        mSelection.addSelectedItem(item2);
+        assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(2);
+
+        mSelection.clearSelectedItems();
         assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(0);
     }
 

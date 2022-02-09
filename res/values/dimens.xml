@@ -58,9 +58,13 @@
     <dimen name="picker_chip_radius">16dp</dimen>
     <dimen name="picker_chip_horizontal_gap">4dp</dimen>
 
-    <dimen name="picker_drag_bar_height">24dp</dimen>
     <dimen name="picker_drag_margin_top">8dp</dimen>
     <dimen name="picker_drag_margin_bottom">12dp</dimen>
+
+    <dimen name="picker_privacy_text_margin_top">8dp</dimen>
+    <dimen name="picker_privacy_text_margin_bottom">16dp</dimen>
+    <dimen name="picker_privacy_text_horizontal_gap">12dp</dimen>
+    <dimen name="picker_privacy_text_size">11sp</dimen>
 
     <dimen name="picker_empty_text_margin">20dp</dimen>
     <dimen name="picker_empty_text_size">18sp</dimen>
@@ -71,6 +75,8 @@
     <dimen name="preview_viewpager_margin">20dp</dimen>
     <dimen name="preview_gif_icon_size">32dp</dimen>
     <dimen name="preview_add_or_select_width">328dp</dimen>
+    <dimen name="preview_mute_marginEnd">16dp</dimen>
+    <dimen name="preview_mute_marginBottom">68dp</dimen>
 
     <!-- PhotoPicker Preview text -->
     <dimen name="preview_special_format_text_size">12sp</dimen>

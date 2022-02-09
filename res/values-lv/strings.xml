@@ -54,8 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Piekļuve personīgajiem datiem no darba lietotnes nav atļauta."</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Darba lietotnes ir apturētas"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Lai atvērtu darba fotoattēlus, ieslēdziet savas darba lietotnes un pēc tam mēģiniet vēlreiz."</string>
-    <!-- no translation found for picker_privacy_message (9132700451027116817) -->
-    <skip />
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Šī lietotne var piekļūt tikai jūsu atlasītajiem fotoattēliem."</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> vienums}zero{<xliff:g id="COUNT_1">^1</xliff:g> vienumu}one{<xliff:g id="COUNT_1">^1</xliff:g> vienums}other{<xliff:g id="COUNT_1">^1</xliff:g> vienumi}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Pievienot <xliff:g id="COUNT">^1</xliff:g>"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>

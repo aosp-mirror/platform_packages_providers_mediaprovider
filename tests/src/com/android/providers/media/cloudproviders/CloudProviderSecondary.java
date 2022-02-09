@@ -16,7 +16,6 @@
 
 package com.android.providers.media.cloudproviders;
 
-import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
@@ -81,14 +80,14 @@ public class CloudProviderSecondary extends CloudMediaProvider {
     }
 
     @Override
-    public AssetFileDescriptor onOpenThumbnail(String mediaId, Point size,
+    public AssetFileDescriptor onOpenPreview(String mediaId, Point size, Bundle extras,
             CancellationSignal signal) throws FileNotFoundException {
-        throw new UnsupportedOperationException("onOpenThumbnail not supported");
+        throw new UnsupportedOperationException("onOpenPreview not supported");
     }
 
     @Override
-    public ParcelFileDescriptor onOpenMedia(String mediaId, CancellationSignal signal)
-            throws FileNotFoundException {
+    public ParcelFileDescriptor onOpenMedia(String mediaId, Bundle extras,
+            CancellationSignal signal) throws FileNotFoundException {
         throw new UnsupportedOperationException("onOpenMedia not supported");
     }
 

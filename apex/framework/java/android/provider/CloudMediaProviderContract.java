@@ -568,6 +568,37 @@ public final class CloudMediaProviderContract {
             "android.provider.extra.SURFACE_EVENT_CALLBACK";
 
     /**
+     * Constant used to execute {@link CloudMediaProvider#onGetAsyncContentProvider()} via
+     * {@link android.content.ContentProvider#call}.
+     *
+     * {@hide}
+     */
+    public static final String METHOD_GET_ASYNC_CONTENT_PROVIDER =
+            "android:getAsyncContentProvider";
+
+    /**
+     * Constant used to get/set {@link IAsyncContentProvider} in {@link Bundle}.
+     *
+     * {@hide}
+     */
+    public static final String EXTRA_ASYNC_CONTENT_PROVIDER =
+            "android.provider.extra.ASYNC_CONTENT_PROVIDER";
+
+    /**
+     * Constant used to get/set {@link android.os.ParcelFileDescriptor} in {@link Bundle}.
+     *
+     * {@hide}
+     */
+    public static final String EXTRA_FILE_DESCRIPTOR = "android.provider.extra.file_descriptor";
+
+    /**
+     * Constant used to get/set CMP exception message in {@link Bundle}.
+     *
+     * {@hide}
+     */
+    public static final String EXTRA_ERROR_MESSAGE = "android.provider.extra.error_message";
+
+    /**
      * URI path for {@link CloudMediaProvider#onQueryMedia}
      *
      * {@hide}

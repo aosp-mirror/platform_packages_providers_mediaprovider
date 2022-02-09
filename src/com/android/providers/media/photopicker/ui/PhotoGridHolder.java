@@ -67,7 +67,7 @@ public class PhotoGridHolder extends BaseViewHolder {
         final Item item = (Item) itemView.getTag();
         mImageLoader.loadPhotoThumbnail(item, mIconThumb);
 
-        mIconGif.setVisibility(item.isGif() ? View.VISIBLE : View.GONE);
+        mIconGif.setVisibility(item.isGifOrAnimatedWebp() ? View.VISIBLE : View.GONE);
         mIconMotionPhoto.setVisibility(item.isMotionPhoto() ? View.VISIBLE : View.GONE);
 
         if (item.isVideo()) {
@@ -85,6 +85,7 @@ public class PhotoGridHolder extends BaseViewHolder {
     }
 
     private boolean showShowOverlayGradient(@NonNull Item item) {
-        return mCanSelectMultiple || item.isGif() || item.isVideo() || item.isMotionPhoto();
+        return mCanSelectMultiple || item.isGifOrAnimatedWebp() || item.isVideo() ||
+                item.isMotionPhoto();
     }
 }

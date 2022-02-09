@@ -16,11 +16,6 @@
 
 package com.android.providers.media.photopicker.espresso;
 
-import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
-import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-import static android.content.res.Configuration.ORIENTATION_LANDSCAPE;
-import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
-
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
@@ -32,6 +27,8 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
+import static com.android.providers.media.photopicker.espresso.OrientationUtils.setLandscapeOrientation;
+import static com.android.providers.media.photopicker.espresso.OrientationUtils.setPortraitOrientation;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.*;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
@@ -77,6 +74,9 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         // No dragBar in preview
         onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
 
+        // No privacy text in preview
+        onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
+
         // Verify image is previewed
         assertMultiSelectLongPressCommonLayoutMatches();
         onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
@@ -88,8 +88,9 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         onView(withContentDescription("Navigate up")).perform(click());
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-        // Shows dragBar after we are back to Photos tab
+        // Shows dragBar and privacy text after we are back to Photos tab
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+        onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
     }
 
     @Test
@@ -197,12 +198,8 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
         onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.select)));
 
+        setPortraitOrientation(mRule);
         mRule.getScenario().onActivity(activity -> {
-            activity.setRequestedOrientation(SCREEN_ORIENTATION_PORTRAIT);
-        });
-        mRule.getScenario().onActivity(activity -> {
-            assertThat(activity.getResources().getConfiguration().orientation)
-                    .isEqualTo(ORIENTATION_PORTRAIT);
             final Button addOrSelectButton
                     = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
             final int expectedAddOrSelectButtonWidth = activity.getResources()
@@ -211,12 +208,8 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
             assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
         });
 
+        setLandscapeOrientation(mRule);
         mRule.getScenario().onActivity(activity -> {
-            activity.setRequestedOrientation(SCREEN_ORIENTATION_LANDSCAPE);
-        });
-        mRule.getScenario().onActivity(activity -> {
-            assertThat(activity.getResources().getConfiguration().orientation)
-                    .isEqualTo(ORIENTATION_LANDSCAPE);
             final Button addOrSelectButton
                     = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
             final int expectedAddOrSelectButtonWidth = activity.getResources()

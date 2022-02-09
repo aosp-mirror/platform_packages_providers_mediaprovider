@@ -17,6 +17,9 @@
 package com.android.providers.media.util;
 
 import android.graphics.BitmapFactory;
+import android.graphics.ImageDecoder;
+import android.graphics.drawable.AnimatedImageDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.ExifInterface;
 import android.os.Trace;
 import android.provider.MediaStore.Files.FileColumns;
@@ -83,29 +86,44 @@ public class SpecialFormatDetector {
      * {@return} special format for a file
      */
     public static int detect(ExifInterface exif, File file) throws Exception {
-        if (isGif(file)) {
-            return FileColumns._SPECIAL_FORMAT_GIF;
-        }
-
         if (isMotionPhoto(exif)) {
             return FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
         }
-        return FileColumns._SPECIAL_FORMAT_NONE;
+
+        return detectGifOrAnimatedWebp(file);
     }
 
     /**
-     * @return true if the file is a GIF file by checking file metadata
+     * Checks file metadata to detect if the given file is a GIF or Animated Webp.
      *
      * Note: This does not respect file extension.
+     *
+     * @return {@link FileColumns#_SPECIAL_FORMAT_GIF} if the file is a GIF file or
+     *         {@link FileColumns#_SPECIAL_FORMAT_ANIMATED_WEBP} if the file is an Animated Webp
+     *         file. Otherwise returns {@link FileColumns#_SPECIAL_FORMAT_NONE}
      */
-    private static boolean isGif(File file) {
+    private static int detectGifOrAnimatedWebp(File file) throws IOException {
         final BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
         // Set options such that the image is not decoded to a bitmap, as we only want mimetype
         // options
         bitmapOptions.inSampleSize = 1;
         bitmapOptions.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOptions);
-        return bitmapOptions.outMimeType.equalsIgnoreCase("image/gif");
+
+        if (bitmapOptions.outMimeType.equalsIgnoreCase("image/gif")) {
+            return FileColumns._SPECIAL_FORMAT_GIF;
+        }
+        if (bitmapOptions.outMimeType.equalsIgnoreCase("image/webp") &&
+                isAnimatedWebp(file)) {
+            return FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP;
+        }
+        return FileColumns._SPECIAL_FORMAT_NONE;
+    }
+
+    private static boolean isAnimatedWebp(File file) throws IOException {
+        final ImageDecoder.Source source = ImageDecoder.createSource(file);
+        final Drawable drawable = ImageDecoder.decodeDrawable(source);
+        return (drawable instanceof AnimatedImageDrawable);
     }
 
     private static boolean isMotionPhoto(ExifInterface exif) throws Exception {

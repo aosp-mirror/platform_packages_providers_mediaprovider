@@ -110,7 +110,7 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 mediaProvider.attachVolume(volume, /* validate */ false);
                 MediaService.queueVolumeScan(mediaProvider.getContext(), volume, REASON_MOUNTED);
                 BackgroundThread.getExecutor().execute(() ->
-                        mediaProvider.getPickerSyncController().syncPicker());
+                        mediaProvider.getPickerSyncController().syncAllMedia());
                 break;
             case Environment.MEDIA_UNMOUNTED:
             case Environment.MEDIA_EJECTING:

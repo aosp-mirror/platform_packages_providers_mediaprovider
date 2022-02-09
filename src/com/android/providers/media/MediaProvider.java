@@ -5934,7 +5934,7 @@ public class MediaProvider extends ContentProvider {
                 // Syncing the picker while waiting for idle fixes tests with the picker db
                 // flag enabled because the picker db is in a consistent state with the external
                 // db after the sync
-                syncPicker();
+                syncAllMedia();
                 ForegroundThread.waitForIdle();
                 final CountDownLatch latch = new CountDownLatch(1);
                 BackgroundThread.getExecutor().execute(() -> {
@@ -6133,7 +6133,7 @@ public class MediaProvider extends ContentProvider {
                 // fall through
             }
             case MediaStore.SYNC_PROVIDERS_CALL: {
-                syncPicker();
+                syncAllMedia();
                 return new Bundle();
             }
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
@@ -6162,14 +6162,14 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void syncPicker() {
+    private void syncAllMedia() {
         // Clear the binder calling identity so that we can sync the unexported
         // local_provider while running as MediaProvider
         final long t = Binder.clearCallingIdentity();
         try {
             // TODO(b/190713331): Remove after initial development
             Log.v(TAG, "Developer initiated provider sync");
-            mPickerSyncController.syncPicker();
+            mPickerSyncController.syncAllMedia();
         } finally {
             Binder.restoreCallingIdentity(t);
         }

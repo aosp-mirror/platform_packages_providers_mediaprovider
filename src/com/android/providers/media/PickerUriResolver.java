@@ -221,14 +221,9 @@ public class PickerUriResolver {
                 + CloudMediaProviderContract.URI_PATH_DELETED_MEDIA);
     }
 
-    public static Uri getMediaInfoUri(String authority) {
+    public static Uri getMediaCollectionInfoUri(String authority) {
         return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_MEDIA_INFO);
-    }
-
-    public static Uri getAccountInfoUri(String authority) {
-        return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_ACCOUNT_INFO);
+                + CloudMediaProviderContract.URI_PATH_MEDIA_COLLECTION_INFO);
     }
 
     public static Uri getAlbumUri(String authority) {

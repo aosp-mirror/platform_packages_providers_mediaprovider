@@ -63,7 +63,7 @@ public class CloudProviderNoPermission extends CloudMediaProvider {
     }
 
     @Override
-    public Bundle onGetMediaInfo(Bundle extras) {
-        throw new UnsupportedOperationException("onGetMediaInfo not supported");
+    public Bundle onGetMediaCollectionInfo(Bundle extras) {
+        throw new UnsupportedOperationException("onGetMediaCollectionInfo not supported");
     }
 }

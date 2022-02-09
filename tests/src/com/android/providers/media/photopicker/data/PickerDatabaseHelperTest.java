@@ -45,7 +45,7 @@ public class PickerDatabaseHelperTest {
     private static final String KEY_CLOUD_ID = "cloud_id";
     private static final String KEY_IS_VISIBLE = "is_visible";
     private static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
-    private static final String KEY_GENERATION_MODIFIED = "generation_modified";
+    private static final String KEY_SYNC_GENERATION = "sync_generation";
     private static final String KEY_SIZE_BYTES = "size_bytes";
     private static final String KEY_DURATION_MS = "duration_ms";
     private static final String KEY_MIME_TYPE = "mime_type";
@@ -76,7 +76,7 @@ public class PickerDatabaseHelperTest {
             KEY_CLOUD_ID,
             KEY_IS_VISIBLE,
             KEY_DATE_TAKEN_MS,
-            KEY_GENERATION_MODIFIED,
+            KEY_SYNC_GENERATION,
             KEY_SIZE_BYTES,
             KEY_DURATION_MS,
             KEY_MIME_TYPE,
@@ -282,13 +282,13 @@ public class PickerDatabaseHelperTest {
 
             // generation_modified=NULL
             ContentValues values = getBasicContentValues();
-            values.remove(KEY_GENERATION_MODIFIED);
+            values.remove(KEY_SYNC_GENERATION);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
 
             // generation_modified=-1
             values = getBasicContentValues();
-            values.put(KEY_GENERATION_MODIFIED, -1);
+            values.put(KEY_SYNC_GENERATION, -1);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
@@ -316,7 +316,7 @@ public class PickerDatabaseHelperTest {
     private static ContentValues getBasicContentValues() {
         ContentValues values = new ContentValues();
         values.put(KEY_DATE_TAKEN_MS, DATE_TAKEN_MS);
-        values.put(KEY_GENERATION_MODIFIED, GENERATION_MODIFIED);
+        values.put(KEY_SYNC_GENERATION, GENERATION_MODIFIED);
         values.put(KEY_DURATION_MS, DURATION_MS);
         values.put(KEY_MIME_TYPE, MIME_TYPE);
         values.put(KEY_STANDARD_MIME_TYPE_EXTENSION, STANDARD_MIME_TYPE_EXTENSION);

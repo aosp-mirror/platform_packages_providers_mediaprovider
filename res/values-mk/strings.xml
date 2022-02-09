@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Не е дозволено пристапување до лични податоци од работна апликација"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Работните апликации се паузирани"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"За да ги отворите работните фотографии, вклучете ги работните апликации, па обидете се повторно"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Апликацијава може да пристапи само до фотографиите што ќе ги изберете"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ставка}one{<xliff:g id="COUNT_1">^1</xliff:g> ставка}other{<xliff:g id="COUNT_1">^1</xliff:g> ставки}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Додај (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Камера"</string>

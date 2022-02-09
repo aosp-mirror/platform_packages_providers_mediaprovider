@@ -17,11 +17,15 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.media.AudioManager;
 import android.net.Uri;
+import android.util.Log;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.MuteStatus;
 
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
@@ -43,6 +47,7 @@ import com.google.android.exoplayer2.util.Clock;
  * that all its public methods are called from main thread only.
  */
 class ExoPlayerWrapper {
+    private static final String TAG = "ExoPlayerWrapper";
     // The minimum duration of media that the player will attempt to ensure is buffered at all
     // times.
     private static final int MIN_BUFFER_MS = 1000;
@@ -59,13 +64,17 @@ class ExoPlayerWrapper {
                     MAX_BUFFER_MS,
                     BUFFER_FOR_PLAYBACK_MS,
                     BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS).build();
+    private static final long PLAYER_CONTROL_ON_PLAY_TIMEOUT_MS = 1000;
 
     private final Context mContext;
+    private final MuteStatus mMuteStatus;
     private ExoPlayer mExoPlayer;
     private boolean mIsPlayerReleased = true;
+    private boolean mShouldShowControlsForNext = true;
 
-    public ExoPlayerWrapper(Context context) {
+    public ExoPlayerWrapper(Context context, MuteStatus muteStatus) {
         mContext = context;
+        mMuteStatus = muteStatus;
     }
 
     /**
@@ -79,28 +88,32 @@ class ExoPlayerWrapper {
         // TODO(b/197083539): Explore options for not re-creating ExoPlayer everytime.
         initializeExoPlayer(uri);
 
-        // TODO(b/197083539): Remove this if it drains battery.
-        styledPlayerView.setKeepScreenOn(true);
-        styledPlayerView.setPlayer(mExoPlayer);
-        styledPlayerView.setVisibility(View.VISIBLE);
-        // Hide ImageView when the player is ready.
-        mExoPlayer.addListener(new Player.Listener() {
-            @Override
-            public void onPlaybackStateChanged(int playbackState) {
-                if (playbackState == Player.STATE_READY ) {
-                    imageView.setVisibility(View.GONE);
-                }
-            }
-        });
+        setupPlayerLayout(styledPlayerView, imageView);
 
+        // Prepare the player and play the video
         mExoPlayer.prepare();
-        mIsPlayerReleased = false;
-
         mExoPlayer.setPlayWhenReady(true);
+        mIsPlayerReleased = false;
     }
 
-    public void releaseIfNecessary() {
-        releaseIfNecessaryInternal();
+    public void resetPlayerIfNecessary() {
+        // Clear state of the previous player controls visibility state. Controls visibility state
+        // will only be tracked and used for contiguous videos in the preview.
+        mShouldShowControlsForNext = true;
+        // Release the player if necessary.
+        releaseIfNecessary();
+    }
+
+    private void initializeExoPlayer(Uri uri) {
+        // Try releasing the ExoPlayer first.
+        releaseIfNecessary();
+
+        mExoPlayer = createExoPlayer();
+        // We always start from the beginning of the video, and we always repeat the video in a loop
+        mExoPlayer.setRepeatMode(Player.REPEAT_MODE_ONE);
+        // We only play one video in the player, hence we should always use setMediaItem instead of
+        // ExoPlayer#addMediaItem
+        mExoPlayer.setMediaItem(MediaItem.fromUri(uri));
     }
 
     private ExoPlayer createExoPlayer() {
@@ -118,19 +131,85 @@ class ExoPlayerWrapper {
                 new AnalyticsCollector(Clock.DEFAULT)).buildExoPlayer();
     }
 
-    private void initializeExoPlayer(Uri uri) {
-        // Try releasing the ExoPlayer first.
-        releaseIfNecessaryInternal();
+    private void setupPlayerLayout(StyledPlayerView styledPlayerView, ImageView imageView) {
+        // Step1: Set-up Player layout
+        // TODO(b/197083539): Remove this if it drains battery.
+        styledPlayerView.setKeepScreenOn(true);
+        styledPlayerView.setPlayer(mExoPlayer);
+        styledPlayerView.setVisibility(View.VISIBLE);
 
-        mExoPlayer = createExoPlayer();
-        // We always start from the beginning of the video, and we always repeat the video in a loop
-        mExoPlayer.setRepeatMode(Player.REPEAT_MODE_ONE);
-        // We only play one video in the player, hence we should always use setMediaItem instead of
-        // ExoPlayer#addMediaItem
-        mExoPlayer.setMediaItem(MediaItem.fromUri(uri));
+        // Hide ImageView when the player is ready.
+        mExoPlayer.addListener(new Player.Listener() {
+            @Override
+            public void onPlaybackStateChanged(int playbackState) {
+                if (playbackState == Player.STATE_READY ) {
+                    imageView.setVisibility(View.GONE);
+                }
+            }
+        });
+
+        // Step2: Set-up player control view
+        // Track if the controller layout should be visible for the next video.
+        styledPlayerView.setControllerVisibilityListener(
+                visibility -> mShouldShowControlsForNext = (visibility == View.VISIBLE));
+        // Video controls will be visible if
+        // 1. this is the first video preview page or
+        // 2. the previous video had controls visible when the page was swiped or
+        // 3. the previous page was not a video preview
+        if (mShouldShowControlsForNext) {
+            styledPlayerView.showController();
+        }
+
+        // Player controls needs to be auto-hidden if they are shown
+        // 1. when the video starts previewing or
+        // 2. when the video starts playing from paused state.
+        // To achieve this, we hide the controller whenever player state changes to 'play'
+        mExoPlayer.addListener(new Player.Listener() {
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                // We don't have to hide controls if the state changed to PAUSED or controller
+                // isn't visible.
+                if (!isPlaying || !mShouldShowControlsForNext) return;
+
+                // Set controller visibility of the next video to false so that we don't show the
+                // controls on the next video.
+                mShouldShowControlsForNext = false;
+                // Auto hide controller after 1s of player state changing to "Play".
+                styledPlayerView.postDelayed(() -> styledPlayerView.hideController(),
+                        PLAYER_CONTROL_ON_PLAY_TIMEOUT_MS);
+            }
+        });
+
+        // Step3: Set-up mute button
+        final ImageButton muteButton = styledPlayerView.findViewById(R.id.preview_mute);
+        final boolean isVolumeMuted = mMuteStatus.isVolumeMuted();
+        // Set the status of the muteButton according to previous status of the mute button
+        muteButton.setSelected(isVolumeMuted);
+        if (isVolumeMuted) {
+            // If the previous volume was muted, set the volume status to mute.
+            mExoPlayer.setVolume(0f);
+        }
+
+        // Add click listeners for mute button
+        muteButton.setOnClickListener(v -> {
+            if (mMuteStatus.isVolumeMuted()) {
+                AudioManager audioManager = mContext.getSystemService(AudioManager.class);
+                if (audioManager == null) {
+                    Log.e(TAG, "Couldn't find AudioManager while trying to set volume,"
+                            + " unable to set volume");
+                    return;
+                }
+                mExoPlayer.setVolume(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
+                mMuteStatus.setVolumeMuted(false);
+            } else {
+                mExoPlayer.setVolume(0f);
+                mMuteStatus.setVolumeMuted(true);
+            }
+            muteButton.setSelected(mMuteStatus.isVolumeMuted());
+        });
     }
 
-    private void releaseIfNecessaryInternal() {
+    private void releaseIfNecessary() {
         // Release the player only when it's not already released. ExoPlayer doesn't crash if we try
         // to release already released player, but ExoPlayer#release() may not be a no-op, hence we
         // call release() only when it's not already released.

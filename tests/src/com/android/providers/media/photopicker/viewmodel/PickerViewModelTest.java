@@ -20,6 +20,7 @@ import static com.android.providers.media.photopicker.data.model.Category.CATEGO
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import android.app.Application;
@@ -35,6 +36,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.ItemTest;
@@ -73,9 +75,14 @@ public class PickerViewModelTest {
 
         final Context context = InstrumentationRegistry.getTargetContext();
         when(mApplication.getApplicationContext()).thenReturn(context);
-        mPickerViewModel = new PickerViewModel(mApplication);
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            mPickerViewModel = new PickerViewModel(mApplication);
+        });
         mItemsProvider = new TestItemsProvider(context);
         mPickerViewModel.setItemsProvider(mItemsProvider);
+        UserIdManager userIdManager = mock(UserIdManager.class);
+        when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
+        mPickerViewModel.setUserIdManager(userIdManager);
     }
 
     @Test

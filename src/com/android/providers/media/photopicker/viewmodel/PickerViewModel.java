@@ -34,6 +34,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
@@ -53,8 +54,9 @@ public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
 
     private static final int RECENT_MINIMUM_COUNT = 12;
- 
+
     private final Selection mSelection;
+    private final MuteStatus mMuteStatus;
 
     // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
     // data set to reduce memories.
@@ -77,6 +79,7 @@ public class PickerViewModel extends AndroidViewModel {
         mItemsProvider = new ItemsProvider(context);
         mSelection = new Selection();
         mUserIdManager = UserIdManager.create(context);
+        mMuteStatus = new MuteStatus();
     }
 
     @VisibleForTesting
@@ -103,6 +106,27 @@ public class PickerViewModel extends AndroidViewModel {
         return mSelection;
     }
 
+
+    /**
+     * @return {@code mMuteStatus} that tracks the volume mute status of the video preview
+     */
+    public MuteStatus getMuteStatus() {
+        return mMuteStatus;
+    }
+
+    /**
+     * Reset to personal profile mode.
+     */
+    public void resetToPersonalProfile() {
+        // 1. Clear Selected items
+        mSelection.clearSelectedItems();
+        // 2. Change profile to personal user
+        mUserIdManager.setPersonalAsCurrentUserProfile();
+        // 3. Update Item and Category lists
+        updateItems();
+        updateCategories();
+    }
+
     /**
      * @return the list of Items with all photos and videos {@link #mItemList} on the device.
      */
@@ -113,9 +137,8 @@ public class PickerViewModel extends AndroidViewModel {
         return mItemList;
     }
 
-    private List<Item> loadItems(@Nullable @CategoryType String category) {
+    private List<Item> loadItems(@Nullable @CategoryType String category, UserId userId) {
         final List<Item> items = new ArrayList<>();
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
 
         try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
                 /* limit */ -1, mMimeTypeFilter, userId)) {
@@ -168,8 +191,9 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private void loadItemsAsync() {
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mItemList.postValue(loadItems(/* category= */ null));
+            mItemList.postValue(loadItems(/* category= */ null, userId));
         });
     }
 
@@ -196,8 +220,9 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private void loadCategoryItemsAsync(@NonNull @CategoryType String category) {
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mCategoryItemList.postValue(loadItems(category));
+            mCategoryItemList.postValue(loadItems(category, userId));
         });
     }
 
@@ -221,9 +246,8 @@ public class PickerViewModel extends AndroidViewModel {
         return mCategoryList;
     }
 
-    private List<Category> loadCategories() {
+    private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
@@ -243,8 +267,9 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private void loadCategoriesAsync() {
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mCategoryList.postValue(loadCategories());
+            mCategoryList.postValue(loadCategories(userId));
         });
     }
 

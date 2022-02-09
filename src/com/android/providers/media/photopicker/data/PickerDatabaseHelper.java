@@ -17,11 +17,14 @@
 package com.android.providers.media.photopicker.data;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 import androidx.annotation.VisibleForTesting;
+
+import com.android.providers.media.photopicker.PickerSyncController;
 
 /**
  * Wrapper class for the photo picker database. Can open the actual database
@@ -34,7 +37,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     @VisibleForTesting
     static final String PICKER_DATABASE_NAME = "picker.db";
 
-    private static final int VERSION_T = 3;
+    private static final int VERSION_T = 4;
     private static final int VERSION_LATEST = VERSION_T;
 
     final Context mContext;
@@ -58,22 +61,25 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     public void onCreate(final SQLiteDatabase db) {
         Log.v(TAG, "onCreate() for " + mName);
 
-        createLatestSchema(db);
-        createLatestIndexes(db);
+        resetData(db);
     }
 
     @Override
     public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onUpgrade() for " + mName + " from " + oldV + " to " + newV);
 
-        createLatestSchema(db);
-        createLatestIndexes(db);
+        resetData(db);
     }
 
     @Override
     public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
 
+        resetData(db);
+    }
+
+    private void resetData(SQLiteDatabase db) {
+        clearPickerPrefs(mContext);
         createLatestSchema(db);
         createLatestIndexes(db);
     }
@@ -130,5 +136,13 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX size_index on media(size_bytes)");
         db.execSQL("CREATE INDEX mime_type_index on media(mime_type)");
         db.execSQL("CREATE INDEX is_favorite_index on media(is_favorite)");
+    }
+
+    private static void clearPickerPrefs(Context context) {
+        final SharedPreferences prefs = context.getSharedPreferences(
+                PickerSyncController.PICKER_SYNC_PREFS_FILE_NAME, Context.MODE_PRIVATE);
+        final SharedPreferences.Editor editor = prefs.edit();
+        editor.clear();
+        editor.commit();
     }
 }

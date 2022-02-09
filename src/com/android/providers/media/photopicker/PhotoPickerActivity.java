@@ -21,7 +21,10 @@ import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_
 
 import android.annotation.IntDef;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -32,6 +35,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.SystemProperties;
+import android.os.UserHandle;
 import android.provider.DeviceConfig;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -47,25 +51,29 @@ import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
+import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.AlbumsTabFragment;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
 import com.android.providers.media.photopicker.ui.PreviewFragment;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
-import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback;
 import com.google.android.material.chip.Chip;
+import com.google.common.collect.Lists;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.List;
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
@@ -96,7 +104,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private View mBottomSheetView;
     private View mFragmentContainerView;
     private View mDragBar;
+    private View mPrivacyText;
     private Toolbar mToolbar;
+    private CrossProfileListeners mCrossProfileListeners;
 
     @TabChipType
     private int mSelectedTabChipType;
@@ -108,7 +118,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private int mToolBarIconColor;
 
     private int mToolbarHeight = 0;
-    private int mDragBarHeight = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -148,7 +157,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         }
 
         mDragBar = findViewById(R.id.drag_bar);
-        mDragBarHeight = getResources().getDimensionPixelSize(R.dimen.picker_drag_bar_height);
+        mPrivacyText = findViewById(R.id.privacy_text);
 
         mTabChipContainer = findViewById(R.id.chip_container);
         initTabChips();
@@ -158,6 +167,15 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
         mFragmentContainerView = findViewById(R.id.fragment_container);
+
+        mCrossProfileListeners = new CrossProfileListeners();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        // This is required to unregister any broadcast receivers.
+        mCrossProfileListeners.onDestroy();
     }
 
     /**
@@ -270,12 +288,18 @@ public class PhotoPickerActivity extends AppCompatActivity {
             }
             restoreBottomSheetState();
         } else {
-            // This is the first launch, set the default behavior. Hide the title, show the chips
-            // and show the PhotosTabFragment
-            updateCommonLayouts(MODE_PHOTOS_TAB, /* title */ "");
-            onTabChipClick(mPhotosTabChip);
-            saveBottomSheetState();
+            setupInitialLaunchState();
         }
+    }
+
+    /**
+     * Sets up states for the initial launch. This includes updating common layouts, selecting
+     * Photos tab chip and saving the current bottom sheet state for later.
+     */
+    private void setupInitialLaunchState() {
+        updateCommonLayouts(MODE_PHOTOS_TAB, /* title */ "");
+        onTabChipClick(mPhotosTabChip);
+        saveBottomSheetState();
     }
 
     private static Chip generateTabChip(LayoutInflater inflater, ViewGroup parent, String title) {
@@ -437,7 +461,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         updateStatusBarAndNavigationBar(mode);
         updateBottomSheetBehavior(mode);
         updateFragmentContainerViewPadding(mode);
-        updateDragBar(mode);
+        updateDragBarVisibility(mode);
+        updatePrivacyTextVisibility(mode);
     }
 
     private void updateTitle(String title) {
@@ -451,7 +476,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
      */
     private void updateToolbar(@NonNull LayoutModeUtils.Mode mode) {
         final boolean isPreview = mode.isPreview;
-        final boolean shouldShowTabChips = mode.shouldShowTabChips;
+        final boolean shouldShowTabChips = mode.isPhotosTabOrAlbumsTab;
         // 1. Set the tabChip visibility
         mTabChipContainer.setVisibility(shouldShowTabChips ? View.VISIBLE : View.GONE);
 
@@ -480,13 +505,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
             icon.setTint(isPreview ? Color.WHITE : mToolBarIconColor);
         }
         getSupportActionBar().setHomeAsUpIndicator(icon);
-
-        // 4. Update the toolbar margin based on whether drag bar is visible or not
-        final int top = isPreview ? 0 : mDragBarHeight;
-        final AppBarLayout.LayoutParams layoutParams = new AppBarLayout.LayoutParams(
-                mToolbar.getLayoutParams());
-        layoutParams.setMargins(/* left */ 0, top, /* right */ 0, /* bottom */ 0);
-        mToolbar.setLayoutParams(layoutParams);
     }
 
     /**
@@ -549,9 +567,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
      * Updates the FragmentContainerView padding.
      * <p>
      * For Preview mode, toolbar overlaps the Fragment content, hence the padding will be set to 0.
-     * For Non-Preview mode, toolbar doesn't overlap the contents of the fragment and we have drag
-     * icon, hence we set the top padding as the sum of the height of the toolbar and the height of
-     * the drag bar.
+     * For Non-Preview mode, toolbar doesn't overlap the contents of the fragment, hence we set the
+     * padding as the height of the toolbar.
      */
     private void updateFragmentContainerViewPadding(@NonNull LayoutModeUtils.Mode mode) {
         if (mFragmentContainerView == null) return;
@@ -560,7 +577,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         if (mode.isPreview) {
             topPadding = 0;
         } else {
-            topPadding = mToolbarHeight + mDragBarHeight;
+            topPadding = mToolbarHeight;
         }
 
         mFragmentContainerView.setPadding(mFragmentContainerView.getPaddingLeft(),
@@ -568,8 +585,124 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 mFragmentContainerView.getPaddingBottom());
     }
 
-    private void updateDragBar(@NonNull LayoutModeUtils.Mode mode) {
+    private void updateDragBarVisibility(@NonNull LayoutModeUtils.Mode mode) {
         final boolean shouldShowDragBar = !mode.isPreview;
         mDragBar.setVisibility(shouldShowDragBar ? View.VISIBLE : View.GONE);
+    }
+
+    private void updatePrivacyTextVisibility(@NonNull LayoutModeUtils.Mode mode) {
+        // The privacy text is only shown on the Photos tab and Albums tab
+        final boolean shouldShowPrivacyMessage = mode.isPhotosTabOrAlbumsTab;
+        mPrivacyText.setVisibility(shouldShowPrivacyMessage ? View.VISIBLE : View.GONE);
+    }
+
+    private class CrossProfileListeners {
+
+        private final List<String> MANAGED_PROFILE_FILTER_ACTIONS = Lists.newArrayList(
+                Intent.ACTION_MANAGED_PROFILE_ADDED, // add profile button switch
+                Intent.ACTION_MANAGED_PROFILE_REMOVED, // remove profile button switch
+                Intent.ACTION_MANAGED_PROFILE_UNLOCKED, // activate profile button switch
+                Intent.ACTION_MANAGED_PROFILE_UNAVAILABLE // disable profile button switch
+        );
+
+        private final UserIdManager mUserIdManager;
+
+        public CrossProfileListeners() {
+            mUserIdManager = mPickerViewModel.getUserIdManager();
+
+            registerBroadcastReceivers();
+        }
+
+        public void onDestroy() {
+            unregisterReceiver(mReceiver);
+        }
+
+        private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final String action = intent.getAction();
+
+                final UserHandle userHandle = intent.getParcelableExtra(Intent.EXTRA_USER);
+                final UserId userId = UserId.of(userHandle);
+
+                // We only need to refresh the layout when the received profile user is the
+                // managed user corresponding to the current profile or a new work profile is added
+                // for the current user.
+                if (!userId.equals(mUserIdManager.getManagedUserId()) &&
+                        !action.equals(Intent.ACTION_MANAGED_PROFILE_ADDED)) {
+                    return;
+                }
+
+                switch (action) {
+                    case Intent.ACTION_MANAGED_PROFILE_UNAVAILABLE:
+                        handleWorkProfileOff();
+                        break;
+                    case Intent.ACTION_MANAGED_PROFILE_REMOVED:
+                        handleWorkProfileRemoved();
+                        break;
+                    case Intent.ACTION_MANAGED_PROFILE_UNLOCKED:
+                        handleWorkProfileOn();
+                        break;
+                    case Intent.ACTION_MANAGED_PROFILE_ADDED:
+                        handleWorkProfileAdded();
+                        break;
+                    default:
+                        // do nothing
+                }
+            }
+        };
+
+        private void registerBroadcastReceivers() {
+            final IntentFilter managedProfileFilter = new IntentFilter();
+            for (String managedProfileAction : MANAGED_PROFILE_FILTER_ACTIONS) {
+                managedProfileFilter.addAction(managedProfileAction);
+            }
+            registerReceiver(mReceiver, managedProfileFilter);
+        }
+
+        private void handleWorkProfileOff() {
+            if (mUserIdManager.isManagedUserSelected()) {
+                switchToPersonalProfileInitialLaunchState();
+            }
+            mUserIdManager.updateWorkProfileOffValue();
+        }
+
+        private void handleWorkProfileRemoved() {
+            if (mUserIdManager.isManagedUserSelected()) {
+                switchToPersonalProfileInitialLaunchState();
+            }
+            mUserIdManager.resetUserIds();
+        }
+
+        private void handleWorkProfileAdded() {
+            mUserIdManager.resetUserIds();
+        }
+
+        private void handleWorkProfileOn() {
+            // Update UI for switch to profile button
+            // When the managed profile becomes available, the provider may not be available
+            // immediately, we need to check if it is ready before we reload the content.
+            mUserIdManager.waitForMediaProviderToBeAvailable();
+        }
+
+        private void switchToPersonalProfileInitialLaunchState() {
+            // We reset the state of the PhotoPicker as we do not want to make any
+            // assumptions on the state of the PhotoPicker when it was in Work Profile mode.
+            resetToPersonalProfile();
+
+            final FragmentManager fragmentManager = getSupportFragmentManager();
+            // This is important so that doing a back does not take back to work profile fragment
+            // state.
+            fragmentManager.popBackStack();
+            PhotosTabFragment.show(fragmentManager, Category.getDefaultCategory());
+        }
+
+        /**
+         * Reset to Photo Picker initial launch state (Photos grid tab) in personal profile mode.
+         */
+        private void resetToPersonalProfile() {
+            mPickerViewModel.resetToPersonalProfile();
+            setupInitialLaunchState();
+        }
     }
 }

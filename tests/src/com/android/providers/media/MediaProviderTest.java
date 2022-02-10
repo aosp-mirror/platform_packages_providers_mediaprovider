@@ -17,7 +17,7 @@
 package com.android.providers.media;
 
 import static com.android.providers.media.scan.MediaScannerTest.stage;
-import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
+import static com.android.providers.media.util.FileUtils.extractRelativePathWithDisplayName;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isDownloadDir;
 
@@ -975,7 +975,7 @@ public class MediaProviderTest {
                 "Foo.jpg",
                 "storage/Foo"
         }) {
-            assertEquals(null, FileUtils.extractRelativePathForDirectory(path));
+            assertEquals(null, FileUtils.extractRelativePathWithDisplayName(path));
         }
     }
 
@@ -997,7 +997,7 @@ public class MediaProviderTest {
 
     private static void assertRelativePathForDirectory(String directoryPath, String relativePath) {
         assertWithMessage("extractRelativePathForDirectory(" + directoryPath + ") :")
-                .that(extractRelativePathForDirectory(directoryPath))
+                .that(extractRelativePathWithDisplayName(directoryPath))
                 .isEqualTo(relativePath);
     }
 

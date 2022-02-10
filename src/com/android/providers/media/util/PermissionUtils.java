@@ -16,7 +16,9 @@
 
 package com.android.providers.media.util;
 
+import static android.Manifest.permission.ACCESS_MTP;
 import static android.Manifest.permission.BACKUP;
+import static android.Manifest.permission.INSTALL_PACKAGES;
 import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.UPDATE_DEVICE_STATS;
@@ -26,6 +28,7 @@ import static android.app.AppOpsManager.OPSTR_LEGACY_STORAGE;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_AUDIO;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_IMAGES;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_VIDEO;
+import static android.app.AppOpsManager.OPSTR_REQUEST_INSTALL_PACKAGES;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_AUDIO;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO;
@@ -183,6 +186,52 @@ public class PermissionUtils {
         return checkAppOpAllowingLegacy(context, OPSTR_WRITE_MEDIA_IMAGES, pid,
                 uid, packageName, attributionTag,
                 generateAppOpMessage(packageName, sOpDescription.get()));
+    }
+
+    /**
+     * Returns {@code true} if any package for the given uid has request_install_packages app op.
+     */
+    public static boolean checkAppOpRequestInstallPackagesForSharedUid(@NonNull Context context,
+            int uid, @NonNull String[] sharedPackageNames, @Nullable String attributionTag) {
+        for (String packageName : sharedPackageNames) {
+            if (checkAppOp(context, OPSTR_REQUEST_INSTALL_PACKAGES, uid, packageName,
+                    attributionTag, generateAppOpMessage(packageName, sOpDescription.get()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks *only* App Ops.
+     */
+    private static boolean checkAppOp(@NonNull Context context,
+            @NonNull String op, int uid, @NonNull String packageName,
+            @Nullable String attributionTag, @Nullable String opMessage) {
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        final int mode = appOps.noteOpNoThrow(op, uid, packageName, attributionTag, opMessage);
+        switch (mode) {
+            case AppOpsManager.MODE_ALLOWED:
+                return true;
+            case AppOpsManager.MODE_DEFAULT:
+            case AppOpsManager.MODE_IGNORED:
+            case AppOpsManager.MODE_ERRORED:
+                return false;
+            default:
+                throw new IllegalStateException(op + " has unknown mode " + mode);
+        }
+    }
+
+    public static boolean checkPermissionInstallPackages(@NonNull Context context, int pid, int uid,
+            @NonNull String packageName, @Nullable String attributionTag) {
+        return checkPermissionForDataDelivery(context, INSTALL_PACKAGES, pid,
+                uid, packageName, attributionTag, null);
+    }
+
+    public static boolean checkPermissionAccessMtp(@NonNull Context context, int pid, int uid,
+            @NonNull String packageName, @Nullable String attributionTag) {
+        return checkPermissionForDataDelivery(context, ACCESS_MTP, pid,
+                uid, packageName, attributionTag, null);
     }
 
     @VisibleForTesting

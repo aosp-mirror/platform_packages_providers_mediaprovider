@@ -16,12 +16,16 @@
 
 package android.provider;
 
+import static android.provider.CloudMediaProviderContract.EXTRA_ERROR_MESSAGE;
+import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
+import static android.provider.CloudMediaProviderContract.EXTRA_FILE_DESCRIPTOR;
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_EVENT_CALLBACK;
 import static android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_ACCOUNT_INFO;
+import static android.provider.CloudMediaProviderContract.METHOD_GET_ASYNC_CONTENT_PROVIDER;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_INFO;
 import static android.provider.CloudMediaProviderContract.URI_PATH_ALBUM;
 import static android.provider.CloudMediaProviderContract.URI_PATH_DELETED_MEDIA;
@@ -50,6 +54,7 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.os.RemoteCallback;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -117,6 +122,9 @@ public abstract class CloudMediaProvider extends ContentProvider {
     private final UriMatcher mMatcher = new UriMatcher(UriMatcher.NO_MATCH);
     private volatile int mMediaStoreAuthorityAppId;
 
+    private final AsyncContentProviderWrapper mAsyncContentProviderWrapper =
+            new AsyncContentProviderWrapper();
+
     /**
      * Implementation is provided by the parent class. Cannot be overridden.
      */
@@ -153,6 +161,18 @@ public abstract class CloudMediaProvider extends ContentProvider {
     @NonNull
     public Bundle onGetAccountInfo(@Nullable Bundle extras) {
         throw new UnsupportedOperationException("getAccountInfo not supported");
+    }
+
+    /**
+     * Returns {@link Bundle} containing binder to {@link IAsyncContentProvider}.
+     *
+     * @hide
+     */
+    @NonNull
+    public final Bundle onGetAsyncContentProvider() {
+        Bundle bundle = new Bundle();
+        bundle.putBinder(EXTRA_ASYNC_CONTENT_PROVIDER, mAsyncContentProviderWrapper.asBinder());
+        return bundle;
     }
 
     /**
@@ -356,7 +376,9 @@ public abstract class CloudMediaProvider extends ContentProvider {
             return onGetAccountInfo(extras);
         } else if (METHOD_CREATE_SURFACE_CONTROLLER.equals(method)) {
             return onCreateSurfaceController(extras);
-        }  else {
+        } else if (METHOD_GET_ASYNC_CONTENT_PROVIDER.equals(method)) {
+            return onGetAsyncContentProvider();
+        } else {
             throw new UnsupportedOperationException("Method not supported " + method);
         }
     }
@@ -819,6 +841,38 @@ public abstract class CloudMediaProvider extends ContentProvider {
         public void onDestroy() {
             Log.i(TAG, "Controller destroyed");
             mSurfaceController.onDestroy();
+        }
+    }
+
+    /**
+     * @hide
+     */
+    private class AsyncContentProviderWrapper extends IAsyncContentProvider.Stub {
+
+        @Override
+        public void openMedia(String mediaId, RemoteCallback remoteCallback) {
+            try {
+                ParcelFileDescriptor pfd = onOpenMedia(mediaId,/* extras */
+                        null,/* cancellationSignal */ null);
+                sendResult(pfd, null, remoteCallback);
+            } catch (Exception e) {
+                sendResult(null, e, remoteCallback);
+            }
+        }
+
+        private void sendResult(ParcelFileDescriptor pfd, Throwable throwable,
+                RemoteCallback remoteCallback) {
+            Bundle bundle = new Bundle();
+            if (pfd == null && throwable == null) {
+                throw new IllegalStateException("Expected ParcelFileDescriptor or an exception.");
+            }
+            if (pfd != null) {
+                bundle.putParcelable(EXTRA_FILE_DESCRIPTOR, pfd);
+            }
+            if (throwable != null) {
+                bundle.putString(EXTRA_ERROR_MESSAGE, throwable.getMessage());
+            }
+            remoteCallback.sendResult(bundle);
         }
     }
 }

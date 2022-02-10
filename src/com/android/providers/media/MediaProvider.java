@@ -82,9 +82,6 @@ import android.app.DownloadManager;
 import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
 import android.app.RemoteAction;
-import android.app.compat.CompatChanges;
-import android.compat.annotation.ChangeId;
-import android.compat.annotation.EnabledAfter;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -230,12 +227,6 @@ import java.util.regex.Pattern;
  * changes with the card.
  */
 public class MediaProvider extends ContentProvider {
-    /**
-     * Enables checks to stop apps from inserting and updating to private files via media provider.
-     */
-    @ChangeId
-    @EnabledAfter(targetSdkVersion = android.os.Build.VERSION_CODES.R)
-    static final long ENABLE_CHECKS_FOR_PRIVATE_FILES = 172100307L;
 
     /**
      * Regex of a selection string that matches a specific ID.
@@ -2758,20 +2749,6 @@ public class MediaProvider extends ContentProvider {
         for (final String relativePath : relativePaths) {
             if (!isDataOrObbRelativePath(relativePath)) {
                 continue;
-            }
-
-            /**
-             * Don't allow apps to insert/update database row to files in Android/data or
-             * Android/obb dirs. These are app private directories and files in these private
-             * directories can't be added to public media collection.
-             *
-             * Note: For backwards compatibility we allow apps with targetSdk < S to insert private
-             * files to MediaProvider
-             */
-            if (CompatChanges.isChangeEnabled(ENABLE_CHECKS_FOR_PRIVATE_FILES,
-                    Binder.getCallingUid())) {
-                throw new IllegalArgumentException(
-                        "Inserting private file: " + relativePath + " is not allowed.");
             }
 
             /**

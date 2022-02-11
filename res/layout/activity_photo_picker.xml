@@ -26,62 +26,77 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <FrameLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/bottom_sheet"
         android:background="@color/picker_background_color"
         android:clipToOutline="true"
+        android:orientation="vertical"
         app:behavior_hideable="true"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
-        <FrameLayout
+        <ImageView
             android:id="@+id/drag_bar"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/picker_drag_bar_height"
-            android:background="@color/picker_background_color">
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="@dimen/picker_drag_margin_bottom"
+            android:layout_marginTop="@dimen/picker_drag_margin_top"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_drag"
+            android:contentDescription="@null"/>
 
-            <ImageView
-                android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/privacy_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginHorizontal="@dimen/picker_privacy_text_horizontal_gap"
+            android:layout_marginBottom="@dimen/picker_privacy_text_margin_bottom"
+            android:layout_marginTop="@dimen/picker_privacy_text_margin_top"
+            android:gravity="center_horizontal"
+            android:text="@string/picker_privacy_message"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="@dimen/picker_privacy_text_size"
+            style="?android:attr/textAppearanceListItem"/>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/fragment_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+
+            <com.google.android.material.appbar.AppBarLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="@dimen/picker_drag_margin_bottom"
-                android:layout_marginTop="@dimen/picker_drag_margin_top"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_drag"
-                android:contentDescription="@null"/>
+                android:layout_gravity="top"
+                android:background="@android:color/transparent"
+                app:liftOnScroll="true">
+
+                <androidx.appcompat.widget.Toolbar
+                    android:id="@+id/toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="?attr/actionBarSize"
+                    android:background="@color/picker_background_color"
+                    app:titleTextColor="?attr/pickerTextColor">
+
+                    <LinearLayout
+                        android:id="@+id/chip_container"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center"
+                        android:orientation="horizontal"/>
+
+                </androidx.appcompat.widget.Toolbar>
+
+            </com.google.android.material.appbar.AppBarLayout>
 
         </FrameLayout>
 
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/fragment_container"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
-
-        <com.google.android.material.appbar.AppBarLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top"
-            android:background="@android:color/transparent"
-            app:liftOnScroll="true">
-
-            <androidx.appcompat.widget.Toolbar
-                android:id="@+id/toolbar"
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                android:background="@color/picker_background_color"
-                app:titleTextColor="?attr/pickerTextColor">
-
-                <LinearLayout
-                    android:id="@+id/chip_container"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center"
-                    android:orientation="horizontal"/>
-
-            </androidx.appcompat.widget.Toolbar>
-        </com.google.android.material.appbar.AppBarLayout>
-
-    </FrameLayout>
+    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

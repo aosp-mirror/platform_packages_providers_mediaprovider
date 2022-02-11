@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ઑફિસ માટેની ઍપ પરથી વ્યક્તિગત ડેટા ઍક્સેસ કરવાની પરવાનગી નથી"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ઑફિસ માટેની ઍપ થોભાવવામાં આવી છે"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ઑફિસના ફોટા ખોલવા માટે, તમારી ઑફિસ માટેની ઍપ ખોલો અને પછી ફરી પ્રયાસ કરો"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"આ ઍપ માત્ર તમે પસંદ કરેલા ફોટા જ ઍક્સેસ કરી શકે છે"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> આઇટમ}one{<xliff:g id="COUNT_1">^1</xliff:g> આઇટમ}other{<xliff:g id="COUNT_1">^1</xliff:g> આઇટમ}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"ઉમેરો (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"કૅમેરા"</string>

@@ -9598,12 +9598,15 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int table = matchUri(uri, allowHidden);
 
+        final String selection = extras.getString(QUERY_ARG_SQL_SELECTION);
+        final String[] selectionArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
+
         // First, check to see if caller has direct write access
         if (forWrite) {
             final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, table, uri, extras, null);
             qb.allowColumn(SQLiteQueryBuilder.ROWID_COLUMN);
             try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
-                    null, null, null, null, null, null, null)) {
+                    selection, selectionArgs, null, null, null, null, null)) {
                 if (c.moveToFirst()) {
                     // Direct write access granted, yay!
                     return;
@@ -9627,7 +9630,7 @@ public class MediaProvider extends ContentProvider {
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, extras, null);
         qb.allowColumn(SQLiteQueryBuilder.ROWID_COLUMN);
         try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
-                null, null, null, null, null, null, null)) {
+                selection, selectionArgs, null, null, null, null, null)) {
             if (c.moveToFirst()) {
                 if (!forWrite) {
                     // Direct read access granted, yay!

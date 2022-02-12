@@ -127,7 +127,7 @@ public class PickerSyncController {
     /**
      * Syncs the local and currently enabled cloud {@link CloudMediaProvider} instances
      */
-    public void syncPicker() {
+    public void syncAllMedia() {
         if (!PickerDbFacade.isPickerDbEnabled()) {
             return;
         }
@@ -266,8 +266,8 @@ public class PickerSyncController {
      * notifications.
      */
     public void notifyMediaEvent() {
-        BackgroundThread.getHandler().removeCallbacks(this::syncPicker);
-        BackgroundThread.getHandler().postDelayed(this::syncPicker, mSyncDelayMs);
+        BackgroundThread.getHandler().removeCallbacks(this::syncAllMedia);
+        BackgroundThread.getHandler().postDelayed(this::syncAllMedia, mSyncDelayMs);
     }
 
     // TODO(b/190713331): Check extra_pages and extra_honored_args

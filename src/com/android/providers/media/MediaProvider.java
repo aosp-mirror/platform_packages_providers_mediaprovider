@@ -25,6 +25,8 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
+import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
+import static android.provider.CloudMediaProviderContract.METHOD_GET_ASYNC_CONTENT_PROVIDER;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
@@ -171,12 +173,14 @@ import android.os.storage.StorageManager;
 import android.os.storage.StorageManager.StorageVolumeCallback;
 import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
+import android.provider.AsyncContentProvider;
 import android.provider.BaseColumns;
 import android.provider.Column;
 import android.provider.DeviceConfig;
 import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.DocumentsContract;
 import android.provider.ExportedSince;
+import android.provider.IAsyncContentProvider;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.AudioColumns;
@@ -268,7 +272,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -1810,11 +1816,21 @@ public class MediaProvider extends ContentProvider {
         final String mediaId = fileName.substring(0, lastDotIndex);
         final Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
 
+        IBinder binder = getContext().getContentResolver()
+                .call(uri, METHOD_GET_ASYNC_CONTENT_PROVIDER, null, null)
+                .getBinder(EXTRA_ASYNC_CONTENT_PROVIDER);
+        if (binder == null) {
+            Log.e(TAG, "Picker file open failed. No cloud media provider found.");
+            return FileOpenResult.createError(OsConstants.ENOENT, uid);
+        }
+        IAsyncContentProvider iAsyncContentProvider = IAsyncContentProvider.Stub.asInterface(
+                binder);
+        AsyncContentProvider asyncContentProvider = new AsyncContentProvider(iAsyncContentProvider);
         final ParcelFileDescriptor pfd;
         try {
-            pfd = getContext().getContentResolver().openFile(uri, "r",
-                    /* cancellationSignal */ null);
-        } catch (IOException e) {
+            pfd = asyncContentProvider.openMedia(uri, "r");
+        } catch (FileNotFoundException | ExecutionException | InterruptedException
+                | TimeoutException | RemoteException e) {
             Log.e(TAG, "Picker file open failed. Failed to open URI: " + uri, e);
             return FileOpenResult.createError(OsConstants.ENOENT, uid);
         }
@@ -5917,7 +5933,7 @@ public class MediaProvider extends ContentProvider {
                 // Syncing the picker while waiting for idle fixes tests with the picker db
                 // flag enabled because the picker db is in a consistent state with the external
                 // db after the sync
-                syncPicker();
+                syncAllMedia();
                 ForegroundThread.waitForIdle();
                 final CountDownLatch latch = new CountDownLatch(1);
                 BackgroundThread.getExecutor().execute(() -> {
@@ -6116,7 +6132,7 @@ public class MediaProvider extends ContentProvider {
                 // fall through
             }
             case MediaStore.SYNC_PROVIDERS_CALL: {
-                syncPicker();
+                syncAllMedia();
                 return new Bundle();
             }
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
@@ -6145,14 +6161,14 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void syncPicker() {
+    private void syncAllMedia() {
         // Clear the binder calling identity so that we can sync the unexported
         // local_provider while running as MediaProvider
         final long t = Binder.clearCallingIdentity();
         try {
             // TODO(b/190713331): Remove after initial development
             Log.v(TAG, "Developer initiated provider sync");
-            mPickerSyncController.syncPicker();
+            mPickerSyncController.syncAllMedia();
         } finally {
             Binder.restoreCallingIdentity(t);
         }

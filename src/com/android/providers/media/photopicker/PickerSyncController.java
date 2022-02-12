@@ -69,7 +69,8 @@ public class PickerSyncController {
 
     private static final String DEFAULT_CLOUD_PROVIDER_PKG = null;
     private static final int DEFAULT_CLOUD_PROVIDER_UID = -1;
-    private static final long DEFAULT_SYNC_DELAY_MS = 1000;
+    private static final long DEFAULT_SYNC_DELAY_MS =
+            PickerDbFacade.getDefaultPickerDbSyncDelayMs();
 
     private static final int SYNC_TYPE_NONE = 0;
     private static final int SYNC_TYPE_INCREMENTAL = 1;

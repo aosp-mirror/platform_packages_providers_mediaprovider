@@ -1026,8 +1026,12 @@ public class MediaProvider extends ContentProvider {
                     @Override
                     public void onStateChanged(@NonNull StorageVolume volume) {
                         updateVolumes();
-                   }
+                    }
                 });
+
+        if (SdkLevel.isAtLeastT()) {
+            mStorageManager.setCloudMediaProvider(mPickerSyncController.getCloudProvider());
+        }
 
         updateVolumes();
         attachVolume(MediaVolume.fromInternal(), /* validate */ false);
@@ -6145,7 +6149,10 @@ public class MediaProvider extends ContentProvider {
                 // TODO(b/190713331): Remove after initial development
                 final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);
                 Log.i(TAG, "Developer initiated cloud provider switch: " + cloudProvider);
-                mPickerSyncController.setCloudProvider(cloudProvider);
+                if (mPickerSyncController.setCloudProvider(cloudProvider)
+                        && SdkLevel.isAtLeastT()) {
+                    mStorageManager.setCloudMediaProvider(cloudProvider);
+                }
                 // fall through
             }
             case MediaStore.SYNC_PROVIDERS_CALL: {

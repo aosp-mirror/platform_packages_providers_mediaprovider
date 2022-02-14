@@ -35,7 +35,7 @@ import com.android.providers.media.MediaProvider;
 import com.android.providers.media.MediaService;
 import com.android.providers.media.MediaVolume;
 
-import com.android.providers.media.util.BackgroundThread;
+import com.android.modules.utils.BackgroundThread;
 
 import java.io.File;
 import java.io.IOException;
@@ -94,7 +94,7 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 mediaProvider.attachVolume(volume, /* validate */ false);
                 MediaService.queueVolumeScan(mediaProvider.getContext(), volume, REASON_MOUNTED);
                 BackgroundThread.getExecutor().execute(() ->
-                        mediaProvider.getPickerSyncController().syncPicker());
+                        mediaProvider.getPickerSyncController().syncAllMedia());
                 break;
             case Environment.MEDIA_UNMOUNTED:
             case Environment.MEDIA_EJECTING:

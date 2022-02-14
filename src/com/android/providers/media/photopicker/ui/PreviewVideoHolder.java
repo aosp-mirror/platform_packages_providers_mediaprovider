@@ -17,52 +17,35 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.view.SurfaceView;
 import android.view.ViewGroup;
-import android.widget.VideoView;
 
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.data.model.Item;
 
 /**
  * ViewHolder of a video item within the {@link ViewPager2}
  */
 public class PreviewVideoHolder extends BaseViewHolder {
-    private final VideoView mVideoView;
 
-    public PreviewVideoHolder(Context context, ViewGroup parent) {
-        super(context, parent, R.layout.item_video_preview);
-        mVideoView = itemView.findViewById(R.id.preview_videoView);
+    private SurfaceView mSurfaceView;
+
+    public PreviewVideoHolder(Context context, ViewGroup parent, boolean enabledCloudMediaPreview) {
+        super(context, parent, enabledCloudMediaPreview ? R.layout.item_cloud_video_preview
+                : R.layout.item_video_preview);
+        if (enabledCloudMediaPreview) {
+            mSurfaceView = itemView.findViewById(R.id.preview_player_view);
+        }
     }
 
     @Override
     public void bind() {
-        final Item item = (Item) itemView.getTag();
-        mVideoView.setVideoURI(item.getContentUri());
+        // Video playback needs granular page state events and hence video playback is initiated by
+        // ViewPagerWrapper and handled by PlaybackHandler#handleVideoPlayback
     }
 
-    @Override
-    public void onViewAttachedToWindow() {
-        super.onViewAttachedToWindow();
-        mVideoView.setOnPreparedListener(mp -> {
-            mp.setLooping(true);
-            // For simplicity, we will always start the video from the beginning.
-            mp.seekTo(0);
-            mp.start();
-        });
-    }
-
-    @Override
-    public void onViewDetachedFromWindow() {
-        super.onViewDetachedFromWindow();
-        mVideoView.pause();
-    }
-
-    @Override
-    public void onViewRecycled() {
-        super.onViewRecycled();
-        // This will deallocate any MediaPlayer resources it has been holding
-        mVideoView.stopPlayback();
+    public SurfaceView getSurfaceView() {
+        return mSurfaceView;
     }
 }

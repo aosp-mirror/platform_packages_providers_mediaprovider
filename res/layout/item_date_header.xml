@@ -17,6 +17,7 @@
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
           android:id="@+id/date_header_title"
           android:layout_width="match_parent"
-          android:layout_height="@dimen/picker_date_header_height"
+          android:layout_height="wrap_content"
+          android:minHeight="@dimen/picker_date_header_height"
           android:padding="@dimen/picker_date_header_padding"
-          android:textAppearance="@style/PickerDateHeader"/>
+          android:textAppearance="@style/PickerHeaderTextAppearance"/>

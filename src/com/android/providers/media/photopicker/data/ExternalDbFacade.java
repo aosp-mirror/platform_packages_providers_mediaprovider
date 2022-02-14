@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
@@ -25,6 +26,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteConstraintException;
+import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.os.Environment;
 import android.provider.CloudMediaProviderContract;
@@ -52,8 +54,10 @@ public class ExternalDbFacade {
     @VisibleForTesting
     static final String TABLE_FILES = "files";
 
-    private static final String TABLE_DELETED_MEDIA = "deleted_media";
-    private static final String COLUMN_OLD_ID = "old_id";
+    @VisibleForTesting
+    static final String TABLE_DELETED_MEDIA = "deleted_media";
+    @VisibleForTesting
+    static final String COLUMN_OLD_ID = "old_id";
     private static final String COLUMN_OLD_ID_AS_ID = COLUMN_OLD_ID + " AS " +
             CloudMediaProviderContract.MediaColumns.ID;
     private static final String COLUMN_GENERATION_MODIFIED = MediaColumns.GENERATION_MODIFIED;
@@ -61,30 +65,30 @@ public class ExternalDbFacade {
     private static final String[] PROJECTION_MEDIA_COLUMNS = new String[] {
         MediaColumns._ID + " AS " + CloudMediaProviderContract.MediaColumns.ID,
         "COALESCE(" + MediaColumns.DATE_TAKEN + "," + MediaColumns.DATE_MODIFIED +
-                    "* 1000) AS " + CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS,
+                    "* 1000) AS " + CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS,
         MediaColumns.GENERATION_MODIFIED + " AS " +
-                CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED,
+                CloudMediaProviderContract.MediaColumns.SYNC_GENERATION,
         MediaColumns.SIZE + " AS " + CloudMediaProviderContract.MediaColumns.SIZE_BYTES,
         MediaColumns.MIME_TYPE + " AS " + CloudMediaProviderContract.MediaColumns.MIME_TYPE,
-        MediaColumns.DURATION + " AS " + CloudMediaProviderContract.MediaColumns.DURATION_MS,
+        FileColumns._SPECIAL_FORMAT + " AS " +
+                CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
+        MediaColumns.DURATION + " AS " + CloudMediaProviderContract.MediaColumns.DURATION_MILLIS,
         MediaColumns.IS_FAVORITE + " AS " + CloudMediaProviderContract.MediaColumns.IS_FAVORITE
     };
     private static final String[] PROJECTION_MEDIA_INFO = new String[] {
-        "COUNT(" + MediaColumns.GENERATION_MODIFIED + ") AS "
-        + CloudMediaProviderContract.MediaInfo.MEDIA_COUNT,
         "MAX(" + MediaColumns.GENERATION_MODIFIED + ") AS "
-        + CloudMediaProviderContract.MediaInfo.MEDIA_GENERATION
+        + MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION
     };
     private static final String[] PROJECTION_ALBUM_DB = new String[] {
         "COUNT(" + MediaColumns._ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
         "MAX(COALESCE(" + MediaColumns.DATE_TAKEN + "," + MediaColumns.DATE_MODIFIED +
-                    "* 1000)) AS " + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
+                    "* 1000)) AS " + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
         MediaColumns._ID + " AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID,
     };
 
     private static final String[] PROJECTION_ALBUM_CURSOR = new String[] {
             CloudMediaProviderContract.AlbumColumns.ID,
-            CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS,
+            CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
             CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME,
             CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
             CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID,
@@ -108,10 +112,9 @@ public class ExternalDbFacade {
     private static final String WHERE_MIME_TYPE = MediaStore.MediaColumns.MIME_TYPE
             + " LIKE ?";
 
-    // TODO(b/196071169): Include media that contains Environment#DIRECTORY_SCREENSHOTS in its
-    // relative_path.
-    public static final String RELATIVE_PATH_SCREENSHOTS = Environment.DIRECTORY_PICTURES + "/"
-            + Environment.DIRECTORY_SCREENSHOTS + "/%";
+    public static final String RELATIVE_PATH_SCREENSHOTS =
+            "%/" + Environment.DIRECTORY_SCREENSHOTS + "/%";
+
     public static final String RELATIVE_PATH_CAMERA = Environment.DIRECTORY_DCIM + "/Camera/%";
 
     private final DatabaseHelper mDatabaseHelper;
@@ -142,7 +145,8 @@ public class ExternalDbFacade {
      */
     public boolean onFileUpdated(long oldId, int oldMediaType, int newMediaType,
             boolean oldIsTrashed, boolean newIsTrashed, boolean oldIsPending,
-            boolean newIsPending, boolean oldIsFavorite, boolean newIsFavorite) {
+            boolean newIsPending, boolean oldIsFavorite, boolean newIsFavorite,
+            int oldSpecialFormat, int newSpecialFormat) {
         if (!mDatabaseHelper.isExternal()) {
             return false;
         }
@@ -167,7 +171,7 @@ public class ExternalDbFacade {
         }
 
         if (newIsVisibleMedia) {
-            return oldIsFavorite != newIsFavorite;
+            return (oldIsFavorite != newIsFavorite) || (oldSpecialFormat != newSpecialFormat);
         }
 
 
@@ -251,7 +255,7 @@ public class ExternalDbFacade {
      */
     public Cursor queryMediaGeneration(long generation, String albumId, String mimeType) {
         final List<String> selectionArgs = new ArrayList<>();
-        final String orderBy = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS + " DESC";
+        final String orderBy = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS + " DESC";
 
         return mDatabaseHelper.runWithTransaction(db -> {
                 SQLiteQueryBuilder qb = createMediaQueryBuilder();
@@ -283,15 +287,44 @@ public class ExternalDbFacade {
      * Returns the total count and max {@link MediaColumns#GENERATION_MODIFIED} value
      * of the media items in the files table greater than {@code generation}.
      */
-    public Cursor getMediaInfo(long generation) {
+    public Cursor getMediaCollectionInfo(long generation) {
         final String[] selectionArgs = new String[] {String.valueOf(generation)};
+        final String[] projection = new String[] {
+            MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION
+        };
 
         return mDatabaseHelper.runWithTransaction(db -> {
-                SQLiteQueryBuilder qb = createMediaQueryBuilder();
-                qb.appendWhereStandalone(WHERE_GREATER_GENERATION);
+                SQLiteQueryBuilder qbMedia = createMediaQueryBuilder();
+                qbMedia.appendWhereStandalone(WHERE_GREATER_GENERATION);
+                SQLiteQueryBuilder qbDeletedMedia = createDeletedMediaQueryBuilder();
+                qbDeletedMedia.appendWhereStandalone(WHERE_GREATER_GENERATION);
 
-                return qb.query(db, PROJECTION_MEDIA_INFO, /* select */ null, selectionArgs,
-                        /* groupBy */ null, /* having */ null, /* orderBy */ null);
+                try (Cursor mediaCursor = query(qbMedia, db, PROJECTION_MEDIA_INFO, selectionArgs);
+                        Cursor deletedMediaCursor = query(qbDeletedMedia, db,
+                                PROJECTION_MEDIA_INFO, selectionArgs)) {
+                    final int mediaGenerationIndex = mediaCursor.getColumnIndexOrThrow(
+                            MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION);
+                    final int deletedMediaGenerationIndex =
+                            deletedMediaCursor.getColumnIndexOrThrow(
+                                    MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION);
+
+                    long mediaGeneration = 0;
+                    if (mediaCursor.moveToFirst()) {
+                        mediaGeneration = mediaCursor.getLong(mediaGenerationIndex);
+                    }
+
+                    long deletedMediaGeneration = 0;
+                    if (deletedMediaCursor.moveToFirst()) {
+                        deletedMediaGeneration = deletedMediaCursor.getLong(
+                                deletedMediaGenerationIndex);
+                    }
+
+                    long maxGeneration = Math.max(mediaGeneration, deletedMediaGeneration);
+                    MatrixCursor result = new MatrixCursor(projection);
+                    result.addRow(new Long[] { maxGeneration });
+
+                    return result;
+                }
             });
     }
 
@@ -330,7 +363,7 @@ public class ExternalDbFacade {
 
             final String[] projectionValue = new String[] {
                 category,
-                getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MS),
+                getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS),
                 Category.getCategoryName(mContext, category),
                 String.valueOf(count),
                 getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
@@ -342,6 +375,12 @@ public class ExternalDbFacade {
 
         return c;
     }
+
+        private static Cursor query(SQLiteQueryBuilder qb, SQLiteDatabase db, String[] projection,
+                String[] selectionArgs) {
+            return qb.query(db, PROJECTION_MEDIA_INFO, /* select */ null, selectionArgs,
+                    /* groupBy */ null, /* having */ null, /* orderBy */ null);
+        }
 
     private static List<String> appendWhere(SQLiteQueryBuilder qb, String albumId,
             String mimeType) {

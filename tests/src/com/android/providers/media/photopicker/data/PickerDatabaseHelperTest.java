@@ -22,6 +22,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.provider.CloudMediaProviderContract;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -44,10 +45,11 @@ public class PickerDatabaseHelperTest {
     private static final String KEY_CLOUD_ID = "cloud_id";
     private static final String KEY_IS_VISIBLE = "is_visible";
     private static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
-    private static final String KEY_GENERATION_MODIFIED = "generation_modified";
+    private static final String KEY_SYNC_GENERATION = "sync_generation";
     private static final String KEY_SIZE_BYTES = "size_bytes";
     private static final String KEY_DURATION_MS = "duration_ms";
     private static final String KEY_MIME_TYPE = "mime_type";
+    private static final String KEY_STANDARD_MIME_TYPE_EXTENSION = "standard_mime_type_extension";
 
     private static final long LOCAL_ID = 50;
     private static final long SIZE_BYTES = 7000;
@@ -55,6 +57,8 @@ public class PickerDatabaseHelperTest {
     private static final long GENERATION_MODIFIED = 1L;
     private static final String CLOUD_ID = "asdfghjkl;";
     private static final String MIME_TYPE = "video/mp4";
+    private static final int STANDARD_MIME_TYPE_EXTENSION =
+            CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF;
     private static final long DURATION_MS = 0;
 
     private static Context sIsolatedContext;
@@ -72,10 +76,11 @@ public class PickerDatabaseHelperTest {
             KEY_CLOUD_ID,
             KEY_IS_VISIBLE,
             KEY_DATE_TAKEN_MS,
-            KEY_GENERATION_MODIFIED,
+            KEY_SYNC_GENERATION,
             KEY_SIZE_BYTES,
             KEY_DURATION_MS,
-            KEY_MIME_TYPE
+            KEY_MIME_TYPE,
+            KEY_STANDARD_MIME_TYPE_EXTENSION
         };
 
         try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
@@ -99,6 +104,7 @@ public class PickerDatabaseHelperTest {
                     assertThat(cr.getLong(5)).isEqualTo(SIZE_BYTES);
                     assertThat(cr.getLong(6)).isEqualTo(DURATION_MS);
                     assertThat(cr.getString(7)).isEqualTo(MIME_TYPE);
+                    assertThat(cr.getInt(8)).isEqualTo(STANDARD_MIME_TYPE_EXTENSION);
                 }
             }
         }
@@ -276,13 +282,13 @@ public class PickerDatabaseHelperTest {
 
             // generation_modified=NULL
             ContentValues values = getBasicContentValues();
-            values.remove(KEY_GENERATION_MODIFIED);
+            values.remove(KEY_SYNC_GENERATION);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
 
             // generation_modified=-1
             values = getBasicContentValues();
-            values.put(KEY_GENERATION_MODIFIED, -1);
+            values.put(KEY_SYNC_GENERATION, -1);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
@@ -310,9 +316,10 @@ public class PickerDatabaseHelperTest {
     private static ContentValues getBasicContentValues() {
         ContentValues values = new ContentValues();
         values.put(KEY_DATE_TAKEN_MS, DATE_TAKEN_MS);
-        values.put(KEY_GENERATION_MODIFIED, GENERATION_MODIFIED);
+        values.put(KEY_SYNC_GENERATION, GENERATION_MODIFIED);
         values.put(KEY_DURATION_MS, DURATION_MS);
         values.put(KEY_MIME_TYPE, MIME_TYPE);
+        values.put(KEY_STANDARD_MIME_TYPE_EXTENSION, STANDARD_MIME_TYPE_EXTENSION);
         values.put(KEY_SIZE_BYTES, SIZE_BYTES);
 
         return values;

@@ -20,6 +20,35 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <LinearLayout
+        android:id="@android:id/empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="80dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_artwork_camera"
+            android:contentDescription="@null"/>
+
+        <TextView
+            android:id="@+id/empty_text_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/picker_empty_text_margin"
+            android:gravity="center_horizontal"
+            android:text="@string/picker_photos_empty_message"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="@dimen/picker_empty_text_size"
+            style="?android:attr/textAppearanceListItem"/>
+
+    </LinearLayout>
+
     <com.android.providers.media.photopicker.ui.AutoFitRecyclerView
         android:id="@+id/picker_tab_recyclerview"
         android:layout_width="match_parent"
@@ -34,11 +63,11 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/picker_profile_button_margin_bottom"
         android:layout_gravity="bottom|center"
-        android:textAppearance="@style/PickerProfileButton"
-        android:textColor="@color/picker_profile_button_content_color"
+        android:textAppearance="@style/PickerButtonTextAppearance"
+        android:textColor="?attr/pickerProfileButtonTextColor"
         android:text="@string/picker_work_profile"
         android:visibility="gone"
-        app:backgroundTint="@color/picker_profile_button_background_color"
+        app:backgroundTint="?attr/pickerProfileButtonColor"
         app:borderWidth="0dp"
         app:elevation="3dp"
         app:icon="@drawable/ic_work_outline"
@@ -58,14 +87,14 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_marginHorizontal="@dimen/picker_bottom_bar_horizontal_gap"
-            android:layout_gravity="start"
-            android:paddingVertical="@dimen/picker_bottom_bar_vertical_gap"
+            android:layout_gravity="start|center_vertical"
+            android:paddingVertical="@dimen/picker_bottom_bar_buttons_vertical_gap"
             android:drawableLeft="@drawable/ic_collections"
             android:text="@string/picker_view_selected"
             android:textAllCaps="false"
-            android:textColor="?android:attr/colorAccent"
-            app:iconPadding="@dimen/picker_bottom_bar_vertical_gap"
-            style="?attr/borderlessButtonStyle"/>
+            android:textColor="?attr/pickerSelectedColor"
+            app:iconPadding="@dimen/picker_viewselected_icon_padding"
+            style="@style/MaterialBorderlessButtonStyle"/>
 
         <Button
             android:id="@+id/button_add"
@@ -73,11 +102,12 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="@dimen/picker_bottom_bar_horizontal_gap"
             android:layout_gravity="end|center_vertical"
-            android:paddingVertical="@dimen/picker_bottom_bar_vertical_gap"
+            android:paddingVertical="@dimen/picker_bottom_bar_buttons_vertical_gap"
             android:text="@string/add"
             android:textAllCaps="false"
-            android:backgroundTint="?android:attr/colorAccent"
-            style="?attr/materialButtonStyle"/>
+            android:textColor="?attr/pickerHighlightTextColor"
+            android:backgroundTint="?attr/pickerHighlightColor"
+            style="@style/MaterialButtonStyle"/>
 
     </FrameLayout>
 </FrameLayout>

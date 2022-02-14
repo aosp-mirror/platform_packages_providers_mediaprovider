@@ -92,13 +92,13 @@ public class CloudProviderQueryExtras {
         final String albumId = bundle.getString(CloudMediaProviderContract.EXTRA_FILTER_ALBUM,
                 STRING_DEFAULT);
         final String albumType = STRING_DEFAULT;
-        final String mimeType = bundle.getString(CloudMediaProviderContract.EXTRA_FILTER_MIMETYPE,
+        final String mimeType = bundle.getString(CloudMediaProviderContract.EXTRA_FILTER_MIME_TYPE,
                 STRING_DEFAULT);
         final String cloudProvider = STRING_DEFAULT;
 
         final long sizeBytes = bundle.getLong(CloudMediaProviderContract.EXTRA_FILTER_SIZE_BYTES,
                 LONG_DEFAULT);
-        final long generation = bundle.getLong(CloudMediaProviderContract.EXTRA_GENERATION,
+        final long generation = bundle.getLong(CloudMediaProviderContract.EXTRA_SYNC_GENERATION,
                 LONG_DEFAULT);
         final int limit = LIMIT_DEFAULT;
 
@@ -119,7 +119,7 @@ public class CloudProviderQueryExtras {
     public Bundle toCloudMediaBundle() {
         final Bundle extras = new Bundle();
         extras.putString(CloudMediaProviderContract.EXTRA_FILTER_ALBUM, mAlbumId);
-        extras.putString(CloudMediaProviderContract.EXTRA_FILTER_MIMETYPE, mMimeType);
+        extras.putString(CloudMediaProviderContract.EXTRA_FILTER_MIME_TYPE, mMimeType);
         extras.putLong(CloudMediaProviderContract.EXTRA_FILTER_SIZE_BYTES, mSizeBytes);
 
         return extras;

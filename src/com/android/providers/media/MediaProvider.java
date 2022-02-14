@@ -6150,16 +6150,25 @@ public class MediaProvider extends ContentProvider {
                 syncAllMedia();
                 return new Bundle();
             }
-            case MediaStore.GET_CLOUD_PROVIDER_CALL: {
-                final String cloudProvider = mPickerSyncController.getCloudProvider();
+            case MediaStore.IS_SUPPORTED_CLOUD_PROVIDER_CALL: {
+                final boolean isSupported = mPickerSyncController.isProviderSupported(arg,
+                        Binder.getCallingUid());
 
                 Bundle bundle = new Bundle();
-                bundle.putString(MediaStore.EXTRA_CLOUD_PROVIDER, cloudProvider);
+                bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT, isSupported);
                 return bundle;
             }
-            case MediaStore.NOTIFY_CLOUD_EVENT_CALL: {
+            case MediaStore.IS_CURRENT_CLOUD_PROVIDER_CALL: {
+                final boolean isEnabled = mPickerSyncController.isProviderEnabled(arg,
+                        Binder.getCallingUid());
+
+                Bundle bundle = new Bundle();
+                bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT, isEnabled);
+                return bundle;
+            }
+            case MediaStore.NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL: {
                 final boolean notifyCloudEventResult;
-                if (mPickerSyncController.isProviderEnabled(Binder.getCallingUid())) {
+                if (mPickerSyncController.isProviderEnabled(arg, Binder.getCallingUid())) {
                     mPickerSyncController.notifyMediaEvent();
                     notifyCloudEventResult = true;
                 } else {
@@ -6167,7 +6176,7 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 Bundle bundle = new Bundle();
-                bundle.putBoolean(MediaStore.EXTRA_NOTIFY_CLOUD_EVENT_RESULT,
+                bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT,
                         notifyCloudEventResult);
                 return bundle;
             }

@@ -1030,7 +1030,12 @@ public class MediaProvider extends ContentProvider {
                 });
 
         if (SdkLevel.isAtLeastT()) {
-            mStorageManager.setCloudMediaProvider(mPickerSyncController.getCloudProvider());
+            try {
+                mStorageManager.setCloudMediaProvider(mPickerSyncController.getCloudProvider());
+            } catch (SecurityException e) {
+                // This can happen in unit tests
+                Log.w(TAG, "Failed to update the system_server with the latest cloud provider", e);
+            }
         }
 
         updateVolumes();

@@ -10,14 +10,13 @@ package android.provider {
     method @NonNull public final String getType(@NonNull android.net.Uri);
     method @NonNull public final android.net.Uri insert(@NonNull android.net.Uri, @NonNull android.content.ContentValues);
     method @Nullable public android.provider.CloudMediaProvider.SurfaceController onCreateSurfaceController(@NonNull android.os.Bundle, @NonNull android.provider.CloudMediaProvider.SurfaceEventCallback);
-    method @NonNull public android.os.Bundle onGetAccountInfo(@Nullable android.os.Bundle);
-    method @NonNull public abstract android.os.Bundle onGetMediaInfo(@Nullable android.os.Bundle);
+    method @NonNull public abstract android.os.Bundle onGetMediaCollectionInfo(@NonNull android.os.Bundle);
     method @NonNull public abstract android.os.ParcelFileDescriptor onOpenMedia(@NonNull String, @Nullable android.os.Bundle, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
     method @NonNull public abstract android.content.res.AssetFileDescriptor onOpenPreview(@NonNull String, @NonNull android.graphics.Point, @Nullable android.os.Bundle, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
-    method @NonNull public android.database.Cursor onQueryAlbums(@Nullable android.os.Bundle);
-    method @NonNull public abstract android.database.Cursor onQueryDeletedMedia(@Nullable android.os.Bundle);
+    method @NonNull public android.database.Cursor onQueryAlbums(@NonNull android.os.Bundle);
+    method @NonNull public abstract android.database.Cursor onQueryDeletedMedia(@NonNull android.os.Bundle);
     method @NonNull public abstract android.database.Cursor onQueryMedia(@NonNull String);
-    method @NonNull public abstract android.database.Cursor onQueryMedia(@Nullable android.os.Bundle);
+    method @NonNull public abstract android.database.Cursor onQueryMedia(@NonNull android.os.Bundle);
     method @NonNull public final android.os.ParcelFileDescriptor openFile(@NonNull android.net.Uri, @NonNull String) throws java.io.FileNotFoundException;
     method @NonNull public final android.os.ParcelFileDescriptor openFile(@NonNull android.net.Uri, @NonNull String, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
     method @NonNull public final android.content.res.AssetFileDescriptor openTypedAssetFile(@NonNull android.net.Uri, @NonNull String, @Nullable android.os.Bundle) throws java.io.FileNotFoundException;
@@ -56,18 +55,13 @@ package android.provider {
   public final class CloudMediaProviderContract {
     field public static final String EXTRA_FILTER_ALBUM = "android.provider.extra.FILTER_ALBUM";
     field public static final String EXTRA_FILTER_MIME_TYPE = "android.provider.extra.FILTER_MIME_TYPE";
-    field public static final String EXTRA_GENERATION = "android.provider.extra.GENERATION";
     field public static final String EXTRA_LOOPING_PLAYBACK_ENABLED = "android.provider.extra.LOOPING_PLAYBACK_ENABLED";
     field public static final String EXTRA_PAGE_TOKEN = "android.provider.extra.PAGE_TOKEN";
     field public static final String EXTRA_PREVIEW_THUMBNAIL = "android.provider.extra.PREVIEW_THUMBNAIL";
     field public static final String EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED = "android.provider.extra.SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED";
+    field public static final String EXTRA_SYNC_GENERATION = "android.provider.extra.SYNC_GENERATION";
     field public static final String MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION = "com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS";
     field public static final String PROVIDER_INTERFACE = "android.content.action.CLOUD_MEDIA_PROVIDER";
-  }
-
-  public static final class CloudMediaProviderContract.AccountInfo {
-    field public static final String ACCOUNT_CONFIGURATION_INTENT = "account_configuration_intent";
-    field public static final String ACTIVE_ACCOUNT_NAME = "active_account_name";
   }
 
   public static final class CloudMediaProviderContract.AlbumColumns {
@@ -78,10 +72,16 @@ package android.provider {
     field public static final String MEDIA_COVER_ID = "album_media_cover_id";
   }
 
+  public static final class CloudMediaProviderContract.MediaCollectionInfo {
+    field public static final String ACCOUNT_CONFIGURATION_INTENT = "account_configuration_intent";
+    field public static final String ACCOUNT_NAME = "account_name";
+    field public static final String LAST_MEDIA_SYNC_GENERATION = "last_media_sync_generation";
+    field public static final String MEDIA_COLLECTION_ID = "media_collection_id";
+  }
+
   public static final class CloudMediaProviderContract.MediaColumns {
     field public static final String DATE_TAKEN_MILLIS = "date_taken_millis";
     field public static final String DURATION_MILLIS = "duration_millis";
-    field public static final String GENERATION_MODIFIED = "generation_modified";
     field public static final String ID = "id";
     field public static final String IS_FAVORITE = "is_favorite";
     field public static final String MEDIA_STORE_URI = "media_store_uri";
@@ -92,12 +92,7 @@ package android.provider {
     field public static final int STANDARD_MIME_TYPE_EXTENSION_GIF = 1; // 0x1
     field public static final int STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO = 2; // 0x2
     field public static final int STANDARD_MIME_TYPE_EXTENSION_NONE = 0; // 0x0
-  }
-
-  public static final class CloudMediaProviderContract.MediaInfo {
-    field public static final String MEDIA_COUNT = "media_count";
-    field public static final String MEDIA_GENERATION = "media_generation";
-    field public static final String MEDIA_VERSION = "media_version";
+    field public static final String SYNC_GENERATION = "sync_generation";
   }
 
   public final class MediaStore {

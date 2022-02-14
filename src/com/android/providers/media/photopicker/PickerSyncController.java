@@ -245,13 +245,29 @@ public class PickerSyncController {
         return false;
     }
 
-    public boolean isProviderEnabled(int uid) {
-        if (uid == Process.myUid()) {
+    public boolean isProviderEnabled(String authority, int uid) {
+        if (uid == Process.myUid() && mLocalProvider.equals(authority)) {
             return true;
         }
 
         synchronized (mLock) {
-            if (!mCloudProviderInfo.isEmpty() && uid == mCloudProviderInfo.uid) {
+            if (!mCloudProviderInfo.isEmpty() && uid == mCloudProviderInfo.uid
+                    && mCloudProviderInfo.authority.equals(authority)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public boolean isProviderSupported(String authority, int uid) {
+        if (uid == Process.myUid() && mLocalProvider.equals(authority)) {
+            return true;
+        }
+
+        final List<CloudProviderInfo> infos = getSupportedCloudProviders();
+        for (CloudProviderInfo info : infos) {
+            if (info.uid == uid && info.authority.equals(authority)) {
                 return true;
             }
         }

@@ -90,20 +90,22 @@ public final class CloudMediaProviderContract {
         public static final String DATE_TAKEN_MILLIS = "date_taken_millis";
 
         /**
-         * Generation number associated with a media item.
+         * Number associated with a media item indicating what generation or batch the media item
+         * was synced into the media collection.
          * <p>
-         * Providers should associate a monotonically increasing generation number to each media
-         * item which is expected to increase for each atomic modification on the media item. This
-         * is useful for the OS to quickly identify that a media item has changed since a previous
-         * point in time. Note that this does not need to be unique across all media items, i.e.,
-         * multiple media items can have the same GENERATION_MODIFIED value. However, the
-         * modification of a media item should increase the {@link MediaInfo#MEDIA_GENERATION}.
+         * Providers should associate a monotonically increasing sync generation number to each
+         * media item which is expected to increase for each atomic modification on the media item.
+         * This is useful for the OS to quickly identify that a media item has changed since a
+         * previous point in time. Note that this does not need to be unique across all media items,
+         * i.e. multiple media items can have the same SYNC_GENERATION value. However, the
+         * modification of a media item should increase the
+         * {@link MediaCollectionInfo#LAST_MEDIA_SYNC_GENERATION}.
          * <p>
          * Type: LONG
          *
-         * @see MediaInfo#MEDIA_GENERATION
+         * @see MediaCollectionInfo#LAST_MEDIA_SYNC_GENERATION
          */
-        public static final String GENERATION_MODIFIED = "generation_modified";
+        public static final String SYNC_GENERATION = "sync_generation";
 
         /**
          * Concrete MIME type of a media file. For example, "image/png" or
@@ -216,7 +218,7 @@ public final class CloudMediaProviderContract {
          * Unique ID of an album. This ID is both provided by and interpreted
          * by a {@link CloudMediaProvider}.
          * <p>
-         * Each album item must have a unique ID within a provider and a given version.
+         * Each album item must have a unique ID within a media collection.
          * <p>
          * A provider should return durable IDs, since they will be used to cache
          * album information in the OS.
@@ -308,81 +310,64 @@ public final class CloudMediaProviderContract {
         public static final String TYPE_UNRELIABLE_VOLUME = "UNRELIABLE_VOLUME";
     }
 
-    /** Constants related to the entire media collection */
-    public static final class MediaInfo {
-        private MediaInfo() {}
+    /** Constants related to a media collection */
+    public static final class MediaCollectionInfo {
+        private MediaCollectionInfo() {}
 
         /**
-         * Media collection version identifier
+         * Media collection identifier
          * <p>
-         * The only requirement on the value of a version is uniqueness on a device, i.e. a
-         * a version should never be reused on a device.
+         * The only requirement on the collection ID is uniqueness on a device.
          * <p>
          * This value will not be interpreted by the OS, however it will be used to check the
-         * validity of cached data and URI grants to client apps. Anytime the media or album ids get
-         * re-indexed, the version should change so that the OS can clear its cache and more
-         * importantly, revoke any URI grants to apps.
+         * validity of cached data and URI grants to client apps. Anytime the media or album ids
+         * get re-indexed, a new collection with a new and unique id should be created so that the
+         * OS can clear its cache and more importantly, revoke any URI grants to apps.
          * <p>
-         * Apps are recommended to generate unique versions with, {@link UUID#randomUUID}. This is
-         * preferred to using a simple monotonic sequence because the provider data could get
-         * cleared and it might have to re-index media items on the device without any history of
-         * its last version. With random UUIDs, if data gets cleared, a new one can easily be
+         * Apps are recommended to generate unique collection ids with, {@link UUID#randomUUID}.
+         * This is preferred to using a simple monotonic sequence because the provider data could
+         * get cleared and it might have to re-index media items on the device without any history
+         * of its last ID. With random UUIDs, if data gets cleared, a new one can easily be
          * generated safely.
          * <p>
          * Type: STRING
          *
-         * @see CloudMediaProvider#onGetMediaInfo
+         * @see CloudMediaProvider#onGetMediaCollectionInfo
          */
-        public static final String MEDIA_VERSION = "media_version";
+        public static final String MEDIA_COLLECTION_ID = "media_collection_id";
 
         /**
-         * Maximum generation number of media items in the entire media collection.
+         * Last {@link CloudMediaProviderContract.MediaColumns#SYNC_GENERATION} in the media
+         * collection including deleted media items.
          * <p>
-         * Providers should associate a monotonically increasing generation number to each media
-         * item change (insertion/deletion/update). This is useful for the OS to quickly identify
-         * exactly which media items have changed since a previous point in time.
+         * Providers should associate a monotonically increasing sync generation to each
+         * media item change (insertion/deletion/update). This is useful for the OS to quickly
+         * identify exactly which media items have changed since a previous point in time.
          * <p>
          * Type: LONG
          *
-         * @see CloudMediaProviderContract#EXTRA_GENERATION
-         * @see CloudMediaProvider#onGetMediaInfo
-         * @see CloudMediaProviderContract.MediaColumns#GENERATION_MODIFIED
+         * @see CloudMediaProviderContract#EXTRA_SYNC_GENERATION
+         * @see CloudMediaProvider#onGetMediaCollectionInfo
+         * @see CloudMediaProviderContract.MediaColumns#SYNC_GENERATION
          */
-        public static final String MEDIA_GENERATION = "media_generation";
+        public static final String LAST_MEDIA_SYNC_GENERATION = "last_media_sync_generation";
 
         /**
-         * Total count of the media items in the entire media collection.
-         * <p>
-         * Along with the {@link #MEDIA_GENERATION} this helps the OS identify if there have been
-         * changes to media items in the media collection.
-         * <p>
-         * Type: LONG
-         *
-         * @see CloudMediaProvider#onGetMediaInfo
-         */
-        public static final String MEDIA_COUNT = "media_count";
-    }
-
-    /** Constants related to the account information */
-    public static final class AccountInfo {
-        private AccountInfo() {}
-
-        /**
-         * Name of the account owning the media collection synced from the cloud provider.
+         * Name of the account that owns the media collection.
          * <p>
          * Type: STRING
          *
-         * @see CloudMediaProvider#onGetAccountInfo
+         * @see CloudMediaProvider#onGetMediaCollectionInfo
          */
-        public static final String ACTIVE_ACCOUNT_NAME = "active_account_name";
+        public static final String ACCOUNT_NAME = "account_name";
 
         /**
          * {@link Intent} Intent to launch an {@link Activity} to allow users configure their media
-         * collection account information like the active account.
+         * collection account information like the account name.
          * <p>
          * Type: PARCELABLE
          *
-         * @see CloudMediaProvider#onGetAccountInfo
+         * @see CloudMediaProvider#onGetMediaCollectionInfo
          */
         public static final String ACCOUNT_CONFIGURATION_INTENT = "account_configuration_intent";
     }
@@ -411,43 +396,43 @@ public final class CloudMediaProviderContract {
      * Generation number to fetch the latest media or album metadata changes from the media
      * collection.
      * <p>
-     * The provider should associate a monotonically increasing generation number to each media item
-     * change (insertion/deletion/update). This is useful to quickly identify exactly which media
-     * items have changed since a previous point in time.
+     * The provider should associate a monotonically increasing sync generation to each media
+     * item change (insertion/deletion/update). This is useful to quickly identify exactly which
+     * media items have changed since a previous point in time.
      * <p>
-     * Providers should associate a separate monotonically increasing generation number for album
-     * item changes (insertion/deletion/update). Unlike the media generation number, the album
-     * generation number should also record insertions and deletions to media items within the
-     * album. E.g., a direct change to an albums
+     * Providers should also associate a separate monotonically increasing sync generation
+     * for album changes (insertion/deletion/update). This album sync generation, should record
+     * both changes to the album metadata itself and changes to the media items contained in the
+     * album. E.g. a direct change to an album's
      * {@link CloudMediaProviderContract.AlbumColumns#DISPLAY_NAME} will increase the
-     * album generation number, likewise adding a photo to that album.
+     * album sync generation, likewise adding a photo to that album should also increase the
+     * sync generation.
      * <p>
-     * Note that multiple media (or album) items can share a generation number as long as the entire
+     * Note that multiple media (or album) items can share a sync generation as long as the entire
      * change appears atomic from the perspective of the query APIs. E.g. each item in a batch photo
-     * sync from the cloud can have the same generation number if they all occurred within the same
-     * database transaction and hence guarantee that a db query result either has all they synced
-     * items or none.
+     * sync from the cloud can have the same sync generation if they were all synced atomically into
+     * the collection from the perspective of an external observer.
      * <p>
      * This extra can be passed as a {@link Bundle} parameter to the media or album query methods
-     * and the provider should only return items with a generation number that are strictly greater
-     * than the filter.
+     * and the provider should only return items with a sync generation that is strictly greater
+     * than the one provided in the filter.
      * <p>
      * If the provider supports this filter, it must support the respective
-     * {@link CloudMediaProvider#onGetMediaInfo} methods to return the {@code count} and
+     * {@link CloudMediaProvider#onGetMediaCollectionInfo} methods to return the {@code count} and
      * {@code max generation} for media or albums.
      * <p>
      * If the provider handled the generation, they must add the
-     * {@link #EXTRA_GENERATION} key to the array of {@link ContentResolver#EXTRA_HONORED_ARGS}
+     * {@link #EXTRA_SYNC_GENERATION} key to the array of {@link ContentResolver#EXTRA_HONORED_ARGS}
      * as part of the returned {@link Cursor#setExtras} {@link Bundle}.
      *
-     * @see MediaInfo#MEDIA_GENERATION
+     * @see MediaCollectionInfo#LAST_MEDIA_SYNC_GENERATION
      * @see CloudMediaProvider#onQueryMedia
      * @see CloudMediaProvider#onQueryAlbums
      * @see MediaStore.MediaColumns#GENERATION_MODIFIED
      * <p>
      * Type: LONG
      */
-    public static final String EXTRA_GENERATION = "android.provider.extra.GENERATION";
+    public static final String EXTRA_SYNC_GENERATION = "android.provider.extra.SYNC_GENERATION";
 
     /**
      * Limits the query results to only media items matching the given album id.
@@ -500,20 +485,12 @@ public final class CloudMediaProviderContract {
             "android.provider.extra.PREVIEW_THUMBNAIL";
 
     /**
-     * Constant used to execute {@link CloudMediaProvider#onGetMediaInfo} via
+     * Constant used to execute {@link CloudMediaProvider#onGetMediaCollectionInfo} via
      * {@link ContentProvider#call}.
      *
      * {@hide}
      */
-    public static final String METHOD_GET_MEDIA_INFO = "android:getMediaInfo";
-
-    /**
-     * Constant used to execute {@link CloudMediaProvider#onGetAccountInfo} via
-     * {@link ContentProvider#call}.
-     *
-     * {@hide}
-     */
-    public static final String METHOD_GET_ACCOUNT_INFO = "android:getAccountInfo";
+    public static final String METHOD_GET_MEDIA_COLLECTION_INFO = "android:getMediaCollectionInfo";
 
     /**
      * Constant used to execute {@link CloudMediaProvider#onCreateSurfaceController} via
@@ -627,18 +604,11 @@ public final class CloudMediaProviderContract {
     public static final String URI_PATH_ALBUM = "album";
 
     /**
-     * URI path for {@link CloudMediaProvider#onGetMediaInfo}
+     * URI path for {@link CloudMediaProvider#onGetMediaCollectionInfo}
      *
      * {@hide}
      */
-    public static final String URI_PATH_MEDIA_INFO = "media_info";
-
-    /**
-     * URI path for {@link CloudMediaProvider#onGetAccountInfo}
-     *
-     * {@hide}
-     */
-    public static final String URI_PATH_ACCOUNT_INFO = "account_info";
+    public static final String URI_PATH_MEDIA_COLLECTION_INFO = "media_collection_info";
 
     /**
      * URI path for {@link CloudMediaProvider#onCreateSurfaceController}

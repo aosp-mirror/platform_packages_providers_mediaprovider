@@ -101,7 +101,7 @@ public class PickerDbFacade {
     @VisibleForTesting
     public static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
     @VisibleForTesting
-    public static final String KEY_GENERATION_MODIFIED = "generation_modified";
+    public static final String KEY_SYNC_GENERATION = "sync_generation";
     @VisibleForTesting
     public static final String KEY_SIZE_BYTES = "size_bytes";
     @VisibleForTesting
@@ -720,7 +720,7 @@ public class PickerDbFacade {
             getProjectionDataLocked(MediaColumns.DATA),
             getProjectionId(MediaColumns.ID),
             getProjectionSimple(KEY_DATE_TAKEN_MS, MediaColumns.DATE_TAKEN_MILLIS),
-            getProjectionSimple(KEY_GENERATION_MODIFIED, MediaColumns.GENERATION_MODIFIED),
+            getProjectionSimple(KEY_SYNC_GENERATION, MediaColumns.SYNC_GENERATION),
             getProjectionSimple(KEY_SIZE_BYTES, MediaColumns.SIZE_BYTES),
             getProjectionSimple(KEY_DURATION_MS, MediaColumns.DURATION_MILLIS),
             getProjectionSimple(KEY_MIME_TYPE, MediaColumns.MIME_TYPE),
@@ -841,8 +841,8 @@ public class PickerDbFacade {
                 case CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS:
                     values.put(KEY_DATE_TAKEN_MS, cursor.getLong(index));
                     break;
-                case CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED:
-                    values.put(KEY_GENERATION_MODIFIED, cursor.getLong(index));
+                case CloudMediaProviderContract.MediaColumns.SYNC_GENERATION:
+                    values.put(KEY_SYNC_GENERATION, cursor.getLong(index));
                     break;
                 case CloudMediaProviderContract.MediaColumns.SIZE_BYTES:
                     values.put(KEY_SIZE_BYTES, cursor.getLong(index));

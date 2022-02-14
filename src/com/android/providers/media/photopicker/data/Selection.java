@@ -95,6 +95,15 @@ public class Selection {
     }
 
     /**
+     * Clear all selected items
+     */
+    public void clearSelectedItems() {
+        mSelectedItems.clear();
+        mSelectedItemSize.postValue(mSelectedItems.size());
+        updateSelectionAllowed();
+    }
+
+    /**
      * @return {@code true} if give {@code item} is present in selected items
      *         {@link #mSelectedItems}, {@code false} otherwise
      */

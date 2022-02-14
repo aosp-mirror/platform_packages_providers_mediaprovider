@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"სამსახურის აპიდან პერსონალურ მონაცემებზე წვდომა დაუშვებელია"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"სამსახურის აპები დაპაუზებულია"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"სამსახურის ფოტოების გასახსნელად ჩართეთ თქვენი სამსახურის აპები და შემდეგ ცადეთ ხელახლა"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"ეს აპი მხოლოდ თქვენ მიერ მონიშნულ ფოტოებზე წვდომას შეძლებს"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ერთეული}other{<xliff:g id="COUNT_1">^1</xliff:g> ერთეული}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"დამატება (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"კამერა"</string>

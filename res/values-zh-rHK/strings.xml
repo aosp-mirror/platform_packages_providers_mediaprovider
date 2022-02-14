@@ -54,6 +54,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"工作應用程式不得存取個人資料"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"已暫停工作應用程式"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"如要開啟工作相片，請開啟工作應用程式，然後再試一次"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"此應用程式只能存取您選取的相片"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> 個項目}other{<xliff:g id="COUNT_1">^1</xliff:g> 個項目}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"新增 (<xliff:g id="COUNT">^1</xliff:g> 個)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"相機"</string>

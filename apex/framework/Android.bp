@@ -27,6 +27,7 @@ java_sdk_library {
 
     srcs: [
         ":framework-mediaprovider-sources",
+        "java/**/*.aidl",
     ],
 
     permitted_packages: [

@@ -63,6 +63,11 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    public void testMultiselect_showPrivacyText() {
+        onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+    }
+
+    @Test
     public void testMultiselect_selectIcon() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 

@@ -87,8 +87,10 @@ public class PickerDbFacade {
     private static final int FAIL = -1;
 
     private static final String TABLE_MEDIA = "media";
-    private static final String PICKER_PATH = buildPrimaryVolumeFile(MediaStore.MY_USER_ID,
-            getPickerRelativePath()).getAbsolutePath();
+    // Intentionally use /sdcard path so that the receiving app resolves it to it's per-user
+    // external storage path, e.g. /storage/emulated/<userid>. That way FUSE cross-user access is
+    // not required for picker paths sent across users
+    private static final String PICKER_PATH = "/sdcard/" + getPickerRelativePath();
 
     @VisibleForTesting
     public static final String KEY_ID = "_id";
@@ -778,15 +780,15 @@ public class PickerDbFacade {
 
     private String getProjectionDataLocked(String asColumn) {
         // _data format:
-        // /storage/emulated/<user-id>/.transforms/synthetic/<authority>/media/<display-name>
+        // /sdcard/.transforms/synthetic/picker/<user-id>/<authority>/media/<display-name>
         // See PickerUriResolver#getMediaUri
         final String authority = String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
                 KEY_CLOUD_ID, mLocalProvider, mCloudProvider);
         final String fullPath = "'" + PICKER_PATH + "/'"
+                + "||" + "'" + MediaStore.MY_USER_ID + "/'"
                 + "||" + authority
                 + "||" + "'/" + CloudMediaProviderContract.URI_PATH_MEDIA + "/'"
                 + "||" + getDisplayNameSql();
-
         return String.format("%s AS %s", fullPath, asColumn);
     }
 

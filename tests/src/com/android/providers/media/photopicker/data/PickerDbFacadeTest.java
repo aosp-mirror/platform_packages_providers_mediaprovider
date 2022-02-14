@@ -1043,7 +1043,7 @@ public class PickerDbFacadeTest {
     }
 
     private static String getData(String authority, String displayName) {
-        return "/storage/emulated/0/.transforms/synthetic/picker/" + authority + "/media/"
+        return "/sdcard/.transforms/synthetic/picker/0/" + authority + "/media/"
                 + displayName;
     }
 

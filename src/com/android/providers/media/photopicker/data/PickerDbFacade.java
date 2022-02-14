@@ -54,6 +54,10 @@ import java.util.List;
  * MediaProvider for the Photo Picker.
  */
 public class PickerDbFacade {
+    public static final String PROP_ENABLED = "sys.photopicker.pickerdb.enabled";
+    public static final String PROP_DEFAULT_SYNC_DELAY_MS =
+            "persist.sys.photopicker.pickerdb.default_sync_delay_ms";
+
     private final Object mLock = new Object();
     private final Context mContext;
     private final SQLiteDatabase mDatabase;
@@ -679,7 +683,11 @@ public class PickerDbFacade {
     }
 
     public static boolean isPickerDbEnabled() {
-        return SystemProperties.getBoolean("sys.photopicker.pickerdb.enabled", true);
+        return SystemProperties.getBoolean(PROP_ENABLED, true);
+    }
+
+    public static int getDefaultPickerDbSyncDelayMs() {
+        return SystemProperties.getInt(PROP_DEFAULT_SYNC_DELAY_MS, 1000);
     }
 
     private boolean isLocal(String authority) {

@@ -24,14 +24,13 @@ import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLL
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_EVENT_CALLBACK;
 import static android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER;
-import static android.provider.CloudMediaProviderContract.METHOD_GET_ACCOUNT_INFO;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_ASYNC_CONTENT_PROVIDER;
-import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_INFO;
+import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
 import static android.provider.CloudMediaProviderContract.URI_PATH_ALBUM;
 import static android.provider.CloudMediaProviderContract.URI_PATH_DELETED_MEDIA;
 import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA;
 import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_EXACT;
-import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_INFO;
+import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_COLLECTION_INFO;
 import static android.provider.CloudMediaProviderContract.URI_PATH_SURFACE_CONTROLLER;
 
 import android.annotation.DurationMillisLong;
@@ -102,7 +101,8 @@ import java.util.Objects;
  * zero or more albums. Albums cannot contain other albums.
  * <p>
  * Each item under a provider is uniquely referenced by its media or album id, which must not
- * change without changing the provider version as returned by {@link #onGetMediaInfo}.
+ * change which must be unique across all collection IDs as returned by
+ * {@link #onGetMediaCollectionInfo}.
  *
  * @see MediaStore#ACTION_PICK_IMAGES
  */
@@ -113,7 +113,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
     private static final int MATCH_MEDIA_ID = 2;
     private static final int MATCH_DELETED_MEDIAS = 3;
     private static final int MATCH_ALBUMS = 4;
-    private static final int MATCH_MEDIA_INFO = 5;
+    private static final int MATCH_MEDIA_COLLECTION_INFO = 5;
     private static final int MATCH_SURFACE_CONTROLLER = 6;
 
     private static final boolean DEFAULT_LOOPING_PLAYBACK_ENABLED = true;
@@ -140,27 +140,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
         mMatcher.addURI(authority, URI_PATH_MEDIA_EXACT, MATCH_MEDIA_ID);
         mMatcher.addURI(authority, URI_PATH_DELETED_MEDIA, MATCH_DELETED_MEDIAS);
         mMatcher.addURI(authority, URI_PATH_ALBUM, MATCH_ALBUMS);
-        mMatcher.addURI(authority, URI_PATH_MEDIA_INFO, MATCH_MEDIA_INFO);
+        mMatcher.addURI(authority, URI_PATH_MEDIA_COLLECTION_INFO, MATCH_MEDIA_COLLECTION_INFO);
         mMatcher.addURI(authority, URI_PATH_SURFACE_CONTROLLER, MATCH_SURFACE_CONTROLLER);
-    }
-
-    /**
-     * Returns account related information for the media collection.
-     * <p>
-     * This is useful for the OS to populate a settings page with account information and allow
-     * users configure their media collection account.
-     *
-     * @param extras containing keys to filter result:
-     * <ul>
-     * <li> {@link CloudMediaProviderContract.AccountInfo#ACTIVE_ACCOUNT_NAME}
-     * <li> {@link CloudMediaProviderContract.AccountInfo#ACCOUNT_CONFIGURATION_INTENT}
-     * </ul>
-     *
-     * @return {@link Bundle} containing {@link CloudMediaProviderContract.AccountInfo}
-     */
-    @NonNull
-    public Bundle onGetAccountInfo(@Nullable Bundle extras) {
-        throw new UnsupportedOperationException("getAccountInfo not supported");
     }
 
     /**
@@ -192,11 +173,17 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * <li> {@link CloudMediaProviderContract#EXTRA_FILTER_ALBUM}
      * </ul>
      *
-     * @return {@link Bundle} containing {@link CloudMediaProviderContract.MediaInfo}
+     * @return {@link Bundle} containing {@link CloudMediaProviderContract.MediaCollectionInfo}
+     * <ul>
+     * <li> {@link CloudMediaProviderContract.MediaCollectionInfo#MEDIA_COLLECTION_ID}
+     * <li> {@link CloudMediaProviderContract.MediaCollectionInfo#LAST_MEDIA_SYNC_GENERATION}
+     * <li> {@link CloudMediaProviderContract.MediaCollectionInfo#ACCOUNT_NAME}
+     * <li> {@link CloudMediaProviderContract.MediaCollectionInfo#ACCOUNT_CONFIGURATION_INTENT}
+     * </ul>
      */
     @SuppressWarnings("unused")
     @NonNull
-    public abstract Bundle onGetMediaInfo(@Nullable Bundle extras);
+    public abstract Bundle onGetMediaCollectionInfo(@NonNull Bundle extras);
 
     /**
      * Returns a {@link Cursor} to a single media item containing the columns representing the media
@@ -223,7 +210,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *
      * @param extras containing keys to filter media items:
      * <ul>
-     * <li> {@link CloudMediaProviderContract#EXTRA_GENERATION}
+     * <li> {@link CloudMediaProviderContract#EXTRA_SYNC_GENERATION}
      * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      * <li> {@link CloudMediaProviderContract#EXTRA_FILTER_ALBUM}
      * </ul>
@@ -232,12 +219,12 @@ public abstract class CloudMediaProvider extends ContentProvider {
      */
     @SuppressWarnings("unused")
     @NonNull
-    public abstract Cursor onQueryMedia(@Nullable Bundle extras);
+    public abstract Cursor onQueryMedia(@NonNull Bundle extras);
 
     /**
      * Returns a {@link Cursor} representing all deleted media items in the entire media collection
-     * within the current provider version as returned by {@link #onGetMediaInfo}. These items can
-     * be optionally filtered by {@code extras}.
+     * within the current provider version as returned by {@link #onGetMediaCollectionInfo}. These
+     * items can be optionally filtered by {@code extras}.
      * <p>
      * If the provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
@@ -245,7 +232,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *
      * @param extras containing keys to filter deleted media items:
      * <ul>
-     * <li> {@link CloudMediaProviderContract#EXTRA_GENERATION}
+     * <li> {@link CloudMediaProviderContract#EXTRA_SYNC_GENERATION}
      * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      * </ul>
      * @return cursor representing deleted media items containing just the
@@ -253,7 +240,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      */
     @SuppressWarnings("unused")
     @NonNull
-    public abstract Cursor onQueryDeletedMedia(@Nullable Bundle extras);
+    public abstract Cursor onQueryDeletedMedia(@NonNull Bundle extras);
 
     /**
      * Returns a cursor representing all album items in the media collection optionally filtered
@@ -267,7 +254,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *
      * @param extras containing keys to filter album items:
      * <ul>
-     * <li> {@link CloudMediaProviderContract#EXTRA_GENERATION}
+     * <li> {@link CloudMediaProviderContract#EXTRA_SYNC_GENERATION}
      * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      * </ul>
      * @return cursor representing album items containing all
@@ -275,12 +262,12 @@ public abstract class CloudMediaProvider extends ContentProvider {
      */
     @SuppressWarnings("unused")
     @NonNull
-    public Cursor onQueryAlbums(@Nullable Bundle extras) {
+    public Cursor onQueryAlbums(@NonNull Bundle extras) {
         throw new UnsupportedOperationException("queryAlbums not supported");
     }
 
     /**
-     * Returns a preview of {@code size} for a media item identified by {@code mediaId}.
+     * Returns a thumbnail of {@code size} for a media item identified by {@code mediaId}.
      * <p>
      * This is expected to be a much lower resolution version than the item returned by
      * {@link #onOpenMedia}.
@@ -370,10 +357,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
 
     private Bundle callUnchecked(String method, String arg, Bundle extras)
             throws FileNotFoundException {
-        if (METHOD_GET_MEDIA_INFO.equals(method)) {
-            return onGetMediaInfo(extras);
-        } else if (METHOD_GET_ACCOUNT_INFO.equals(method)) {
-            return onGetAccountInfo(extras);
+        if (METHOD_GET_MEDIA_COLLECTION_INFO.equals(method)) {
+            return onGetMediaCollectionInfo(extras);
         } else if (METHOD_CREATE_SURFACE_CONTROLLER.equals(method)) {
             return onCreateSurfaceController(extras);
         } else if (METHOD_GET_ASYNC_CONTENT_PROVIDER.equals(method)) {

@@ -54,6 +54,7 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,6 +67,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getSingleSelectionIntent());
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_singleSelect_image() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -168,6 +170,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_noScrimLayerAndHasSolidColorInPortrait() {
         setPortraitOrientation(mRule);
 
@@ -186,6 +189,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_showScrimLayerInLandscape() {
         setLandscapeOrientation(mRule);
 

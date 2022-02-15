@@ -53,6 +53,7 @@ import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,6 +67,7 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getMultiSelectionIntent());
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_longPress_image() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -93,6 +95,7 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_longPress_video() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -110,6 +113,7 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_longPress_select() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -151,6 +155,7 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_longPress_showsOnlyOne() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -187,6 +192,7 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_selectButtonWidth() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
         // Navigate to preview

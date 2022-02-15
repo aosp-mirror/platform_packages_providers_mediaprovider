@@ -38,6 +38,7 @@ import com.android.providers.media.R;
 import static org.hamcrest.Matchers.not;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,6 +56,7 @@ public class WorkAppsOffProfileButtonTest extends PhotoPickerBaseTest {
             new ActivityScenarioRule<>(PhotoPickerBaseTest.getSingleSelectionIntent());
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testProfileButton_dialog() throws Exception {
         // Register bottom sheet idling resource so that we don't read bottom sheet state when
         // in between changing states

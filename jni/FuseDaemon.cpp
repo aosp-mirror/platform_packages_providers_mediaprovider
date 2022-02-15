@@ -886,7 +886,7 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
 
     auto node = make_node_entry(req, parent_node, name, child_path, e, error_code, op);
 
-    if (fuse->bpf) fuse_bpf_install(fuse, e, child_path);
+    if (fuse->bpf && op == FuseOp::lookup) fuse_bpf_install(fuse, e, child_path);
 
     return node;
 }

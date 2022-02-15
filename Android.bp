@@ -1,19 +1,6 @@
-
 package {
-    default_applicable_licenses: ["packages_providers_MediaProvider_license"],
-}
-
-// Added automatically by a large-scale-change
-// See: http://go/android-license-faq
-license {
-    name: "packages_providers_MediaProvider_license",
-    visibility: [":__subpackages__"],
-    license_kinds: [
-        "SPDX-license-identifier-Apache-2.0",
-    ],
-    license_text: [
-        "NOTICE",
-    ],
+    // See: http://go/android-license-faq
+    default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
 android_app {
@@ -37,6 +24,7 @@ android_app {
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
+        "exoplayer2.15.1",
     ],
 
     libs: [
@@ -61,6 +49,9 @@ android_app {
     ],
 
     optimize: {
+        shrink: true,
+        optimize: false,
+        obfuscate: false,
         proguard_flags_files: ["proguard.flags"],
     },
 

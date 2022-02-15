@@ -69,7 +69,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
-    private static final int VIDEO_VIEW_ID = R.id.preview_videoView;
+    private static final int PLAYER_VIEW_ID = R.id.preview_player_view;
 
     @Rule
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule
@@ -78,44 +78,57 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     @Test
     public void testPreview_multiSelect_common() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-        registerBottomSheetStateIdlingResource();
-        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_EXPANDED);
-        });
+        final BottomSheetIdlingResource bottomSheetIdlingResource =
+                BottomSheetIdlingResource.register(mRule);
 
-        // Select two items and Navigate to preview
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
-        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+        try {
+            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
 
-        registerIdlingResourceAndWaitForIdle();
+            // Select two items and Navigate to preview
+            clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+            clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+            onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
-        // No dragBar in preview
-        onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_EXPANDED);
-        });
+            registerIdlingResourceAndWaitForIdle();
 
-        assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(not(isDisplayed())));
+            // No dragBar in preview
+            onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
 
-        // Verify ImageView is displayed
-        onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
+            // No privacy text in preview
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
 
-        // Click back button and verify we are back to photos tab
-        onView(withContentDescription("Navigate up")).perform(click());
-        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+            assertMultiSelectPreviewCommonLayoutDisplayed();
+            onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(not(isDisplayed())));
 
-        // Shows dragBar after we are back to Photos tab
-        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_EXPANDED);
-        });
+            // Verify ImageView is displayed
+            onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
 
-        // Swiping down on drag bar or toolbar is not closing the bottom sheet as closing the
-        // bottomsheet requires a stronger downward swipe.
-        onView(withId(R.id.bottom_sheet)).perform(ViewActions.swipeDown());
+            // Click back button and verify we are back to photos tab
+            onView(withContentDescription("Navigate up")).perform(click());
+            onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+            // Shows dragBar and privacy text after we are back to Photos tab
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
+
+            // Swiping down on drag bar or toolbar is not closing the bottom sheet as closing the
+            // bottomsheet requires a stronger downward swipe.
+            onView(withId(R.id.bottom_sheet)).perform(ViewActions.swipeDown());
+        } finally {
+            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
+        }
+
         assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
                 Activity.RESULT_CANCELED);
     }
@@ -211,11 +224,12 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         assertSpecialFormatBadgeDoesNotExist();
 
         swipeLeftAndWait();
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
         // 3. Video item
         assertMultiSelectPreviewCommonLayoutDisplayed();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        // TODO(b/197083539): We don't check the video image to be visible or not because its
+        // visibility is time sensitive. Try waiting till player is ready and assert that video
+        // image is no more visible.
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PLAYER_VIEW_ID))
                 .check(matches(isDisplayed()));
         // Verify no special format icon is previewed
         assertSpecialFormatBadgeDoesNotExist();
@@ -313,21 +327,19 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
         registerIdlingResourceAndWaitForIdle();
 
-        // Since there is no video in the video file, we get an error.
-        onView(withText(android.R.string.ok)).perform(click());
         assertMultiSelectPreviewCommonLayoutDisplayed();
 
         // Verify that "View Selected" shows the video item, not the image item that was previewed
         // earlier with preview on long press
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PLAYER_VIEW_ID))
                 .check(matches(isDisplayed()));
 
         // Swipe and verify we don't preview the image item
         swipeLeftAndWait();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PLAYER_VIEW_ID))
                 .check(matches(isDisplayed()));
         swipeRightAndWait();
-        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_VIEW_ID))
+        onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PLAYER_VIEW_ID))
                 .check(matches(isDisplayed()));
     }
 
@@ -422,10 +434,5 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
                 new ViewPager2IdlingResource(activity.findViewById(PREVIEW_VIEW_PAGER_ID)))));
         Espresso.onIdle();
-    }
-
-    private void registerBottomSheetStateIdlingResource() {
-        mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
-                new BottomSheetIdlingResource(activity.findViewById(R.id.bottom_sheet)))));
     }
 }

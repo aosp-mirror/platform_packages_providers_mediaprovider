@@ -90,6 +90,14 @@ class NodeTracker {
   public:
     explicit NodeTracker(std::recursive_mutex* lock) : lock_(lock) {}
 
+    bool Exists(__u64 ino) const {
+        if (kEnableInodeTracking) {
+            const node* node = reinterpret_cast<const class node*>(ino);
+            std::lock_guard<std::recursive_mutex> guard(*lock_);
+            return active_nodes_.find(node) != active_nodes_.end();
+        }
+    }
+
     void CheckTracked(__u64 ino) const {
         if (kEnableInodeTracking) {
             const node* node = reinterpret_cast<const class node*>(ino);
@@ -155,6 +163,12 @@ class node {
     // Maps an inode to its associated node.
     static inline node* FromInode(__u64 ino, const NodeTracker* tracker) {
         tracker->CheckTracked(ino);
+        return reinterpret_cast<node*>(static_cast<uintptr_t>(ino));
+    }
+
+    // TODO(b/215235604)
+    static inline node* FromInodeNoThrow(__u64 ino, const NodeTracker* tracker) {
+        if (!tracker->Exists(ino)) return nullptr;
         return reinterpret_cast<node*>(static_cast<uintptr_t>(ino));
     }
 

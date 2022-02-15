@@ -1,3 +1,8 @@
+package {
+    // See: http://go/android-license-faq
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
 android_test_helper_app {
     name: "MediaProviderTestAppForPermissionActivity",
     manifest: "test_app/TestAppForPermissionActivity.xml",
@@ -79,15 +84,6 @@ android_test_helper_app {
 // on the device being tested, so we can't sign our tests with a key that
 // will allow instrumentation.  Thus we pull all the sources we need to
 // run tests against into the test itself.
-package {
-    // See: http://go/android-license-faq
-    // A large-scale-change added 'default_applicable_licenses' to import
-    // all of the 'license_kinds' from "packages_providers_MediaProvider_license"
-    // to get the below license kinds:
-    //   SPDX-license-identifier-Apache-2.0
-    default_applicable_licenses: ["packages_providers_MediaProvider_license"],
-}
-
 android_test {
     name: "MediaProviderTests",
     test_suites: [
@@ -115,6 +111,7 @@ android_test {
         "android.test.mock",
         "android.test.runner",
         "unsupportedappusage",
+        "framework-mediaprovider.impl",
     ],
 
     static_libs: [
@@ -139,6 +136,7 @@ android_test {
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
+        "exoplayer2.15.1"
     ],
 
     certificate: "media",

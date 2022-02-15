@@ -43,6 +43,7 @@ import com.android.providers.media.R;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -106,6 +107,7 @@ public class SpecialFormatMultiSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_longPress_motionPhoto() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -121,6 +123,7 @@ public class SpecialFormatMultiSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_navigation() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 

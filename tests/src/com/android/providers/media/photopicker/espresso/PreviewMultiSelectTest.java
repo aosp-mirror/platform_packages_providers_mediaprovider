@@ -63,6 +63,7 @@ import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -76,6 +77,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getMultiSelectionIntent());
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_common() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
         registerBottomSheetStateIdlingResource();
@@ -176,6 +178,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_navigation() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -247,6 +250,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_fromAlbumsTab() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -284,6 +288,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_viewSelectedAfterLongPress() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 

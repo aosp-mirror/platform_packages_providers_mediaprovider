@@ -44,6 +44,7 @@ import com.android.providers.media.R;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -98,6 +99,7 @@ public class SpecialFormatSingleSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPhotoGridLayout_motionPhoto() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -116,6 +118,7 @@ public class SpecialFormatSingleSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPhotoGridLayout_gif() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 

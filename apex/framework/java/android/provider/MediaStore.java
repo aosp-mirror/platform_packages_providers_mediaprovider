@@ -702,6 +702,12 @@ public final class MediaStore {
      * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
      * expose a limited set of read-only operations. Specifically, picker URIs
      * can only be opened for read and queried for columns in {@link PickerMediaColumns}.
+     * <p>
+     * Before this API, apps could use {@link Intent#ACTION_GET_CONTENT}. However, this
+     * new action is recommended for images and videos use-cases, since it ofers a
+     * better user experience.
+     *
+     * @hide
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
@@ -715,6 +721,7 @@ public final class MediaStore {
      *
      * @see #ACTION_PICK_IMAGES
      * @see #getCloudProvider(ContentResolver)
+     * @hide
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES_SETTINGS =
@@ -730,6 +737,8 @@ public final class MediaStore {
      * than 1 and less than or equal to
      * {@link MediaStore#getPickImagesMaxLimit}, otherwise
      * {@link Activity#RESULT_CANCELED} is returned.
+     *
+     * @hide
      */
     public final static String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
 
@@ -737,6 +746,8 @@ public final class MediaStore {
      * The maximum limit for the number of items that can be selected using
      * {@link MediaStore#ACTION_PICK_IMAGES} when launched in multiple selection mode.
      * This can be used as a constant value for {@link MediaStore#EXTRA_PICK_IMAGES_MAX}.
+     *
+     * @hide
      */
     public static int getPickImagesMaxLimit() {
         return PICK_IMAGES_MAX_LIMIT;
@@ -1803,7 +1814,9 @@ public final class MediaStore {
      * Photo picker metadata columns.
      *
      * @see #ACTION_PICK_IMAGES
+     * @hide
      */
+    // TODO(b/205291616): Unhide before release
     public static class PickerMediaColumns {
         private PickerMediaColumns() {}
 
@@ -4672,6 +4685,8 @@ public final class MediaStore {
      * enabled.
      *
      * See android.provider.CloudMediaProvider
+     *
+     * @hide
      */
     // TODO(b/202733511): Convert See to @see tag after CloudMediaProvider API is unhidden
     @Nullable
@@ -4693,6 +4708,8 @@ public final class MediaStore {
      * {@link #getCloudProvider(ContentResolver)}, the request will be unsuccessful.
      *
      * @return {@code true} if the notification was successful, {@code false} otherwise
+     *
+     * @hide
      */
     public static boolean notifyCloudEvent(@NonNull ContentResolver resolver) {
         Objects.requireNonNull(resolver);

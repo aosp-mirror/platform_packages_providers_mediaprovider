@@ -48,7 +48,7 @@ public class Item {
         // TODO(b/195009139): Remove after fully switching to picker db
         public static String DATE_MODIFIED = MediaStore.MediaColumns.DATE_MODIFIED;
         public static String GENERATION_MODIFIED =
-                CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED;
+                CloudMediaProviderContract.MediaColumns.SYNC_GENERATION;
         public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MILLIS;
         public static String SIZE = CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
         public static String AUTHORITY = CloudMediaProviderContract.MediaColumns.AUTHORITY;

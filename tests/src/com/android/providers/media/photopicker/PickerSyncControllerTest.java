@@ -88,8 +88,8 @@ public class PickerSyncControllerTest {
     private static final Pair<String, String> CLOUD_AND_LOCAL_1
             = Pair.create(LOCAL_ID_1, CLOUD_ID_1);
 
-    private static final String VERSION_1 = "1";
-    private static final String VERSION_2 = "2";
+    private static final String COLLECTION_1 = "1";
+    private static final String COLLECTION_2 = "2";
 
     private static final String IMAGE_MIME_TYPE = "image/jpeg";
     private static final String VIDEO_MIME_TYPE = "video/mp4";
@@ -112,9 +112,9 @@ public class PickerSyncControllerTest {
         mCloudPrimaryMediaGenerator.resetAll();
         mCloudSecondaryMediaGenerator.resetAll();
 
-        mLocalMediaGenerator.setVersion(VERSION_1);
-        mCloudPrimaryMediaGenerator.setVersion(VERSION_1);
-        mCloudSecondaryMediaGenerator.setVersion(VERSION_1);
+        mLocalMediaGenerator.setMediaCollectionId(COLLECTION_1);
+        mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
+        mCloudSecondaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
 
         mContext = InstrumentationRegistry.getTargetContext();
 
@@ -173,7 +173,7 @@ public class PickerSyncControllerTest {
         }
 
         // 5. Bump version
-        mLocalMediaGenerator.setVersion(VERSION_2);
+        mLocalMediaGenerator.setMediaCollectionId(COLLECTION_2);
         mController.syncAllMedia();
 
         assertEmptyCursor();
@@ -244,12 +244,12 @@ public class PickerSyncControllerTest {
         }
 
         // 3. Set invalid cloud version
-        mCloudPrimaryMediaGenerator.setVersion(/* version */ null);
+        mCloudPrimaryMediaGenerator.setMediaCollectionId(/* version */ null);
         mController.syncAllMedia();
         assertEmptyCursor();
 
         // 4. Set valid cloud version
-        mCloudPrimaryMediaGenerator.setVersion(VERSION_1);
+        mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
         mController.syncAllMedia();
 
         try (Cursor cr = queryMedia()) {

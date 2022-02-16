@@ -15,17 +15,9 @@
  */
 package com.android.providers.media.photopicker.ui;
 
-import static android.app.admin.DevicePolicyResources.Drawables.Style.OUTLINE;
-import static android.app.admin.DevicePolicyResources.Drawables.WORK_PROFILE_ICON;
-import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.SWITCH_TO_PERSONAL_MESSAGE;
-import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.SWITCH_TO_WORK_MESSAGE;
-
-import android.app.admin.DevicePolicyManager;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
-import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -37,14 +29,12 @@ import android.widget.TextView;
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.Selection;
@@ -246,52 +236,17 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void updateProfileButtonContent(boolean isManagedUserSelected) {
-        final Drawable icon;
-        final String text;
+        final int iconResId;
+        final int textResId;
         if (isManagedUserSelected) {
-            icon = getContext().getDrawable(R.drawable.ic_personal_mode);
-            text = getSwitchToPersonalMessage();
+            iconResId = R.drawable.ic_personal_mode;
+            textResId = R.string.picker_personal_profile;
         } else {
-            icon = getWorkProfileIcon();
-            text = getSwitchToWorkMessage();
+            iconResId = R.drawable.ic_work_outline;
+            textResId = R.string.picker_work_profile;
         }
-        mProfileButton.setIcon(icon);
-        mProfileButton.setText(text);
-    }
-
-    private String getSwitchToPersonalMessage() {
-        DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
-        if (SdkLevel.isAtLeastT()) {
-            return dpm.getString(SWITCH_TO_PERSONAL_MESSAGE, () ->
-                    getContext().getString(R.string.picker_personal_profile));
-        } else {
-            return getContext().getString(R.string.picker_personal_profile);
-        }
-    }
-
-    private String getSwitchToWorkMessage() {
-        DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
-        if (SdkLevel.isAtLeastT()) {
-            return dpm.getString(SWITCH_TO_WORK_MESSAGE, () ->
-                    getContext().getString(R.string.picker_work_profile));
-        } else {
-            return getContext().getString(R.string.picker_work_profile);
-        }
-    }
-
-    private Drawable getWorkProfileIcon() {
-        if (SdkLevel.isAtLeastT()) {
-            return getUpdatedWorkProfileIcon();
-        } else {
-            return getContext().getDrawable(R.drawable.ic_work_outline);
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private Drawable getUpdatedWorkProfileIcon() {
-        DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
-        return dpm.getDrawable(WORK_PROFILE_ICON, OUTLINE, () -> getContext().getDrawable(
-                R.drawable.ic_work_outline));
+        mProfileButton.setIconResource(iconResId);
+        mProfileButton.setText(textResId);
     }
 
     private void updateProfileButtonColor(boolean isDisabled) {

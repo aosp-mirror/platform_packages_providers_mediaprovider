@@ -35,8 +35,11 @@ bool containsMount(const string& path) {
         return false;
     }
 
-    size_t pos = path.find_first_of('/', prefix.length());
-    if (pos == std::string::npos) {
+    // Skip over the user-id by finding the next '/'
+    size_t pos = path.find_first_of("/", prefix.length());
+    // If we can't find another '/', or the '/' immediately follows the previous,
+    // ('/storage/emulated//'), not a valid mount.
+    if (pos == std::string::npos || pos == prefix.length()) {
         return false;
     }
 

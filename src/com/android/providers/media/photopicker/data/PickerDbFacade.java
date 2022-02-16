@@ -54,6 +54,10 @@ import java.util.List;
  * MediaProvider for the Photo Picker.
  */
 public class PickerDbFacade {
+    public static final String PROP_ENABLED = "sys.photopicker.pickerdb.enabled";
+    public static final String PROP_DEFAULT_SYNC_DELAY_MS =
+            "persist.sys.photopicker.pickerdb.default_sync_delay_ms";
+
     private final Object mLock = new Object();
     private final Context mContext;
     private final SQLiteDatabase mDatabase;
@@ -83,8 +87,10 @@ public class PickerDbFacade {
     private static final int FAIL = -1;
 
     private static final String TABLE_MEDIA = "media";
-    private static final String PICKER_PATH = buildPrimaryVolumeFile(MediaStore.MY_USER_ID,
-            getPickerRelativePath()).getAbsolutePath();
+    // Intentionally use /sdcard path so that the receiving app resolves it to it's per-user
+    // external storage path, e.g. /storage/emulated/<userid>. That way FUSE cross-user access is
+    // not required for picker paths sent across users
+    private static final String PICKER_PATH = "/sdcard/" + getPickerRelativePath();
 
     @VisibleForTesting
     public static final String KEY_ID = "_id";
@@ -97,7 +103,7 @@ public class PickerDbFacade {
     @VisibleForTesting
     public static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
     @VisibleForTesting
-    public static final String KEY_GENERATION_MODIFIED = "generation_modified";
+    public static final String KEY_SYNC_GENERATION = "sync_generation";
     @VisibleForTesting
     public static final String KEY_SIZE_BYTES = "size_bytes";
     @VisibleForTesting
@@ -679,7 +685,11 @@ public class PickerDbFacade {
     }
 
     public static boolean isPickerDbEnabled() {
-        return SystemProperties.getBoolean("sys.photopicker.pickerdb.enabled", true);
+        return SystemProperties.getBoolean(PROP_ENABLED, true);
+    }
+
+    public static int getDefaultPickerDbSyncDelayMs() {
+        return SystemProperties.getInt(PROP_DEFAULT_SYNC_DELAY_MS, 1000);
     }
 
     private boolean isLocal(String authority) {
@@ -712,7 +722,7 @@ public class PickerDbFacade {
             getProjectionDataLocked(MediaColumns.DATA),
             getProjectionId(MediaColumns.ID),
             getProjectionSimple(KEY_DATE_TAKEN_MS, MediaColumns.DATE_TAKEN_MILLIS),
-            getProjectionSimple(KEY_GENERATION_MODIFIED, MediaColumns.GENERATION_MODIFIED),
+            getProjectionSimple(KEY_SYNC_GENERATION, MediaColumns.SYNC_GENERATION),
             getProjectionSimple(KEY_SIZE_BYTES, MediaColumns.SIZE_BYTES),
             getProjectionSimple(KEY_DURATION_MS, MediaColumns.DURATION_MILLIS),
             getProjectionSimple(KEY_MIME_TYPE, MediaColumns.MIME_TYPE),
@@ -770,15 +780,15 @@ public class PickerDbFacade {
 
     private String getProjectionDataLocked(String asColumn) {
         // _data format:
-        // /storage/emulated/<user-id>/.transforms/synthetic/<authority>/media/<display-name>
+        // /sdcard/.transforms/synthetic/picker/<user-id>/<authority>/media/<display-name>
         // See PickerUriResolver#getMediaUri
         final String authority = String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
                 KEY_CLOUD_ID, mLocalProvider, mCloudProvider);
         final String fullPath = "'" + PICKER_PATH + "/'"
+                + "||" + "'" + MediaStore.MY_USER_ID + "/'"
                 + "||" + authority
                 + "||" + "'/" + CloudMediaProviderContract.URI_PATH_MEDIA + "/'"
                 + "||" + getDisplayNameSql();
-
         return String.format("%s AS %s", fullPath, asColumn);
     }
 
@@ -833,8 +843,8 @@ public class PickerDbFacade {
                 case CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS:
                     values.put(KEY_DATE_TAKEN_MS, cursor.getLong(index));
                     break;
-                case CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED:
-                    values.put(KEY_GENERATION_MODIFIED, cursor.getLong(index));
+                case CloudMediaProviderContract.MediaColumns.SYNC_GENERATION:
+                    values.put(KEY_SYNC_GENERATION, cursor.getLong(index));
                     break;
                 case CloudMediaProviderContract.MediaColumns.SIZE_BYTES:
                     values.put(KEY_SIZE_BYTES, cursor.getLong(index));

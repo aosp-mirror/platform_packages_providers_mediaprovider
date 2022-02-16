@@ -16,15 +16,14 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
-import static android.provider.CloudMediaProviderContract.METHOD_GET_ACCOUNT_INFO;
+import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
+import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
-import static android.provider.CloudMediaProviderContract.MediaInfo;
-import static com.android.providers.media.PickerUriResolver.getAccountInfoUri;
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.PickerUriResolver.getDeletedMediaUri;
-import static com.android.providers.media.PickerUriResolver.getMediaInfoUri;
+import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LIMIT_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
@@ -130,12 +129,12 @@ public class PickerDataLayer {
 
         try {
             final Bundle accountBundle = mContext.getContentResolver().call(
-                    getAccountInfoUri(cloudProvider), METHOD_GET_ACCOUNT_INFO, /* arg */ null,
-                    /* extras */ null);
+                    getMediaCollectionInfoUri(cloudProvider), METHOD_GET_MEDIA_COLLECTION_INFO,
+                    /* arg */ null, /* extras */ null);
             final String accountName = accountBundle.getString(
-                    CloudMediaProviderContract.AccountInfo.ACTIVE_ACCOUNT_NAME);
+                    CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME);
             final Intent configIntent = (Intent) accountBundle.getParcelable(
-                    CloudMediaProviderContract.AccountInfo.ACCOUNT_CONFIGURATION_INTENT);
+                    CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_CONFIGURATION_INTENT);
 
             if (accountName == null) {
                 return null;

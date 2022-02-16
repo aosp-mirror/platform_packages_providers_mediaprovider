@@ -1157,7 +1157,8 @@ public class MediaProvider extends ContentProvider {
         deleteStaleVolumes(signal);
 
         // Populate _SPECIAL_FORMAT column for files which have column value as NULL
-        detectSpecialFormat(signal);
+        // TODO(b/219894107): Revisit the corner case handling for detectSpecialFormat
+        // detectSpecialFormat(signal);
 
         final long itemCount = mExternalDatabase.runWithTransaction((db) -> {
             return DatabaseHelper.getItemCount(db);

@@ -721,7 +721,7 @@ public final class MediaStore {
      * device and other media selection configurations.
      *
      * @see #ACTION_PICK_IMAGES
-     * @see #getCloudProvider(ContentResolver)
+     * @see #isCurrentCloudMediaProviderAuthority(ContentResolver, String)
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES_SETTINGS =

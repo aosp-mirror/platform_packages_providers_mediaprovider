@@ -98,7 +98,7 @@ public class CloudProviderQueryExtras {
 
         final long sizeBytes = bundle.getLong(CloudMediaProviderContract.EXTRA_FILTER_SIZE_BYTES,
                 LONG_DEFAULT);
-        final long generation = bundle.getLong(CloudMediaProviderContract.EXTRA_GENERATION,
+        final long generation = bundle.getLong(CloudMediaProviderContract.EXTRA_SYNC_GENERATION,
                 LONG_DEFAULT);
         final int limit = LIMIT_DEFAULT;
 

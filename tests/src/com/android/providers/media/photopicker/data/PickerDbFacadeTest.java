@@ -991,7 +991,7 @@ public class PickerDbFacadeTest {
             MediaColumns.ID,
             MediaColumns.MEDIA_STORE_URI,
             MediaColumns.DATE_TAKEN_MILLIS,
-            MediaColumns.GENERATION_MODIFIED,
+            MediaColumns.SYNC_GENERATION,
             MediaColumns.SIZE_BYTES,
             MediaColumns.MIME_TYPE,
             MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
@@ -1043,7 +1043,7 @@ public class PickerDbFacadeTest {
     }
 
     private static String getData(String authority, String displayName) {
-        return "/storage/emulated/0/.transforms/synthetic/picker/" + authority + "/media/"
+        return "/sdcard/.transforms/synthetic/picker/0/" + authority + "/media/"
                 + displayName;
     }
 
@@ -1083,7 +1083,7 @@ public class PickerDbFacadeTest {
                 .isEqualTo(STANDARD_MIME_TYPE_EXTENSION);
         assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.DATE_TAKEN_MILLIS)))
                 .isEqualTo(dateTakenMs);
-        assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.GENERATION_MODIFIED)))
+        assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.SYNC_GENERATION)))
                 .isEqualTo(GENERATION_MODIFIED);
         assertThat(cursor.getLong(cursor.getColumnIndex(MediaColumns.SIZE_BYTES)))
                 .isEqualTo(SIZE_BYTES);

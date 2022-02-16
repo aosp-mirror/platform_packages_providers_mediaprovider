@@ -702,6 +702,11 @@ public final class MediaStore {
      * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
      * expose a limited set of read-only operations. Specifically, picker URIs
      * can only be opened for read and queried for columns in {@link PickerMediaColumns}.
+     * <p>
+     * Before this API, apps could use {@link Intent#ACTION_GET_CONTENT}. However, this
+     * new action is recommended for images and videos use-cases, since it ofers a
+     * better user experience.
+     *
      * @hide
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)

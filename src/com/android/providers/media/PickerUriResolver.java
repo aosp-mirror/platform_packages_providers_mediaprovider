@@ -221,14 +221,9 @@ public class PickerUriResolver {
                 + CloudMediaProviderContract.URI_PATH_DELETED_MEDIA);
     }
 
-    public static Uri getMediaInfoUri(String authority) {
+    public static Uri getMediaCollectionInfoUri(String authority) {
         return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_MEDIA_INFO);
-    }
-
-    public static Uri getAccountInfoUri(String authority) {
-        return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_ACCOUNT_INFO);
+                + CloudMediaProviderContract.URI_PATH_MEDIA_COLLECTION_INFO);
     }
 
     public static Uri getAlbumUri(String authority) {
@@ -255,6 +250,9 @@ public class PickerUriResolver {
         try (Cursor cursor = queryPickerUri(uri, projection)) {
             if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
                 String path = getCursorString(cursor, MediaStore.PickerMediaColumns.DATA);
+                // First replace /sdcard with /storage/emulated path
+                path = path.replaceFirst("/sdcard", "/storage/emulated/" + MediaStore.MY_USER_ID);
+                // Then convert /storage/emulated patht to /mnt/user/ path
                 return toFuseFile(new File(path));
             }
         }

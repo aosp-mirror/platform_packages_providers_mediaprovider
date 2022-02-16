@@ -37,7 +37,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     @VisibleForTesting
     static final String PICKER_DATABASE_NAME = "picker.db";
 
-    private static final int VERSION_T = 4;
+    private static final int VERSION_T = 5;
     private static final int VERSION_LATEST = VERSION_T;
 
     final Context mContext;
@@ -116,7 +116,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "cloud_id TEXT UNIQUE,"
                 + "is_visible INTEGER CHECK(is_visible == 1),"
                 + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
-                + "generation_modified INTEGER NOT NULL CHECK(generation_modified >= 0),"
+                + "sync_generation INTEGER NOT NULL CHECK(sync_generation >= 0),"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "duration_ms INTEGER CHECK(duration_ms >= 0),"
                 + "mime_type TEXT NOT NULL,"

@@ -24,8 +24,9 @@
 
 #include "libfuse_jni/RedactionInfo.h"
 
-namespace mediaprovider::fuse {
+using namespace mediaprovider::fuse;
 
+using std::unique_ptr;
 using std::vector;
 
 std::ostream& operator<<(std::ostream& os, const ReadRange& rr) {
@@ -380,5 +381,3 @@ TEST(RedactionInfoTest, testSingleRedactionRangesZeroSize) {
     info.getReadRanges(0, 40, &out);  // read offsets [0, 40)
     EXPECT_EQ(0, out.size());
 }
-
-}  // namespace mediaprovider::fuse

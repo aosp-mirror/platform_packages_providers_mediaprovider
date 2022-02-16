@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
@@ -66,7 +67,7 @@ public class ExternalDbFacade {
         "COALESCE(" + MediaColumns.DATE_TAKEN + "," + MediaColumns.DATE_MODIFIED +
                     "* 1000) AS " + CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS,
         MediaColumns.GENERATION_MODIFIED + " AS " +
-                CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED,
+                CloudMediaProviderContract.MediaColumns.SYNC_GENERATION,
         MediaColumns.SIZE + " AS " + CloudMediaProviderContract.MediaColumns.SIZE_BYTES,
         MediaColumns.MIME_TYPE + " AS " + CloudMediaProviderContract.MediaColumns.MIME_TYPE,
         FileColumns._SPECIAL_FORMAT + " AS " +
@@ -75,14 +76,8 @@ public class ExternalDbFacade {
         MediaColumns.IS_FAVORITE + " AS " + CloudMediaProviderContract.MediaColumns.IS_FAVORITE
     };
     private static final String[] PROJECTION_MEDIA_INFO = new String[] {
-        "COUNT(" + MediaColumns.GENERATION_MODIFIED + ") AS "
-        + CloudMediaProviderContract.MediaInfo.MEDIA_COUNT,
         "MAX(" + MediaColumns.GENERATION_MODIFIED + ") AS "
-        + CloudMediaProviderContract.MediaInfo.MEDIA_GENERATION
-    };
-    private static final String[] PROJECTION_DELETED_MEDIA_INFO = new String[] {
-        "MAX(" + MediaColumns.GENERATION_MODIFIED + ") AS "
-        + CloudMediaProviderContract.MediaInfo.MEDIA_GENERATION
+        + MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION
     };
     private static final String[] PROJECTION_ALBUM_DB = new String[] {
         "COUNT(" + MediaColumns._ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
@@ -292,11 +287,10 @@ public class ExternalDbFacade {
      * Returns the total count and max {@link MediaColumns#GENERATION_MODIFIED} value
      * of the media items in the files table greater than {@code generation}.
      */
-    public Cursor getMediaInfo(long generation) {
+    public Cursor getMediaCollectionInfo(long generation) {
         final String[] selectionArgs = new String[] {String.valueOf(generation)};
         final String[] projection = new String[] {
-            CloudMediaProviderContract.MediaInfo.MEDIA_COUNT,
-            CloudMediaProviderContract.MediaInfo.MEDIA_GENERATION
+            MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION
         };
 
         return mDatabaseHelper.runWithTransaction(db -> {
@@ -307,19 +301,15 @@ public class ExternalDbFacade {
 
                 try (Cursor mediaCursor = query(qbMedia, db, PROJECTION_MEDIA_INFO, selectionArgs);
                         Cursor deletedMediaCursor = query(qbDeletedMedia, db,
-                                PROJECTION_DELETED_MEDIA_INFO, selectionArgs)) {
-                    final int mediaCountIndex = mediaCursor.getColumnIndexOrThrow(
-                            CloudMediaProviderContract.MediaInfo.MEDIA_COUNT);
+                                PROJECTION_MEDIA_INFO, selectionArgs)) {
                     final int mediaGenerationIndex = mediaCursor.getColumnIndexOrThrow(
-                            CloudMediaProviderContract.MediaInfo.MEDIA_GENERATION);
+                            MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION);
                     final int deletedMediaGenerationIndex =
                             deletedMediaCursor.getColumnIndexOrThrow(
-                                    CloudMediaProviderContract.MediaInfo.MEDIA_GENERATION);
+                                    MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION);
 
-                    long mediaCount = 0;
                     long mediaGeneration = 0;
                     if (mediaCursor.moveToFirst()) {
-                        mediaCount = mediaCursor.getLong(mediaCountIndex);
                         mediaGeneration = mediaCursor.getLong(mediaGenerationIndex);
                     }
 
@@ -331,7 +321,7 @@ public class ExternalDbFacade {
 
                     long maxGeneration = Math.max(mediaGeneration, deletedMediaGeneration);
                     MatrixCursor result = new MatrixCursor(projection);
-                    result.addRow(new Long[] { mediaCount, maxGeneration });
+                    result.addRow(new Long[] { maxGeneration });
 
                     return result;
                 }

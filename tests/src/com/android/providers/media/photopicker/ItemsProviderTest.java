@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker;
 
 import static android.provider.MediaStore.VOLUME_EXTERNAL;
 
+import static com.android.providers.media.photopicker.data.PickerDbFacade.PROP_DEFAULT_SYNC_DELAY_MS;
 import static com.android.providers.media.util.MimeUtils.isImageMimeType;
 import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
 
@@ -25,6 +26,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import android.Manifest;
+import android.app.UiAutomation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -70,11 +72,17 @@ public class ItemsProviderTest {
 
     @Before
     public void setUp() {
-        InstrumentationRegistry.getInstrumentation().getUiAutomation()
-                .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
+        final UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation();
+
+        uiAutomation.adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.READ_DEVICE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS);
+
+        // Remove sync delay to avoid flaky tests
+        final String setSyncDelayCommand = "setprop " + PROP_DEFAULT_SYNC_DELAY_MS + " 0";
+        uiAutomation.executeShellCommand(setSyncDelayCommand);
 
         final Context context = InstrumentationRegistry.getTargetContext();
         final Context isolatedContext

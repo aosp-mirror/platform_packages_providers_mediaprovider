@@ -31,7 +31,6 @@
 
 namespace mediaprovider {
 namespace fuse {
-using android::base::GetBoolProperty;
 using std::string;
 
 namespace {
@@ -40,6 +39,14 @@ constexpr const char* kPropRedactionEnabled = "persist.sys.fuse.redaction-enable
 
 constexpr uid_t ROOT_UID = 0;
 constexpr uid_t SHELL_UID = 2000;
+
+// These need to stay in sync with MediaProvider.java's DIRECTORY_ACCESS_FOR_* constants.
+enum DirectoryAccessRequestType {
+    kReadDirectoryRequest = 1,
+    kWriteDirectoryRequest = 2,
+    kCreateDirectoryRequest = 3,
+    kDeleteDirectoryRequest = 4,
+};
 
 /** Private helper functions **/
 
@@ -91,25 +98,12 @@ int deleteFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid
     return res;
 }
 
-int isMkdirOrRmdirAllowedInternal(JNIEnv* env, jobject media_provider_object,
-                                  jmethodID mid_is_mkdir_or_rmdir_allowed, const string& path,
-                                  uid_t uid, bool forCreate) {
+int isDirAccessAllowedInternal(JNIEnv* env, jobject media_provider_object,
+                               jmethodID mid_is_diraccess_allowed, const string& path, uid_t uid,
+                               int accessType) {
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    int res = env->CallIntMethod(media_provider_object, mid_is_mkdir_or_rmdir_allowed, j_path.get(),
-                                 uid, forCreate);
-
-    if (CheckForJniException(env)) {
-        return EFAULT;
-    }
-    return res;
-}
-
-int isOpendirAllowedInternal(JNIEnv* env, jobject media_provider_object,
-                             jmethodID mid_is_opendir_allowed, const string& path, uid_t uid,
-                             bool forWrite) {
-    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    int res = env->CallIntMethod(media_provider_object, mid_is_opendir_allowed, j_path.get(), uid,
-                                 forWrite);
+    int res = env->CallIntMethod(media_provider_object, mid_is_diraccess_allowed, j_path.get(), uid,
+                                 accessType);
 
     if (CheckForJniException(env)) {
         return EFAULT;
@@ -228,37 +222,24 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     media_provider_class_ = reinterpret_cast<jclass>(env->NewGlobalRef(media_provider_class_));
 
     // Cache methods - Before calling a method, make sure you cache it here
-    mid_insert_file_ = CacheMethod(env, "insertFileIfNecessary", "(Ljava/lang/String;I)I",
-                                   /*is_static*/ false);
-    mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
+    mid_insert_file_ = CacheMethod(env, "insertFileIfNecessary", "(Ljava/lang/String;I)I");
+    mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I");
     mid_on_file_open_ = CacheMethod(env, "onFileOpen",
                                     "(Ljava/lang/String;Ljava/lang/String;IIIZZZ)Lcom/android/"
-                                    "providers/media/FileOpenResult;",
-                                    /*is_static*/ false);
-    mid_is_mkdir_or_rmdir_allowed_ = CacheMethod(env, "isDirectoryCreationOrDeletionAllowed",
-                                                 "(Ljava/lang/String;IZ)I", /*is_static*/ false);
-    mid_is_opendir_allowed_ = CacheMethod(env, "isOpendirAllowed", "(Ljava/lang/String;IZ)I",
-                                          /*is_static*/ false);
+                                    "providers/media/FileOpenResult;");
+    mid_is_diraccess_allowed_ = CacheMethod(env, "isDirAccessAllowed", "(Ljava/lang/String;II)I");
     mid_get_files_in_dir_ =
-            CacheMethod(env, "getFilesInDirectory", "(Ljava/lang/String;I)[Ljava/lang/String;",
-                        /*is_static*/ false);
-    mid_rename_ = CacheMethod(env, "rename", "(Ljava/lang/String;Ljava/lang/String;I)I",
-                              /*is_static*/ false);
+            CacheMethod(env, "getFilesInDirectory", "(Ljava/lang/String;I)[Ljava/lang/String;");
+    mid_rename_ = CacheMethod(env, "rename", "(Ljava/lang/String;Ljava/lang/String;I)I");
     mid_is_uid_allowed_access_to_data_or_obb_path_ =
-            CacheMethod(env, "isUidAllowedAccessToDataOrObbPath", "(ILjava/lang/String;)Z",
-                        /*is_static*/ false);
-    mid_on_file_created_ = CacheMethod(env, "onFileCreated", "(Ljava/lang/String;)V",
-                                       /*is_static*/ false);
-    mid_should_allow_lookup_ = CacheMethod(env, "shouldAllowLookup", "(II)Z",
-                                           /*is_static*/ false);
-    mid_is_app_clone_user_ = CacheMethod(env, "isAppCloneUser", "(I)Z",
-                                         /*is_static*/ false);
-    mid_transform_ = CacheMethod(env, "transform", "(Ljava/lang/String;Ljava/lang/String;IIIII)Z",
-                                 /*is_static*/ false);
+            CacheMethod(env, "isUidAllowedAccessToDataOrObbPath", "(ILjava/lang/String;)Z");
+    mid_on_file_created_ = CacheMethod(env, "onFileCreated", "(Ljava/lang/String;)V");
+    mid_should_allow_lookup_ = CacheMethod(env, "shouldAllowLookup", "(II)Z");
+    mid_is_app_clone_user_ = CacheMethod(env, "isAppCloneUser", "(I)Z");
+    mid_transform_ = CacheMethod(env, "transform", "(Ljava/lang/String;Ljava/lang/String;IIIII)Z");
     mid_file_lookup_ =
             CacheMethod(env, "onFileLookup",
-                        "(Ljava/lang/String;II)Lcom/android/providers/media/FileLookupResult;",
-                        /*is_static*/ false);
+                        "(Ljava/lang/String;II)Lcom/android/providers/media/FileLookupResult;");
 
     // FileLookupResult
     file_lookup_result_class_ = env->FindClass("com/android/providers/media/FileLookupResult");
@@ -375,9 +356,8 @@ int MediaProviderWrapper::IsCreatingDirAllowed(const string& path, uid_t uid) {
     }
 
     JNIEnv* env = MaybeAttachCurrentThread();
-    return isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
-                                         mid_is_mkdir_or_rmdir_allowed_, path, uid,
-                                         /*forCreate*/ true);
+    return isDirAccessAllowedInternal(env, media_provider_object_, mid_is_diraccess_allowed_, path,
+                                      uid, kCreateDirectoryRequest);
 }
 
 int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
@@ -386,9 +366,8 @@ int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
     }
 
     JNIEnv* env = MaybeAttachCurrentThread();
-    return isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
-                                         mid_is_mkdir_or_rmdir_allowed_, path, uid,
-                                         /*forCreate*/ false);
+    return isDirAccessAllowedInternal(env, media_provider_object_, mid_is_diraccess_allowed_, path,
+                                      uid, kDeleteDirectoryRequest);
 }
 
 std::vector<std::shared_ptr<DirectoryEntry>> MediaProviderWrapper::GetDirectoryEntries(
@@ -421,8 +400,9 @@ int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid, bool f
     }
 
     JNIEnv* env = MaybeAttachCurrentThread();
-    return isOpendirAllowedInternal(env, media_provider_object_, mid_is_opendir_allowed_, path, uid,
-                                    forWrite);
+    return isDirAccessAllowedInternal(env, media_provider_object_, mid_is_diraccess_allowed_, path,
+                                      uid,
+                                      forWrite ? kWriteDirectoryRequest : kReadDirectoryRequest);
 }
 
 bool MediaProviderWrapper::isUidAllowedAccessToDataOrObbPath(uid_t uid, const string& path) {
@@ -536,15 +516,12 @@ bool MediaProviderWrapper::Transform(const std::string& src, const std::string& 
  * Finds MediaProvider method and adds it to methods map so it can be quickly called later.
  */
 jmethodID MediaProviderWrapper::CacheMethod(JNIEnv* env, const char method_name[],
-                                            const char signature[], bool is_static) {
+                                            const char signature[]) {
     jmethodID mid;
     string actual_method_name(method_name);
     actual_method_name.append("ForFuse");
-    if (is_static) {
-        mid = env->GetStaticMethodID(media_provider_class_, actual_method_name.c_str(), signature);
-    } else {
-        mid = env->GetMethodID(media_provider_class_, actual_method_name.c_str(), signature);
-    }
+    mid = env->GetMethodID(media_provider_class_, actual_method_name.c_str(), signature);
+
     if (!mid) {
         LOG(FATAL) << "Error caching method: " << method_name << signature;
     }

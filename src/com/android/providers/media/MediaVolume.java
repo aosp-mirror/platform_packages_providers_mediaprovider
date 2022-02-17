@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import android.annotation.SuppressLint;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.UserHandle;
@@ -24,6 +25,8 @@ import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import com.android.modules.utils.build.SdkLevel;
 
 import java.io.File;
 import java.util.Objects;
@@ -60,6 +63,11 @@ public final class MediaVolume implements Parcelable {
      */
     private final @Nullable String mId;
 
+    /**
+     * Whether the volume is managed from outside Android.
+     */
+    private final boolean mExternallyManaged;
+
     public @NonNull String getName() {
         return mName;
     }
@@ -76,11 +84,17 @@ public final class MediaVolume implements Parcelable {
         return mId;
     }
 
-    private MediaVolume (@NonNull String name, UserHandle user, File path, String id) {
+    public boolean isExternallyManaged() {
+        return mExternallyManaged;
+    }
+
+    private MediaVolume (@NonNull String name, UserHandle user, File path, String id,
+                         boolean externallyManaged) {
         this.mName = name;
         this.mUser = user;
         this.mPath = path;
         this.mId = id;
+        this.mExternallyManaged = externallyManaged;
     }
 
     private MediaVolume (Parcel in) {
@@ -88,6 +102,7 @@ public final class MediaVolume implements Parcelable {
         this.mUser = in.readParcelable(null);
         this.mPath  = new File(in.readString());
         this.mId = in.readString();
+        this.mExternallyManaged = in.readInt() != 0;
     }
 
     @Override
@@ -101,31 +116,40 @@ public final class MediaVolume implements Parcelable {
         // 2. A volume with a certain ID should never be mounted in two different paths, anyway
         return Objects.equals(mName, that.mName) &&
                 Objects.equals(mUser, that.mUser) &&
-                Objects.equals(mId, that.mId);
+                Objects.equals(mId, that.mId) &&
+                (mExternallyManaged == that.mExternallyManaged);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mName, mUser, mId);
+        return Objects.hash(mName, mUser, mId, mExternallyManaged);
     }
 
     public boolean isVisibleToUser(UserHandle user) {
         return mUser == null || user.equals(mUser);
     }
 
+    /**
+     * Adding NewApi Suppress Lint to fix some build errors after making
+     * {@link StorageVolume#getOwner()} a public Api
+     */
+    // TODO(b/213658045) : Remove this once the related changes are submitted.
+    @SuppressLint("NewApi")
     @NonNull
     public static MediaVolume fromStorageVolume(StorageVolume storageVolume) {
         String name = storageVolume.getMediaStoreVolumeName();
         UserHandle user = storageVolume.getOwner();
         File path = storageVolume.getDirectory();
         String id = storageVolume.getId();
-        return new MediaVolume(name, user, path, id);
+        boolean externallyManaged =
+                SdkLevel.isAtLeastT() ? storageVolume.isExternallyManaged() : false;
+        return new MediaVolume(name, user, path, id, externallyManaged);
     }
 
     public static MediaVolume fromInternal() {
         String name = MediaStore.VOLUME_INTERNAL;
 
-        return new MediaVolume(name, null, null, null);
+        return new MediaVolume(name, null, null, null, false);
     }
 
     @Override
@@ -139,12 +163,13 @@ public final class MediaVolume implements Parcelable {
         dest.writeParcelable(mUser, flags);
         dest.writeString(mPath.toString());
         dest.writeString(mId);
+        dest.writeInt(mExternallyManaged ? 1 : 0);
     }
 
     @Override
     public String toString() {
         return "MediaVolume name: [" + mName + "] id: [" + mId + "] user: [" + mUser + "] path: ["
-                + mPath + "]";
+                + mPath + "] externallyManaged: [" + mExternallyManaged + "]";
     }
 
     public static final @android.annotation.NonNull Creator<MediaVolume> CREATOR

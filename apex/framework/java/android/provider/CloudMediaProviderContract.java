@@ -656,13 +656,6 @@ public final class CloudMediaProviderContract {
     public static final String URI_PATH_MEDIA = "media";
 
     /**
-     * URI path for {@link CloudMediaProvider#onQueryMedia}
-     *
-     * {@hide}
-     */
-    public static final String URI_PATH_MEDIA_EXACT = URI_PATH_MEDIA + "/*";
-
-    /**
      * URI path for {@link CloudMediaProvider#onQueryDeletedMedia}
      *
      * {@hide}

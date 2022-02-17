@@ -16,16 +16,29 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import static android.app.admin.DevicePolicyResources.Drawables.Style.OUTLINE;
+import static android.app.admin.DevicePolicyResources.Drawables.WORK_PROFILE_ICON;
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.BLOCKED_BY_ADMIN_TITLE;
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.BLOCKED_FROM_PERSONAL_MESSAGE;
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.BLOCKED_FROM_WORK_MESSAGE;
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.WORK_PROFILE_PAUSED_MESSAGE;
+import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.WORK_PROFILE_PAUSED_TITLE;
+
 import android.app.Dialog;
+import android.app.admin.DevicePolicyManager;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
+import androidx.annotation.RequiresApi;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
@@ -41,29 +54,72 @@ public class ProfileDialogFragment extends DialogFragment {
         final PickerViewModel pickerViewModel = new ViewModelProvider(requireActivity()).get(
                 PickerViewModel.class);
         final UserIdManager userIdManager = pickerViewModel.getUserIdManager();
-
         final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getActivity());
         if (userIdManager.isBlockedByAdmin()) {
-            builder.setIcon(R.drawable.ic_lock);
-            builder.setTitle(getString(R.string.picker_profile_admin_title));
-            final String message = userIdManager.isManagedUserSelected() ?
-                    getString(R.string.picker_profile_admin_msg_from_work) :
-                    getString(R.string.picker_profile_admin_msg_from_personal);
-            builder.setMessage(message);
-            builder.setPositiveButton(android.R.string.ok, null);
+            setBlockedByAdminParams(userIdManager.isManagedUserSelected(), builder);
         } else if (userIdManager.isWorkProfileOff()) {
-            builder.setIcon(R.drawable.ic_work_outline);
-            builder.setTitle(getString(R.string.picker_profile_work_paused_title));
-            builder.setMessage(getString(R.string.picker_profile_work_paused_msg));
-            // TODO(b/197199728): Add listener to turn on apps. This maybe a bit tricky because
-            // after turning on Work profile, work profile MediaProvider may not be available
-            // immediately.
-            builder.setPositiveButton(android.R.string.ok, null);
+            setWorkProfileOffParams(builder);
         } else {
             Log.e(TAG, "Unknown error for profile dialog");
             return null;
         }
         return builder.create();
+    }
+
+    private void setBlockedByAdminParams(
+            boolean isManagedUserSelected, MaterialAlertDialogBuilder builder) {
+        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
+        String title;
+        String message;
+        if (SdkLevel.isAtLeastT()) {
+            title = dpm.getString(BLOCKED_BY_ADMIN_TITLE, () -> getString(
+                    R.string.picker_profile_admin_title));
+            message = isManagedUserSelected
+                    ? dpm.getString(BLOCKED_FROM_WORK_MESSAGE, () -> getString(
+                    R.string.picker_profile_admin_msg_from_work))
+                    : dpm.getString(BLOCKED_FROM_PERSONAL_MESSAGE, () -> getString(
+                            R.string.picker_profile_admin_msg_from_personal));
+        } else {
+            title = getString(R.string.picker_profile_admin_title);
+            message = isManagedUserSelected
+                    ? getString(R.string.picker_profile_admin_msg_from_work)
+                    : getString(R.string.picker_profile_admin_msg_from_personal);
+        }
+        builder.setIcon(R.drawable.ic_lock);
+        builder.setTitle(title);
+        builder.setMessage(message);
+        builder.setPositiveButton(android.R.string.ok, null);
+    }
+
+    private void setWorkProfileOffParams(MaterialAlertDialogBuilder builder) {
+        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
+        Drawable icon;
+        String title;
+        String message;
+        if (SdkLevel.isAtLeastT()) {
+            icon = getUpdatedWorkProfileIcon(dpm);
+            title = dpm.getString(WORK_PROFILE_PAUSED_TITLE, () ->
+                    getString(R.string.picker_profile_work_paused_title));
+            message = dpm.getString(WORK_PROFILE_PAUSED_MESSAGE, () ->
+                    getString(R.string.picker_profile_work_paused_msg));
+        } else {
+            icon = getContext().getDrawable(R.drawable.ic_work_outline);
+            title = getContext().getString(R.string.picker_profile_work_paused_title);
+            message = getContext().getString(R.string.picker_profile_work_paused_msg);
+        }
+        builder.setIcon(icon);
+        builder.setTitle(title);
+        builder.setMessage(message);
+        // TODO(b/197199728): Add listener to turn on apps. This maybe a bit tricky because
+        // after turning on Work profile, work profile MediaProvider may not be available
+        // immediately.
+        builder.setPositiveButton(android.R.string.ok, null);
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private Drawable getUpdatedWorkProfileIcon(DevicePolicyManager dpm) {
+        return dpm.getDrawable(WORK_PROFILE_ICON, OUTLINE, () -> getContext().getDrawable(
+                R.drawable.ic_work_outline));
     }
 
     public static void show(FragmentManager fm) {

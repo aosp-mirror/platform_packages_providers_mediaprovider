@@ -20,7 +20,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace mediaprovider::fuse;
+namespace mediaprovider::fuse {
 
 TEST(FuseUtilsTest, testContainsMount_isTrueForAndroidDataObb) {
     EXPECT_TRUE(containsMount("/storage/emulated/1234/Android"));
@@ -39,7 +39,6 @@ TEST(FuseUtilsTest, testContainsMount) {
     EXPECT_FALSE(containsMount("/storage/emulated/"));
     EXPECT_FALSE(containsMount("/storage/emulated//"));
     EXPECT_FALSE(containsMount("/storage/emulated/0/"));
-    EXPECT_FALSE(containsMount("/storage/emulated/1234/"));
 }
 
 TEST(FuseUtilsTest, testContainsMount_isCaseInsensitive) {
@@ -51,8 +50,6 @@ TEST(FuseUtilsTest, testContainsMount_isCaseInsensitive) {
 }
 
 TEST(FuseUtilsTest, testContainsMount_isFalseForPathWithAdditionalSlash) {
-    EXPECT_FALSE(containsMount("/storage/emulated//Android/data"));
-
     EXPECT_FALSE(containsMount("/storage/emulated/1234/Android/"));
     EXPECT_FALSE(containsMount("/storage/emulated/1234/Android/data/"));
     EXPECT_FALSE(containsMount("/storage/emulated/1234/Android/obb/"));
@@ -61,3 +58,5 @@ TEST(FuseUtilsTest, testContainsMount_isFalseForPathWithAdditionalSlash) {
     EXPECT_FALSE(containsMount("/storage/emulated//1234/Android/data"));
     EXPECT_FALSE(containsMount("/storage/emulated/1234//Android/data"));
 }
+
+}  // namespace mediaprovider::fuse

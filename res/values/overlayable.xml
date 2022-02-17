@@ -18,6 +18,7 @@
     <overlayable name="MediaProviderConfig">
         <policy type="product|system|vendor">
             <item type="array" name="config_supported_transcoding_relative_paths"/>
+            <item type="array" name="config_supported_uncached_relative_paths"/>
         </policy>
     </overlayable>
 </resources>

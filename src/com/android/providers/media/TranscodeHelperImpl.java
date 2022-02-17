@@ -50,8 +50,6 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.InstallSourceInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.Property;
-import android.content.res.Resources;
-import android.content.res.Resources.NotFoundException;
 import android.content.res.XmlResourceParser;
 import android.database.Cursor;
 import android.media.ApplicationMediaCapabilities;
@@ -99,6 +97,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.SQLiteQueryBuilder;
+import com.android.providers.media.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -113,7 +112,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -286,8 +284,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
                         MAX_TRANSCODE_DURATION_MS);
         mTranscodeDenialController = new TranscodeDenialController(mActivityManager,
                 mTranscodingUiNotifier, maxTranscodeDurationMs);
-        mSupportedRelativePaths = verifySupportedRelativePaths(getStringArrayConfig(
-                        R.array.config_supported_transcoding_relative_paths));
+        mSupportedRelativePaths = verifySupportedRelativePaths(StringUtils.getStringArrayConfig(
+                        mContext, R.array.config_supported_transcoding_relative_paths));
         mHasHdrPlugin = hasHDRPlugin();
 
         parseTranscodeCompatManifest();
@@ -883,16 +881,6 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         }
 
         return verifiedPaths;
-    }
-
-    private List<String> getStringArrayConfig(int resId) {
-        final Resources res = mContext.getResources();
-        try {
-            final String[] configValue = res.getStringArray(resId);
-            return Arrays.asList(configValue);
-        } catch (NotFoundException e) {
-            return new ArrayList<String>();
-        }
     }
 
     private Optional<Boolean> checkAppCompatSupport(int uid, int fileFlags) {

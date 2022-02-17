@@ -16,15 +16,23 @@
 
 package com.android.providers.media.util;
 
+import static com.android.providers.media.util.Logging.TAG;
+
+import android.content.Context;
+import android.content.res.Resources;
+import android.content.res.Resources.NotFoundException;
 import android.icu.text.MessageFormat;
+import android.util.Log;
+
+import androidx.annotation.Nullable;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-
-import android.content.res.Resources;
-
-import androidx.annotation.Nullable;
 
 public class StringUtils {
 
@@ -58,5 +66,42 @@ public class StringUtils {
    */
   public static boolean equalIgnoreCase(@Nullable String a, @Nullable String b) {
       return (a != null) && a.equalsIgnoreCase(b);
+  }
+
+  /**
+   * Returns a string array config as a {@code List<String>}.
+   */
+  public static List<String> getStringArrayConfig(Context context, int resId) {
+      final Resources res = context.getResources();
+      try {
+          final String[] configValue = res.getStringArray(resId);
+          return Arrays.asList(configValue);
+      } catch (NotFoundException e) {
+          return new ArrayList<String>();
+      }
+  }
+
+  /**
+   * Returns the list of uncached relative paths after removing invalid ones.
+   */
+  public static List<String> verifySupportedUncachedRelativePaths(List<String> unverifiedPaths) {
+      final List<String> verifiedPaths = new ArrayList<>();
+      for (final String path : unverifiedPaths) {
+          if (path == null) {
+              continue;
+          }
+          if (path.startsWith("/")) {
+              Log.w(TAG, "Relative path config must not start with '/'. Ignoring: " + path);
+              continue;
+          }
+          if (!path.endsWith("/")) {
+              Log.w(TAG, "Relative path config must end with '/'. Ignoring: " + path);
+              continue;
+          }
+
+          verifiedPaths.add(path);
+      }
+
+      return verifiedPaths;
   }
 }

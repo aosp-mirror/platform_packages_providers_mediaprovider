@@ -69,6 +69,8 @@
     <dimen name="picker_empty_text_margin">20dp</dimen>
     <dimen name="picker_empty_text_size">18sp</dimen>
 
+    <dimen name="picker_toolbar_title_text_size">18sp</dimen>
+
     <!-- PhotoPicker Preview -->
     <dimen name="preview_buttons_padding_horizontal">16dp</dimen>
     <dimen name="preview_deselect_padding_start">2dp</dimen>

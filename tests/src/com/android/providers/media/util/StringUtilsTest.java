@@ -18,7 +18,9 @@ package com.android.providers.media.util;
 
 import static com.android.providers.media.util.StringUtils.equalIgnoreCase;
 import static com.android.providers.media.util.StringUtils.startsWithIgnoreCase;
+import static com.android.providers.media.util.StringUtils.verifySupportedUncachedRelativePaths;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -26,6 +28,10 @@ import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
 public class StringUtilsTest {
@@ -51,5 +57,15 @@ public class StringUtilsTest {
         assertFalse(startsWithIgnoreCase("image/jpg", null));
         assertFalse(startsWithIgnoreCase(null, "audio/"));
         assertFalse(startsWithIgnoreCase(null, null));
+    }
+
+    @Test public void testVerifySupportedUncachedRelativePaths() throws Exception {
+        assertEquals(
+                new ArrayList<String>(Arrays.asList("path/", "path/path/")),
+                verifySupportedUncachedRelativePaths(
+                        new ArrayList<String>(
+                                Arrays.asList(null, "", "/",
+                                              "path", "/path", "path/", "/path/",
+                                              "path/path", "/path/path", "path/path/"))));
     }
 }

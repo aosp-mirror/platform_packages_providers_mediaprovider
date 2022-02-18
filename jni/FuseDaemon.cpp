@@ -128,7 +128,7 @@ static constexpr char PRIMARY_VOLUME_PREFIX[] = "/storage/emulated";
 
 static constexpr char FUSE_BPF_PROG_PATH[] = "/sys/fs/bpf/prog_fuse_media_fuse_media";
 
-enum class BpfFd { UNINITIALIZED = -2, REMOVE = -1 };
+enum class BpfFd { REMOVE = -1 };
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -257,6 +257,7 @@ class FAdviser {
 /* Single FUSE mount */
 struct fuse {
     explicit fuse(const std::string& _path, const ino_t _ino, const bool _uncached_mode,
+                  const bool _bpf, const int _bpf_fd,
                   const std::vector<string>& _supported_transcoding_relative_paths,
                   const std::vector<string>& _supported_uncached_relative_paths)
         : path(_path),
@@ -267,7 +268,8 @@ struct fuse {
           zero_addr(0),
           disable_dentry_cache(false),
           passthrough(false),
-          bpf(false),
+          bpf(_bpf),
+          bpf_fd(_bpf_fd),
           supported_transcoding_relative_paths(_supported_transcoding_relative_paths),
           supported_uncached_relative_paths(_supported_uncached_relative_paths) {}
 
@@ -390,7 +392,7 @@ struct fuse {
     std::atomic_bool passthrough;
     std::atomic_bool bpf;
 
-    int bpf_fd;
+    const int bpf_fd;
 
     // FUSE device id.
     std::atomic_uint dev;
@@ -748,8 +750,6 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
         }
     }
 
-    fuse->bpf_fd = static_cast<int>(BpfFd::UNINITIALIZED);
-
     conn->want |= conn->capable & mask;
     if (disable_splice_write) {
         conn->want &= ~FUSE_CAP_SPLICE_WRITE;
@@ -833,24 +833,13 @@ void fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_ent
 }
 
 void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const string& child_path) {
-    if (fuse->bpf_fd >= 0) {
-        // TODO(b/211873756) Enable only for the primary volume. Must be
-        // extended for other media devices.
-        if (android::base::StartsWith(child_path, PRIMARY_VOLUME_PREFIX)) {
-            if (is_data_path(child_path) || is_obb_path(child_path)) {
-                fuse_bpf_fill_entries(child_path, fuse->bpf_fd, e);
-            } else if (is_package_owned_path(child_path, fuse->path)) {
-                fuse_bpf_fill_entries(child_path, static_cast<int>(BpfFd::REMOVE), e);
-            }
-        }
-    } else if (fuse->bpf_fd == static_cast<int>(BpfFd::UNINITIALIZED)) {
-        // Initialize FUSE BPF
-        fuse->bpf_fd = android::bpf::bpfFdGet(FUSE_BPF_PROG_PATH, BPF_F_RDONLY);
-        if (fuse->bpf_fd < 0) {
-            PLOG(ERROR) << "Failed to fetch BPF prog fd: " << fuse->bpf_fd;
-            fuse->bpf = false;
-        } else {
-            LOG(INFO) << "BPF prog fd fetched";
+    // TODO(b/211873756) Enable only for the primary volume. Must be
+    // extended for other media devices.
+    if (android::base::StartsWith(child_path, PRIMARY_VOLUME_PREFIX)) {
+        if (is_data_path(child_path) || is_obb_path(child_path)) {
+            fuse_bpf_fill_entries(child_path, fuse->bpf_fd, e);
+        } else if (is_package_owned_path(child_path, fuse->path)) {
+            fuse_bpf_fill_entries(child_path, static_cast<int>(BpfFd::REMOVE), e);
         }
     }
 }
@@ -2277,7 +2266,22 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
         return;
     }
 
-    struct fuse fuse_default(path, stat.st_ino, uncached_mode, supported_transcoding_relative_paths,
+    bool bpf_enabled = android::base::GetBoolProperty("persist.sys.fuse.bpf.enable", false);
+    int bpf_fd = -1;
+    if (bpf_enabled) {
+        LOG(INFO) << "Using FUSE BPF";
+
+        bpf_fd = android::bpf::bpfFdGet(FUSE_BPF_PROG_PATH, BPF_F_RDONLY);
+        if (bpf_fd < 0) {
+            PLOG(ERROR) << "Failed to fetch BPF prog fd: " << bpf_fd;
+            bpf_enabled = false;
+        } else {
+            LOG(INFO) << "BPF prog fd fetched";
+        }
+    }
+
+    struct fuse fuse_default(path, stat.st_ino, uncached_mode, bpf_enabled, bpf_fd,
+                             supported_transcoding_relative_paths,
                              supported_uncached_relative_paths);
     fuse_default.mp = &mp;
     // fuse_default is stack allocated, but it's safe to save it as an instance variable because
@@ -2306,11 +2310,6 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
     fuse->passthrough = android::base::GetBoolProperty("persist.sys.fuse.passthrough.enable", false);
     if (fuse->passthrough) {
         LOG(INFO) << "Using FUSE passthrough";
-    }
-
-    fuse->bpf = android::base::GetBoolProperty("persist.sys.fuse.bpf.enable", false);
-    if (fuse->bpf) {
-        LOG(INFO) << "Using FUSE BPF";
     }
 
     struct fuse_session

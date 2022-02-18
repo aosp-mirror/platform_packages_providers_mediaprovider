@@ -23,7 +23,7 @@ public final class MuteStatus {
     /**
      * Always start video preview with volume off
      */
-    private boolean isVolumeMuted = true;
+    private boolean mIsVolumeMuted = true;
 
     public MuteStatus() {};
 
@@ -33,13 +33,13 @@ public final class MuteStatus {
      *                        {@code false} otherwise.
      */
     public void setVolumeMuted(boolean isVolumeMuted) {
-        this.isVolumeMuted = isVolumeMuted;
+        mIsVolumeMuted = isVolumeMuted;
     }
 
     /**
      * @return {@code isVolumeMuted}
      */
     public boolean isVolumeMuted() {
-        return isVolumeMuted;
+        return mIsVolumeMuted;
     }
 }

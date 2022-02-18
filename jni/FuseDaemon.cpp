@@ -804,11 +804,19 @@ static bool is_app_accessible_path(struct fuse* fuse, const string& path, uid_t 
     return true;
 }
 
-bool fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_entry_param* e) {
+void fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_entry_param* e) {
+    /*
+     * The file descriptor `fd` must not be closed as it is closed
+     * automatically by the kernel as soon as it consumes the FUSE reply. This
+     * mechanism is necessary because userspace doesn't know when the kernel
+     * will consume the FUSE response containing `fd`, thus it may close the
+     * `fd` too soon, with the risk of assigning a backing file which is either
+     * invalid or corresponds to the wrong file in the lower file system.
+     */
     const int fd = open(path.c_str(), O_CLOEXEC | O_DIRECTORY | O_RDONLY);
     if (fd < 0) {
         PLOG(ERROR) << "Failed to open: " << path;
-        return false;
+        return;
     }
 
     e->backing_action = FUSE_ACTION_REPLACE;
@@ -822,8 +830,6 @@ bool fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_ent
     } else {
         e->bpf_action = FUSE_ACTION_KEEP;
     }
-
-    return true;
 }
 
 void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const string& child_path) {

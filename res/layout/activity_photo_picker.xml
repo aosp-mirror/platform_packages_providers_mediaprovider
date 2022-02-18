@@ -82,7 +82,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="?attr/actionBarSize"
                     android:background="@color/picker_background_color"
-                    app:titleTextColor="?attr/pickerTextColor">
+                    app:titleTextColor="?attr/pickerTextColor"
+                    app:titleTextAppearance="@style/PickerToolbarTitleTextAppearance">
 
                     <LinearLayout
                         android:id="@+id/chip_container"

@@ -117,10 +117,8 @@ const std::string MY_USER_ID_STRING(std::to_string(MY_UID / PER_USER_RANGE));
 const std::regex PATTERN_OWNED_PATH(
         "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/([^/]+)(/?.*)?",
         std::regex_constants::icase);
-const std::regex PATTERN_DATA_PATH("^/storage/[^/]+/(?:[0-9]+/)?Android/data$",
-                                   std::regex_constants::icase);
-const std::regex PATTERN_OBB_PATH("^/storage/[^/]+/(?:[0-9]+/)?Android/obb$",
-                                  std::regex_constants::icase);
+const std::regex PATTERN_BPF_BACKING_PATH("^/storage/[^/]+/[0-9]+/Android/(data|obb)$",
+                                          std::regex_constants::icase);
 
 static constexpr char TRANSFORM_SYNTHETIC_DIR[] = "synthetic";
 static constexpr char TRANSFORM_TRANSCODE_DIR[] = "transcode";
@@ -478,12 +476,8 @@ static bool is_package_owned_path(const string& path, const string& fuse_path) {
     return std::regex_match(path, PATTERN_OWNED_PATH);
 }
 
-static bool is_data_path(const string& path) {
-    return std::regex_match(path, PATTERN_DATA_PATH);
-}
-
-static bool is_obb_path(const string& path) {
-    return std::regex_match(path, PATTERN_OBB_PATH);
+static bool is_bpf_backing_path(const string& path) {
+    return std::regex_match(path, PATTERN_BPF_BACKING_PATH);
 }
 
 // See fuse_lowlevel.h fuse_lowlevel_notify_inval_entry for how to call this safetly without
@@ -696,7 +690,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     // introduce a performance regression.
     // Currently FUSE BPF is limited to the Android/data and Android/obb
     // directories.
-    if (!fuse->bpf || !(is_data_path(path) || is_obb_path(path))) {
+    if (!fuse->bpf || !is_bpf_backing_path(path)) {
         e->entry_timeout = get_entry_timeout(path, should_invalidate, fuse);
         e->attr_timeout = std::numeric_limits<double>::max();
     }
@@ -836,7 +830,7 @@ void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const strin
     // TODO(b/211873756) Enable only for the primary volume. Must be
     // extended for other media devices.
     if (android::base::StartsWith(child_path, PRIMARY_VOLUME_PREFIX)) {
-        if (is_data_path(child_path) || is_obb_path(child_path)) {
+        if (is_bpf_backing_path(child_path)) {
             fuse_bpf_fill_entries(child_path, fuse->bpf_fd, e);
         } else if (is_package_owned_path(child_path, fuse->path)) {
             fuse_bpf_fill_entries(child_path, static_cast<int>(BpfFd::REMOVE), e);

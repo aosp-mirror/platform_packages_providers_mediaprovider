@@ -390,8 +390,9 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testIsProviderUidEnabled() {
-        assertThat(mController.isProviderEnabled(Process.myUid())).isTrue();
-        assertThat(mController.isProviderEnabled(1000)).isFalse();
+        assertThat(mController.isProviderEnabled(LOCAL_PROVIDER_AUTHORITY, Process.myUid()))
+                .isTrue();
+        assertThat(mController.isProviderEnabled(LOCAL_PROVIDER_AUTHORITY, 1000)).isFalse();
     }
 
     @Test

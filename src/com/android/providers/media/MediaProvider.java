@@ -280,6 +280,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
@@ -612,6 +613,32 @@ public class MediaProvider extends ContentProvider {
             }
         }
     };
+
+    private BroadcastReceiver mUserIntentReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getAction()) {
+                case Intent.ACTION_USER_REMOVED:
+                    /**
+                     * Removing media files for user being deleted. This would impact if the deleted
+                     * user have been using same MediaProvider as the current user i.e. when
+                     * isMediaSharedWithParent is true.On removal of such user profile,
+                     * the owner's MediaProvider would need to clean any media files stored
+                     * by the removed user profile.
+                     */
+                    UserHandle userToBeRemoved  = intent.getParcelableExtra(Intent.EXTRA_USER);
+                    if(userToBeRemoved.getIdentifier() != sUserId){
+                        mExternalDatabase.runWithTransaction((db) -> {
+                            db.execSQL("delete from files where _user_id=?",
+                                    new String[]{String.valueOf(userToBeRemoved.getIdentifier())});
+                            return null ;
+                        });
+                    }
+                    break;
+            }
+        }
+    };
+
 
     private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
         synchronized (mCachedCallingIdentityForFuse) {
@@ -1002,6 +1029,12 @@ public class MediaProvider extends ContentProvider {
         packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         context.registerReceiver(mPackageReceiver, packageFilter);
 
+        // Creating intent broadcast receiver for user actions like Intent.ACTION_USER_REMOVED,
+        // where we would need to remove files stored by removed user.
+        final IntentFilter userIntentFilter = new IntentFilter();
+        userIntentFilter.addAction(Intent.ACTION_USER_REMOVED);
+        context.registerReceiver(mUserIntentReceiver, userIntentFilter);
+
         // Watch for invalidation of cached volumes
         mStorageManager.registerStorageVolumeCallback(context.getMainExecutor(),
                 new StorageVolumeCallback() {
@@ -1116,7 +1149,6 @@ public class MediaProvider extends ContentProvider {
 
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
         final long startTime = SystemClock.elapsedRealtime();
-
         // Trim any stale log files before we emit new events below
         Logging.trimPersistent();
 
@@ -1163,9 +1195,49 @@ public class MediaProvider extends ContentProvider {
             return DatabaseHelper.getItemCount(db);
         });
 
+        // Cleaning media files for users that have been removed
+        cleanMediaFilesForRemovedUser(signal);
+
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
                 durationMillis, staleThumbnails, deletedExpiredMedia);
+    }
+
+    /**
+     * This function find and clean the files related to user who have been removed
+     */
+    private void cleanMediaFilesForRemovedUser(CancellationSignal signal) {
+        //Finding userIds that are available in database
+        final List<String> userIds = mExternalDatabase.runWithTransaction((db) -> {
+            final List<String> userIdsPresent = new ArrayList<>();
+            try (Cursor c = db.query(true, "files", new String[] { "_user_id" },
+                    null, null, null, null, null,
+                    null, signal)) {
+                while (c.moveToNext()) {
+                    final String userId = c.getString(0);
+                    userIdsPresent.add(userId);
+                }
+            }
+            return userIdsPresent;
+        });
+
+        //removing calling userId
+        userIds.remove(String.valueOf(sUserId));
+        //removing all the valid/existing user, remaining userIds would be users who would have been
+        //removed
+        userIds.removeAll(mUserManager.getEnabledProfiles().stream()
+                .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
+                        Collectors.toList()));
+
+        // Cleaning media files of users who have been removed
+        mExternalDatabase.runWithTransaction((db) -> {
+            userIds.stream().forEach(userId ->{
+                Log.d(TAG, "Removing media files associated with user : " + userId);
+                db.execSQL("delete from files where _user_id=?",
+                        new String[]{String.valueOf(userId)});
+            });
+            return null ;
+        });
     }
 
     private void pruneStalePackages(CancellationSignal signal) {
@@ -1755,7 +1827,7 @@ public class MediaProvider extends ContentProvider {
                 extractSyntheticRelativePathSegements(path, userId);
         final int segmentCount = syntheticRelativePathSegments.size();
 
-        if (segmentCount < 1 || segmentCount > 4) {
+        if (segmentCount < 1 || segmentCount > 5) {
             throw new IllegalStateException("Unexpected synthetic picker path: " + file);
         }
 
@@ -1770,19 +1842,30 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             case 2:
-                // .../picker/<authority>
-                result = preparePickerAuthorityPathSegment(file, lastSegment, uid);
+                // .../picker/<user-id>
+                try {
+                    Integer.parseInt(lastSegment);
+                    result = file.exists() || file.mkdir();
+                } catch (NumberFormatException e) {
+                    Log.w(TAG, "Invalid user id for picker file lookup: " + lastSegment
+                            + ". File: " + file);
+                }
                 break;
             case 3:
-                // .../picker/<authority>/media
+                // .../picker/<user-id>/<authority>
+                result = preparePickerAuthorityPathSegment(file, lastSegment, uid);
+                break;
+            case 4:
+                // .../picker/<user-id>/<authority>/media
                 if (lastSegment.equals("media")) {
                     result = file.exists() || file.mkdir();
                 }
                 break;
-            case 4:
-                // .../picker/<authority>/media/<media-id.extension>
-                final String authority = syntheticRelativePathSegments.get(1);
-                result = preparePickerMediaIdPathSegment(file, authority, lastSegment);
+            case 5:
+                // .../picker/<user-id>/<authority>/media/<media-id.extension>
+                final String fileUserId = syntheticRelativePathSegments.get(1);
+                final String authority = syntheticRelativePathSegments.get(2);
+                result = preparePickerMediaIdPathSegment(file, authority, lastSegment, fileUserId);
                 break;
         }
 
@@ -1794,17 +1877,17 @@ public class MediaProvider extends ContentProvider {
 
     private FileOpenResult handlePickerFileOpen(String path, int uid) {
         final String[] segments = path.split("/");
-        if (segments.length != 10) {
+        if (segments.length != 11) {
             Log.e(TAG, "Picker file open failed. Unexpected segments: " + path);
             return new FileOpenResult(OsConstants.ENOENT /* status */, uid, /* transformsUid */ 0,
                     new long[0]);
         }
 
-        // ['', 'storage', 'emulated', '0', 'transforms', 'synthetic', 'picker', '<host>',
-        // 'media', '<fileName>']
-        final String userId = segments[3];
-        final String fileName = segments[9];
-        final String host = segments[7];
+        // ['', 'storage', 'emulated', '0', 'transforms', 'synthetic', 'picker', '<user-id>',
+        // '<host>', 'media', '<fileName>']
+        final String userId = segments[7];
+        final String fileName = segments[10];
+        final String host = segments[8];
         final String authority = userId + "@" + host;
         final int lastDotIndex = fileName.lastIndexOf('.');
 
@@ -1848,17 +1931,21 @@ public class MediaProvider extends ContentProvider {
 
     private boolean preparePickerAuthorityPathSegment(File file, String authority, int uid) {
         if (mPickerSyncController.isProviderEnabled(authority)) {
-            return file.mkdir();
+            return file.exists() || file.mkdir();
         }
 
         return false;
     }
 
-    private boolean preparePickerMediaIdPathSegment(File file, String authority, String fileName) {
+    private boolean preparePickerMediaIdPathSegment(File file, String authority, String fileName,
+            String userId) {
         final String mediaId = extractFileName(fileName);
+        final String[] projection = new String[] { MediaStore.PickerMediaColumns.SIZE };
 
-        try (Cursor cursor = mPickerDbFacade.queryMediaIdForApps(authority, mediaId,
-                        new String[] { MediaStore.PickerMediaColumns.SIZE })) {
+        final Uri uri = Uri.parse("content://media/picker/" + userId + "/" + authority + "/media/"
+                + mediaId);
+        try (Cursor cursor =  mPickerUriResolver.query(uri, projection, /* queryArgs */ null,
+                        /* signal */ null, 0, android.os.Process.myUid())) {
             if (cursor != null && cursor.moveToFirst()) {
                 final int sizeBytesIdx = cursor.getColumnIndex(MediaStore.PickerMediaColumns.SIZE);
 
@@ -6135,16 +6222,25 @@ public class MediaProvider extends ContentProvider {
                 syncAllMedia();
                 return new Bundle();
             }
-            case MediaStore.GET_CLOUD_PROVIDER_CALL: {
-                final String cloudProvider = mPickerSyncController.getCloudProvider();
+            case MediaStore.IS_SUPPORTED_CLOUD_PROVIDER_CALL: {
+                final boolean isSupported = mPickerSyncController.isProviderSupported(arg,
+                        Binder.getCallingUid());
 
                 Bundle bundle = new Bundle();
-                bundle.putString(MediaStore.EXTRA_CLOUD_PROVIDER, cloudProvider);
+                bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT, isSupported);
                 return bundle;
             }
-            case MediaStore.NOTIFY_CLOUD_EVENT_CALL: {
+            case MediaStore.IS_CURRENT_CLOUD_PROVIDER_CALL: {
+                final boolean isEnabled = mPickerSyncController.isProviderEnabled(arg,
+                        Binder.getCallingUid());
+
+                Bundle bundle = new Bundle();
+                bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT, isEnabled);
+                return bundle;
+            }
+            case MediaStore.NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL: {
                 final boolean notifyCloudEventResult;
-                if (mPickerSyncController.isProviderEnabled(Binder.getCallingUid())) {
+                if (mPickerSyncController.isProviderEnabled(arg, Binder.getCallingUid())) {
                     mPickerSyncController.notifyMediaEvent();
                     notifyCloudEventResult = true;
                 } else {
@@ -6152,7 +6248,7 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 Bundle bundle = new Bundle();
-                bundle.putBoolean(MediaStore.EXTRA_NOTIFY_CLOUD_EVENT_RESULT,
+                bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT,
                         notifyCloudEventResult);
                 return bundle;
             }
@@ -9614,12 +9710,15 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int table = matchUri(uri, allowHidden);
 
+        final String selection = extras.getString(QUERY_ARG_SQL_SELECTION);
+        final String[] selectionArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
+
         // First, check to see if caller has direct write access
         if (forWrite) {
             final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, table, uri, extras, null);
             qb.allowColumn(SQLiteQueryBuilder.ROWID_COLUMN);
             try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
-                    null, null, null, null, null, null, null)) {
+                    selection, selectionArgs, null, null, null, null, null)) {
                 if (c.moveToFirst()) {
                     // Direct write access granted, yay!
                     return;
@@ -9643,7 +9742,7 @@ public class MediaProvider extends ContentProvider {
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, extras, null);
         qb.allowColumn(SQLiteQueryBuilder.ROWID_COLUMN);
         try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
-                null, null, null, null, null, null, null)) {
+                selection, selectionArgs, null, null, null, null, null)) {
             if (c.moveToFirst()) {
                 if (!forWrite) {
                     // Direct read access granted, yay!

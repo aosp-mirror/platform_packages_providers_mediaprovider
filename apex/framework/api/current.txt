@@ -15,7 +15,6 @@ package android.provider {
     method @NonNull public abstract android.content.res.AssetFileDescriptor onOpenPreview(@NonNull String, @NonNull android.graphics.Point, @Nullable android.os.Bundle, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
     method @NonNull public android.database.Cursor onQueryAlbums(@NonNull android.os.Bundle);
     method @NonNull public abstract android.database.Cursor onQueryDeletedMedia(@NonNull android.os.Bundle);
-    method @NonNull public abstract android.database.Cursor onQueryMedia(@NonNull String);
     method @NonNull public abstract android.database.Cursor onQueryMedia(@NonNull android.os.Bundle);
     method @NonNull public final android.os.ParcelFileDescriptor openFile(@NonNull android.net.Uri, @NonNull String) throws java.io.FileNotFoundException;
     method @NonNull public final android.os.ParcelFileDescriptor openFile(@NonNull android.net.Uri, @NonNull String, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;

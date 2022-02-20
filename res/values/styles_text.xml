@@ -31,10 +31,15 @@
         <item name="android:textColor">?android:attr/textColorPrimary</item>
     </style>
 
+    <style name="PickerToolbarTitleTextAppearance"
+           parent="@android:style/TextAppearance.DeviceDefault.Large">
+        <item name="android:textSize">@dimen/picker_toolbar_title_text_size</item>
+    </style>
+
     <style name="PickerHeaderTextAppearance"
-           parent="@android:style/TextAppearance.DeviceDefault.WindowTitle">
+           parent="@android:style/TextAppearance.DeviceDefault.Medium">
         <item name="android:textColor">?attr/pickerTextColor</item>
-        <item name="android:textSize">16sp</item>
+        <item name="android:textSize">14sp</item>
     </style>
 
     <style name="PickerChipTextAppearance"

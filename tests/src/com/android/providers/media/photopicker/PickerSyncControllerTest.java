@@ -138,7 +138,7 @@ public class PickerSyncControllerTest {
     public void testSyncAllMediaLocalOnly() {
         // 1. Do nothing
         mController.syncAllMedia();
-        assertEmptyCursor();
+        assertEmptyCursorFromMediaQuery();
 
         // 2. Add local only media
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
@@ -176,9 +176,65 @@ public class PickerSyncControllerTest {
         mLocalMediaGenerator.setMediaCollectionId(COLLECTION_2);
         mController.syncAllMedia();
 
-        assertEmptyCursor();
+        assertEmptyCursorFromMediaQuery();
     }
 
+    @Test
+    public void testSyncAllAlbumMediaLocalOnly() {
+        // 1. Do nothing
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromMediaQuery();
+
+        // 2. Add local only media
+        addAlbumMedia(mLocalMediaGenerator, LOCAL_ONLY_1.first, LOCAL_ONLY_1.second, ALBUM_ID_1);
+        addAlbumMedia(mLocalMediaGenerator, LOCAL_ONLY_2.first, LOCAL_ONLY_2.second, ALBUM_ID_1);
+
+        mController.syncAlbumMedia(ALBUM_ID_1);
+
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, true)) {
+            assertThat(cr.getCount()).isEqualTo(2);
+
+            assertCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER_AUTHORITY);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        // 3. Syncs only given album's media
+        addAlbumMedia(mLocalMediaGenerator, LOCAL_ONLY_1.first, LOCAL_ONLY_1.second, ALBUM_ID_2);
+
+        mController.syncAlbumMedia(ALBUM_ID_1);
+
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, true)) {
+            assertThat(cr.getCount()).isEqualTo(2);
+
+            assertCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER_AUTHORITY);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        // 4. Syncing and querying another Album, gets you only items from that album
+        mController.syncAlbumMedia(ALBUM_ID_2);
+
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_2, true)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        // 5. Reset media without version bump, still resets as we always do a full sync for albums.
+        mLocalMediaGenerator.resetAll();
+        mController.syncAlbumMedia(ALBUM_ID_1);
+
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, true);
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_2, true)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        // 6. Sync another album after reset and check that is empty too.
+        mController.syncAlbumMedia(ALBUM_ID_2);
+
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_2, true);
+    }
 
     @Test
     public void testSyncAllMediaCloudOnly() {
@@ -186,12 +242,12 @@ public class PickerSyncControllerTest {
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
         mController.syncAllMedia();
-        assertEmptyCursor();
+        assertEmptyCursorFromMediaQuery();
 
         // 2. Set secondary cloud provider
         mController.setCloudProvider(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
         mController.syncAllMedia();
-        assertEmptyCursor();
+        assertEmptyCursorFromMediaQuery();
 
         // 3. Set primary cloud provider
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
@@ -207,7 +263,7 @@ public class PickerSyncControllerTest {
         // 4. Set secondary cloud provider again
         mController.setCloudProvider(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
         mController.syncAllMedia();
-        assertEmptyCursor();
+        assertEmptyCursorFromMediaQuery();
 
         // 5. Set primary cloud provider once again
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
@@ -222,7 +278,120 @@ public class PickerSyncControllerTest {
         // 6. Clear cloud provider
         mController.setCloudProvider(/* authority */ null);
         mController.syncAllMedia();
-        assertEmptyCursor();
+        assertEmptyCursorFromMediaQuery();
+    }
+
+    @Test
+    public void testSyncAllAlbumMediaCloudOnly() {
+        // 1. Add media before setting primary cloud provider
+        addAlbumMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1.first, CLOUD_ONLY_1.second,
+                ALBUM_ID_1);
+        addAlbumMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2.first, CLOUD_ONLY_2.second,
+                ALBUM_ID_1);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
+
+        // 2. Set secondary cloud provider
+        mController.setCloudProvider(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
+
+        // 3. Set primary cloud provider
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, false)) {
+            assertThat(cr.getCount()).isEqualTo(2);
+
+            assertCursor(cr, CLOUD_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+
+        // 4. Set secondary cloud provider again
+        mController.setCloudProvider(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
+
+        // 5. Set primary cloud provider once again
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, false)) {
+            assertThat(cr.getCount()).isEqualTo(2);
+
+            assertCursor(cr, CLOUD_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+
+        // 6. Clear cloud provider
+        mController.setCloudProvider(/* authority */ null);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
+    }
+
+    @Test
+    public void testSyncAllAlbumMediaCloudAndLocal() {
+        // 1. Add media before setting primary cloud provider
+        addAlbumMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1.first, CLOUD_ONLY_1.second,
+                ALBUM_ID_1);
+        addAlbumMedia(mLocalMediaGenerator, LOCAL_ONLY_1.first, LOCAL_ONLY_1.second,
+                ALBUM_ID_1);
+        addAlbumMedia(mLocalMediaGenerator, LOCAL_ONLY_2.first, LOCAL_ONLY_2.second,
+                ALBUM_ID_2);
+
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
+
+        // 2. Set secondary cloud provider
+        mController.setCloudProvider(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
+
+        // 3. Set primary cloud provider
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, false)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+
+        // 4. Set secondary cloud provider again
+        mController.setCloudProvider(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
+
+        // 4. Set cloud provider to local authority
+        mController.setCloudProvider(LOCAL_PROVIDER_AUTHORITY);
+
+        // 4a. Sync the first album
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, true)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        // 4b. Sync the second album
+        mController.syncAlbumMedia(ALBUM_ID_2);
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_2, true)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        // 5. Set primary cloud provider once again
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, false)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+
+        // 6. Clear cloud provider
+        mController.setCloudProvider(/* authority */ null);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
     }
 
     @Test
@@ -231,7 +400,7 @@ public class PickerSyncControllerTest {
 
         // 1. Do nothing
         mController.syncAllMedia();
-        assertEmptyCursor();
+        assertEmptyCursorFromMediaQuery();
 
         // 2. Add cloud-only item
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
@@ -246,7 +415,7 @@ public class PickerSyncControllerTest {
         // 3. Set invalid cloud version
         mCloudPrimaryMediaGenerator.setMediaCollectionId(/* version */ null);
         mController.syncAllMedia();
-        assertEmptyCursor();
+        assertEmptyCursorFromMediaQuery();
 
         // 4. Set valid cloud version
         mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
@@ -259,10 +428,53 @@ public class PickerSyncControllerTest {
         }
     }
 
+
+    @Test
+    public void testCloudResetAlbumMediaSync() {
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // 1. Do nothing
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
+
+        // 2. Add cloud-only item
+        addAlbumMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1.first, CLOUD_ONLY_1.second,
+                ALBUM_ID_1);
+
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, false)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+
+        // 3. Reset Cloud provider
+        mCloudPrimaryMediaGenerator.resetAll();
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
+
+        // 4. Add cloud-only item
+        addAlbumMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1.first, CLOUD_ONLY_1.second,
+                ALBUM_ID_1);
+
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, false)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+
+
+        // 5. Unset Cloud provider
+        mController.setCloudProvider(null);
+        mController.syncAlbumMedia(ALBUM_ID_1);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
+    }
+
     @Test
     public void testSyncAllMediaCloudAndLocal() {
         // 1. Do nothing
-        assertEmptyCursor();
+        assertEmptyCursorFromMediaQuery();
 
         // 2. Set primary cloud provider and add 2 items: cloud+local and local-only
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
@@ -311,7 +523,7 @@ public class PickerSyncControllerTest {
         deleteMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         mController.syncAllMedia();
 
-        assertEmptyCursor();
+        assertEmptyCursorFromMediaQuery();
     }
 
     @Test
@@ -404,7 +616,7 @@ public class PickerSyncControllerTest {
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         controller.notifyMediaEvent();
         waitForIdle();
-        assertEmptyCursor();
+        assertEmptyCursorFromMediaQuery();
 
         // 2. Sleep for delay
         SystemClock.sleep(SYNC_DELAY_MS);
@@ -601,6 +813,11 @@ public class PickerSyncControllerTest {
         generator.addMedia(media.first, media.second);
     }
 
+    private static void addAlbumMedia(MediaGenerator generator, String localId, String cloudId,
+            String albumId) {
+        generator.addAlbumMedia(localId, cloudId, albumId);
+    }
+
     private static void addMedia(MediaGenerator generator, Pair<String, String> media,
             String albumId, String mimeType, int standardMimeTypeExtension, long sizeBytes,
             boolean isFavorite) {
@@ -622,8 +839,19 @@ public class PickerSyncControllerTest {
                 new PickerDbFacade.QueryFilterBuilder(1000).build());
     }
 
-    private void assertEmptyCursor() {
+    private Cursor queryAlbumMedia(String albumId, boolean isLocal) {
+        return mFacade.queryAlbumMediaForUi(
+                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId).build(), isLocal);
+    }
+
+    private void assertEmptyCursorFromMediaQuery() {
         try (Cursor cr = queryMedia()) {
+            assertThat(cr.getCount()).isEqualTo(0);
+        }
+    }
+
+    private void assertEmptyCursorFromAlbumMediaQuery(String albumId, boolean isLocal) {
+        try (Cursor cr = queryAlbumMedia(albumId, isLocal)) {
             assertThat(cr.getCount()).isEqualTo(0);
         }
     }

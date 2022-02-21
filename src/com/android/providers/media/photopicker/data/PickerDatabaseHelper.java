@@ -37,7 +37,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     @VisibleForTesting
     static final String PICKER_DATABASE_NAME = "picker.db";
 
-    private static final int VERSION_T = 5;
+    private static final int VERSION_T = 6;
     private static final int VERSION_LATEST = VERSION_T;
 
     final Context mContext;
@@ -124,6 +124,21 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "is_favorite INTEGER,"
                 + "CHECK(local_id IS NOT NULL OR cloud_id IS NOT NULL),"
                 + "UNIQUE(local_id, is_visible))");
+
+        // TODO(b/219942243): Add generation_modified
+        db.execSQL("CREATE TABLE album_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "local_id TEXT,"
+                + "cloud_id TEXT,"
+                + "album_id TEXT,"
+                + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
+                + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
+                + "duration_ms INTEGER CHECK(duration_ms >= 0),"
+                + "mime_type TEXT NOT NULL,"
+                + "standard_mime_type_extension INTEGER,"
+                + "CHECK((local_id IS NULL AND cloud_id IS NOT NULL) "
+                + "OR (local_id IS NOT NULL AND cloud_id IS NULL)),"
+                + "UNIQUE(local_id,  album_id),"
+                + "UNIQUE(cloud_id, album_id))");
     }
 
     private static void createLatestIndexes(SQLiteDatabase db) {
@@ -136,6 +151,12 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX size_index on media(size_bytes)");
         db.execSQL("CREATE INDEX mime_type_index on media(mime_type)");
         db.execSQL("CREATE INDEX is_favorite_index on media(is_favorite)");
+
+        db.execSQL("CREATE INDEX local_id_album_index on album_media(local_id)");
+        db.execSQL("CREATE INDEX cloud_id_album_index on album_media(cloud_id)");
+        db.execSQL("CREATE INDEX date_taken_album_index on album_media(date_taken_ms)");
+        db.execSQL("CREATE INDEX size_album_index on album_media(size_bytes)");
+        db.execSQL("CREATE INDEX mime_type_album_index on album_media(mime_type)");
     }
 
     private static void clearPickerPrefs(Context context) {

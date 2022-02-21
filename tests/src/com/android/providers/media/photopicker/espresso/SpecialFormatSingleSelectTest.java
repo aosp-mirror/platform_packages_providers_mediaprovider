@@ -197,7 +197,7 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
         // Verify that the text in Add button
         onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.add)));
 
-        onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.preview_selected_check_button)).check(matches(not(isDisplayed())));
         onView(withId(R.id.preview_add_button)).check(matches(not(isDisplayed())));
     }
 

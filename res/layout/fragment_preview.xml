@@ -65,7 +65,7 @@
 
         <!-- Buttons for Preview on View Selected. Hidden by default -->
         <Button
-            android:id="@+id/preview_select_check_button"
+            android:id="@+id/preview_selected_check_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="start|center_vertical"
@@ -75,7 +75,7 @@
             android:drawableLeft="@drawable/preview_check"
             android:drawableTint="@color/preview_highlight_color"
             android:textAllCaps="false"
-            android:text="@string/deselect"
+            android:text="@string/selected"
             android:textColor="@color/picker_default_white"
             android:visibility="gone"
             style="@style/MaterialBorderlessButtonStyle"/>

@@ -40,7 +40,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -118,17 +117,17 @@ public abstract class TabFragment extends Fragment {
         mButtonIconAndTextColor = ta.getColor(/* index */ 1, /* defValue */ -1);
         ta.recycle();
 
-        mProfileButton = view.findViewById(R.id.profile_button);
+        mProfileButton = getActivity().findViewById(R.id.profile_button);
         mUserIdManager = mPickerViewModel.getUserIdManager();
 
         final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
-            final Button addButton = view.findViewById(R.id.button_add);
+            final Button addButton = getActivity().findViewById(R.id.button_add);
             addButton.setOnClickListener(v -> {
                 ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
             });
 
-            final Button viewSelectedButton = view.findViewById(R.id.button_view_selected);
+            final Button viewSelectedButton = getActivity().findViewById(R.id.button_view_selected);
             // Transition to PreviewFragment on clicking "View Selected".
             viewSelectedButton.setOnClickListener(v -> {
                 mSelection.prepareSelectedItemsForPreviewAll();
@@ -138,7 +137,7 @@ public abstract class TabFragment extends Fragment {
             mBottomBarSize = (int) getResources().getDimension(R.dimen.picker_bottom_bar_size);
 
             mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
-                final View bottomBar = view.findViewById(R.id.picker_bottom_bar);
+                final View bottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
                 int dimen = 0;
                 if (selectedItemListSize == 0) {
                     bottomBar.setVisibility(View.GONE);

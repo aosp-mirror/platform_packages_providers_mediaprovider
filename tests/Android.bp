@@ -42,6 +42,25 @@ android_test_helper_app {
 }
 
 android_test_helper_app {
+    name: "MediaProviderTestAppWithMediaPerms",
+    manifest: "test_app/TestAppWithMediaPerms.xml",
+    srcs: [
+        "test_app/src/**/*.java",
+        "src/com/android/providers/media/util/TestUtils.java",
+    ],
+    static_libs: [
+        "cts-install-lib",
+    ],
+    sdk_version: "test_current",
+    target_sdk_version: "30",
+    min_sdk_version: "30",
+    test_suites: [
+        "general-tests",
+        "mts-mediaprovider",
+    ],
+}
+
+android_test_helper_app {
     name: "MediaProviderTestAppWithoutPerms",
     manifest: "test_app/TestAppWithoutPerms.xml",
     srcs: [
@@ -152,6 +171,7 @@ android_test {
 
     java_resources: [
         ":MediaProviderTestAppWithStoragePerms",
+        ":MediaProviderTestAppWithMediaPerms",
         ":MediaProviderTestAppWithoutPerms",
         ":MediaProviderTestAppForPermissionActivity",
         ":LegacyMediaProviderTestApp",

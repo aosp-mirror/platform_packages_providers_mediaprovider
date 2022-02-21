@@ -364,6 +364,13 @@ public class MediaProvider extends ContentProvider {
     private static final int NON_HIDDEN_CACHE_SIZE = 50;
 
     /**
+     * This is required as idle maintenance maybe stopped anytime; we do not want to query
+     * and accumulate values to update for a long time, instead we want to batch query and update
+     * by a limited number.
+     */
+    private static final int IDLE_MAINTENANCE_ROWS_LIMIT = 1000;
+
+    /**
      * Where clause to match pending files from FUSE. Pending files from FUSE will not have
      * PATTERN_PENDING_FILEPATH_FOR_SQL pattern.
      */
@@ -1307,49 +1314,84 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void updateSpecialFormatColumn(SQLiteDatabase db, @NonNull CancellationSignal signal) {
-        try (Cursor c = queryForPendingSpecialFormatColumns(db, signal)) {
-            while (c.moveToNext() && !signal.isCanceled()) {
-                final long id = c.getLong(0);
-                final String path = c.getString(1);
-                final ContentValues contentValues = getContentValuesForSpecialFormat(path);
-                if (contentValues == null) {
-                    continue;
-                }
-                final String whereClause = MediaColumns._ID + "=?";
-                final String[] whereArgs = new String[]{String.valueOf(id)};
-                db.update("files", contentValues, whereClause, whereArgs);
-            }
+        // This is to ensure we only do a bounded iteration over the rows as updates can fail, and
+        // we don't want to keep running the query/update indefinitely.
+        final int totalRowsToUpdate = getPendingSpecialFormatRowsCount(db,signal);
+        for (int i = 0 ; i < totalRowsToUpdate ; i += IDLE_MAINTENANCE_ROWS_LIMIT) {
+            updateSpecialFormatForLimitedRows(db, signal);
         }
     }
 
-    private ContentValues getContentValuesForSpecialFormat(String path) {
-        ContentValues contentValues = new ContentValues();
+    private int getPendingSpecialFormatRowsCount(SQLiteDatabase db,
+            @NonNull CancellationSignal signal) {
+        try (Cursor c = queryForPendingSpecialFormatColumns(db, /* limit */ null, signal)) {
+            if (c == null) {
+                return 0;
+            }
+            return c.getCount();
+        }
+    }
+
+    private void updateSpecialFormatForLimitedRows(SQLiteDatabase db,
+            @NonNull CancellationSignal signal) {
+        // Accumulate all the new SPECIAL_FORMAT updates with their ids
+        ArrayMap<Long, Integer> newSpecialFormatValues = new ArrayMap<>();
+        final String limit = String.valueOf(IDLE_MAINTENANCE_ROWS_LIMIT);
+        try (Cursor c = queryForPendingSpecialFormatColumns(db, limit, signal)) {
+            while (c.moveToNext() && !signal.isCanceled()) {
+                final long id = c.getLong(0);
+                final String path = c.getString(1);
+                newSpecialFormatValues.put(id, getSpecialFormatValue(path));
+            }
+        }
+
+        // Now, update all the new SPECIAL_FORMAT values.
+        final ContentValues values = new ContentValues();
+        int count = 0;
+        for (long id: newSpecialFormatValues.keySet()) {
+            if (signal.isCanceled()) {
+                return;
+            }
+
+            values.clear();
+            values.put(_SPECIAL_FORMAT, newSpecialFormatValues.get(id));
+            final String whereClause = MediaColumns._ID + "=?";
+            final String[] whereArgs = new String[]{String.valueOf(id)};
+            if (db.update("files", values, whereClause, whereArgs) == 1) {
+                count++;
+            } else {
+                Log.e(TAG, "Unable to update _SPECIAL_FORMAT for id = " + id);
+            }
+        }
+        Log.d(TAG, "Updated _SPECIAL_FORMAT for " + count + " items");
+    }
+
+    private int getSpecialFormatValue(String path) {
         final File file = new File(path);
         if (!file.exists()) {
-            // Ignore if the file does not exist. This may happen if a file was
-            // inserted and then not opened, or if a file was deleted but db is not
-            // updated yet.
-            return null;
+            // We always update special format to none if the file is not found or there is an
+            // error, this is so that we do not repeat over the same column again and again.
+            return _SPECIAL_FORMAT_NONE;
         }
+
         try {
-            contentValues.put(_SPECIAL_FORMAT, SpecialFormatDetector.detect(file));
+            return SpecialFormatDetector.detect(file);
         } catch (Exception e) {
             // we tried our best, no need to run special detection again and again if it
             // throws exception once, it is likely to do so everytime.
             Log.d(TAG, "Failed to detect special format for file: " + file, e);
-            contentValues.put(_SPECIAL_FORMAT, _SPECIAL_FORMAT_NONE);
+            return _SPECIAL_FORMAT_NONE;
         }
-        return contentValues;
     }
 
-    private Cursor queryForPendingSpecialFormatColumns(SQLiteDatabase db,
+    private Cursor queryForPendingSpecialFormatColumns(SQLiteDatabase db, String limit,
             @NonNull CancellationSignal signal) {
         // Run special detection for images only
         final String selection = _SPECIAL_FORMAT + " IS NULL AND "
                 + MEDIA_TYPE + "=" + MEDIA_TYPE_IMAGE;
         final String[] projection = new String[] { MediaColumns._ID, MediaColumns.DATA };
         return db.query(/* distinct */ true, "files", projection, selection, null, null, null,
-                null, null, signal);
+                null, limit, signal);
     }
 
     /**

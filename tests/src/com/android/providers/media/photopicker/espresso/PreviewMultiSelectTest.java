@@ -218,7 +218,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Verify no special format icon is previewed
         assertSpecialFormatBadgeDoesNotExist();
 
-        swipeLeftAndWait();
+        swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
         // 2. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
@@ -226,7 +226,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Verify no special format icon is previewed
         assertSpecialFormatBadgeDoesNotExist();
 
-        swipeLeftAndWait();
+        swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
         // 3. Video item
         assertMultiSelectPreviewCommonLayoutDisplayed();
         // TODO(b/197083539): We don't check the video image to be visible or not because its
@@ -237,7 +237,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Verify no special format icon is previewed
         assertSpecialFormatBadgeDoesNotExist();
 
-        swipeRightAndWait();
+        swipeRightAndWait(PREVIEW_VIEW_PAGER_ID);
         // 2. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
@@ -245,7 +245,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Verify no special format icon is previewed
         assertSpecialFormatBadgeDoesNotExist();
 
-        swipeRightAndWait();
+        swipeRightAndWait(PREVIEW_VIEW_PAGER_ID);
         // 1. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
@@ -253,7 +253,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Verify no special format icon is previewed
         assertSpecialFormatBadgeDoesNotExist();
 
-        swipeLeftAndWait();
+        swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
         // 2. Image
         assertMultiSelectPreviewCommonLayoutDisplayed();
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
@@ -273,10 +273,10 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, iconCheckId);
 
         // Navigate to Albums tab
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
-        // The Albums tab chip is selected
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        // The Albums tab item is selected
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .check(matches(isSelected()));
         final int cameraStringId = R.string.picker_category_camera;
         // Camera album is shown
@@ -294,7 +294,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         // Click back button and verify we are back to Albums tab
         onView(withContentDescription("Navigate up")).perform(click());
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .check(matches(isSelected()));
         onView(allOf(withText(cameraStringId),
                 isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(matches(isDisplayed()));
@@ -340,10 +340,10 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
                 .check(matches(isDisplayed()));
 
         // Swipe and verify we don't preview the image item
-        swipeLeftAndWait();
+        swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PLAYER_VIEW_ID))
                 .check(matches(isDisplayed()));
-        swipeRightAndWait();
+        swipeRightAndWait(PREVIEW_VIEW_PAGER_ID);
         onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PLAYER_VIEW_ID))
                 .check(matches(isDisplayed()));
     }
@@ -359,7 +359,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
 
         // Navigate to albums
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
 
         final int cameraStringId = R.string.picker_category_camera;
@@ -385,7 +385,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Go back to photo grid and verify that item is deselected
         onView(withContentDescription("Navigate up")).perform(click());
         // Navigate to Photo grid
-        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
 
         assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);

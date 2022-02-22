@@ -493,7 +493,7 @@ public final class CloudMediaProviderContract {
     public static final String METHOD_GET_MEDIA_COLLECTION_INFO = "android:getMediaCollectionInfo";
 
     /**
-     * Constant used to execute {@link CloudMediaProvider#onCreateSurfaceController} via
+     * Constant used to execute {@link CloudMediaProvider#onCreateCloudMediaSurfaceController} via
      * {@link ContentProvider#call}.
      *
      * {@hide}
@@ -501,7 +501,7 @@ public final class CloudMediaProviderContract {
     public static final String METHOD_CREATE_SURFACE_CONTROLLER = "android:createSurfaceController";
 
     /**
-     * Gets surface controller from {@link CloudMediaProvider#onCreateSurfaceController}.
+     * Gets surface controller from {@link CloudMediaProvider#onCreateCloudMediaSurfaceController}.
      * {@hide}
      */
     public static final String EXTRA_SURFACE_CONTROLLER =
@@ -512,8 +512,8 @@ public final class CloudMediaProviderContract {
      * <p>
      * In case this is not present, the default value should be false.
      *
-     * @see CloudMediaProvider#onCreateSurfaceController
-     * @see CloudMediaProvider.SurfaceController#onConfigChange
+     * @see CloudMediaProvider#onCreateCloudMediaSurfaceController
+     * @see CloudMediaProvider.CloudMediaSurfaceController#onConfigChange
      * <p>
      * Type: BOOLEAN
      * By default, the value is true
@@ -524,8 +524,8 @@ public final class CloudMediaProviderContract {
     /**
      * Indicates whether to mute audio during preview of media items.
      *
-     * @see CloudMediaProvider#onCreateSurfaceController
-     * @see CloudMediaProvider.SurfaceController#onConfigChange
+     * @see CloudMediaProvider#onCreateCloudMediaSurfaceController
+     * @see CloudMediaProvider.CloudMediaSurfaceController#onConfigChange
      * <p>
      * Type: BOOLEAN
      * By default, the value is false
@@ -611,7 +611,7 @@ public final class CloudMediaProviderContract {
     public static final String URI_PATH_MEDIA_COLLECTION_INFO = "media_collection_info";
 
     /**
-     * URI path for {@link CloudMediaProvider#onCreateSurfaceController}
+     * URI path for {@link CloudMediaProvider#onCreateCloudMediaSurfaceController}
      *
      * {@hide}
      */

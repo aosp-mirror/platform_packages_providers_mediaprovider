@@ -20,7 +20,7 @@ import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_EVENT_CALLBACK;
 import static android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER;
-import static android.provider.CloudMediaProvider.SurfaceEventCallback.PLAYBACK_EVENT_READY;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_READY;
 
 import static com.android.providers.media.PickerUriResolver.createSurfaceControllerUri;
 
@@ -45,7 +45,7 @@ import java.util.Map;
 
 /**
  * Manages playback of videos on a {@link Surface} with a
- * {@link android.provider.CloudMediaProvider.SurfaceController} populated remotely.
+ * {@link android.provider.CloudMediaProvider.CloudMediaSurfaceController} populated remotely.
  *
  * <p>This class is not thread-safe and the methods are meant to be always called on the main
  * thread.

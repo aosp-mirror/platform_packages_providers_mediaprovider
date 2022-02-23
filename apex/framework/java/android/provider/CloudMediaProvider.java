@@ -303,9 +303,6 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * Returns a {@link SurfaceController} used for rendering the preview of media items, or null
      * if preview rendering is not supported.
      *
-     * <p>This is meant to be called on the main thread, hence the implementation should not block
-     * by performing any heavy operation.
-     *
      * @param config containing configuration parameters for {@link SurfaceController}
      * <ul>
      * <li> {@link CloudMediaProviderContract#EXTRA_LOOPING_PLAYBACK_ENABLED}
@@ -648,6 +645,10 @@ public abstract class CloudMediaProvider extends ContentProvider {
          *
          * <p>This SurfaceController object should no longer be in use after this method has been
          * called.
+         *
+         * <p>Note that it is possible for this method to be called directly without
+         * {@link #onPlayerRelease} being called, hence you should release any resources associated
+         * with this SurfaceController object, or perform any cleanup required in this method.
          */
         public abstract void onDestroy();
     }

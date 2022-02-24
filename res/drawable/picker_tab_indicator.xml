@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2021 The Android Open Source Project
+<!-- Copyright (C) 2022 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -14,17 +14,14 @@
      limitations under the License.
 -->
 
-<resources>
-
-    <dimen name="picker_tab_radius">12dp</dimen>
-    <dimen name="picker_tab_height">36dp</dimen>
-    <dimen name="picker_tab_width">96dp</dimen>
-    <dimen name="picker_tab_min_width">104dp</dimen>
-
-    <dimen name="picker_bottom_bar_size">72dp</dimen>
-
-    <dimen name="picker_toolbar_title_text_size">22sp</dimen>
-
-    <dimen name="preview_mute_marginBottom">88dp</dimen>
-
-</resources>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:gravity="center">
+        <shape android:shape="rectangle">
+            <size
+                android:width="@dimen/picker_tab_width"
+                android:height="@dimen/picker_tab_height" />
+            <corners android:radius="@dimen/picker_tab_radius"/>
+            <solid android:color="?attr/pickerSelectedTabBackgroundColor"/>
+        </shape>
+    </item>
+</layer-list>

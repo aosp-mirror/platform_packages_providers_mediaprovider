@@ -47,7 +47,6 @@ import android.view.View;
 import android.widget.Button;
 
 import androidx.appcompat.widget.Toolbar;
-import androidx.test.espresso.Espresso;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
@@ -140,7 +139,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
     @Test
     public void testPreview_singleSelect_fromAlbumsPhoto() {
         // Navigate to Albums tab
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
 
         final int cameraStringId = R.string.picker_category_camera;

@@ -128,8 +128,7 @@ public class PickerDataLayerTest {
         mController = new PickerSyncController(mContext, mFacade, LOCAL_PROVIDER_AUTHORITY,
                 /* syncDelay */ 0);
 
-        // Set cloud provider to null to avoid trying to sync it during other tests
-        // that might be using an IsolatedContext
+        // Set cloud provider to null to discard
         mFacade.setCloudProvider(null);
 
         Assume.assumeTrue(PickerDbFacade.isPickerDbEnabled());

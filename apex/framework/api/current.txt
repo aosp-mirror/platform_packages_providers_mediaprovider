@@ -9,7 +9,7 @@ package android.provider {
     method public final int delete(@NonNull android.net.Uri, @Nullable String, @Nullable String[]);
     method @NonNull public final String getType(@NonNull android.net.Uri);
     method @NonNull public final android.net.Uri insert(@NonNull android.net.Uri, @NonNull android.content.ContentValues);
-    method @Nullable public android.provider.CloudMediaProvider.SurfaceController onCreateSurfaceController(@NonNull android.os.Bundle, @NonNull android.provider.CloudMediaProvider.SurfaceEventCallback);
+    method @Nullable public android.provider.CloudMediaProvider.CloudMediaSurfaceController onCreateCloudMediaSurfaceController(@NonNull android.os.Bundle, @NonNull android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback);
     method @NonNull public abstract android.os.Bundle onGetMediaCollectionInfo(@NonNull android.os.Bundle);
     method @NonNull public abstract android.os.ParcelFileDescriptor onOpenMedia(@NonNull String, @Nullable android.os.Bundle, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
     method @NonNull public abstract android.content.res.AssetFileDescriptor onOpenPreview(@NonNull String, @NonNull android.graphics.Point, @Nullable android.os.Bundle, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
@@ -26,8 +26,8 @@ package android.provider {
     method public final int update(@NonNull android.net.Uri, @NonNull android.content.ContentValues, @Nullable String, @Nullable String[]);
   }
 
-  public abstract static class CloudMediaProvider.SurfaceController {
-    ctor public CloudMediaProvider.SurfaceController();
+  public abstract static class CloudMediaProvider.CloudMediaSurfaceController {
+    ctor public CloudMediaProvider.CloudMediaSurfaceController();
     method public abstract void onConfigChange(@NonNull android.os.Bundle);
     method public abstract void onDestroy();
     method public abstract void onMediaPause(int);
@@ -40,7 +40,7 @@ package android.provider {
     method public abstract void onSurfaceDestroyed(int);
   }
 
-  public static final class CloudMediaProvider.SurfaceEventCallback {
+  public static final class CloudMediaProvider.CloudMediaSurfaceEventCallback {
     method public void onPlaybackEvent(int, int, @Nullable android.os.Bundle);
     field public static final int PLAYBACK_EVENT_BUFFERING = 1; // 0x1
     field public static final int PLAYBACK_EVENT_COMPLETED = 5; // 0x5

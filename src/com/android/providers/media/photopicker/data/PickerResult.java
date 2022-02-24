@@ -17,17 +17,11 @@
 package com.android.providers.media.photopicker.data;
 
 import android.content.ClipData;
-import android.content.ContentResolver;
-import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Build;
-import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 
-import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
@@ -76,15 +70,10 @@ public class PickerResult {
     }
 
     @VisibleForTesting
-    static Uri getPickerUri(Uri uri, String id) {
+    static Uri getPickerUri(Uri uri) {
         final String userInfo = uri.getUserInfo();
         final String userId = userInfo == null ? UserId.CURRENT_USER.toString() : userInfo;
-        if (PickerDbFacade.isPickerDbEnabled()) {
-            return PickerUriResolver.wrapProviderUri(uri, Integer.parseInt(userId));
-        }
-        final Uri uriWithUserId =
-                PickerUriResolver.PICKER_URI.buildUpon().appendPath(userId).build();
-        return uriWithUserId.buildUpon().appendPath(id).build();
+        return PickerUriResolver.wrapProviderUri(uri, Integer.parseInt(userId));
     }
 
     /**
@@ -96,31 +85,10 @@ public class PickerResult {
     private static List<Uri> getPickerUrisForItems(@NonNull List<Item> ItemList) {
         List<Uri> uris = new ArrayList<>();
         for (Item item : ItemList) {
-            uris.add(getPickerUri(item.getContentUri(), item.getId()));
+            uris.add(getPickerUri(item.getContentUri()));
         }
 
         return uris;
     }
 
-    private static List<Uri> getRedactedUrisForItems(ContentResolver contentResolver,
-            List<Item> ItemList){
-        List<Uri> uris = new ArrayList<>();
-        for (Item item : ItemList) {
-            uris.add(item.getContentUri());
-        }
-
-        if (SdkLevel.isAtLeastS()) {
-            return getRedactedUriFromMediaStoreAPI(contentResolver, uris);
-        } else {
-            // TODO (b/168783994): directly call redacted uri code logic or explore other solution.
-            // This will be addressed in a follow up CL.
-            return uris;
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.S)
-    private static List<Uri> getRedactedUriFromMediaStoreAPI(ContentResolver contentResolver,
-            List<Uri> uris) {
-        return MediaStore.getRedactedUri(contentResolver, uris);
-    }
 }

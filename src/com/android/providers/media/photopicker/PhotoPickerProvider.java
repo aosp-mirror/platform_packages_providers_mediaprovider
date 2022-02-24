@@ -17,7 +17,7 @@
 package com.android.providers.media.photopicker;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
-import static android.provider.CloudMediaProvider.SurfaceEventCallback.PLAYBACK_EVENT_READY;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_READY;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 
 import android.annotation.DurationMillisLong;
@@ -163,12 +163,12 @@ public class PhotoPickerProvider extends CloudMediaProvider {
 
     @Override
     @Nullable
-    public SurfaceController onCreateSurfaceController(@Nullable Bundle config,
-            SurfaceEventCallback callback) {
+    public CloudMediaSurfaceController onCreateCloudMediaSurfaceController(@Nullable Bundle config,
+            CloudMediaSurfaceEventCallback callback) {
         if (RemotePreviewHandler.isRemotePreviewEnabled()) {
             boolean enableLoop = config != null && config.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED,
                     false);
-            return new SurfaceControllerImpl(getContext(), enableLoop, callback);
+            return new CloudMediaSurfaceControllerImpl(getContext(), enableLoop, callback);
         }
         return null;
     }
@@ -187,7 +187,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                 Long.parseLong(mediaId));
     }
 
-    private static final class SurfaceControllerImpl extends SurfaceController {
+    private static final class CloudMediaSurfaceControllerImpl extends CloudMediaSurfaceController {
 
         // The minimum duration of media that the player will attempt to ensure is buffered at all
         // times.
@@ -208,13 +208,14 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                         BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS).build();
 
         private final Context mContext;
-        private final SurfaceEventCallback mCallback;
+        private final CloudMediaSurfaceEventCallback mCallback;
         private final Handler mHandler = new Handler(Looper.getMainLooper());
         private final boolean mEnableLoop;
         private ExoPlayer mPlayer;
         private int mCurrentSurfaceId = -1;
 
-        SurfaceControllerImpl(Context context, boolean enableLoop, SurfaceEventCallback callback) {
+        CloudMediaSurfaceControllerImpl(Context context, boolean enableLoop,
+                CloudMediaSurfaceEventCallback callback) {
             mCallback = callback;
             mContext = context;
             mEnableLoop = enableLoop;

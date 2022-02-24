@@ -19,8 +19,6 @@ package com.android.providers.media.photopicker;
 import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_CLOUD;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 import static com.android.providers.media.photopicker.PickerSyncController.CloudProviderInfo;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 import static com.google.common.truth.Truth.assertThat;
 
 import android.content.Context;
@@ -46,7 +44,6 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,9 +75,6 @@ public class PickerSyncControllerTest {
     private static final String ALBUM_ID_1 = "1";
     private static final String ALBUM_ID_2 = "2";
 
-    private static final String MIME_TYPE_DEFAULT = STRING_DEFAULT;
-    private static final long SIZE_BYTES_DEFAULT = LONG_DEFAULT;
-
     private static final Pair<String, String> LOCAL_ONLY_1 = Pair.create(LOCAL_ID_1, null);
     private static final Pair<String, String> LOCAL_ONLY_2 = Pair.create(LOCAL_ID_2, null);
     private static final Pair<String, String> CLOUD_ONLY_1 = Pair.create(null, CLOUD_ID_1);
@@ -90,10 +84,6 @@ public class PickerSyncControllerTest {
 
     private static final String COLLECTION_1 = "1";
     private static final String COLLECTION_2 = "2";
-
-    private static final String IMAGE_MIME_TYPE = "image/jpeg";
-    private static final String VIDEO_MIME_TYPE = "video/mp4";
-    private static final long SIZE_BYTES = 50;
 
     private static final long SYNC_DELAY_MS = 1000;
 
@@ -130,8 +120,6 @@ public class PickerSyncControllerTest {
         // Set cloud provider to null to avoid trying to sync it during other tests
         // that might be using an IsolatedContext
         mController.setCloudProvider(null);
-
-        Assume.assumeTrue(PickerDbFacade.isPickerDbEnabled());
     }
 
     @Test

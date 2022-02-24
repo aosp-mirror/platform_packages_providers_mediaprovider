@@ -27,8 +27,14 @@
     <!-- The background color of the profile button. -->
     <attr name="pickerProfileButtonColor" format="reference|color" />
 
+    <!-- The background color of the profile button when disabled. -->
+    <attr name="pickerDisabledProfileButtonColor" format="reference|color" />
+
     <!-- The text color of the profile button. -->
     <attr name="pickerProfileButtonTextColor" format="reference|color" />
+
+    <!-- The text color of the profile button when disabled. -->
+    <attr name="pickerDisabledProfileButtonTextColor" format="reference|color" />
 
     <!-- The selected background color of the tab. -->
     <attr name="pickerSelectedTabBackgroundColor" format="reference|color" />

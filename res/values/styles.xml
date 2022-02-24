@@ -88,7 +88,9 @@
         <item name="pickerHighlightColor">?android:attr/colorAccent</item>
         <item name="pickerHighlightTextColor">@android:color/white</item>
         <item name="pickerProfileButtonColor">#E8F0FE</item>
+        <item name="pickerDisabledProfileButtonColor">#DADADA</item>
         <item name="pickerProfileButtonTextColor">#0B57D0</item>
+        <item name="pickerDisabledProfileButtonTextColor">#1F1F1F</item>
         <item name="pickerSelectedTabBackgroundColor">#E8F0FE</item>
         <item name="pickerSelectedTabTextColor">#185ABC</item>
         <item name="pickerTextColor">?android:attr/textColorPrimary</item>

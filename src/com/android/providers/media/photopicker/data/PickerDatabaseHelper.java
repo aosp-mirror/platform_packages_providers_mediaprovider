@@ -125,12 +125,12 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "CHECK(local_id IS NOT NULL OR cloud_id IS NOT NULL),"
                 + "UNIQUE(local_id, is_visible))");
 
-        // TODO(b/219942243): Add generation_modified
         db.execSQL("CREATE TABLE album_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "local_id TEXT,"
                 + "cloud_id TEXT,"
                 + "album_id TEXT,"
                 + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
+                + "sync_generation INTEGER NOT NULL CHECK(sync_generation >= 0),"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "duration_ms INTEGER CHECK(duration_ms >= 0),"
                 + "mime_type TEXT NOT NULL,"

@@ -348,10 +348,10 @@ public class PickerSyncControllerTest {
         mController.syncAlbumMedia(ALBUM_ID_1);
         assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
 
-        // 4. Set cloud provider to local authority
-        mController.setCloudProvider(LOCAL_PROVIDER_AUTHORITY);
+        // 4. Set primary cloud provider again
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
-        // 4a. Sync the first album
+        // 4a. Sync the first album and query local albums
         mController.syncAlbumMedia(ALBUM_ID_1);
         try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, true)) {
             assertThat(cr.getCount()).isEqualTo(1);
@@ -367,8 +367,7 @@ public class PickerSyncControllerTest {
             assertCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER_AUTHORITY);
         }
 
-        // 5. Set primary cloud provider once again
-        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        // 5. Sync and query cloud albums
         mController.syncAlbumMedia(ALBUM_ID_1);
         try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, false)) {
             assertThat(cr.getCount()).isEqualTo(1);

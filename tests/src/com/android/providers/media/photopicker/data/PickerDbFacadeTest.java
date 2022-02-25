@@ -46,6 +46,7 @@ public class PickerDbFacadeTest {
     private static final long DURATION_MS = 5;
     private static final String LOCAL_ID = "50";
     private static final String CLOUD_ID = "asdfghjkl;";
+    private static final String ALBUM_ID = "testAlbum";
     private static final String VIDEO_MIME_TYPE = "video/mp4";
     private static final String IMAGE_MIME_TYPE = "image/jpeg";
     private static final int STANDARD_MIME_TYPE_EXTENSION =
@@ -67,7 +68,7 @@ public class PickerDbFacadeTest {
     }
 
     @Test
-    public void testAddLocalOnly() throws Exception {
+    public void testAddLocalOnlyMedia() throws Exception {
         Cursor cursor1 = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS + 1);
         Cursor cursor2 = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS + 2);
 
@@ -152,6 +153,54 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS + 1);
+        }
+    }
+
+    @Test
+    public void testAddLocalAlbumMedia() {
+        Cursor cursor1 = getAlbumMediaCursor(LOCAL_ID, DATE_TAKEN_MS + 1, true);
+        Cursor cursor2 = getAlbumMediaCursor(LOCAL_ID, DATE_TAKEN_MS + 2, true);
+
+        assertAddAlbumMediaOperation(LOCAL_PROVIDER, cursor1, 1, ALBUM_ID);
+
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID, true)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS + 1);
+        }
+
+        // Test updating the same row. We always do a full sync for album media files.
+        assertResetAlbumMediaOperation(LOCAL_PROVIDER, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(LOCAL_PROVIDER, cursor2, 1, ALBUM_ID);
+
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID, true)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS + 2);
+        }
+    }
+
+    @Test
+    public void testAddCloudAlbumMedia() {
+        Cursor cursor1 = getAlbumMediaCursor(CLOUD_ID, DATE_TAKEN_MS + 1, false);
+        Cursor cursor2 = getAlbumMediaCursor(CLOUD_ID, DATE_TAKEN_MS + 2, false);
+
+        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cursor1, 1, ALBUM_ID);
+
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID, false)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 1);
+        }
+
+        // Test updating the same row. We always do a full sync for album media files.
+        assertResetAlbumMediaOperation(CLOUD_PROVIDER, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cursor2, 1, ALBUM_ID);
+
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID, false)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 2);
         }
     }
 
@@ -946,9 +995,23 @@ public class PickerDbFacadeTest {
                 new PickerDbFacade.QueryFilterBuilder(1000).build());
     }
 
+    private Cursor queryAlbumMedia(String albumId, boolean isLocal) {
+        return mFacade.queryAlbumMediaForUi(
+                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId).build(), isLocal);
+    }
+
     private void assertAddMediaOperation(String authority, Cursor cursor, int writeCount) {
         try (PickerDbFacade.DbWriteOperation operation =
                      mFacade.beginAddMediaOperation(authority)) {
+            assertWriteOperation(operation, cursor, writeCount);
+            operation.setSuccess();
+        }
+    }
+
+    private void assertAddAlbumMediaOperation(String authority, Cursor cursor, int writeCount,
+            String albumId) {
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginAddAlbumMediaOperation(authority, albumId)) {
             assertWriteOperation(operation, cursor, writeCount);
             operation.setSuccess();
         }
@@ -966,6 +1029,15 @@ public class PickerDbFacadeTest {
         try (PickerDbFacade.DbWriteOperation operation =
                      mFacade.beginResetMediaOperation(authority)) {
             assertWriteOperation(operation, cursor, writeCount);
+            operation.setSuccess();
+        }
+    }
+
+    private void assertResetAlbumMediaOperation(String authority, int writeCount,
+            String albumId) {
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginResetAlbumMediaOperation(authority, albumId)) {
+            assertWriteOperation(operation, null, writeCount);
             operation.setSuccess();
         }
     }
@@ -1016,10 +1088,45 @@ public class PickerDbFacadeTest {
         return c;
     }
 
+    private static Cursor getAlbumMediaCursor(String id, long dateTakenMs, long generationModified,
+            String mediaStoreUri, long sizeBytes, String mimeType, int standardMimeTypeExtension) {
+        String[] projectionKey = new String[] {
+                MediaColumns.ID,
+                MediaColumns.MEDIA_STORE_URI,
+                MediaColumns.DATE_TAKEN_MILLIS,
+                MediaColumns.SYNC_GENERATION,
+                MediaColumns.SIZE_BYTES,
+                MediaColumns.MIME_TYPE,
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
+                MediaColumns.DURATION_MILLIS,
+        };
+
+        String[] projectionValue = new String[] {
+                id,
+                mediaStoreUri,
+                String.valueOf(dateTakenMs),
+                String.valueOf(generationModified),
+                String.valueOf(sizeBytes),
+                mimeType,
+                String.valueOf(standardMimeTypeExtension),
+                String.valueOf(DURATION_MS)
+        };
+
+        MatrixCursor c = new MatrixCursor(projectionKey);
+        c.addRow(projectionValue);
+        return c;
+    }
+
     private static Cursor getLocalMediaCursor(String localId, long dateTakenMs) {
         return getMediaCursor(localId, dateTakenMs, GENERATION_MODIFIED, toMediaStoreUri(localId),
                 SIZE_BYTES, VIDEO_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION,
                 /* isFavorite */ false);
+    }
+
+    private static Cursor getAlbumMediaCursor(String mediaId, long dateTakenMs, boolean isLocal) {
+        return getAlbumMediaCursor(mediaId, dateTakenMs, GENERATION_MODIFIED,
+                isLocal ? toMediaStoreUri(mediaId) : null,
+                SIZE_BYTES, VIDEO_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION);
     }
 
     private static Cursor getCloudMediaCursor(String cloudId, String localId,

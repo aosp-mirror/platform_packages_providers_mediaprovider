@@ -105,10 +105,10 @@
     <!-- PhotoPicker view selected action text. [CHAR LIMIT=80] -->
     <string name="picker_view_selected">View selected</string>
 
-    <!-- The text of the photos chip on the toolbar for PhotoPicker. [CHAR LIMIT=30] -->
+    <!-- The text of the photos tab on the toolbar for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="picker_photos">Photos</string>
 
-    <!-- The text of the albums chip on the toolbar for PhotoPicker. [CHAR LIMIT=30] -->
+    <!-- The text of the albums tab on the toolbar for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="picker_albums">Albums</string>
 
     <!-- The text of the switching work/personal profile in PhotoPicker. [CHAR LIMIT=80] -->

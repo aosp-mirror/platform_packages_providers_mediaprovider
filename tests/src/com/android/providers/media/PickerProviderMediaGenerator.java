@@ -61,6 +61,7 @@ public class PickerProviderMediaGenerator {
             MediaColumns.MIME_TYPE,
             MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
             MediaColumns.DATE_TAKEN_MILLIS,
+            MediaColumns.SYNC_GENERATION,
             MediaColumns.SIZE_BYTES,
             MediaColumns.DURATION_MILLIS,
     };
@@ -298,6 +299,7 @@ public class PickerProviderMediaGenerator {
                     mimeType,
                     String.valueOf(standardMimeTypeExtension),
                     String.valueOf(dateTakenMs),
+                    String.valueOf(generation),
                     String.valueOf(sizeBytes),
                     String.valueOf(durationMs)
             };

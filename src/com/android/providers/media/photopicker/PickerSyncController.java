@@ -134,10 +134,6 @@ public class PickerSyncController {
      * Syncs the local and currently enabled cloud {@link CloudMediaProvider} instances
      */
     public void syncAllMedia() {
-        if (!PickerDbFacade.isPickerDbEnabled()) {
-            return;
-        }
-
         syncAllMediaFromProvider(mLocalProvider);
 
         synchronized (mLock) {
@@ -154,10 +150,6 @@ public class PickerSyncController {
      * instances
      */
     public void syncAlbumMedia(String albumId) {
-        if (!PickerDbFacade.isPickerDbEnabled()) {
-            return;
-        }
-
         syncAlbumMediaFromProvider(mLocalProvider, albumId);
 
         synchronized (mLock) {

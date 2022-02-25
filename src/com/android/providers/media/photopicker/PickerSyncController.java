@@ -574,6 +574,7 @@ public class PickerSyncController {
                 /* cancellationSignal */ null);
     }
 
+    // TODO(b/195008834): Verify Cursor extras: extra_honored_args and extra_media_collection_id
     private void executePagedSync(Uri uri, Bundle queryArgs,
             PickerDbFacade.DbWriteOperation dbWriteOperation) {
         int cursorCount = 0;

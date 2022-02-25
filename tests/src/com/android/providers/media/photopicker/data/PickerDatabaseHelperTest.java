@@ -37,13 +37,14 @@ import org.junit.runner.RunWith;
 public class PickerDatabaseHelperTest {
     private static final String TAG = "PickerDatabaseHelperTest";
 
-    private static final String SQLITE_MASTER_ORDER_BY = "type,name,tbl_name";
     private static final String TEST_PICKER_DB = "test_picker";
     static final String MEDIA_TABLE = "media";
+    static final String ALBUM_MEDIA_TABLE = "album_media";
 
     private static final String KEY_LOCAL_ID = "local_id";
     private static final String KEY_CLOUD_ID = "cloud_id";
     private static final String KEY_IS_VISIBLE = "is_visible";
+    private static final String KEY_ALBUM_ID = "album_id";
     private static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
     private static final String KEY_SYNC_GENERATION = "sync_generation";
     private static final String KEY_SIZE_BYTES = "size_bytes";
@@ -56,6 +57,7 @@ public class PickerDatabaseHelperTest {
     private static final long DATE_TAKEN_MS = 1623852851911L;
     private static final long GENERATION_MODIFIED = 1L;
     private static final String CLOUD_ID = "asdfghjkl;";
+    private static final String ALBUM_ID = "testAlbum;";
     private static final String MIME_TYPE = "video/mp4";
     private static final int STANDARD_MIME_TYPE_EXTENSION =
             CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF;
@@ -70,7 +72,7 @@ public class PickerDatabaseHelperTest {
     }
 
     @Test
-    public void testColumns() throws Exception {
+    public void testMediaColumns() throws Exception {
         String[] projection = new String[] {
             KEY_LOCAL_ID,
             KEY_CLOUD_ID,
@@ -99,6 +101,48 @@ public class PickerDatabaseHelperTest {
                     assertThat(cr.getLong(0)).isEqualTo(LOCAL_ID);
                     assertThat(cr.getString(1)).isEqualTo(CLOUD_ID);
                     assertThat(cr.getInt(2)).isEqualTo(1);
+                    assertThat(cr.getLong(3)).isEqualTo(DATE_TAKEN_MS);
+                    assertThat(cr.getLong(4)).isEqualTo(GENERATION_MODIFIED);
+                    assertThat(cr.getLong(5)).isEqualTo(SIZE_BYTES);
+                    assertThat(cr.getLong(6)).isEqualTo(DURATION_MS);
+                    assertThat(cr.getString(7)).isEqualTo(MIME_TYPE);
+                    assertThat(cr.getInt(8)).isEqualTo(STANDARD_MIME_TYPE_EXTENSION);
+                }
+            }
+        }
+    }
+
+
+    @Test
+    public void testAlbumMediaColumns() throws Exception {
+        String[] projection = new String[] {
+                KEY_LOCAL_ID,
+                KEY_CLOUD_ID,
+                KEY_ALBUM_ID,
+                KEY_DATE_TAKEN_MS,
+                KEY_SYNC_GENERATION,
+                KEY_SIZE_BYTES,
+                KEY_DURATION_MS,
+                KEY_MIME_TYPE,
+                KEY_STANDARD_MIME_TYPE_EXTENSION
+        };
+
+        try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
+            SQLiteDatabase db = helper.getWritableDatabase();
+
+            // All fields specified
+            ContentValues values = getBasicContentValues();
+            values.put(KEY_LOCAL_ID, LOCAL_ID);
+            values.put(KEY_ALBUM_ID, ALBUM_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isNotEqualTo(-1);
+
+            try (Cursor cr = db.query(ALBUM_MEDIA_TABLE, projection, null, null, null, null,
+                    null)) {
+                assertThat(cr.getCount()).isEqualTo(1);
+                while (cr.moveToNext()) {
+                    assertThat(cr.getLong(0)).isEqualTo(LOCAL_ID);
+                    assertThat(cr.getString(1)).isEqualTo(null);
+                    assertThat(cr.getString(2)).isEqualTo(ALBUM_ID);
                     assertThat(cr.getLong(3)).isEqualTo(DATE_TAKEN_MS);
                     assertThat(cr.getLong(4)).isEqualTo(GENERATION_MODIFIED);
                     assertThat(cr.getLong(5)).isEqualTo(SIZE_BYTES);
@@ -152,6 +196,37 @@ public class PickerDatabaseHelperTest {
             values.put(KEY_LOCAL_ID, LOCAL_ID);
             values.put(KEY_IS_VISIBLE, 1);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+        }
+    }
+
+    @Test
+    public void testUniqueConstraintAlbumMedia() throws Exception {
+        try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
+            SQLiteDatabase db = helper.getWritableDatabase();
+
+            // Local Album Media
+            ContentValues values = getBasicContentValues();
+            values.put(KEY_LOCAL_ID, LOCAL_ID);
+            values.put(KEY_ALBUM_ID, ALBUM_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isNotEqualTo(-1);
+
+            // Another local for Album Media
+            values = getBasicContentValues();
+            values.put(KEY_LOCAL_ID, LOCAL_ID);
+            values.put(KEY_ALBUM_ID, ALBUM_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // Cloud for Album Media
+            values = getBasicContentValues();
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            values.put(KEY_ALBUM_ID, ALBUM_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isNotEqualTo(-1);
+
+            // Another Cloud for Album Media
+            values = getBasicContentValues();
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            values.put(KEY_ALBUM_ID, ALBUM_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
     }
 
@@ -240,6 +315,18 @@ public class PickerDatabaseHelperTest {
             values.put(KEY_SIZE_BYTES, 0);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // size_bytes=NULL for Album Media Table
+            values = getBasicContentValues();
+            values.remove(KEY_SIZE_BYTES);
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // size_bytes=0 for Album Media Table
+            values = getBasicContentValues();
+            values.put(KEY_SIZE_BYTES, 0);
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
     }
 
@@ -253,6 +340,12 @@ public class PickerDatabaseHelperTest {
             values.remove(KEY_MIME_TYPE);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // mime_type=NULL for Album Media
+            values = getBasicContentValues();
+            values.remove(KEY_MIME_TYPE);
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
     }
 
@@ -272,6 +365,18 @@ public class PickerDatabaseHelperTest {
             values.put(KEY_DATE_TAKEN_MS, -1);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // date_taken_ms=NULL for Album Media
+            values = getBasicContentValues();
+            values.remove(KEY_DATE_TAKEN_MS);
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // date_taken_ms=-1 for Album Media
+            values = getBasicContentValues();
+            values.put(KEY_DATE_TAKEN_MS, -1);
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
     }
 
@@ -291,6 +396,18 @@ public class PickerDatabaseHelperTest {
             values.put(KEY_SYNC_GENERATION, -1);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // generation_modified=NULL for Album Media
+            values = getBasicContentValues();
+            values.remove(KEY_SYNC_GENERATION);
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // generation_modified=-1 for Album Media
+            values = getBasicContentValues();
+            values.put(KEY_SYNC_GENERATION, -1);
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
     }
 
@@ -304,6 +421,12 @@ public class PickerDatabaseHelperTest {
             values.put(KEY_DURATION_MS, -1);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // duration=-1
+            values = getBasicContentValues();
+            values.put(KEY_DURATION_MS, -1);
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
     }
 

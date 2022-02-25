@@ -37,13 +37,13 @@
 
     <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
-        <item name="pickerChipBackgroundColor">@color/picker_background_color</item>
+        <item name="pickerTabBackgroundColor">@color/picker_background_color</item>
         <item name="pickerHighlightColor">?android:attr/colorAccent</item>
         <item name="pickerHighlightTextColor">#202124</item>
         <item name="pickerProfileButtonColor">#1F1F1F</item>
         <item name="pickerProfileButtonTextColor">#A8C7FA</item>
-        <item name="pickerSelectedChipBackgroundColor">#3D8AB4F8</item>
-        <item name="pickerSelectedChipTextColor">#8AB4F8</item>
+        <item name="pickerSelectedTabBackgroundColor">#3D8AB4F8</item>
+        <item name="pickerSelectedTabTextColor">#8AB4F8</item>
         <item name="pickerTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerSelectedColor">?android:attr/colorAccent</item>
     </style>

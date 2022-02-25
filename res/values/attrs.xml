@@ -15,8 +15,8 @@
 -->
 <resources>
 
-    <!-- The default background color of the chip. -->
-    <attr name="pickerChipBackgroundColor" format="reference|color" />
+    <!-- The default background color of the tab. -->
+    <attr name="pickerTabBackgroundColor" format="reference|color" />
 
     <!-- The highlight color of the photo picker. E.g. Add button -->
     <attr name="pickerHighlightColor" format="reference|color" />
@@ -30,11 +30,11 @@
     <!-- The text color of the profile button. -->
     <attr name="pickerProfileButtonTextColor" format="reference|color" />
 
-    <!-- The selected background color of the chip. -->
-    <attr name="pickerSelectedChipBackgroundColor" format="reference|color" />
+    <!-- The selected background color of the tab. -->
+    <attr name="pickerSelectedTabBackgroundColor" format="reference|color" />
 
-    <!-- The selected text color of the chip. -->
-    <attr name="pickerSelectedChipTextColor" format="reference|color" />
+    <!-- The selected text color of the tab. -->
+    <attr name="pickerSelectedTabTextColor" format="reference|color" />
 
     <!-- The most prominent text color of the photo picker.  -->
     <attr name="pickerTextColor" format="reference|color" />

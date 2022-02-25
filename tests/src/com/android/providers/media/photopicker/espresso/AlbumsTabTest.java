@@ -52,16 +52,16 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
     @Test
     public void testAlbumGrid() {
         // Goto Albums page
-        onView(allOf(withText(R.string.picker_albums), withParent(withId(R.id.chip_container))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
 
         // Verify that toolbar has correct components
-        onView(withId(CHIP_CONTAINER_ID)).check(matches((isDisplayed())));
-        // Photos chip
-        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(withId(TAB_LAYOUT_ID)).check(matches((isDisplayed())));
+        // Photos tab
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .check(matches((isDisplayed())));
-        // Albums chip
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        // Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .check(matches((isDisplayed())));
         // Navigate up button
         onView(withContentDescription("Navigate up")).check(matches((isDisplayed())));

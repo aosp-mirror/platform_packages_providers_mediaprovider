@@ -185,10 +185,10 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
 
         // Verify that only one item is being previewed. Swipe left and right, and verify we still
         // have ImageView in preview.
-        swipeLeftAndWait();
+        swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
         onView(withId(imageViewId)).check(matches(isDisplayed()));
 
-        swipeRightAndWait();
+        swipeRightAndWait(PREVIEW_VIEW_PAGER_ID);
         onView(withId(imageViewId)).check(matches(isDisplayed()));
     }
 

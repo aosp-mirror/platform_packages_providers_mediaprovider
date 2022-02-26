@@ -48,7 +48,6 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -90,11 +89,8 @@ public class PickerDataLayerTest {
     private static final Pair<String, String> LOCAL_ONLY_2 = Pair.create(LOCAL_ID_2, null);
     private static final Pair<String, String> CLOUD_ONLY_1 = Pair.create(null, CLOUD_ID_1);
     private static final Pair<String, String> CLOUD_ONLY_2 = Pair.create(null, CLOUD_ID_2);
-    private static final Pair<String, String> CLOUD_AND_LOCAL_1
-            = Pair.create(LOCAL_ID_1, CLOUD_ID_1);
 
     private static final String COLLECTION_1 = "1";
-    private static final String COLLECTION_2 = "2";
 
     private static final String IMAGE_MIME_TYPE = "image/jpeg";
     private static final String VIDEO_MIME_TYPE = "video/mp4";
@@ -128,11 +124,8 @@ public class PickerDataLayerTest {
         mController = new PickerSyncController(mContext, mFacade, LOCAL_PROVIDER_AUTHORITY,
                 /* syncDelay */ 0);
 
-        // Set cloud provider to null to avoid trying to sync it during other tests
-        // that might be using an IsolatedContext
-        mController.setCloudProvider(null);
-
-        Assume.assumeTrue(PickerDbFacade.isPickerDbEnabled());
+        // Set cloud provider to null to discard
+        mFacade.setCloudProvider(null);
     }
 
     @Test

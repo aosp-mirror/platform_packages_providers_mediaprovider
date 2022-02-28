@@ -58,7 +58,6 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getSingleSelectionIntent());
 
     @Test
-    @Ignore("Enable after b/218806007 is fixed")
     public void testPhotoGridLayout_photoGrid() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -75,7 +74,6 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    @Ignore("Enable after b/218806007 is fixed")
     public void testPhotoGridLayout_image() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -91,7 +89,6 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    @Ignore("Enable after b/218806007 is fixed")
     public void testPhotoGridLayout_video() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 

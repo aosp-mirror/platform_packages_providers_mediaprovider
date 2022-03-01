@@ -223,7 +223,7 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    public void testTabSwiping() {
+    public void testTabSwiping() throws Exception {
         onView(withId(TAB_LAYOUT_ID)).check(matches(isDisplayed()));
 
         // If we want to swipe the viewPager2 of tabContainerFragment in Espresso tests, at least 90
@@ -252,10 +252,8 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
             IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
         }
 
-        final ViewPager2IdlingResource viewPager2IdlingResource = ViewPager2IdlingResource.register(
-                mRule, TAB_VIEW_PAGER_ID);
-
-        try {
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, TAB_VIEW_PAGER_ID)) {
             // Swipe left, we should see albums tab
             swipeLeftAndWait(TAB_VIEW_PAGER_ID);
 
@@ -279,9 +277,6 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
             onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
                     .atPositionOnView(0, R.id.date_header_title))
                     .check(matches(withText(R.string.recent)));
-        } finally {
-            IdlingRegistry.getInstance().unregister(viewPager2IdlingResource);
         }
-
     }
 }

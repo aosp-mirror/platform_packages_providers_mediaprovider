@@ -30,7 +30,6 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import android.Manifest;
-import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
@@ -50,7 +49,6 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.scan.MediaScannerTest;
 
 import org.junit.AfterClass;
@@ -79,14 +77,6 @@ public class PickerUriResolverTest {
     private static class TestPickerUriResolver extends PickerUriResolver {
         TestPickerUriResolver(Context context) {
             super(context, new PickerDbFacade(getTargetContext()));
-        }
-
-        @Override
-        protected Uri getRedactedUri(ContentResolver contentResolver, Uri uri) {
-            // Cannot mock static method MediaStore.getRedactedUri(). Cannot mock implementation of
-            // MediaStore.getRedactedUri as it depends on final methods which cannot be mocked as
-            // well.
-            return uri;
         }
 
         @Override

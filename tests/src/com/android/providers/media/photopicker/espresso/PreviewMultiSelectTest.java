@@ -148,13 +148,13 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
             final String addButtonString =
                     getTargetContext().getResources().getString(R.string.add);
             final int previewAddButtonId = R.id.preview_add_button;
-            final int previewSelectButtonId = R.id.preview_select_check_button;
-            final String deselectString =
-                    getTargetContext().getResources().getString(R.string.deselect);
+            final int previewSelectButtonId = R.id.preview_selected_check_button;
+            final String selectedString =
+                    getTargetContext().getResources().getString(R.string.selected);
 
-            // Verify that, initially, we show deselect button
+            // Verify that, initially, we show "selected" check button
             onView(withId(previewSelectButtonId)).check(matches(isSelected()));
-            onView(withId(previewSelectButtonId)).check(matches(withText(deselectString)));
+            onView(withId(previewSelectButtonId)).check(matches(withText(selectedString)));
             // Verify that the text in Add button matches
             onView(withId(previewAddButtonId))
                     .check(matches(withText(addButtonString + " (2)")));
@@ -162,7 +162,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
             // Deselect item in preview
             onView(withId(previewSelectButtonId)).perform(click());
             onView(withId(previewSelectButtonId)).check(matches(isNotSelected()));
-            onView(withId(previewSelectButtonId)).check(matches(withText(R.string.select)));
+            onView(withId(previewSelectButtonId)).check(matches(withText(R.string.deselected)));
             // Verify that the text in Add button now changes to "Add (1)"
             onView(withId(previewAddButtonId))
                     .check(matches(withText(addButtonString + " (1)")));
@@ -176,7 +176,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
             // Select the item again
             onView(withId(previewSelectButtonId)).perform(click());
             onView(withId(previewSelectButtonId)).check(matches(isSelected()));
-            onView(withId(previewSelectButtonId)).check(matches(withText(deselectString)));
+            onView(withId(previewSelectButtonId)).check(matches(withText(selectedString)));
             // Verify that the text in Add button now changes back to "Add (2)"
             onView(withId(previewAddButtonId))
                     .check(matches(withText(addButtonString + " (2)")));
@@ -375,11 +375,11 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
-        final int previewSelectButtonId = R.id.preview_select_check_button;
+        final int previewSelectedButtonId = R.id.preview_selected_check_button;
         try (ViewPager2IdlingResource idlingResource
                      = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
             // Deselect the image item
-            onView(withId(previewSelectButtonId)).perform(click());
+            onView(withId(previewSelectedButtonId)).perform(click());
 
             // Go back to Camera album and verify that item is deselected
             onView(withContentDescription("Navigate up")).perform(click());
@@ -400,7 +400,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         try (ViewPager2IdlingResource idlingResource
                      = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
             // Deselect the second image item
-            onView(withId(previewSelectButtonId)).perform(click());
+            onView(withId(previewSelectedButtonId)).perform(click());
         }
 
         // Go back to Photos tab and verify that second image item is deselected
@@ -416,8 +416,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     private void assertMultiSelectPreviewCommonLayoutDisplayed() {
         onView(withId(PREVIEW_VIEW_PAGER_ID)).check(matches(isDisplayed()));
         onView(withId(R.id.preview_add_button)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_select_check_button)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_select_check_button)).check(matches(isSelected()));
+        onView(withId(R.id.preview_selected_check_button)).check(matches(isDisplayed()));
+        onView(withId(R.id.preview_selected_check_button)).check(matches(isSelected()));
     }
 
     private Matcher<View> ViewPagerMatcher(int viewPagerId, int itemViewId) {

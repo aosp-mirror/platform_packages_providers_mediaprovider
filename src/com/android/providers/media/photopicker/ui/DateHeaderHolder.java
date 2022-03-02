@@ -41,7 +41,7 @@ public class DateHeaderHolder extends BaseViewHolder {
         if (dateTaken == 0) {
             mTitle.setText(R.string.recent);
         } else {
-            mTitle.setText(DateTimeUtils.getDateTimeString(dateTaken));
+            mTitle.setText(DateTimeUtils.getDateHeaderString(dateTaken));
         }
     }
 }

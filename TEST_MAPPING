@@ -61,15 +61,16 @@
             "name": "fuse_node_test"
         },
         {
-            "name": "CtsMediaProviderTranscodeTests"
-        },
-        {
             "name": "CtsPhotoPickerTest"
         }
     ],
     "postsubmit": [
         {
             "name": "MediaProviderClientTests"
+        },
+        {
+            // TODO(b/222253890): Move these tests back to presubmit once the bug is fixed.
+            "name": "CtsMediaProviderTranscodeTests"
         },
         {
             "name": "CtsAppSecurityHostTestCases",

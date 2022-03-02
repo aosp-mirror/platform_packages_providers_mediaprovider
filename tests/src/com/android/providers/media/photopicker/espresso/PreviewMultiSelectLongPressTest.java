@@ -247,7 +247,7 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
                     .check(matches(withText(R.string.select)));
         }
 
-        onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.preview_selected_check_button)).check(matches(not(isDisplayed())));
         onView(withId(R.id.preview_add_button)).check(matches(not(isDisplayed())));
     }
 }

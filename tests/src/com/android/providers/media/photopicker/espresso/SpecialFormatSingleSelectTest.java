@@ -33,13 +33,13 @@ import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_
 
 import static org.hamcrest.Matchers.not;
 
-import androidx.test.espresso.Espresso;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.espresso.action.ViewActions;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.providers.media.R;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -50,6 +50,7 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getSingleSelectionIntent());
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPhotoGridLayout_motionPhoto() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -66,6 +67,7 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/218806007 is fixed")
     public void testPhotoGridLayout_gif() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -95,7 +97,6 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
         assertSingleSelectImageThumbnailCommonLayout(ANIMATED_WEBP_POSITION);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION,
                 ICON_MOTION_PHOTO_ID);
-
     }
 
     @Test
@@ -127,12 +128,13 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
-
-        // Verify gif icon is displayed for gif preview
-        assertSingleSelectImagePreviewCommonLayout();
-        onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Verify gif icon is displayed for gif preview
+            assertSingleSelectImagePreviewCommonLayout();
+            onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        }
     }
 
     @Test
@@ -144,12 +146,13 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
-
-        // Verify gif icon is displayed for animated preview
-        assertSingleSelectImagePreviewCommonLayout();
-        onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Verify gif icon is displayed for animated preview
+            assertSingleSelectImagePreviewCommonLayout();
+            onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        }
     }
 
     @Test
@@ -161,12 +164,13 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, NON_ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
-
-        // Verify gif icon is not displayed for non-animated webp preview
-        assertSingleSelectImagePreviewCommonLayout();
-        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Verify gif icon is not displayed for non-animated webp preview
+            assertSingleSelectImagePreviewCommonLayout();
+            onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        }
     }
 
     @Test
@@ -178,18 +182,13 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
-
-        // Verify motion photo icon is displayed for motion photo preview
-        assertSingleSelectImagePreviewCommonLayout();
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(matches(isDisplayed()));
-        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
-    }
-
-    private void registerIdlingResourceAndWaitForIdle() {
-        mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
-                new ViewPager2IdlingResource(activity.findViewById(R.id.preview_viewPager)))));
-        Espresso.onIdle();
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Verify motion photo icon is displayed for motion photo preview
+            assertSingleSelectImagePreviewCommonLayout();
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(matches(isDisplayed()));
+            onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+        }
     }
 
     private void assertSingleSelectCommonLayoutMatches() {
@@ -198,7 +197,7 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
         // Verify that the text in Add button
         onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.add)));
 
-        onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.preview_selected_check_button)).check(matches(not(isDisplayed())));
         onView(withId(R.id.preview_add_button)).check(matches(not(isDisplayed())));
     }
 

@@ -21,7 +21,6 @@ import static com.android.providers.media.photopicker.util.CursorUtils.getCursor
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -29,7 +28,6 @@ import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
-import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
@@ -44,14 +42,11 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
-import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
-import com.android.providers.media.photopicker.data.PickerDbFacade;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -101,20 +96,10 @@ public class PickerUriResolver {
             Log.e(TAG, "No item at " + uri, e);
             throw new FileNotFoundException("No item at " + uri);
         }
-        if (PickerDbFacade.isPickerDbEnabled()) {
-            if (canHandleUriInUser(uri)) {
-                return openPickerFile(uri);
-            }
-            return resolver.openFile(uri, mode, signal);
+        if (canHandleUriInUser(uri)) {
+            return openPickerFile(uri);
         }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            uri = getRedactedFileUriFromPickerUri(uri, resolver);
-            return resolver.openFile(uri, "r", signal);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
+        return resolver.openFile(uri, mode, signal);
     }
 
     public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts,
@@ -130,29 +115,18 @@ public class PickerUriResolver {
             Log.e(TAG, "No item at " + uri, e);
             throw new FileNotFoundException("No item at " + uri);
         }
-        if (PickerDbFacade.isPickerDbEnabled()) {
-            if (canHandleUriInUser(uri)) {
-                return new AssetFileDescriptor(openPickerFile(uri), 0,
-                        AssetFileDescriptor.UNKNOWN_LENGTH);
-            }
-            return resolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal);
+        if (canHandleUriInUser(uri)) {
+            return new AssetFileDescriptor(openPickerFile(uri), 0,
+                    AssetFileDescriptor.UNKNOWN_LENGTH);
         }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            uri = getRedactedFileUriFromPickerUri(uri, resolver);
-            return resolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
+        return resolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal);
     }
 
-    public Cursor query(Uri uri, String[] projection, Bundle queryArgs, CancellationSignal signal,
-            int callingPid, int callingUid) {
+    public Cursor query(Uri uri, String[] projection, int callingPid, int callingUid) {
         checkUriPermission(uri, callingPid, callingUid);
 
         try {
-            return queryInternal(uri, projection, queryArgs, signal);
+            return queryInternal(uri, projection);
         } catch (IllegalArgumentException e) {
             // This is to be consistent with MediaProvider, it returns an empty cursor if the row
             // does not exist.
@@ -163,45 +137,31 @@ public class PickerUriResolver {
 
     // TODO(b/191362529): Restrict projection values when we start querying picker db.
     // Add PickerColumns and add checks for projection.
-    private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
-            CancellationSignal signal) {
+    private Cursor queryInternal(Uri uri, String[] projection) {
         final ContentResolver resolver = getContentResolverForUserId(uri);
 
-        if (PickerDbFacade.isPickerDbEnabled()) {
-            if (canHandleUriInUser(uri)) {
-                if (projection == null || projection.length == 0) {
-                    projection = new String[] {
+        if (canHandleUriInUser(uri)) {
+            if (projection == null || projection.length == 0) {
+                projection = new String[]{
                         MediaStore.PickerMediaColumns.DISPLAY_NAME,
                         MediaStore.PickerMediaColumns.DATA,
                         MediaStore.PickerMediaColumns.MIME_TYPE,
                         MediaStore.PickerMediaColumns.DATE_TAKEN,
                         MediaStore.PickerMediaColumns.SIZE,
                         MediaStore.PickerMediaColumns.DURATION_MILLIS
-                    };
-                }
-
-                return queryPickerUri(uri, projection);
+                };
             }
-            return resolver.query(uri, /* projection */ null, /* queryArgs */ null,
-                    /* cancellationSignal */ null);
-        }
 
-        final long token = Binder.clearCallingIdentity();
-        try {
-            // Support query similar to as we support for redacted mediastore file uris.
-            return resolver.query(getRedactedFileUriFromPickerUri(uri, resolver), projection,
-                    queryArgs, signal);
-        } finally {
-            Binder.restoreCallingIdentity(token);
+            return queryPickerUri(uri, projection);
         }
+        return resolver.query(uri, /* projection */ null, /* queryArgs */ null,
+                /* cancellationSignal */ null);
     }
 
     public String getType(@NonNull Uri uri) {
         // There's no permission check because ContentProviders allow anyone to check the mimetype
         // of a URI
-
-        try (Cursor cursor = queryInternal(uri, new String[]{MediaStore.MediaColumns.MIME_TYPE},
-                        /* queryArgs */ null, /* signal */ null)) {
+        try (Cursor cursor = queryInternal(uri, new String[]{MediaStore.MediaColumns.MIME_TYPE})) {
             if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
                 return getCursorString(cursor,
                         CloudMediaProviderContract.MediaColumns.MIME_TYPE);
@@ -221,14 +181,9 @@ public class PickerUriResolver {
                 + CloudMediaProviderContract.URI_PATH_DELETED_MEDIA);
     }
 
-    public static Uri getMediaInfoUri(String authority) {
+    public static Uri getMediaCollectionInfoUri(String authority) {
         return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_MEDIA_INFO);
-    }
-
-    public static Uri getAccountInfoUri(String authority) {
-        return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_ACCOUNT_INFO);
+                + CloudMediaProviderContract.URI_PATH_MEDIA_COLLECTION_INFO);
     }
 
     public static Uri getAlbumUri(String authority) {
@@ -255,6 +210,9 @@ public class PickerUriResolver {
         try (Cursor cursor = queryPickerUri(uri, projection)) {
             if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
                 String path = getCursorString(cursor, MediaStore.PickerMediaColumns.DATA);
+                // First replace /sdcard with /storage/emulated path
+                path = path.replaceFirst("/sdcard", "/storage/emulated/" + MediaStore.MY_USER_ID);
+                // Then convert /storage/emulated patht to /mnt/user/ path
                 return toFuseFile(new File(path));
             }
         }
@@ -367,7 +325,7 @@ public class PickerUriResolver {
 
     @VisibleForTesting
     ContentResolver getContentResolverForUserId(Uri uri) {
-            final UserId userId = UserId.of(UserHandle.of(getUserId(uri)));
+        final UserId userId = UserId.of(UserHandle.of(getUserId(uri)));
         try {
             return userId.getContentResolver(mContext);
         } catch (NameNotFoundException e) {

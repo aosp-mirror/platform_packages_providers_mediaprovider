@@ -28,7 +28,6 @@ import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
@@ -38,10 +37,8 @@ import android.provider.CloudMediaProviderContract;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
 
@@ -135,8 +132,6 @@ public class PickerUriResolver {
         }
     }
 
-    // TODO(b/191362529): Restrict projection values when we start querying picker db.
-    // Add PickerColumns and add checks for projection.
     private Cursor queryInternal(Uri uri, String[] projection) {
         final ContentResolver resolver = getContentResolverForUserId(uri);
 
@@ -270,33 +265,6 @@ public class PickerUriResolver {
         builder.encodedAuthority(authority);
 
         return builder;
-    }
-
-    /**
-     * @return {@link MediaStore.Files} Uri that always redacts sensitive data
-     */
-    private Uri getRedactedFileUriFromPickerUri(Uri uri, ContentResolver contentResolver) {
-        // content://media/picker/<user-id>/<media-id>
-        final long id = Long.parseLong(uri.getPathSegments().get(2));
-        final Uri res = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id);
-        return getRedactedUri(contentResolver, res);
-    }
-
-    @VisibleForTesting
-    Uri getRedactedUri(ContentResolver contentResolver, Uri uri) {
-        if (SdkLevel.isAtLeastS()) {
-            return getRedactedUriFromMediaStoreAPI(contentResolver, uri);
-        } else {
-            // TODO (b/201994830): directly call redacted uri code logic or explore other solution.
-            // Devices running on Android R cannot call getRedacted() as the API is added in
-            // Android S.
-            return uri;
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.S)
-    private static Uri getRedactedUriFromMediaStoreAPI(ContentResolver contentResolver, Uri uri) {
-        return MediaStore.getRedactedUri(contentResolver, uri);
     }
 
     @VisibleForTesting

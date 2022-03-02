@@ -18,18 +18,15 @@ package com.android.providers.media.photopicker.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import android.content.Context;
-
-import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.Locale;
 
 @RunWith(AndroidJUnit4.class)
@@ -41,50 +38,50 @@ public class DateTimeUtilsTest {
             FAKE_DATE.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
 
     @Test
-    public void testGetDateTimeString_today() throws Exception {
+    public void testGetDateHeaderString_today() throws Exception {
         final long when = generateDateTimeMillis(FAKE_DATE);
 
-        final String result = DateTimeUtils.getDateTimeString(when, FAKE_DATE);
+        String result = DateTimeUtils.getDateHeaderString(when, FAKE_DATE);
 
         assertThat(result).isEqualTo(DateTimeUtils.getTodayString());
     }
 
     @Test
-    public void testGetDateTimeString_yesterday() throws Exception {
+    public void testGetDateHeaderString_yesterday() throws Exception {
         final LocalDate whenDate = FAKE_DATE.minusDays(1);
         final long when = generateDateTimeMillis(whenDate);
 
-        final String result = DateTimeUtils.getDateTimeString(when, FAKE_DATE);
+        final String result = DateTimeUtils.getDateHeaderString(when, FAKE_DATE);
 
         assertThat(result).isEqualTo(DateTimeUtils.getYesterdayString());
     }
 
     @Test
-    public void testGetDateTimeString_weekday() throws Exception {
+    public void testGetDateHeaderString_weekday() throws Exception {
         final LocalDate whenDate = FAKE_DATE.minusDays(3);
         final long when = generateDateTimeMillis(whenDate);
 
-        final String result = DateTimeUtils.getDateTimeString(when, FAKE_DATE);
+        final String result = DateTimeUtils.getDateHeaderString(when, FAKE_DATE);
 
         assertThat(result).isEqualTo("Saturday");
     }
 
     @Test
-    public void testGetDateTimeString_weekdayAndDate() throws Exception {
+    public void testGetDateHeaderString_weekdayAndDate() throws Exception {
         final LocalDate whenDate = FAKE_DATE.minusMonths(1);
         final long when = generateDateTimeMillis(whenDate);
 
-        final String result = DateTimeUtils.getDateTimeString(when, FAKE_DATE);
+        final String result = DateTimeUtils.getDateHeaderString(when, FAKE_DATE);
 
         assertThat(result).isEqualTo("Sun, Jun 7");
     }
 
     @Test
-    public void testGetDateTimeString_weekdayDateAndYear() throws Exception {
+    public void testGetDateHeaderString_weekdayDateAndYear() throws Exception {
         final LocalDate whenDate = FAKE_DATE.minusYears(1);
         long when = generateDateTimeMillis(whenDate);
 
-        final String result = DateTimeUtils.getDateTimeString(when, FAKE_DATE);
+        final String result = DateTimeUtils.getDateHeaderString(when, FAKE_DATE);
 
         assertThat(result).isEqualTo("Sun, Jul 7, 2019");
     }
@@ -120,6 +117,45 @@ public class DateTimeUtilsTest {
     }
 
     @Test
+    public void testGetDateTimeStringForContentDesc() throws Exception {
+        final long when = generateDateTimeMillis(FAKE_DATE);
+
+        String result = DateTimeUtils.getDateTimeStringForContentDesc(when);
+
+        assertThat(result).isEqualTo("Jul 7, 2020, 12:00:00 AM");
+    }
+
+    @Test
+    public void testGetDateTimeStringForContentDesc_time() throws Exception {
+        long when = generateDateTimeMillisAt(
+                FAKE_DATE, /* hour */ 10, /* minute */ 10, /* second */ 10);
+
+        final String result = DateTimeUtils.getDateTimeStringForContentDesc(when);
+
+        assertThat(result).isEqualTo("Jul 7, 2020, 10:10:10 AM");
+    }
+
+    @Test
+    public void testGetDateTimeStringForContentDesc_singleDigitHour() throws Exception {
+        long when = generateDateTimeMillisAt(
+                FAKE_DATE, /* hour */ 1, /* minute */ 0, /* second */ 0);
+
+        final String result = DateTimeUtils.getDateTimeStringForContentDesc(when);
+
+        assertThat(result).isEqualTo("Jul 7, 2020, 1:00:00 AM");
+    }
+
+    @Test
+    public void testGetDateTimeStringForContentDesc_timePM() throws Exception {
+        long when = generateDateTimeMillisAt(
+                FAKE_DATE, /* hour */ 22, /* minute */ 0, /* second */ 0);
+
+        final String result = DateTimeUtils.getDateTimeStringForContentDesc(when);
+
+        assertThat(result).isEqualTo("Jul 7, 2020, 10:00:00 PM");
+    }
+
+    @Test
     public void testIsSameDay_differentYear_false() throws Exception {
         final LocalDate whenDate = FAKE_DATE.minusYears(1);
         long when = generateDateTimeMillis(whenDate);
@@ -150,5 +186,10 @@ public class DateTimeUtilsTest {
 
     private static long generateDateTimeMillis(LocalDate when) {
         return when.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+    }
+
+    private long generateDateTimeMillisAt(LocalDate when, int hour, int minute, int second) {
+        return ZonedDateTime.of(when.atTime(hour, minute, second), ZoneId.systemDefault())
+                .toInstant().toEpochMilli();
     }
 }

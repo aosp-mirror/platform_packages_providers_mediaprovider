@@ -25,16 +25,21 @@ import static com.android.providers.media.photopicker.data.model.Item.ItemColumn
 
 import static com.google.common.truth.Truth.assertThat;
 
+import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.UserHandle;
 import android.provider.MediaStore;
 
+import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @RunWith(AndroidJUnit4.class)
 public class ItemTest {
@@ -246,10 +251,28 @@ public class ItemTest {
         assertThat(item2SameValues.compareTo(item2)).isEqualTo(0);
     }
 
+    @Test
+    public void testGetContentDescription() {
+        final String id = "1";
+        final long dateTaken = LocalDate.of(2020 /* year */, 7 /* month */, 7 /* dayOfMonth */)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        final long generationModified = 1L;
+        final long duration = 1000;
+        final Context context = InstrumentationRegistry.getTargetContext();
+
+        Item item = generateItem(id, "image/jpeg", dateTaken, generationModified, duration);
+        assertThat(item.getContentDescription(context))
+                .isEqualTo("Photo taken on Jul 7, 2020, 12:00:00 AM");
+
+        item = generateItem(id, "video/mp4", dateTaken, generationModified, duration);
+        assertThat(item.getContentDescription(context))
+                .isEqualTo("Video taken on Jul 7, 2020, 12:00:00 AM");
+    }
+
     private static Cursor generateCursorForItem(String id, String mimeType, long dateTaken,
             long generationModified, long duration, int specialFormat) {
         final MatrixCursor cursor = new MatrixCursor(ItemColumns.ALL_COLUMNS);
-        cursor.addRow(new Object[] {id, mimeType, dateTaken, /* dateModified */ dateTaken,
+        cursor.addRow(new Object[] {id, mimeType, dateTaken, dateTaken /* dateModified */,
                 generationModified, duration, specialFormat});
         return cursor;
     }

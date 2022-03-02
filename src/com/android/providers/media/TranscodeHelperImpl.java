@@ -315,8 +315,12 @@ public class TranscodeHelperImpl implements TranscodeHelper {
             hasPlugin = false;
         } finally {
             if (decoder != null) {
-                decoder.stop();
-                decoder.release();
+                try {
+                    decoder.stop();
+                    decoder.release();
+                } catch (Exception e) {
+                    Log.w(TAG, "Unable to stop decoder", e);
+                }
             }
         }
         Log.i(TAG, "Device HDR Plugin is available: " + hasPlugin);

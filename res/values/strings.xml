@@ -85,8 +85,14 @@
     <!-- Deselect button for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="deselect">Deselect</string>
 
+    <!-- Deselected check button for PhotoPicker. [CHAR LIMIT=30] -->
+    <string name="deselected">Deselected</string>
+
     <!-- Select button for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="select">Select</string>
+
+    <!-- Selected check button for PhotoPicker. [CHAR LIMIT=30] -->
+    <string name="selected">Selected</string>
 
     <!-- Select up to max label message for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="select_up_to"> {count, plural,

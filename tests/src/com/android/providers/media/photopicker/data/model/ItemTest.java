@@ -51,9 +51,8 @@ public class ItemTest {
         final long generationModified = 1L;
         final String mimeType = "image/png";
         final long duration = 1000;
-        final int specialFormat = _SPECIAL_FORMAT_NONE;
         final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, generationModified,
-                duration, specialFormat);
+                duration, _SPECIAL_FORMAT_NONE);
         cursor.moveToFirst();
 
         final Item item = new Item(cursor, UserId.CURRENT_USER);
@@ -79,9 +78,8 @@ public class ItemTest {
         final long generationModified = 1L;
         final String mimeType = "image/png";
         final long duration = 1000;
-        final int specialFormat = _SPECIAL_FORMAT_NONE;
         final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, generationModified,
-                duration, specialFormat);
+                duration, _SPECIAL_FORMAT_NONE);
         cursor.moveToFirst();
         final UserId userId = UserId.of(UserHandle.of(10));
 
@@ -267,6 +265,21 @@ public class ItemTest {
         item = generateItem(id, "video/mp4", dateTaken, generationModified, duration);
         assertThat(item.getContentDescription(context))
                 .isEqualTo("Video taken on Jul 7, 2020, 12:00:00 AM");
+
+        item = generateSpecialFormatItem(id, "image/gif", dateTaken, generationModified, duration,
+                _SPECIAL_FORMAT_GIF);
+        assertThat(item.getContentDescription(context))
+                .isEqualTo("GIF taken on Jul 7, 2020, 12:00:00 AM");
+
+        item = generateSpecialFormatItem(id, "image/webp", dateTaken, generationModified, duration,
+                _SPECIAL_FORMAT_ANIMATED_WEBP);
+        assertThat(item.getContentDescription(context))
+                .isEqualTo("GIF taken on Jul 7, 2020, 12:00:00 AM");
+
+        item = generateSpecialFormatItem(id, "image/jpeg", dateTaken, generationModified, duration,
+                _SPECIAL_FORMAT_MOTION_PHOTO);
+        assertThat(item.getContentDescription(context))
+                .isEqualTo("Motion Photo taken on Jul 7, 2020, 12:00:00 AM");
     }
 
     private static Cursor generateCursorForItem(String id, String mimeType, long dateTaken,

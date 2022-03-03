@@ -420,6 +420,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
             icon.setTint(isPreview ? Color.WHITE : mToolBarIconColor);
         }
         getSupportActionBar().setHomeAsUpIndicator(icon);
+        getSupportActionBar().setHomeActionContentDescription(
+                shouldShowTabLayout ? android.R.string.cancel
+                        : R.string.abc_action_bar_up_description);
     }
 
     /**

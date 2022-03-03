@@ -31,6 +31,7 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewTestU
 
 import static org.hamcrest.Matchers.allOf;
 
+import androidx.test.InstrumentationRegistry;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
@@ -63,8 +64,11 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
         // Albums tab
         onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .check(matches((isDisplayed())));
-        // Navigate up button
-        onView(withContentDescription("Navigate up")).check(matches((isDisplayed())));
+        // Cancel button
+        final String cancelString =
+                InstrumentationRegistry.getTargetContext().getResources().getString(
+                        android.R.string.cancel);
+        onView(withContentDescription(cancelString)).check(matches((isDisplayed())));
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 

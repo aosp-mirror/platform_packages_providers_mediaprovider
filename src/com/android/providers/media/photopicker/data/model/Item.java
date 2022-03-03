@@ -213,9 +213,14 @@ public class Item {
         final String itemType;
         if (isVideo()) {
             itemType = context.getString(R.string.picker_video);
+        } else if (isGif() || isAnimatedWebp()) {
+            itemType = context.getString(R.string.picker_gif);
+        } else if (isMotionPhoto()) {
+            itemType = context.getString(R.string.picker_motion_photo);
         } else {
             itemType = context.getString(R.string.picker_photo);
         }
+
         return context.getString(R.string.picker_item_content_desc, itemType,
                 DateTimeUtils.getDateTimeStringForContentDesc(getDateTaken()));
     }

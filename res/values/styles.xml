@@ -68,6 +68,7 @@
     <style name="MaterialAlertDialogIconStyle"
            parent="@style/MaterialAlertDialog.MaterialComponents.Title.Icon.CenterStacked">
         <item name="android:tint">?android:attr/colorAccent</item>
+        <item name="android:importantForAccessibility">no</item>
         <item name="android:layout_width">@dimen/picker_profile_dialog_icon_width</item>
         <item name="android:layout_height">@dimen/picker_profile_dialog_icon_height</item>
     </style>

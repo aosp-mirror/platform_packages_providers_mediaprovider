@@ -20,10 +20,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <SurfaceView
-        android:id="@+id/preview_player_view"
+    <com.google.android.exoplayer2.ui.AspectRatioFrameLayout
+        android:id="@+id/preview_player_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_gravity="center">
+
+        <SurfaceView
+            android:id="@+id/preview_player_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </com.google.android.exoplayer2.ui.AspectRatioFrameLayout>
 
     <ImageView
         android:id="@+id/preview_video_image"

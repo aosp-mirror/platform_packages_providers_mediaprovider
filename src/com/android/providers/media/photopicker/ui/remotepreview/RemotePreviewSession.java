@@ -18,18 +18,22 @@ package com.android.providers.media.photopicker.ui.remotepreview;
 
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_ERROR_RETRIABLE_FAILURE;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_MEDIA_SIZE_CHANGED;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_PAUSED;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_READY;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ContentResolver;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PlaybackEvent;
 import android.util.Log;
 import android.view.Surface;
 import android.view.View;
-import android.widget.ImageView;
+
+import com.android.providers.media.photopicker.ui.PreviewVideoHolder;
 
 /**
  * Handles preview of a given media on a {@link Surface}.
@@ -42,7 +46,7 @@ final class RemotePreviewSession {
     private final String mMediaId;
     private final String mAuthority;
     private final SurfaceControllerProxy mSurfaceController;
-    private final ImageView mThumbnailView;
+    private final PreviewVideoHolder mPreviewVideoHolder;
 
     private boolean mIsSurfaceCreated = false;
     private boolean mIsPlaying = false;
@@ -50,12 +54,16 @@ final class RemotePreviewSession {
     private boolean mIsPlayerReady = false;
 
     RemotePreviewSession(int surfaceId, @NonNull String mediaId, @NonNull String authority,
-            @NonNull SurfaceControllerProxy surfaceController, @NonNull ImageView thumbnailView) {
+            @NonNull SurfaceControllerProxy surfaceController,
+            @NonNull PreviewVideoHolder previewVideoHolder) {
         this.mSurfaceId = surfaceId;
         this.mMediaId = mediaId;
         this.mAuthority = authority;
         this.mSurfaceController = surfaceController;
-        this.mThumbnailView = thumbnailView;
+        this.mPreviewVideoHolder = previewVideoHolder;
+        // We hide the player view till the player is ready. However, since we want the surface to
+        // be created, we cannot use View.GONE here.
+        mPreviewVideoHolder.getPlayerContainer().setVisibility(View.INVISIBLE);
     }
 
     int getSurfaceId() {
@@ -148,6 +156,10 @@ final class RemotePreviewSession {
             case PLAYBACK_EVENT_PAUSED:
                 mIsPlaying = false;
                 return;
+            case PLAYBACK_EVENT_MEDIA_SIZE_CHANGED:
+                Point size = eventInfo.getParcelable(ContentResolver.EXTRA_SIZE);
+                updateAspectRatio(size.x, size.y);
+                return;
             default:
         }
     }
@@ -160,7 +172,8 @@ final class RemotePreviewSession {
             throw new IllegalStateException("Player is already playing.");
         }
 
-        mThumbnailView.setVisibility(View.GONE);
+        mPreviewVideoHolder.getPlayerContainer().setVisibility(View.VISIBLE);
+        mPreviewVideoHolder.getThumbnailView().setVisibility(View.GONE);
 
         try {
             mSurfaceController.onMediaPlay(mSurfaceId);
@@ -168,5 +181,10 @@ final class RemotePreviewSession {
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to play media.", e);
         }
+    }
+
+    private void updateAspectRatio(int width, int height) {
+        float aspectRatio = width / (float) height;
+        mPreviewVideoHolder.getPlayerContainer().setAspectRatio(aspectRatio);
     }
 }

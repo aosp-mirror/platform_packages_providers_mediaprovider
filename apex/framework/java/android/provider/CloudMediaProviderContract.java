@@ -391,6 +391,26 @@ public final class CloudMediaProviderContract {
     public static final String EXTRA_PAGE_TOKEN = "android.provider.extra.PAGE_TOKEN";
 
     /**
+     * {@link MediaCollectionInfo#MEDIA_COLLECTION_ID} on which the media or album query occurred.
+     *
+     * <p>
+     * Providers must set this token as part of the {@link Cursor#setExtras}
+     * {@link Bundle} returned from the cursors on query.
+     * This allows the OS to verify that the returned results match the
+     * {@link MediaCollectionInfo#MEDIA_COLLECTION_ID} queried via
+     * {@link CloudMediaProvider#onGetMediaCollectionInfo}. If the collection differs, the OS will
+     * ignore the result and may try again.
+     *
+     * @see CloudMediaProvider#onQueryMedia
+     * @see CloudMediaProvider#onQueryDeletedMedia
+     * @see CloudMediaProvider#onQueryAlbums
+     * <p>
+     * Type: STRING
+     */
+    public static final String EXTRA_MEDIA_COLLECTION_ID =
+            "android.provider.extra.MEDIA_COLLECTION_ID";
+
+    /**
      * Generation number to fetch the latest media or album metadata changes from the media
      * collection.
      * <p>

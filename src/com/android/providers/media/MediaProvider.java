@@ -1223,16 +1223,15 @@ public class MediaProvider extends ContentProvider {
         // Forget any stale volumes
         deleteStaleVolumes(signal);
 
-        // Populate _SPECIAL_FORMAT column for files which have column value as NULL
-        // TODO(b/219894107): Revisit the corner case handling for detectSpecialFormat
-        // detectSpecialFormat(signal);
-
         final long itemCount = mExternalDatabase.runWithTransaction((db) -> {
             return DatabaseHelper.getItemCount(db);
         });
 
         // Cleaning media files for users that have been removed
         cleanMediaFilesForRemovedUser(signal);
+
+        // Populate _SPECIAL_FORMAT column for files which have column value as NULL
+        detectSpecialFormat(signal);
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,

@@ -65,6 +65,8 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     @Override
     public void onBindViewHolder(@NonNull BaseViewHolder holder, int position) {
         final Item item = getItem(position);
+        holder.itemView.setContentDescription(
+                item.getContentDescription(holder.itemView.getContext()));
         holder.itemView.setTag(item);
         holder.bind();
 

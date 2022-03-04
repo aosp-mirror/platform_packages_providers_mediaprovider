@@ -750,7 +750,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
             try {
                 mCallback.onPlaybackEvent(surfaceId, playbackEventType, playbackEventInfo);
             } catch (Exception e) {
-                Log.d(TAG, "Failed to notify playback event (" + playbackEventType + ") for "
+                Log.w(TAG, "Failed to notify playback event (" + playbackEventType + ") for "
                         + "surfaceId: " + surfaceId + " ; playbackEventInfo: " + playbackEventInfo,
                         e);
             }

@@ -42,6 +42,7 @@ import static org.hamcrest.Matchers.not;
 
 import android.app.Activity;
 
+import androidx.test.InstrumentationRegistry;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.espresso.action.ViewActions;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
@@ -74,13 +75,16 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
         onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
         onView(withId(android.R.id.empty)).check(matches(not(isDisplayed())));
-        onView(withContentDescription("Navigate up")).perform(click());
+
+        final String cancelString =
+                InstrumentationRegistry.getTargetContext().getResources().getString(
+                        android.R.string.cancel);
+        onView(withContentDescription(cancelString)).perform(click());
         assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
                 Activity.RESULT_CANCELED);
     }
 
     @Test
-    @Ignore("Enable after b/218806007 is fixed")
     public void testDoesNotShowProfileButton() {
         // Register bottom sheet idling resource so that we don't read bottom sheet state when
         // in between changing states
@@ -131,7 +135,6 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    @Ignore("Enable after b/218806007 is fixed")
     public void testBottomSheetState() {
         // Register bottom sheet idling resource so that we don't read bottom sheet state when
         // in between changing states

@@ -206,6 +206,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * {@link CloudMediaProviderContract.MediaColumns#DATE_TAKEN_MILLIS}, i.e. most recent items
      * first.
      * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
+     * {@link Cursor#setExtras} {@link Bundle}. Not setting this is an error and invalidates the
+     * returned {@link Cursor}.
+     * <p>
      * If the cloud media provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
      * {@link Cursor#setExtras} {@link Bundle}.
@@ -228,6 +233,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * within the current provider version as returned by {@link #onGetMediaCollectionInfo}. These
      * items can be optionally filtered by {@code extras}.
      * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
+     * {@link Cursor#setExtras} {@link Bundle}. Not setting this is an error and invalidates the
+     * returned {@link Cursor}.
+     * <p>
      * If the provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
      * {@link Cursor#setExtras} {@link Bundle}.
@@ -249,6 +259,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * by {@code extras} and sorted in reverse chronological order of
      * {@link CloudMediaProviderContract.AlbumColumns#DATE_TAKEN_MILLIS}, i.e. most recent items
      * first.
+     * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
+     * {@link Cursor#setExtras} {@link Bundle}. Not setting this is an error and invalidates the
+     * returned {@link Cursor}.
      * <p>
      * If the provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
@@ -755,7 +770,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
             try {
                 mCallback.onPlaybackEvent(surfaceId, playbackEventType, playbackEventInfo);
             } catch (Exception e) {
-                Log.d(TAG, "Failed to notify playback event (" + playbackEventType + ") for "
+                Log.w(TAG, "Failed to notify playback event (" + playbackEventType + ") for "
                         + "surfaceId: " + surfaceId + " ; playbackEventInfo: " + playbackEventInfo,
                         e);
             }

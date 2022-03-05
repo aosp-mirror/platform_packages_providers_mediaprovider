@@ -226,6 +226,7 @@ import com.android.providers.media.photopicker.PickerDataLayer;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
@@ -1195,16 +1196,15 @@ public class MediaProvider extends ContentProvider {
         // Forget any stale volumes
         deleteStaleVolumes(signal);
 
-        // Populate _SPECIAL_FORMAT column for files which have column value as NULL
-        // TODO(b/219894107): Revisit the corner case handling for detectSpecialFormat
-        // detectSpecialFormat(signal);
-
         final long itemCount = mExternalDatabase.runWithTransaction((db) -> {
             return DatabaseHelper.getItemCount(db);
         });
 
         // Cleaning media files for users that have been removed
         cleanMediaFilesForRemovedUser(signal);
+
+        // Populate _SPECIAL_FORMAT column for files which have column value as NULL
+        detectSpecialFormat(signal);
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
@@ -3236,6 +3236,10 @@ public class MediaProvider extends ContentProvider {
 
         // TODO(b/195008831): Add test to verify that apps can't access
         if (table == PICKER_INTERNAL_MEDIA) {
+            String albumId = queryArgs.getString(MediaStore.QUERY_ARG_ALBUM_ID);
+            if (!TextUtils.isEmpty(albumId) && !Category.CATEGORY_FAVORITES.equals(albumId)) {
+                mPickerSyncController.syncAlbumMedia(albumId);
+            }
             return mPickerDataLayer.fetchMedia(queryArgs);
         } else if (table == PICKER_INTERNAL_ALBUMS) {
             return mPickerDataLayer.fetchAlbums(queryArgs);

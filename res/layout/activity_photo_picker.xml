@@ -68,13 +68,16 @@
             <androidx.fragment.app.FragmentContainerView
                 android:id="@+id/fragment_container"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"/>
+                android:layout_height="match_parent"
+                android:accessibilityTraversalAfter="@+id/profile_button"/>
 
             <com.google.android.material.appbar.AppBarLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="top"
                 android:background="@android:color/transparent"
+                android:importantForAccessibility="yes"
+                android:accessibilityTraversalAfter="@+id/privacy_text"
                 app:liftOnScroll="true">
 
                 <androidx.appcompat.widget.Toolbar
@@ -117,6 +120,7 @@
                 android:textColor="?attr/pickerProfileButtonTextColor"
                 android:text="@string/picker_work_profile"
                 android:visibility="gone"
+                android:accessibilityTraversalAfter="@+id/tab_layout"
                 app:backgroundTint="?attr/pickerProfileButtonColor"
                 app:borderWidth="0dp"
                 app:elevation="3dp"

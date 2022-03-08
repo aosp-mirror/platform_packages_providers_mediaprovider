@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.data;
 
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.PickerMediaColumns;
+import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
@@ -696,7 +697,8 @@ public class PickerDbFacade {
 
         synchronized (mLock) {
             if (authority.equals(mLocalProvider) || authority.equals(mCloudProvider)) {
-                return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
+                return qb.query(mDatabase, getMediaStoreProjectionLocked(authority, mediaId,
+                                projection),
                         /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
                         /* orderBy */ null, /* limitStr */ null);
             }
@@ -790,7 +792,8 @@ public class PickerDbFacade {
         };
     }
 
-    private String[] getMediaStoreProjectionLocked(String[] columns) {
+    private String[] getMediaStoreProjectionLocked(String authority, String mediaId,
+            String[] columns) {
         final String[] projection = new String[columns.length];
 
         for (int i = 0; i < projection.length; i++) {
@@ -818,8 +821,9 @@ public class PickerDbFacade {
                             PickerMediaColumns.DURATION_MILLIS);
                     break;
                 default:
-                    projection[i] = "";
-                    Log.w(TAG, "Unexpected MediaStore column: " + columns[i]);
+                    Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
+                    throw new IllegalArgumentException("Unexpected picker URI projection. Uri:"
+                            + uri + ". Column:" + columns[i]);
             }
         }
 

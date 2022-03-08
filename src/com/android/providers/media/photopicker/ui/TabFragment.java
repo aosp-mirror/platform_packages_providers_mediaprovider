@@ -105,10 +105,13 @@ public abstract class TabFragment extends Fragment {
         mEmptyView = view.findViewById(android.R.id.empty);
         mEmptyTextView = mEmptyView.findViewById(R.id.empty_text_view);
 
-        mButtonDisabledIconAndTextColor = getContext().getColor(
-                R.color.picker_profile_disabled_button_content_color);
-        mButtonDisabledBackgroundColor = getContext().getColor(
-                R.color.picker_profile_disabled_button_background_color);
+        final int[] attrsDisabled =
+                new int[]{R.attr.pickerDisabledProfileButtonColor,
+                        R.attr.pickerDisabledProfileButtonTextColor};
+        final TypedArray taDisabled = getContext().obtainStyledAttributes(attrsDisabled);
+        mButtonDisabledBackgroundColor = taDisabled.getColor(/* index */ 0, /* defValue */ -1);
+        mButtonDisabledIconAndTextColor = taDisabled.getColor(/* index */ 1, /* defValue */ -1);
+        taDisabled.recycle();
 
         final int[] attrs =
                 new int[]{R.attr.pickerProfileButtonColor, R.attr.pickerProfileButtonTextColor};

@@ -21,5 +21,4 @@
 
     <!-- PhotoPicker -->
     <color name="picker_background_color">#202124</color>
-    <color name="picker_drag_bar_color">#686868</color>
 </resources>

@@ -113,6 +113,7 @@ public class CloudProviderQueryExtras {
         qfb.setSizeBytes(mSizeBytes);
         qfb.setMimeType(mMimeType);
         qfb.setIsFavorite(mIsFavorite);
+        qfb.setAlbumId(mAlbumId);
         return qfb.build();
     }
 

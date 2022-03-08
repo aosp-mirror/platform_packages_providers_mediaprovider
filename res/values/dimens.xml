@@ -63,7 +63,7 @@
     <dimen name="picker_tab_horizontal_gap">4dp</dimen>
 
     <dimen name="picker_drag_margin_top">16dp</dimen>
-    <dimen name="picker_drag_margin_bottom">12dp</dimen>
+    <dimen name="picker_drag_margin_bottom">16dp</dimen>
 
     <dimen name="picker_privacy_text_margin_top">8dp</dimen>
     <dimen name="picker_privacy_text_margin_bottom">16dp</dimen>

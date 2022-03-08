@@ -22,7 +22,9 @@
         <item name="pickerHighlightColor">@android:color/system_accent2_100</item>
         <item name="pickerHighlightTextColor">?android:attr/textColorPrimaryInverse</item>
         <item name="pickerProfileButtonColor">@android:color/system_accent2_100</item>
+        <item name="pickerDisabledProfileButtonColor">@android:color/system_neutral1_700</item>
         <item name="pickerProfileButtonTextColor">?android:attr/textColorPrimaryInverse</item>
+        <item name="pickerDisabledProfileButtonTextColor">?android:attr/textColorTertiary</item>
         <item name="pickerSelectedTabBackgroundColor">@android:color/system_accent2_100</item>
         <item name="pickerSelectedTabTextColor">?android:attr/textColorPrimaryInverse</item>
         <item name="pickerTextColor">?android:attr/textColorSecondary</item>

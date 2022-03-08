@@ -752,7 +752,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
         /**
          * Constant to notify that the media size is first known or has changed.
          *
-         * Pass the width and height of the video as a {@link Point} inside the {@link Bundle} with
+         * Pass the width and height of the media as a {@link Point} inside the {@link Bundle} with
          * {@link ContentResolver#EXTRA_SIZE} as the key.
          *
          * @see CloudMediaSurfaceEventCallback#onPlaybackEvent(int, int, Bundle)

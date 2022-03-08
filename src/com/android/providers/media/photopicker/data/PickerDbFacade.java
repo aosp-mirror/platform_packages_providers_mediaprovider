@@ -744,7 +744,7 @@ public class PickerDbFacade {
     }
 
     public static int getDefaultPickerDbSyncDelayMs() {
-        return SystemProperties.getInt(PROP_DEFAULT_SYNC_DELAY_MS, 1000);
+        return SystemProperties.getInt(PROP_DEFAULT_SYNC_DELAY_MS, 5000);
     }
 
     private boolean isLocal(String authority) {

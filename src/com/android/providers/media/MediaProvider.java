@@ -6364,18 +6364,22 @@ public class MediaProvider extends ContentProvider {
             }
 
             FuseDaemon fuseDaemon = getFuseDaemonForFile(file);
-            String outputPath = fuseDaemon.getOriginalMediaFormatFilePath(inputPfd);
-            if (TextUtils.isEmpty(outputPath)) {
+            int uid = Binder.getCallingUid();
+
+            FdAccessResult result = fuseDaemon.checkFdAccess(inputPfd, uid);
+            if (!result.isSuccess()) {
                 throw new FileNotFoundException("Invalid path for original media format file");
             }
+
+            String outputPath = result.filePath;
+            boolean shouldRedact = result.shouldRedact;
 
             int posixMode = Os.fcntlInt(inputPfd.getFileDescriptor(), F_GETFL,
                     0 /* args */);
             int modeBits = FileUtils.translateModePosixToPfd(posixMode);
-            int uid = Binder.getCallingUid();
 
             ParcelFileDescriptor pfd = openWithFuse(outputPath, uid, 0 /* mediaCapabilitiesUid */,
-                    modeBits, true /* shouldRedact */, false /* shouldTranscode */,
+                    modeBits, shouldRedact, false /* shouldTranscode */,
                     0 /* transcodeReason */);
             return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
         } catch (IOException e) {

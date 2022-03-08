@@ -69,15 +69,13 @@
                 android:id="@+id/fragment_container"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:accessibilityTraversalAfter="@+id/profile_button"/>
+                android:importantForAccessibility="yes"/>
 
             <com.google.android.material.appbar.AppBarLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="top"
                 android:background="@android:color/transparent"
-                android:importantForAccessibility="yes"
-                android:accessibilityTraversalAfter="@+id/privacy_text"
                 app:liftOnScroll="true">
 
                 <androidx.appcompat.widget.Toolbar
@@ -85,6 +83,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="?attr/actionBarSize"
                     android:background="@color/picker_background_color"
+                    android:importantForAccessibility="yes"
+                    android:accessibilityTraversalAfter="@+id/privacy_text"
+                    android:accessibilityTraversalBefore="@+id/fragment_container"
                     app:titleTextColor="?attr/pickerTextColor"
                     app:titleTextAppearance="@style/PickerToolbarTitleTextAppearance">
 
@@ -120,7 +121,8 @@
                 android:textColor="?attr/pickerProfileButtonTextColor"
                 android:text="@string/picker_work_profile"
                 android:visibility="gone"
-                android:accessibilityTraversalAfter="@+id/tab_layout"
+                android:accessibilityTraversalAfter="@+id/toolbar"
+                android:accessibilityTraversalBefore="@+id/fragment_container"
                 app:backgroundTint="?attr/pickerProfileButtonColor"
                 app:borderWidth="0dp"
                 app:elevation="3dp"

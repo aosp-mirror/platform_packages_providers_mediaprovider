@@ -17,9 +17,10 @@
 package com.android.providers.media.photopicker;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_READY;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_BUFFERING;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_COMPLETED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_MEDIA_SIZE_CHANGED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_READY;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 
 import android.annotation.DurationMillisLong;
@@ -64,6 +65,7 @@ import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.upstream.ContentDataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.util.Clock;
+import com.google.android.exoplayer2.video.VideoSize;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -209,7 +211,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         private final CloudMediaSurfaceEventCallback mCallback;
         private final Handler mHandler = new Handler(Looper.getMainLooper());
         private final boolean mEnableLoop;
-        private final Player.EventListener mEventListener = new Player.EventListener() {
+        private final Player.Listener mEventListener = new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(@State int state) {
                 Log.d(TAG, "Received player event " + state);
@@ -229,6 +231,15 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                         return;
                     default:
                 }
+            }
+
+            @Override
+            public void onVideoSizeChanged(VideoSize videoSize) {
+                Point size = new Point(videoSize.width, videoSize.height);
+                Bundle bundle = new Bundle();
+                bundle.putParcelable(ContentResolver.EXTRA_SIZE, size);
+                mCallback.onPlaybackEvent(mCurrentSurfaceId, PLAYBACK_EVENT_MEDIA_SIZE_CHANGED,
+                        bundle);
             }
         };
 

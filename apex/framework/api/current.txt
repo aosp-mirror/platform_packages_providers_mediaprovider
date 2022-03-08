@@ -46,6 +46,7 @@ package android.provider {
     field public static final int PLAYBACK_EVENT_COMPLETED = 5; // 0x5
     field public static final int PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE = 7; // 0x7
     field public static final int PLAYBACK_EVENT_ERROR_RETRIABLE_FAILURE = 6; // 0x6
+    field public static final int PLAYBACK_EVENT_MEDIA_SIZE_CHANGED = 8; // 0x8
     field public static final int PLAYBACK_EVENT_PAUSED = 4; // 0x4
     field public static final int PLAYBACK_EVENT_READY = 2; // 0x2
     field public static final int PLAYBACK_EVENT_STARTED = 3; // 0x3

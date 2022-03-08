@@ -21,7 +21,6 @@
     <!-- PhotoPicker -->
     <color name="picker_background_color">@android:color/white</color>
     <color name="picker_default_white">@android:color/white</color>
-    <color name="picker_drag_bar_color">#DADCE0</color>
 
     <!-- PhotoPicker check button -->
     <color name="picker_unselected_check_color">@android:color/white</color>

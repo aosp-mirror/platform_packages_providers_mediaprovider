@@ -136,7 +136,9 @@ public class ItemsProvider {
             extras.putInt(MediaStore.QUERY_ARG_LIMIT, limit);
             extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
             if (category != null) {
-                extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category);
+                if (!Category.CATEGORY_FAVORITES.equals(category)) {
+                    extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category);
+                }
                 extras.putString(MediaStore.QUERY_ARG_ALBUM_TYPE,
                         Category.CATEGORY_FAVORITES.equals(category)
                         ? AlbumColumns.TYPE_FAVORITES : AlbumColumns.TYPE_LOCAL);

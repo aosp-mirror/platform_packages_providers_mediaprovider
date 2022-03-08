@@ -40,9 +40,9 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
-import android.widget.ImageView;
 
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.ui.PreviewVideoHolder;
 
 import java.util.Map;
 
@@ -82,19 +82,18 @@ public final class RemotePreviewHandler {
     /**
      * Prepares the given {@link SurfaceView} for remote preview of the given {@link Item}.
      *
-     * @param surfaceView {@link SurfaceView} for preview of the media item
-     * @param imageView   {@link ImageView} for thumbnail of the media item
+     * @param viewHolder {@link PreviewVideoHolder} for the media item under preview
      * @param item        {@link Item} to be previewed
      * @return true if the given {@link Item} can be previewed remotely, else false
      */
-    public boolean onViewAttachedToWindow(SurfaceView surfaceView, ImageView imageView, Item item) {
-        RemotePreviewSession session = createRemotePreviewSession(item, imageView);
+    public boolean onViewAttachedToWindow(PreviewVideoHolder viewHolder, Item item) {
+        RemotePreviewSession session = createRemotePreviewSession(item, viewHolder);
         if (session == null) {
             Log.w(TAG, "Failed to create RemotePreviewSession.");
             return false;
         }
 
-        SurfaceHolder holder = surfaceView.getHolder();
+        SurfaceHolder holder = viewHolder.getSurfaceHolder();
         mSessionMap.put(holder, session);
         // Ensure that we don't add the same callback twice, since we don't remove callbacks
         // anywhere else.
@@ -102,7 +101,7 @@ public final class RemotePreviewHandler {
         holder.addCallback(mSurfaceHolderCallback);
 
         mCurrentPreviewState.item = item;
-        mCurrentPreviewState.thumbnailView = imageView;
+        mCurrentPreviewState.viewHolder = viewHolder;
 
         return true;
     }
@@ -144,7 +143,8 @@ public final class RemotePreviewHandler {
         destroyAllSurfaceControllers();
     }
 
-    private RemotePreviewSession createRemotePreviewSession(Item item, ImageView imageView) {
+    private RemotePreviewSession createRemotePreviewSession(Item item,
+            PreviewVideoHolder previewVideoHolder) {
         String authority = item.getContentUri().getAuthority();
         SurfaceControllerProxy controller = getSurfaceController(authority);
         if (controller == null) {
@@ -152,13 +152,13 @@ public final class RemotePreviewHandler {
         }
 
         return new RemotePreviewSession(mSurfaceCounter++, item.getId(), authority, controller,
-                imageView);
+                previewVideoHolder);
     }
 
     private void restorePreviewState(SurfaceHolder holder) {
-        mCurrentPreviewState.thumbnailView.setVisibility(View.VISIBLE);
+        mCurrentPreviewState.viewHolder.getThumbnailView().setVisibility(View.VISIBLE);
         RemotePreviewSession session = createRemotePreviewSession(mCurrentPreviewState.item,
-                mCurrentPreviewState.thumbnailView);
+                mCurrentPreviewState.viewHolder);
         if (session == null) {
             throw new IllegalStateException("Failed to restore preview state.");
         }
@@ -293,6 +293,6 @@ public final class RemotePreviewHandler {
 
     private static final class ItemPreviewState {
         Item item;
-        ImageView thumbnailView;
+        PreviewVideoHolder viewHolder;
     }
 }

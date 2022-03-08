@@ -14,15 +14,17 @@ apex {
 apex_defaults {
     name: "com.android.mediaprovider-defaults",
     bootclasspath_fragments: ["com.android.mediaprovider-bootclasspath-fragment"],
-    prebuilts: ["current_sdkinfo"],
+    prebuilts: [
+        "current_sdkinfo",
+        "privapp_allowlist_com.android.providers.media.module.xml"
+    ],
     key: "com.android.mediaprovider.key",
     certificate: ":com.android.mediaprovider.certificate",
     file_contexts: ":com.android.mediaprovider-file_contexts",
-    min_sdk_version: "30",
+    defaults: ["r-launched-apex-module"],
     // Indicates that pre-installed version of this apex can be compressed.
     // Whether it actually will be compressed is controlled on per-device basis.
     compressible: true,
-    updatable: true,
 }
 
 apex_key {

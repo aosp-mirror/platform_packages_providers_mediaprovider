@@ -81,7 +81,10 @@ android_app {
         ],
     },
 
-    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
+    required: [
+        "preinstalled-packages-com.android.providers.media.module.xml",
+        "privapp_allowlist_com.android.providers.media.module.xml",
+    ],
 
     lint: {
         strict_updatability_linting: true,

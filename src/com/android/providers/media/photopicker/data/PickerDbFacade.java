@@ -933,7 +933,9 @@ public class PickerDbFacade {
                     values.put(KEY_DURATION_MS, cursor.getLong(index));
                     break;
                 case CloudMediaProviderContract.MediaColumns.IS_FAVORITE:
-                    values.put(KEY_IS_FAVORITE, cursor.getInt(index));
+                    if(TextUtils.isEmpty(albumId)) {
+                        values.put(KEY_IS_FAVORITE, cursor.getInt(index));
+                    }
                     break;
                 default:
                     Log.w(TAG, "Unexpected cursor key: " + key);

@@ -23,7 +23,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/preview_viewPager"
-        android:layout_gravity="center"/>
+        android:layout_gravity="center"
+        android:accessibilityTraversalBefore="@+id/toolbar"/>
 
     <!-- Adds scrim for Toolbar -->
     <FrameLayout
@@ -48,7 +49,9 @@
         android:layout_gravity="bottom"
         android:layout_width="match_parent"
         android:layout_height="@dimen/picker_bottom_bar_size"
-        android:paddingHorizontal="@dimen/preview_buttons_padding_horizontal">
+        android:paddingHorizontal="@dimen/preview_buttons_padding_horizontal"
+        android:importantForAccessibility="yes"
+        android:accessibilityTraversalAfter="@+id/toolbar">
 
         <!-- Buttons for Preview on Long press. Visible by default -->
         <Button

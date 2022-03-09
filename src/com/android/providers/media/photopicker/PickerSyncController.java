@@ -98,6 +98,7 @@ public class PickerSyncController {
     private final SharedPreferences mUserPrefs;
     private final String mLocalProvider;
     private final long mSyncDelayMs;
+    private final Runnable mSyncAllMediaCallback;
 
     // TODO(b/190713331): Listen for package_removed
     @GuardedBy("mLock")
@@ -118,6 +119,7 @@ public class PickerSyncController {
         mDbFacade = dbFacade;
         mLocalProvider = localProvider;
         mSyncDelayMs = syncDelayMs;
+        mSyncAllMediaCallback = this::syncAllMedia;
 
         final String cloudProvider = mUserPrefs.getString(PREFS_KEY_CLOUD_PROVIDER,
                 DEFAULT_CLOUD_PROVIDER_PKG);
@@ -300,8 +302,8 @@ public class PickerSyncController {
      * notifications.
      */
     public void notifyMediaEvent() {
-        BackgroundThread.getHandler().removeCallbacks(this::syncAllMedia);
-        BackgroundThread.getHandler().postDelayed(this::syncAllMedia, mSyncDelayMs);
+        BackgroundThread.getHandler().removeCallbacks(mSyncAllMediaCallback);
+        BackgroundThread.getHandler().postDelayed(mSyncAllMediaCallback, mSyncDelayMs);
     }
 
 
@@ -574,6 +576,7 @@ public class PickerSyncController {
                 /* cancellationSignal */ null);
     }
 
+    // TODO(b/195008834): Verify Cursor extras: extra_honored_args and extra_media_collection_id
     private void executePagedSync(Uri uri, Bundle queryArgs,
             PickerDbFacade.DbWriteOperation dbWriteOperation) {
         int cursorCount = 0;

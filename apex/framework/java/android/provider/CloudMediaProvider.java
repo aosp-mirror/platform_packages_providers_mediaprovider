@@ -47,6 +47,7 @@ import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
@@ -188,6 +189,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * {@link CloudMediaProviderContract.MediaColumns#DATE_TAKEN_MILLIS}, i.e. most recent items
      * first.
      * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
+     * {@link Cursor#setExtras} {@link Bundle}. Not setting this is an error and invalidates the
+     * returned {@link Cursor}.
+     * <p>
      * If the cloud media provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
      * {@link Cursor#setExtras} {@link Bundle}.
@@ -210,6 +216,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * within the current provider version as returned by {@link #onGetMediaCollectionInfo}. These
      * items can be optionally filtered by {@code extras}.
      * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
+     * {@link Cursor#setExtras} {@link Bundle}. Not setting this is an error and invalidates the
+     * returned {@link Cursor}.
+     * <p>
      * If the provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
      * {@link Cursor#setExtras} {@link Bundle}.
@@ -231,6 +242,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * by {@code extras} and sorted in reverse chronological order of
      * {@link CloudMediaProviderContract.AlbumColumns#DATE_TAKEN_MILLIS}, i.e. most recent items
      * first.
+     * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
+     * {@link Cursor#setExtras} {@link Bundle}. Not setting this is an error and invalidates the
+     * returned {@link Cursor}.
      * <p>
      * If the provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
@@ -672,7 +688,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
                 PLAYBACK_EVENT_PAUSED,
                 PLAYBACK_EVENT_COMPLETED,
                 PLAYBACK_EVENT_ERROR_RETRIABLE_FAILURE,
-                PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE
+                PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE,
+                PLAYBACK_EVENT_MEDIA_SIZE_CHANGED
         })
         @Retention(RetentionPolicy.SOURCE)
         public @interface PlaybackEvent {}
@@ -712,6 +729,17 @@ public abstract class CloudMediaProvider extends ContentProvider {
          */
         public static final int PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE = 7;
 
+        /**
+         * Constant to notify that the media size is first known or has changed.
+         *
+         * Pass the width and height of the video as a {@link Point} inside the {@link Bundle} with
+         * {@link ContentResolver#EXTRA_SIZE} as the key.
+         *
+         * @see CloudMediaSurfaceEventCallback#onPlaybackEvent(int, int, Bundle)
+         * @see MediaPlayer.OnVideoSizeChangedListener#onVideoSizeChanged(MediaPlayer, int, int)
+         */
+        public static final int PLAYBACK_EVENT_MEDIA_SIZE_CHANGED = 8;
+
         private final ICloudSurfaceEventCallback mCallback;
 
         CloudMediaSurfaceEventCallback (ICloudSurfaceEventCallback callback) {
@@ -725,17 +753,15 @@ public abstract class CloudMediaProvider extends ContentProvider {
          * @param surfaceId id which uniquely identifies a {@link Surface}
          * @param playbackEventType playback event type to notify picker about
          * @param playbackEventInfo {@link Bundle} which may contain extra information about the
-         *                          playback event. There is no particular event info that
-         *                          we are currently expecting. This may change if we want to
-         *                          support more features for Video Preview like progress/seek
-         *                          bar or show video playback error messages to the user.
+         *                          playback event, such as media size, progress/seek info or
+         *                          details about errors.
          */
         public void onPlaybackEvent(int surfaceId, @PlaybackEvent int playbackEventType,
                 @Nullable Bundle playbackEventInfo) {
             try {
                 mCallback.onPlaybackEvent(surfaceId, playbackEventType, playbackEventInfo);
             } catch (Exception e) {
-                Log.d(TAG, "Failed to notify playback event (" + playbackEventType + ") for "
+                Log.w(TAG, "Failed to notify playback event (" + playbackEventType + ") for "
                         + "surfaceId: " + surfaceId + " ; playbackEventInfo: " + playbackEventInfo,
                         e);
             }

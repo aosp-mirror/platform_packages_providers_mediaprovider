@@ -46,6 +46,7 @@ package android.provider {
     field public static final int PLAYBACK_EVENT_COMPLETED = 5; // 0x5
     field public static final int PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE = 7; // 0x7
     field public static final int PLAYBACK_EVENT_ERROR_RETRIABLE_FAILURE = 6; // 0x6
+    field public static final int PLAYBACK_EVENT_MEDIA_SIZE_CHANGED = 8; // 0x8
     field public static final int PLAYBACK_EVENT_PAUSED = 4; // 0x4
     field public static final int PLAYBACK_EVENT_READY = 2; // 0x2
     field public static final int PLAYBACK_EVENT_STARTED = 3; // 0x3
@@ -55,6 +56,7 @@ package android.provider {
     field public static final String EXTRA_FILTER_ALBUM = "android.provider.extra.FILTER_ALBUM";
     field public static final String EXTRA_FILTER_MIME_TYPE = "android.provider.extra.FILTER_MIME_TYPE";
     field public static final String EXTRA_LOOPING_PLAYBACK_ENABLED = "android.provider.extra.LOOPING_PLAYBACK_ENABLED";
+    field public static final String EXTRA_MEDIA_COLLECTION_ID = "android.provider.extra.MEDIA_COLLECTION_ID";
     field public static final String EXTRA_PAGE_TOKEN = "android.provider.extra.PAGE_TOKEN";
     field public static final String EXTRA_PREVIEW_THUMBNAIL = "android.provider.extra.PREVIEW_THUMBNAIL";
     field public static final String EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED = "android.provider.extra.SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED";
@@ -118,7 +120,7 @@ package android.provider {
     method public static boolean isCurrentCloudMediaProviderAuthority(@NonNull android.content.ContentResolver, @NonNull String);
     method public static boolean isCurrentSystemGallery(@NonNull android.content.ContentResolver, int, @NonNull String);
     method public static boolean isSupportedCloudMediaProviderAuthority(@NonNull android.content.ContentResolver, @NonNull String);
-    method public static boolean notifyCloudMediaChangedEvent(@NonNull android.content.ContentResolver, @NonNull String);
+    method public static void notifyCloudMediaChangedEvent(@NonNull android.content.ContentResolver, @NonNull String, @NonNull String) throws java.lang.SecurityException;
     method @Deprecated @NonNull public static android.net.Uri setIncludePending(@NonNull android.net.Uri);
     method @NonNull public static android.net.Uri setRequireOriginal(@NonNull android.net.Uri);
     field public static final String ACTION_IMAGE_CAPTURE = "android.media.action.IMAGE_CAPTURE";

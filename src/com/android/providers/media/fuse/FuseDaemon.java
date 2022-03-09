@@ -22,6 +22,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.GuardedBy;
+import com.android.providers.media.FdAccessResult;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.util.FileUtils;
 
@@ -179,13 +180,13 @@ public final class FuseDaemon extends Thread {
         }
     }
 
-    public String getOriginalMediaFormatFilePath(ParcelFileDescriptor fileDescriptor)
+    public FdAccessResult checkFdAccess(ParcelFileDescriptor fileDescriptor, int uid)
             throws IOException {
         synchronized (mLock) {
             if (mPtr == 0) {
                 throw new IOException("FUSE daemon unavailable");
             }
-            return native_get_original_media_format_file_path(mPtr, fileDescriptor.getFd());
+            return native_check_fd_access(mPtr, fileDescriptor.getFd(), uid);
         }
     }
 
@@ -201,7 +202,7 @@ public final class FuseDaemon extends Thread {
             int fd);
     private native void native_invalidate_fuse_dentry_cache(long daemon, String path);
     private native boolean native_is_started(long daemon);
-    private native String native_get_original_media_format_file_path(long daemon, int fd);
+    private native FdAccessResult native_check_fd_access(long daemon, int fd, int uid);
     private native void native_initialize_device_id(long daemon, String path);
     public static native boolean native_is_fuse_thread();
 }

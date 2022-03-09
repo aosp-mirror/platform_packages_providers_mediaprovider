@@ -30,6 +30,7 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -38,7 +39,6 @@ import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
-import com.android.providers.media.util.ForegroundThread;
 
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
@@ -49,6 +49,7 @@ import java.util.Locale;
  * The base abstract Tab fragment
  */
 public abstract class TabFragment extends Fragment {
+
     protected PickerViewModel mPickerViewModel;
     protected Selection mSelection;
     protected ImageLoader mImageLoader;
@@ -94,10 +95,13 @@ public abstract class TabFragment extends Fragment {
         mEmptyView = view.findViewById(android.R.id.empty);
         mEmptyTextView = mEmptyView.findViewById(R.id.empty_text_view);
 
-        mButtonDisabledIconAndTextColor = getContext().getColor(
-                R.color.picker_profile_disabled_button_content_color);
-        mButtonDisabledBackgroundColor = getContext().getColor(
-                R.color.picker_profile_disabled_button_background_color);
+        final int[] attrsDisabled =
+                new int[]{R.attr.pickerDisabledProfileButtonColor,
+                        R.attr.pickerDisabledProfileButtonTextColor};
+        final TypedArray taDisabled = getContext().obtainStyledAttributes(attrsDisabled);
+        mButtonDisabledBackgroundColor = taDisabled.getColor(/* index */ 0, /* defValue */ -1);
+        mButtonDisabledIconAndTextColor = taDisabled.getColor(/* index */ 1, /* defValue */ -1);
+        taDisabled.recycle();
 
         final int[] attrs =
                 new int[]{R.attr.pickerProfileButtonColor, R.attr.pickerProfileButtonTextColor};
@@ -106,17 +110,17 @@ public abstract class TabFragment extends Fragment {
         mButtonIconAndTextColor = ta.getColor(/* index */ 1, /* defValue */ -1);
         ta.recycle();
 
-        mProfileButton = view.findViewById(R.id.profile_button);
+        mProfileButton = getActivity().findViewById(R.id.profile_button);
         mUserIdManager = mPickerViewModel.getUserIdManager();
 
         final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
-            final Button addButton = view.findViewById(R.id.button_add);
+            final Button addButton = getActivity().findViewById(R.id.button_add);
             addButton.setOnClickListener(v -> {
                 ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
             });
 
-            final Button viewSelectedButton = view.findViewById(R.id.button_view_selected);
+            final Button viewSelectedButton = getActivity().findViewById(R.id.button_view_selected);
             // Transition to PreviewFragment on clicking "View Selected".
             viewSelectedButton.setOnClickListener(v -> {
                 mSelection.prepareSelectedItemsForPreviewAll();
@@ -126,7 +130,7 @@ public abstract class TabFragment extends Fragment {
             mBottomBarSize = (int) getResources().getDimension(R.dimen.picker_bottom_bar_size);
 
             mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
-                final View bottomBar = view.findViewById(R.id.picker_bottom_bar);
+                final View bottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
                 int dimen = 0;
                 if (selectedItemListSize == 0) {
                     bottomBar.setVisibility(View.GONE);
@@ -141,6 +145,25 @@ public abstract class TabFragment extends Fragment {
             });
         }
 
+        // Initial setup
+        setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
+
+        // Observe for cross profile access changes.
+        final LiveData<Boolean> crossProfileAllowed = mUserIdManager.getCrossProfileAllowed();
+        if (crossProfileAllowed != null) {
+            crossProfileAllowed.observe(this, isCrossProfileAllowed -> {
+                setUpProfileButton();
+            });
+        }
+
+        // Observe for multi-user changes.
+        final LiveData<Boolean> isMultiUserProfiles = mUserIdManager.getIsMultiUserProfiles();
+        if (isMultiUserProfiles != null) {
+            isMultiUserProfiles.observe(this, this::setUpProfileButtonWithListeners);
+        }
+    }
+
+    private void setUpListenersForProfileButton() {
         mProfileButton.setOnClickListener(v -> onClickProfileButton());
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -156,12 +179,6 @@ public abstract class TabFragment extends Fragment {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        updateProfileButtonAsync();
-    }
-
-    @Override
     public void onDestroy() {
         super.onDestroy();
         if (mRecyclerView != null) {
@@ -169,12 +186,13 @@ public abstract class TabFragment extends Fragment {
         }
     }
 
-    private void updateProfileButtonAsync() {
-        ForegroundThread.getExecutor().execute(() -> {
-            mUserIdManager.updateCrossProfileValues();
-
-            getActivity().runOnUiThread(() -> setUpProfileButton());
-        });
+    private void setUpProfileButtonWithListeners(boolean isMultiUserProfile) {
+        if (isMultiUserProfile) {
+            setUpListenersForProfileButton();
+        } else {
+            mRecyclerView.clearOnScrollListeners();
+        }
+        setUpProfileButton();
     }
 
     private void setUpProfileButton() {

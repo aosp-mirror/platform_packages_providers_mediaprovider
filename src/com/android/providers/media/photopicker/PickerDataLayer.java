@@ -16,15 +16,14 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
-import static android.provider.CloudMediaProviderContract.METHOD_GET_ACCOUNT_INFO;
+import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
+import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
-import static android.provider.CloudMediaProviderContract.MediaInfo;
-import static com.android.providers.media.PickerUriResolver.getAccountInfoUri;
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.PickerUriResolver.getDeletedMediaUri;
-import static com.android.providers.media.PickerUriResolver.getMediaInfoUri;
+import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LIMIT_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
@@ -70,16 +69,15 @@ public class PickerDataLayer {
             // Fetch merged and deduped media from picker db
             return mDbFacade.queryMediaForUi(queryExtras.toQueryFilter());
         } else {
-            // Fetch unique media directly from provider
+            // Fetch album media from pickerDB
             final String cloudProvider = validateCloudProvider(queryExtras);
-            final Bundle extras = queryExtras.toCloudMediaBundle();
-
             if (cloudProvider == null) {
-                return queryProviderMedia(mLocalProvider, extras);
-            } else if (queryExtras.getAlbumType() == null) {
+                return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), true);
+            }
+            else if (queryExtras.getAlbumType() == null) {
                 // TODO(b/193668830): Replace null check with AlbumColumns.TYPE_CLOUD after
                 // moving test to CTS
-                return queryProviderMedia(cloudProvider, extras);
+                return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), false);
             } else {
                 Log.w(TAG, "Unexpected album media query for cloud provider: " + cloudProvider);
                 return new MatrixCursor(new String[] {});
@@ -130,12 +128,12 @@ public class PickerDataLayer {
 
         try {
             final Bundle accountBundle = mContext.getContentResolver().call(
-                    getAccountInfoUri(cloudProvider), METHOD_GET_ACCOUNT_INFO, /* arg */ null,
-                    /* extras */ null);
+                    getMediaCollectionInfoUri(cloudProvider), METHOD_GET_MEDIA_COLLECTION_INFO,
+                    /* arg */ null, /* extras */ null);
             final String accountName = accountBundle.getString(
-                    CloudMediaProviderContract.AccountInfo.ACTIVE_ACCOUNT_NAME);
+                    CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME);
             final Intent configIntent = (Intent) accountBundle.getParcelable(
-                    CloudMediaProviderContract.AccountInfo.ACCOUNT_CONFIGURATION_INTENT);
+                    CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_CONFIGURATION_INTENT);
 
             if (accountName == null) {
                 return null;
@@ -155,15 +153,6 @@ public class PickerDataLayer {
         }
 
         return query(getAlbumUri(authority), queryArgs);
-    }
-
-    private Cursor queryProviderMedia(String authority, Bundle queryArgs) {
-        final Bundle bundle = new Bundle();
-        bundle.putString(MediaColumns.AUTHORITY, authority);
-
-        final Cursor cursor = query(getMediaUri(authority), queryArgs);
-        cursor.setExtras(bundle);
-        return cursor;
     }
 
     private Cursor query(Uri uri, Bundle extras) {

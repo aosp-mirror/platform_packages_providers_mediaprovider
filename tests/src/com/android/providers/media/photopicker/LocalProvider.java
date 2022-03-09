@@ -16,8 +16,7 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
-import static android.provider.CloudMediaProviderContract.MediaInfo;
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
 import android.content.res.AssetFileDescriptor;
@@ -27,7 +26,6 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProvider;
-import android.provider.CloudMediaProviderContract;
 
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
@@ -81,24 +79,19 @@ public class LocalProvider extends CloudMediaProvider {
     }
 
     @Override
-    public AssetFileDescriptor onOpenThumbnail(String mediaId, Point size,
+    public AssetFileDescriptor onOpenPreview(String mediaId, Point size, Bundle extras,
             CancellationSignal signal) throws FileNotFoundException {
-        throw new UnsupportedOperationException("onOpenThumbnail not supported");
+        throw new UnsupportedOperationException("onOpenPreview not supported");
     }
 
     @Override
-    public ParcelFileDescriptor onOpenMedia(String mediaId, CancellationSignal signal)
-            throws FileNotFoundException {
+    public ParcelFileDescriptor onOpenMedia(String mediaId, Bundle extras,
+            CancellationSignal signal) throws FileNotFoundException {
         throw new UnsupportedOperationException("onOpenMedia not supported");
     }
 
     @Override
-    public Bundle onGetMediaInfo(Bundle extras) {
-        Bundle bundle = new Bundle();
-        bundle.putString(MediaInfo.MEDIA_VERSION, mMediaGenerator.getVersion());
-        bundle.putLong(MediaInfo.MEDIA_GENERATION, mMediaGenerator.getGeneration());
-        bundle.putLong(MediaInfo.MEDIA_COUNT, mMediaGenerator.getCount());
-
-        return bundle;
+    public Bundle onGetMediaCollectionInfo(Bundle extras) {
+        return mMediaGenerator.getMediaCollectionInfo();
     }
 }

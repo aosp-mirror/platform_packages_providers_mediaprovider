@@ -16,11 +16,6 @@
 
 package com.android.providers.media.photopicker.espresso;
 
-import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
-import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-import static android.content.res.Configuration.ORIENTATION_LANDSCAPE;
-import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
-
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
@@ -33,6 +28,8 @@ import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static com.android.providers.media.photopicker.espresso.BottomSheetTestUtils.assertBottomSheetState;
+import static com.android.providers.media.photopicker.espresso.OrientationUtils.setLandscapeOrientation;
+import static com.android.providers.media.photopicker.espresso.OrientationUtils.setPortraitOrientation;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
@@ -49,7 +46,6 @@ import android.view.View;
 import android.widget.Button;
 
 import androidx.appcompat.widget.Toolbar;
-import androidx.test.espresso.Espresso;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
@@ -68,65 +64,80 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getSingleSelectionIntent());
 
     @Test
-    public void testPreview_singleSelect_image() {
+    public void testPreview_singleSelect_image() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        registerBottomSheetStateIdlingResource();
-        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_COLLAPSED);
-        });
+        final BottomSheetIdlingResource bottomSheetIdlingResource =
+                BottomSheetIdlingResource.register(mRule);
 
-        // Navigate to preview
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        try {
+            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_COLLAPSED);
+            });
 
-        registerIdlingResourceAndWaitForIdle();
+            // Navigate to preview
+            longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
-        // No dragBar in preview
-        onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_EXPANDED);
-        });
+            try (ViewPager2IdlingResource idlingResource
+                         = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+                // No dragBar in preview
+                bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
+                onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
+                // No privacy text in preview
+                onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
+                mRule.getScenario().onActivity(activity -> {
+                    assertBottomSheetState(activity, STATE_EXPANDED);
+                });
 
-        // Verify image is previewed
-        assertSingleSelectCommonLayoutMatches();
-        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
-        // Verify no special format icon is previewed
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
-        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+                // Verify image is previewed
+                assertSingleSelectCommonLayoutMatches();
+                onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+                // Verify no special format icon is previewed
+                onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+                onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+            }
+            // Navigate back to Photo grid
+            onView(withContentDescription("Navigate up")).perform(click());
 
-        // Navigate back to Photo grid
-        onView(withContentDescription("Navigate up")).perform(click());
+            onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-        // Shows dragBar after we are back to Photos tab
-        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-        mRule.getScenario().onActivity(activity -> {
-            assertBottomSheetState(activity, STATE_COLLAPSED);
-        });
+            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+            // Shows dragBar and privacy text after we are back to Photos tab
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_COLLAPSED);
+            });
+        } finally {
+            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
+        }
     }
 
     @Test
-    public void testPreview_singleSelect_video() {
+    public void testPreview_singleSelect_video() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
-
-        // Verify video player is displayed
-        assertSingleSelectCommonLayoutMatches();
-        onView(withId(R.id.preview_player_view)).check(matches(isDisplayed()));
-        // Verify no special format icon is previewed
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
-        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Verify video player is displayed
+            assertSingleSelectCommonLayoutMatches();
+            onView(withId(R.id.preview_player_view)).check(matches(isDisplayed()));
+            // Verify no special format icon is previewed
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+            onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+        }
     }
 
     @Test
-    public void testPreview_singleSelect_fromAlbumsPhoto() {
+    public void testPreview_singleSelect_fromAlbumsPhoto() throws Exception {
         // Navigate to Albums tab
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
 
         final int cameraStringId = R.string.picker_category_camera;
@@ -141,11 +152,12 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
-
-        // Verify image is previewed
-        assertSingleSelectCommonLayoutMatches();
-        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Verify image is previewed
+            assertSingleSelectCommonLayoutMatches();
+            onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+        }
 
         // Navigate back to Camera album
         onView(withContentDescription("Navigate up")).perform(click());
@@ -156,105 +168,83 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    public void testPreview_noScrimLayerAndHasSolidColorInPortrait() {
-        mRule.getScenario().onActivity(activity -> {
-            activity.setRequestedOrientation(SCREEN_ORIENTATION_PORTRAIT);
-        });
-
-        mRule.getScenario().onActivity(activity -> {
-            assertThat(activity.getResources().getConfiguration().orientation)
-                    .isEqualTo(ORIENTATION_PORTRAIT);
-        });
+    public void testPreview_noScrimLayerAndHasSolidColorInPortrait() throws Exception {
+        setPortraitOrientation(mRule);
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            onView(withId(R.id.preview_top_scrim)).check(matches(not(isDisplayed())));
+            onView(withId(R.id.preview_bottom_scrim)).check(matches(not(isDisplayed())));
 
-        onView(withId(R.id.preview_top_scrim)).check(matches(not(isDisplayed())));
-        onView(withId(R.id.preview_bottom_scrim)).check(matches(not(isDisplayed())));
-
-        mRule.getScenario().onActivity(activity -> {
-            assertBackgroundColorOnToolbarAndBottomBar(activity, R.color.preview_scrim_solid_color);
-        });
+            mRule.getScenario().onActivity(activity -> {
+                assertBackgroundColorOnToolbarAndBottomBar(activity,
+                        R.color.preview_scrim_solid_color);
+            });
+        }
     }
 
     @Test
-    public void testPreview_showScrimLayerInLandscape() {
-        mRule.getScenario().onActivity(activity -> {
-            activity.setRequestedOrientation(SCREEN_ORIENTATION_LANDSCAPE);
-        });
-
-        mRule.getScenario().onActivity(activity -> {
-            assertThat(activity.getResources().getConfiguration().orientation)
-                    .isEqualTo(ORIENTATION_LANDSCAPE);
-        });
+    public void testPreview_showScrimLayerInLandscape() throws Exception {
+        setLandscapeOrientation(mRule);
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            onView(withId(R.id.preview_top_scrim)).check(matches(isDisplayed()));
+            onView(withId(R.id.preview_bottom_scrim)).check(matches(isDisplayed()));
 
-        onView(withId(R.id.preview_top_scrim)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_bottom_scrim)).check(matches(isDisplayed()));
-
-        mRule.getScenario().onActivity(activity -> {
-            assertBackgroundColorOnToolbarAndBottomBar(activity, android.R.color.transparent);
-        });
+            mRule.getScenario().onActivity(activity -> {
+                assertBackgroundColorOnToolbarAndBottomBar(activity, android.R.color.transparent);
+            });
+        }
     }
 
     @Test
-    public void testPreview_addButtonWidth() {
+    public void testPreview_addButtonWidth() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
-        // Check that Add button is visible
-        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
-        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.add)));
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Check that Add button is visible
+            onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
+            onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.add)));
+        }
 
-        mRule.getScenario().onActivity(activity -> {
-            activity.setRequestedOrientation(ORIENTATION_PORTRAIT);
-        });
-        mRule.getScenario().onActivity(activity -> {
-            assertThat(activity.getResources().getConfiguration().orientation)
-                    .isEqualTo(ORIENTATION_PORTRAIT);
-            final Button addOrSelectButton
-                    = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
-            final int expectedAddOrSelectButtonWidth = activity.getResources()
-                    .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
-            // Check that button width in portrait mode is = R.dimen.preview_add_or_select_width
-            assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
-        });
+        setPortraitOrientation(mRule);
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            mRule.getScenario().onActivity(activity -> {
+                final Button addOrSelectButton
+                        = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
+                final int expectedAddOrSelectButtonWidth = activity.getResources()
+                        .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
+                // Check that button width in portrait mode is = R.dimen.preview_add_or_select_width
+                assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
+            });
+        }
 
-        mRule.getScenario().onActivity(activity -> {
-            activity.setRequestedOrientation(SCREEN_ORIENTATION_LANDSCAPE);
-        });
-        mRule.getScenario().onActivity(activity -> {
-            assertThat(activity.getResources().getConfiguration().orientation)
-                    .isEqualTo(ORIENTATION_LANDSCAPE);
-            final Button addOrSelectButton
-                    = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
-            final int expectedAddOrSelectButtonWidth = activity.getResources()
-                    .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
-            // Check that button width in landscape mode is == R.dimen.preview_add_or_select_width
-            assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
-        });
-    }
-
-    private void registerIdlingResourceAndWaitForIdle() {
-        mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
-                new ViewPager2IdlingResource(activity.findViewById(R.id.preview_viewPager)))));
-        Espresso.onIdle();
-    }
-
-    private void registerBottomSheetStateIdlingResource() {
-        mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
-                new BottomSheetIdlingResource(activity.findViewById(R.id.bottom_sheet)))));
+        setLandscapeOrientation(mRule);
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            mRule.getScenario().onActivity(activity -> {
+                final Button addOrSelectButton
+                        = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
+                final int expectedAddOrSelectButtonWidth = activity.getResources()
+                        .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
+                // Check that button width in landscape mode is R.dimen.preview_add_or_select_width
+                assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
+            });
+        }
     }
 
     private void assertBackgroundColorOnToolbarAndBottomBar(Activity activity, int colorResId) {
@@ -279,7 +269,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         // Verify that the text in Add button
         onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.add)));
 
-        onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.preview_selected_check_button)).check(matches(not(isDisplayed())));
         onView(withId(R.id.preview_add_button)).check(matches(not(isDisplayed())));
     }
 }

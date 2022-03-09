@@ -67,7 +67,7 @@ public class MimeTypeFilterTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Go to Albums tab
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
 
         // Only two albums, Camera and Downloads

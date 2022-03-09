@@ -78,7 +78,8 @@ public class MediaService extends JobIntentService {
                 case Intent.ACTION_PACKAGE_FULLY_REMOVED:
                 case Intent.ACTION_PACKAGE_DATA_CLEARED: {
                     final String packageName = intent.getData().getSchemeSpecificPart();
-                    onPackageOrphaned(packageName);
+                    final int uid = intent.getIntExtra(Intent.EXTRA_UID, 0);
+                    onPackageOrphaned(packageName, uid);
                     break;
                 }
                 case Intent.ACTION_MEDIA_SCANNER_SCAN_FILE: {
@@ -117,10 +118,10 @@ public class MediaService extends JobIntentService {
         }
     }
 
-    private void onPackageOrphaned(String packageName) {
+    private void onPackageOrphaned(String packageName, int uid) {
         try (ContentProviderClient cpc = getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-            ((MediaProvider) cpc.getLocalContentProvider()).onPackageOrphaned(packageName);
+            ((MediaProvider) cpc.getLocalContentProvider()).onPackageOrphaned(packageName, uid);
         }
     }
 

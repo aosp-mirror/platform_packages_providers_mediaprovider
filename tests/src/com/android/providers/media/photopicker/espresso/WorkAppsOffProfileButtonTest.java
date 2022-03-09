@@ -38,6 +38,7 @@ import com.android.providers.media.R;
 import static org.hamcrest.Matchers.not;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;

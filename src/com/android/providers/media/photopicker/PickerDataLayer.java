@@ -69,16 +69,15 @@ public class PickerDataLayer {
             // Fetch merged and deduped media from picker db
             return mDbFacade.queryMediaForUi(queryExtras.toQueryFilter());
         } else {
-            // Fetch unique media directly from provider
+            // Fetch album media from pickerDB
             final String cloudProvider = validateCloudProvider(queryExtras);
-            final Bundle extras = queryExtras.toCloudMediaBundle();
-
             if (cloudProvider == null) {
-                return queryProviderMedia(mLocalProvider, extras);
-            } else if (queryExtras.getAlbumType() == null) {
+                return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), true);
+            }
+            else if (queryExtras.getAlbumType() == null) {
                 // TODO(b/193668830): Replace null check with AlbumColumns.TYPE_CLOUD after
                 // moving test to CTS
-                return queryProviderMedia(cloudProvider, extras);
+                return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), false);
             } else {
                 Log.w(TAG, "Unexpected album media query for cloud provider: " + cloudProvider);
                 return new MatrixCursor(new String[] {});
@@ -154,15 +153,6 @@ public class PickerDataLayer {
         }
 
         return query(getAlbumUri(authority), queryArgs);
-    }
-
-    private Cursor queryProviderMedia(String authority, Bundle queryArgs) {
-        final Bundle bundle = new Bundle();
-        bundle.putString(MediaColumns.AUTHORITY, authority);
-
-        final Cursor cursor = query(getMediaUri(authority), queryArgs);
-        cursor.setExtras(bundle);
-        return cursor;
     }
 
     private Cursor query(Uri uri, Bundle extras) {

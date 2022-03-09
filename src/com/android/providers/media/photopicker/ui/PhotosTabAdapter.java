@@ -73,6 +73,8 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             itemHolder.itemView.setOnClickListener(mOnClickListener);
             itemHolder.itemView.setOnLongClickListener(mOnLongClickListener);
             itemHolder.itemView.setSelected(mSelection.isItemSelected(item));
+            itemHolder.itemView.setContentDescription(
+                    item.getContentDescription(itemHolder.itemView.getContext()));
         }
         itemHolder.bind();
     }

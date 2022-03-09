@@ -393,6 +393,27 @@ public final class CloudMediaProviderContract {
     public static final String EXTRA_PAGE_TOKEN = "android.provider.extra.PAGE_TOKEN";
 
     /**
+     * {@link MediaCollectionInfo#MEDIA_COLLECTION_ID} on which the media or album query occurred.
+     *
+     * <p>
+     * Providers must set this token as part of the {@link Cursor#setExtras}
+     * {@link Bundle} returned from the cursors on query.
+     * This allows the OS to verify that the returned results match the
+     * {@link MediaCollectionInfo#MEDIA_COLLECTION_ID} queried via
+     * {@link CloudMediaProvider#onGetMediaCollectionInfo}. If the collection differs, the OS will
+     * ignore the result and may try again.
+     *
+     * @see CloudMediaProvider#onQueryMedia
+     * @see CloudMediaProvider#onQueryDeletedMedia
+     * @see CloudMediaProvider#onQueryAlbums
+     * <p>
+     * Type: STRING
+     * @hide
+     */
+    public static final String EXTRA_MEDIA_COLLECTION_ID =
+            "android.provider.extra.MEDIA_COLLECTION_ID";
+
+    /**
      * Generation number to fetch the latest media or album metadata changes from the media
      * collection.
      * <p>
@@ -493,7 +514,7 @@ public final class CloudMediaProviderContract {
     public static final String METHOD_GET_MEDIA_COLLECTION_INFO = "android:getMediaCollectionInfo";
 
     /**
-     * Constant used to execute {@link CloudMediaProvider#onCreateSurfaceController} via
+     * Constant used to execute {@link CloudMediaProvider#onCreateCloudMediaSurfaceController} via
      * {@link ContentProvider#call}.
      *
      * {@hide}
@@ -501,7 +522,7 @@ public final class CloudMediaProviderContract {
     public static final String METHOD_CREATE_SURFACE_CONTROLLER = "android:createSurfaceController";
 
     /**
-     * Gets surface controller from {@link CloudMediaProvider#onCreateSurfaceController}.
+     * Gets surface controller from {@link CloudMediaProvider#onCreateCloudMediaSurfaceController}.
      * {@hide}
      */
     public static final String EXTRA_SURFACE_CONTROLLER =
@@ -512,8 +533,8 @@ public final class CloudMediaProviderContract {
      * <p>
      * In case this is not present, the default value should be false.
      *
-     * @see CloudMediaProvider#onCreateSurfaceController
-     * @see CloudMediaProvider.SurfaceController#onConfigChange
+     * @see CloudMediaProvider#onCreateCloudMediaSurfaceController
+     * @see CloudMediaProvider.CloudMediaSurfaceController#onConfigChange
      * <p>
      * Type: BOOLEAN
      * By default, the value is true
@@ -524,8 +545,8 @@ public final class CloudMediaProviderContract {
     /**
      * Indicates whether to mute audio during preview of media items.
      *
-     * @see CloudMediaProvider#onCreateSurfaceController
-     * @see CloudMediaProvider.SurfaceController#onConfigChange
+     * @see CloudMediaProvider#onCreateCloudMediaSurfaceController
+     * @see CloudMediaProvider.CloudMediaSurfaceController#onConfigChange
      * <p>
      * Type: BOOLEAN
      * By default, the value is false
@@ -611,7 +632,7 @@ public final class CloudMediaProviderContract {
     public static final String URI_PATH_MEDIA_COLLECTION_INFO = "media_collection_info";
 
     /**
-     * URI path for {@link CloudMediaProvider#onCreateSurfaceController}
+     * URI path for {@link CloudMediaProvider#onCreateCloudMediaSurfaceController}
      *
      * {@hide}
      */

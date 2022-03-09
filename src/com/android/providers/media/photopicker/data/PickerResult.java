@@ -65,6 +65,7 @@ public class PickerResult {
         }
         intent.setClipData(clipData);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
 
         return intent;
     }

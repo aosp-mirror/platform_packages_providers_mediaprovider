@@ -16,10 +16,24 @@
 
 package com.android.providers.media.photopicker.ui.remotepreview;
 
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_ERROR_RETRIABLE_FAILURE;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_MEDIA_SIZE_CHANGED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_PAUSED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_READY;
+
 import android.annotation.NonNull;
+import android.annotation.Nullable;
+import android.content.ContentResolver;
+import android.graphics.Point;
+import android.os.Bundle;
 import android.os.RemoteException;
+import android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PlaybackEvent;
 import android.util.Log;
 import android.view.Surface;
+import android.view.View;
+
+import com.android.providers.media.photopicker.ui.PreviewVideoHolder;
 
 /**
  * Handles preview of a given media on a {@link Surface}.
@@ -32,16 +46,24 @@ final class RemotePreviewSession {
     private final String mMediaId;
     private final String mAuthority;
     private final SurfaceControllerProxy mSurfaceController;
+    private final PreviewVideoHolder mPreviewVideoHolder;
 
     private boolean mIsSurfaceCreated = false;
     private boolean mIsPlaying = false;
+    private boolean mIsPlaybackRequested = false;
+    private boolean mIsPlayerReady = false;
 
     RemotePreviewSession(int surfaceId, @NonNull String mediaId, @NonNull String authority,
-            @NonNull SurfaceControllerProxy surfaceController) {
+            @NonNull SurfaceControllerProxy surfaceController,
+            @NonNull PreviewVideoHolder previewVideoHolder) {
         this.mSurfaceId = surfaceId;
         this.mMediaId = mediaId;
         this.mAuthority = authority;
         this.mSurfaceController = surfaceController;
+        this.mPreviewVideoHolder = previewVideoHolder;
+        // We hide the player view till the player is ready. However, since we want the surface to
+        // be created, we cannot use View.GONE here.
+        mPreviewVideoHolder.getPlayerContainer().setVisibility(View.INVISIBLE);
     }
 
     int getSurfaceId() {
@@ -77,8 +99,7 @@ final class RemotePreviewSession {
 
     void surfaceDestroyed() {
         if (!mIsSurfaceCreated) {
-            Log.w(TAG, "Surface is not created.");
-            return;
+            throw new IllegalStateException("Surface is not created.");
         }
 
         try {
@@ -91,8 +112,7 @@ final class RemotePreviewSession {
 
     void surfaceChanged(int format, int width, int height) {
         if (!mIsSurfaceCreated) {
-            Log.w(TAG, "Surface is not created.");
-            return;
+            throw new IllegalStateException("Surface is not created.");
         }
 
         try {
@@ -102,25 +122,69 @@ final class RemotePreviewSession {
         }
     }
 
-    void playMedia() {
+    void requestPlayMedia() {
         // When the user is at the first item in ViewPager, swiping further right trigger the
         // callback {@link ViewPager2.PageTransformer#transforPage(View, int)}, which would call
-        // into playMedia again. Hence we want to check is its already playing, before making the
-        // call to {@link SurfaceControllerProxy}.
+        // into requestPlayMedia again. Hence, we want to check is its already playing, before
+        // proceeding further.
         if (mIsPlaying) {
             return;
         }
 
-        if (!mIsSurfaceCreated) {
-            Log.w(TAG, "Surface is not created.");
+        if (mIsPlayerReady) {
+            playMedia();
             return;
         }
 
+        mIsPlaybackRequested = true;
+    }
+
+    void onPlaybackEvent(@PlaybackEvent int eventType, @Nullable Bundle eventInfo) {
+        switch (eventType) {
+            case PLAYBACK_EVENT_READY:
+                mIsPlayerReady = true;
+
+                if (mIsPlaybackRequested) {
+                    playMedia();
+                    mIsPlaybackRequested = false;
+                }
+                return;
+            case PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE:
+            case PLAYBACK_EVENT_ERROR_RETRIABLE_FAILURE:
+                mIsPlayerReady = false;
+                return;
+            case PLAYBACK_EVENT_PAUSED:
+                mIsPlaying = false;
+                return;
+            case PLAYBACK_EVENT_MEDIA_SIZE_CHANGED:
+                Point size = eventInfo.getParcelable(ContentResolver.EXTRA_SIZE);
+                updateAspectRatio(size.x, size.y);
+                return;
+            default:
+        }
+    }
+
+    private void playMedia() {
+        if (!mIsSurfaceCreated) {
+            throw new IllegalStateException("Surface is not created.");
+        }
+        if (mIsPlaying) {
+            throw new IllegalStateException("Player is already playing.");
+        }
+
+        mPreviewVideoHolder.getPlayerContainer().setVisibility(View.VISIBLE);
+        mPreviewVideoHolder.getThumbnailView().setVisibility(View.GONE);
+
         try {
             mSurfaceController.onMediaPlay(mSurfaceId);
-            mIsPlaying = false;
+            mIsPlaying = true;
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to play media.", e);
         }
+    }
+
+    private void updateAspectRatio(int width, int height) {
+        float aspectRatio = width / (float) height;
+        mPreviewVideoHolder.getPlayerContainer().setAspectRatio(aspectRatio);
     }
 }

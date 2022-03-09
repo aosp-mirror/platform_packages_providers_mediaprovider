@@ -66,7 +66,6 @@
 #include "libfuse_jni/FuseUtils.h"
 #include "libfuse_jni/ReaddirHelper.h"
 #include "libfuse_jni/RedactionInfo.h"
-#include "node-inl.h"
 
 using mediaprovider::fuse::DirectoryEntry;
 using mediaprovider::fuse::dirhandle;
@@ -2335,12 +2334,12 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
     return;
 }
 
-const string FuseDaemon::GetOriginalMediaFormatFilePath(int fd) const {
+std::unique_ptr<FdAccessResult> FuseDaemon::CheckFdAccess(int fd, uid_t uid) const {
     struct stat s;
     memset(&s, 0, sizeof(s));
     if (fstat(fd, &s) < 0) {
-        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath fstat failed.";
-        return string();
+        PLOG(DEBUG) << "CheckFdAccess fstat failed.";
+        return std::make_unique<FdAccessResult>(string(), false);
     }
 
     ino_t ino = s.st_ino;
@@ -2348,17 +2347,17 @@ const string FuseDaemon::GetOriginalMediaFormatFilePath(int fd) const {
 
     dev_t fuse_dev = fuse->dev.load(std::memory_order_acquire);
     if (dev != fuse_dev) {
-        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath FUSE device id does not match.";
-        return string();
+        PLOG(DEBUG) << "CheckFdAccess FUSE device id does not match.";
+        return std::make_unique<FdAccessResult>(string(), false);
     }
 
     const node* node = node::LookupInode(fuse->root, ino);
     if (!node) {
-        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath no node found with given ino";
-        return string();
+        PLOG(DEBUG) << "CheckFdAccess no node found with given ino";
+        return std::make_unique<FdAccessResult>(string(), false);
     }
 
-    return node->BuildPath();
+    return node->CheckHandleForUid(uid);
 }
 
 void FuseDaemon::InitializeDeviceId(const std::string& path) {

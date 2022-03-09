@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -26,14 +27,17 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Item;
 
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
+
 /**
  * ViewHolder of a video item within the {@link ViewPager2}
  */
-class PreviewVideoHolder extends BaseViewHolder {
+public class PreviewVideoHolder extends BaseViewHolder {
 
     private final ImageLoader mImageLoader;
     private final ImageView mImageView;
     private final SurfaceView mSurfaceView;
+    private final AspectRatioFrameLayout mPlayerContainer;
 
     PreviewVideoHolder(Context context, ViewGroup parent, ImageLoader imageLoader,
             boolean enabledCloudMediaPreview) {
@@ -44,6 +48,8 @@ class PreviewVideoHolder extends BaseViewHolder {
         mImageLoader = imageLoader;
         mSurfaceView = enabledCloudMediaPreview ? itemView.findViewById(R.id.preview_player_view)
                 : null;
+        mPlayerContainer = enabledCloudMediaPreview ?
+                itemView.findViewById(R.id.preview_player_container) : null;
     }
 
     @Override
@@ -56,11 +62,15 @@ class PreviewVideoHolder extends BaseViewHolder {
         mImageLoader.loadImageFromVideoForPreview(item, mImageView);
     }
 
-    SurfaceView getSurfaceView() {
-        return mSurfaceView;
+    public SurfaceHolder getSurfaceHolder() {
+        return mSurfaceView.getHolder();
     }
 
-    ImageView getImageView() {
+    public AspectRatioFrameLayout getPlayerContainer() {
+        return mPlayerContainer;
+    }
+
+    public ImageView getThumbnailView() {
         return mImageView;
     }
 }

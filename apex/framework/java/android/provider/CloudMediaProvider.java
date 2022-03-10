@@ -48,6 +48,7 @@ import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
@@ -206,6 +207,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * {@link CloudMediaProviderContract.MediaColumns#DATE_TAKEN_MILLIS}, i.e. most recent items
      * first.
      * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
+     * {@link Cursor#setExtras} {@link Bundle}. Not setting this is an error and invalidates the
+     * returned {@link Cursor}.
+     * <p>
      * If the cloud media provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
      * {@link Cursor#setExtras} {@link Bundle}.
@@ -228,6 +234,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * within the current provider version as returned by {@link #onGetMediaCollectionInfo}. These
      * items can be optionally filtered by {@code extras}.
      * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
+     * {@link Cursor#setExtras} {@link Bundle}. Not setting this is an error and invalidates the
+     * returned {@link Cursor}.
+     * <p>
      * If the provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
      * {@link Cursor#setExtras} {@link Bundle}.
@@ -249,6 +260,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * by {@code extras} and sorted in reverse chronological order of
      * {@link CloudMediaProviderContract.AlbumColumns#DATE_TAKEN_MILLIS}, i.e. most recent items
      * first.
+     * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
+     * {@link Cursor#setExtras} {@link Bundle}. Not setting this is an error and invalidates the
+     * returned {@link Cursor}.
      * <p>
      * If the provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
@@ -318,23 +334,20 @@ public abstract class CloudMediaProvider extends ContentProvider {
             throws FileNotFoundException;
 
     /**
-     * Returns a {@link SurfaceController} used for rendering the preview of media items, or null
-     * if preview rendering is not supported.
+     * Returns a {@link CloudMediaSurfaceController} used for rendering the preview of media items,
+     * or null if preview rendering is not supported.
      *
-     * <p>This is meant to be called on the main thread, hence the implementation should not block
-     * by performing any heavy operation.
-     *
-     * @param config containing configuration parameters for {@link SurfaceController}
+     * @param config containing configuration parameters for {@link CloudMediaSurfaceController}
      * <ul>
      * <li> {@link CloudMediaProviderContract#EXTRA_LOOPING_PLAYBACK_ENABLED}
      * <li> {@link CloudMediaProviderContract#EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED}
      * </ul>
-     * @param callback {@link SurfaceEventCallback} to send event updates for {@link Surface} to
-     *                 picker launched via {@link MediaStore#ACTION_PICK_IMAGES}
+     * @param callback {@link CloudMediaSurfaceEventCallback} to send event updates for
+     *                 {@link Surface} to picker launched via {@link MediaStore#ACTION_PICK_IMAGES}
      */
     @Nullable
-    public SurfaceController onCreateSurfaceController(@NonNull Bundle config,
-            @NonNull SurfaceEventCallback callback) {
+    public CloudMediaSurfaceController onCreateCloudMediaSurfaceController(@NonNull Bundle config,
+            @NonNull CloudMediaSurfaceEventCallback callback) {
         return null;
     }
 
@@ -362,7 +375,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
         if (METHOD_GET_MEDIA_COLLECTION_INFO.equals(method)) {
             return onGetMediaCollectionInfo(extras);
         } else if (METHOD_CREATE_SURFACE_CONTROLLER.equals(method)) {
-            return onCreateSurfaceController(extras);
+            return onCreateCloudMediaSurfaceController(extras);
         } else if (METHOD_GET_ASYNC_CONTENT_PROVIDER.equals(method)) {
             return onGetAsyncContentProvider();
         } else {
@@ -370,7 +383,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
         }
     }
 
-    private Bundle onCreateSurfaceController(@NonNull Bundle extras) {
+    private Bundle onCreateCloudMediaSurfaceController(@NonNull Bundle extras) {
         Objects.requireNonNull(extras);
 
         final IBinder binder = extras.getBinder(EXTRA_SURFACE_EVENT_CALLBACK);
@@ -378,21 +391,23 @@ public abstract class CloudMediaProvider extends ContentProvider {
             throw new IllegalArgumentException("Missing surface event callback");
         }
 
-        final SurfaceEventCallback callback =
-                new SurfaceEventCallback(ICloudSurfaceEventCallback.Stub.asInterface(binder));
+        final CloudMediaSurfaceEventCallback callback =
+                new CloudMediaSurfaceEventCallback(
+                        ICloudSurfaceEventCallback.Stub.asInterface(binder));
         final Bundle config = new Bundle();
         config.putBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, DEFAULT_LOOPING_PLAYBACK_ENABLED);
         config.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
                 DEFAULT_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED);
-        final SurfaceController controller = onCreateSurfaceController(config, callback);
+        final CloudMediaSurfaceController controller =
+                onCreateCloudMediaSurfaceController(config, callback);
         if (controller == null) {
-            Log.d(TAG, "onCreateSurfaceController returned null");
+            Log.d(TAG, "onCreateCloudMediaSurfaceController returned null");
             return Bundle.EMPTY;
         }
 
         Bundle result = new Bundle();
         result.putBinder(EXTRA_SURFACE_CONTROLLER,
-                new SurfaceControllerWrapper(controller).asBinder());
+                new CloudMediaSurfaceControllerWrapper(controller).asBinder());
         return result;
     }
 
@@ -565,12 +580,12 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *
      * <p>The methods of this class are meant to be asynchronous, and should not block by performing
      * any heavy operation.
-     * <p>Note that a single SurfaceController instance would be responsible for
+     * <p>Note that a single CloudMediaSurfaceController instance would be responsible for
      * rendering multiple media items associated with multiple surfaces.
      */
     @SuppressLint("PackageLayering") // We need to pass in a Surface which can be prepared for
     // rendering a media item.
-    public static abstract class SurfaceController {
+    public static abstract class CloudMediaSurfaceController {
 
         /**
          * Creates any player resource(s) needed for rendering.
@@ -652,7 +667,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
         public abstract void onMediaSeekTo(int surfaceId, @DurationMillisLong long timestampMillis);
 
         /**
-         * Changes the configuration parameters for the SurfaceController.
+         * Changes the configuration parameters for the CloudMediaSurfaceController.
          *
          * @param config the updated config to change to. This can include config changes for the
          * following:
@@ -664,10 +679,15 @@ public abstract class CloudMediaProvider extends ContentProvider {
         public abstract void onConfigChange(@NonNull Bundle config);
 
         /**
-         * Indicates destruction of this SurfaceController object.
+         * Indicates destruction of this CloudMediaSurfaceController object.
          *
-         * <p>This SurfaceController object should no longer be in use after this method has been
-         * called.
+         * <p>This CloudMediaSurfaceController object should no longer be in use after this method
+         * has been called.
+         *
+         * <p>Note that it is possible for this method to be called directly without
+         * {@link #onPlayerRelease} being called, hence you should release any resources associated
+         * with this CloudMediaSurfaceController object, or perform any cleanup required in this
+         * method.
          */
         public abstract void onDestroy();
     }
@@ -678,7 +698,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *
      * @see MediaStore#ACTION_PICK_IMAGES
      */
-    public static final class SurfaceEventCallback {
+    public static final class CloudMediaSurfaceEventCallback {
 
         /** {@hide} */
         @IntDef(flag = true, prefix = { "PLAYBACK_EVENT_" }, value = {
@@ -688,7 +708,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
                 PLAYBACK_EVENT_PAUSED,
                 PLAYBACK_EVENT_COMPLETED,
                 PLAYBACK_EVENT_ERROR_RETRIABLE_FAILURE,
-                PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE
+                PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE,
+                PLAYBACK_EVENT_MEDIA_SIZE_CHANGED
         })
         @Retention(RetentionPolicy.SOURCE)
         public @interface PlaybackEvent {}
@@ -728,9 +749,20 @@ public abstract class CloudMediaProvider extends ContentProvider {
          */
         public static final int PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE = 7;
 
+        /**
+         * Constant to notify that the media size is first known or has changed.
+         *
+         * Pass the width and height of the media as a {@link Point} inside the {@link Bundle} with
+         * {@link ContentResolver#EXTRA_SIZE} as the key.
+         *
+         * @see CloudMediaSurfaceEventCallback#onPlaybackEvent(int, int, Bundle)
+         * @see MediaPlayer.OnVideoSizeChangedListener#onVideoSizeChanged(MediaPlayer, int, int)
+         */
+        public static final int PLAYBACK_EVENT_MEDIA_SIZE_CHANGED = 8;
+
         private final ICloudSurfaceEventCallback mCallback;
 
-        SurfaceEventCallback (ICloudSurfaceEventCallback callback) {
+        CloudMediaSurfaceEventCallback (ICloudSurfaceEventCallback callback) {
             mCallback = callback;
         }
 
@@ -741,17 +773,15 @@ public abstract class CloudMediaProvider extends ContentProvider {
          * @param surfaceId id which uniquely identifies a {@link Surface}
          * @param playbackEventType playback event type to notify picker about
          * @param playbackEventInfo {@link Bundle} which may contain extra information about the
-         *                          playback event. There is no particular event info that
-         *                          we are currently expecting. This may change if we want to
-         *                          support more features for Video Preview like progress/seek
-         *                          bar or show video playback error messages to the user.
+         *                          playback event, such as media size, progress/seek info or
+         *                          details about errors.
          */
         public void onPlaybackEvent(int surfaceId, @PlaybackEvent int playbackEventType,
                 @Nullable Bundle playbackEventInfo) {
             try {
                 mCallback.onPlaybackEvent(surfaceId, playbackEventType, playbackEventInfo);
             } catch (Exception e) {
-                Log.d(TAG, "Failed to notify playback event (" + playbackEventType + ") for "
+                Log.w(TAG, "Failed to notify playback event (" + playbackEventType + ") for "
                         + "surfaceId: " + surfaceId + " ; playbackEventInfo: " + playbackEventInfo,
                         e);
             }
@@ -759,11 +789,12 @@ public abstract class CloudMediaProvider extends ContentProvider {
     }
 
     /** {@hide} */
-    private static class SurfaceControllerWrapper extends ICloudMediaSurfaceController.Stub {
+    private static class CloudMediaSurfaceControllerWrapper
+            extends ICloudMediaSurfaceController.Stub {
 
-        final private SurfaceController mSurfaceController;
+        final private CloudMediaSurfaceController mSurfaceController;
 
-        SurfaceControllerWrapper(SurfaceController surfaceController) {
+        CloudMediaSurfaceControllerWrapper(CloudMediaSurfaceController surfaceController) {
             mSurfaceController = surfaceController;
         }
 

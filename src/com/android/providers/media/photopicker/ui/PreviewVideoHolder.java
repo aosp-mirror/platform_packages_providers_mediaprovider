@@ -17,35 +17,60 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.model.Item;
+
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
 
 /**
  * ViewHolder of a video item within the {@link ViewPager2}
  */
 public class PreviewVideoHolder extends BaseViewHolder {
 
-    private SurfaceView mSurfaceView;
+    private final ImageLoader mImageLoader;
+    private final ImageView mImageView;
+    private final SurfaceView mSurfaceView;
+    private final AspectRatioFrameLayout mPlayerContainer;
 
-    public PreviewVideoHolder(Context context, ViewGroup parent, boolean enabledCloudMediaPreview) {
+    PreviewVideoHolder(Context context, ViewGroup parent, ImageLoader imageLoader,
+            boolean enabledCloudMediaPreview) {
         super(context, parent, enabledCloudMediaPreview ? R.layout.item_cloud_video_preview
                 : R.layout.item_video_preview);
-        if (enabledCloudMediaPreview) {
-            mSurfaceView = itemView.findViewById(R.id.preview_player_view);
-        }
+
+        mImageView = itemView.findViewById(R.id.preview_video_image);
+        mImageLoader = imageLoader;
+        mSurfaceView = enabledCloudMediaPreview ? itemView.findViewById(R.id.preview_player_view)
+                : null;
+        mPlayerContainer = enabledCloudMediaPreview ?
+                itemView.findViewById(R.id.preview_player_container) : null;
     }
 
     @Override
     public void bind() {
         // Video playback needs granular page state events and hence video playback is initiated by
-        // ViewPagerWrapper and handled by PlaybackHandler#handleVideoPlayback
+        // ViewPagerWrapper and handled by PlaybackHandler#handleVideoPlayback.
+        // Here, we set the ImageView with thumbnail from the video, to improve the
+        // user experience while video player is not yet initialized or being prepared.
+        final Item item = (Item) itemView.getTag();
+        mImageLoader.loadImageFromVideoForPreview(item, mImageView);
     }
 
-    public SurfaceView getSurfaceView() {
-        return mSurfaceView;
+    public SurfaceHolder getSurfaceHolder() {
+        return mSurfaceView.getHolder();
+    }
+
+    public AspectRatioFrameLayout getPlayerContainer() {
+        return mPlayerContainer;
+    }
+
+    public ImageView getThumbnailView() {
+        return mImageView;
     }
 }

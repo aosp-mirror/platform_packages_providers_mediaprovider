@@ -65,7 +65,6 @@
 #include "libfuse_jni/FuseUtils.h"
 #include "libfuse_jni/ReaddirHelper.h"
 #include "libfuse_jni/RedactionInfo.h"
-#include "node-inl.h"
 
 using mediaprovider::fuse::DirectoryEntry;
 using mediaprovider::fuse::dirhandle;
@@ -1380,7 +1379,8 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     fuse_reply_open(req, fi);
 }
 
-static void do_read(fuse_req_t req, size_t size, off_t off, struct fuse_file_info* fi) {
+static void do_read(fuse_req_t req, size_t size, off_t off, struct fuse_file_info* fi,
+                    bool direct_io) {
     handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse_bufvec buf = FUSE_BUFVEC_INIT(size);
 
@@ -1388,8 +1388,13 @@ static void do_read(fuse_req_t req, size_t size, off_t off, struct fuse_file_inf
     buf.buf[0].pos = off;
     buf.buf[0].flags =
             (enum fuse_buf_flags) (FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK);
-
-    fuse_reply_data(req, &buf, (enum fuse_buf_copy_flags) 0);
+    if (direct_io) {
+        // sdcardfs does not register splice_read_file_operations and some requests fail with EFAULT
+        // Specifically, FUSE splice is only enabled for 8KB+ buffers, hence such reads fail
+        fuse_reply_data(req, &buf, (enum fuse_buf_copy_flags)FUSE_BUF_NO_SPLICE);
+    } else {
+        fuse_reply_data(req, &buf, (enum fuse_buf_copy_flags)0);
+    }
 }
 
 /**
@@ -1416,7 +1421,8 @@ static void create_file_fuse_buf(size_t size, off_t pos, int fd, fuse_buf* buf) 
     buf->mem = nullptr;
 }
 
-static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_file_info* fi) {
+static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_file_info* fi,
+                                   bool direct_io) {
     handle* h = reinterpret_cast<handle*>(fi->fh);
 
     std::vector<ReadRange> ranges;
@@ -1424,7 +1430,7 @@ static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_
 
     // As an optimization, return early if there are no ranges to redact.
     if (ranges.size() == 0) {
-        do_read(req, size, off, fi);
+        do_read(req, size, off, fi, direct_io);
         return;
     }
 
@@ -1456,6 +1462,7 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                     struct fuse_file_info* fi) {
     ATRACE_CALL();
     handle* h = reinterpret_cast<handle*>(fi->fh);
+    const bool direct_io = !h->cached;
     struct fuse* fuse = get_fuse(req);
 
     node* node = fuse->FromInode(ino);
@@ -1473,9 +1480,9 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     fuse->fadviser.Record(h->fd, size);
 
     if (h->ri->isRedactionNeeded()) {
-        do_read_with_redaction(req, size, off, fi);
+        do_read_with_redaction(req, size, off, fi, direct_io);
     } else {
-        do_read(req, size, off, fi);
+        do_read(req, size, off, fi, direct_io);
     }
 }
 
@@ -2175,12 +2182,12 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
     return;
 }
 
-const string FuseDaemon::GetOriginalMediaFormatFilePath(int fd) const {
+std::unique_ptr<FdAccessResult> FuseDaemon::CheckFdAccess(int fd, uid_t uid) const {
     struct stat s;
     memset(&s, 0, sizeof(s));
     if (fstat(fd, &s) < 0) {
-        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath fstat failed.";
-        return string();
+        PLOG(DEBUG) << "CheckFdAccess fstat failed.";
+        return std::make_unique<FdAccessResult>(string(), false);
     }
 
     ino_t ino = s.st_ino;
@@ -2188,17 +2195,17 @@ const string FuseDaemon::GetOriginalMediaFormatFilePath(int fd) const {
 
     dev_t fuse_dev = fuse->dev.load(std::memory_order_acquire);
     if (dev != fuse_dev) {
-        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath FUSE device id does not match.";
-        return string();
+        PLOG(DEBUG) << "CheckFdAccess FUSE device id does not match.";
+        return std::make_unique<FdAccessResult>(string(), false);
     }
 
     const node* node = node::LookupInode(fuse->root, ino);
     if (!node) {
-        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath no node found with given ino";
-        return string();
+        PLOG(DEBUG) << "CheckFdAccess no node found with given ino";
+        return std::make_unique<FdAccessResult>(string(), false);
     }
 
-    return node->BuildPath();
+    return node->CheckHandleForUid(uid);
 }
 
 void FuseDaemon::InitializeDeviceId(const std::string& path) {

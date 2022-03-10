@@ -38,7 +38,6 @@ import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Category.CategoryType;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
@@ -137,7 +136,7 @@ public class PickerViewModel extends AndroidViewModel {
         return mItemList;
     }
 
-    private List<Item> loadItems(@Nullable @CategoryType String category, UserId userId) {
+    private List<Item> loadItems(Category category, UserId userId) {
         final List<Item> items = new ArrayList<>();
 
         try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
@@ -151,7 +150,7 @@ public class PickerViewModel extends AndroidViewModel {
             // We only add the RECENT header on the PhotosTabFragment with CATEGORY_DEFAULT. In this
             // case, we call this method {loadItems} with null category. When the category is not
             // empty, we don't show the RECENT header.
-            final boolean showRecent = TextUtils.isEmpty(category);
+            final boolean showRecent = category.isDefault();
 
             int recentSize = 0;
             long currentDateTaken = 0;
@@ -181,19 +180,15 @@ public class PickerViewModel extends AndroidViewModel {
             }
         }
 
-        if (TextUtils.isEmpty(category)) {
-            Log.d(TAG, "Loaded " + items.size() + " items for user " + userId.toString());
-        } else {
-            Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
-                    + userId.toString());
-        }
+        Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
+                + userId.toString());
         return items;
     }
 
     private void loadItemsAsync() {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mItemList.postValue(loadItems(/* category= */ null, userId));
+                    mItemList.postValue(loadItems(Category.DEFAULT, userId));
         });
     }
 
@@ -214,12 +209,12 @@ public class PickerViewModel extends AndroidViewModel {
      * @return the list of all photos and videos with the specific {@code category}
      *         {@link #mCategoryItemList}
      */
-    public LiveData<List<Item>> getCategoryItems(@NonNull @CategoryType String category) {
+    public LiveData<List<Item>> getCategoryItems(@NonNull Category category) {
         updateCategoryItems(category);
         return mCategoryItemList;
     }
 
-    private void loadCategoryItemsAsync(@NonNull @CategoryType String category) {
+    private void loadCategoryItemsAsync(@NonNull Category category) {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
             mCategoryItemList.postValue(loadItems(category, userId));
@@ -229,7 +224,7 @@ public class PickerViewModel extends AndroidViewModel {
     /**
      * Update the item List with the {@code category} {@link #mCategoryItemList}
      */
-    public void updateCategoryItems(@NonNull @CategoryType String category) {
+    public void updateCategoryItems(@NonNull Category category) {
         if (mCategoryItemList == null) {
             mCategoryItemList = new MutableLiveData<>();
         }

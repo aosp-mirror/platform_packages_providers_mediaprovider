@@ -31,6 +31,8 @@ import android.provider.CloudMediaProvider;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.android.providers.media.photopicker.LocalProvider;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -72,17 +74,10 @@ public class PickerProviderMediaGenerator {
         AlbumColumns.DATE_TAKEN_MILLIS,
         AlbumColumns.MEDIA_COVER_ID,
         AlbumColumns.MEDIA_COUNT,
-        AlbumColumns.TYPE,
+        AlbumColumns.AUTHORITY
     };
 
     private static final String[] DELETED_MEDIA_PROJECTION = new String[] { MediaColumns.ID };
-
-    // TODO(b/195009148): Investigate how to expose as TestApi and avoid hard-coding
-    // Copied from CloudMediaProviderContract#AlbumColumns
-    public static final String ALBUM_COLUMN_TYPE_LOCAL = "LOCAL";
-    public static final String ALBUM_COLUMN_TYPE_CLOUD = null;
-    public static final String ALBUM_COLUMN_TYPE_FAVORITES = "FAVORITES";
-    public static final String ALBUM_COLUMN_TYPE_UNRELIABLE_VOLUME = "UNRELIABLE_VOLUME";
 
     public static class MediaGenerator {
         private final List<TestMedia> mMedia = new ArrayList<>();
@@ -357,7 +352,7 @@ public class PickerProviderMediaGenerator {
                 /* displayName */ id,
                 String.valueOf(dateTakenMs),
                 String.valueOf(mediaCount),
-                isLocal ? ALBUM_COLUMN_TYPE_LOCAL : ALBUM_COLUMN_TYPE_CLOUD
+                isLocal ? LocalProvider.AUTHORITY : null
             };
         }
 

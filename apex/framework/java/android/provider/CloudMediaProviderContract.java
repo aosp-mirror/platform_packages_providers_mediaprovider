@@ -206,6 +206,25 @@ public final class CloudMediaProviderContract {
          * @hide
          */
         public static final String DATA = "data";
+
+        /**
+         * Array of all {@link MediaColumn} fields.
+         *
+         * @hide
+         */
+        public static final String[] ALL_PROJECTION = new String[] {
+            ID,
+            DATE_TAKEN_MILLIS,
+            SYNC_GENERATION,
+            MIME_TYPE,
+            STANDARD_MIME_TYPE_EXTENSION,
+            SIZE_BYTES,
+            MEDIA_STORE_URI,
+            DURATION_MILLIS,
+            IS_FAVORITE,
+            DATA,
+            AUTHORITY,
+        };
     }
 
     /** Constants related to an album item, including {@link Cursor} column names */
@@ -270,42 +289,73 @@ public final class CloudMediaProviderContract {
         public static final String MEDIA_COUNT = "album_media_count";
 
         /**
-         * Type of album: {@link #TYPE_LOCAL}, {@link TYPE_CLOUD}, {@link TYPE_FAVORITES},
-         * {@link TYPE_UNRELIABLE_VOLUME}
+         * Authority of the album item
          * <p>
          * Type: STRING
          *
          * @hide
          */
-        public static final String TYPE = "type";
+        public static final String AUTHORITY = "authority";
 
         /**
-         * Constant representing a type of album from a local provider except favorites
+         * Whether the album item was generated locally
+         * <p>
+         * Type: STRING
          *
          * @hide
          */
-        public static final String TYPE_LOCAL = "LOCAL";
+        public static final String IS_LOCAL = "is_local";
 
         /**
-         * Constant representing a type of album from a cloud provider
+         * Array of all {@link AlbumColumn} fields.
          *
          * @hide
          */
-        public static final String TYPE_CLOUD = null;
+        public static final String[] ALL_PROJECTION = new String[] {
+            ID,
+            DATE_TAKEN_MILLIS,
+            DISPLAY_NAME,
+            MEDIA_COVER_ID,
+            MEDIA_COUNT,
+            AUTHORITY,
+        };
 
         /**
-         * Constant representing a type of album from merged favorites of a local and cloud provider
+         * Includes local media present in any directory containing
+         * {@link Environment#DIRECTORY_SCREENSHOTS} in relative path
          *
          * @hide
          */
-        public static final String TYPE_FAVORITES = "FAVORITES";
+        public static final String ALBUM_ID_SCREENSHOTS = "Screenshots";
 
         /**
-         * Constant representing a type of album from an unreliable volume
+         * Includes local images/videos that are present in the
+         * {@link Environment#DIRECTORY_DCIM}/Camera directory.
          *
          * @hide
          */
-        public static final String TYPE_UNRELIABLE_VOLUME = "UNRELIABLE_VOLUME";
+        public static final String ALBUM_ID_CAMERA = "Camera";
+
+        /**
+         * Includes local and cloud videos only.
+         *
+         * @hide
+         */
+        public static final String ALBUM_ID_VIDEOS = "Videos";
+
+        /**
+         * Includes local images/videos that have {@link MediaStore.MediaColumns#IS_DOWNLOAD} set.
+         *
+         * @hide
+         */
+        public static final String ALBUM_ID_DOWNLOADS = "Downloads";
+
+        /**
+         * Includes local and cloud images/videos that have been favorited by the user.
+         *
+         * @hide
+         */
+        public static final String ALBUM_ID_FAVORITES = "Favorites";
     }
 
     /** Constants related to a media collection */

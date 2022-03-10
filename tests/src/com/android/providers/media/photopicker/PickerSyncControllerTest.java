@@ -16,7 +16,6 @@
 
 package com.android.providers.media.photopicker;
 
-import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_CLOUD;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 import static com.android.providers.media.photopicker.PickerSyncController.CloudProviderInfo;
 import static com.google.common.truth.Truth.assertThat;
@@ -26,6 +25,7 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Process;
 import android.os.SystemClock;
+import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.MediaStore;
 import android.util.Pair;
@@ -797,17 +797,12 @@ public class PickerSyncControllerTest {
         return queryArgs;
     }
 
-    private static Bundle buildQueryArgs(String albumId, String albumType, String mimeType,
+    private static Bundle buildQueryArgs(String albumId, String albumAuthority, String mimeType,
             long sizeBytes) {
         final Bundle queryArgs = buildQueryArgs(mimeType, sizeBytes);
 
         queryArgs.putString(MediaStore.QUERY_ARG_ALBUM_ID, albumId);
-        queryArgs.putString(MediaStore.QUERY_ARG_ALBUM_TYPE, albumType);
-
-        if (Objects.equals(albumType, ALBUM_COLUMN_TYPE_CLOUD)) {
-            queryArgs.putString(MediaStore.EXTRA_CLOUD_PROVIDER,
-                    CLOUD_PRIMARY_PROVIDER_AUTHORITY);
-        }
+        queryArgs.putString(MediaStore.QUERY_ARG_ALBUM_AUTHORITY, albumAuthority);
 
         return queryArgs;
     }
@@ -872,18 +867,7 @@ public class PickerSyncControllerTest {
         cursor.moveToNext();
         assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.ID)))
                 .isEqualTo(id);
-
-        final int authorityIdx = cursor.getColumnIndex(MediaColumns.AUTHORITY);
-        final String authority;
-        if (authorityIdx >= 0) {
-            // Cursor from picker db has authority as a column
-            authority = cursor.getString(authorityIdx);
-        } else {
-            // Cursor from provider directly doesn't have an authority column but will
-            // have the authority set as an extra
-            final Bundle bundle = cursor.getExtras();
-            authority = bundle.getString(MediaColumns.AUTHORITY);
-        }
-        assertThat(authority).isEqualTo(expectedAuthority);
+        assertThat(cursor.getString(cursor.getColumnIndex( MediaColumns.AUTHORITY)))
+                .isEqualTo(expectedAuthority);
     }
 }

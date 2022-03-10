@@ -43,6 +43,7 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
+import static android.provider.MediaStore.VOLUME_EXTERNAL;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
@@ -1092,6 +1093,12 @@ public class MediaProvider extends ContentProvider {
 
         mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_EXTERNAL_STORAGE,
                 null /* all packages */, mModeListener);
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_MEDIA_AUDIO,
+                null /* all packages */, mModeListener);
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_MEDIA_IMAGES,
+                null /* all packages */, mModeListener);
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_MEDIA_VIDEO,
+                null /* all packages */, mModeListener);
         mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_WRITE_EXTERNAL_STORAGE,
                 null /* all packages */, mModeListener);
         mAppOpsManager.startWatchingMode(permissionToOp(ACCESS_MEDIA_LOCATION),
@@ -1362,6 +1369,8 @@ public class MediaProvider extends ContentProvider {
 
     private void updateSpecialFormatForLimitedRows(SQLiteDatabase db,
             @NonNull CancellationSignal signal) {
+        final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE, FILES,
+                Files.getContentUri(VOLUME_EXTERNAL), Bundle.EMPTY, null);
         // Accumulate all the new SPECIAL_FORMAT updates with their ids
         ArrayMap<Long, Integer> newSpecialFormatValues = new ArrayMap<>();
         final String limit = String.valueOf(IDLE_MAINTENANCE_ROWS_LIMIT);
@@ -1383,9 +1392,9 @@ public class MediaProvider extends ContentProvider {
 
             values.clear();
             values.put(_SPECIAL_FORMAT, newSpecialFormatValues.get(id));
-            final String whereClause = MediaColumns._ID + "=?";
-            final String[] whereArgs = new String[]{String.valueOf(id)};
-            if (db.update("files", values, whereClause, whereArgs) == 1) {
+            final String selection = MediaColumns._ID + "=?";
+            final String[] selectionArgs = new String[]{String.valueOf(id)};
+            if (qbForUpdate.update(db, values, selection, selectionArgs) == 1) {
                 count++;
             } else {
                 Log.e(TAG, "Unable to update _SPECIAL_FORMAT for id = " + id);

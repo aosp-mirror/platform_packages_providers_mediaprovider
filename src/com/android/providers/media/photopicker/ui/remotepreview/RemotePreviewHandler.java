@@ -20,26 +20,29 @@ import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_EVENT_CALLBACK;
 import static android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_READY;
 
 import static com.android.providers.media.PickerUriResolver.createSurfaceControllerUri;
 
 import android.annotation.Nullable;
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.os.SystemProperties;
+import android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PlaybackEvent;
 import android.provider.ICloudMediaSurfaceController;
-
 import android.provider.ICloudSurfaceEventCallback;
 import android.util.ArrayMap;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.ui.PreviewVideoHolder;
 
 import java.util.Map;
 
@@ -60,9 +63,11 @@ public final class RemotePreviewHandler {
     private final Map<String, SurfaceControllerProxy> mControllers =
             new ArrayMap<>();
     private final SurfaceHolder.Callback mSurfaceHolderCallback = new PreviewSurfaceCallback();
-    private final SurfaceEventCallbackWrapper mSurfaceEventCallbackWrapper;
+    private final SurfaceEventCallbackWrapper mSurfaceEventCallbackWrapper =
+            new SurfaceEventCallbackWrapper();
+    private final Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
+    private final ItemPreviewState mCurrentPreviewState = new ItemPreviewState();
 
-    private Item mCurrentPreviewItem;
     private boolean mIsInBackground = false;
     private int mSurfaceCounter = 0;
 
@@ -72,30 +77,31 @@ public final class RemotePreviewHandler {
 
     public RemotePreviewHandler(Context context) {
         mContext = context;
-        mSurfaceEventCallbackWrapper = new SurfaceEventCallbackWrapper();
     }
 
     /**
      * Prepares the given {@link SurfaceView} for remote preview of the given {@link Item}.
      *
-     * @param view {@link SurfaceView} for preview of the media item
-     * @param item {@link Item} to be previewed
+     * @param viewHolder {@link PreviewVideoHolder} for the media item under preview
+     * @param item        {@link Item} to be previewed
      * @return true if the given {@link Item} can be previewed remotely, else false
      */
-    public boolean onViewAttachedToWindow(SurfaceView view, Item item) {
-        RemotePreviewSession session = createRemotePreviewSession(item);
+    public boolean onViewAttachedToWindow(PreviewVideoHolder viewHolder, Item item) {
+        RemotePreviewSession session = createRemotePreviewSession(item, viewHolder);
         if (session == null) {
             Log.w(TAG, "Failed to create RemotePreviewSession.");
             return false;
         }
 
-        SurfaceHolder holder = view.getHolder();
+        SurfaceHolder holder = viewHolder.getSurfaceHolder();
         mSessionMap.put(holder, session);
         // Ensure that we don't add the same callback twice, since we don't remove callbacks
         // anywhere else.
         holder.removeCallback(mSurfaceHolderCallback);
         holder.addCallback(mSurfaceHolderCallback);
-        mCurrentPreviewItem = item;
+
+        mCurrentPreviewState.item = item;
+        mCurrentPreviewState.viewHolder = viewHolder;
 
         return true;
     }
@@ -116,7 +122,7 @@ public final class RemotePreviewHandler {
             return false;
         }
 
-        session.playMedia();
+        session.requestPlayMedia();
         return true;
     }
 
@@ -137,26 +143,29 @@ public final class RemotePreviewHandler {
         destroyAllSurfaceControllers();
     }
 
-    private RemotePreviewSession createRemotePreviewSession(Item item) {
+    private RemotePreviewSession createRemotePreviewSession(Item item,
+            PreviewVideoHolder previewVideoHolder) {
         String authority = item.getContentUri().getAuthority();
         SurfaceControllerProxy controller = getSurfaceController(authority);
         if (controller == null) {
             return null;
         }
 
-        return new RemotePreviewSession(mSurfaceCounter++, item.getId(), authority, controller);
+        return new RemotePreviewSession(mSurfaceCounter++, item.getId(), authority, controller,
+                previewVideoHolder);
     }
 
-    private void restorePreviewState(SurfaceHolder holder, Item item) {
-        RemotePreviewSession session = createRemotePreviewSession(item);
+    private void restorePreviewState(SurfaceHolder holder) {
+        mCurrentPreviewState.viewHolder.getThumbnailView().setVisibility(View.VISIBLE);
+        RemotePreviewSession session = createRemotePreviewSession(mCurrentPreviewState.item,
+                mCurrentPreviewState.viewHolder);
         if (session == null) {
             throw new IllegalStateException("Failed to restore preview state.");
         }
 
         mSessionMap.put(holder, session);
         session.surfaceCreated(holder.getSurface());
-        // TODO(b/215175249): Start playback when player is ready.
-        session.playMedia();
+        session.requestPlayMedia();
     }
 
     private RemotePreviewSession getSessionForItem(Item item) {
@@ -228,23 +237,19 @@ public final class RemotePreviewHandler {
     private final class SurfaceEventCallbackWrapper extends ICloudSurfaceEventCallback.Stub {
 
         @Override
-        public void onPlaybackEvent(int surfaceId, int eventType, Bundle eventInfo) {
-            final RemotePreviewSession session = getSessionForSurfaceId(surfaceId);
+        public void onPlaybackEvent(int surfaceId, @PlaybackEvent int eventType,
+                @Nullable Bundle eventInfo) {
+            Log.d(TAG, "Received onPlaybackEvent for surfaceId: " + surfaceId +
+                    " ; eventType: " + eventType + " ; eventInfo: " + eventInfo);
 
-            if (session == null) {
-                Log.w(TAG, "No RemotePreviewSession found.");
-                return;
-            }
-            switch (eventType) {
-                case PLAYBACK_EVENT_READY:
-                    session.playMedia();
+            mMainThreadHandler.post(() -> {
+                final RemotePreviewSession session = getSessionForSurfaceId(surfaceId);
+                if (session == null) {
+                    Log.w(TAG, "No RemotePreviewSession found.");
                     return;
-                default:
-                    Log.d(TAG, "RemotePreviewHandler onPlaybackEvent for surfaceId: " +
-                            surfaceId + " ; media id: " + session.getMediaId() +
-                            " ; eventType: " + eventType + " ; eventInfo: " + eventInfo);
-
-            }
+                }
+                session.onPlaybackEvent(eventType, eventInfo);
+            });
         }
     }
 
@@ -254,10 +259,10 @@ public final class RemotePreviewHandler {
         public void surfaceCreated(SurfaceHolder holder) {
             Log.i(TAG, "Surface created: " + holder);
 
-            if (mIsInBackground && mCurrentPreviewItem != null) {
+            if (mIsInBackground) {
                 // This indicates that the app has just come to foreground, and we need to
                 // restore the preview state.
-                restorePreviewState(holder, mCurrentPreviewItem);
+                restorePreviewState(holder);
                 mIsInBackground = false;
                 return;
             }
@@ -284,5 +289,10 @@ public final class RemotePreviewHandler {
             session.surfaceDestroyed();
             mSessionMap.remove(holder);
         }
+    }
+
+    private static final class ItemPreviewState {
+        Item item;
+        PreviewVideoHolder viewHolder;
     }
 }

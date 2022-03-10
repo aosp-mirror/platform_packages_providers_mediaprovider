@@ -80,12 +80,16 @@ public class PhotosTabFragment extends TabFragment {
         setEmptyMessage(R.string.picker_photos_empty_message);
         mIsDefaultCategory = TextUtils.equals(Category.CATEGORY_DEFAULT, mCategoryType);
         if (mIsDefaultCategory) {
+            // Set the pane title for A11y
+            view.setAccessibilityPaneTitle(getString(R.string.picker_photos));
             mPickerViewModel.getItems().observe(this, itemList -> {
                 adapter.updateItemList(itemList);
                 // Handle emptyView's visibility
                 updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
             });
         } else {
+            // Set the pane title for A11y
+            view.setAccessibilityPaneTitle(Category.getCategoryName(getContext(), mCategoryType));
             mPickerViewModel.getCategoryItems(mCategoryType).observe(this, itemList -> {
                 // If the item count of the albums is zero, albums are not shown on the Albums tab.
                 // The user can't launch the album items page when the album has zero items. So, we

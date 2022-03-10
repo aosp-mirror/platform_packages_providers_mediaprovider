@@ -21,10 +21,4 @@
 
     <!-- PhotoPicker -->
     <color name="picker_background_color">#202124</color>
-    <color name="picker_drag_bar_color">#686868</color>
-
-    <!-- PhotoPicker Profile Button -->
-    <color name="picker_profile_disabled_button_content_color">#E3E3E3</color>
-    <color name="picker_profile_disabled_button_background_color">#DADADA</color>
-
 </resources>

@@ -29,9 +29,4 @@ public class PhotoPickerTestActivity extends PhotoPickerActivity {
         pickerViewModel.setUserIdManager(PhotoPickerBaseTest.getMockUserIdManager());
         return pickerViewModel;
     }
-
-    @Override
-    public boolean isPhotoPickerEnabled() {
-        return true;
-    }
 }

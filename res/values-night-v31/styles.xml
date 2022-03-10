@@ -18,13 +18,16 @@
 
     <style name="PickerMaterialTheme" parent="@style/Theme.Material3.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
-        <item name="pickerTabBackgroundColor">@android:color/system_neutral1_700</item>
-        <item name="pickerHighlightColor">@android:color/system_accent2_100</item>
+        <item name="pickerDragBarColor">@android:color/system_neutral1_700</item>
+        <item name="pickerHighlightColor">@android:color/system_accent1_100</item>
         <item name="pickerHighlightTextColor">?android:attr/textColorPrimaryInverse</item>
-        <item name="pickerProfileButtonColor">@android:color/system_accent2_100</item>
+        <item name="pickerProfileButtonColor">@android:color/system_accent1_100</item>
+        <item name="pickerDisabledProfileButtonColor">@android:color/system_neutral1_700</item>
         <item name="pickerProfileButtonTextColor">?android:attr/textColorPrimaryInverse</item>
-        <item name="pickerSelectedTabBackgroundColor">@android:color/system_accent2_100</item>
+        <item name="pickerDisabledProfileButtonTextColor">?android:attr/textColorTertiary</item>
+        <item name="pickerSelectedTabBackgroundColor">@android:color/system_accent1_100</item>
         <item name="pickerSelectedTabTextColor">?android:attr/textColorPrimaryInverse</item>
+        <item name="pickerTabBackgroundColor">?android:attr/colorBackground</item>
         <item name="pickerTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerSelectedColor">@android:color/system_accent1_300</item>
     </style>

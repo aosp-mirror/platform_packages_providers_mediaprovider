@@ -57,7 +57,7 @@
             android:layout_marginTop="@dimen/picker_privacy_text_margin_top"
             android:gravity="center_horizontal"
             android:text="@string/picker_privacy_message"
-            android:textColor="?android:attr/textColorSecondary"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/picker_privacy_text_size"
             style="?android:attr/textAppearanceListItem"/>
 
@@ -68,7 +68,8 @@
             <androidx.fragment.app.FragmentContainerView
                 android:id="@+id/fragment_container"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"/>
+                android:layout_height="match_parent"
+                android:importantForAccessibility="yes"/>
 
             <com.google.android.material.appbar.AppBarLayout
                 android:layout_width="match_parent"
@@ -82,6 +83,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="?attr/actionBarSize"
                     android:background="@color/picker_background_color"
+                    android:importantForAccessibility="yes"
+                    android:accessibilityTraversalAfter="@+id/privacy_text"
+                    android:accessibilityTraversalBefore="@+id/fragment_container"
                     app:titleTextColor="?attr/pickerTextColor"
                     app:titleTextAppearance="@style/PickerToolbarTitleTextAppearance">
 
@@ -117,6 +121,8 @@
                 android:textColor="?attr/pickerProfileButtonTextColor"
                 android:text="@string/picker_work_profile"
                 android:visibility="gone"
+                android:accessibilityTraversalAfter="@+id/toolbar"
+                android:accessibilityTraversalBefore="@+id/fragment_container"
                 app:backgroundTint="?attr/pickerProfileButtonColor"
                 app:borderWidth="0dp"
                 app:elevation="3dp"

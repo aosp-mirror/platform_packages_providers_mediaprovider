@@ -235,10 +235,11 @@ public class PickerSyncController {
                 // any queries from seeing cloud media until a sync where the cloud provider will be
                 // reset on the facade
                 mDbFacade.setCloudProvider(null);
+
+                Log.i(TAG, "Cloud provider changed successfully. Old: "
+                        + mCloudProviderInfo.authority + ". New: " + newProviderInfo.authority);
             }
 
-            Log.i(TAG, "Cloud provider changed successfully. Old: " + mCloudProviderInfo.authority
-                    + ". New: " + newProviderInfo.authority);
             return true;
         }
 

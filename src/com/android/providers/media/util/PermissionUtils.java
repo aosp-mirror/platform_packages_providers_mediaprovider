@@ -24,7 +24,7 @@ import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.MANAGE_MEDIA;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.READ_MEDIA_AUDIO;
-import static android.Manifest.permission.READ_MEDIA_IMAGE;
+import static android.Manifest.permission.READ_MEDIA_IMAGES;
 import static android.Manifest.permission.READ_MEDIA_VIDEO;
 import static android.Manifest.permission.UPDATE_DEVICE_STATS;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
@@ -215,7 +215,7 @@ public class PermissionUtils {
             @NonNull String packageName,
             @Nullable String attributionTag,
             boolean targetSdkIsAtLeastT) {
-        String permission = targetSdkIsAtLeastT ? READ_MEDIA_IMAGE : READ_EXTERNAL_STORAGE;
+        String permission = targetSdkIsAtLeastT ? READ_MEDIA_IMAGES : READ_EXTERNAL_STORAGE;
 
         if (!checkPermissionForPreflight(context, permission, pid, uid, packageName)) {
             return false;
@@ -471,7 +471,7 @@ public class PermissionUtils {
             case WRITE_EXTERNAL_STORAGE:
             case READ_MEDIA_AUDIO:
             case READ_MEDIA_VIDEO:
-            case READ_MEDIA_IMAGE:
+            case READ_MEDIA_IMAGES:
                 return true;
         }
         return false;

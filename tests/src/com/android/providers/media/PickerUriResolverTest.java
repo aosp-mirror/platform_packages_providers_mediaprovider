@@ -410,7 +410,7 @@ public class PickerUriResolverTest {
         try {
             sTestPickerUriResolver.getType(uri);
             fail("Invalid user specified in the picker uri: " + uri);
-        } catch (IllegalArgumentException expected) {
+        } catch (IllegalStateException expected) {
             // expected
             assertThat(expected.getMessage()).isEqualTo("Cannot find content resolver for uri: "
                     + uri);

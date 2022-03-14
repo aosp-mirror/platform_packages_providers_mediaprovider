@@ -39,7 +39,9 @@
     <string name="deny" msgid="6040983710442068936">"ನಿರಾಕರಿಸಿ"</string>
     <string name="add" msgid="2894574044585549298">"ಸೇರಿಸಿ"</string>
     <string name="deselect" msgid="4297825044827769490">"ಆಯ್ಕೆ ರದ್ದುಮಾಡಿ"</string>
+    <string name="deselected" msgid="8488133193326208475">"ಆಯ್ಕೆ ರದ್ದುಮಾಡಲಾಗಿದೆ"</string>
     <string name="select" msgid="2704765470563027689">"ಆಯ್ಕೆಮಾಡಿ"</string>
+    <string name="selected" msgid="9151797369975828124">"ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ಐಟಂವರೆಗೆ ಆಯ್ಕೆಮಾಡಿ}one{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳವರೆಗೆ ಆಯ್ಕೆಮಾಡಿ}other{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳವರೆಗೆ ಆಯ್ಕೆಮಾಡಿ}}"</string>
     <string name="recent" msgid="6694613584743207874">"ಇತ್ತೀಚಿನದು"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"ಯಾವುದೇ ಫೋಟೋಗಳು ಅಥವಾ ವೀಡಿಯೊಗಳಿಲ್ಲ"</string>
@@ -64,6 +66,13 @@
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"ಚಲನೆಯ ಫೋಟೋ"</string>
+    <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> ಅನ್ನು <xliff:g id="TIME">%2$s</xliff:g> ರಂದು ತೆಗೆದುಕೊಳ್ಳಲಾಗಿದೆ"</string>
+    <string name="picker_photo" msgid="1739342083494962153">"ಫೋಟೋ"</string>
+    <string name="picker_video" msgid="4404927441373455823">"ವೀಡಿಯೊ"</string>
+    <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
+    <string name="picker_motion_photo" msgid="4385182195289546308">"ಚಲನೆಯ ಫೋಟೋ"</string>
+    <string name="picker_mute_video" msgid="2496585809229800096">"ವೀಡಿಯೊ ಮ್ಯೂಟ್ ಮಾಡಿ"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"ವೀಡಿಯೊ ಅನ್‍ಮ್ಯೂಟ್ ಮಾಡಿ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ಈ ಆಡಿಯೋ ಫೈಲ್ ಅನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_0">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}one{ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}other{ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ಆಡಿಯೋ ಫೈಲ್ ಅನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}one{<xliff:g id="COUNT">^1</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}other{<xliff:g id="COUNT">^1</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ಈ ವೀಡಿಯೊವನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_0">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}one{ಈ <xliff:g id="COUNT">^2</xliff:g> ವೀಡಿಯೊಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}other{ಈ <xliff:g id="COUNT">^2</xliff:g> ವೀಡಿಯೊಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}}"</string>

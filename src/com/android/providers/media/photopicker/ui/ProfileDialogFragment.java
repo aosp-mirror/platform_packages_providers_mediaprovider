@@ -16,13 +16,13 @@
 
 package com.android.providers.media.photopicker.ui;
 
-import static android.app.admin.DevicePolicyResources.Drawables.Style.OUTLINE;
-import static android.app.admin.DevicePolicyResources.Drawables.WORK_PROFILE_ICON;
-import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.BLOCKED_BY_ADMIN_TITLE;
-import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.BLOCKED_FROM_PERSONAL_MESSAGE;
-import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.BLOCKED_FROM_WORK_MESSAGE;
-import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.WORK_PROFILE_PAUSED_MESSAGE;
-import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.WORK_PROFILE_PAUSED_TITLE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Drawables.Style.OUTLINE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Drawables.WORK_PROFILE_ICON;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.BLOCKED_BY_ADMIN_TITLE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.BLOCKED_FROM_PERSONAL_MESSAGE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.BLOCKED_FROM_WORK_MESSAGE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.WORK_PROFILE_PAUSED_MESSAGE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.WORK_PROFILE_PAUSED_TITLE;
 
 import android.app.Dialog;
 import android.app.admin.DevicePolicyManager;
@@ -118,14 +118,14 @@ public class ProfileDialogFragment extends DialogFragment {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private String getUpdatedEnterpriseString(String updatableStringId, int defaultStringId) {
         final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
-        return dpm.getString(updatableStringId, () -> getString(defaultStringId));
+        return dpm.getResources().getString(updatableStringId, () -> getString(defaultStringId));
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private Drawable getUpdatedWorkProfileIcon() {
         final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
-        return dpm.getDrawable(WORK_PROFILE_ICON, OUTLINE, () -> getContext().getDrawable(
-                R.drawable.ic_work_outline));
+        return dpm.getResources().getDrawable(WORK_PROFILE_ICON, OUTLINE, () ->
+                getContext().getDrawable(R.drawable.ic_work_outline));
     }
 
     public static void show(FragmentManager fm) {

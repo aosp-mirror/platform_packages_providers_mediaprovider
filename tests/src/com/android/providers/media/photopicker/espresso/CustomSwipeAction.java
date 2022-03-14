@@ -36,7 +36,6 @@ import com.android.providers.media.R;
 import org.hamcrest.Matcher;
 
 public class CustomSwipeAction {
-    private static final int PREVIEW_VIEW_PAGER_ID = R.id.preview_viewPager;
 
     /**
      * A custom swipeLeft method to avoid system gestures taking over ViewActions#swipeLeft
@@ -46,8 +45,8 @@ public class CustomSwipeAction {
                 GeneralLocation.CENTER_LEFT, Press.FINGER);
     }
 
-    public static void swipeLeftAndWait() {
-        onView(withId(PREVIEW_VIEW_PAGER_ID)).perform(customSwipeLeft());
+    public static void swipeLeftAndWait(int viewId) {
+        onView(withId(viewId)).perform(customSwipeLeft());
         Espresso.onIdle();
     }
 
@@ -59,9 +58,9 @@ public class CustomSwipeAction {
                 GeneralLocation.CENTER_RIGHT, Press.FINGER);
     }
 
-    public static void swipeRightAndWait() {
+    public static void swipeRightAndWait(int viewId) {
         // Use customSwipeRight to avoid system gestures taking over ViewActions#swipeRight
-        onView(withId(PREVIEW_VIEW_PAGER_ID)).perform(customSwipeRight());
+        onView(withId(viewId)).perform(customSwipeRight());
         Espresso.onIdle();
     }
 

@@ -243,9 +243,12 @@ public final class MediaStore {
     public static final String EXTRA_IS_SYSTEM_GALLERY_RESPONSE = "is_system_gallery_response";
 
     /** {@hide} */
-    public static final String GET_CLOUD_PROVIDER_CALL = "get_cloud_provider";
+    public static final String IS_CURRENT_CLOUD_PROVIDER_CALL = "is_current_cloud_provider";
     /** {@hide} */
-    public static final String NOTIFY_CLOUD_EVENT_CALL = "notify_cloud_event";
+    public static final String IS_SUPPORTED_CLOUD_PROVIDER_CALL = "is_supported_cloud_provider";
+    /** {@hide} */
+    public static final String NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL =
+            "notify_cloud_media_changed_event";
     /** {@hide} */
     public static final String SYNC_PROVIDERS_CALL = "sync_providers";
     /** {@hide} */
@@ -253,7 +256,7 @@ public final class MediaStore {
     /** {@hide} */
     public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
     /** {@hide} */
-    public static final String EXTRA_NOTIFY_CLOUD_EVENT_RESULT = "notify_cloud_event_result";
+    public static final String EXTRA_CLOUD_PROVIDER_RESULT = "cloud_provider_result";
     /** {@hide} */
     public static final String CREATE_SURFACE_CONTROLLER = "create_surface_controller";
 
@@ -702,7 +705,10 @@ public final class MediaStore {
      * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
      * expose a limited set of read-only operations. Specifically, picker URIs
      * can only be opened for read and queried for columns in {@link PickerMediaColumns}.
-     * @hide
+     * <p>
+     * Before this API, apps could use {@link Intent#ACTION_GET_CONTENT}. However, this
+     * new action is recommended for images and videos use-cases, since it ofers a
+     * better user experience.
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
@@ -715,7 +721,7 @@ public final class MediaStore {
      * device and other media selection configurations.
      *
      * @see #ACTION_PICK_IMAGES
-     * @see #getCloudProvider(ContentResolver)
+     * @see #isCurrentCloudMediaProviderAuthority(ContentResolver, String)
      * @hide
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
@@ -732,8 +738,6 @@ public final class MediaStore {
      * than 1 and less than or equal to
      * {@link MediaStore#getPickImagesMaxLimit}, otherwise
      * {@link Activity#RESULT_CANCELED} is returned.
-     *
-     * @hide
      */
     public final static String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
 
@@ -741,8 +745,6 @@ public final class MediaStore {
      * The maximum limit for the number of items that can be selected using
      * {@link MediaStore#ACTION_PICK_IMAGES} when launched in multiple selection mode.
      * This can be used as a constant value for {@link MediaStore#EXTRA_PICK_IMAGES_MAX}.
-     *
-     * @hide
      */
     public static int getPickImagesMaxLimit() {
         return PICK_IMAGES_MAX_LIMIT;
@@ -1809,9 +1811,7 @@ public final class MediaStore {
      * Photo picker metadata columns.
      *
      * @see #ACTION_PICK_IMAGES
-     * @hide
      */
-    // TODO(b/205291616): Unhide before release
     public static class PickerMediaColumns {
         private PickerMediaColumns() {}
 
@@ -4676,40 +4676,63 @@ public final class MediaStore {
     }
 
     /**
-     * Returns the authority of the currently enabled cloud provider or {@code null} if there's none
-     * enabled.
+     * Returns {@code true} if and only if the caller with {@code authority} is the currently
+     * enabled {@link CloudMediaProvider}. More specifically, {@code false} is also returned
+     * if the calling uid doesn't match the uid of the {@code authority}.
      *
-     * See android.provider.CloudMediaProvider
-     *
+     * @see android.provider.CloudMediaProvider
+     * @see #isSupportedCloudMediaProviderAuthority(ContentResolver, String)
      * @hide
      */
-    // TODO(b/202733511): Convert See to @see tag after CloudMediaProvider API is unhidden
-    @Nullable
-    public static String getCloudProvider(@NonNull ContentResolver resolver) {
-        Objects.requireNonNull(resolver);
-
-        final Bundle out = resolver.call(AUTHORITY, GET_CLOUD_PROVIDER_CALL, null, null);
-        return out.getString(EXTRA_CLOUD_PROVIDER);
+    public static boolean isCurrentCloudMediaProviderAuthority(@NonNull ContentResolver resolver,
+            @NonNull String authority) {
+        return callForCloudProvider(resolver, IS_CURRENT_CLOUD_PROVIDER_CALL, authority);
     }
 
     /**
-     * Notifies the OS about a cloud event requiring a full or incremental media collection sync
-     * for the currently enabled cloud provider.
+     * Returns {@code true} if and only if the caller with {@code authority} is a supported
+     * {@link CloudMediaProvider}. More specifically, {@code false} is also returned
+     * if the calling uid doesn't match the uid of the {@code authority}.
+     *
+     * @see android.provider.CloudMediaProvider
+     * @see #isCurrentCloudMediaProviderAuthority(ContentResolver, String)
+     * @hide
+     */
+    public static boolean isSupportedCloudMediaProviderAuthority(@NonNull ContentResolver resolver,
+            @NonNull String authority) {
+        return callForCloudProvider(resolver, IS_SUPPORTED_CLOUD_PROVIDER_CALL, authority);
+    }
+
+    /**
+     * Notifies the OS about a cloud media event requiring a full or incremental media collection
+     * sync for the currently enabled cloud provider, {@code authority}.
      *
      * The OS will schedule the sync in the background and will attempt to batch frequent
      * notifications into a single sync event.
      *
      * If the caller is not the currently enabled cloud provider as returned by
-     * {@link #getCloudProvider(ContentResolver)}, the request will be unsuccessful.
+     * {@link #isCurrentCloudMediaProviderAuthority(ContentResolver, String)}, the request will be
+     * unsuccessful.
      *
      * @return {@code true} if the notification was successful, {@code false} otherwise
      *
      * @hide
      */
-    public static boolean notifyCloudEvent(@NonNull ContentResolver resolver) {
-        Objects.requireNonNull(resolver);
+    public static void notifyCloudMediaChangedEvent(@NonNull ContentResolver resolver,
+            @NonNull String authority, @NonNull String currentMediaCollectionId)
+            throws SecurityException {
+        if (!callForCloudProvider(resolver, NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL, authority)) {
+            throw new SecurityException("Failed to notify cloud media changed event");
+        }
+    }
 
-        final Bundle out = resolver.call(AUTHORITY, NOTIFY_CLOUD_EVENT_CALL, null, null);
-        return out.getBoolean(EXTRA_NOTIFY_CLOUD_EVENT_RESULT);
+    private static boolean callForCloudProvider(ContentResolver resolver, String method,
+            String callingAuthority) {
+        Objects.requireNonNull(resolver);
+        Objects.requireNonNull(method);
+        Objects.requireNonNull(callingAuthority);
+
+        final Bundle out = resolver.call(AUTHORITY, method, callingAuthority, /* extras */ null);
+        return out.getBoolean(EXTRA_CLOUD_PROVIDER_RESULT);
     }
 }

@@ -30,12 +30,12 @@
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Permitir"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Recusar"</string>
     <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
-      <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
       <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
     </plurals>
     <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
-      <item quantity="one">E <xliff:g id="COUNT_0">^1</xliff:g> item adicional</item>
       <item quantity="other">E <xliff:g id="COUNT_1">^1</xliff:g> itens adicionais</item>
+      <item quantity="one">E <xliff:g id="COUNT_0">^1</xliff:g> item adicional</item>
     </plurals>
     <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Limpe ficheiros de apps temporários"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"A app <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> pretende limpar alguns ficheiros temporários. Isto pode resultar num aumento da utilização da bateria ou dos dados móveis."</string>
@@ -44,132 +44,132 @@
     <string name="allow" msgid="8885707816848569619">"Permitir"</string>
     <string name="deny" msgid="6040983710442068936">"Recusar"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este ficheiro de áudio?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> ficheiros de áudio?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este ficheiro de áudio?</item>
     </plurals>
     <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="one">A modificar o ficheiro de áudio…</item>
       <item quantity="other">A modificar <xliff:g id="COUNT">^1</xliff:g> ficheiros de áudio…</item>
+      <item quantity="one">A modificar o ficheiro de áudio…</item>
     </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este vídeo?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> vídeos?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este vídeo?</item>
     </plurals>
     <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
-      <item quantity="one">A modificar o vídeo…</item>
       <item quantity="other">A modificar <xliff:g id="COUNT">^1</xliff:g> vídeos…</item>
+      <item quantity="one">A modificar o vídeo…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique esta foto?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> fotos?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique esta foto?</item>
     </plurals>
     <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
-      <item quantity="one">A modificar a foto…</item>
       <item quantity="other">A modificar <xliff:g id="COUNT">^1</xliff:g> fotos…</item>
+      <item quantity="one">A modificar a foto…</item>
     </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este item?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> itens?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este item?</item>
     </plurals>
     <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
-      <item quantity="one">A modificar o item…</item>
       <item quantity="other">A modificar <xliff:g id="COUNT">^1</xliff:g> itens…</item>
+      <item quantity="one">A modificar o item…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> mova este ficheiro de áudio para o lixo?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> mova <xliff:g id="COUNT">^2</xliff:g> ficheiros de áudio para o lixo?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> mova este ficheiro de áudio para o lixo?</item>
     </plurals>
     <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="one">A mover o ficheiro de áudio para o lixo…</item>
       <item quantity="other">A mover <xliff:g id="COUNT">^1</xliff:g> ficheiros de áudio para o lixo…</item>
+      <item quantity="one">A mover o ficheiro de áudio para o lixo…</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> mova este vídeo para o lixo?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> mova <xliff:g id="COUNT">^2</xliff:g> vídeos para o lixo?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> mova este vídeo para o lixo?</item>
     </plurals>
     <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
-      <item quantity="one">A mover o vídeo para o lixo…</item>
       <item quantity="other">A mover <xliff:g id="COUNT">^1</xliff:g> vídeos para o lixo…</item>
+      <item quantity="one">A mover o vídeo para o lixo…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> mova esta foto para o lixo?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> mova <xliff:g id="COUNT">^2</xliff:g> fotos para o lixo?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> mova esta foto para o lixo?</item>
     </plurals>
     <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
-      <item quantity="one">A mover a foto para o lixo…</item>
       <item quantity="other">A mover <xliff:g id="COUNT">^1</xliff:g> fotos para o lixo…</item>
+      <item quantity="one">A mover a foto para o lixo…</item>
     </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> mova este item para o lixo?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> mova <xliff:g id="COUNT">^2</xliff:g> itens para o lixo?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> mova este item para o lixo?</item>
     </plurals>
     <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="one">A mover o item para o lixo…</item>
       <item quantity="other">A mover <xliff:g id="COUNT">^1</xliff:g> itens para o lixo…</item>
+      <item quantity="one">A mover o item para o lixo…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> retire este ficheiro de áudio do lixo?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> retire <xliff:g id="COUNT">^2</xliff:g> ficheiros de áudio do lixo?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> retire este ficheiro de áudio do lixo?</item>
     </plurals>
     <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="one">A retirar o ficheiro de áudio do lixo…</item>
       <item quantity="other">A retirar <xliff:g id="COUNT">^1</xliff:g> ficheiros de áudio do lixo…</item>
+      <item quantity="one">A retirar o ficheiro de áudio do lixo…</item>
     </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> retire este vídeo do lixo?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> retire <xliff:g id="COUNT">^2</xliff:g> vídeos do lixo?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> retire este vídeo do lixo?</item>
     </plurals>
     <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
-      <item quantity="one">A retirar o vídeo do lixo…</item>
       <item quantity="other">A retirar <xliff:g id="COUNT">^1</xliff:g> vídeos do lixo…</item>
+      <item quantity="one">A retirar o vídeo do lixo…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> retire esta foto do lixo?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> retire <xliff:g id="COUNT">^2</xliff:g> fotos do lixo?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> retire esta foto do lixo?</item>
     </plurals>
     <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
-      <item quantity="one">A retirar a foto do lixo…</item>
       <item quantity="other">A retirar <xliff:g id="COUNT">^1</xliff:g> fotos do lixo…</item>
+      <item quantity="one">A retirar a foto do lixo…</item>
     </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> retire este item do lixo?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> retire <xliff:g id="COUNT">^2</xliff:g> itens do lixo?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> retire este item do lixo?</item>
     </plurals>
     <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
-      <item quantity="one">A retirar o item do lixo…</item>
       <item quantity="other">A retirar <xliff:g id="COUNT">^1</xliff:g> itens do lixo…</item>
+      <item quantity="one">A retirar o item do lixo…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> elimine este ficheiro de áudio?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> elimine <xliff:g id="COUNT">^2</xliff:g> ficheiros de áudio?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> elimine este ficheiro de áudio?</item>
     </plurals>
     <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="one">A eliminar o ficheiro de áudio…</item>
       <item quantity="other">A eliminar <xliff:g id="COUNT">^1</xliff:g> ficheiros de áudio…</item>
+      <item quantity="one">A eliminar o ficheiro de áudio…</item>
     </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> elimine este vídeo?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> elimine <xliff:g id="COUNT">^2</xliff:g> vídeos?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> elimine este vídeo?</item>
     </plurals>
     <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
-      <item quantity="one">A eliminar o vídeo…</item>
       <item quantity="other">A eliminar <xliff:g id="COUNT">^1</xliff:g> vídeos…</item>
+      <item quantity="one">A eliminar o vídeo…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> elimine esta foto?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> elimine <xliff:g id="COUNT">^2</xliff:g> fotos?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> elimine esta foto?</item>
     </plurals>
     <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
-      <item quantity="one">A eliminar a foto…</item>
       <item quantity="other">A eliminar <xliff:g id="COUNT">^1</xliff:g> fotos…</item>
+      <item quantity="one">A eliminar a foto…</item>
     </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
-      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> elimine este item?</item>
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> elimine <xliff:g id="COUNT">^2</xliff:g> itens?</item>
+      <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> elimine este item?</item>
     </plurals>
     <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
-      <item quantity="one">A eliminar o item…</item>
       <item quantity="other">A eliminar <xliff:g id="COUNT">^1</xliff:g> itens…</item>
+      <item quantity="one">A eliminar o item…</item>
     </plurals>
     <string name="transcode_denied" msgid="6760546817138288976">"A app <xliff:g id="APP_NAME">%s</xliff:g> não pode processar ficheiros multimédia"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Processamento de multimédia cancelado"</string>

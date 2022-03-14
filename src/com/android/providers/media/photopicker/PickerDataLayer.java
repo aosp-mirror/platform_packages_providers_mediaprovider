@@ -79,7 +79,7 @@ public class PickerDataLayer {
         } else {
             // The album type here can only be local or cloud because other album types
             // like Favorites don't have albumIds hence would hit the first condition
-            final boolean isLocal = queryExtras.getAlbumType() == AlbumColumns.TYPE_LOCAL;
+            final boolean isLocal = AlbumColumns.TYPE_LOCAL.equals(queryExtras.getAlbumType());
             final String authority = isLocal ? mDbFacade.getLocalProvider()
                     : queryExtras.getCloudProvider();
 

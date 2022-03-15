@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.data.model;
 
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
@@ -24,18 +25,21 @@ import static com.android.providers.media.photopicker.data.model.Item.ItemColumn
 
 import static com.google.common.truth.Truth.assertThat;
 
+import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.UserHandle;
 import android.provider.MediaStore;
 
-import androidx.test.filters.SdkSuppress;
+import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @RunWith(AndroidJUnit4.class)
 public class ItemTest {
@@ -47,9 +51,8 @@ public class ItemTest {
         final long generationModified = 1L;
         final String mimeType = "image/png";
         final long duration = 1000;
-        final int specialFormat = _SPECIAL_FORMAT_NONE;
         final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, generationModified,
-                duration, specialFormat);
+                duration, _SPECIAL_FORMAT_NONE);
         cursor.moveToFirst();
 
         final Item item = new Item(cursor, UserId.CURRENT_USER);
@@ -64,7 +67,7 @@ public class ItemTest {
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isTrue();
         assertThat(item.isVideo()).isFalse();
-        assertThat(item.isGif()).isFalse();
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
     }
 
@@ -75,9 +78,8 @@ public class ItemTest {
         final long generationModified = 1L;
         final String mimeType = "image/png";
         final long duration = 1000;
-        final int specialFormat = _SPECIAL_FORMAT_NONE;
         final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, generationModified,
-                duration, specialFormat);
+                duration, _SPECIAL_FORMAT_NONE);
         cursor.moveToFirst();
         final UserId userId = UserId.of(UserHandle.of(10));
 
@@ -90,10 +92,11 @@ public class ItemTest {
         assertThat(item.getDuration()).isEqualTo(duration);
         assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://10@media/external/file/1"));
 
-        assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isTrue();
+
+        assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
-        assertThat(item.isGif()).isFalse();
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
     }
 
@@ -107,9 +110,10 @@ public class ItemTest {
         final Item item = generateItem(id, mimeType, dateTaken, generationModified, duration);
 
         assertThat(item.isImage()).isTrue();
+
         assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
-        assertThat(item.isGif()).isFalse();
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
     }
 
@@ -123,9 +127,10 @@ public class ItemTest {
         final Item item = generateItem(id, mimeType, dateTaken, generationModified, duration);
 
         assertThat(item.isVideo()).isTrue();
+
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isFalse();
-        assertThat(item.isGif()).isFalse();
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
     }
 
@@ -141,25 +146,40 @@ public class ItemTest {
 
         assertThat(item.isMotionPhoto()).isTrue();
         assertThat(item.isImage()).isTrue();
-        assertThat(item.isGif()).isFalse();
+
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
     }
 
     @Test
-    public void testIsGif() {
+    public void testIsGifOrAnimatedWebp() {
         final String id = "1";
         final long dateTaken = 12345678L;
         final long generationModified = 1L;
         final String mimeType = "image/jpeg";
         final long duration = 1000;
-        final Item item = generateSpecialFormatItem(id, mimeType, dateTaken, generationModified,
+        final Item gifItem = generateSpecialFormatItem(id, mimeType, dateTaken, generationModified,
                 duration, _SPECIAL_FORMAT_GIF);
 
-        assertThat(item.isGif()).isTrue();
-        assertThat(item.isDate()).isFalse();
-        assertThat(item.isImage()).isTrue();
-        assertThat(item.isVideo()).isFalse();
+        assertThat(gifItem.isGifOrAnimatedWebp()).isTrue();
+        assertThat(gifItem.isGif()).isTrue();
+        assertThat(gifItem.isImage()).isTrue();
+
+        assertThat(gifItem.isAnimatedWebp()).isFalse();
+        assertThat(gifItem.isDate()).isFalse();
+        assertThat(gifItem.isVideo()).isFalse();
+
+        final Item animatedWebpItem = generateSpecialFormatItem(id, mimeType, dateTaken,
+                generationModified, duration, _SPECIAL_FORMAT_ANIMATED_WEBP);
+
+        assertThat(animatedWebpItem.isGifOrAnimatedWebp()).isTrue();
+        assertThat(animatedWebpItem.isAnimatedWebp()).isTrue();
+        assertThat(animatedWebpItem.isImage()).isTrue();
+
+        assertThat(animatedWebpItem.isGif()).isFalse();
+        assertThat(animatedWebpItem.isDate()).isFalse();
+        assertThat(animatedWebpItem.isVideo()).isFalse();
     }
 
     @Test
@@ -173,7 +193,8 @@ public class ItemTest {
                 duration, _SPECIAL_FORMAT_NONE);
 
         assertThat(item.isImage()).isTrue();
-        assertThat(item.isGif()).isFalse();
+
+        assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
@@ -228,10 +249,43 @@ public class ItemTest {
         assertThat(item2SameValues.compareTo(item2)).isEqualTo(0);
     }
 
+    @Test
+    public void testGetContentDescription() {
+        final String id = "1";
+        final long dateTaken = LocalDate.of(2020 /* year */, 7 /* month */, 7 /* dayOfMonth */)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        final long generationModified = 1L;
+        final long duration = 1000;
+        final Context context = InstrumentationRegistry.getTargetContext();
+
+        Item item = generateItem(id, "image/jpeg", dateTaken, generationModified, duration);
+        assertThat(item.getContentDescription(context))
+                .isEqualTo("Photo taken on Jul 7, 2020, 12:00:00 AM");
+
+        item = generateItem(id, "video/mp4", dateTaken, generationModified, duration);
+        assertThat(item.getContentDescription(context))
+                .isEqualTo("Video taken on Jul 7, 2020, 12:00:00 AM");
+
+        item = generateSpecialFormatItem(id, "image/gif", dateTaken, generationModified, duration,
+                _SPECIAL_FORMAT_GIF);
+        assertThat(item.getContentDescription(context))
+                .isEqualTo("GIF taken on Jul 7, 2020, 12:00:00 AM");
+
+        item = generateSpecialFormatItem(id, "image/webp", dateTaken, generationModified, duration,
+                _SPECIAL_FORMAT_ANIMATED_WEBP);
+        assertThat(item.getContentDescription(context))
+                .isEqualTo("GIF taken on Jul 7, 2020, 12:00:00 AM");
+
+        item = generateSpecialFormatItem(id, "image/jpeg", dateTaken, generationModified, duration,
+                _SPECIAL_FORMAT_MOTION_PHOTO);
+        assertThat(item.getContentDescription(context))
+                .isEqualTo("Motion Photo taken on Jul 7, 2020, 12:00:00 AM");
+    }
+
     private static Cursor generateCursorForItem(String id, String mimeType, long dateTaken,
             long generationModified, long duration, int specialFormat) {
         final MatrixCursor cursor = new MatrixCursor(ItemColumns.ALL_COLUMNS);
-        cursor.addRow(new Object[] {id, mimeType, dateTaken, /* dateModified */ dateTaken,
+        cursor.addRow(new Object[] {id, mimeType, dateTaken, dateTaken /* dateModified */,
                 generationModified, duration, specialFormat});
         return cursor;
     }

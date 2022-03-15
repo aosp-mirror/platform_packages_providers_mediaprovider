@@ -16,8 +16,15 @@
 
 <resources>
 
-    <dimen name="picker_chip_radius">12dp</dimen>
+    <dimen name="picker_tab_radius">12dp</dimen>
+    <dimen name="picker_tab_height">36dp</dimen>
+    <dimen name="picker_tab_width">96dp</dimen>
+    <dimen name="picker_tab_min_width">104dp</dimen>
 
     <dimen name="picker_bottom_bar_size">72dp</dimen>
+
+    <dimen name="picker_toolbar_title_text_size">22sp</dimen>
+
+    <dimen name="preview_mute_marginBottom">88dp</dimen>
 
 </resources>

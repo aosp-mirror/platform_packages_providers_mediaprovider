@@ -19,7 +19,6 @@ package com.android.providers.media;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.provider.MediaStore.MediaColumns._ID;
-import static android.provider.MediaStore.MediaColumns.RELATIVE_PATH;
 
 import static androidx.test.InstrumentationRegistry.getTargetContext;
 
@@ -31,7 +30,6 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import android.Manifest;
-import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
@@ -51,7 +49,6 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.scan.MediaScannerTest;
 
 import org.junit.AfterClass;
@@ -83,25 +80,17 @@ public class PickerUriResolverTest {
         }
 
         @Override
-        protected Uri getRedactedUri(ContentResolver contentResolver, Uri uri) {
-            // Cannot mock static method MediaStore.getRedactedUri(). Cannot mock implementation of
-            // MediaStore.getRedactedUri as it depends on final methods which cannot be mocked as
-            // well.
-            return uri;
-        }
-
-        @Override
-        Cursor queryPickerUri(Uri uri) {
+        Cursor queryPickerUri(Uri uri, String[] projection) {
             if (!uri.getLastPathSegment().equals(TEST_ID)) {
-                return super.queryPickerUri(uri);
+                return super.queryPickerUri(uri, projection);
             }
 
-            final String[] projection = new String[] {
+            final String[] p = new String[] {
                 CloudMediaProviderContract.MediaColumns.ID,
                 CloudMediaProviderContract.MediaColumns.MIME_TYPE
             };
 
-            final MatrixCursor c = new MatrixCursor(projection);
+            final MatrixCursor c = new MatrixCursor(p);
             c.addRow(new String[] { TEST_ID, "image/jpeg"});
             return c;
         }
@@ -206,6 +195,13 @@ public class PickerUriResolverTest {
         final String authority = "foo";
         final Uri uri = Uri.parse("content://foo/deleted_media");
         assertThat(PickerUriResolver.getDeletedMediaUri(authority)).isEqualTo(uri);
+    }
+
+    @Test
+    public void testCreateSurfaceControllerUri() throws Exception {
+        final String authority = "foo";
+        final Uri uri = Uri.parse("content://foo/surface_controller");
+        assertThat(PickerUriResolver.createSurfaceControllerUri(authority)).isEqualTo(uri);
     }
 
     @Test
@@ -345,15 +341,12 @@ public class PickerUriResolverTest {
     }
 
     private static Uri getPickerUriForId(long id, int user) {
-        if (PickerDbFacade.isPickerDbEnabled()) {
-            final Uri providerUri = PickerUriResolver
-                    .getMediaUri(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
-                    .buildUpon()
-                    .appendPath(String.valueOf(id))
-                    .build();
-            return PickerUriResolver.wrapProviderUri(providerUri, user);
-        }
-        return Uri.parse("content://media/picker/" + user + "/" + id);
+        final Uri providerUri = PickerUriResolver
+                .getMediaUri(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                .buildUpon()
+                .appendPath(String.valueOf(id))
+                .build();
+        return PickerUriResolver.wrapProviderUri(providerUri, user);
     }
 
     private void testOpenFile(Uri uri) throws Exception {
@@ -372,8 +365,7 @@ public class PickerUriResolverTest {
 
     private void testQuery(Uri uri) throws Exception {
         Cursor result = sTestPickerUriResolver.query(uri,
-                /* projection */ new String[]{_ID},
-                /* queryArgs */ null, /* signal */ null, /* callingPid */ -1, /* callingUid */ -1);
+                /* projection */ new String[]{_ID}, /* callingPid */ -1, /* callingUid */ -1);
         assertThat(result).isNotNull();
         assertThat(result.getCount()).isEqualTo(1);
         result.moveToFirst();
@@ -409,7 +401,7 @@ public class PickerUriResolverTest {
 
     private void testQueryInvalidUser(Uri uri) throws Exception {
         Cursor result = sTestPickerUriResolver.query(uri, /* projection */ null,
-                /* queryArgs */ null, /* signal */ null, /* callingPid */ -1, /* callingUid */ -1);
+                /* callingPid */ -1, /* callingUid */ -1);
         assertThat(result).isNotNull();
         assertThat(result.getCount()).isEqualTo(0);
     }
@@ -418,7 +410,7 @@ public class PickerUriResolverTest {
         try {
             sTestPickerUriResolver.getType(uri);
             fail("Invalid user specified in the picker uri: " + uri);
-        } catch (IllegalArgumentException expected) {
+        } catch (IllegalStateException expected) {
             // expected
             assertThat(expected.getMessage()).isEqualTo("Cannot find content resolver for uri: "
                     + uri);
@@ -453,8 +445,8 @@ public class PickerUriResolverTest {
 
     private void testQuery_permissionDenied(Uri uri) throws Exception {
         try {
-            sTestPickerUriResolver.query(uri, /* projection */ null, /* queryArgs */ null,
-                    /* signal */ null, /* callingPid */ -1, /* callingUid */ -1);
+            sTestPickerUriResolver.query(uri, /* projection */ null
+                    , /* callingPid */ -1, /* callingUid */ -1);
             fail("query should fail if the caller does not have permission grant on"
                     + " the picker uri: " + uri);
         } catch (SecurityException expected) {

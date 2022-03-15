@@ -4,13 +4,19 @@
             "name": "MediaProviderTests[com.google.android.mediaprovider.apex]"
         },
         {
-            "name": "CtsScopedStorageCoreHostTest"
+            "name": "CtsScopedStorageCoreHostTest[com.google.android.mediaprovider.apex]"
         },
         {
-            "name": "CtsScopedStorageHostTest"
+            "name": "CtsScopedStorageHostTest[com.google.android.mediaprovider.apex]"
         },
         {
-            "name": "CtsScopedStorageDeviceOnlyTest"
+            "name": "CtsScopedStorageDeviceOnlyTest[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsMediaProviderTranscodeTests[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsPhotoPickerTest[com.google.android.mediaprovider.apex]"
         }
     ],
     "presubmit": [
@@ -54,15 +60,16 @@
             "name": "fuse_node_test"
         },
         {
-            "name": "CtsMediaProviderTranscodeTests"
-        },
-        {
             "name": "CtsPhotoPickerTest"
         }
     ],
     "postsubmit": [
         {
             "name": "MediaProviderClientTests"
+        },
+        {
+            // TODO(b/222253890): Move these tests back to presubmit once the bug is fixed.
+            "name": "CtsMediaProviderTranscodeTests"
         },
         {
             "name": "CtsAppSecurityHostTestCases",

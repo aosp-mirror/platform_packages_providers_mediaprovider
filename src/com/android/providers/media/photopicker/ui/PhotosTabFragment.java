@@ -54,8 +54,8 @@ public class PhotosTabFragment extends TabFragment {
 
     private boolean mIsDefaultCategory;
     @CategoryType
-    private String mCategoryType;
-    private String mCategoryName;
+    private String mCategoryType = Category.CATEGORY_DEFAULT;
+    private String mCategoryName = "";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

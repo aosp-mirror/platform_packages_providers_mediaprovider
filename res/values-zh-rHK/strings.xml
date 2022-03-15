@@ -39,7 +39,9 @@
     <string name="deny" msgid="6040983710442068936">"拒絕"</string>
     <string name="add" msgid="2894574044585549298">"新增"</string>
     <string name="deselect" msgid="4297825044827769490">"取消選取"</string>
+    <string name="deselected" msgid="8488133193326208475">"已取消選取"</string>
     <string name="select" msgid="2704765470563027689">"選取"</string>
+    <string name="selected" msgid="9151797369975828124">"已選取"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{選取最多 <xliff:g id="COUNT_0">^1</xliff:g> 個項目}other{選取最多 <xliff:g id="COUNT_1">^1</xliff:g> 個項目}}"</string>
     <string name="recent" msgid="6694613584743207874">"最近"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"沒有相片或影片"</string>
@@ -54,6 +56,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"工作應用程式不得存取個人資料"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"已暫停工作應用程式"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"如要開啟工作相片，請開啟工作應用程式，然後再試一次"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"此應用程式只能存取您選取的相片"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> 個項目}other{<xliff:g id="COUNT_1">^1</xliff:g> 個項目}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"新增 (<xliff:g id="COUNT">^1</xliff:g> 個)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"相機"</string>
@@ -63,6 +66,15 @@
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"動態相片"</string>
+    <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g>拍攝時間：<xliff:g id="TIME">%2$s</xliff:g>"</string>
+    <string name="picker_photo" msgid="1739342083494962153">"相片"</string>
+    <string name="picker_video" msgid="4404927441373455823">"影片"</string>
+    <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
+    <string name="picker_motion_photo" msgid="4385182195289546308">"動態相片"</string>
+    <!-- no translation found for picker_mute_video (2496585809229800096) -->
+    <skip />
+    <!-- no translation found for picker_unmute_video (6611741290641963568) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 修改此影片嗎？}other{允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 修改 <xliff:g id="COUNT">^2</xliff:g> 部影片嗎？}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{正在修改音訊檔案…}other{正在修改 <xliff:g id="COUNT">^1</xliff:g> 個音訊檔案…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 修改此影片嗎？}other{允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 修改 <xliff:g id="COUNT">^2</xliff:g> 部影片嗎？}}"</string>

@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.data.model;
 
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
 
@@ -23,6 +24,7 @@ import static com.android.providers.media.photopicker.util.CursorUtils.getCursor
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -32,7 +34,9 @@ import android.provider.MediaStore;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.util.MimeUtils;
 
 /**
@@ -43,12 +47,12 @@ public class Item {
     public static class ItemColumns {
         public static String ID = CloudMediaProviderContract.MediaColumns.ID;
         public static String MIME_TYPE = CloudMediaProviderContract.MediaColumns.MIME_TYPE;
-        public static String DATE_TAKEN = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MS;
+        public static String DATE_TAKEN = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS;
         // TODO(b/195009139): Remove after fully switching to picker db
         public static String DATE_MODIFIED = MediaStore.MediaColumns.DATE_MODIFIED;
         public static String GENERATION_MODIFIED =
-                CloudMediaProviderContract.MediaColumns.GENERATION_MODIFIED;
-        public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MS;
+                CloudMediaProviderContract.MediaColumns.SYNC_GENERATION;
+        public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MILLIS;
         public static String SIZE = CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
         public static String AUTHORITY = CloudMediaProviderContract.MediaColumns.AUTHORITY;
         public static String SPECIAL_FORMAT =
@@ -118,8 +122,16 @@ public class Item {
         return mIsVideo;
     }
 
+    public boolean isGifOrAnimatedWebp() {
+        return isGif() || isAnimatedWebp();
+    }
+
     public boolean isGif() {
         return mSpecialFormat == _SPECIAL_FORMAT_GIF;
+    }
+
+    public boolean isAnimatedWebp() {
+        return mSpecialFormat == _SPECIAL_FORMAT_ANIMATED_WEBP;
     }
 
     public boolean isMotionPhoto() {
@@ -192,12 +204,25 @@ public class Item {
         mGenerationModified = getCursorLong(cursor, ItemColumns.GENERATION_MODIFIED);
         mDuration = getCursorLong(cursor, ItemColumns.DURATION);
         mSpecialFormat = getCursorInt(cursor, ItemColumns.SPECIAL_FORMAT);
-
-        // TODO (b/188867567): Currently, we only has local data source,
-        //  get the uri from provider
         mUri = ItemsProvider.getItemsUri(mId, authority, userId);
 
         parseMimeType();
+    }
+
+    public String getContentDescription(@NonNull Context context) {
+        final String itemType;
+        if (isVideo()) {
+            itemType = context.getString(R.string.picker_video);
+        } else if (isGif() || isAnimatedWebp()) {
+            itemType = context.getString(R.string.picker_gif);
+        } else if (isMotionPhoto()) {
+            itemType = context.getString(R.string.picker_motion_photo);
+        } else {
+            itemType = context.getString(R.string.picker_photo);
+        }
+
+        return context.getString(R.string.picker_item_content_desc, itemType,
+                DateTimeUtils.getDateTimeStringForContentDesc(getDateTaken()));
     }
 
     private void parseMimeType() {

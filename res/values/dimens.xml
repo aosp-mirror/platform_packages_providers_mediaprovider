@@ -21,7 +21,7 @@
     <dimen name="dialog_space">20dp</dimen>
 
     <!-- PhotoPicker -->
-    <dimen name="picker_top_corner_radius">16dp</dimen>
+    <dimen name="picker_top_corner_radius">28dp</dimen>
     <dimen name="picker_photo_size">118dp</dimen>
     <dimen name="picker_album_size">156dp</dimen>
 
@@ -31,6 +31,7 @@
     <dimen name="picker_bottom_bar_elevation">8dp</dimen>
 
     <dimen name="picker_viewselected_icon_padding">10dp</dimen>
+    <dimen name="picker_viewselected_icon_size">24dp</dimen>
 
     <dimen name="picker_item_check_size">24dp</dimen>
     <dimen name="picker_item_check_margin">6dp</dimen>
@@ -53,17 +54,26 @@
 
     <dimen name="picker_photo_item_spacing">3dp</dimen>
 
-    <dimen name="picker_chip_text_size">16sp</dimen>
-    <dimen name="picker_chip_touch_size">48dp</dimen>
-    <dimen name="picker_chip_radius">16dp</dimen>
-    <dimen name="picker_chip_horizontal_gap">4dp</dimen>
+    <dimen name="picker_tab_text_size">14sp</dimen>
+    <dimen name="picker_tab_touch_size">48dp</dimen>
+    <dimen name="picker_tab_radius">16dp</dimen>
+    <dimen name="picker_tab_height">32dp</dimen>
+    <dimen name="picker_tab_width">80dp</dimen>
+    <dimen name="picker_tab_min_width">88dp</dimen>
+    <dimen name="picker_tab_horizontal_gap">4dp</dimen>
 
-    <dimen name="picker_drag_bar_height">24dp</dimen>
-    <dimen name="picker_drag_margin_top">8dp</dimen>
-    <dimen name="picker_drag_margin_bottom">12dp</dimen>
+    <dimen name="picker_drag_margin_top">16dp</dimen>
+    <dimen name="picker_drag_margin_bottom">16dp</dimen>
+
+    <dimen name="picker_privacy_text_margin_top">8dp</dimen>
+    <dimen name="picker_privacy_text_margin_bottom">16dp</dimen>
+    <dimen name="picker_privacy_text_horizontal_gap">12dp</dimen>
+    <dimen name="picker_privacy_text_size">11sp</dimen>
 
     <dimen name="picker_empty_text_margin">20dp</dimen>
     <dimen name="picker_empty_text_size">18sp</dimen>
+
+    <dimen name="picker_toolbar_title_text_size">18sp</dimen>
 
     <!-- PhotoPicker Preview -->
     <dimen name="preview_buttons_padding_horizontal">16dp</dimen>
@@ -71,6 +81,8 @@
     <dimen name="preview_viewpager_margin">20dp</dimen>
     <dimen name="preview_gif_icon_size">32dp</dimen>
     <dimen name="preview_add_or_select_width">328dp</dimen>
+    <dimen name="preview_mute_marginEnd">16dp</dimen>
+    <dimen name="preview_mute_marginBottom">68dp</dimen>
 
     <!-- PhotoPicker Preview text -->
     <dimen name="preview_special_format_text_size">12sp</dimen>

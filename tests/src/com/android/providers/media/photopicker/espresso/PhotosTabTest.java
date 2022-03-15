@@ -16,7 +16,6 @@
 
 package com.android.providers.media.photopicker.espresso;
 
-import static androidx.test.InstrumentationRegistry.getTargetContext;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
@@ -42,6 +41,7 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -113,13 +113,26 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
     @Test
     public void testPhotoGrid_albumPhotos() {
         // Navigate to Albums tab
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
 
         final int cameraStringId = R.string.picker_category_camera;
         // Navigate to photos in Camera album
         onView(allOf(withText(cameraStringId),
                 isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
+
+        // Verify that toolbar has the title as category name
+        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
+                .check(matches(isDisplayed()));
+
+        // Verify that tab tabs are not shown on the toolbar
+        onView(withId(TAB_LAYOUT_ID)).check(matches(not(isDisplayed())));
+
+        // Verify that privacy text is not shown
+        onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
+
+        // Verify that drag bar is shown
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
 
         final int dateHeaderTitleId = R.id.date_header_title;
         final int recentHeaderPosition = 0;
@@ -132,8 +145,8 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         // Verify that first item is TODAY
         onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
                 .atPositionOnView(0, dateHeaderTitleId))
-                .check(matches(
-                        withText(DateTimeUtils.getDateTimeString(System.currentTimeMillis()))));
+                .check(matches(withText(
+                        DateTimeUtils.getDateHeaderString(System.currentTimeMillis()))));
 
         final int photoItemPosition = 1;
         // Verify first item is image and has no other icons other than thumbnail
@@ -146,18 +159,11 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, ICON_MOTION_PHOTO_ID);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, photoItemPosition, VIDEO_CONTAINER_ID);
 
-        // Verify that toolbar has the title as category name
-        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
-                .check(matches(isDisplayed()));
-
-        // Verify that tab chips are not shown on the toolbar
-        onView(withId(CHIP_CONTAINER_ID)).check(matches(not(isDisplayed())));
-
         // Click back button
         onView(withContentDescription("Navigate up")).perform(click());
 
         // on clicking back button we are back to Album grid
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .check(matches(isSelected()));
         onView(allOf(withText(cameraStringId),
                 isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(matches(isDisplayed()));

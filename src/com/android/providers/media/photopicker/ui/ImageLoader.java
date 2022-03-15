@@ -20,6 +20,7 @@ import android.content.Context;
 import android.graphics.ImageDecoder;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.ImageView;
 
@@ -142,7 +143,9 @@ public class ImageLoader {
     }
 
     private ObjectKey getGlideSignature(Item item, String prefix) {
-        return new ObjectKey(prefix + item.getContentUri().toString() +
-                item.getGenerationModified());
+        // TODO(b/224725723): Remove media store version from key once MP ids are stable.
+        return new ObjectKey(
+                MediaStore.getVersion(mContext) + prefix + item.getContentUri().toString() +
+                        item.getGenerationModified());
     }
 }

@@ -22,6 +22,7 @@ import android.os.Parcelable;
 import android.os.UserHandle;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -68,6 +69,11 @@ public final class MediaVolume implements Parcelable {
      */
     private final boolean mExternallyManaged;
 
+    /**
+     * Whether the volume is public.
+     */
+    private final boolean mPublicVolume;
+
     public @NonNull String getName() {
         return mName;
     }
@@ -88,13 +94,18 @@ public final class MediaVolume implements Parcelable {
         return mExternallyManaged;
     }
 
+    public boolean isPublicVolume() {
+        return mPublicVolume;
+    }
+
     private MediaVolume (@NonNull String name, UserHandle user, File path, String id,
-                         boolean externallyManaged) {
+                         boolean externallyManaged, boolean mPublicVolume) {
         this.mName = name;
         this.mUser = user;
         this.mPath = path;
         this.mId = id;
         this.mExternallyManaged = externallyManaged;
+        this.mPublicVolume = mPublicVolume;
     }
 
     private MediaVolume (Parcel in) {
@@ -103,6 +114,7 @@ public final class MediaVolume implements Parcelable {
         this.mPath  = new File(in.readString());
         this.mId = in.readString();
         this.mExternallyManaged = in.readInt() != 0;
+        this.mPublicVolume = in.readInt() != 0;
     }
 
     @Override
@@ -143,13 +155,13 @@ public final class MediaVolume implements Parcelable {
         String id = storageVolume.getId();
         boolean externallyManaged =
                 SdkLevel.isAtLeastT() ? storageVolume.isExternallyManaged() : false;
-        return new MediaVolume(name, user, path, id, externallyManaged);
+        boolean publicVolume = !externallyManaged && !storageVolume.isPrimary();
+        return new MediaVolume(name, user, path, id, externallyManaged, publicVolume);
     }
 
     public static MediaVolume fromInternal() {
         String name = MediaStore.VOLUME_INTERNAL;
-
-        return new MediaVolume(name, null, null, null, false);
+        return new MediaVolume(name, null, null, null, false, false);
     }
 
     @Override
@@ -164,12 +176,14 @@ public final class MediaVolume implements Parcelable {
         dest.writeString(mPath.toString());
         dest.writeString(mId);
         dest.writeInt(mExternallyManaged ? 1 : 0);
+        dest.writeInt(mPublicVolume ? 1 : 0);
     }
 
     @Override
     public String toString() {
         return "MediaVolume name: [" + mName + "] id: [" + mId + "] user: [" + mUser + "] path: ["
-                + mPath + "] externallyManaged: [" + mExternallyManaged + "]";
+                + mPath + "] externallyManaged: [" + mExternallyManaged + "] mPublicVolume: ["
+                + mPublicVolume + "]";
     }
 
     public static final @android.annotation.NonNull Creator<MediaVolume> CREATOR

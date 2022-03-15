@@ -60,7 +60,7 @@ android_app {
         "error_prone_mediaprovider",
         "glide-annotation-processor",
     ],
-
+    jarjar_rules: "jarjar-rules.txt",
     sdk_version: "module_current",
     min_sdk_version: "30",
 

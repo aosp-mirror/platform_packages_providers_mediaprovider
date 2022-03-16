@@ -2265,7 +2265,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
         return;
     }
 
-    bool bpf_enabled = android::base::GetBoolProperty("persist.sys.fuse.bpf.enable", false);
+    bool bpf_enabled = android::base::GetBoolProperty("persist.sys.fuse.bpf.override", false);
     int bpf_fd = -1;
     if (bpf_enabled) {
         LOG(INFO) << "Using FUSE BPF";

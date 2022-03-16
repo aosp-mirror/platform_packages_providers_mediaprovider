@@ -189,6 +189,7 @@ class ExoPlayerWrapper {
             // If the previous volume was muted, set the volume status to mute.
             mExoPlayer.setVolume(0f);
         }
+        updateMuteButtonContentDescription(muteButton, isVolumeMuted);
 
         // Add click listeners for mute button
         muteButton.setOnClickListener(v -> {
@@ -205,8 +206,15 @@ class ExoPlayerWrapper {
                 mExoPlayer.setVolume(0f);
                 mMuteStatus.setVolumeMuted(true);
             }
+            updateMuteButtonContentDescription(muteButton, mMuteStatus.isVolumeMuted());
             muteButton.setSelected(mMuteStatus.isVolumeMuted());
         });
+    }
+
+    private void updateMuteButtonContentDescription(ImageButton muteButton, boolean isVolumeMuted) {
+        muteButton.setContentDescription(
+                mContext.getString(
+                        isVolumeMuted ? R.string.picker_unmute_video : R.string.picker_mute_video));
     }
 
     private void releaseIfNecessary() {

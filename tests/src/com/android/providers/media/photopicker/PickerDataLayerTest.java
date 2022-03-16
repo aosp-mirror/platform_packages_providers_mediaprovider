@@ -120,9 +120,9 @@ public class PickerDataLayerTest {
 
         mDbHelper = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
-        mDataLayer = new PickerDataLayer(mContext, mFacade);
         mController = new PickerSyncController(mContext, mFacade, LOCAL_PROVIDER_AUTHORITY,
                 /* syncDelay */ 0);
+        mDataLayer = new PickerDataLayer(mContext, mFacade, mController);
 
         // Set cloud provider to null to discard
         mFacade.setCloudProvider(null);
@@ -135,7 +135,6 @@ public class PickerDataLayerTest {
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
 
-        mController.syncAllMedia();
         try (Cursor cr = mDataLayer.fetchMedia(buildDefaultQueryArgs())) {
             assertThat(cr.getCount()).isEqualTo(2);
 
@@ -160,7 +159,6 @@ public class PickerDataLayerTest {
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
 
-        mController.syncAllMedia();
         try (Cursor cr = mDataLayer.fetchMedia(defaultQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(4);
         }
@@ -192,7 +190,6 @@ public class PickerDataLayerTest {
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
 
-        mController.syncAllMedia();
         try (Cursor cr = mDataLayer.fetchMedia(defaultQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(4);
         }
@@ -223,7 +220,6 @@ public class PickerDataLayerTest {
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
 
-        mController.syncAllMedia();
         try (Cursor cr = mDataLayer.fetchMedia(defaultQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(4);
         }
@@ -254,7 +250,6 @@ public class PickerDataLayerTest {
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
 
-        mController.syncAllMedia();
         try (Cursor cr = mDataLayer.fetchMedia(defaultQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(4);
         }
@@ -278,7 +273,6 @@ public class PickerDataLayerTest {
 
         final Bundle queryArgs = buildQueryArgs(IMAGE_MIME_TYPE, SIZE_BYTES_DEFAULT);
 
-        mController.syncAllMedia();
         try (Cursor cr = mDataLayer.fetchMedia(queryArgs)) {
             assertThat(cr.getCount()).isEqualTo(1);
 
@@ -298,7 +292,6 @@ public class PickerDataLayerTest {
 
         final Bundle queryArgs = buildQueryArgs(IMAGE_MIME_TYPE, SIZE_BYTES - 1);
 
-        mController.syncAllMedia();
         try (Cursor cr = mDataLayer.fetchMedia(queryArgs)) {
             assertThat(cr.getCount()).isEqualTo(1);
 
@@ -321,7 +314,6 @@ public class PickerDataLayerTest {
 
         final Bundle queryArgs = buildQueryArgs(VIDEO_MIME_TYPE, SIZE_BYTES - 1);
 
-        mController.syncAllMedia();
         try (Cursor cr = mDataLayer.fetchMedia(queryArgs)) {
             assertThat(cr.getCount()).isEqualTo(1);
 
@@ -346,11 +338,7 @@ public class PickerDataLayerTest {
                 MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ true);
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
-        // Sync favorites media
-        mController.syncAllMedia();
-        // Sync album media
-        mController.syncAlbumMedia(ALBUM_ID_1);
-        mController.syncAlbumMedia(ALBUM_ID_2);
+
         try (Cursor cr = mDataLayer.fetchAlbums(defaultQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(3);
 
@@ -415,8 +403,6 @@ public class PickerDataLayerTest {
 
         final Bundle mimeTypeQueryArgs = buildQueryArgs(IMAGE_MIME_TYPE, SIZE_BYTES_DEFAULT);
 
-        mController.syncAlbumMedia(ALBUM_ID_1);
-        mController.syncAlbumMedia(ALBUM_ID_2);
         try (Cursor cr = mDataLayer.fetchAlbums(mimeTypeQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(2);
 
@@ -463,8 +449,6 @@ public class PickerDataLayerTest {
 
         final Bundle sizeQueryArgs = buildQueryArgs(MIME_TYPE_DEFAULT, SIZE_BYTES - 1);
 
-        mController.syncAlbumMedia(ALBUM_ID_1);
-        mController.syncAlbumMedia(ALBUM_ID_2);
         try (Cursor cr = mDataLayer.fetchAlbums(sizeQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(2);
 
@@ -514,8 +498,6 @@ public class PickerDataLayerTest {
         final Bundle cloudAlbumAndMimeTypeQueryArgs = buildQueryArgs(ALBUM_ID_2,
                 ALBUM_COLUMN_TYPE_CLOUD, VIDEO_MIME_TYPE, SIZE_BYTES - 1);
 
-        mController.syncAlbumMedia(ALBUM_ID_1);
-        mController.syncAlbumMedia(ALBUM_ID_2);
         try (Cursor cr = mDataLayer.fetchAlbums(mimeTypeAndSizeQueryArgs)) {
             assertWithMessage("Local album count").that(cr.getCount()).isEqualTo(2);
 

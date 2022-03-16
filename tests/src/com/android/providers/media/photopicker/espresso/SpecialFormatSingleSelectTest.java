@@ -100,8 +100,6 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     public void testPhotoGridLayout_nonAnimatedWebp() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        customSwipeUp();
-
         // Verify we have the non-animated webp thumbnail
         assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, NON_ANIMATED_WEBP_POSITION,
                 ICON_THUMBNAIL_ID);
@@ -120,8 +118,6 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     public void testPreview_singleSelect_gif() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        customSwipeUp();
-
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
 
@@ -137,8 +133,6 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     @Test
     public void testPreview_singleSelect_animatedWebp() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-
-        customSwipeUp();
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
@@ -156,6 +150,7 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     public void testPreview_singleSelect_nonAnimatedWebp() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
+        // This is the 4th item which is on the second row
         customSwipeUp();
 
         // Navigate to preview
@@ -173,8 +168,6 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     @Test
     public void testPreview_singleSelect_motionPhoto() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-
-        customSwipeUp();
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_THUMBNAIL_ID);
@@ -207,6 +200,7 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, VIDEO_CONTAINER_ID);
     }
+
 
     private void customSwipeUp() {
         // Register bottom sheet idling resource so that we don't read bottom sheet state when

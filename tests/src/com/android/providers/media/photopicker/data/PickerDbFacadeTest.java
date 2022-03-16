@@ -996,8 +996,10 @@ public class PickerDbFacadeTest {
     }
 
     private Cursor queryAlbumMedia(String albumId, boolean isLocal) {
+        final String authority = isLocal ? LOCAL_PROVIDER : CLOUD_PROVIDER;
+
         return mFacade.queryAlbumMediaForUi(
-                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId).build(), isLocal);
+                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId).build(), authority);
     }
 
     private void assertAddMediaOperation(String authority, Cursor cursor, int writeCount) {

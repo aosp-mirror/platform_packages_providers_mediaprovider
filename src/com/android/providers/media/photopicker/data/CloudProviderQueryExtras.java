@@ -149,8 +149,4 @@ public class CloudProviderQueryExtras {
     public long getGeneration() {
         return mGeneration;
     }
-
-    public boolean isFavorite() {
-        return mIsFavorite;
-    }
 }

@@ -39,7 +39,9 @@
     <string name="deny" msgid="6040983710442068936">"നിരസിക്കുക"</string>
     <string name="add" msgid="2894574044585549298">"ചേർക്കുക"</string>
     <string name="deselect" msgid="4297825044827769490">"തിരഞ്ഞെടുത്തത് മാറ്റുക"</string>
+    <string name="deselected" msgid="8488133193326208475">"തിരഞ്ഞെടുത്തത് മാറ്റി"</string>
     <string name="select" msgid="2704765470563027689">"തിരഞ്ഞെടുക്കുക"</string>
+    <string name="selected" msgid="9151797369975828124">"തിരഞ്ഞെടുത്തു"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ഇനം വരെ തിരഞ്ഞെടുക്കുക}other{<xliff:g id="COUNT_1">^1</xliff:g> ഇനങ്ങൾ വരെ തിരഞ്ഞെടുക്കുക}}"</string>
     <string name="recent" msgid="6694613584743207874">"അടുത്തിടെയുള്ളത്"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"ഫോട്ടോകളോ വീഡിയോകളോ ഇല്ല"</string>
@@ -64,6 +66,13 @@
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"ചലിക്കുന്ന ഫോട്ടോ"</string>
+    <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="TIME">%2$s</xliff:g>-ന് എടുത്ത <xliff:g id="ITEM_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_photo" msgid="1739342083494962153">"ഫോട്ടോ"</string>
+    <string name="picker_video" msgid="4404927441373455823">"വീഡിയോ"</string>
+    <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
+    <string name="picker_motion_photo" msgid="4385182195289546308">"ചലിക്കുന്ന ഫോട്ടോ"</string>
+    <string name="picker_mute_video" msgid="2496585809229800096">"വീഡിയോ മ്യൂട്ട് ചെയ്യുന്നു"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"വീഡിയോ അൺമ്യൂട്ട് ചെയ്യുന്നു"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ഈ ഓഡിയോ ഫയൽ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}other{<xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ഓഡിയോ ഫയൽ പരിഷ്‌ക്കരിക്കുന്നു…}other{<xliff:g id="COUNT">^1</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്‌ക്കരിക്കുന്നു…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ഈ വീഡിയോ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}other{<xliff:g id="COUNT">^2</xliff:g> വീഡിയോകൾ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}}"</string>

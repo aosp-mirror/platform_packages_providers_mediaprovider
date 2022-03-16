@@ -23,6 +23,8 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -55,12 +57,16 @@ public abstract class TabFragment extends Fragment {
     protected ImageLoader mImageLoader;
     protected AutoFitRecyclerView mRecyclerView;
 
-    private int mBottomBarSize;
     private ExtendedFloatingActionButton mProfileButton;
     private UserIdManager mUserIdManager;
     private boolean mHideProfileButton;
     private View mEmptyView;
     private TextView mEmptyTextView;
+
+    private Button mAddButton;
+    private View mBottomBar;
+    private Animation mSlideUpAnimation;
+    private Animation mSlideDownAnimation;
 
     @ColorInt
     private int mButtonIconAndTextColor;
@@ -115,8 +121,8 @@ public abstract class TabFragment extends Fragment {
 
         final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
-            final Button addButton = getActivity().findViewById(R.id.button_add);
-            addButton.setOnClickListener(v -> {
+            mAddButton = getActivity().findViewById(R.id.button_add);
+            mAddButton.setOnClickListener(v -> {
                 ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
             });
 
@@ -127,19 +133,20 @@ public abstract class TabFragment extends Fragment {
                 PreviewFragment.show(getActivity().getSupportFragmentManager(),
                         PreviewFragment.getArgsForPreviewOnViewSelected());
             });
-            mBottomBarSize = (int) getResources().getDimension(R.dimen.picker_bottom_bar_size);
+
+            // Get bottom bar, size, and load animations for bottom bar
+            final int bottomBarSize = (int) getResources().getDimension(
+                    R.dimen.picker_bottom_bar_size);
+            mBottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
+            mSlideUpAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_up);
+            mSlideDownAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_down);
 
             mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
-                final View bottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
-                int dimen = 0;
-                if (selectedItemListSize == 0) {
-                    bottomBar.setVisibility(View.GONE);
-                } else {
-                    bottomBar.setVisibility(View.VISIBLE);
-                    addButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
-                    dimen = getBottomGapForRecyclerView(mBottomBarSize);
-                }
-                mRecyclerView.setPadding(0, 0, 0, dimen);
+                updateVisibilityAndAnimateBottomBar(selectedItemListSize);
+
+                final int bottomGap = selectedItemListSize == 0 ? 0 : getBottomGapForRecyclerView(
+                        bottomBarSize);
+                mRecyclerView.setPadding(0, 0, 0, bottomGap);
 
                 updateProfileButtonVisibility();
             });
@@ -160,6 +167,25 @@ public abstract class TabFragment extends Fragment {
         final LiveData<Boolean> isMultiUserProfiles = mUserIdManager.getIsMultiUserProfiles();
         if (isMultiUserProfiles != null) {
             isMultiUserProfiles.observe(this, this::setUpProfileButtonWithListeners);
+        }
+    }
+
+    private void updateVisibilityAndAnimateBottomBar(int selectedItemListSize) {
+        if (!mSelection.canSelectMultiple()) {
+            return;
+        }
+
+        if (selectedItemListSize == 0) {
+            if (mBottomBar.getVisibility() == View.VISIBLE) {
+                mBottomBar.setVisibility(View.GONE);
+                mBottomBar.startAnimation(mSlideDownAnimation);
+            }
+        } else {
+            if (mBottomBar.getVisibility() == View.GONE) {
+                mBottomBar.setVisibility(View.VISIBLE);
+                mBottomBar.startAnimation(mSlideUpAnimation);
+            }
+            mAddButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
         }
     }
 

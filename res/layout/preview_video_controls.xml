@@ -31,7 +31,7 @@
     <ImageButton android:id="@+id/preview_mute"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
-        android:src="@drawable/preview_mute"
+        android:src="@drawable/ic_volume_off"
         android:layout_gravity="end|bottom"
         android:layout_marginTop="@dimen/exo_styled_bottom_bar_margin_top"
         android:layout_marginEnd="@dimen/preview_mute_marginEnd"

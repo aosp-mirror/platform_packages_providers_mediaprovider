@@ -71,10 +71,8 @@
     <string name="picker_video" msgid="4404927441373455823">"Video"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Rörelsefoto"</string>
-    <!-- no translation found for picker_mute_video (2496585809229800096) -->
-    <skip />
-    <!-- no translation found for picker_unmute_video (6611741290641963568) -->
-    <skip />
+    <string name="picker_mute_video" msgid="2496585809229800096">"Stäng av ljudet för videon"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Slå på ljudet för videon"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vill du tillåta att <xliff:g id="APP_NAME_0">^1</xliff:g> ändrar den här ljudfilen?}other{Vill du tillåta att <xliff:g id="APP_NAME_1">^1</xliff:g> ändrar <xliff:g id="COUNT">^2</xliff:g> ljudfiler?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Ljudfilen ändras …}other{<xliff:g id="COUNT">^1</xliff:g> ljudfiler ändras …}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Vill du tillåta att <xliff:g id="APP_NAME_0">^1</xliff:g> ändrar den här videon?}other{Vill du tillåta att <xliff:g id="APP_NAME_1">^1</xliff:g> ändrar <xliff:g id="COUNT">^2</xliff:g> videor?}}"</string>

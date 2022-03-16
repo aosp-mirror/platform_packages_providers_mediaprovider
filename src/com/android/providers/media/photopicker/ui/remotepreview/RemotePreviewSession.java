@@ -16,11 +16,11 @@
 
 package com.android.providers.media.photopicker.ui.remotepreview;
 
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_ERROR_RETRIABLE_FAILURE;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_MEDIA_SIZE_CHANGED;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_PAUSED;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_READY;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_ERROR_PERMANENT_FAILURE;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_ERROR_RETRIABLE_FAILURE;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_MEDIA_SIZE_CHANGED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_PAUSED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_READY;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -28,7 +28,7 @@ import android.content.ContentResolver;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PlaybackEvent;
+import android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PlaybackState;
 import android.util.Log;
 import android.view.Surface;
 import android.view.View;
@@ -139,9 +139,9 @@ final class RemotePreviewSession {
         mIsPlaybackRequested = true;
     }
 
-    void onPlaybackEvent(@PlaybackEvent int eventType, @Nullable Bundle eventInfo) {
-        switch (eventType) {
-            case PLAYBACK_EVENT_READY:
+    void setPlaybackState(@PlaybackState int playbackState, @Nullable Bundle playbackStateInfo) {
+        switch (playbackState) {
+            case PLAYBACK_STATE_READY:
                 mIsPlayerReady = true;
 
                 if (mIsPlaybackRequested) {
@@ -149,15 +149,15 @@ final class RemotePreviewSession {
                     mIsPlaybackRequested = false;
                 }
                 return;
-            case PLAYBACK_EVENT_ERROR_PERMANENT_FAILURE:
-            case PLAYBACK_EVENT_ERROR_RETRIABLE_FAILURE:
+            case PLAYBACK_STATE_ERROR_PERMANENT_FAILURE:
+            case PLAYBACK_STATE_ERROR_RETRIABLE_FAILURE:
                 mIsPlayerReady = false;
                 return;
-            case PLAYBACK_EVENT_PAUSED:
+            case PLAYBACK_STATE_PAUSED:
                 mIsPlaying = false;
                 return;
-            case PLAYBACK_EVENT_MEDIA_SIZE_CHANGED:
-                Point size = eventInfo.getParcelable(ContentResolver.EXTRA_SIZE);
+            case PLAYBACK_STATE_MEDIA_SIZE_CHANGED:
+                Point size = playbackStateInfo.getParcelable(ContentResolver.EXTRA_SIZE);
                 updateAspectRatio(size.x, size.y);
                 return;
             default:

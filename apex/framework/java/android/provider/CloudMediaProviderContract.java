@@ -607,15 +607,15 @@ public final class CloudMediaProviderContract {
             "android.provider.extra.SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED";
 
     /**
-     * Gets surface event callback from picker launched via
+     * Gets surface state callback from picker launched via
      * {@link MediaStore#ACTION_PICK_IMAGES}).
      *
      * @see MediaStore#ACTION_PICK_IMAGES
      *
      * {@hide}
      */
-    public static final String EXTRA_SURFACE_EVENT_CALLBACK =
-            "android.provider.extra.SURFACE_EVENT_CALLBACK";
+    public static final String EXTRA_SURFACE_STATE_CALLBACK =
+            "android.provider.extra.SURFACE_STATE_CALLBACK";
 
     /**
      * Constant used to execute {@link CloudMediaProvider#onGetAsyncContentProvider()} via

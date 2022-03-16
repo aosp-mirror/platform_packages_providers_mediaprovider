@@ -71,10 +71,8 @@
     <string name="picker_video" msgid="4404927441373455823">"vídeo"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"foto amb moviment"</string>
-    <!-- no translation found for picker_mute_video (2496585809229800096) -->
-    <skip />
-    <!-- no translation found for picker_unmute_video (6611741290641963568) -->
-    <skip />
+    <string name="picker_mute_video" msgid="2496585809229800096">"Silencia el vídeo"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Deixa de silenciar el vídeo"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> modifiqui aquest fitxer d\'àudio?}other{Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> modifiqui <xliff:g id="COUNT">^2</xliff:g> fitxers d\'àudio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{S\'està modificant el fitxer d\'àudio…}other{S\'estan modificant <xliff:g id="COUNT">^1</xliff:g> fitxers d\'àudio…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> modifiqui aquest vídeo?}other{Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> modifiqui <xliff:g id="COUNT">^2</xliff:g> vídeos?}}"</string>

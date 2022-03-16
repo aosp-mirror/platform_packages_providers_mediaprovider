@@ -71,10 +71,8 @@
     <string name="picker_video" msgid="4404927441373455823">"影片"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"動態相片"</string>
-    <!-- no translation found for picker_mute_video (2496585809229800096) -->
-    <skip />
-    <!-- no translation found for picker_unmute_video (6611741290641963568) -->
-    <skip />
+    <string name="picker_mute_video" msgid="2496585809229800096">"將影片靜音"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"將影片取消靜音"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{允許「<xliff:g id="APP_NAME_0">^1</xliff:g>」修改這個音訊檔案嗎？}other{允許「<xliff:g id="APP_NAME_1">^1</xliff:g>」修改這 <xliff:g id="COUNT">^2</xliff:g> 個音訊檔案嗎？}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{正在修改音訊檔案…}other{正在修改 <xliff:g id="COUNT">^1</xliff:g> 個音訊檔案…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{允許「<xliff:g id="APP_NAME_0">^1</xliff:g>」修改這部影片嗎？}other{允許「<xliff:g id="APP_NAME_1">^1</xliff:g>」修改這 <xliff:g id="COUNT">^2</xliff:g> 部影片嗎？}}"</string>

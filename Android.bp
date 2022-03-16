@@ -60,7 +60,7 @@ android_app {
         "error_prone_mediaprovider",
         "glide-annotation-processor",
     ],
-
+    jarjar_rules: "jarjar-rules.txt",
     sdk_version: "module_current",
     min_sdk_version: "30",
 
@@ -81,7 +81,10 @@ android_app {
         ],
     },
 
-    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
+    required: [
+        "preinstalled-packages-com.android.providers.media.module.xml",
+        "privapp_allowlist_com.android.providers.media.module.xml",
+    ],
 
     lint: {
         strict_updatability_linting: true,

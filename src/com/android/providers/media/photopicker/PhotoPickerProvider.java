@@ -17,6 +17,9 @@
 package com.android.providers.media.photopicker;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_BUFFERING;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_COMPLETED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_MEDIA_SIZE_CHANGED;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_READY;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 
@@ -54,6 +57,7 @@ import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.Player.State;
 import com.google.android.exoplayer2.analytics.AnalyticsCollector;
 import com.google.android.exoplayer2.source.MediaParserExtractorAdapter;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
@@ -61,6 +65,7 @@ import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.upstream.ContentDataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.util.Clock;
+import com.google.android.exoplayer2.video.VideoSize;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -206,6 +211,38 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         private final CloudMediaSurfaceEventCallback mCallback;
         private final Handler mHandler = new Handler(Looper.getMainLooper());
         private final boolean mEnableLoop;
+        private final Player.Listener mEventListener = new Player.Listener() {
+            @Override
+            public void onPlaybackStateChanged(@State int state) {
+                Log.d(TAG, "Received player event " + state);
+
+                switch (state) {
+                    case Player.STATE_READY:
+                        mCallback.onPlaybackEvent(mCurrentSurfaceId, PLAYBACK_EVENT_READY,
+                                null);
+                        return;
+                    case Player.STATE_BUFFERING:
+                        mCallback.onPlaybackEvent(mCurrentSurfaceId, PLAYBACK_EVENT_BUFFERING,
+                                null);
+                        return;
+                    case Player.STATE_ENDED:
+                        mCallback.onPlaybackEvent(mCurrentSurfaceId, PLAYBACK_EVENT_COMPLETED,
+                                null);
+                        return;
+                    default:
+                }
+            }
+
+            @Override
+            public void onVideoSizeChanged(VideoSize videoSize) {
+                Point size = new Point(videoSize.width, videoSize.height);
+                Bundle bundle = new Bundle();
+                bundle.putParcelable(ContentResolver.EXTRA_SIZE, size);
+                mCallback.onPlaybackEvent(mCurrentSurfaceId, PLAYBACK_EVENT_MEDIA_SIZE_CHANGED,
+                        bundle);
+            }
+        };
+
         private ExoPlayer mPlayer;
         private int mCurrentSurfaceId = -1;
 
@@ -221,6 +258,9 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         public void onPlayerCreate() {
             mHandler.post(() -> {
                 mPlayer = createExoPlayer();
+                mPlayer.setRepeatMode(mEnableLoop ?
+                        Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
+                mPlayer.addListener(mEventListener);
                 Log.d(TAG, "Player created.");
             });
         }
@@ -228,6 +268,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         @Override
         public void onPlayerRelease() {
             mHandler.post(() -> {
+                mPlayer.removeListener(mEventListener);
                 mPlayer.release();
                 mPlayer = null;
                 Log.d(TAG, "Player released.");
@@ -239,8 +280,22 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                 @NonNull String mediaId) {
             mHandler.post(() -> {
                 try {
-                    mPlayer.setRepeatMode(mEnableLoop ?
-                            Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
+                    // onSurfaceCreated may get called while the player is already rendering on a
+                    // different surface. In that case, pause the player before preparing it for
+                    // rendering on the new surface.
+                    // Unfortunately, Exoplayer#stop doesn't seem to work here. If we call stop(),
+                    // as soon as the player becomes ready again, it automatically starts to play
+                    // the new media. The reason is that Exoplayer treats play/pause as calls to
+                    // the method Exoplayer#setPlayWhenReady(boolean) with true and false
+                    // respectively. So, if we don't pause(), then since the previous play() call
+                    // had set setPlayWhenReady to true, the player would start the playback as soon
+                    // as it gets ready with the new media item.
+                    if (mPlayer.isPlaying()) {
+                        mPlayer.pause();
+                    }
+
+                    mCurrentSurfaceId = surfaceId;
+
                     final Uri mediaUri =
                             Uri.parse(
                                     MediaStore.Files.getContentUri(
@@ -248,15 +303,12 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                                     + File.separator + mediaId);
                     mPlayer.setMediaItem(MediaItem.fromUri(mediaUri));
                     mPlayer.setVideoSurface(surface);
-                    mCurrentSurfaceId = surfaceId;
                     mPlayer.prepare();
-
-                    mCallback.onPlaybackEvent(surfaceId, PLAYBACK_EVENT_READY, null);
 
                     Log.d(TAG, "Surface prepared: " + surfaceId + ". Surface: " + surface
                             + ". MediaId: " + mediaId);
-                } catch (Exception e) {
-                    Log.e(TAG, "Error preparing surface.", e);
+                } catch (RuntimeException e) {
+                    Log.e(TAG, "Error preparing player with surface.", e);
                 }
             });
         }

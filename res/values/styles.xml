@@ -68,6 +68,7 @@
     <style name="MaterialAlertDialogIconStyle"
            parent="@style/MaterialAlertDialog.MaterialComponents.Title.Icon.CenterStacked">
         <item name="android:tint">?android:attr/colorAccent</item>
+        <item name="android:importantForAccessibility">no</item>
         <item name="android:layout_width">@dimen/picker_profile_dialog_icon_width</item>
         <item name="android:layout_height">@dimen/picker_profile_dialog_icon_height</item>
     </style>
@@ -84,13 +85,16 @@
 
     <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
-        <item name="pickerTabBackgroundColor">@color/picker_background_color</item>
+        <item name="pickerDragBarColor">#DADCE0</item>
         <item name="pickerHighlightColor">?android:attr/colorAccent</item>
         <item name="pickerHighlightTextColor">@android:color/white</item>
         <item name="pickerProfileButtonColor">#E8F0FE</item>
+        <item name="pickerDisabledProfileButtonColor">@android:color/white</item>
         <item name="pickerProfileButtonTextColor">#0B57D0</item>
+        <item name="pickerDisabledProfileButtonTextColor">#42757575</item>
         <item name="pickerSelectedTabBackgroundColor">#E8F0FE</item>
         <item name="pickerSelectedTabTextColor">#185ABC</item>
+        <item name="pickerTabBackgroundColor">@color/picker_background_color</item>
         <item name="pickerTextColor">?android:attr/textColorPrimary</item>
         <item name="pickerSelectedColor">?android:attr/colorAccent</item>
     </style>

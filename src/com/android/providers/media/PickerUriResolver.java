@@ -28,7 +28,6 @@ import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
@@ -38,10 +37,8 @@ import android.provider.CloudMediaProviderContract;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
 
@@ -91,7 +88,7 @@ public class PickerUriResolver {
         final ContentResolver resolver;
         try {
             resolver = getContentResolverForUserId(uri);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalStateException e) {
             // This is to be consistent with MediaProvider's response when a file is not found.
             Log.e(TAG, "No item at " + uri, e);
             throw new FileNotFoundException("No item at " + uri);
@@ -110,7 +107,7 @@ public class PickerUriResolver {
         final ContentResolver resolver;
         try {
             resolver = getContentResolverForUserId(uri);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalStateException e) {
             // This is to be consistent with MediaProvider's response when a file is not found.
             Log.e(TAG, "No item at " + uri, e);
             throw new FileNotFoundException("No item at " + uri);
@@ -124,10 +121,9 @@ public class PickerUriResolver {
 
     public Cursor query(Uri uri, String[] projection, int callingPid, int callingUid) {
         checkUriPermission(uri, callingPid, callingUid);
-
         try {
             return queryInternal(uri, projection);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalStateException e) {
             // This is to be consistent with MediaProvider, it returns an empty cursor if the row
             // does not exist.
             Log.e(TAG, "File not found for uri: " + uri, e);
@@ -135,8 +131,6 @@ public class PickerUriResolver {
         }
     }
 
-    // TODO(b/191362529): Restrict projection values when we start querying picker db.
-    // Add PickerColumns and add checks for projection.
     private Cursor queryInternal(Uri uri, String[] projection) {
         final ContentResolver resolver = getContentResolverForUserId(uri);
 
@@ -272,33 +266,6 @@ public class PickerUriResolver {
         return builder;
     }
 
-    /**
-     * @return {@link MediaStore.Files} Uri that always redacts sensitive data
-     */
-    private Uri getRedactedFileUriFromPickerUri(Uri uri, ContentResolver contentResolver) {
-        // content://media/picker/<user-id>/<media-id>
-        final long id = Long.parseLong(uri.getPathSegments().get(2));
-        final Uri res = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id);
-        return getRedactedUri(contentResolver, res);
-    }
-
-    @VisibleForTesting
-    Uri getRedactedUri(ContentResolver contentResolver, Uri uri) {
-        if (SdkLevel.isAtLeastS()) {
-            return getRedactedUriFromMediaStoreAPI(contentResolver, uri);
-        } else {
-            // TODO (b/201994830): directly call redacted uri code logic or explore other solution.
-            // Devices running on Android R cannot call getRedacted() as the API is added in
-            // Android S.
-            return uri;
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.S)
-    private static Uri getRedactedUriFromMediaStoreAPI(ContentResolver contentResolver, Uri uri) {
-        return MediaStore.getRedactedUri(contentResolver, uri);
-    }
-
     @VisibleForTesting
     static int getUserId(Uri uri) {
         // content://media/picker/<user-id>/<media-id>/...
@@ -329,7 +296,7 @@ public class PickerUriResolver {
         try {
             return userId.getContentResolver(mContext);
         } catch (NameNotFoundException e) {
-            throw new IllegalArgumentException("Cannot find content resolver for uri: " + uri, e);
+            throw new IllegalStateException("Cannot find content resolver for uri: " + uri, e);
         }
     }
 }

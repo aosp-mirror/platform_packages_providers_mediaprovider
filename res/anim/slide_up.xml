@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2021 The Android Open Source Project
+<!-- Copyright (C) 2022 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -14,11 +14,8 @@
      limitations under the License.
 -->
 
-<shape
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle" >
-    <size android:width="32dp"
-          android:height="4dp" />
-    <solid android:color="?attr/pickerDragBarColor" />
-    <corners android:radius="2dp" />
-</shape>
+<translate xmlns:android="http://schemas.android.com/apk/res/android"
+           android:duration="250"
+           android:interpolator="@android:interpolator/fast_out_linear_in"
+           android:fromYDelta="100%"
+           android:toYDelta="0%"/>

@@ -71,10 +71,8 @@
     <string name="picker_video" msgid="4404927441373455823">"वीडियो"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"मोशन फ़ोटो"</string>
-    <!-- no translation found for picker_mute_video (2496585809229800096) -->
-    <skip />
-    <!-- no translation found for picker_unmute_video (6611741290641963568) -->
-    <skip />
+    <string name="picker_mute_video" msgid="2496585809229800096">"वीडियो म्यूट करें"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"वीडियो अनम्यूट करें"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{क्या <xliff:g id="APP_NAME_0">^1</xliff:g> को इस ऑडियो फ़ाइल में बदलाव करने की अनुमति देनी है?}one{क्या <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइल में बदलाव करने की अनुमति देनी है?}other{क्या <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलों में बदलाव करने की अनुमति देनी है?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ऑडियो फ़ाइल में बदलाव किया जा रहा है…}one{<xliff:g id="COUNT">^1</xliff:g> ऑडियो फ़ाइल में बदलाव किया जा रहा है…}other{<xliff:g id="COUNT">^1</xliff:g> ऑडियो फ़ाइलों में बदलाव किया जा रहा है…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{क्या <xliff:g id="APP_NAME_0">^1</xliff:g> को इस वीडियो में बदलाव करने की अनुमति देनी है?}one{क्या <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> वीडियो में बदलाव करने की अनुमति देनी है?}other{क्या <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> वीडियो में बदलाव करने की अनुमति देनी है?}}"</string>

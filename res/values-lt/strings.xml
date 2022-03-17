@@ -39,7 +39,9 @@
     <string name="deny" msgid="6040983710442068936">"Atmesti"</string>
     <string name="add" msgid="2894574044585549298">"Pridėti"</string>
     <string name="deselect" msgid="4297825044827769490">"Panaikinti pasirinkimą"</string>
+    <string name="deselected" msgid="8488133193326208475">"Pasirinkimas panaikintas"</string>
     <string name="select" msgid="2704765470563027689">"Pasirinkti"</string>
+    <string name="selected" msgid="9151797369975828124">"Pasirinkta"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Pasirinkite iki <xliff:g id="COUNT_0">^1</xliff:g> elemento}one{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elemento}few{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elementų}many{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elemento}other{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elementų}}"</string>
     <string name="recent" msgid="6694613584743207874">"Naujausios"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Nėra jokių nuotraukų ar vaizdo įrašų"</string>
@@ -64,6 +66,13 @@
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"Judančioji nuotrauka"</string>
+    <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> užfiksuota <xliff:g id="TIME">%2$s</xliff:g>"</string>
+    <string name="picker_photo" msgid="1739342083494962153">"Nuotrauka"</string>
+    <string name="picker_video" msgid="4404927441373455823">"Vaizdo įrašas"</string>
+    <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
+    <string name="picker_motion_photo" msgid="4385182195289546308">"Judančioji nuotrauka"</string>
+    <string name="picker_mute_video" msgid="2496585809229800096">"Nutildyti vaizdo įrašą"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Įjungti vaizdo įrašo garsą"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Leisti programai „<xliff:g id="APP_NAME_0">^1</xliff:g>“ keisti šį garso failą?}one{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failą?}few{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failus?}many{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failo?}other{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failų?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Keičiamas garso failas…}one{Keičiamas <xliff:g id="COUNT">^1</xliff:g> garso failas…}few{Keičiami <xliff:g id="COUNT">^1</xliff:g> garso failai…}many{Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failo…}other{Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failų…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Leisti programai „<xliff:g id="APP_NAME_0">^1</xliff:g>“ keisti šį vaizdo įrašą?}one{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašą?}few{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašus?}many{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašo?}other{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašų?}}"</string>

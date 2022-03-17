@@ -173,7 +173,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *
      * @param extras containing keys to filter result:
      * <ul>
-     * <li> {@link CloudMediaProviderContract#EXTRA_FILTER_ALBUM}
+     * <li> {@link CloudMediaProviderContract#EXTRA_ALBUM_ID}
      * </ul>
      *
      * @return {@link Bundle} containing {@link CloudMediaProviderContract.MediaCollectionInfo}
@@ -220,7 +220,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * <ul>
      * <li> {@link CloudMediaProviderContract#EXTRA_SYNC_GENERATION}
      * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
-     * <li> {@link CloudMediaProviderContract#EXTRA_FILTER_ALBUM}
+     * <li> {@link CloudMediaProviderContract#EXTRA_ALBUM_ID}
      * </ul>
      * @return cursor representing media items containing all
      * {@link CloudMediaProviderContract.MediaColumns} columns

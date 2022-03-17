@@ -38,6 +38,7 @@ import android.os.Bundle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
@@ -51,48 +52,56 @@ import java.util.Objects;
 public class PickerDataLayer {
     private static final String TAG = "PickerDataLayer";
 
-    private final PickerDbFacade mDbFacade;
     private final Context mContext;
+    private final PickerDbFacade mDbFacade;
+    private final PickerSyncController mSyncController;
     private final String mLocalProvider;
 
-    public PickerDataLayer(Context context, PickerDbFacade dbFacade) {
+    public PickerDataLayer(Context context, PickerDbFacade dbFacade,
+            PickerSyncController syncController) {
         mContext = context;
         mDbFacade = dbFacade;
+        mSyncController = syncController;
         mLocalProvider = dbFacade.getLocalProvider();
     }
 
     public Cursor fetchMedia(Bundle queryArgs) {
         final CloudProviderQueryExtras queryExtras
                 = CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs);
+        final String albumId = queryExtras.getAlbumId();
 
-        if (Objects.equals(queryExtras.getAlbumId(), STRING_DEFAULT) || queryExtras.isFavorite()) {
-            // Fetch merged and deduped media from picker db
+        if (TextUtils.isEmpty(albumId)) {
+            // Refresh the 'media' table
+            mSyncController.syncAllMedia();
+
+            // Fetch all merged and deduped cloud and local media from 'media' table
             return mDbFacade.queryMediaForUi(queryExtras.toQueryFilter());
         } else {
-            // Fetch album media from pickerDB
-            final String cloudProvider = validateCloudProvider(queryExtras);
-            if (cloudProvider == null) {
-                return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), true);
-            }
-            else if (queryExtras.getAlbumType() == null) {
-                // TODO(b/193668830): Replace null check with AlbumColumns.TYPE_CLOUD after
-                // moving test to CTS
-                return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), false);
-            } else {
-                Log.w(TAG, "Unexpected album media query for cloud provider: " + cloudProvider);
-                return new MatrixCursor(new String[] {});
-            }
+            // The album type here can only be local or cloud because other album types
+            // like Favorites don't have albumIds hence would hit the first condition
+            final boolean isLocal = AlbumColumns.TYPE_LOCAL.equals(queryExtras.getAlbumType());
+            final String authority = isLocal ? mDbFacade.getLocalProvider()
+                    : queryExtras.getCloudProvider();
+
+            // Refresh the 'album_media' table
+            mSyncController.syncAlbumMedia(albumId, isLocal);
+
+            // Fetch album specific media for local or cloud from 'album_media' table
+            return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), authority);
         }
     }
 
     public Cursor fetchAlbums(Bundle queryArgs) {
+        // Refresh the 'media' table so that 'merged' albums (Favorites and Videos) are up to date
+        mSyncController.syncAllMedia();
+
         final String cloudProvider = mDbFacade.getCloudProvider();
         final CloudProviderQueryExtras queryExtras
                 = CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs);
         final Bundle cloudMediaArgs = queryExtras.toCloudMediaBundle();
         final List<Cursor> cursors = new ArrayList<>();
         final Bundle cursorExtra = new Bundle();
-        cursorExtra.putString(MediaStore.EXTRA_CLOUD_PROVIDER, queryExtras.getCloudProvider());
+        cursorExtra.putString(MediaStore.EXTRA_CLOUD_PROVIDER, cloudProvider);
 
         final Cursor localAlbums = queryProviderAlbums(mLocalProvider, cloudMediaArgs);
         if (localAlbums != null) {
@@ -158,18 +167,6 @@ public class PickerDataLayer {
     private Cursor query(Uri uri, Bundle extras) {
         return mContext.getContentResolver().query(uri, /* projection */ null, extras,
                 /* cancellationSignal */ null);
-    }
-
-    private String validateCloudProvider(CloudProviderQueryExtras extras) {
-        final String extrasCloudProvider = extras.getCloudProvider();
-        final String enabledCloudProvider = mDbFacade.getCloudProvider();
-
-        if (Objects.equals(enabledCloudProvider, extrasCloudProvider)) {
-            return enabledCloudProvider;
-        }
-
-        // Cloud provider has switched since last query, so no longer valid
-        return null;
     }
 
     public static class AccountInfo {

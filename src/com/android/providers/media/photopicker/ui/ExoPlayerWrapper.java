@@ -183,13 +183,11 @@ class ExoPlayerWrapper {
         // Step3: Set-up mute button
         final ImageButton muteButton = styledPlayerView.findViewById(R.id.preview_mute);
         final boolean isVolumeMuted = mMuteStatus.isVolumeMuted();
-        // Set the status of the muteButton according to previous status of the mute button
-        muteButton.setSelected(isVolumeMuted);
         if (isVolumeMuted) {
             // If the previous volume was muted, set the volume status to mute.
             mExoPlayer.setVolume(0f);
         }
-        updateMuteButtonContentDescription(muteButton, isVolumeMuted);
+        updateMuteButtonState(muteButton, isVolumeMuted);
 
         // Add click listeners for mute button
         muteButton.setOnClickListener(v -> {
@@ -206,15 +204,24 @@ class ExoPlayerWrapper {
                 mExoPlayer.setVolume(0f);
                 mMuteStatus.setVolumeMuted(true);
             }
-            updateMuteButtonContentDescription(muteButton, mMuteStatus.isVolumeMuted());
-            muteButton.setSelected(mMuteStatus.isVolumeMuted());
+            updateMuteButtonState(muteButton, mMuteStatus.isVolumeMuted());
         });
+    }
+
+    private void updateMuteButtonState(ImageButton muteButton, boolean isVolumeMuted) {
+        updateMuteButtonContentDescription(muteButton, isVolumeMuted);
+        updateMuteButtonIcon(muteButton, isVolumeMuted);
     }
 
     private void updateMuteButtonContentDescription(ImageButton muteButton, boolean isVolumeMuted) {
         muteButton.setContentDescription(
                 mContext.getString(
                         isVolumeMuted ? R.string.picker_unmute_video : R.string.picker_mute_video));
+    }
+
+    private void updateMuteButtonIcon(ImageButton muteButton, boolean isVolumeMuted) {
+        muteButton.setImageResource(
+                isVolumeMuted ? R.drawable.ic_volume_off : R.drawable.ic_volume_up);
     }
 
     private void releaseIfNecessary() {

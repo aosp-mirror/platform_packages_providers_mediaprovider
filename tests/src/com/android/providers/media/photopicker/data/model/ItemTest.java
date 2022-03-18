@@ -263,8 +263,8 @@ public class ItemTest {
                 .isEqualTo("Photo taken on Jul 7, 2020, 12:00:00 AM");
 
         item = generateItem(id, "video/mp4", dateTaken, generationModified, duration);
-        assertThat(item.getContentDescription(context))
-                .isEqualTo("Video taken on Jul 7, 2020, 12:00:00 AM");
+        assertThat(item.getContentDescription(context)).isEqualTo(
+                "Video taken on Jul 7, 2020, 12:00:00 AM with duration " + item.getDurationText());
 
         item = generateSpecialFormatItem(id, "image/gif", dateTaken, generationModified, duration,
                 _SPECIAL_FORMAT_GIF);
@@ -280,6 +280,34 @@ public class ItemTest {
                 _SPECIAL_FORMAT_MOTION_PHOTO);
         assertThat(item.getContentDescription(context))
                 .isEqualTo("Motion Photo taken on Jul 7, 2020, 12:00:00 AM");
+    }
+
+    @Test
+    public void testGetDurationText() {
+        final String id = "1";
+        final long dateTaken = LocalDate.of(2020 /* year */, 7 /* month */, 7 /* dayOfMonth */)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        final long generationModified = 1L;
+
+        // no duration
+        Item item = generateItem(id, "video", dateTaken, generationModified, -1);
+        assertThat(item.getDurationText()).isEqualTo("");
+
+        // duration = 1000 ms
+        item = generateItem(id, "video", dateTaken, generationModified, 1000);
+        assertThat(item.getDurationText()).isEqualTo("00:01");
+
+        // duration = 10000 ms
+        item = generateItem(id, "video", dateTaken, generationModified, 10000);
+        assertThat(item.getDurationText()).isEqualTo("00:10");
+
+        // duration = 60000 ms
+        item = generateItem(id, "video", dateTaken, generationModified, 60000);
+        assertThat(item.getDurationText()).isEqualTo("01:00");
+
+        // duration = 600000 ms
+        item = generateItem(id, "video", dateTaken, generationModified, 600000);
+        assertThat(item.getDurationText()).isEqualTo("10:00");
     }
 
     private static Cursor generateCursorForItem(String id, String mimeType, long dateTaken,

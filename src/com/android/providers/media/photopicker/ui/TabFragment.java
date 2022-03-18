@@ -288,23 +288,27 @@ public abstract class TabFragment extends Fragment {
     }
 
     private String getSwitchToPersonalMessage() {
-        DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
         if (SdkLevel.isAtLeastT()) {
-            return dpm.getString(SWITCH_TO_PERSONAL_MESSAGE, () ->
-                    getContext().getString(R.string.picker_personal_profile));
+            return getUpdatedEnterpriseString(
+                    SWITCH_TO_PERSONAL_MESSAGE, R.string.picker_personal_profile);
         } else {
             return getContext().getString(R.string.picker_personal_profile);
         }
     }
 
     private String getSwitchToWorkMessage() {
-        DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
         if (SdkLevel.isAtLeastT()) {
-            return dpm.getString(SWITCH_TO_WORK_MESSAGE, () ->
-                    getContext().getString(R.string.picker_work_profile));
+            return getUpdatedEnterpriseString(
+                    SWITCH_TO_WORK_MESSAGE, R.string.picker_work_profile);
         } else {
             return getContext().getString(R.string.picker_work_profile);
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private String getUpdatedEnterpriseString(String updatableStringId, int defaultStringId) {
+        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
+        return dpm.getString(updatableStringId, () -> getString(defaultStringId));
     }
 
     private Drawable getWorkProfileIcon() {

@@ -109,6 +109,8 @@ public class PreviewFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        // Set the pane title for A11y.
+        view.setAccessibilityPaneTitle(getString(R.string.picker_preview));
         final List<Item> selectedItemsList = mSelection.getSelectedItemsForPreview();
         final int selectedItemsListSize = selectedItemsList.size();
 

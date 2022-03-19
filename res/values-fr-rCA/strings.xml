@@ -71,10 +71,8 @@
     <string name="picker_video" msgid="4404927441373455823">"Vidéo"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Photo animée"</string>
-    <!-- no translation found for picker_mute_video (2496585809229800096) -->
-    <skip />
-    <!-- no translation found for picker_unmute_video (6611741290641963568) -->
-    <skip />
+    <string name="picker_mute_video" msgid="2496585809229800096">"Désactivez le son de la vidéo"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Réactivez le son de la vidéo"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Autoriser <xliff:g id="APP_NAME_0">^1</xliff:g> à modifier ce fichier audio?}one{Autoriser <xliff:g id="APP_NAME_1">^1</xliff:g> à modifier <xliff:g id="COUNT">^2</xliff:g> fichier audio?}other{Autoriser <xliff:g id="APP_NAME_1">^1</xliff:g> à modifier <xliff:g id="COUNT">^2</xliff:g> fichiers audio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modification du fichier audio en cours…}one{Modification de <xliff:g id="COUNT">^1</xliff:g> fichier audio en cours…}other{Modification de <xliff:g id="COUNT">^1</xliff:g> fichiers audio en cours…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Autoriser <xliff:g id="APP_NAME_0">^1</xliff:g> à modifier cette vidéo?}one{Autoriser <xliff:g id="APP_NAME_1">^1</xliff:g> à modifier <xliff:g id="COUNT">^2</xliff:g> vidéo?}other{Autoriser <xliff:g id="APP_NAME_1">^1</xliff:g> à modifier <xliff:g id="COUNT">^2</xliff:g> vidéos?}}"</string>

@@ -71,10 +71,8 @@
     <string name="picker_video" msgid="4404927441373455823">"వీడియో"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"మోషన్ ఫోటో"</string>
-    <!-- no translation found for picker_mute_video (2496585809229800096) -->
-    <skip />
-    <!-- no translation found for picker_unmute_video (6611741290641963568) -->
-    <skip />
+    <string name="picker_mute_video" msgid="2496585809229800096">"వీడియోను మ్యూట్ చేయండి"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"వీడియోను అన్‌మ్యూట్ చేయండి"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ఈ ఆడియో ఫైల్‌ను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>‌ను అనుమతించాలా?}other{<xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>‌ను అనుమతించాలా?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ఆడియో ఫైల్‌ను సవరిస్తోంది…}other{<xliff:g id="COUNT">^1</xliff:g> ఆడియో ఫైళ్లను సవరిస్తోంది…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ఈ వీడియోను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>‌ను అనుమతించాలా?}other{<xliff:g id="COUNT">^2</xliff:g> వీడియోలను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>‌ను అనుమతించాలా?}}"</string>

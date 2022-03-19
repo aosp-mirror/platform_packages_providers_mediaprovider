@@ -71,10 +71,8 @@
     <string name="picker_video" msgid="4404927441373455823">"Video"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Picha zenye video"</string>
-    <!-- no translation found for picker_mute_video (2496585809229800096) -->
-    <skip />
-    <!-- no translation found for picker_unmute_video (6611741290641963568) -->
-    <skip />
+    <string name="picker_mute_video" msgid="2496585809229800096">"Zima sauti ya video"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Rejesha sauti ya video"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Ungependa kuruhusu <xliff:g id="APP_NAME_0">^1</xliff:g> ibadilishe faili hii ya sauti?}other{Ungependa kuruhusu <xliff:g id="APP_NAME_1">^1</xliff:g> ibadilishe faili <xliff:g id="COUNT">^2</xliff:g> za sauti?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Inarekebisha faili ya sauti…}other{Inarekebisha faili <xliff:g id="COUNT">^1</xliff:g> za sauti…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Ungependa kuruhusu <xliff:g id="APP_NAME_0">^1</xliff:g> ibadilishe video hii?}other{Ungependa kuruhusu <xliff:g id="APP_NAME_1">^1</xliff:g> ibadilishe video <xliff:g id="COUNT">^2</xliff:g>?}}"</string>

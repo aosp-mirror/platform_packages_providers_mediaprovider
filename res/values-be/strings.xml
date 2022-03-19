@@ -71,10 +71,8 @@
     <string name="picker_video" msgid="4404927441373455823">"Відэа"</string>
     <string name="picker_gif" msgid="8333318083107368726">"Файл GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Фота з рухам"</string>
-    <!-- no translation found for picker_mute_video (2496585809229800096) -->
-    <skip />
-    <!-- no translation found for picker_unmute_video (6611741290641963568) -->
-    <skip />
+    <string name="picker_mute_video" msgid="2496585809229800096">"Адключыць гук відэа"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Уключыць гук відэа"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Дазволіць праграме \"<xliff:g id="APP_NAME_0">^1</xliff:g>\" змяніць гэты аўдыяфайл?}one{Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайл?}few{Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайлы?}many{Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайлаў?}other{Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайла?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Змяняецца аўдыяфайл…}one{Змяняецца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайл…}few{Змяняюцца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайлы…}many{Змяняюцца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайлаў…}other{Змяняюцца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайла…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Дазволіць праграме \"<xliff:g id="APP_NAME_0">^1</xliff:g>\" змяніць гэта відэа?}one{Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> відэа?}few{Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> відэа?}many{Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> відэа?}other{Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> відэа?}}"</string>

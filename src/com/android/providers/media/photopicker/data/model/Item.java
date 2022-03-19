@@ -30,6 +30,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
+import android.text.format.DateUtils;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
@@ -210,10 +211,14 @@ public class Item {
     }
 
     public String getContentDescription(@NonNull Context context) {
-        final String itemType;
         if (isVideo()) {
-            itemType = context.getString(R.string.picker_video);
-        } else if (isGif() || isAnimatedWebp()) {
+            return context.getString(R.string.picker_video_item_content_desc,
+                    DateTimeUtils.getDateTimeStringForContentDesc(getDateTaken()),
+                    getDurationText());
+        }
+
+        final String itemType;
+        if (isGif() || isAnimatedWebp()) {
             itemType = context.getString(R.string.picker_gif);
         } else if (isMotionPhoto()) {
             itemType = context.getString(R.string.picker_motion_photo);
@@ -223,6 +228,13 @@ public class Item {
 
         return context.getString(R.string.picker_item_content_desc, itemType,
                 DateTimeUtils.getDateTimeStringForContentDesc(getDateTaken()));
+    }
+
+    public String getDurationText() {
+        if (mDuration == -1) {
+            return "";
+        }
+        return DateUtils.formatElapsedTime(mDuration / 1000);
     }
 
     private void parseMimeType() {

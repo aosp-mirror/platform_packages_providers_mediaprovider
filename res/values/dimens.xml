@@ -55,7 +55,6 @@
     <dimen name="picker_photo_item_spacing">3dp</dimen>
 
     <dimen name="picker_tab_text_size">14sp</dimen>
-    <dimen name="picker_tab_touch_size">48dp</dimen>
     <dimen name="picker_tab_radius">16dp</dimen>
     <dimen name="picker_tab_height">32dp</dimen>
     <dimen name="picker_tab_width">80dp</dimen>

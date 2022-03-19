@@ -71,10 +71,8 @@
     <string name="picker_video" msgid="4404927441373455823">"Бейне"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Жанды сурет"</string>
-    <!-- no translation found for picker_mute_video (2496585809229800096) -->
-    <skip />
-    <!-- no translation found for picker_unmute_video (6611741290641963568) -->
-    <skip />
+    <string name="picker_mute_video" msgid="2496585809229800096">"Бейненің дыбысын өшіру"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Бейненің дыбысын қосу"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> қолданбасына осы аудиофайлды өзгертуге рұқсат етілсін бе?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> қолданбасына <xliff:g id="COUNT">^2</xliff:g> аудиофайлды өзгертуге рұқсат етілсін бе?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Аудиофайл өзгертілуде…}other{<xliff:g id="COUNT">^1</xliff:g> аудиофайл өзгертілуде…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> қолданбасына осы бейнені өзгертуге рұқсат етілсін бе?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> қолданбасына <xliff:g id="COUNT">^2</xliff:g> бейнені өзгертуге рұқсат етілсін бе?}}"</string>

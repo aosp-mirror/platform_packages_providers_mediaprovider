@@ -17,10 +17,10 @@
 package com.android.providers.media.photopicker;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_BUFFERING;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_COMPLETED;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_MEDIA_SIZE_CHANGED;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PLAYBACK_EVENT_READY;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_BUFFERING;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_COMPLETED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_MEDIA_SIZE_CHANGED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_READY;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 
 import android.annotation.DurationMillisLong;
@@ -164,7 +164,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     @Override
     @Nullable
     public CloudMediaSurfaceController onCreateCloudMediaSurfaceController(@Nullable Bundle config,
-            CloudMediaSurfaceEventCallback callback) {
+            CloudMediaSurfaceStateChangedCallback callback) {
         if (RemotePreviewHandler.isRemotePreviewEnabled()) {
             boolean enableLoop = config != null && config.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED,
                     false);
@@ -208,7 +208,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                         BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS).build();
 
         private final Context mContext;
-        private final CloudMediaSurfaceEventCallback mCallback;
+        private final CloudMediaSurfaceStateChangedCallback mCallback;
         private final Handler mHandler = new Handler(Looper.getMainLooper());
         private final boolean mEnableLoop;
         private final Player.Listener mEventListener = new Player.Listener() {
@@ -218,15 +218,15 @@ public class PhotoPickerProvider extends CloudMediaProvider {
 
                 switch (state) {
                     case Player.STATE_READY:
-                        mCallback.onPlaybackEvent(mCurrentSurfaceId, PLAYBACK_EVENT_READY,
+                        mCallback.setPlaybackState(mCurrentSurfaceId, PLAYBACK_STATE_READY,
                                 null);
                         return;
                     case Player.STATE_BUFFERING:
-                        mCallback.onPlaybackEvent(mCurrentSurfaceId, PLAYBACK_EVENT_BUFFERING,
+                        mCallback.setPlaybackState(mCurrentSurfaceId, PLAYBACK_STATE_BUFFERING,
                                 null);
                         return;
                     case Player.STATE_ENDED:
-                        mCallback.onPlaybackEvent(mCurrentSurfaceId, PLAYBACK_EVENT_COMPLETED,
+                        mCallback.setPlaybackState(mCurrentSurfaceId, PLAYBACK_STATE_COMPLETED,
                                 null);
                         return;
                     default:
@@ -238,7 +238,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                 Point size = new Point(videoSize.width, videoSize.height);
                 Bundle bundle = new Bundle();
                 bundle.putParcelable(ContentResolver.EXTRA_SIZE, size);
-                mCallback.onPlaybackEvent(mCurrentSurfaceId, PLAYBACK_EVENT_MEDIA_SIZE_CHANGED,
+                mCallback.setPlaybackState(mCurrentSurfaceId, PLAYBACK_STATE_MEDIA_SIZE_CHANGED,
                         bundle);
             }
         };
@@ -247,7 +247,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         private int mCurrentSurfaceId = -1;
 
         CloudMediaSurfaceControllerImpl(Context context, boolean enableLoop,
-                CloudMediaSurfaceEventCallback callback) {
+                CloudMediaSurfaceStateChangedCallback callback) {
             mCallback = callback;
             mContext = context;
             mEnableLoop = enableLoop;

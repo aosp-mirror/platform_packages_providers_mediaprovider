@@ -39,7 +39,9 @@
     <string name="deny" msgid="6040983710442068936">"Refuser"</string>
     <string name="add" msgid="2894574044585549298">"Ajouter"</string>
     <string name="deselect" msgid="4297825044827769490">"Désélectionner"</string>
+    <string name="deselected" msgid="8488133193326208475">"Désélectionné"</string>
     <string name="select" msgid="2704765470563027689">"Sélectionner"</string>
+    <string name="selected" msgid="9151797369975828124">"Sélectionné"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Sélectionnez <xliff:g id="COUNT_0">^1</xliff:g> élément maximum}one{Sélectionnez <xliff:g id="COUNT_1">^1</xliff:g> élément maximum}other{Sélectionnez <xliff:g id="COUNT_1">^1</xliff:g> éléments maximum}}"</string>
     <string name="recent" msgid="6694613584743207874">"Récente(s)"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Aucune photo ni vidéo"</string>
@@ -64,6 +66,13 @@
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"Photo animée"</string>
+    <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> prise le <xliff:g id="TIME">%2$s</xliff:g>"</string>
+    <string name="picker_photo" msgid="1739342083494962153">"Photo"</string>
+    <string name="picker_video" msgid="4404927441373455823">"Vidéo"</string>
+    <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
+    <string name="picker_motion_photo" msgid="4385182195289546308">"Photo animée"</string>
+    <string name="picker_mute_video" msgid="2496585809229800096">"Couper le son de la vidéo"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Réactiver le son de la vidéo"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Autoriser <xliff:g id="APP_NAME_0">^1</xliff:g> à modifier ce fichier audio ?}one{Autoriser <xliff:g id="APP_NAME_1">^1</xliff:g> à modifier <xliff:g id="COUNT">^2</xliff:g> fichier audio ?}other{Autoriser <xliff:g id="APP_NAME_1">^1</xliff:g> à modifier <xliff:g id="COUNT">^2</xliff:g> fichiers audio ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modification du fichier audio…}one{Modification de <xliff:g id="COUNT">^1</xliff:g> fichier audio…}other{Modification de <xliff:g id="COUNT">^1</xliff:g> fichiers audio…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Autoriser <xliff:g id="APP_NAME_0">^1</xliff:g> à modifier cette vidéo ?}one{Autoriser <xliff:g id="APP_NAME_1">^1</xliff:g> à modifier <xliff:g id="COUNT">^2</xliff:g> vidéo ?}other{Autoriser <xliff:g id="APP_NAME_1">^1</xliff:g> à modifier <xliff:g id="COUNT">^2</xliff:g> vidéos ?}}"</string>

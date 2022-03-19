@@ -39,7 +39,9 @@
     <string name="deny" msgid="6040983710442068936">"Tanggihan"</string>
     <string name="add" msgid="2894574044585549298">"Magdagdag"</string>
     <string name="deselect" msgid="4297825044827769490">"I-deselect"</string>
+    <string name="deselected" msgid="8488133193326208475">"Na-deselect"</string>
     <string name="select" msgid="2704765470563027689">"Piliin"</string>
+    <string name="selected" msgid="9151797369975828124">"Napili"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Pumili ng hanggang <xliff:g id="COUNT_0">^1</xliff:g> item}one{Pumili ng hanggang <xliff:g id="COUNT_1">^1</xliff:g> item}other{Pumili ng hanggang <xliff:g id="COUNT_1">^1</xliff:g> na item}}"</string>
     <string name="recent" msgid="6694613584743207874">"Kamakailan"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Walang larawan o video"</string>
@@ -64,6 +66,13 @@
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"Gumagalaw na Larawan"</string>
+    <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> na kinuha noong <xliff:g id="TIME">%2$s</xliff:g>"</string>
+    <string name="picker_photo" msgid="1739342083494962153">"Larawan"</string>
+    <string name="picker_video" msgid="4404927441373455823">"Video"</string>
+    <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
+    <string name="picker_motion_photo" msgid="4385182195289546308">"Gumagalaw na Larawan"</string>
+    <string name="picker_mute_video" msgid="2496585809229800096">"I-mute ang video"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"I-unmute ang video"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Payagan ang <xliff:g id="APP_NAME_0">^1</xliff:g> na baguhin ang audio file na ito?}one{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> audio file?}other{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> na audio file?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Binabago ang audio file…}one{Nagbabago ng <xliff:g id="COUNT">^1</xliff:g> audio file…}other{Nagbabago ng <xliff:g id="COUNT">^1</xliff:g> na audio file…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Payagan ang <xliff:g id="APP_NAME_0">^1</xliff:g> na baguhin ang video na ito?}one{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> video?}other{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> na video?}}"</string>

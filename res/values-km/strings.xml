@@ -39,7 +39,9 @@
     <string name="deny" msgid="6040983710442068936">"បដិសេធ"</string>
     <string name="add" msgid="2894574044585549298">"បញ្ចូល"</string>
     <string name="deselect" msgid="4297825044827769490">"ដក​ការជ្រើសរើស"</string>
+    <string name="deselected" msgid="8488133193326208475">"បានដក​ការជ្រើសរើស"</string>
     <string name="select" msgid="2704765470563027689">"ជ្រើសរើស"</string>
+    <string name="selected" msgid="9151797369975828124">"បានជ្រើសរើស"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{ជ្រើសរើស​ធាតុ​រហូតដល់ <xliff:g id="COUNT_0">^1</xliff:g>}other{ជ្រើសរើស​ធាតុ​រហូតដល់ <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="recent" msgid="6694613584743207874">"ថ្មីៗ"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"គ្មានរូបថត ឬវីដេអូទេ"</string>
@@ -64,6 +66,13 @@
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"រូបថត​មានចលនា"</string>
+    <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> ដែលបានថតនៅថ្ងៃទី <xliff:g id="TIME">%2$s</xliff:g>"</string>
+    <string name="picker_photo" msgid="1739342083494962153">"រូបថត"</string>
+    <string name="picker_video" msgid="4404927441373455823">"វីដេអូ"</string>
+    <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
+    <string name="picker_motion_photo" msgid="4385182195289546308">"រូបថត​មានចលនា"</string>
+    <string name="picker_mute_video" msgid="2496585809229800096">"បិទ​សំឡេង​វីដេអូ"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"បើក​សំឡេង​វីដេអូ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> កែ​ឯកសារសំឡេង​នេះ​ឬ?}other{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> កែ​ឯកសារសំឡេង <xliff:g id="COUNT">^2</xliff:g> ឬ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{កំពុងកែ​ឯកសារសំឡេង…}other{កំពុងកែ​ឯកសារសំឡេង <xliff:g id="COUNT">^1</xliff:g>…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> កែ​វីដេអូ​នេះ​ឬ?}other{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> កែ​វីដេអូ <xliff:g id="COUNT">^2</xliff:g> ឬ?}}"</string>

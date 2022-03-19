@@ -71,10 +71,8 @@
     <string name="picker_video" msgid="4404927441373455823">"Видеоклип"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF файл"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Снимка с движение"</string>
-    <!-- no translation found for picker_mute_video (2496585809229800096) -->
-    <skip />
-    <!-- no translation found for picker_unmute_video (6611741290641963568) -->
-    <skip />
+    <string name="picker_mute_video" msgid="2496585809229800096">"Спиране на звука на видеоклипа"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Включване на звука на видеоклипа отново"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Да се разреши ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този аудиофайл?}other{Да се разреши ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> аудиофайла?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Аудиофайлът се променя…}other{<xliff:g id="COUNT">^1</xliff:g> аудиофайла се променят…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Да се разреши ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този видеоклип?}other{Да се разреши ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> видеоклипа?}}"</string>

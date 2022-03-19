@@ -16,7 +16,7 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.provider.CloudMediaProviderContract.EXTRA_FILTER_ALBUM;
+import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
@@ -315,7 +315,7 @@ public class PickerSyncController {
 
     private void syncAlbumMediaFromProvider(String authority, String albumId) {
         final Bundle queryArgs = new Bundle();
-        queryArgs.putString(EXTRA_FILTER_ALBUM, albumId);
+        queryArgs.putString(EXTRA_ALBUM_ID, albumId);
 
         executeSyncAlbumReset(authority, albumId);
 

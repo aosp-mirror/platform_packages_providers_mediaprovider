@@ -39,7 +39,9 @@
     <string name="deny" msgid="6040983710442068936">"Odbij"</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Poništi odabir"</string>
+    <string name="deselected" msgid="8488133193326208475">"Odabir poništen"</string>
     <string name="select" msgid="2704765470563027689">"Odaberi"</string>
+    <string name="selected" msgid="9151797369975828124">"Odabrano"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Odaberite najviše <xliff:g id="COUNT_0">^1</xliff:g> stavku}one{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavku}few{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavke}other{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="recent" msgid="6694613584743207874">"Nedavno"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Nema fotografija ni videozapisa"</string>
@@ -64,6 +66,13 @@
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"Fotografija s videom"</string>
+    <string name="picker_item_content_desc" msgid="7680591530155286423">"Sadržaj <xliff:g id="ITEM_NAME">%1$s</xliff:g> je snimljen u <xliff:g id="TIME">%2$s</xliff:g>"</string>
+    <string name="picker_photo" msgid="1739342083494962153">"Fotografija"</string>
+    <string name="picker_video" msgid="4404927441373455823">"Videozapis"</string>
+    <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
+    <string name="picker_motion_photo" msgid="4385182195289546308">"Fotografija s videom"</string>
+    <string name="picker_mute_video" msgid="2496585809229800096">"Isključivanje zvuka videozapisa"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Uključivanje zvuka videozapisa"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izmijeni ovaj audio fajl?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajl?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajla?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajlova?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Mijenjanje audio fajla…}one{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…}few{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…}other{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajlova…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izmijeni ovaj videozapis?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapis?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}}"</string>

@@ -458,7 +458,7 @@ public final class CloudMediaProviderContract {
     /**
      * Limits the query results to only media items matching the given album id.
      * <p>
-     * If the provider handled the album filter, they must also add the {@link #EXTRA_FILTER_ALBUM}
+     * If the provider handled the album filter, they must also add the {@link #EXTRA_ALBUM_ID}
      * key to the array of {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
      * {@link Cursor#setExtras} {@link Bundle}.
      *
@@ -466,7 +466,7 @@ public final class CloudMediaProviderContract {
      * <p>
      * Type: STRING
      */
-    public static final String EXTRA_FILTER_ALBUM = "android.provider.extra.FILTER_ALBUM";
+    public static final String EXTRA_ALBUM_ID = "android.provider.extra.ALBUM_ID";
 
     /**
      * Limits the query results to only media items matching the give mimetype.
@@ -477,8 +477,9 @@ public final class CloudMediaProviderContract {
      * @see CloudMediaProvider#onQueryMedia
      * <p>
      * Type: STRING
+     * @hide
      */
-    public static final String EXTRA_FILTER_MIME_TYPE = "android.provider.extra.FILTER_MIME_TYPE";
+    public static final String EXTRA_MIME_TYPE = "android.provider.extra.MIME_TYPE";
 
     /**
      * Limits the query results to only media items less than the given file size in bytes.
@@ -491,7 +492,8 @@ public final class CloudMediaProviderContract {
      * Type: LONG
      * @hide
      */
-    public static final String EXTRA_FILTER_SIZE_BYTES = "android.provider.extra.FILTER_SIZE_BYTES";
+    public static final String EXTRA_SIZE_LIMIT_BYTES =
+            "android.provider.extra.EXTRA_SIZE_LIMIT_BYTES";
 
     /**
      * Forces the {@link CloudMediaProvider#onOpenPreview} file descriptor to return a thumbnail

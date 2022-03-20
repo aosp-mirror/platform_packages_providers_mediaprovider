@@ -111,11 +111,14 @@
     <!-- PhotoPicker view selected action text. [CHAR LIMIT=80] -->
     <string name="picker_view_selected">View selected</string>
 
-    <!-- The text of the photos tab on the toolbar for PhotoPicker. [CHAR LIMIT=30] -->
+    <!-- The text of the photos tab for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="picker_photos">Photos</string>
 
-    <!-- The text of the albums tab on the toolbar for PhotoPicker. [CHAR LIMIT=30] -->
+    <!-- The text of the albums tab for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="picker_albums">Albums</string>
+
+    <!-- The text of the preview page for PhotoPicker. [CHAR LIMIT=30] -->
+    <string name="picker_preview">Preview</string>
 
     <!-- The text of the switching work/personal profile in PhotoPicker. [CHAR LIMIT=80] -->
     <string name="picker_work_profile">Switch to work</string>
@@ -163,14 +166,14 @@
     <!-- Special format text in preview screen for Motion Photo. [CHAR LIMIT=30] -->
     <string name="picker_motion_photo_text">Motion Photo</string>
 
-    <!-- Content description of when a photo/video was taken on [CHAR LIMIT=NONE] -->
+    <!-- Content description of when a photo was taken on [CHAR LIMIT=NONE] -->
     <string name="picker_item_content_desc"><xliff:g id="item_name" example="Photo">%1$s</xliff:g> taken on <xliff:g id="time" example="Jul 7, 2020, 12:00:00 AM">%2$s</xliff:g></string>
+
+    <!-- Content description of an video item [CHAR LIMIT=NONE] -->
+    <string name="picker_video_item_content_desc">Video taken on <xliff:g id="time" example="Jul 7, 2020, 12:00:00 AM">%1$s</xliff:g> with duration <xliff:g id="duration" example="00:03">%2$s</xliff:g></string>
 
     <!-- Title of the picker photo item [CHAR LIMIT=40] -->
     <string name="picker_photo">Photo</string>
-
-    <!-- Title of the picker video item [CHAR LIMIT=40] -->
-    <string name="picker_video">Video</string>
 
     <!-- Title of the picker GIF item [CHAR LIMIT=40] -->
     <string name="picker_gif">GIF</string>

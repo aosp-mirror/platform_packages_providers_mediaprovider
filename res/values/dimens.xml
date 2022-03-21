@@ -92,7 +92,7 @@
     <dimen name="preview_deselect_scrim_height">240dp</dimen>
 
     <!-- PhotoPicker Work Profile -->
-    <dimen name="picker_profile_button_margin_bottom">32dp</dimen>
+    <dimen name="picker_profile_button_margin_bottom">16dp</dimen>
     <dimen name="picker_profile_dialog_radius">8dp</dimen>
     <dimen name="picker_profile_dialog_title_text_size">14sp</dimen>
     <dimen name="picker_profile_dialog_icon_height">24dp</dimen>

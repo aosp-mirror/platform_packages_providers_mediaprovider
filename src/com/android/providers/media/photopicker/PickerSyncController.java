@@ -58,7 +58,8 @@ import java.util.Set;
  */
 public class PickerSyncController {
     private static final String TAG = "PickerSyncController";
-    private static final String PREFS_KEY_CLOUD_PROVIDER = "cloud_provider";
+    private static final String PREFS_KEY_CLOUD_PROVIDER_AUTHORITY = "cloud_provider_authority";
+    private static final String PREFS_KEY_CLOUD_PROVIDER_PKGNAME = "cloud_provider_pkg_name";
     private static final String PREFS_KEY_CLOUD_PROVIDER_UID = "cloud_provider_uid";
     private static final String PREFS_KEY_CLOUD_PREFIX = "cloud_provider:";
     private static final String PREFS_KEY_LOCAL_PREFIX = "local_provider:";
@@ -68,7 +69,8 @@ public class PickerSyncController {
     public static final String LOCAL_PICKER_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker";
 
-    private static final String DEFAULT_CLOUD_PROVIDER_PKG = null;
+    private static final String DEFAULT_CLOUD_PROVIDER_AUTHORITY = null;
+    private static final String DEFAULT_CLOUD_PROVIDER_PKGNAME = null;
     private static final int DEFAULT_CLOUD_PROVIDER_UID = -1;
     private static final long DEFAULT_SYNC_DELAY_MS =
             PickerDbFacade.getDefaultPickerDbSyncDelayMs();
@@ -96,7 +98,6 @@ public class PickerSyncController {
     private final long mSyncDelayMs;
     private final Runnable mSyncAllMediaCallback;
 
-    // TODO(b/190713331): Listen for package_removed
     @GuardedBy("mLock")
     private CloudProviderInfo mCloudProviderInfo;
 
@@ -117,14 +118,19 @@ public class PickerSyncController {
         mSyncDelayMs = syncDelayMs;
         mSyncAllMediaCallback = this::syncAllMedia;
 
-        final String cloudProvider = mUserPrefs.getString(PREFS_KEY_CLOUD_PROVIDER,
-                DEFAULT_CLOUD_PROVIDER_PKG);
+        final String cloudProviderAuthority = mUserPrefs.getString(
+                PREFS_KEY_CLOUD_PROVIDER_AUTHORITY,
+                DEFAULT_CLOUD_PROVIDER_AUTHORITY);
+        final String cloudProviderPackageName = mUserPrefs.getString(
+                PREFS_KEY_CLOUD_PROVIDER_PKGNAME,
+                DEFAULT_CLOUD_PROVIDER_PKGNAME);
         final int cloudProviderUid = mUserPrefs.getInt(PREFS_KEY_CLOUD_PROVIDER_UID,
                 DEFAULT_CLOUD_PROVIDER_UID);
-        if (cloudProvider == null) {
+        if (cloudProviderAuthority == null) {
             mCloudProviderInfo = CloudProviderInfo.EMPTY;
         } else {
-            mCloudProviderInfo = new CloudProviderInfo(cloudProvider, cloudProviderUid);
+            mCloudProviderInfo = new CloudProviderInfo(cloudProviderAuthority,
+                cloudProviderPackageName, cloudProviderUid);
         }
     }
 
@@ -198,6 +204,7 @@ public class PickerSyncController {
                     && CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION.equals(
                             providerInfo.readPermission)) {
                 result.add(new CloudProviderInfo(providerInfo.authority,
+                                providerInfo.applicationInfo.packageName,
                                 providerInfo.applicationInfo.uid));
             }
         }
@@ -227,6 +234,7 @@ public class PickerSyncController {
         final CloudProviderInfo newProviderInfo = getCloudProviderInfo(authority);
         if (authority == null || !newProviderInfo.isEmpty()) {
             synchronized (mLock) {
+                final String oldAuthority = mCloudProviderInfo.authority;
                 setCloudProviderInfo(newProviderInfo);
                 resetCachedMediaCollectionInfo(newProviderInfo.authority);
 
@@ -237,7 +245,7 @@ public class PickerSyncController {
                 mDbFacade.setCloudProvider(null);
 
                 Log.i(TAG, "Cloud provider changed successfully. Old: "
-                        + mCloudProviderInfo.authority + ". New: " + newProviderInfo.authority);
+                        + oldAuthority + ". New: " + newProviderInfo.authority);
             }
 
             return true;
@@ -311,6 +319,19 @@ public class PickerSyncController {
     public void notifyMediaEvent() {
         BackgroundThread.getHandler().removeCallbacks(mSyncAllMediaCallback);
         BackgroundThread.getHandler().postDelayed(mSyncAllMediaCallback, mSyncDelayMs);
+    }
+
+    /**
+     * Notifies about package removal
+     */
+    public void notifyPackageRemoval(String packageName) {
+        synchronized (mLock) {
+            if (mCloudProviderInfo.matches(packageName)) {
+                Log.i(TAG, "Package " + packageName
+                        + " is the current cloud provider and got removed");
+                setCloudProvider(null);
+            }
+        }
     }
 
     private void syncAlbumMediaFromProvider(String authority, String albumId) {
@@ -429,10 +450,12 @@ public class PickerSyncController {
         final SharedPreferences.Editor editor = mUserPrefs.edit();
 
         if (info.isEmpty()) {
-            editor.remove(PREFS_KEY_CLOUD_PROVIDER);
+            editor.remove(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY);
+            editor.remove(PREFS_KEY_CLOUD_PROVIDER_PKGNAME);
             editor.remove(PREFS_KEY_CLOUD_PROVIDER_UID);
         } else {
-            editor.putString(PREFS_KEY_CLOUD_PROVIDER, info.authority);
+            editor.putString(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, info.authority);
+            editor.putString(PREFS_KEY_CLOUD_PROVIDER_PKGNAME, info.packageName);
             editor.putInt(PREFS_KEY_CLOUD_PROVIDER_UID, info.uid);
         }
 
@@ -609,22 +632,30 @@ public class PickerSyncController {
     static class CloudProviderInfo {
         static final CloudProviderInfo EMPTY = new CloudProviderInfo();
         private final String authority;
+        private final String packageName;
         private final int uid;
 
         private CloudProviderInfo() {
-            this.authority = DEFAULT_CLOUD_PROVIDER_PKG;
+            this.authority = DEFAULT_CLOUD_PROVIDER_AUTHORITY;
+            this.packageName = DEFAULT_CLOUD_PROVIDER_PKGNAME;
             this.uid = DEFAULT_CLOUD_PROVIDER_UID;
         }
 
-        CloudProviderInfo(String authority, int uid) {
+        CloudProviderInfo(String authority, String packageName, int uid) {
             Objects.requireNonNull(authority);
+            Objects.requireNonNull(packageName);
 
             this.authority = authority;
+            this.packageName = packageName;
             this.uid = uid;
         }
 
         boolean isEmpty() {
             return equals(EMPTY);
+        }
+
+        boolean matches(String packageName) {
+            return !isEmpty() && this.packageName.equals(packageName);
         }
 
         @Override
@@ -635,12 +666,13 @@ public class PickerSyncController {
             CloudProviderInfo that = (CloudProviderInfo) obj;
 
             return Objects.equals(authority, that.authority) &&
+                    Objects.equals(packageName, that.packageName) &&
                     Objects.equals(uid, that.uid);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(authority, uid);
+            return Objects.hash(authority, packageName, uid);
         }
     }
 

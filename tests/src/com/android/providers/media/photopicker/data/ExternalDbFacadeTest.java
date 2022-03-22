@@ -16,6 +16,11 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS;
+
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 
@@ -536,7 +541,7 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            Category.CATEGORY_CAMERA, /* mimeType */ null)) {
+                            ALBUM_ID_CAMERA, /* mimeType */ null)) {
                 assertThat(cursor.getCount()).isEqualTo(1);
 
                 cursor.moveToFirst();
@@ -544,7 +549,7 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            Category.CATEGORY_SCREENSHOTS, /* mimeType */ null)) {
+                            ALBUM_ID_SCREENSHOTS, /* mimeType */ null)) {
                 assertThat(cursor.getCount()).isEqualTo(1);
 
                 cursor.moveToFirst();
@@ -552,7 +557,7 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            Category.CATEGORY_DOWNLOADS, /* mimeType */ null)) {
+                            ALBUM_ID_DOWNLOADS, /* mimeType */ null)) {
                 assertThat(cursor.getCount()).isEqualTo(1);
 
                 cursor.moveToFirst();
@@ -560,7 +565,7 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            Category.CATEGORY_VIDEOS, /* mimeType */ null)) {
+                            ALBUM_ID_VIDEOS, /* mimeType */ null)) {
                 assertThat(cursor.getCount()).isEqualTo(2);
 
                 cursor.moveToFirst();
@@ -592,17 +597,17 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            Category.CATEGORY_SCREENSHOTS, IMAGE_MIME_TYPE)) {
+                            ALBUM_ID_SCREENSHOTS, IMAGE_MIME_TYPE)) {
                 assertThat(cursor.getCount()).isEqualTo(0);
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            Category.CATEGORY_CAMERA, VIDEO_MIME_TYPE)) {
+                            ALBUM_ID_CAMERA, VIDEO_MIME_TYPE)) {
                 assertThat(cursor.getCount()).isEqualTo(0);
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            Category.CATEGORY_CAMERA, IMAGE_MIME_TYPE)) {
+                            ALBUM_ID_CAMERA, IMAGE_MIME_TYPE)) {
                 assertThat(cursor.getCount()).isEqualTo(1);
 
                 cursor.moveToFirst();
@@ -705,7 +710,7 @@ public class ExternalDbFacadeTest {
                 cursor.moveToNext();
                 assertAlbumColumns(facade,
                         cursor,
-                        Category.getCategoryName(sIsolatedContext, Category.CATEGORY_CAMERA),
+                        ALBUM_ID_CAMERA,
                         /* mediaCoverId */ "1",
                         DATE_TAKEN_MS1,
                         /* count */ 1);
@@ -713,7 +718,7 @@ public class ExternalDbFacadeTest {
                 cursor.moveToNext();
                 assertAlbumColumns(facade,
                         cursor,
-                        Category.getCategoryName(sIsolatedContext, Category.CATEGORY_VIDEOS),
+                        ALBUM_ID_VIDEOS,
                         /* mediaCoverId */ "5",
                         DATE_TAKEN_MS5,
                         /* count */ 2);
@@ -721,7 +726,7 @@ public class ExternalDbFacadeTest {
                 cursor.moveToNext();
                 assertAlbumColumns(facade,
                         cursor,
-                        Category.getCategoryName(sIsolatedContext, Category.CATEGORY_SCREENSHOTS),
+                        ALBUM_ID_SCREENSHOTS,
                         /* mediaCoverId */ "2",
                         DATE_TAKEN_MS2,
                         /* count */ 1);
@@ -729,7 +734,7 @@ public class ExternalDbFacadeTest {
                 cursor.moveToNext();
                 assertAlbumColumns(facade,
                         cursor,
-                        Category.getCategoryName(sIsolatedContext, Category.CATEGORY_DOWNLOADS),
+                        ALBUM_ID_DOWNLOADS,
                         /* mediaCoverId */ "3",
                         DATE_TAKEN_MS3,
                         /* count */ 1);
@@ -770,12 +775,23 @@ public class ExternalDbFacadeTest {
                 cursor.moveToNext();
                 assertAlbumColumns(facade,
                         cursor,
-                        Category.getCategoryName(sIsolatedContext, Category.CATEGORY_CAMERA),
+                        ALBUM_ID_CAMERA,
                         /* mediaCoverId */ "1",
                         DATE_TAKEN_MS1,
                         /* count */ 1);
             }
         }
+    }
+
+    @Test
+    public void testOrderOfLocalAlbumIds() {
+        // Camera, Videos, ScreenShots, Downloads
+        assertThat(ExternalDbFacade.LOCAL_ALBUM_IDS[0]).isEqualTo(ALBUM_ID_CAMERA);
+        assertThat(ExternalDbFacade.LOCAL_ALBUM_IDS[1]).isEqualTo(ALBUM_ID_VIDEOS);
+        assertThat(ExternalDbFacade.LOCAL_ALBUM_IDS[2])
+                .isEqualTo(ALBUM_ID_SCREENSHOTS);
+        assertThat(ExternalDbFacade.LOCAL_ALBUM_IDS[3])
+                .isEqualTo(ALBUM_ID_DOWNLOADS);
     }
 
     private static void initMediaInAllAlbums(DatabaseHelper helper) {

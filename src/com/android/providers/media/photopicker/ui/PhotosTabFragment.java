@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.ui;
 import static com.android.providers.media.photopicker.ui.PhotosTabAdapter.COLUMN_COUNT;
 
 import android.os.Bundle;
+import android.provider.CloudMediaProviderContract;
 import android.text.TextUtils;
 import android.view.View;
 
@@ -32,7 +33,6 @@ import com.android.providers.media.R;
 
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Category.CategoryType;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.util.StringUtils;
@@ -49,13 +49,8 @@ public class PhotosTabFragment extends TabFragment {
 
     private static final int MINIMUM_SPAN_COUNT = 3;
     private static final String FRAGMENT_TAG = "PhotosTabFragment";
-    private static final String EXTRA_CATEGORY_TYPE = "category_type";
-    private static final String EXTRA_CATEGORY_NAME = "category_name";
 
-    private boolean mIsDefaultCategory;
-    @CategoryType
-    private String mCategoryType = Category.CATEGORY_DEFAULT;
-    private String mCategoryName = "";
+    private Category mCategory = Category.DEFAULT;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -64,10 +59,7 @@ public class PhotosTabFragment extends TabFragment {
         // be triggered. We need to restore the savedInstanceState in onCreate.
         // E.g. Click the albums -> preview one item -> rotate the device
         if (savedInstanceState != null) {
-            mCategoryType = savedInstanceState.getString(EXTRA_CATEGORY_TYPE,
-                    Category.CATEGORY_DEFAULT);
-            mCategoryName = savedInstanceState.getString(EXTRA_CATEGORY_NAME,
-                    /* defaultValue= */ "");
+            mCategory = Category.fromBundle(savedInstanceState);
         }
     }
 
@@ -78,8 +70,8 @@ public class PhotosTabFragment extends TabFragment {
         final PhotosTabAdapter adapter = new PhotosTabAdapter(mSelection, mImageLoader,
                 this::onItemClick, this::onItemLongClick);
         setEmptyMessage(R.string.picker_photos_empty_message);
-        mIsDefaultCategory = TextUtils.equals(Category.CATEGORY_DEFAULT, mCategoryType);
-        if (mIsDefaultCategory) {
+
+        if (mCategory.isDefault()) {
             // Set the pane title for A11y
             view.setAccessibilityPaneTitle(getString(R.string.picker_photos));
             mPickerViewModel.getItems().observe(this, itemList -> {
@@ -89,8 +81,8 @@ public class PhotosTabFragment extends TabFragment {
             });
         } else {
             // Set the pane title for A11y
-            view.setAccessibilityPaneTitle(Category.getCategoryName(getContext(), mCategoryType));
-            mPickerViewModel.getCategoryItems(mCategoryType).observe(this, itemList -> {
+            view.setAccessibilityPaneTitle(mCategory.getDisplayName(getContext()));
+            mPickerViewModel.getCategoryItems(mCategory).observe(this, itemList -> {
                 // If the item count of the albums is zero, albums are not shown on the Albums tab.
                 // The user can't launch the album items page when the album has zero items. So, we
                 // don't need to show emptyView in the case.
@@ -124,27 +116,21 @@ public class PhotosTabFragment extends TabFragment {
      */
     public void onSaveInstanceState(Bundle state) {
         super.onSaveInstanceState(state);
-        state.putString(EXTRA_CATEGORY_TYPE, mCategoryType);
-        state.putString(EXTRA_CATEGORY_NAME, mCategoryName);
+        mCategory.toBundle(state);
     }
 
     @Override
     public void onResume() {
         super.onResume();
 
-        if (mIsDefaultCategory) {
+        if (mCategory.isDefault()) {
             ((PhotoPickerActivity) getActivity()).updateCommonLayouts(
                     LayoutModeUtils.MODE_PHOTOS_TAB, /* title */ "");
             hideProfileButton(/* hide */ false);
         } else {
             hideProfileButton(/* hide */ true);
-            String categoryName = Category.getCategoryName(getContext(), mCategoryType);
-
-            if (TextUtils.isEmpty(categoryName)) {
-                categoryName = mCategoryName;
-            }
             ((PhotoPickerActivity) getActivity()).updateCommonLayouts(
-                    LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB, categoryName);
+                    LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB, mCategory.getDisplayName(getContext()));
         }
     }
 
@@ -204,10 +190,9 @@ public class PhotosTabFragment extends TabFragment {
     public static void show(FragmentManager fm, Category category) {
         final FragmentTransaction ft = fm.beginTransaction();
         final PhotosTabFragment fragment = new PhotosTabFragment();
-        fragment.mCategoryType = category.getCategoryType();
-        fragment.mCategoryName = category.getCategoryName(/* context= */ null);
+        fragment.mCategory = category;
         ft.replace(R.id.fragment_container, fragment, FRAGMENT_TAG);
-        if (!TextUtils.equals(category.getCategoryType(), Category.CATEGORY_DEFAULT)) {
+        if (!fragment.mCategory.isDefault()) {
             ft.addToBackStack(FRAGMENT_TAG);
         }
         ft.commitAllowingStateLoss();

@@ -621,6 +621,7 @@ public class MediaProvider extends ContentProvider {
                         invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
                         if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
                             mUserCache.invalidateWorkProfileOwnerApps(pkg);
+                            mPickerSyncController.notifyPackageRemoval(pkg);
                         }
                     } else {
                         Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());

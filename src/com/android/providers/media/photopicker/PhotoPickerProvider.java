@@ -88,12 +88,17 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     }
 
     @Override
+    public Cursor onQueryMedia(@NonNull String mediaId) {
+        return mDbFacade.queryMediaId(Long.parseLong(mediaId));
+    }
+
+    @Override
     public Cursor onQueryMedia(@Nullable Bundle extras) {
         // TODO(b/190713331): Handle extra_page
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        return mDbFacade.queryMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
+        return mDbFacade.queryMediaGeneration(queryExtras.getGeneration(), queryExtras.getAlbumId(),
                 queryExtras.getMimeType());
     }
 

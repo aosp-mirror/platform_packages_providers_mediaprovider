@@ -2237,6 +2237,16 @@ bool FuseDaemon::IsStarted() const {
     return active.load(std::memory_order_acquire);
 }
 
+bool IsFuseBpfEnabled() {
+    std::string bpf_override = android::base::GetProperty("persist.sys.fuse.bpf.override", "");
+    if (bpf_override == "true") {
+        return true;
+    } else if (bpf_override == "false") {
+        return false;
+    }
+    return android::base::GetBoolProperty("ro.fuse.bpf.enabled", false);
+}
+
 void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
                        const bool uncached_mode,
                        const std::vector<std::string>& supported_transcoding_relative_paths,
@@ -2265,7 +2275,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
         return;
     }
 
-    bool bpf_enabled = android::base::GetBoolProperty("persist.sys.fuse.bpf.override", false);
+    bool bpf_enabled = IsFuseBpfEnabled();
     int bpf_fd = -1;
     if (bpf_enabled) {
         LOG(INFO) << "Using FUSE BPF";

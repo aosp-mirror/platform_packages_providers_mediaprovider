@@ -21,9 +21,9 @@ import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryF
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
+import android.provider.MediaStore;
 
 /**
  * Represents the {@link CloudMediaProviderContract} extra filters from a {@link Bundle}.
@@ -36,6 +36,7 @@ public class CloudProviderQueryExtras {
     private final long mGeneration;
     private final int mLimit;
     private final boolean mIsFavorite;
+    private final boolean mIsVideo;
 
     private CloudProviderQueryExtras() {
         mAlbumId = STRING_DEFAULT;
@@ -45,10 +46,11 @@ public class CloudProviderQueryExtras {
         mGeneration = LONG_DEFAULT;
         mLimit = LIMIT_DEFAULT;
         mIsFavorite = BOOLEAN_DEFAULT;
+        mIsVideo = BOOLEAN_DEFAULT;
     }
 
     private CloudProviderQueryExtras (String albumId, String albumAuthority, String mimeType,
-            long sizeBytes, long generation, int limit, boolean isFavorite) {
+            long sizeBytes, long generation, int limit, boolean isFavorite, boolean isVideo) {
         mAlbumId = albumId;
         mAlbumAuthority = albumAuthority;
         mMimeType = mimeType;
@@ -56,6 +58,7 @@ public class CloudProviderQueryExtras {
         mGeneration = generation;
         mLimit = limit;
         mIsFavorite = isFavorite;
+        mIsVideo = isVideo;
     }
 
     public static CloudProviderQueryExtras fromMediaStoreBundle(Bundle bundle,
@@ -75,9 +78,11 @@ public class CloudProviderQueryExtras {
 
         final boolean isFavorite = localProvider.equals(albumAuthority)
                 && AlbumColumns.ALBUM_ID_FAVORITES.equals(albumId);
+        final boolean isVideo = localProvider.equals(albumAuthority)
+                && AlbumColumns.ALBUM_ID_VIDEOS.equals(albumId);
 
         return new CloudProviderQueryExtras(albumId, albumAuthority, mimeType, sizeBytes,
-                generation, limit, isFavorite);
+                generation, limit, isFavorite, isVideo);
     }
 
     public static CloudProviderQueryExtras fromCloudMediaBundle(Bundle bundle) {
@@ -97,9 +102,10 @@ public class CloudProviderQueryExtras {
         final int limit = LIMIT_DEFAULT;
 
         final boolean isFavorite = BOOLEAN_DEFAULT;
+        final boolean isVideo = BOOLEAN_DEFAULT;
 
         return new CloudProviderQueryExtras(albumId, albumAuthority, mimeType, sizeBytes,
-                generation, limit, isFavorite);
+                generation, limit, isFavorite, isVideo);
     }
 
     public PickerDbFacade.QueryFilter toQueryFilter() {
@@ -107,6 +113,7 @@ public class CloudProviderQueryExtras {
         qfb.setSizeBytes(mSizeBytes);
         qfb.setMimeType(mMimeType);
         qfb.setIsFavorite(mIsFavorite);
+        qfb.setIsVideo(mIsVideo);
         qfb.setAlbumId(mAlbumId);
         return qfb.build();
     }
@@ -142,5 +149,9 @@ public class CloudProviderQueryExtras {
 
     public boolean isFavorite() {
         return mIsFavorite;
+    }
+
+    public boolean isVideo() {
+        return mIsVideo;
     }
 }

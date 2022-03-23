@@ -30,9 +30,8 @@ import android.provider.CloudMediaProviderContract.AlbumColumns;
  */
 public class CloudProviderQueryExtras {
     private final String mAlbumId;
-    private final String mAlbumType;
+    private final String mAlbumAuthority;
     private final String mMimeType;
-    private final String mCloudProvider;
     private final long mSizeBytes;
     private final long mGeneration;
     private final int mLimit;
@@ -40,45 +39,44 @@ public class CloudProviderQueryExtras {
 
     private CloudProviderQueryExtras() {
         mAlbumId = STRING_DEFAULT;
-        mAlbumType = STRING_DEFAULT;
+        mAlbumAuthority = STRING_DEFAULT;
         mMimeType = STRING_DEFAULT;
-        mCloudProvider = STRING_DEFAULT;
         mSizeBytes = LONG_DEFAULT;
         mGeneration = LONG_DEFAULT;
         mLimit = LIMIT_DEFAULT;
         mIsFavorite = BOOLEAN_DEFAULT;
     }
 
-    private CloudProviderQueryExtras (String albumId, String albumType, String mimeType,
-            String cloudProvider, long sizeBytes, long generation, int limit, boolean isFavorite) {
+    private CloudProviderQueryExtras (String albumId, String albumAuthority, String mimeType,
+            long sizeBytes, long generation, int limit, boolean isFavorite) {
         mAlbumId = albumId;
-        mAlbumType = albumType;
+        mAlbumAuthority = albumAuthority;
         mMimeType = mimeType;
-        mCloudProvider = cloudProvider;
         mSizeBytes = sizeBytes;
         mGeneration = generation;
         mLimit = limit;
         mIsFavorite = isFavorite;
     }
 
-    public static CloudProviderQueryExtras fromMediaStoreBundle(Bundle bundle) {
+    public static CloudProviderQueryExtras fromMediaStoreBundle(Bundle bundle,
+            String localProvider) {
         if (bundle == null) {
             return new CloudProviderQueryExtras();
         }
 
         final String albumId = bundle.getString(MediaStore.QUERY_ARG_ALBUM_ID, STRING_DEFAULT);
-        final String albumType = bundle.getString(MediaStore.QUERY_ARG_ALBUM_TYPE, STRING_DEFAULT);
-        final String mimeType = bundle.getString(MediaStore.QUERY_ARG_MIME_TYPE, STRING_DEFAULT);
-        final String cloudProvider = bundle.getString(MediaStore.EXTRA_CLOUD_PROVIDER,
+        final String albumAuthority = bundle.getString(MediaStore.QUERY_ARG_ALBUM_AUTHORITY,
                 STRING_DEFAULT);
+        final String mimeType = bundle.getString(MediaStore.QUERY_ARG_MIME_TYPE, STRING_DEFAULT);
 
         final long sizeBytes = bundle.getLong(MediaStore.QUERY_ARG_SIZE_BYTES, LONG_DEFAULT);
         final long generation = LONG_DEFAULT;
         final int limit = bundle.getInt(MediaStore.QUERY_ARG_LIMIT, LIMIT_DEFAULT);
 
-        final boolean isFavorite = AlbumColumns.TYPE_FAVORITES.equals(albumType);
+        final boolean isFavorite = localProvider.equals(albumAuthority)
+                && AlbumColumns.ALBUM_ID_FAVORITES.equals(albumId);
 
-        return new CloudProviderQueryExtras(albumId, albumType, mimeType, cloudProvider, sizeBytes,
+        return new CloudProviderQueryExtras(albumId, albumAuthority, mimeType, sizeBytes,
                 generation, limit, isFavorite);
     }
 
@@ -89,11 +87,9 @@ public class CloudProviderQueryExtras {
 
         final String albumId = bundle.getString(CloudMediaProviderContract.EXTRA_ALBUM_ID,
                 STRING_DEFAULT);
-        final String albumType = STRING_DEFAULT;
+        final String albumAuthority = STRING_DEFAULT;
         final String mimeType = bundle.getString(CloudMediaProviderContract.EXTRA_MIME_TYPE,
                 STRING_DEFAULT);
-        final String cloudProvider = STRING_DEFAULT;
-
         final long sizeBytes = bundle.getLong(CloudMediaProviderContract.EXTRA_SIZE_LIMIT_BYTES,
                 LONG_DEFAULT);
         final long generation = bundle.getLong(CloudMediaProviderContract.EXTRA_SYNC_GENERATION,
@@ -102,7 +98,7 @@ public class CloudProviderQueryExtras {
 
         final boolean isFavorite = BOOLEAN_DEFAULT;
 
-        return new CloudProviderQueryExtras(albumId, albumType, mimeType, cloudProvider, sizeBytes,
+        return new CloudProviderQueryExtras(albumId, albumAuthority, mimeType, sizeBytes,
                 generation, limit, isFavorite);
     }
 
@@ -128,16 +124,12 @@ public class CloudProviderQueryExtras {
         return mAlbumId;
     }
 
-    public String getAlbumType() {
-        return mAlbumType;
+    public String getAlbumAuthority() {
+        return mAlbumAuthority;
     }
 
     public String getMimeType() {
         return mMimeType;
-    }
-
-    public String getCloudProvider() {
-        return mCloudProvider;
     }
 
     public long getSizeBytes() {
@@ -146,5 +138,9 @@ public class CloudProviderQueryExtras {
 
     public long getGeneration() {
         return mGeneration;
+    }
+
+    public boolean isFavorite() {
+        return mIsFavorite;
     }
 }

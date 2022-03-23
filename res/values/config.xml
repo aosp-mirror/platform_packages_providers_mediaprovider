@@ -18,6 +18,4 @@
     <string-array name="config_supported_transcoding_relative_paths" translatable="false">
       <item>DCIM/Camera/</item>
     </string-array>
-    <string-array name="config_supported_uncached_relative_paths" translatable="false">
-    </string-array>
 </resources>

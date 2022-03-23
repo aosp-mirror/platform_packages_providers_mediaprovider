@@ -17,6 +17,7 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
+import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
@@ -305,7 +306,6 @@ public class LocalCallingIdentity {
     }
 
     private boolean hasPermissionInternal(int permission) {
-        boolean targetSdkIsAtLeastT = getTargetSdkVersion() > Build.VERSION_CODES.S;
         // While we're here, enforce any broad user-level restrictions
         if ((uid == Process.SHELL_UID) && context.getSystemService(UserManager.class)
                 .hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER)) {
@@ -338,13 +338,13 @@ public class LocalCallingIdentity {
 
             case PERMISSION_READ_AUDIO:
                 return checkPermissionReadAudio(
-                        context, pid, uid, getPackageName(), attributionTag, targetSdkIsAtLeastT);
+                        context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_READ_VIDEO:
                 return checkPermissionReadVideo(
-                        context, pid, uid, getPackageName(), attributionTag, targetSdkIsAtLeastT);
+                        context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_READ_IMAGES:
                 return checkPermissionReadImages(
-                        context, pid, uid, getPackageName(), attributionTag, targetSdkIsAtLeastT);
+                        context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_WRITE_AUDIO:
                 return checkPermissionWriteAudio(
                         context, pid, uid, getPackageName(), attributionTag);

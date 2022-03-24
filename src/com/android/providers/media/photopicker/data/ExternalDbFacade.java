@@ -258,7 +258,7 @@ public class ExternalDbFacade {
      * Returns all items from the files table where {@link MediaColumns#GENERATION_MODIFIED}
      * is greater than {@code generation}.
      */
-    public Cursor queryMediaGeneration(long generation, String albumId, String mimeType) {
+    public Cursor queryMedia(long generation, String albumId, String mimeType) {
         final List<String> selectionArgs = new ArrayList<>();
         final String orderBy = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS + " DESC";
 
@@ -272,19 +272,6 @@ public class ExternalDbFacade {
                 return qb.query(db, PROJECTION_MEDIA_COLUMNS, /* select */ null,
                         selectionArgs.toArray(new String[selectionArgs.size()]), /* groupBy */ null,
                         /* having */ null, orderBy);
-            });
-    }
-
-    /** Returns the media item from the files table with row id {@code id}. */
-    public Cursor queryMediaId(long id) {
-        final String[] selectionArgs = new String[] {String.valueOf(id)};
-
-        return mDatabaseHelper.runWithTransaction(db -> {
-                SQLiteQueryBuilder qb = createMediaQueryBuilder();
-                qb.appendWhereStandalone(WHERE_ID);
-
-                return qb.query(db, PROJECTION_MEDIA_COLUMNS, /* select */ null, selectionArgs,
-                        /* groupBy */ null, /* having */ null, /* orderBy */ null);
             });
     }
 

@@ -46,13 +46,14 @@ import android.util.Log;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.DatabaseHelper;
 import com.android.providers.media.MediaDocumentsProvider;
 import com.android.providers.media.MediaProvider;
+import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.R;
-import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.util.FileUtils;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -118,6 +119,11 @@ public class MediaScannerTest {
                 @Override
                 public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
                     // Ignore
+                }
+
+                @Override
+                protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
+                    // Ignoring this as test app would not have access to update xattr.
                 }
             };
             mProvider.attachInfo(this, info);

@@ -80,21 +80,27 @@ public class PulledMetrics {
         if (!isInitialized) {
             return;
         }
-
-        storageAccessMetrics.logMimeType(uid, mimeType);
+        BackgroundThread.getExecutor().execute(() -> {
+            storageAccessMetrics.logMimeType(uid, mimeType);
+        });
     }
 
     /**
      * Logs the storage access and attributes it to the given {@code uid}.
      *
-     * <p>Should only be called from a FUSE thread.
+     * <p>This is a no-op if it's called from a non-FUSE thread.
      */
     public static void logFileAccessViaFuse(int uid, @NonNull String file) {
         if (!isInitialized) {
             return;
         }
-
-        storageAccessMetrics.logAccessViaFuse(uid, file);
+        // Log only if it's a FUSE thread
+        if (!FuseDaemon.native_is_fuse_thread()) {
+            return;
+        }
+        BackgroundThread.getExecutor().execute(() -> {
+            storageAccessMetrics.logAccessViaFuse(uid, file);
+        });
     }
 
     /**
@@ -111,7 +117,9 @@ public class PulledMetrics {
         if (FuseDaemon.native_is_fuse_thread()) {
             return;
         }
-        storageAccessMetrics.logAccessViaMediaProvider(uid, volumeName);
+        BackgroundThread.getExecutor().execute(() -> {
+            storageAccessMetrics.logAccessViaMediaProvider(uid, volumeName);
+        });
     }
 
     private static class StatsPullCallbackHandler implements StatsManager.StatsPullAtomCallback {

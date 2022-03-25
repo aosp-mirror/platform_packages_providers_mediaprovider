@@ -99,6 +99,14 @@ class NodeTracker {
   public:
     explicit NodeTracker(std::recursive_mutex* lock) : lock_(lock) {}
 
+    bool Exists(__u64 ino) const {
+        if (kEnableInodeTracking) {
+            const node* node = reinterpret_cast<const class node*>(ino);
+            std::lock_guard<std::recursive_mutex> guard(*lock_);
+            return active_nodes_.find(node) != active_nodes_.end();
+        }
+    }
+
     void CheckTracked(__u64 ino) const {
         if (kEnableInodeTracking) {
             const node* node = reinterpret_cast<const class node*>(ino);
@@ -136,15 +144,15 @@ class node {
   public:
     // Creates a new node with the specified parent, name and lock.
     static node* Create(node* parent, const std::string& name, const std::string& io_path,
-                        bool should_invalidate, bool transforms_complete, const int transforms,
+                        const bool transforms_complete, const int transforms,
                         const int transforms_reason, std::recursive_mutex* lock, ino_t ino,
                         NodeTracker* tracker) {
         // Place the entire constructor under a critical section to make sure
         // node creation, tracking (if enabled) and the addition to a parent are
         // atomic.
         std::lock_guard<std::recursive_mutex> guard(*lock);
-        return new node(parent, name, io_path, should_invalidate, transforms_complete, transforms,
-                        transforms_reason, lock, ino, tracker);
+        return new node(parent, name, io_path, transforms_complete, transforms, transforms_reason,
+                        lock, ino, tracker);
     }
 
     // Creates a new root node. Root nodes have no parents by definition
@@ -152,9 +160,8 @@ class node {
     static node* CreateRoot(const std::string& path, std::recursive_mutex* lock, ino_t ino,
                             NodeTracker* tracker) {
         std::lock_guard<std::recursive_mutex> guard(*lock);
-        node* root = new node(nullptr, path, path, false /* should_invalidate */,
-                              true /* transforms_complete */, 0 /* transforms */,
-                              0 /* transforms_reason */, lock, ino, tracker);
+        node* root = new node(nullptr, path, path, true /* transforms_complete */,
+                              0 /* transforms */, 0 /* transforms_reason */, lock, ino, tracker);
 
         // The root always has one extra reference to avoid it being
         // accidentally collected.
@@ -165,6 +172,12 @@ class node {
     // Maps an inode to its associated node.
     static inline node* FromInode(__u64 ino, const NodeTracker* tracker) {
         tracker->CheckTracked(ino);
+        return reinterpret_cast<node*>(static_cast<uintptr_t>(ino));
+    }
+
+    // TODO(b/215235604)
+    static inline node* FromInodeNoThrow(__u64 ino, const NodeTracker* tracker) {
+        if (!tracker->Exists(ino)) return nullptr;
         return reinterpret_cast<node*>(static_cast<uintptr_t>(ino));
     }
 
@@ -327,7 +340,7 @@ class node {
         }
         return false;
     }
-  
+
     std::unique_ptr<FdAccessResult> CheckHandleForUid(const uid_t uid) const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
 
@@ -346,15 +359,10 @@ class node {
 
         return std::make_unique<FdAccessResult>(std::string(), false);
     }
-  
-    bool ShouldInvalidate() const {
-        std::lock_guard<std::recursive_mutex> guard(*lock_);
-        return should_invalidate_;
-    }
 
-    void SetShouldInvalidate() {
+    void SetName(std::string name) {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
-        should_invalidate_ = true;
+        name_ = std::move(name);
     }
 
     bool HasRedactedCache() const {
@@ -394,8 +402,8 @@ class node {
 
   private:
     node(node* parent, const std::string& name, const std::string& io_path,
-         const bool should_invalidate, const bool transforms_complete, const int transforms,
-         const int transforms_reason, std::recursive_mutex* lock, ino_t ino, NodeTracker* tracker)
+         const bool transforms_complete, const int transforms, const int transforms_reason,
+         std::recursive_mutex* lock, ino_t ino, NodeTracker* tracker)
         : name_(name),
           io_path_(io_path),
           transforms_complete_(transforms_complete),
@@ -404,7 +412,6 @@ class node {
           refcount_(0),
           parent_(nullptr),
           has_redacted_cache_(false),
-          should_invalidate_(should_invalidate),
           deleted_(false),
           lock_(lock),
           ino_(ino),
@@ -415,10 +422,6 @@ class node {
         // non-null parent.
         if (parent != nullptr) {
             AddToParent(parent);
-        }
-        // If the node requires transforms, we MUST never cache it in the VFS
-        if (transforms) {
-            CHECK(should_invalidate_);
         }
     }
 
@@ -558,7 +561,6 @@ class node {
     // List of directory handles associated with this node. Guarded by |lock_|.
     std::vector<std::unique_ptr<dirhandle>> dirhandles_;
     bool has_redacted_cache_;
-    bool should_invalidate_;
     bool deleted_;
     std::recursive_mutex* lock_;
     // Inode number of the file represented by this node.

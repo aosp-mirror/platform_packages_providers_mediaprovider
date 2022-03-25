@@ -31,7 +31,7 @@ public class LongArray implements Cloneable {
 
     private  LongArray(long[] array, int size) {
         mValues = array;
-        mSize = checkArgumentInRange(size, 0, array.length, "size");
+        mSize = Preconditions.checkArgumentInRange(size, 0, array.length, "size");
     }
 
     /**
@@ -73,7 +73,7 @@ public class LongArray implements Cloneable {
      * created from the current content of this LongArray padded with 0s.
      */
     public void resize(int newSize) {
-        checkArgumentNonnegative(newSize);
+        Preconditions.checkArgumentNonnegative(newSize);
         if (newSize <= mValues.length) {
             Arrays.fill(mValues, newSize, mValues.length, 0);
         } else {
@@ -220,29 +220,6 @@ public class LongArray implements Cloneable {
             }
         }
         return true;
-    }
-
-    public static int checkArgumentNonnegative(final int value) {
-        if (value < 0) {
-            throw new IllegalArgumentException();
-        }
-
-        return value;
-    }
-
-    public static int checkArgumentInRange(int value, int lower, int upper,
-            String valueName) {
-        if (value < lower) {
-            throw new IllegalArgumentException(
-                    String.format(
-                            "%s is out of range of [%d, %d] (too low)", valueName, lower, upper));
-        } else if (value > upper) {
-            throw new IllegalArgumentException(
-                    String.format(
-                            "%s is out of range of [%d, %d] (too high)", valueName, lower, upper));
-        }
-
-        return value;
     }
 
     public static void checkBounds(int len, int index) {

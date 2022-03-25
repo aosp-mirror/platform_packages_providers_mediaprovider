@@ -49,6 +49,7 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"មើលអ្វីដែលបានជ្រើសរើស"</string>
     <string name="picker_photos" msgid="7415035516411087392">"រូបថត"</string>
     <string name="picker_albums" msgid="4822511902115299142">"អាល់ប៊ុម"</string>
+    <string name="picker_preview" msgid="6257414886055861039">"មើល​សាកល្បង"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ប្ដូរទៅ​កម្រងព័ត៌មាន​ការងារ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ប្ដូរទៅ​កម្រងព័ត៌មាន​ផ្ទាល់ខ្លួន"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"បានទប់ស្កាត់ដោយអ្នកគ្រប់គ្រងរបស់អ្នក"</string>
@@ -67,8 +68,9 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"រូបថត​មានចលនា"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> ដែលបានថតនៅថ្ងៃទី <xliff:g id="TIME">%2$s</xliff:g>"</string>
+    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
+    <skip />
     <string name="picker_photo" msgid="1739342083494962153">"រូបថត"</string>
-    <string name="picker_video" msgid="4404927441373455823">"វីដេអូ"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"រូបថត​មានចលនា"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"បិទ​សំឡេង​វីដេអូ"</string>

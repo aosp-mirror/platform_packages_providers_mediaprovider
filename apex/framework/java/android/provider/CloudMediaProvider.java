@@ -29,7 +29,6 @@ import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLE
 import static android.provider.CloudMediaProviderContract.URI_PATH_ALBUM;
 import static android.provider.CloudMediaProviderContract.URI_PATH_DELETED_MEDIA;
 import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA;
-import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_EXACT;
 import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_COLLECTION_INFO;
 import static android.provider.CloudMediaProviderContract.URI_PATH_SURFACE_CONTROLLER;
 
@@ -106,18 +105,15 @@ import java.util.Objects;
  * {@link #onGetMediaCollectionInfo}.
  *
  * @see MediaStore#ACTION_PICK_IMAGES
- *
- * @hide
  */
 public abstract class CloudMediaProvider extends ContentProvider {
     private static final String TAG = "CloudMediaProvider";
 
     private static final int MATCH_MEDIAS = 1;
-    private static final int MATCH_MEDIA_ID = 2;
-    private static final int MATCH_DELETED_MEDIAS = 3;
-    private static final int MATCH_ALBUMS = 4;
-    private static final int MATCH_MEDIA_COLLECTION_INFO = 5;
-    private static final int MATCH_SURFACE_CONTROLLER = 6;
+    private static final int MATCH_DELETED_MEDIAS = 2;
+    private static final int MATCH_ALBUMS = 3;
+    private static final int MATCH_MEDIA_COLLECTION_INFO = 4;
+    private static final int MATCH_SURFACE_CONTROLLER = 5;
 
     private static final boolean DEFAULT_LOOPING_PLAYBACK_ENABLED = true;
     private static final boolean DEFAULT_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED = false;
@@ -140,7 +136,6 @@ public abstract class CloudMediaProvider extends ContentProvider {
 
     private void registerAuthority(String authority) {
         mMatcher.addURI(authority, URI_PATH_MEDIA, MATCH_MEDIAS);
-        mMatcher.addURI(authority, URI_PATH_MEDIA_EXACT, MATCH_MEDIA_ID);
         mMatcher.addURI(authority, URI_PATH_DELETED_MEDIA, MATCH_DELETED_MEDIAS);
         mMatcher.addURI(authority, URI_PATH_ALBUM, MATCH_ALBUMS);
         mMatcher.addURI(authority, URI_PATH_MEDIA_COLLECTION_INFO, MATCH_MEDIA_COLLECTION_INFO);
@@ -187,19 +182,6 @@ public abstract class CloudMediaProvider extends ContentProvider {
     @SuppressWarnings("unused")
     @NonNull
     public abstract Bundle onGetMediaCollectionInfo(@NonNull Bundle extras);
-
-    /**
-     * Returns a {@link Cursor} to a single media item containing the columns representing the media
-     * item identified by the {@link CloudMediaProviderContract.MediaColumns#ID} with
-     * {@code mediaId}.
-     *
-     * @param mediaId the media item to return
-     * @return cursor representing single media item containing all
-     * {@link CloudMediaProviderContract.MediaColumns}
-     */
-    @SuppressWarnings("unused")
-    @NonNull
-    public abstract Cursor onQueryMedia(@NonNull String mediaId);
 
     /**
      * Returns a cursor representing all media items in the media collection optionally filtered by
@@ -486,8 +468,6 @@ public abstract class CloudMediaProvider extends ContentProvider {
         switch (mMatcher.match(uri)) {
             case MATCH_MEDIAS:
                 return onQueryMedia(queryArgs);
-            case MATCH_MEDIA_ID:
-                return onQueryMedia(uri.getLastPathSegment());
             case MATCH_DELETED_MEDIAS:
                 return onQueryDeletedMedia(queryArgs);
             case MATCH_ALBUMS:

@@ -29,11 +29,11 @@
     </FrameLayout>
 
     <ImageButton android:id="@+id/preview_mute"
-        android:layout_height="wrap_content"
-        android:layout_width="wrap_content"
+        android:layout_height="@dimen/preview_mute_button_size"
+        android:layout_width="@dimen/preview_mute_button_size"
+        android:gravity="center"
         android:src="@drawable/ic_volume_off"
         android:layout_gravity="end|bottom"
-        android:layout_marginTop="@dimen/exo_styled_bottom_bar_margin_top"
         android:layout_marginEnd="@dimen/preview_mute_marginEnd"
         android:layout_marginBottom="@dimen/preview_mute_marginBottom"
         android:background="@android:color/transparent" />

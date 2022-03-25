@@ -153,7 +153,8 @@ public final class MediaVolume implements Parcelable {
         UserHandle user = storageVolume.getOwner();
         File path = storageVolume.getDirectory();
         String id = storageVolume.getId();
-        boolean externallyManaged = false;
+        boolean externallyManaged =
+                SdkLevel.isAtLeastT() ? storageVolume.isExternallyManaged() : false;
         boolean publicVolume = !externallyManaged && !storageVolume.isPrimary();
         return new MediaVolume(name, user, path, id, externallyManaged, publicVolume);
     }

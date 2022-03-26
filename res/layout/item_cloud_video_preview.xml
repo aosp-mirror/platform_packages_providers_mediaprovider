@@ -20,17 +20,36 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.google.android.exoplayer2.ui.AspectRatioFrameLayout
+    <FrameLayout
         android:id="@+id/preview_player_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center">
 
-        <SurfaceView
-            android:id="@+id/preview_player_view"
+        <com.google.android.exoplayer2.ui.AspectRatioFrameLayout
+            android:id="@+id/preview_player_frame"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-    </com.google.android.exoplayer2.ui.AspectRatioFrameLayout>
+            android:layout_height="match_parent"
+            android:layout_gravity="center">
+
+            <SurfaceView
+                android:id="@+id/preview_player_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </com.google.android.exoplayer2.ui.AspectRatioFrameLayout>
+
+        <FrameLayout
+            android:id="@+id/preview_player_controls"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center">
+
+            <include
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                layout="@layout/preview_video_controls" />
+        </FrameLayout>
+    </FrameLayout>
 
     <ImageView
         android:id="@+id/preview_video_image"

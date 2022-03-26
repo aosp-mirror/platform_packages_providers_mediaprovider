@@ -47,7 +47,7 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     PreviewAdapter(Context context, MuteStatus muteStatus) {
         mImageLoader = new ImageLoader(context);
-        mRemotePreviewHandler = new RemotePreviewHandler(context);
+        mRemotePreviewHandler = new RemotePreviewHandler(context, muteStatus);
         mPlaybackHandler = new PlaybackHandler(context, muteStatus);
     }
 
@@ -81,7 +81,6 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             // place. Currently, we show the thumbnail here and hide it when playback starts in
             // PlaybackHandler/RemotePreviewHandler.
             PreviewVideoHolder videoHolder = (PreviewVideoHolder) holder;
-            videoHolder.getThumbnailView().setVisibility(View.VISIBLE);
 
             if (mIsRemotePreviewEnabled) {
                 mRemotePreviewHandler.onViewAttachedToWindow(videoHolder, item);

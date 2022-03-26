@@ -16,12 +16,11 @@
 
 package com.android.providers.media.photopicker.data.model;
 
+import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
-
-import static com.android.providers.media.photopicker.data.model.Item.ItemColumns;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -34,6 +33,8 @@ import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+
+import com.android.providers.media.photopicker.PickerSyncController;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,7 +63,8 @@ public class ItemTest {
         assertThat(item.getGenerationModified()).isEqualTo(generationModified);
         assertThat(item.getMimeType()).isEqualTo(mimeType);
         assertThat(item.getDuration()).isEqualTo(duration);
-        assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://media/external/file/1"));
+        assertThat(item.getContentUri()).isEqualTo(
+                Uri.parse("content://com.android.providers.media.photopicker/media/1"));
 
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isTrue();
@@ -90,7 +92,8 @@ public class ItemTest {
         assertThat(item.getGenerationModified()).isEqualTo(generationModified);
         assertThat(item.getMimeType()).isEqualTo(mimeType);
         assertThat(item.getDuration()).isEqualTo(duration);
-        assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://10@media/external/file/1"));
+        assertThat(item.getContentUri()).isEqualTo(
+                Uri.parse("content://10@com.android.providers.media.photopicker/media/1"));
 
         assertThat(item.isImage()).isTrue();
 
@@ -312,9 +315,19 @@ public class ItemTest {
 
     private static Cursor generateCursorForItem(String id, String mimeType, long dateTaken,
             long generationModified, long duration, int specialFormat) {
-        final MatrixCursor cursor = new MatrixCursor(ItemColumns.ALL_COLUMNS);
-        cursor.addRow(new Object[] {id, mimeType, dateTaken, dateTaken /* dateModified */,
-                generationModified, duration, specialFormat});
+        final MatrixCursor cursor = new MatrixCursor(MediaColumns.ALL_PROJECTION);
+        cursor.addRow(new Object[] {
+                    id,
+                    dateTaken,
+                    generationModified,
+                    mimeType,
+                    specialFormat,
+                    "1", // size_bytes
+                    null, // media_store_uri
+                    duration,
+                    "0", // is_favorite
+                    "/storage/emulated/0/foo", // data
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY});
         return cursor;
     }
 

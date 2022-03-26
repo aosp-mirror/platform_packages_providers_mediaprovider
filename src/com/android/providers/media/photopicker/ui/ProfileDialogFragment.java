@@ -68,17 +68,17 @@ public class ProfileDialogFragment extends DialogFragment {
 
     private void setBlockedByAdminParams(
             boolean isManagedUserSelected, MaterialAlertDialogBuilder builder) {
-        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
         String title;
         String message;
         if (SdkLevel.isAtLeastT()) {
-            title = dpm.getString(BLOCKED_BY_ADMIN_TITLE, () -> getString(
-                    R.string.picker_profile_admin_title));
+            title = getUpdatedEnterpriseString(
+                    BLOCKED_BY_ADMIN_TITLE, R.string.picker_profile_admin_title);
             message = isManagedUserSelected
-                    ? dpm.getString(BLOCKED_FROM_WORK_MESSAGE, () -> getString(
-                    R.string.picker_profile_admin_msg_from_work))
-                    : dpm.getString(BLOCKED_FROM_PERSONAL_MESSAGE, () -> getString(
-                            R.string.picker_profile_admin_msg_from_personal));
+                    ? getUpdatedEnterpriseString(
+                            BLOCKED_FROM_WORK_MESSAGE, R.string.picker_profile_admin_msg_from_work)
+                    : getUpdatedEnterpriseString(
+                            BLOCKED_FROM_PERSONAL_MESSAGE,
+                            R.string.picker_profile_admin_msg_from_personal);
         } else {
             title = getString(R.string.picker_profile_admin_title);
             message = isManagedUserSelected
@@ -92,16 +92,15 @@ public class ProfileDialogFragment extends DialogFragment {
     }
 
     private void setWorkProfileOffParams(MaterialAlertDialogBuilder builder) {
-        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
         Drawable icon;
         String title;
         String message;
         if (SdkLevel.isAtLeastT()) {
-            icon = getUpdatedWorkProfileIcon(dpm);
-            title = dpm.getString(WORK_PROFILE_PAUSED_TITLE, () ->
-                    getString(R.string.picker_profile_work_paused_title));
-            message = dpm.getString(WORK_PROFILE_PAUSED_MESSAGE, () ->
-                    getString(R.string.picker_profile_work_paused_msg));
+            icon = getUpdatedWorkProfileIcon();
+            title = getUpdatedEnterpriseString(
+                    WORK_PROFILE_PAUSED_TITLE, R.string.picker_profile_work_paused_title);
+            message = getUpdatedEnterpriseString(
+                    WORK_PROFILE_PAUSED_MESSAGE, R.string.picker_profile_work_paused_msg);
         } else {
             icon = getContext().getDrawable(R.drawable.ic_work_outline);
             title = getContext().getString(R.string.picker_profile_work_paused_title);
@@ -117,7 +116,14 @@ public class ProfileDialogFragment extends DialogFragment {
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private Drawable getUpdatedWorkProfileIcon(DevicePolicyManager dpm) {
+    private String getUpdatedEnterpriseString(String updatableStringId, int defaultStringId) {
+        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
+        return dpm.getString(updatableStringId, () -> getString(defaultStringId));
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private Drawable getUpdatedWorkProfileIcon() {
+        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
         return dpm.getDrawable(WORK_PROFILE_ICON, OUTLINE, () -> getContext().getDrawable(
                 R.drawable.ic_work_outline));
     }

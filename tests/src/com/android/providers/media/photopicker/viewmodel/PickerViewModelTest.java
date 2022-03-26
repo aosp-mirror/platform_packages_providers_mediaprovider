@@ -16,7 +16,8 @@
 
 package com.android.providers.media.photopicker.viewmodel;
 
-import static com.android.providers.media.photopicker.data.model.Category.CATEGORY_DOWNLOADS;
+import static android.provider.CloudMediaProviderContract.AlbumColumns;
+import static android.provider.CloudMediaProviderContract.MediaColumns;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -28,6 +29,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.net.Uri;
+import android.provider.CloudMediaProviderContract;
 import android.text.format.DateUtils;
 
 import androidx.annotation.NonNull;
@@ -35,6 +38,7 @@ import androidx.annotation.Nullable;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
@@ -59,6 +63,10 @@ public class PickerViewModelTest {
     private static final String FAKE_IMAGE_MIME_TYPE = "image/jpg";
     private static final String FAKE_CATEGORY_NAME = "testCategoryName";
     private static final String FAKE_ID = "5";
+
+    private static final Category FAKE_CATEGORY =
+            new Category(FAKE_ID, PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                    FAKE_CATEGORY_NAME, Uri.parse("content://media/foo"), 0, true);
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
@@ -179,13 +187,12 @@ public class PickerViewModelTest {
     public void testGetCategoryItems() throws Exception {
         final int itemCount = 3;
         mItemsProvider.setItems(generateFakeImageItemList(itemCount));
-        mPickerViewModel.updateCategoryItems(CATEGORY_DOWNLOADS);
+        mPickerViewModel.updateCategoryItems(FAKE_CATEGORY);
         // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
         // thread idle
         ForegroundThread.waitForIdle();
 
-        final List<Item> itemList = mPickerViewModel.getCategoryItems(
-                CATEGORY_DOWNLOADS).getValue();
+        final List<Item> itemList = mPickerViewModel.getCategoryItems(FAKE_CATEGORY).getValue();
 
         // Original item count + 3 date items
         assertThat(itemList.size()).isEqualTo(itemCount + 3);
@@ -207,13 +214,12 @@ public class PickerViewModelTest {
     public void testGetCategoryItems_dataIsUpdated() throws Exception {
         final int itemCount = 3;
         mItemsProvider.setItems(generateFakeImageItemList(itemCount));
-        mPickerViewModel.updateCategoryItems(CATEGORY_DOWNLOADS);
+        mPickerViewModel.updateCategoryItems(FAKE_CATEGORY);
         // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
         // thread idle
         ForegroundThread.waitForIdle();
 
-        final List<Item> itemList = mPickerViewModel.getCategoryItems(
-                CATEGORY_DOWNLOADS).getValue();
+        final List<Item> itemList = mPickerViewModel.getCategoryItems(FAKE_CATEGORY).getValue();
 
         // Original item count + 3 date items
         assertThat(itemList.size()).isEqualTo(itemCount + 3);
@@ -222,15 +228,15 @@ public class PickerViewModelTest {
         mItemsProvider.setItems(generateFakeImageItemList(updatedItemCount));
 
         // trigger updateCategoryItems in getCategoryItems first and wait the idle
-        mPickerViewModel.getCategoryItems(CATEGORY_DOWNLOADS).getValue();
+        mPickerViewModel.getCategoryItems(FAKE_CATEGORY).getValue();
 
         // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
         // thread idle
         ForegroundThread.waitForIdle();
 
         // Get the result again to check the result is as expected
-        final List<Item> updatedItemList = mPickerViewModel.getCategoryItems(
-                CATEGORY_DOWNLOADS).getValue();
+        final List<Item> updatedItemList =
+                mPickerViewModel.getCategoryItems(FAKE_CATEGORY).getValue();
 
         // Original item count + 5 date items
         assertThat(updatedItemList.size()).isEqualTo(updatedItemCount + 5);
@@ -238,6 +244,7 @@ public class PickerViewModelTest {
 
     @Test
     public void testGetCategories() throws Exception {
+        final Context context = InstrumentationRegistry.getTargetContext();
         final int categoryCount = 2;
         try (final Cursor fakeCursor = generateCursorForFakeCategories(categoryCount)) {
             fakeCursor.moveToFirst();
@@ -258,18 +265,14 @@ public class PickerViewModelTest {
             assertThat(categoryList.size()).isEqualTo(categoryCount);
             // Verify the first category
             final Category firstCategory = categoryList.get(0);
-            assertThat(firstCategory.getCategoryType()).isEqualTo(
-                    fakeFirstCategory.getCategoryType());
-            assertThat(firstCategory.getCategoryName(/* context= */ null)).isEqualTo(
-                    fakeFirstCategory.getCategoryName(/* context= */ null));
+            assertThat(firstCategory.getDisplayName(context)).isEqualTo(
+                    fakeFirstCategory.getDisplayName(context));
             assertThat(firstCategory.getItemCount()).isEqualTo(fakeFirstCategory.getItemCount());
             assertThat(firstCategory.getCoverUri()).isEqualTo(fakeFirstCategory.getCoverUri());
             // Verify the second category
             final Category secondCategory = categoryList.get(1);
-            assertThat(secondCategory.getCategoryType()).isEqualTo(
-                    fakeSecondCategory.getCategoryType());
-            assertThat(secondCategory.getCategoryName(/* context= */ null)).isEqualTo(
-                    fakeSecondCategory.getCategoryName(/* context= */ null));
+            assertThat(secondCategory.getDisplayName(context)).isEqualTo(
+                    fakeSecondCategory.getDisplayName(context));
             assertThat(secondCategory.getItemCount()).isEqualTo(fakeSecondCategory.getItemCount());
             assertThat(secondCategory.getCoverUri()).isEqualTo(fakeSecondCategory.getCoverUri());
         }
@@ -294,14 +297,17 @@ public class PickerViewModelTest {
     }
 
     private static Cursor generateCursorForFakeCategories(int num) {
-        final MatrixCursor cursor = new MatrixCursor(Category.CategoryColumns.getAllColumns());
+        final MatrixCursor cursor = new MatrixCursor(AlbumColumns.ALL_PROJECTION);
         final int itemCount = 5;
         for (int i = 0; i < num; i++) {
             cursor.addRow(new Object[]{
+                    FAKE_ID + String.valueOf(i),
+                    System.currentTimeMillis(),
                     FAKE_CATEGORY_NAME + i,
                     FAKE_ID + String.valueOf(i),
                     itemCount + i,
-                    CATEGORY_DOWNLOADS});
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+                    });
         }
         return cursor;
     }
@@ -316,21 +322,24 @@ public class PickerViewModelTest {
         }
 
         @Override
-        public Cursor getItems(@Nullable @Category.CategoryType String category, int offset,
+        public Cursor getItems(Category category, int offset,
                 int limit, @Nullable String mimeType, @Nullable UserId userId) throws
                 IllegalArgumentException, IllegalStateException {
-            final String[] columns = Item.ItemColumns.ALL_COLUMNS;
-            final MatrixCursor c = new MatrixCursor(columns);
+            final MatrixCursor c = new MatrixCursor(MediaColumns.ALL_PROJECTION);
 
             for (Item item : mItemList) {
                 c.addRow(new String[] {
                         item.getId(),
-                        item.getMimeType(),
-                        String.valueOf(item.getDateTaken()),
                         String.valueOf(item.getDateTaken()),
                         String.valueOf(item.getGenerationModified()),
-                        String.valueOf(item.getDuration()),
+                        item.getMimeType(),
                         String.valueOf(item.getSpecialFormat()),
+                        "1", // size_bytes
+                        null, // media_store_uri
+                        String.valueOf(item.getDuration()),
+                        "0", // is_favorite
+                        "/storage/emulated/0/foo",
+                        PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
                 });
             }
 
@@ -343,7 +352,7 @@ public class PickerViewModelTest {
                 return mCategoriesCursor;
             }
 
-            final MatrixCursor c = new MatrixCursor(Category.CategoryColumns.getAllColumns());
+            final MatrixCursor c = new MatrixCursor(AlbumColumns.ALL_PROJECTION);
             return c;
         }
 

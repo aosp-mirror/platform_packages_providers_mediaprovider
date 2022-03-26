@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static android.provider.CloudMediaProviderContract.AlbumColumns;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.PickerMediaColumns;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
@@ -44,7 +46,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
-import com.android.providers.media.photopicker.data.model.Category;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -141,15 +142,6 @@ public class PickerDbFacade {
             String.format("%s < ? OR (%s = ? AND %s < ?)",
                     KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
     private static final String WHERE_ALBUM_ID = KEY_ALBUM_ID  + " = ?";
-
-    private static final String[] PROJECTION_ALBUM_CURSOR = new String[] {
-        CloudMediaProviderContract.AlbumColumns.ID,
-        CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
-        CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME,
-        CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
-        CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID,
-        CloudMediaProviderContract.AlbumColumns.TYPE
-    };
 
     private static final String[] PROJECTION_ALBUM_DB = new String[] {
         "COUNT(" + KEY_ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
@@ -738,14 +730,14 @@ public class PickerDbFacade {
             return null;
         }
 
-        final MatrixCursor c = new MatrixCursor(PROJECTION_ALBUM_CURSOR);
+        final MatrixCursor c = new MatrixCursor(AlbumColumns.ALL_PROJECTION);
         final String[] projectionValue = new String[] {
-            Category.CATEGORY_FAVORITES,
-            getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS),
-            Category.getCategoryName(mContext, Category.CATEGORY_FAVORITES),
+            /* albumId */ ALBUM_ID_FAVORITES,
+            getCursorString(cursor, AlbumColumns.DATE_TAKEN_MILLIS),
+            /* displayName */ ALBUM_ID_FAVORITES,
+            getCursorString(cursor, AlbumColumns.MEDIA_COVER_ID),
             String.valueOf(count),
-            getCursorString(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
-            CloudMediaProviderContract.AlbumColumns.TYPE_FAVORITES
+            mLocalProvider,
         };
         c.addRow(projectionValue);
         return c;
@@ -996,17 +988,9 @@ public class PickerDbFacade {
             selectArgs.add(replaceMatchAnyChar(query.mimeType));
         }
 
-        if (query.isFavorite && !TextUtils.isEmpty(query.albumId)) {
-            throw new IllegalStateException(
-                    "If albumId is present, the media cannot be marked as isFavorite as it "
-                            + "represents media for another album.");
-        }
-
         if (query.isFavorite) {
             qb.appendWhereStandalone(WHERE_IS_FAVORITE);
-        }
-
-        if(!TextUtils.isEmpty(query.albumId)) {
+        } else if (!TextUtils.isEmpty(query.albumId)) {
             qb.appendWhereStandalone(WHERE_ALBUM_ID);
             selectArgs.add(query.albumId);
         }
@@ -1133,5 +1117,4 @@ public class PickerDbFacade {
             return counter;
         }
     }
-
 }

@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.data.model;
 
+import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
@@ -44,43 +45,6 @@ import com.android.providers.media.util.MimeUtils;
  * Base class representing one single entity/item in the PhotoPicker.
  */
 public class Item {
-
-    public static class ItemColumns {
-        public static String ID = CloudMediaProviderContract.MediaColumns.ID;
-        public static String MIME_TYPE = CloudMediaProviderContract.MediaColumns.MIME_TYPE;
-        public static String DATE_TAKEN = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS;
-        // TODO(b/195009139): Remove after fully switching to picker db
-        public static String DATE_MODIFIED = MediaStore.MediaColumns.DATE_MODIFIED;
-        public static String GENERATION_MODIFIED =
-                CloudMediaProviderContract.MediaColumns.SYNC_GENERATION;
-        public static String DURATION = CloudMediaProviderContract.MediaColumns.DURATION_MILLIS;
-        public static String SIZE = CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
-        public static String AUTHORITY = CloudMediaProviderContract.MediaColumns.AUTHORITY;
-        public static String SPECIAL_FORMAT =
-                CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION;
-
-        public static final String[] ALL_COLUMNS = {
-                ID,
-                MIME_TYPE,
-                DATE_TAKEN,
-                DATE_MODIFIED,
-                GENERATION_MODIFIED,
-                DURATION,
-                SPECIAL_FORMAT
-        };
-
-        // TODO(b/195009139): Remove after fully switching to picker db
-        public static final String[] PROJECTION = {
-            MediaStore.MediaColumns._ID + " AS " + ID,
-            MediaStore.MediaColumns.MIME_TYPE + " AS " + MIME_TYPE,
-            MediaStore.MediaColumns.DATE_TAKEN + " AS " + DATE_TAKEN,
-            MediaStore.MediaColumns.DATE_MODIFIED + " AS " + DATE_MODIFIED,
-            MediaStore.MediaColumns.GENERATION_MODIFIED + " AS " + GENERATION_MODIFIED,
-            MediaStore.MediaColumns.DURATION +  " AS " + DURATION,
-            MediaStore.Files.FileColumns._SPECIAL_FORMAT +  " AS " + SPECIAL_FORMAT,
-        };
-    }
-
     private String mId;
     private long mDateTaken;
     private long mGenerationModified;
@@ -194,17 +158,13 @@ public class Item {
      * @param userId the user id to create an {@link Item} for
      */
     public void updateFromCursor(@NonNull Cursor cursor, @NonNull UserId userId) {
-        final String authority = extractAuthority(cursor);
-        mId = getCursorString(cursor, ItemColumns.ID);
-        mMimeType = getCursorString(cursor, ItemColumns.MIME_TYPE);
-        mDateTaken = getCursorLong(cursor, ItemColumns.DATE_TAKEN);
-        if (mDateTaken < 0) {
-            // Convert DATE_MODIFIED to millis
-            mDateTaken = getCursorLong(cursor, ItemColumns.DATE_MODIFIED) * 1000;
-        }
-        mGenerationModified = getCursorLong(cursor, ItemColumns.GENERATION_MODIFIED);
-        mDuration = getCursorLong(cursor, ItemColumns.DURATION);
-        mSpecialFormat = getCursorInt(cursor, ItemColumns.SPECIAL_FORMAT);
+        final String authority = getCursorString(cursor, MediaColumns.AUTHORITY);
+        mId = getCursorString(cursor, MediaColumns.ID);
+        mMimeType = getCursorString(cursor, MediaColumns.MIME_TYPE);
+        mDateTaken = getCursorLong(cursor, MediaColumns.DATE_TAKEN_MILLIS);
+        mGenerationModified = getCursorLong(cursor, MediaColumns.SYNC_GENERATION);
+        mDuration = getCursorLong(cursor, MediaColumns.DURATION_MILLIS);
+        mSpecialFormat = getCursorInt(cursor, MediaColumns.STANDARD_MIME_TYPE_EXTENSION);
         mUri = ItemsProvider.getItemsUri(mId, authority, userId);
 
         parseMimeType();
@@ -258,14 +218,5 @@ public class Item {
         } else {
             return mId.compareTo(anotherItem.getId());
         }
-    }
-
-    private String extractAuthority(Cursor cursor) {
-        final String authority = getCursorString(cursor, ItemColumns.AUTHORITY);
-        if (authority == null) {
-            final Bundle bundle = cursor.getExtras();
-            return bundle.getString(ItemColumns.AUTHORITY);
-        }
-        return authority;
     }
 }

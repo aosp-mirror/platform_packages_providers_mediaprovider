@@ -16,7 +16,6 @@
 
 package com.android.providers.media.photopicker;
 
-import static com.android.providers.media.PickerProviderMediaGenerator.ALBUM_COLUMN_TYPE_CLOUD;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 import static com.android.providers.media.photopicker.PickerSyncController.CloudProviderInfo;
 import static com.google.common.truth.Truth.assertThat;
@@ -26,6 +25,7 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Process;
 import android.os.SystemClock;
+import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.MediaStore;
 import android.util.Pair;
@@ -58,6 +58,7 @@ public class PickerSyncControllerTest {
             "com.android.providers.media.photopicker.tests.cloud_primary";
     private static final String CLOUD_SECONDARY_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker.tests.cloud_secondary";
+    private static final String PACKAGE_NAME = "com.android.providers.media.tests";
 
     private final MediaGenerator mLocalMediaGenerator =
             PickerProviderMediaGenerator.getMediaGenerator(LOCAL_PROVIDER_AUTHORITY);
@@ -583,11 +584,28 @@ public class PickerSyncControllerTest {
         List<CloudProviderInfo> providers = mController.getSupportedCloudProviders();
 
         CloudProviderInfo primaryInfo = new CloudProviderInfo(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
+                PACKAGE_NAME,
                 Process.myUid());
         CloudProviderInfo secondaryInfo = new CloudProviderInfo(CLOUD_SECONDARY_PROVIDER_AUTHORITY,
+                PACKAGE_NAME,
                 Process.myUid());
 
         assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
+    }
+
+    @Test
+    public void testnotifyPackageRemoval()
+    {
+        assertThat(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
+        assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Assert passing wrong package name doesn't clear the current cloud provider
+        mController.notifyPackageRemoval(PACKAGE_NAME + "invalid");
+        assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Assert passing the current cloud provider package name clears the current cloud provider
+        mController.notifyPackageRemoval(PACKAGE_NAME);
+        assertThat(mController.getCloudProvider()).isNull();
     }
 
     @Test
@@ -797,17 +815,12 @@ public class PickerSyncControllerTest {
         return queryArgs;
     }
 
-    private static Bundle buildQueryArgs(String albumId, String albumType, String mimeType,
+    private static Bundle buildQueryArgs(String albumId, String albumAuthority, String mimeType,
             long sizeBytes) {
         final Bundle queryArgs = buildQueryArgs(mimeType, sizeBytes);
 
         queryArgs.putString(MediaStore.QUERY_ARG_ALBUM_ID, albumId);
-        queryArgs.putString(MediaStore.QUERY_ARG_ALBUM_TYPE, albumType);
-
-        if (Objects.equals(albumType, ALBUM_COLUMN_TYPE_CLOUD)) {
-            queryArgs.putString(MediaStore.EXTRA_CLOUD_PROVIDER,
-                    CLOUD_PRIMARY_PROVIDER_AUTHORITY);
-        }
+        queryArgs.putString(MediaStore.QUERY_ARG_ALBUM_AUTHORITY, albumAuthority);
 
         return queryArgs;
     }
@@ -872,18 +885,7 @@ public class PickerSyncControllerTest {
         cursor.moveToNext();
         assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.ID)))
                 .isEqualTo(id);
-
-        final int authorityIdx = cursor.getColumnIndex(MediaColumns.AUTHORITY);
-        final String authority;
-        if (authorityIdx >= 0) {
-            // Cursor from picker db has authority as a column
-            authority = cursor.getString(authorityIdx);
-        } else {
-            // Cursor from provider directly doesn't have an authority column but will
-            // have the authority set as an extra
-            final Bundle bundle = cursor.getExtras();
-            authority = bundle.getString(MediaColumns.AUTHORITY);
-        }
-        assertThat(authority).isEqualTo(expectedAuthority);
+        assertThat(cursor.getString(cursor.getColumnIndex( MediaColumns.AUTHORITY)))
+                .isEqualTo(expectedAuthority);
     }
 }

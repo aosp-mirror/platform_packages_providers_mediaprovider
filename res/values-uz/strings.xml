@@ -60,8 +60,8 @@
       <item quantity="one">Video oʻzgartirilmoqda…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ilovasiga <xliff:g id="COUNT">^2</xliff:g> ta suratni oʻzgartirishi uchun ruxsat berilsinmi?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ilovasiga bu suratni oʻzgartirishi uchun ruxsat berilsinmi?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> uchun <xliff:g id="COUNT">^2</xliff:g> ta suratni oʻzgartirishga ruxsat berilsinmi?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> uchun bu suratni oʻzgartirishga ruxsat berilsinmi?</item>
     </plurals>
     <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta rasm oʻzgartirilmoqda…</item>
@@ -92,8 +92,8 @@
       <item quantity="one">Video chiqitdonga tashlanmoqda…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ilovasiga <xliff:g id="COUNT">^2</xliff:g> ta suratni chiqitdonga tashlashi uchun ruxsat berilsinmi?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ilovasiga bu suratni chiqitdonga tashlashi uchun ruxsat berilsinmi?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> uchun <xliff:g id="COUNT">^2</xliff:g> ta suratni chiqitdonga tashlashga ruxsat berilsinmi?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> uchun bu suratni chiqitdonga tashlashga ruxsat berilsinmi?</item>
     </plurals>
     <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta rasm chiqitdonga tashlanmoqda…</item>
@@ -124,8 +124,8 @@
       <item quantity="one">Video chiqitdondan chiqarilmoqda…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ilovasiga <xliff:g id="COUNT">^2</xliff:g> ta suratni chiqitdondan chiqarib olishi uchun ruxsat berilsinmi?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ilovasiga bu suratni chiqitdondan chiqarib olishi uchun ruxsat berilsinmi?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> uchun <xliff:g id="COUNT">^2</xliff:g> ta suratni chiqitdondan qayta tiklashiga ruxsat berilsinmi?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> uchun bu suratni chiqitdondan qayta tiklashiga ruxsat berilsinmi?</item>
     </plurals>
     <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta rasm chiqitdondan chiqarilmoqda…</item>
@@ -156,8 +156,8 @@
       <item quantity="one">Video oʻchirilmoqda…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ilovasiga <xliff:g id="COUNT">^2</xliff:g> ta suratni oʻchirib tashlashi uchun ruxsat berilsinmi?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ilovasiga bu suratni oʻchirib tashlashi uchun ruxsat berilsinmi?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> uchun <xliff:g id="COUNT">^2</xliff:g> ta suratni oʻchirishga ruxsat berilsinmi?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> uchun bu suratni oʻchirishga ruxsat berilsinmi?</item>
     </plurals>
     <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta rasm oʻchirilmoqda…</item>

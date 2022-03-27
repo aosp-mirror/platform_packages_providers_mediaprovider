@@ -21,6 +21,7 @@ import android.media.AudioManager;
 import android.net.Uri;
 import android.util.Log;
 import android.view.View;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 
@@ -71,10 +72,16 @@ class ExoPlayerWrapper {
     private ExoPlayer mExoPlayer;
     private boolean mIsPlayerReleased = true;
     private boolean mShouldShowControlsForNext = true;
+    private boolean mIsAccessibilityEnabled;
 
     public ExoPlayerWrapper(Context context, MuteStatus muteStatus) {
         mContext = context;
         mMuteStatus = muteStatus;
+        AccessibilityManager accessibilityManager =
+                mContext.getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
+        accessibilityManager.addAccessibilityStateChangeListener(
+                enabled -> mIsAccessibilityEnabled = enabled);
     }
 
     /**
@@ -156,7 +163,7 @@ class ExoPlayerWrapper {
         // 1. this is the first video preview page or
         // 2. the previous video had controls visible when the page was swiped or
         // 3. the previous page was not a video preview
-        if (mShouldShowControlsForNext) {
+        if (mIsAccessibilityEnabled || mShouldShowControlsForNext) {
             styledPlayerView.showController();
         }
 
@@ -167,6 +174,11 @@ class ExoPlayerWrapper {
         mExoPlayer.addListener(new Player.Listener() {
             @Override
             public void onIsPlayingChanged(boolean isPlaying) {
+                if (mIsAccessibilityEnabled) {
+                    // Player controls are always visible in accessibility mode.
+                    return;
+                }
+
                 // We don't have to hide controls if the state changed to PAUSED or controller
                 // isn't visible.
                 if (!isPlaying || !mShouldShowControlsForNext) return;

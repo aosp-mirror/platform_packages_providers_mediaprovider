@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.ui.remotepreview;
 
 import android.annotation.DurationMillisLong;
 import android.annotation.NonNull;
+import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.ICloudMediaSurfaceController;
 import android.view.Surface;
@@ -74,6 +75,10 @@ final class SurfaceControllerProxy {
     void onMediaSeekTo(int surfaceId, @DurationMillisLong long timestampMillis)
             throws RemoteException {
         mController.onMediaSeekTo(surfaceId, timestampMillis);
+    }
+
+    void onConfigChange(@NonNull Bundle bundle) throws RemoteException {
+        mController.onConfigChange(bundle);
     }
 
     void onDestroy() throws RemoteException {

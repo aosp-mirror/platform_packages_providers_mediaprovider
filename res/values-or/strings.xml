@@ -49,6 +49,8 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"ଚୟନିତଗୁଡ଼ିକୁ ଦେଖନ୍ତୁ"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ଫଟୋ"</string>
     <string name="picker_albums" msgid="4822511902115299142">"ଆଲବମ୍"</string>
+    <!-- no translation found for picker_preview (6257414886055861039) -->
+    <skip />
     <string name="picker_work_profile" msgid="2083221066869141576">"ୱାର୍କକୁ ସ୍ୱିଚ୍ କରନ୍ତୁ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ବ୍ୟକ୍ତିଗତକୁ ସ୍ୱିଚ୍ କରନ୍ତୁ"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"ଆପଣଙ୍କ ଆଡମିନଙ୍କ ଦ୍ୱାରା ବ୍ଲକ୍ କରାଯାଇଛି"</string>
@@ -67,8 +69,9 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"ମୋସନ ଫଟୋ"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="TIME">%2$s</xliff:g>ରେ <xliff:g id="ITEM_NAME">%1$s</xliff:g> ନିଆଯାଇଛି"</string>
+    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
+    <skip />
     <string name="picker_photo" msgid="1739342083494962153">"ଫଟୋ"</string>
-    <string name="picker_video" msgid="4404927441373455823">"ଭିଡିଓ"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"ମୋସନ ଫଟୋ"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ଭିଡିଓକୁ ମ୍ୟୁଟ କରନ୍ତୁ"</string>

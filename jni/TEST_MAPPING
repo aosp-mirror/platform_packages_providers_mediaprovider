@@ -9,5 +9,16 @@
     {
       "name": "fuse_node_test"
     }
+  ],
+  "hwasan-postsubmit": [
+    {
+      "name": "FuseUtilsTest"
+    },
+    {
+      "name": "RedactionInfoTest"
+    },
+    {
+      "name": "fuse_node_test"
+    }
   ]
 }

@@ -92,8 +92,8 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ਵੀਡੀਓ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਏ ਜਾ ਰਹੇ ਹਨ…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="one">ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?</item>
-      <item quantity="other">ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋਆਂ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?</item>
+      <item quantity="one">ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਉਣ ਦੇਣਾ ਹੈ?</item>
+      <item quantity="other">ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋਆਂ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਉਣ ਦੇਣਾ ਹੈ?</item>
     </plurals>
     <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
       <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> ਫ਼ੋਟੋ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…</item>
@@ -124,8 +124,8 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ਵੀਡੀਓ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਏ ਜਾ ਰਹੇ ਹਨ…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="one">ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?</item>
-      <item quantity="other">ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋਆਂ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?</item>
+      <item quantity="one">ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਉਣ ਦੇਣਾ ਹੈ?</item>
+      <item quantity="other">ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋਆਂ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਉਣ ਦੇਣਾ ਹੈ?</item>
     </plurals>
     <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
       <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> ਫ਼ੋਟੋ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…</item>

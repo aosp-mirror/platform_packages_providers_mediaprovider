@@ -70,6 +70,7 @@ import java.util.List;
 public class PhotoPickerActivity extends AppCompatActivity {
     private static final String TAG =  "PhotoPickerActivity";
     private static final float BOTTOM_SHEET_PEEK_HEIGHT_PERCENTAGE = 0.60f;
+    private static final float HIDE_PROFILE_BUTTON_THRESHOLD = -0.5f;
 
     private PickerViewModel mPickerViewModel;
     private Selection mSelection;
@@ -226,6 +227,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private BottomSheetCallback createBottomSheetCallBack() {
         return new BottomSheetCallback() {
+            private boolean mIsHiddenDueToBottomSheetClosing = false;
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
@@ -236,6 +238,25 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                // slideOffset = -1 is when bottomsheet is completely hidden
+                // slideOffset = 0 is when bottomsheet is in collapsed mode
+                // slideOffset = 1 is when bottomsheet is in expanded mode
+                // We hide the Profile button if the bottomsheet is 50% in between collapsed state
+                // and hidden state.
+                if (slideOffset < HIDE_PROFILE_BUTTON_THRESHOLD &&
+                        mProfileButton.getVisibility() == View.VISIBLE) {
+                    mProfileButton.setVisibility(View.GONE);
+                    mIsHiddenDueToBottomSheetClosing = true;
+                    return;
+                }
+
+                // We need to handle this state if the user is swiping till the bottom of the
+                // screen but then swipes up bottom sheet suddenly
+                if (slideOffset > HIDE_PROFILE_BUTTON_THRESHOLD &&
+                        mIsHiddenDueToBottomSheetClosing) {
+                    mProfileButton.setVisibility(View.VISIBLE);
+                    mIsHiddenDueToBottomSheetClosing = false;
+                }
             }
         };
     }

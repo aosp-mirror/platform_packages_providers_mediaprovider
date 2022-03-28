@@ -80,8 +80,9 @@
     <dimen name="preview_viewpager_margin">20dp</dimen>
     <dimen name="preview_gif_icon_size">32dp</dimen>
     <dimen name="preview_add_or_select_width">328dp</dimen>
-    <dimen name="preview_mute_marginEnd">16dp</dimen>
-    <dimen name="preview_mute_marginBottom">68dp</dimen>
+    <dimen name="preview_mute_button_size">48dp</dimen>
+    <dimen name="preview_mute_marginEnd">4dp</dimen>
+    <dimen name="preview_mute_marginBottom">56dp</dimen>
 
     <!-- PhotoPicker Preview text -->
     <dimen name="preview_special_format_text_size">12sp</dimen>
@@ -91,7 +92,7 @@
     <dimen name="preview_deselect_scrim_height">240dp</dimen>
 
     <!-- PhotoPicker Work Profile -->
-    <dimen name="picker_profile_button_margin_bottom">32dp</dimen>
+    <dimen name="picker_profile_button_margin_bottom">16dp</dimen>
     <dimen name="picker_profile_dialog_radius">8dp</dimen>
     <dimen name="picker_profile_dialog_title_text_size">14sp</dimen>
     <dimen name="picker_profile_dialog_icon_height">24dp</dimen>

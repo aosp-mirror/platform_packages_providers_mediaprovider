@@ -74,6 +74,10 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"მოძრავი ფოტო"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ვიდეოს დადუმება"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"ვიდეოს დადუმების მოხსნა"</string>
+    <!-- no translation found for picker_play_video (5158816108935317185) -->
+    <skip />
+    <!-- no translation found for picker_pause_video (7239492902901477371) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{აძლევთ უფლებას <xliff:g id="APP_NAME_0">^1</xliff:g>-ს, შეცვალოს ეს აუდიოფაილი?}other{აძლევთ უფლებას <xliff:g id="APP_NAME_1">^1</xliff:g>-ს, შეცვალოს <xliff:g id="COUNT">^2</xliff:g> აუდიოფაილი?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{მიმდინარეობს აუდიოფაილის მოდიფიკაცია…}other{მიმდინარეობს <xliff:g id="COUNT">^1</xliff:g> აუდიოფაილის მოდიფიკაცია…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{აძლევთ უფლებას <xliff:g id="APP_NAME_0">^1</xliff:g>-ს, შეცვალოს ეს ვიდეო?}other{აძლევთ უფლებას <xliff:g id="APP_NAME_1">^1</xliff:g>-ს, შეცვალოს <xliff:g id="COUNT">^2</xliff:g> ვიდეო?}}"</string>

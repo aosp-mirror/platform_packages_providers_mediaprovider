@@ -8821,6 +8821,65 @@ public class MediaProvider extends ContentProvider {
         return !matcher.matches();
     }
 
+    private FileAccessAttributes queryForFileAttributes(final String path)
+            throws FileNotFoundException {
+        final Uri contentUri = FileUtils.getContentUriForPath(path);
+        final String[] projection = new String[]{
+                MediaColumns._ID,
+                MediaColumns.OWNER_PACKAGE_NAME,
+                MediaColumns.IS_PENDING,
+                FileColumns.MEDIA_TYPE,
+                MediaColumns.IS_TRASHED
+        };
+        final String selection = MediaColumns.DATA + "=?";
+        final String[] selectionArgs = new String[]{path};
+        FileAccessAttributes fileAccessAttributes;
+        try (final Cursor c = queryForSingleItemAsMediaProvider(contentUri, projection,
+                selection,
+                selectionArgs, null)) {
+            fileAccessAttributes = FileAccessAttributes.fromCursor(c);
+        }
+        return fileAccessAttributes;
+    }
+
+    private void checkIfFileOpenIsPermitted(String path,
+            FileAccessAttributes fileAccessAttributes, String redactedUriId,
+            boolean forWrite) throws FileNotFoundException {
+        final File file = new File(path);
+        Uri fileUri = MediaStore.Files.getContentUri(extractVolumeName(path),
+                fileAccessAttributes.getId());
+        // We don't check ownership for files with IS_PENDING set by FUSE
+        if (fileAccessAttributes.isTrashed() || (fileAccessAttributes.isPending()
+                && !isPendingFromFuse(new File(path)))) {
+            requireOwnershipForItem(fileAccessAttributes.getOwnerPackageName(), fileUri);
+        }
+
+        // Check that path looks consistent before uri checks
+        if (!FileUtils.contains(Environment.getStorageDirectory(), file)) {
+            checkWorldReadAccess(file.getAbsolutePath());
+        }
+
+        try {
+            // checkAccess throws FileNotFoundException only from checkWorldReadAccess(),
+            // which we already check above. Hence, handling only SecurityException.
+            if (redactedUriId != null) {
+                fileUri = ContentUris.removeId(fileUri).buildUpon().appendPath(
+                        redactedUriId).build();
+            }
+            checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
+        } catch (SecurityException e) {
+            // Check for other Uri formats only when the single uri check flow fails.
+            // Throw the previous exception if the multi-uri checks failed.
+            final String uriId = redactedUriId == null
+                    ? Long.toString(fileAccessAttributes.getId()) : redactedUriId;
+            if (getOtherUriGrantsForPath(path, fileAccessAttributes.getMediaType(),
+                    uriId, forWrite) == null) {
+                throw e;
+            }
+        }
+    }
+
+
     /**
      * Checks if the app identified by the given UID is allowed to open the given file for the given
      * access mode.
@@ -8905,58 +8964,8 @@ public class MediaProvider extends ContentProvider {
                         mediaCapabilitiesUid, new long[0]);
             }
 
-            final Uri contentUri = FileUtils.getContentUriForPath(path);
-            final String[] projection = new String[]{
-                    MediaColumns._ID,
-                    MediaColumns.OWNER_PACKAGE_NAME,
-                    MediaColumns.IS_PENDING,
-                    FileColumns.MEDIA_TYPE,
-                    MediaColumns.IS_TRASHED
-            };
-            final String selection = MediaColumns.DATA + "=?";
-            final String[] selectionArgs = new String[]{path};
-            final long id;
-            final int mediaType;
-            final boolean isPending;
-            final boolean isTrashed;
-            String ownerPackageName = null;
-            try (final Cursor c = queryForSingleItemAsMediaProvider(contentUri, projection,
-                    selection,
-                    selectionArgs, null)) {
-                id = c.getLong(0);
-                ownerPackageName = c.getString(1);
-                isPending = c.getInt(2) != 0;
-                mediaType = c.getInt(3);
-                isTrashed = c.getInt(4) != 0;
-            }
-            final File file = new File(path);
-            Uri fileUri = MediaStore.Files.getContentUri(extractVolumeName(path), id);
-            // We don't check ownership for files with IS_PENDING set by FUSE
-            if (isTrashed || (isPending && !isPendingFromFuse(new File(path)))) {
-                requireOwnershipForItem(ownerPackageName, fileUri);
-            }
-
-            // Check that path looks consistent before uri checks
-            if (!FileUtils.contains(Environment.getStorageDirectory(), file)) {
-                checkWorldReadAccess(file.getAbsolutePath());
-            }
-
-            try {
-                // checkAccess throws FileNotFoundException only from checkWorldReadAccess(),
-                // which we already check above. Hence, handling only SecurityException.
-                if (redactedUriId != null) {
-                    fileUri = ContentUris.removeId(fileUri).buildUpon().appendPath(
-                            redactedUriId).build();
-                }
-                checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
-            } catch (SecurityException e) {
-                // Check for other Uri formats only when the single uri check flow fails.
-                // Throw the previous exception if the multi-uri checks failed.
-                final String uriId = redactedUriId == null ? Long.toString(id) : redactedUriId;
-                if (getOtherUriGrantsForPath(path, mediaType, uriId, forWrite) == null) {
-                    throw e;
-                }
-            }
+            FileAccessAttributes fileAccessAttributes = queryForFileAttributes(path);
+            checkIfFileOpenIsPermitted(path, fileAccessAttributes, redactedUriId, forWrite);
             isSuccess = true;
             return new FileOpenResult(0 /* status */, originalUid, mediaCapabilitiesUid,
                     redact ? getRedactionRangesForFuse(path, ioPath, originalUid, uid, tid,

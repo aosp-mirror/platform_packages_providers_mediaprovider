@@ -47,8 +47,12 @@ import static android.provider.MediaStore.VOLUME_EXTERNAL;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
+import static com.android.providers.media.DatabaseHelper.DATA_MEDIA_XATTR_DIRECTORY_PATH;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
+import static com.android.providers.media.DatabaseHelper.getNextRowIdBackupFrequency;
+import static com.android.providers.media.DatabaseHelper.isNextRowIdBackupEnabled;
+import static com.android.providers.media.DatabaseHelper.setXattr;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_ACCESS_MTP;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_INSTALL_PACKAGES;
@@ -621,6 +625,7 @@ public class MediaProvider extends ContentProvider {
                         invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
                         if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
                             mUserCache.invalidateWorkProfileOwnerApps(pkg);
+                            mPickerSyncController.notifyPackageRemoval(pkg);
                         }
                     } else {
                         Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());
@@ -732,7 +737,7 @@ public class MediaProvider extends ContentProvider {
                 int mediaType, boolean isDownload, boolean isPending) {
             handleInsertedRowForFuse(id);
             acceptWithExpansion(helper::notifyInsert, volumeName, id, mediaType, isDownload);
-
+            updateNextRowIdXattr(helper, id);
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
@@ -763,7 +768,7 @@ public class MediaProvider extends ContentProvider {
             handleUpdatedRowForFuse(oldPath, oldOwnerPackage, oldId, newId);
             handleOwnerPackageNameChange(oldPath, oldOwnerPackage, newOwnerPackage);
             acceptWithExpansion(helper::notifyUpdate, volumeName, oldId, oldMediaType, isDownload);
-
+            updateNextRowIdXattr(helper, newId);
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
@@ -827,6 +832,25 @@ public class MediaProvider extends ContentProvider {
             });
         }
     };
+
+    protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
+        if (!isNextRowIdBackupEnabled()) {
+            Log.d(TAG, "Skipping next row id backup.");
+            return;
+        }
+
+        // TODO(b/222244140): Store next row id in memory to avoid reading from xattr on every
+        // insert.
+        if (!helper.getNextRowIdFromXattr().isPresent()) {
+            throw new RuntimeException(String.format("Cannot find next row id xattr for %s.",
+                    helper.getDatabaseName()));
+        }
+
+        long currentNextRowIdBackUp = helper.getNextRowIdFromXattr().get();
+        if (id >= currentNextRowIdBackUp) {
+            helper.backupNextRowId(id);
+        }
+    }
 
     private final UnaryOperator<String> mIdGenerator = path -> {
         final long rowId = mCallingIdentity.get().getDeletedRowId(path);

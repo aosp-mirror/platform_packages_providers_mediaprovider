@@ -16,12 +16,11 @@
 
 package com.android.providers.media.photopicker.data.model;
 
+import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
-
-import static com.android.providers.media.photopicker.data.model.Item.ItemColumns;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -34,6 +33,8 @@ import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+
+import com.android.providers.media.photopicker.PickerSyncController;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,7 +63,8 @@ public class ItemTest {
         assertThat(item.getGenerationModified()).isEqualTo(generationModified);
         assertThat(item.getMimeType()).isEqualTo(mimeType);
         assertThat(item.getDuration()).isEqualTo(duration);
-        assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://media/external/file/1"));
+        assertThat(item.getContentUri()).isEqualTo(
+                Uri.parse("content://com.android.providers.media.photopicker/media/1"));
 
         assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isTrue();
@@ -90,7 +92,8 @@ public class ItemTest {
         assertThat(item.getGenerationModified()).isEqualTo(generationModified);
         assertThat(item.getMimeType()).isEqualTo(mimeType);
         assertThat(item.getDuration()).isEqualTo(duration);
-        assertThat(item.getContentUri()).isEqualTo(Uri.parse("content://10@media/external/file/1"));
+        assertThat(item.getContentUri()).isEqualTo(
+                Uri.parse("content://10@com.android.providers.media.photopicker/media/1"));
 
         assertThat(item.isImage()).isTrue();
 
@@ -263,8 +266,8 @@ public class ItemTest {
                 .isEqualTo("Photo taken on Jul 7, 2020, 12:00:00 AM");
 
         item = generateItem(id, "video/mp4", dateTaken, generationModified, duration);
-        assertThat(item.getContentDescription(context))
-                .isEqualTo("Video taken on Jul 7, 2020, 12:00:00 AM");
+        assertThat(item.getContentDescription(context)).isEqualTo(
+                "Video taken on Jul 7, 2020, 12:00:00 AM with duration " + item.getDurationText());
 
         item = generateSpecialFormatItem(id, "image/gif", dateTaken, generationModified, duration,
                 _SPECIAL_FORMAT_GIF);
@@ -282,11 +285,49 @@ public class ItemTest {
                 .isEqualTo("Motion Photo taken on Jul 7, 2020, 12:00:00 AM");
     }
 
+    @Test
+    public void testGetDurationText() {
+        final String id = "1";
+        final long dateTaken = LocalDate.of(2020 /* year */, 7 /* month */, 7 /* dayOfMonth */)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        final long generationModified = 1L;
+
+        // no duration
+        Item item = generateItem(id, "video", dateTaken, generationModified, -1);
+        assertThat(item.getDurationText()).isEqualTo("");
+
+        // duration = 1000 ms
+        item = generateItem(id, "video", dateTaken, generationModified, 1000);
+        assertThat(item.getDurationText()).isEqualTo("00:01");
+
+        // duration = 10000 ms
+        item = generateItem(id, "video", dateTaken, generationModified, 10000);
+        assertThat(item.getDurationText()).isEqualTo("00:10");
+
+        // duration = 60000 ms
+        item = generateItem(id, "video", dateTaken, generationModified, 60000);
+        assertThat(item.getDurationText()).isEqualTo("01:00");
+
+        // duration = 600000 ms
+        item = generateItem(id, "video", dateTaken, generationModified, 600000);
+        assertThat(item.getDurationText()).isEqualTo("10:00");
+    }
+
     private static Cursor generateCursorForItem(String id, String mimeType, long dateTaken,
             long generationModified, long duration, int specialFormat) {
-        final MatrixCursor cursor = new MatrixCursor(ItemColumns.ALL_COLUMNS);
-        cursor.addRow(new Object[] {id, mimeType, dateTaken, dateTaken /* dateModified */,
-                generationModified, duration, specialFormat});
+        final MatrixCursor cursor = new MatrixCursor(MediaColumns.ALL_PROJECTION);
+        cursor.addRow(new Object[] {
+                    id,
+                    dateTaken,
+                    generationModified,
+                    mimeType,
+                    specialFormat,
+                    "1", // size_bytes
+                    null, // media_store_uri
+                    duration,
+                    "0", // is_favorite
+                    "/storage/emulated/0/foo", // data
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY});
         return cursor;
     }
 

@@ -49,8 +49,7 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"Tingnan ang napili"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Photos"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Mga Album"</string>
-    <!-- no translation found for picker_preview (6257414886055861039) -->
-    <skip />
+    <string name="picker_preview" msgid="6257414886055861039">"Preview"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Lumipat sa para sa trabaho"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Lumipat sa personal"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Na-block ng iyong admin"</string>

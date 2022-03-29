@@ -15,10 +15,10 @@
  */
 package com.android.providers.media.photopicker.ui;
 
-import static android.app.admin.DevicePolicyResources.Drawables.Style.OUTLINE;
-import static android.app.admin.DevicePolicyResources.Drawables.WORK_PROFILE_ICON;
-import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.SWITCH_TO_PERSONAL_MESSAGE;
-import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.SWITCH_TO_WORK_MESSAGE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Drawables.Style.OUTLINE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Drawables.WORK_PROFILE_ICON;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.SWITCH_TO_PERSONAL_MESSAGE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.SWITCH_TO_WORK_MESSAGE;
 
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
@@ -326,7 +326,7 @@ public abstract class TabFragment extends Fragment {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private String getUpdatedEnterpriseString(String updatableStringId, int defaultStringId) {
         final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
-        return dpm.getString(updatableStringId, () -> getString(defaultStringId));
+        return dpm.getResources().getString(updatableStringId, () -> getString(defaultStringId));
     }
 
     private Drawable getWorkProfileIcon() {
@@ -340,8 +340,8 @@ public abstract class TabFragment extends Fragment {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private Drawable getUpdatedWorkProfileIcon() {
         DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
-        return dpm.getDrawable(WORK_PROFILE_ICON, OUTLINE, () -> getContext().getDrawable(
-                R.drawable.ic_work_outline));
+        return dpm.getResources().getDrawable(WORK_PROFILE_ICON, OUTLINE, () ->
+                getContext().getDrawable(R.drawable.ic_work_outline));
     }
 
     private void updateProfileButtonColor(boolean isDisabled) {

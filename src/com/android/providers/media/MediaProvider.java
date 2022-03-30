@@ -47,12 +47,9 @@ import static android.provider.MediaStore.VOLUME_EXTERNAL;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
-import static com.android.providers.media.DatabaseHelper.DATA_MEDIA_XATTR_DIRECTORY_PATH;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
-import static com.android.providers.media.DatabaseHelper.getNextRowIdBackupFrequency;
 import static com.android.providers.media.DatabaseHelper.isNextRowIdBackupEnabled;
-import static com.android.providers.media.DatabaseHelper.setXattr;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_ACCESS_MTP;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_INSTALL_PACKAGES;
@@ -1164,6 +1161,16 @@ public class MediaProvider extends ContentProvider {
 
         PulledMetrics.initialize(context);
         return true;
+    }
+
+    Optional<DatabaseHelper> getDatabaseHelper(String dbName) {
+        if (dbName.equalsIgnoreCase(INTERNAL_DATABASE_NAME)) {
+            return Optional.of(mInternalDatabase);
+        } else if (dbName.equalsIgnoreCase(EXTERNAL_DATABASE_NAME)) {
+            return Optional.of(mExternalDatabase);
+        }
+
+        return Optional.empty();
     }
 
     @Override

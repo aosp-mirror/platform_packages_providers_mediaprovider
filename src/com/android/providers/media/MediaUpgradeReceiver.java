@@ -17,17 +17,17 @@
 package com.android.providers.media;
 
 import android.content.BroadcastReceiver;
+import android.content.ContentProviderClient;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.provider.Column;
-import android.provider.ExportedSince;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import com.android.providers.media.util.ForegroundThread;
-import com.android.providers.media.util.Metrics;
 
 import java.io.File;
+import java.util.Optional;
 
 /**
  * This will be launched during system boot, after the core system has
@@ -68,31 +68,40 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
             File dbDir = context.getDatabasePath("foo").getParentFile();
             String[] files = dbDir.list();
             if (files == null) return;
-            for (int i=0; i<files.length; i++) {
+
+            MediaProvider mediaProvider = getMediaProvider(context);
+            for (int i = 0; i < files.length; i++) {
                 String file = files[i];
-                if (MediaProvider.isMediaDatabaseName(file)) {
+                Optional<DatabaseHelper> helper = mediaProvider.getDatabaseHelper(file);
+                if (helper.isPresent()) {
                     long startTime = System.currentTimeMillis();
                     Log.i(TAG, "---> Start upgrade of media database " + file);
                     try {
-                        DatabaseHelper helper = new DatabaseHelper(context, file, false, false,
-                                Column.class, ExportedSince.class, Metrics::logSchemaChange, null,
-                                MediaProvider.MIGRATION_LISTENER, null);
-                        helper.runWithTransaction((db) -> {
+                        helper.get().runWithTransaction((db) -> {
                             // Perform just enough to force database upgrade
                             return db.getVersion();
                         });
-                        helper.close();
                     } catch (Throwable t) {
                         Log.wtf(TAG, "Error during upgrade of media db " + file, t);
-                    } finally {
                     }
+
                     Log.i(TAG, "<--- Finished upgrade of media database " + file
-                            + " in " + (System.currentTimeMillis()-startTime) + "ms");
+                            + " in " + (System.currentTimeMillis() - startTime) + "ms");
                 }
             }
         } catch (Throwable t) {
             // Something has gone terribly wrong.
             Log.wtf(TAG, "Error during upgrade attempt.", t);
+        }
+    }
+
+    private MediaProvider getMediaProvider(Context context) {
+        try (ContentProviderClient cpc =
+                     context.getContentResolver().acquireContentProviderClient(
+                             MediaStore.AUTHORITY)) {
+            return (MediaProvider) cpc.getLocalContentProvider();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to acquire MediaProvider", e);
         }
     }
 }

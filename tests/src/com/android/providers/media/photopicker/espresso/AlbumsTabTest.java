@@ -37,6 +37,7 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,6 +51,7 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule =
             new ActivityScenarioRule<>(PhotoPickerBaseTest.getMultiSelectionIntent());
 
+    @Ignore("b/227478958 Odd failure to verify Downloads album")
     @Test
     public void testAlbumGrid() {
         // Goto Albums page

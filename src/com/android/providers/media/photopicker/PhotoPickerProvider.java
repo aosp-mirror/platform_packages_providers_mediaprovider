@@ -410,11 +410,11 @@ public class PhotoPickerProvider extends CloudMediaProvider {
 
             return new ExoPlayer.Builder(mContext,
                     new DefaultRenderersFactory(mContext),
-                    new DefaultTrackSelector(mContext),
                     mediaSourceFactory,
+                    new DefaultTrackSelector(mContext),
                     sLoadControl,
                     DefaultBandwidthMeter.getSingletonInstance(mContext),
-                    new AnalyticsCollector(Clock.DEFAULT)).buildExoPlayer();
+                    new AnalyticsCollector(Clock.DEFAULT)).build();
         }
 
         private void updateLoopingPlaybackStatus() {

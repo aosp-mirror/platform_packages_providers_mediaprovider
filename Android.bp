@@ -17,6 +17,7 @@ android_app {
         "com.google.android.material_material",
         "guava",
         "modules-utils-build",
+        "modules-utils-uieventlogger-interface",
         "glide-prebuilt",
         "glide-gifdecoder-prebuilt",
         "glide-disklrucache-prebuilt",

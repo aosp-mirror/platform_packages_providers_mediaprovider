@@ -72,16 +72,11 @@ class ExoPlayerWrapper {
     private ExoPlayer mExoPlayer;
     private boolean mIsPlayerReleased = true;
     private boolean mShouldShowControlsForNext = true;
-    private boolean mIsAccessibilityEnabled;
+    private boolean mIsAccessibilityEnabled = false;
 
     public ExoPlayerWrapper(Context context, MuteStatus muteStatus) {
         mContext = context;
         mMuteStatus = muteStatus;
-        AccessibilityManager accessibilityManager =
-                mContext.getSystemService(AccessibilityManager.class);
-        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
-        accessibilityManager.addAccessibilityStateChangeListener(
-                enabled -> mIsAccessibilityEnabled = enabled);
     }
 
     /**
@@ -156,6 +151,15 @@ class ExoPlayerWrapper {
         });
 
         // Step2: Set-up player control view
+        // Set-up video controls for accessibility mode
+        // Set Accessibility listeners and update the video controller visibility accordingly
+        AccessibilityManager accessibilityManager =
+                mContext.getSystemService(AccessibilityManager.class);
+        accessibilityManager.addAccessibilityStateChangeListener(
+                enabled -> updateControllerForAccessibilty(enabled, styledPlayerView));
+        updateControllerForAccessibilty(accessibilityManager.isEnabled(), styledPlayerView);
+
+        // Set-up video controls for non-accessibility mode
         // Track if the controller layout should be visible for the next video.
         styledPlayerView.setControllerVisibilityListener(
                 visibility -> mShouldShowControlsForNext = (visibility == View.VISIBLE));
@@ -163,7 +167,8 @@ class ExoPlayerWrapper {
         // 1. this is the first video preview page or
         // 2. the previous video had controls visible when the page was swiped or
         // 3. the previous page was not a video preview
-        if (mIsAccessibilityEnabled || mShouldShowControlsForNext) {
+        // or if we are in accessibility mode.
+        if (mShouldShowControlsForNext) {
             styledPlayerView.showController();
         }
 
@@ -218,6 +223,17 @@ class ExoPlayerWrapper {
             }
             updateMuteButtonState(muteButton, mMuteStatus.isVolumeMuted());
         });
+    }
+
+    private void updateControllerForAccessibilty(boolean isEnabled,
+            StyledPlayerView styledPlayerView) {
+        mIsAccessibilityEnabled = isEnabled;
+        if (isEnabled) {
+            styledPlayerView.showController();
+            styledPlayerView.setControllerHideOnTouch(false);
+        } else {
+            styledPlayerView.setControllerHideOnTouch(true);
+        }
     }
 
     private void updateMuteButtonState(ImageButton muteButton, boolean isVolumeMuted) {

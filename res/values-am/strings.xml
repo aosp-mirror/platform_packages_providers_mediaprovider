@@ -74,6 +74,10 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"የእንቅስቃሴ ፎቶ"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ቪዲዮ ላይ ድምፀ-ከል አድርግ"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"የቪዲዮን ድምፀ-ከል አንሣ"</string>
+    <!-- no translation found for picker_play_video (5158816108935317185) -->
+    <skip />
+    <!-- no translation found for picker_pause_video (7239492902901477371) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ይህን ኦዲዮ ፋይል እንዲቀይር ይፈቀድለት?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ኦዲዮ ፋይልን እንዲቀይር ይፈቀድለት?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ኦዲዮ ፋይሎችን እንዲቀይር ይፈቀድለት?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{የኦዲዮ ፋይልን በመቀየር ላይ…}one{<xliff:g id="COUNT">^1</xliff:g> የኦዲዮ ፋይልን በመቀየር ላይ…}other{<xliff:g id="COUNT">^1</xliff:g> የኦዲዮ ፋይሎችን በመቀየር ላይ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ይህን ቪዲዮ እንዲቀይር ይፈቀድለት?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ቪዲዮን እንዲቀይር ይፈቀድለት?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ቪዲዮዎችን እንዲቀይር ይፈቀድለት?}}"</string>

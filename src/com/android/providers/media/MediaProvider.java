@@ -43,11 +43,16 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
+import static android.provider.MediaStore.VOLUME_EXTERNAL;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
+import static com.android.providers.media.DatabaseHelper.DATA_MEDIA_XATTR_DIRECTORY_PATH;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
+import static com.android.providers.media.DatabaseHelper.getNextRowIdBackupFrequency;
+import static com.android.providers.media.DatabaseHelper.isNextRowIdBackupEnabled;
+import static com.android.providers.media.DatabaseHelper.setXattr;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_ACCESS_MTP;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_INSTALL_PACKAGES;
@@ -620,6 +625,7 @@ public class MediaProvider extends ContentProvider {
                         invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
                         if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
                             mUserCache.invalidateWorkProfileOwnerApps(pkg);
+                            mPickerSyncController.notifyPackageRemoval(pkg);
                         }
                     } else {
                         Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());
@@ -731,7 +737,7 @@ public class MediaProvider extends ContentProvider {
                 int mediaType, boolean isDownload, boolean isPending) {
             handleInsertedRowForFuse(id);
             acceptWithExpansion(helper::notifyInsert, volumeName, id, mediaType, isDownload);
-
+            updateNextRowIdXattr(helper, id);
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
@@ -762,7 +768,7 @@ public class MediaProvider extends ContentProvider {
             handleUpdatedRowForFuse(oldPath, oldOwnerPackage, oldId, newId);
             handleOwnerPackageNameChange(oldPath, oldOwnerPackage, newOwnerPackage);
             acceptWithExpansion(helper::notifyUpdate, volumeName, oldId, oldMediaType, isDownload);
-
+            updateNextRowIdXattr(helper, newId);
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
@@ -826,6 +832,25 @@ public class MediaProvider extends ContentProvider {
             });
         }
     };
+
+    protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
+        if (!isNextRowIdBackupEnabled()) {
+            Log.d(TAG, "Skipping next row id backup.");
+            return;
+        }
+
+        // TODO(b/222244140): Store next row id in memory to avoid reading from xattr on every
+        // insert.
+        if (!helper.getNextRowIdFromXattr().isPresent()) {
+            throw new RuntimeException(String.format("Cannot find next row id xattr for %s.",
+                    helper.getDatabaseName()));
+        }
+
+        long currentNextRowIdBackUp = helper.getNextRowIdFromXattr().get();
+        if (id >= currentNextRowIdBackUp) {
+            helper.backupNextRowId(id);
+        }
+    }
 
     private final UnaryOperator<String> mIdGenerator = path -> {
         final long rowId = mCallingIdentity.get().getDeletedRowId(path);
@@ -1035,8 +1060,8 @@ public class MediaProvider extends ContentProvider {
                 MIGRATION_LISTENER, mIdGenerator);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase);
         mPickerDbFacade = new PickerDbFacade(context);
-        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade);
         mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
+        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade);
 
         if (SdkLevel.isAtLeastS()) {
@@ -1091,6 +1116,12 @@ public class MediaProvider extends ContentProvider {
         }, context.getMainExecutor(), mActiveListener);
 
         mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_EXTERNAL_STORAGE,
+                null /* all packages */, mModeListener);
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_MEDIA_AUDIO,
+                null /* all packages */, mModeListener);
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_MEDIA_IMAGES,
+                null /* all packages */, mModeListener);
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_MEDIA_VIDEO,
                 null /* all packages */, mModeListener);
         mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_WRITE_EXTERNAL_STORAGE,
                 null /* all packages */, mModeListener);
@@ -1362,6 +1393,8 @@ public class MediaProvider extends ContentProvider {
 
     private void updateSpecialFormatForLimitedRows(SQLiteDatabase db,
             @NonNull CancellationSignal signal) {
+        final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE, FILES,
+                Files.getContentUri(VOLUME_EXTERNAL), Bundle.EMPTY, null);
         // Accumulate all the new SPECIAL_FORMAT updates with their ids
         ArrayMap<Long, Integer> newSpecialFormatValues = new ArrayMap<>();
         final String limit = String.valueOf(IDLE_MAINTENANCE_ROWS_LIMIT);
@@ -1383,9 +1416,9 @@ public class MediaProvider extends ContentProvider {
 
             values.clear();
             values.put(_SPECIAL_FORMAT, newSpecialFormatValues.get(id));
-            final String whereClause = MediaColumns._ID + "=?";
-            final String[] whereArgs = new String[]{String.valueOf(id)};
-            if (db.update("files", values, whereClause, whereArgs) == 1) {
+            final String selection = MediaColumns._ID + "=?";
+            final String[] selectionArgs = new String[]{String.valueOf(id)};
+            if (qbForUpdate.update(db, values, selection, selectionArgs) == 1) {
                 count++;
             } else {
                 Log.e(TAG, "Unable to update _SPECIAL_FORMAT for id = " + id);
@@ -3262,10 +3295,6 @@ public class MediaProvider extends ContentProvider {
 
         // TODO(b/195008831): Add test to verify that apps can't access
         if (table == PICKER_INTERNAL_MEDIA) {
-            String albumId = queryArgs.getString(MediaStore.QUERY_ARG_ALBUM_ID);
-            if (!TextUtils.isEmpty(albumId) && !Category.CATEGORY_FAVORITES.equals(albumId)) {
-                mPickerSyncController.syncAlbumMedia(albumId);
-            }
             return mPickerDataLayer.fetchMedia(queryArgs);
         } else if (table == PICKER_INTERNAL_ALBUMS) {
             return mPickerDataLayer.fetchAlbums(queryArgs);
@@ -10026,7 +10055,8 @@ public class MediaProvider extends ContentProvider {
             boolean volumeAttached = false;
             UserHandle user = mCallingIdentity.get().getUser();
             for (MediaVolume vol : mAttachedVolumes) {
-                if (vol.getName().equals(volumeName) && vol.isVisibleToUser(user)) {
+                if (vol.getName().equals(volumeName)
+                        && (vol.isVisibleToUser(user) || vol.isPublicVolume()) ) {
                     volumeAttached = true;
                     break;
                 }
@@ -10238,7 +10268,6 @@ public class MediaProvider extends ContentProvider {
     static final int PICKER_ID = 901;
     static final int PICKER_INTERNAL_MEDIA = 902;
     static final int PICKER_INTERNAL_ALBUMS = 903;
-    static final int PICKER_INTERNAL_SURFACE_CONTROLLER = 904;
     static final int PICKER_UNRELIABLE_VOLUME = 904;
 
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
@@ -10341,8 +10370,6 @@ public class MediaProvider extends ContentProvider {
 
             mHidden.addURI(auth, "picker_internal/media", PICKER_INTERNAL_MEDIA);
             mHidden.addURI(auth, "picker_internal/albums", PICKER_INTERNAL_ALBUMS);
-            mHidden.addURI(auth, "picker_internal/surface_controller",
-                    PICKER_INTERNAL_SURFACE_CONTROLLER);
             mHidden.addURI(auth, "*", VOLUMES_ID);
             mHidden.addURI(auth, null, VOLUMES);
 

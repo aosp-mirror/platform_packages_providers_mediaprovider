@@ -16,7 +16,7 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.provider.CloudMediaProviderContract.EXTRA_FILTER_ALBUM;
+import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
@@ -58,7 +58,8 @@ import java.util.Set;
  */
 public class PickerSyncController {
     private static final String TAG = "PickerSyncController";
-    private static final String PREFS_KEY_CLOUD_PROVIDER = "cloud_provider";
+    private static final String PREFS_KEY_CLOUD_PROVIDER_AUTHORITY = "cloud_provider_authority";
+    private static final String PREFS_KEY_CLOUD_PROVIDER_PKGNAME = "cloud_provider_pkg_name";
     private static final String PREFS_KEY_CLOUD_PROVIDER_UID = "cloud_provider_uid";
     private static final String PREFS_KEY_CLOUD_PREFIX = "cloud_provider:";
     private static final String PREFS_KEY_LOCAL_PREFIX = "local_provider:";
@@ -68,7 +69,8 @@ public class PickerSyncController {
     public static final String LOCAL_PICKER_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker";
 
-    private static final String DEFAULT_CLOUD_PROVIDER_PKG = null;
+    private static final String DEFAULT_CLOUD_PROVIDER_AUTHORITY = null;
+    private static final String DEFAULT_CLOUD_PROVIDER_PKGNAME = null;
     private static final int DEFAULT_CLOUD_PROVIDER_UID = -1;
     private static final long DEFAULT_SYNC_DELAY_MS =
             PickerDbFacade.getDefaultPickerDbSyncDelayMs();
@@ -77,16 +79,12 @@ public class PickerSyncController {
     private static final int SYNC_TYPE_MEDIA_INCREMENTAL = 1;
     private static final int SYNC_TYPE_MEDIA_FULL = 2;
     private static final int SYNC_TYPE_MEDIA_RESET = 3;
-    private static final int SYNC_TYPE_ALBUM_MEDIA_RESET = 4;
-    private static final int SYNC_TYPE_ALBUM_MEDIA_FULL = 5;
 
     @IntDef(flag = false, prefix = { "SYNC_TYPE_" }, value = {
                 SYNC_TYPE_NONE,
             SYNC_TYPE_MEDIA_INCREMENTAL,
             SYNC_TYPE_MEDIA_FULL,
             SYNC_TYPE_MEDIA_RESET,
-            SYNC_TYPE_ALBUM_MEDIA_RESET,
-            SYNC_TYPE_ALBUM_MEDIA_FULL
     })
     @Retention(RetentionPolicy.SOURCE)
     private @interface SyncType {}
@@ -100,7 +98,6 @@ public class PickerSyncController {
     private final long mSyncDelayMs;
     private final Runnable mSyncAllMediaCallback;
 
-    // TODO(b/190713331): Listen for package_removed
     @GuardedBy("mLock")
     private CloudProviderInfo mCloudProviderInfo;
 
@@ -121,14 +118,19 @@ public class PickerSyncController {
         mSyncDelayMs = syncDelayMs;
         mSyncAllMediaCallback = this::syncAllMedia;
 
-        final String cloudProvider = mUserPrefs.getString(PREFS_KEY_CLOUD_PROVIDER,
-                DEFAULT_CLOUD_PROVIDER_PKG);
+        final String cloudProviderAuthority = mUserPrefs.getString(
+                PREFS_KEY_CLOUD_PROVIDER_AUTHORITY,
+                DEFAULT_CLOUD_PROVIDER_AUTHORITY);
+        final String cloudProviderPackageName = mUserPrefs.getString(
+                PREFS_KEY_CLOUD_PROVIDER_PKGNAME,
+                DEFAULT_CLOUD_PROVIDER_PKGNAME);
         final int cloudProviderUid = mUserPrefs.getInt(PREFS_KEY_CLOUD_PROVIDER_UID,
                 DEFAULT_CLOUD_PROVIDER_UID);
-        if (cloudProvider == null) {
+        if (cloudProviderAuthority == null) {
             mCloudProviderInfo = CloudProviderInfo.EMPTY;
         } else {
-            mCloudProviderInfo = new CloudProviderInfo(cloudProvider, cloudProviderUid);
+            mCloudProviderInfo = new CloudProviderInfo(cloudProviderAuthority,
+                cloudProviderPackageName, cloudProviderUid);
         }
     }
 
@@ -142,6 +144,9 @@ public class PickerSyncController {
             final String cloudProvider = mCloudProviderInfo.authority;
             syncAllMediaFromProvider(cloudProvider);
 
+            // Reset the album_media table every time we sync all media
+            resetAlbumMedia();
+
             // Set the latest cloud provider on the facade
             mDbFacade.setCloudProvider(cloudProvider);
         }
@@ -151,15 +156,22 @@ public class PickerSyncController {
      * Syncs album media from the local and currently enabled cloud {@link CloudMediaProvider}
      * instances
      */
-    public void syncAlbumMedia(String albumId) {
-        syncAlbumMediaFromProvider(mLocalProvider, albumId);
+    public void syncAlbumMedia(String albumId, boolean isLocal) {
+        if (isLocal) {
+            syncAlbumMediaFromProvider(mLocalProvider, albumId);
+        } else {
+            synchronized (mLock) {
+                syncAlbumMediaFromProvider(mCloudProviderInfo.authority, albumId);
+            }
+        }
+    }
+
+    private void resetAlbumMedia() {
+        executeSyncAlbumReset(mLocalProvider, /* albumId */ null);
 
         synchronized (mLock) {
             final String cloudProvider = mCloudProviderInfo.authority;
-            syncAlbumMediaFromProvider(cloudProvider, albumId);
-            // Should be a no-op. Cloud provider should already be set on the facade before an
-            // Album Media is fetched.
-            mDbFacade.setCloudProvider(cloudProvider);
+            executeSyncAlbumReset(cloudProvider, /* albumId */ null);
         }
     }
 
@@ -192,6 +204,7 @@ public class PickerSyncController {
                     && CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION.equals(
                             providerInfo.readPermission)) {
                 result.add(new CloudProviderInfo(providerInfo.authority,
+                                providerInfo.applicationInfo.packageName,
                                 providerInfo.applicationInfo.uid));
             }
         }
@@ -221,6 +234,7 @@ public class PickerSyncController {
         final CloudProviderInfo newProviderInfo = getCloudProviderInfo(authority);
         if (authority == null || !newProviderInfo.isEmpty()) {
             synchronized (mLock) {
+                final String oldAuthority = mCloudProviderInfo.authority;
                 setCloudProviderInfo(newProviderInfo);
                 resetCachedMediaCollectionInfo(newProviderInfo.authority);
 
@@ -229,10 +243,11 @@ public class PickerSyncController {
                 // any queries from seeing cloud media until a sync where the cloud provider will be
                 // reset on the facade
                 mDbFacade.setCloudProvider(null);
+
+                Log.i(TAG, "Cloud provider changed successfully. Old: "
+                        + oldAuthority + ". New: " + newProviderInfo.authority);
             }
 
-            Log.i(TAG, "Cloud provider changed successfully. Old: " + authority + ". New: "
-                    + newProviderInfo.authority);
             return true;
         }
 
@@ -306,24 +321,27 @@ public class PickerSyncController {
         BackgroundThread.getHandler().postDelayed(mSyncAllMediaCallback, mSyncDelayMs);
     }
 
+    /**
+     * Notifies about package removal
+     */
+    public void notifyPackageRemoval(String packageName) {
+        synchronized (mLock) {
+            if (mCloudProviderInfo.matches(packageName)) {
+                Log.i(TAG, "Package " + packageName
+                        + " is the current cloud provider and got removed");
+                setCloudProvider(null);
+            }
+        }
+    }
 
     private void syncAlbumMediaFromProvider(String authority, String albumId) {
-        final SyncRequestParams params = getSyncAlbumRequestParams(authority);
-        switch (params.syncType) {
-            case SYNC_TYPE_ALBUM_MEDIA_RESET:
-                executeSyncAlbumReset(authority, albumId);
-                return;
-            case SYNC_TYPE_ALBUM_MEDIA_FULL:
-                executeSyncAlbumReset(authority, albumId);
-                final Bundle queryArgs = new Bundle();
-                queryArgs.putString(EXTRA_FILTER_ALBUM, albumId);
-                executeSyncAddAlbum(authority, albumId, queryArgs /* queryArgs */);
-                return;
-            case SYNC_TYPE_NONE:
-                return;
-            default:
-                throw new IllegalArgumentException(
-                        "Unexpected sync type: " + params.syncType + " for album media");
+        final Bundle queryArgs = new Bundle();
+        queryArgs.putString(EXTRA_ALBUM_ID, albumId);
+
+        executeSyncAlbumReset(authority, albumId);
+
+        if (authority != null) {
+            executeSyncAddAlbum(authority, albumId, queryArgs);
         }
     }
 
@@ -413,7 +431,6 @@ public class PickerSyncController {
         }
     }
 
-
     private void executeSyncRemove(String authority, Bundle queryArgs) {
         final Uri uri = getDeletedMediaUri(authority);
         Log.i(TAG, "Executing SyncRemove with authority: " + authority);
@@ -433,10 +450,12 @@ public class PickerSyncController {
         final SharedPreferences.Editor editor = mUserPrefs.edit();
 
         if (info.isEmpty()) {
-            editor.remove(PREFS_KEY_CLOUD_PROVIDER);
+            editor.remove(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY);
+            editor.remove(PREFS_KEY_CLOUD_PROVIDER_PKGNAME);
             editor.remove(PREFS_KEY_CLOUD_PROVIDER_UID);
         } else {
-            editor.putString(PREFS_KEY_CLOUD_PROVIDER, info.authority);
+            editor.putString(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, info.authority);
+            editor.putString(PREFS_KEY_CLOUD_PROVIDER_PKGNAME, info.packageName);
             editor.putInt(PREFS_KEY_CLOUD_PROVIDER_UID, info.uid);
         }
 
@@ -547,22 +566,6 @@ public class PickerSyncController {
         return SyncRequestParams.forIncremental(cachedGeneration, latestMediaCollectionInfo);
     }
 
-
-    @SyncType
-    private SyncRequestParams getSyncAlbumRequestParams(String authority) {
-        if (authority == null) {
-            // Only cloud authority can be null
-            Log.d(TAG,
-                    "Fetching SyncRequestParams. Null cloud authority. Result: "
-                            + "SYNC_TYPE_ALBUM_MEDIA_RESET");
-            return SyncRequestParams.forResetAlbumMedia();
-        }
-
-        Log.d(TAG, "SyncRequestParams. Authority: " + authority
-                + ". Result: SYNC_TYPE_ALBUM_MEDIA_FULL");
-        return SyncRequestParams.forFullAlbumMedia();
-    }
-
     private String getPrefsKey(String authority, String key) {
         return (isLocal(authority) ? PREFS_KEY_LOCAL_PREFIX : PREFS_KEY_CLOUD_PREFIX) + key;
     }
@@ -629,22 +632,30 @@ public class PickerSyncController {
     static class CloudProviderInfo {
         static final CloudProviderInfo EMPTY = new CloudProviderInfo();
         private final String authority;
+        private final String packageName;
         private final int uid;
 
         private CloudProviderInfo() {
-            this.authority = DEFAULT_CLOUD_PROVIDER_PKG;
+            this.authority = DEFAULT_CLOUD_PROVIDER_AUTHORITY;
+            this.packageName = DEFAULT_CLOUD_PROVIDER_PKGNAME;
             this.uid = DEFAULT_CLOUD_PROVIDER_UID;
         }
 
-        CloudProviderInfo(String authority, int uid) {
+        CloudProviderInfo(String authority, String packageName, int uid) {
             Objects.requireNonNull(authority);
+            Objects.requireNonNull(packageName);
 
             this.authority = authority;
+            this.packageName = packageName;
             this.uid = uid;
         }
 
         boolean isEmpty() {
             return equals(EMPTY);
+        }
+
+        boolean matches(String packageName) {
+            return !isEmpty() && this.packageName.equals(packageName);
         }
 
         @Override
@@ -655,12 +666,13 @@ public class PickerSyncController {
             CloudProviderInfo that = (CloudProviderInfo) obj;
 
             return Objects.equals(authority, that.authority) &&
+                    Objects.equals(packageName, that.packageName) &&
                     Objects.equals(uid, that.uid);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(authority, uid);
+            return Objects.hash(authority, packageName, uid);
         }
     }
 
@@ -695,17 +707,9 @@ public class PickerSyncController {
             return SYNC_REQUEST_MEDIA_RESET;
         }
 
-        static SyncRequestParams forResetAlbumMedia() {
-            return new SyncRequestParams(SYNC_TYPE_ALBUM_MEDIA_RESET);
-        }
-
         static SyncRequestParams forFullMedia(Bundle latestMediaCollectionInfo) {
             return new SyncRequestParams(SYNC_TYPE_MEDIA_FULL, /* generation */ 0,
                     latestMediaCollectionInfo);
-        }
-
-        static SyncRequestParams forFullAlbumMedia() {
-            return new SyncRequestParams(SYNC_TYPE_ALBUM_MEDIA_FULL);
         }
 
         static SyncRequestParams forIncremental(long generation, Bundle latestMediaCollectionInfo) {

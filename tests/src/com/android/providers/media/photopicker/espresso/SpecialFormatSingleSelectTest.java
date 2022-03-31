@@ -23,18 +23,12 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
-import static com.android.providers.media.photopicker.espresso.BottomSheetTestUtils.assertBottomSheetState;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotDisplayed;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 
-import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
-import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
-
 import static org.hamcrest.Matchers.not;
 
-import androidx.test.espresso.IdlingRegistry;
-import androidx.test.espresso.action.ViewActions;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.providers.media.R;
@@ -100,8 +94,6 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     public void testPhotoGridLayout_nonAnimatedWebp() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        customSwipeUp();
-
         // Verify we have the non-animated webp thumbnail
         assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, NON_ANIMATED_WEBP_POSITION,
                 ICON_THUMBNAIL_ID);
@@ -120,8 +112,6 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     public void testPreview_singleSelect_gif() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        customSwipeUp();
-
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
 
@@ -137,8 +127,6 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     @Test
     public void testPreview_singleSelect_animatedWebp() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-
-        customSwipeUp();
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
@@ -156,7 +144,8 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     public void testPreview_singleSelect_nonAnimatedWebp() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        customSwipeUp();
+        // This is the 4th item which is on the second row
+        BottomSheetTestUtils.swipeUp(mRule);
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, NON_ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
@@ -173,8 +162,6 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     @Test
     public void testPreview_singleSelect_motionPhoto() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-
-        customSwipeUp();
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_THUMBNAIL_ID);
@@ -206,28 +193,5 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     private void assertSingleSelectImageThumbnailCommonLayout(int position) {
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, VIDEO_CONTAINER_ID);
-    }
-
-    private void customSwipeUp() {
-        // Register bottom sheet idling resource so that we don't read bottom sheet state when
-        // in between changing states
-        final BottomSheetIdlingResource bottomSheetIdlingResource =
-                BottomSheetIdlingResource.register(mRule);
-
-        try {
-            // Single select PhotoPicker is launched in partial screen mode. Some Thumbnails may not
-            // be more than 90% visible, which may fail longClickItem. Swipe up to Full Screen mode.
-            mRule.getScenario().onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_COLLAPSED);
-            });
-            // Swipe up and check that the PhotoPicker is in full screen mode
-            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
-            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
-            mRule.getScenario().onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_EXPANDED);
-            });
-        } finally {
-            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
-        }
     }
 }

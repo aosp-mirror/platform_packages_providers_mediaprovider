@@ -797,7 +797,8 @@ static bool is_app_accessible_path(struct fuse* fuse, const string& path, uid_t 
     return true;
 }
 
-void fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_entry_param* e) {
+void fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_entry_param* e,
+                           int& backing_fd) {
     /*
      * The file descriptor `fd` must not be closed as it is closed
      * automatically by the kernel as soon as it consumes the FUSE reply. This
@@ -806,14 +807,14 @@ void fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_ent
      * `fd` too soon, with the risk of assigning a backing file which is either
      * invalid or corresponds to the wrong file in the lower file system.
      */
-    const int fd = open(path.c_str(), O_CLOEXEC | O_DIRECTORY | O_RDONLY);
-    if (fd < 0) {
+    backing_fd = open(path.c_str(), O_CLOEXEC | O_DIRECTORY | O_RDONLY);
+    if (backing_fd < 0) {
         PLOG(ERROR) << "Failed to open: " << path;
         return;
     }
 
     e->backing_action = FUSE_ACTION_REPLACE;
-    e->backing_fd = fd;
+    e->backing_fd = backing_fd;
 
     if (bpf_fd >= 0) {
         e->bpf_action = FUSE_ACTION_REPLACE;
@@ -825,21 +826,23 @@ void fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_ent
     }
 }
 
-void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const string& child_path) {
+void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const string& child_path,
+                      int& backing_fd) {
     // TODO(b/211873756) Enable only for the primary volume. Must be
     // extended for other media devices.
     if (android::base::StartsWith(child_path, PRIMARY_VOLUME_PREFIX)) {
         if (is_bpf_backing_path(child_path)) {
-            fuse_bpf_fill_entries(child_path, fuse->bpf_fd, e);
+            fuse_bpf_fill_entries(child_path, fuse->bpf_fd, e, backing_fd);
         } else if (is_package_owned_path(child_path, fuse->path)) {
-            fuse_bpf_fill_entries(child_path, static_cast<int>(BpfFd::REMOVE), e);
+            fuse_bpf_fill_entries(child_path, static_cast<int>(BpfFd::REMOVE), e, backing_fd);
         }
     }
 }
 
 static std::regex storage_emulated_regex("^\\/storage\\/emulated\\/([0-9]+)");
 static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
-                       struct fuse_entry_param* e, int* error_code, const FuseOp op) {
+                       struct fuse_entry_param* e, int* error_code, const FuseOp op,
+                       int* backing_fd = NULL) {
     struct fuse* fuse = get_fuse(req);
     node* parent_node = fuse->FromInode(parent);
     if (!parent_node) {
@@ -874,7 +877,7 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
 
     auto node = make_node_entry(req, parent_node, name, child_path, e, error_code, op);
 
-    if (fuse->bpf && op == FuseOp::lookup) fuse_bpf_install(fuse, e, child_path);
+    if (fuse->bpf && op == FuseOp::lookup) fuse_bpf_install(fuse, e, child_path, *backing_fd);
 
     return node;
 }
@@ -882,14 +885,17 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
 static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
     ATRACE_CALL();
     struct fuse_entry_param e;
+    int backing_fd = -1;
 
     int error_code = 0;
-    if (do_lookup(req, parent, name, &e, &error_code, FuseOp::lookup)) {
+    if (do_lookup(req, parent, name, &e, &error_code, FuseOp::lookup, &backing_fd)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
         fuse_reply_err(req, error_code);
     }
+
+    if (backing_fd != -1) close(backing_fd);
 }
 
 static void do_forget(fuse_req_t req, struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
@@ -2231,6 +2237,16 @@ bool FuseDaemon::IsStarted() const {
     return active.load(std::memory_order_acquire);
 }
 
+bool IsFuseBpfEnabled() {
+    std::string bpf_override = android::base::GetProperty("persist.sys.fuse.bpf.override", "");
+    if (bpf_override == "true") {
+        return true;
+    } else if (bpf_override == "false") {
+        return false;
+    }
+    return android::base::GetBoolProperty("ro.fuse.bpf.enabled", false);
+}
+
 void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
                        const bool uncached_mode,
                        const std::vector<std::string>& supported_transcoding_relative_paths,
@@ -2259,7 +2275,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
         return;
     }
 
-    bool bpf_enabled = android::base::GetBoolProperty("persist.sys.fuse.bpf.enable", false);
+    bool bpf_enabled = IsFuseBpfEnabled();
     int bpf_fd = -1;
     if (bpf_enabled) {
         LOG(INFO) << "Using FUSE BPF";

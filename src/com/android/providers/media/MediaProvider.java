@@ -248,6 +248,7 @@ import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.SpecialFormatDetector;
 import com.android.providers.media.util.StringUtils;
 import com.android.providers.media.util.UserCache;
+import com.android.providers.media.util.XAttrUtils;
 import com.android.providers.media.util.XmpInterface;
 
 import com.google.common.hash.Hashing;
@@ -8823,6 +8824,7 @@ public class MediaProvider extends ContentProvider {
 
     private FileAccessAttributes queryForFileAttributes(final String path)
             throws FileNotFoundException {
+        Trace.beginSection("queryFileAttr");
         final Uri contentUri = FileUtils.getContentUriForPath(path);
         final String[] projection = new String[]{
                 MediaColumns._ID,
@@ -8839,6 +8841,7 @@ public class MediaProvider extends ContentProvider {
                 selectionArgs, null)) {
             fileAccessAttributes = FileAccessAttributes.fromCursor(c);
         }
+        Trace.endSection();
         return fileAccessAttributes;
     }
 
@@ -8849,6 +8852,8 @@ public class MediaProvider extends ContentProvider {
         Uri fileUri = MediaStore.Files.getContentUri(extractVolumeName(path),
                 fileAccessAttributes.getId());
         // We don't check ownership for files with IS_PENDING set by FUSE
+        // Please note that even if ownerPackageName is null, the check below will throw an
+        // IllegalStateException
         if (fileAccessAttributes.isTrashed() || (fileAccessAttributes.isPending()
                 && !isPendingFromFuse(new File(path)))) {
             requireOwnershipForItem(fileAccessAttributes.getOwnerPackageName(), fileUri);
@@ -8963,9 +8968,23 @@ public class MediaProvider extends ContentProvider {
                 return new FileOpenResult(OsConstants.EACCES /* status */, originalUid,
                         mediaCapabilitiesUid, new long[0]);
             }
+            // TODO: Fetch owner id from Android/media directory and check if caller is owner
+            FileAccessAttributes fileAttributes = null;
+            if (XAttrUtils.ENABLE_XATTR_METADATA_FOR_FUSE) {
+                Optional<FileAccessAttributes> fileAttributesThroughXattr =
+                        XAttrUtils.getFileAttributesFromXAttr(path,
+                                XAttrUtils.FILE_ACCESS_XATTR_KEY);
+                if (fileAttributesThroughXattr.isPresent()) {
+                    fileAttributes = fileAttributesThroughXattr.get();
+                }
+            }
 
-            FileAccessAttributes fileAccessAttributes = queryForFileAttributes(path);
-            checkIfFileOpenIsPermitted(path, fileAccessAttributes, redactedUriId, forWrite);
+            // FileAttributes will be null if the xattr call failed or the flag to enable xattr
+            // metadata support is not set
+            if (fileAttributes == null)  {
+                fileAttributes = queryForFileAttributes(path);
+            }
+            checkIfFileOpenIsPermitted(path, fileAttributes, redactedUriId, forWrite);
             isSuccess = true;
             return new FileOpenResult(0 /* status */, originalUid, mediaCapabilitiesUid,
                     redact ? getRedactionRangesForFuse(path, ioPath, originalUid, uid, tid,

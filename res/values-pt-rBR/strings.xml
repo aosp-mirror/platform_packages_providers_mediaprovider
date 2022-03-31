@@ -74,6 +74,10 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Foto com movimento"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Desativar o som do vídeo"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Ativar o som do vídeo"</string>
+    <!-- no translation found for picker_play_video (5158816108935317185) -->
+    <skip />
+    <!-- no translation found for picker_pause_video (7239492902901477371) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Permitir que o app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique esse arquivo de áudio?}one{Permitir que o app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> arquivo de áudio?}other{Permitir que o app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> arquivos de áudio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modificando o arquivo de áudio…}one{Modificando <xliff:g id="COUNT">^1</xliff:g> arquivo de áudio…}other{Modificando <xliff:g id="COUNT">^1</xliff:g> arquivos de áudio…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Permitir que o app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique esse vídeo?}one{Permitir que o app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> vídeo?}other{Permitir que o app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> vídeos?}}"</string>

@@ -1109,8 +1109,14 @@ public class PickerDbFacade {
 
             while (cursor.moveToNext()) {
                 ContentValues values = cursorToContentValue(cursor, isLocal, albumId);
-                if (qb.insert(getDatabase(), values) > 0) {
-                    counter++;
+                try {
+                    if (qb.insert(getDatabase(), values) > 0) {
+                        counter++;
+                    } else {
+                        Log.d(TAG, "Failed to insert album_media. ContentValues: " + values);
+                    }
+                } catch (SQLiteConstraintException e) {
+                    Log.d(TAG, "Failed to insert album_media. ContentValues: " + values, e);
                 }
             }
 

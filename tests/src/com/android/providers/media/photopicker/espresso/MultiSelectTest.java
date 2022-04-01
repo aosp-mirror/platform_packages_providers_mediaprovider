@@ -22,25 +22,37 @@ import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isNotSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.isSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
-import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.BottomSheetTestUtils.assertBottomSheetState;
+import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
+import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
+import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
 
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
+import android.app.Activity;
+
+import androidx.test.espresso.IdlingRegistry;
+import androidx.test.espresso.action.ViewActions;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,13 +60,15 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class MultiSelectTest extends PhotoPickerBaseTest {
 
+    private static final int TAB_VIEW_PAGER_ID = R.id.picker_tab_viewpager;
+
     @Rule
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getMultiSelectionIntent());
 
     @Test
     public void testMultiSelectDoesNotShowProfileButton() {
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+        assertProfileButtonNotShown();
     }
 
     @Test
@@ -226,5 +240,94 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
 
         // The image item is not selected
         assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_CHECK_ID);
+    }
+
+    @Test
+    public void testMultiSelectTabSwiping() throws Exception {
+        onView(withId(TAB_LAYOUT_ID)).check(matches(isDisplayed()));
+
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, TAB_VIEW_PAGER_ID)) {
+            // Swipe left, we should see albums tab
+            swipeLeftAndWait(TAB_VIEW_PAGER_ID);
+
+            onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                    .check(matches(isSelected()));
+            onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                    .check(matches(isNotSelected()));
+            // Verify Camera album is shown, we are in albums tab
+            onView(allOf(withText(R.string.picker_category_camera),
+                    isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(
+                    matches(isDisplayed()));
+
+            // Swipe right, we should see photos tab
+            swipeRightAndWait(TAB_VIEW_PAGER_ID);
+
+            onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                    .check(matches(isSelected()));
+            onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                    .check(matches(isNotSelected()));
+            // Verify first item is recent header, we are in photos tab
+            onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
+                    .atPositionOnView(0, R.id.date_header_title))
+                    .check(matches(withText(R.string.recent)));
+        }
+    }
+
+    @Test
+    @Ignore("Enable after b/222013536 is fixed")
+    public void testMultiSelectScrollDownToClose() {
+        final BottomSheetIdlingResource bottomSheetIdlingResource =
+                BottomSheetIdlingResource.register(mRule);
+
+        try {
+            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
+
+            // Shows dragBar and privacy text after we are back to Photos tab
+            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
+
+            // Swiping down on drag bar or toolbar is not closing the bottom sheet as closing the
+            // bottomsheet requires a stronger downward swipe.
+            onView(withId(R.id.bottom_sheet)).perform(ViewActions.swipeDown());
+        } finally {
+            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
+        }
+
+        assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
+                Activity.RESULT_CANCELED);
+    }
+
+
+    private void assertProfileButtonNotShown() {
+        // Partial screen does not show profile button
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+
+        // Navigate to Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .perform(click());
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+
+        final int cameraStringId = R.string.picker_category_camera;
+        // Navigate to photos in Camera album
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+
+        // Click back button
+        onView(withContentDescription("Navigate up")).perform(click());
+
+        // on clicking back button we are back to Album grid
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .check(matches(isSelected()));
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
     }
 }

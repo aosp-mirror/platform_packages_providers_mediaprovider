@@ -48,11 +48,6 @@ public class LocalProvider extends CloudMediaProvider {
     }
 
     @Override
-    public Cursor onQueryMedia(String mediaId) {
-        throw new UnsupportedOperationException("onQueryMedia by id not supported");
-    }
-
-    @Override
     public Cursor onQueryMedia(Bundle extras) {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);

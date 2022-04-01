@@ -157,6 +157,10 @@ public class PhotosTabFragment extends TabFragment {
                 }
             }
             view.setSelected(!isSelectedBefore);
+            // There is an issue b/223695510 about not selected in Accessibility mode. It only says
+            // selected state, but it doesn't say not selected state. Add the not selected only to
+            // avoid that it says selected twice.
+            view.setStateDescription(isSelectedBefore ? getString(R.string.not_selected) : null);
         } else {
             Item item = (Item) view.getTag();
             mSelection.setSelectedItem(item);

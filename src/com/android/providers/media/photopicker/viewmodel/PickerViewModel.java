@@ -23,6 +23,8 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.os.Bundle;
+import android.os.Parcelable;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -33,6 +35,8 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.android.internal.logging.InstanceId;
+import com.android.internal.logging.InstanceIdSequence;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
@@ -40,6 +44,7 @@ import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.util.ForegroundThread;
 
@@ -53,6 +58,8 @@ public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
 
     private static final int RECENT_MINIMUM_COUNT = 12;
+
+    private static final int INSTANCE_ID_MAX = 1 << 15;
 
     private final Selection mSelection;
     private final MuteStatus mMuteStatus;
@@ -69,6 +76,9 @@ public class PickerViewModel extends AndroidViewModel {
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
 
+    private InstanceId mInstanceId;
+    private PhotoPickerUiEventLogger mLogger;
+
     private String mMimeTypeFilter = null;
     private int mBottomSheetState;
 
@@ -79,6 +89,8 @@ public class PickerViewModel extends AndroidViewModel {
         mSelection = new Selection();
         mUserIdManager = UserIdManager.create(context);
         mMuteStatus = new MuteStatus();
+        mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
+        mLogger = new PhotoPickerUiEventLogger();
     }
 
     @VisibleForTesting
@@ -315,5 +327,21 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public int getBottomSheetState() {
         return mBottomSheetState;
+    }
+
+    public void logPickerOpened(String callingPackage) {
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerOpenWork(mInstanceId, callingPackage);
+        } else {
+            mLogger.logPickerOpenPersonal(mInstanceId, callingPackage);
+        }
+    }
+
+    public InstanceId getInstanceId() {
+        return mInstanceId;
+    }
+
+    public void setInstanceId(InstanceId parcelable) {
+        mInstanceId = parcelable;
     }
 }

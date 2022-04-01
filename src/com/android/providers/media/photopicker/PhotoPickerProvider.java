@@ -149,7 +149,6 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        // TODO(b/190713331): Handle extra_filter_albums
         Bundle bundle = new Bundle();
         try (Cursor cursor = mDbFacade.getMediaCollectionInfo(queryExtras.getGeneration())) {
             if (cursor.moveToFirst()) {

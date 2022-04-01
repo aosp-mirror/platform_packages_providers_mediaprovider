@@ -49,8 +49,7 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"ভিউ বাছনি কৰা হৈছে"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ফট’"</string>
     <string name="picker_albums" msgid="4822511902115299142">"এলবাম"</string>
-    <!-- no translation found for picker_preview (6257414886055861039) -->
-    <skip />
+    <string name="picker_preview" msgid="6257414886055861039">"পূৰ্বদৰ্শন কৰক"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"কৰ্মস্থানৰ প্ৰ’ফাইললৈ সলনি কৰক"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ব্যক্তিগত প্ৰ’ফাইললৈ সলনি কৰক"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"আপোনাৰ প্ৰশাসকে অৱৰোধ কৰিছে"</string>
@@ -69,13 +68,14 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"গতিশীল ফট’"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> খন <xliff:g id="TIME">%2$s</xliff:g> তাৰিখে তোলা হৈছিল"</string>
-    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
-    <skip />
+    <string name="picker_video_item_content_desc" msgid="7828900089119214801">"<xliff:g id="TIME">%1$s</xliff:g>ত <xliff:g id="DURATION">%2$s</xliff:g>ৰ সময়ৰ এটি ভিডিঅ’ ৰেকৰ্ড কৰা হৈছে"</string>
     <string name="picker_photo" msgid="1739342083494962153">"ফট’"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"গতিশীল ফট’"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ভিডিঅ’ মিউট কৰক"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"ভিডিঅ’ আনমিউট কৰক"</string>
+    <string name="picker_play_video" msgid="5158816108935317185">"ভিডিঅ’ প্লে’ কৰক"</string>
+    <string name="picker_pause_video" msgid="7239492902901477371">"ভিডিঅ’ পজ কৰক"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ক এই অডিঅ’ ফাইলটো সংশোধন কৰিবলৈ অনুমতি দিবনে?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰিবলৈ অনুমতি দিবনে?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰিবলৈ অনুমতি দিবনে?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{অডিঅ’ ফাইলটো সংশোধন কৰি থকা হৈছে…}one{<xliff:g id="COUNT">^1</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰি থকা হৈছে…}other{<xliff:g id="COUNT">^1</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰি থকা হৈছে…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ক এই ভিডিঅ’টো সংশোধন কৰিবলৈ অনুমতি দিবনে?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ সংশোধন কৰিবলৈ অনুমতি দিবনে?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ সংশোধন কৰিবলৈ অনুমতি দিবনে?}}"</string>

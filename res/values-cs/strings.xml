@@ -49,8 +49,7 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"Zobrazit vybrané"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotky"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Alba"</string>
-    <!-- no translation found for picker_preview (6257414886055861039) -->
-    <skip />
+    <string name="picker_preview" msgid="6257414886055861039">"Náhled"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Přepnout na pracovní profil"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Přepnout na osobní profil"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokováno administrátorem"</string>
@@ -69,13 +68,14 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"Pohyblivá fotka"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> – pořízeno <xliff:g id="TIME">%2$s</xliff:g>"</string>
-    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
-    <skip />
+    <string name="picker_video_item_content_desc" msgid="7828900089119214801">"Video pořízené <xliff:g id="TIME">%1$s</xliff:g> o délce <xliff:g id="DURATION">%2$s</xliff:g>"</string>
     <string name="picker_photo" msgid="1739342083494962153">"Fotka"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Pohyblivá fotka"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Vypnout video"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Zapnout video"</string>
+    <string name="picker_play_video" msgid="5158816108935317185">"Přehrát video"</string>
+    <string name="picker_pause_video" msgid="7239492902901477371">"Pozastavit video"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit tento zvukový soubor?}few{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukové soubory?}many{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukového souboru?}other{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukových souborů?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Úprava zvukového souboru…}few{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…}many{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukového souboru…}other{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit toto video?}few{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?}many{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?}other{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videí?}}"</string>

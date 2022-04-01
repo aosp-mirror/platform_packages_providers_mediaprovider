@@ -49,8 +49,7 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"Tingnan ang napili"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Photos"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Mga Album"</string>
-    <!-- no translation found for picker_preview (6257414886055861039) -->
-    <skip />
+    <string name="picker_preview" msgid="6257414886055861039">"Preview"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Lumipat sa para sa trabaho"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Lumipat sa personal"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Na-block ng iyong admin"</string>
@@ -75,6 +74,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Gumagalaw na Larawan"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"I-mute ang video"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"I-unmute ang video"</string>
+    <string name="picker_play_video" msgid="5158816108935317185">"I-play ang video"</string>
+    <string name="picker_pause_video" msgid="7239492902901477371">"I-pause ang video"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Payagan ang <xliff:g id="APP_NAME_0">^1</xliff:g> na baguhin ang audio file na ito?}one{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> audio file?}other{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> na audio file?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Binabago ang audio file…}one{Nagbabago ng <xliff:g id="COUNT">^1</xliff:g> audio file…}other{Nagbabago ng <xliff:g id="COUNT">^1</xliff:g> na audio file…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Payagan ang <xliff:g id="APP_NAME_0">^1</xliff:g> na baguhin ang video na ito?}one{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> video?}other{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> na video?}}"</string>

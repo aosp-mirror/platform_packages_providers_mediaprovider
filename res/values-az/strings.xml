@@ -68,13 +68,16 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"Hərəkətli Foto"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> <xliff:g id="TIME">%2$s</xliff:g> tarixində çəkilib"</string>
-    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
-    <skip />
+    <string name="picker_video_item_content_desc" msgid="7828900089119214801">"Video <xliff:g id="DURATION">%2$s</xliff:g> müddətində bu vaxt çəkilib: <xliff:g id="TIME">%1$s</xliff:g>"</string>
     <string name="picker_photo" msgid="1739342083494962153">"Foto"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Hərəkətli Foto"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Videonu səssiz edin"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Videonu səssiz rejimdən çıxarın"</string>
+    <!-- no translation found for picker_play_video (5158816108935317185) -->
+    <skip />
+    <!-- no translation found for picker_pause_video (7239492902901477371) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu audio fayla dəyişiklik etmək icazəsi verilsin?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> audio fayla dəyişiklik etmək icazəsi verilsin?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Audio fayl dəyişdirilir…}other{<xliff:g id="COUNT">^1</xliff:g> audio fayl dəyişdirilir…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu videoya dəyişiklik etmək icazəsi verilsin?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> videoya dəyişiklik etmək icazəsi verilsin?}}"</string>

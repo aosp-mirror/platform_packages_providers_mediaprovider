@@ -68,13 +68,16 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"Подвижна фотографија"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> снимена на <xliff:g id="TIME">%2$s</xliff:g>"</string>
-    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
-    <skip />
+    <string name="picker_video_item_content_desc" msgid="7828900089119214801">"Видеото е снимено на <xliff:g id="TIME">%1$s</xliff:g> со траење од <xliff:g id="DURATION">%2$s</xliff:g>"</string>
     <string name="picker_photo" msgid="1739342083494962153">"Фотографија"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Подвижна фотографија"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Исклучете звук на видео"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Вклучете звук на видео"</string>
+    <!-- no translation found for picker_play_video (5158816108935317185) -->
+    <skip />
+    <!-- no translation found for picker_pause_video (7239492902901477371) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Да се дозволи <xliff:g id="APP_NAME_0">^1</xliff:g> да ја измени аудиодатотекава?}one{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотека?}other{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотеки?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Се изменува аудиодатотеката…}one{Се изменуваат <xliff:g id="COUNT">^1</xliff:g> аудиодатотека…}other{Се изменуваат <xliff:g id="COUNT">^1</xliff:g> аудиодатотеки…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Да се дозволи <xliff:g id="APP_NAME_0">^1</xliff:g> да го измени видеово?}one{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> видео?}other{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> видеа?}}"</string>

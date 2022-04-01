@@ -68,13 +68,16 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"அசையும் படம்"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> எடுக்கப்பட்ட நேரம்: <xliff:g id="TIME">%2$s</xliff:g>"</string>
-    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
-    <skip />
+    <string name="picker_video_item_content_desc" msgid="7828900089119214801">"வீடியோ எடுக்கப்பட்ட நேரம்: <xliff:g id="TIME">%1$s</xliff:g>, வீடியோவின் கால அளவு: <xliff:g id="DURATION">%2$s</xliff:g>"</string>
     <string name="picker_photo" msgid="1739342083494962153">"படம்"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"அசையும் படம்"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"வீடியோவின் ஒலியை முடக்கும்"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"வீடியோவின் ஒலியை இயக்கும்"</string>
+    <!-- no translation found for picker_play_video (5158816108935317185) -->
+    <skip />
+    <!-- no translation found for picker_pause_video (7239492902901477371) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{இந்த ஆடியோ ஃபைலில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}other{<xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ஆடியோ ஃபைலை மாற்றியமைக்கிறது…}other{<xliff:g id="COUNT">^1</xliff:g> ஆடியோ ஃபைல்களை மாற்றியமைக்கிறது…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{இந்த வீடியோவில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}other{<xliff:g id="COUNT">^2</xliff:g> வீடியோக்களில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}}"</string>

@@ -74,6 +74,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"รูปภาพเคลื่อนไหว"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ปิดเสียงวิดีโอ"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"เปิดเสียงวิดีโอ"</string>
+    <string name="picker_play_video" msgid="5158816108935317185">"เล่นวิดีโอ"</string>
+    <string name="picker_pause_video" msgid="7239492902901477371">"หยุดวิดีโอชั่วคราว"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{อนุญาตให้ <xliff:g id="APP_NAME_0">^1</xliff:g> แก้ไขไฟล์เสียงนี้ไหม}other{อนุญาตให้ <xliff:g id="APP_NAME_1">^1</xliff:g> แก้ไขไฟล์เสียง <xliff:g id="COUNT">^2</xliff:g> ไฟล์ไหม}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{กำลังแก้ไขไฟล์เสียง…}other{กำลังแก้ไขไฟล์เสียง <xliff:g id="COUNT">^1</xliff:g> ไฟล์…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{อนุญาตให้ <xliff:g id="APP_NAME_0">^1</xliff:g> แก้ไขวิดีโอนี้ไหม}other{อนุญาตให้ <xliff:g id="APP_NAME_1">^1</xliff:g> แก้ไขวิดีโอ <xliff:g id="COUNT">^2</xliff:g> รายการไหม}}"</string>

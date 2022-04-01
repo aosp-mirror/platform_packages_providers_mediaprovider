@@ -49,8 +49,7 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"ပြသမှုကို ရွေးချယ်ထားသည်"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ဓာတ်ပုံများ"</string>
     <string name="picker_albums" msgid="4822511902115299142">"အယ်လ်ဘမ်များ"</string>
-    <!-- no translation found for picker_preview (6257414886055861039) -->
-    <skip />
+    <string name="picker_preview" msgid="6257414886055861039">"အစမ်းကြည့်ရှုခြင်း"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"အလုပ်သို့ ပြောင်းပါ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ပုဂ္ဂိုလ်ရေးသီးသန့်အဖြစ် ပြောင်းပါ"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"သင့်စီမံခန့်ခွဲသူက ပိတ်ထားသည်"</string>
@@ -69,13 +68,16 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"တဒင်္ဂ ဗီဒီယို"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="TIME">%2$s</xliff:g> တွင် ရိုက်ကူးခဲ့သော <xliff:g id="ITEM_NAME">%1$s</xliff:g>"</string>
-    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
-    <skip />
+    <string name="picker_video_item_content_desc" msgid="7828900089119214801">"ဗီဒီယိုကို <xliff:g id="TIME">%1$s</xliff:g> တွင် <xliff:g id="DURATION">%2$s</xliff:g> ကြာ ရိုက်ကူးထားသည်"</string>
     <string name="picker_photo" msgid="1739342083494962153">"ဓာတ်ပုံ"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"တဒင်္ဂ ဗီဒီယို"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ဗီဒီယိုအသံပိတ်ရန်"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"ဗီဒီယိုအသံပြန်ဖွင့်ရန်"</string>
+    <!-- no translation found for picker_play_video (5158816108935317185) -->
+    <skip />
+    <!-- no translation found for picker_pause_video (7239492902901477371) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ကို ဤအသံဖိုင် ပြင်ဆင်ခွင့်ပြုမလား။}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ကို အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ဖိုင် ပြင်ဆင်ခွင့်ပြုမလား။}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{အသံဖိုင်ကို ပြင်ဆင်နေသည်…}other{အသံဖိုင် <xliff:g id="COUNT">^1</xliff:g> ခုကို ပြင်ဆင်နေသည်…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ကို ဤဗီဒီယို ပြင်ဆင်ခွင့်ပြုမလား။}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ကို ဗီဒီယို <xliff:g id="COUNT">^2</xliff:g> ခု ပြင်ဆင်ခွင့်ပြုမလား။}}"</string>

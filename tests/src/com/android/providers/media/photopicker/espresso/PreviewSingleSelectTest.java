@@ -67,6 +67,9 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
     public void testPreview_singleSelect_image() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
+        // Bottomsheet assertions are different for landscape mode
+        setPortraitOrientation(mRule);
+
         final BottomSheetIdlingResource bottomSheetIdlingResource =
                 BottomSheetIdlingResource.register(mRule);
 

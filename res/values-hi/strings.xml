@@ -49,8 +49,7 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"चुनी गई फ़ोटो या वीडियो देखें"</string>
     <string name="picker_photos" msgid="7415035516411087392">"फ़ोटो"</string>
     <string name="picker_albums" msgid="4822511902115299142">"एल्बम"</string>
-    <!-- no translation found for picker_preview (6257414886055861039) -->
-    <skip />
+    <string name="picker_preview" msgid="6257414886055861039">"झलक"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"वर्क प्रोफ़ाइल पर जाएं"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"निजी प्रोफ़ाइल पर जाएं"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"आपके एडमिन ने रोक लगाई है"</string>
@@ -69,13 +68,16 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"मोशन फ़ोटो"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> को <xliff:g id="TIME">%2$s</xliff:g> पर लिया गया"</string>
-    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
-    <skip />
+    <string name="picker_video_item_content_desc" msgid="7828900089119214801">"वीडियो, <xliff:g id="TIME">%1$s</xliff:g> बजे बनाया गया था और इसका कुल समय <xliff:g id="DURATION">%2$s</xliff:g> है"</string>
     <string name="picker_photo" msgid="1739342083494962153">"फ़ोटो"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"मोशन फ़ोटो"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"वीडियो म्यूट करें"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"वीडियो अनम्यूट करें"</string>
+    <!-- no translation found for picker_play_video (5158816108935317185) -->
+    <skip />
+    <!-- no translation found for picker_pause_video (7239492902901477371) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{क्या <xliff:g id="APP_NAME_0">^1</xliff:g> को इस ऑडियो फ़ाइल में बदलाव करने की अनुमति देनी है?}one{क्या <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइल में बदलाव करने की अनुमति देनी है?}other{क्या <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलों में बदलाव करने की अनुमति देनी है?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ऑडियो फ़ाइल में बदलाव किया जा रहा है…}one{<xliff:g id="COUNT">^1</xliff:g> ऑडियो फ़ाइल में बदलाव किया जा रहा है…}other{<xliff:g id="COUNT">^1</xliff:g> ऑडियो फ़ाइलों में बदलाव किया जा रहा है…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{क्या <xliff:g id="APP_NAME_0">^1</xliff:g> को इस वीडियो में बदलाव करने की अनुमति देनी है?}one{क्या <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> वीडियो में बदलाव करने की अनुमति देनी है?}other{क्या <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> वीडियो में बदलाव करने की अनुमति देनी है?}}"</string>

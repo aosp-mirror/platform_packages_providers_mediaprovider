@@ -68,13 +68,14 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"Fotografija z videom"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g>: posneto <xliff:g id="TIME">%2$s</xliff:g>"</string>
-    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
-    <skip />
+    <string name="picker_video_item_content_desc" msgid="7828900089119214801">"Videoposnetek posnet dne <xliff:g id="TIME">%1$s</xliff:g>, trajanje <xliff:g id="DURATION">%2$s</xliff:g>"</string>
     <string name="picker_photo" msgid="1739342083494962153">"Fotografija"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Fotografija z videom"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Izklopi zvok videa"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Vklopi zvok videa"</string>
+    <string name="picker_play_video" msgid="5158816108935317185">"Predvajanje videoposnetka"</string>
+    <string name="picker_pause_video" msgid="7239492902901477371">"Začasna zaustavitev videoposnetka"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g>, da spremeni to zvočno datoteko?}one{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočno datoteko?}two{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočni datoteki?}few{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočne datoteke?}other{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočnih datotek?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Spreminjanje zvočne datoteke …}one{Spreminjanje <xliff:g id="COUNT">^1</xliff:g> zvočne datoteke …}two{Spreminjanje <xliff:g id="COUNT">^1</xliff:g> zvočnih datotek …}few{Spreminjanje <xliff:g id="COUNT">^1</xliff:g> zvočnih datotek …}other{Spreminjanje <xliff:g id="COUNT">^1</xliff:g> zvočnih datotek …}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g>, da spremeni ta videoposnetek?}one{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetek?}two{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetka?}few{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetke?}other{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetkov?}}"</string>

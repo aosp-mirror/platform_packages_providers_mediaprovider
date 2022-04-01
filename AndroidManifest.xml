@@ -158,6 +158,8 @@
         <activity
                 android:name="com.android.providers.media.photopicker.PhotoPickerActivity"
                 android:process=":PhotoPicker"
+                android:label="@string/picker_app_label"
+                android:icon="@mipmap/picker_app_icon"
                 android:theme="@style/PickerDefaultTheme"
                 android:exported="true"
                 android:excludeFromRecents="true"

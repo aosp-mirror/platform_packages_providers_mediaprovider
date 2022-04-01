@@ -19,8 +19,15 @@ package com.android.providers.media.photopicker;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 import static com.android.providers.media.photopicker.PickerSyncController.CloudProviderInfo;
 import static com.google.common.truth.Truth.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.res.Resources;
+import android.content.res.Resources.NotFoundException;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Process;
@@ -37,6 +44,7 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.R;
 
 import java.io.File;
 import java.util.List;
@@ -596,8 +604,7 @@ public class PickerSyncControllerTest {
     }
 
     @Test
-    public void testnotifyPackageRemoval()
-    {
+    public void testNotifyPackageRemoval() {
         assertThat(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
         assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -608,6 +615,19 @@ public class PickerSyncControllerTest {
         // Assert passing the current cloud provider package name clears the current cloud provider
         mController.notifyPackageRemoval(PACKAGE_NAME);
         assertThat(mController.getCloudProvider()).isNull();
+    }
+
+    @Test
+    public void testSelectDefaultCloudProvider_NoDefaultAuthority() {
+        PickerSyncController controller = createControllerWithDefaultProvider("");
+        assertThat(controller.getCloudProvider()).isNull();
+    }
+
+    @Test
+    public void testSelectDefaultCloudProivder_DefaultAuthoritySet() {
+        PickerSyncController controller = createControllerWithDefaultProvider(
+                CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertThat(controller.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
     }
 
     @Test
@@ -990,6 +1010,22 @@ public class PickerSyncControllerTest {
         try (Cursor cr = queryAlbumMedia(albumId, isLocal)) {
             assertThat(cr.getCount()).isEqualTo(0);
         }
+    }
+
+    private PickerSyncController createControllerWithDefaultProvider(String defaultProvider) {
+        Context mockContext = mock(Context.class);
+        Resources mockResources = mock(Resources.class);
+
+        when(mockContext.getResources()).thenReturn(mockResources);
+        when(mockContext.getPackageManager()).thenReturn(mContext.getPackageManager());
+        when(mockContext.getSharedPreferences(anyString(), anyInt())).thenAnswer(i -> {
+            return mContext.getSharedPreferences((String)i.getArgument(0), (int)i.getArgument(1));
+        });
+        when(mockResources.getString(R.string.config_default_cloud_provider_authority))
+                .thenReturn(defaultProvider);
+
+        return new PickerSyncController(mockContext, mFacade,
+                LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
     }
 
     private static void assertCursor(Cursor cursor, String id, String expectedAuthority) {

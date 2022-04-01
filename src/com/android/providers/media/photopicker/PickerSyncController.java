@@ -34,6 +34,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ResolveInfo;
+import android.content.res.Resources;
+import android.content.res.Resources.NotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -47,6 +49,8 @@ import androidx.annotation.GuardedBy;
 import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.R;
+import com.android.providers.media.util.StringUtils;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -130,8 +134,12 @@ public class PickerSyncController {
                 DEFAULT_CLOUD_PROVIDER_PKGNAME);
         final int cloudProviderUid = mUserPrefs.getInt(PREFS_KEY_CLOUD_PROVIDER_UID,
                 DEFAULT_CLOUD_PROVIDER_UID);
+
         if (cloudProviderAuthority == null) {
-            mCloudProviderInfo = CloudProviderInfo.EMPTY;
+            // TODO: Only get default if it wasn't set by the user
+            final CloudProviderInfo defaultCloudProviderInfo = getDefaultCloudProviderInfo();
+            Log.i(TAG, "Cloud provider is set to Default " + defaultCloudProviderInfo.authority);
+            setCloudProviderInfo(defaultCloudProviderInfo);
         } else {
             mCloudProviderInfo = new CloudProviderInfo(cloudProviderAuthority,
                 cloudProviderPackageName, cloudProviderUid);
@@ -633,6 +641,31 @@ public class PickerSyncController {
         dbWriteOperation.setSuccess();
         Log.i(TAG, "Paged sync successful. QueryArgs: " + queryArgs + ". Result count: "
                 + totalRowcount + ". Cursor count: " + cursorCount);
+    }
+
+    private CloudProviderInfo getDefaultCloudProviderInfo() {
+        final List<CloudProviderInfo> infos = getSupportedCloudProviders();
+
+        if (infos.size() == 1) {
+            Log.i(TAG, "Only 1 cloud provider found, hence "
+                    + infos.get(0).authority + " is the default");
+            return infos.get(0);
+        } else {
+            final String defaultCloudProviderAuthority = StringUtils.getStringConfig(
+                mContext, R.string.config_default_cloud_provider_authority);
+            Log.i(TAG, "Default cloud provider to be used is " + defaultCloudProviderAuthority);
+
+            if (defaultCloudProviderAuthority != null) {
+                for (CloudProviderInfo info : infos) {
+                    if (info.authority.equals(defaultCloudProviderAuthority)) {
+                        return info;
+                    }
+                }
+            }
+        }
+
+        // No default set or default not installed
+        return CloudProviderInfo.EMPTY;
     }
 
     private static String validateCursor(Cursor cursor, String expectedMediaCollectionId,

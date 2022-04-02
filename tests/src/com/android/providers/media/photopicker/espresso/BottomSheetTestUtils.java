@@ -16,7 +16,11 @@
 
 package com.android.providers.media.photopicker.espresso;
 
+import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.matcher.ViewMatchers.withId;
+
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 import static com.google.common.truth.Truth.assertThat;
 
 import android.app.Activity;
@@ -24,6 +28,10 @@ import android.content.Context;
 import android.graphics.Rect;
 import android.view.View;
 import android.view.WindowManager;
+
+import androidx.test.espresso.IdlingRegistry;
+import androidx.test.espresso.action.ViewActions;
+import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.providers.media.R;
 
@@ -38,6 +46,24 @@ class BottomSheetTestUtils {
             final int peekHeight =
                     getBottomSheetPeekHeight(PhotoPickerBaseTest.getIsolatedContext());
             assertThat(bottomSheetBehavior.getPeekHeight()).isEqualTo(peekHeight);
+        }
+    }
+
+    public static void swipeUp(ActivityScenarioRule<PhotoPickerTestActivity> rule) {
+        // Register bottom sheet idling resource so that we don't read bottom sheet state when
+        // in between changing states
+        final BottomSheetIdlingResource bottomSheetIdlingResource =
+                BottomSheetIdlingResource.register(rule);
+
+        try {
+            // Swipe up and check that the PhotoPicker is in full screen mode
+            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
+            onView(withId(R.id.privacy_text)).perform(ViewActions.swipeUp());
+            rule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
+        } finally {
+            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
         }
     }
 

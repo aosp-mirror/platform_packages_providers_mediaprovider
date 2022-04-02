@@ -16,12 +16,17 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static android.content.ContentResolver.EXTRA_HONORED_ARGS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS;
+import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
@@ -33,11 +38,13 @@ import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
+import android.os.Bundle;
 import android.os.Environment;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.VisibleForTesting;
@@ -243,7 +250,7 @@ public class ExternalDbFacade {
      * Returns all items from the deleted_media table.
      */
     public Cursor queryDeletedMedia(long generation) {
-        return mDatabaseHelper.runWithTransaction(db -> {
+        final Cursor cursor = mDatabaseHelper.runWithTransaction(db -> {
             SQLiteQueryBuilder qb = createDeletedMediaQueryBuilder();
             String[] projection = new String[] {COLUMN_OLD_ID_AS_ID};
             String select = COLUMN_GENERATION_MODIFIED + " > ?";
@@ -252,17 +259,20 @@ public class ExternalDbFacade {
             return qb.query(db, projection, select, selectionArgs,  /* groupBy */ null,
                     /* having */ null, /* orderBy */ null);
          });
+
+        cursor.setExtras(getCursorExtras(generation, /* albumId */ null));
+        return cursor;
     }
 
     /**
      * Returns all items from the files table where {@link MediaColumns#GENERATION_MODIFIED}
      * is greater than {@code generation}.
      */
-    public Cursor queryMediaGeneration(long generation, String albumId, String mimeType) {
+    public Cursor queryMedia(long generation, String albumId, String mimeType) {
         final List<String> selectionArgs = new ArrayList<>();
         final String orderBy = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS + " DESC";
 
-        return mDatabaseHelper.runWithTransaction(db -> {
+        final Cursor cursor = mDatabaseHelper.runWithTransaction(db -> {
                 SQLiteQueryBuilder qb = createMediaQueryBuilder();
                 qb.appendWhereStandalone(WHERE_GREATER_GENERATION);
                 selectionArgs.add(String.valueOf(generation));
@@ -273,19 +283,26 @@ public class ExternalDbFacade {
                         selectionArgs.toArray(new String[selectionArgs.size()]), /* groupBy */ null,
                         /* having */ null, orderBy);
             });
+
+        cursor.setExtras(getCursorExtras(generation, albumId));
+        return cursor;
     }
 
-    /** Returns the media item from the files table with row id {@code id}. */
-    public Cursor queryMediaId(long id) {
-        final String[] selectionArgs = new String[] {String.valueOf(id)};
+    private Bundle getCursorExtras(long generation, String albumId) {
+        final Bundle bundle = new Bundle();
+        final ArrayList<String> honoredArgs = new ArrayList<>();
 
-        return mDatabaseHelper.runWithTransaction(db -> {
-                SQLiteQueryBuilder qb = createMediaQueryBuilder();
-                qb.appendWhereStandalone(WHERE_ID);
+        if (generation > LONG_DEFAULT) {
+            honoredArgs.add(EXTRA_SYNC_GENERATION);
+        }
+        if (!TextUtils.isEmpty(albumId)) {
+            honoredArgs.add(EXTRA_ALBUM_ID);
+        }
 
-                return qb.query(db, PROJECTION_MEDIA_COLUMNS, /* select */ null, selectionArgs,
-                        /* groupBy */ null, /* having */ null, /* orderBy */ null);
-            });
+        bundle.putString(EXTRA_MEDIA_COLLECTION_ID, MediaStore.getVersion(mContext));
+        bundle.putStringArrayList(EXTRA_HONORED_ARGS, honoredArgs);
+
+        return bundle;
     }
 
     /**

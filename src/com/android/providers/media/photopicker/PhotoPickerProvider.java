@@ -149,7 +149,6 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        // TODO(b/190713331): Handle extra_filter_albums
         Bundle bundle = new Bundle();
         try (Cursor cursor = mDbFacade.getMediaCollectionInfo(queryExtras.getGeneration())) {
             if (cursor.moveToFirst()) {
@@ -189,7 +188,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     }
 
     private static Uri fromMediaId(String mediaId) {
-        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY,
+        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
                 Long.parseLong(mediaId));
     }
 
@@ -313,7 +312,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                     final Uri mediaUri =
                             Uri.parse(
                                     MediaStore.Files.getContentUri(
-                                            MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                                            MediaStore.VOLUME_EXTERNAL)
                                     + File.separator + mediaId);
                     mPlayer.setMediaItem(MediaItem.fromUri(mediaUri));
                     mPlayer.setVideoSurface(surface);

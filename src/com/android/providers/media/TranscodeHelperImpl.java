@@ -209,7 +209,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     }
 
     /** Coefficient to 'guess' how long a transcoding session might take */
-    private static final double TRANSCODING_TIMEOUT_COEFFICIENT = 2;
+    private static final double TRANSCODING_TIMEOUT_COEFFICIENT = 10;
     /** Coefficient to 'guess' how large a transcoded file might be */
     private static final double TRANSCODING_SIZE_COEFFICIENT = 2;
 

@@ -44,12 +44,9 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
-import android.app.Activity;
 import android.view.View;
 
 import androidx.lifecycle.ViewModelProvider;
-import androidx.test.espresso.IdlingRegistry;
-import androidx.test.espresso.action.ViewActions;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import androidx.viewpager2.widget.ViewPager2;
@@ -77,60 +74,39 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     @Test
     public void testPreview_multiSelect_common() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-        final BottomSheetIdlingResource bottomSheetIdlingResource =
-                BottomSheetIdlingResource.register(mRule);
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+        onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
 
-        try {
-            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
-            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+        // Select two items and Navigate to preview
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // No dragBar in preview
+            onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
+
+            // No privacy text in preview
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_EXPANDED);
             });
 
-            // Select two items and Navigate to preview
-            clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
-            clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
-            onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+            assertMultiSelectPreviewCommonLayoutDisplayed();
+            onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(not(isDisplayed())));
 
-            try (ViewPager2IdlingResource idlingResource
-                         = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
-                // No dragBar in preview
-                onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
-
-                // No privacy text in preview
-                onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
-                mRule.getScenario().onActivity(activity -> {
-                    assertBottomSheetState(activity, STATE_EXPANDED);
-                });
-
-                assertMultiSelectPreviewCommonLayoutDisplayed();
-                onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(not(isDisplayed())));
-
-                // Verify ImageView is displayed
-                onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
-            }
-
-            // Click back button and verify we are back to photos tab
-            onView(withContentDescription("Navigate up")).perform(click());
-            onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-
-            // Shows dragBar and privacy text after we are back to Photos tab
-            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            mRule.getScenario().onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_EXPANDED);
-            });
-
-            // Swiping down on drag bar or toolbar is not closing the bottom sheet as closing the
-            // bottomsheet requires a stronger downward swipe.
-            onView(withId(R.id.bottom_sheet)).perform(ViewActions.swipeDown());
-        } finally {
-            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
+            // Verify ImageView is displayed
+            onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
         }
 
-        assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
-                Activity.RESULT_CANCELED);
+        // Click back button and verify we are back to photos tab
+        onView(withContentDescription("Navigate up")).perform(click());
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+        // Shows dragBar and privacy text after we are back to Photos tab
+        onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+        onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+
     }
 
     @Test

@@ -17,17 +17,22 @@
 package com.android.providers.media;
 
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
+import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.provider.CloudMediaProvider;
+import android.provider.CloudMediaProviderContract;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -87,22 +92,57 @@ public class PickerProviderMediaGenerator {
         private long mLastSyncGeneration;
         private String mAccountName;
         private Intent mAccountConfigurationIntent;
+        private int mCursorExtraQueryCount;
+        private Bundle mCursorExtra;
 
         // TODO(b/214592293): Add pagination support for testing purposes.
         public Cursor getMedia(long generation, String albumId, String mimeType, long sizeBytes) {
-            return getCursor(mMedia, generation, albumId, mimeType, sizeBytes,
+            final Cursor cursor = getCursor(mMedia, generation, albumId, mimeType, sizeBytes,
                     /* isDeleted */ false);
+
+            if (mCursorExtra != null) {
+                cursor.setExtras(mCursorExtra);
+            } else {
+                cursor.setExtras(buildCursorExtras(mCollectionId, generation > 0, albumId != null));
+            }
+
+            if (--mCursorExtraQueryCount == 0) {
+                clearCursorExtras();
+            }
+            return cursor;
         }
 
         public Cursor getAlbums(String mimeType, long sizeBytes, boolean isLocal) {
-            return getCursor(mAlbums, mimeType, sizeBytes, isLocal);
+            final Cursor cursor = getCursor(mAlbums, mimeType, sizeBytes, isLocal);
+
+            if (mCursorExtra != null) {
+                cursor.setExtras(mCursorExtra);
+            } else {
+                cursor.setExtras(buildCursorExtras(mCollectionId, false, false));
+            }
+
+            if (--mCursorExtraQueryCount == 0) {
+                clearCursorExtras();
+            }
+            return cursor;
         }
 
         // TODO(b/214592293): Add pagination support for testing purposes.
         public Cursor getDeletedMedia(long generation) {
-            return getCursor(mDeletedMedia, generation, /* albumId */ STRING_DEFAULT,
+            final Cursor cursor = getCursor(mDeletedMedia, generation, /* albumId */ STRING_DEFAULT,
                     /* mimeType */ STRING_DEFAULT, /* sizeBytes */ LONG_DEFAULT,
                     /* isDeleted */ true);
+
+            if (mCursorExtra != null) {
+                cursor.setExtras(mCursorExtra);
+            } else {
+                cursor.setExtras(buildCursorExtras(mCollectionId, generation > 0, false));
+            }
+
+            if (--mCursorExtraQueryCount == 0) {
+                clearCursorExtras();
+            }
+            return cursor;
         }
 
         public Bundle getMediaCollectionInfo() {
@@ -119,6 +159,35 @@ public class PickerProviderMediaGenerator {
         public void setAccountInfo(String accountName, Intent configIntent) {
             mAccountName = accountName;
             mAccountConfigurationIntent = configIntent;
+        }
+
+        public void clearCursorExtras() {
+            mCursorExtra = null;
+        }
+
+        public void setNextCursorExtras(int queryCount, String mediaCollectionId,
+                boolean honoredSyncGeneration, boolean honoredAlbumId) {
+            mCursorExtraQueryCount = queryCount;
+            mCursorExtra = buildCursorExtras(mediaCollectionId, honoredSyncGeneration,
+                    honoredAlbumId);
+        }
+
+        public Bundle buildCursorExtras(String mediaCollectionId, boolean honoredSyncGeneration,
+                boolean honoredAlbumdId) {
+            final ArrayList<String> honoredArgs = new ArrayList<>();
+            if (honoredSyncGeneration) {
+                honoredArgs.add(EXTRA_SYNC_GENERATION);
+            }
+            if (honoredAlbumdId) {
+                honoredArgs.add(EXTRA_ALBUM_ID);
+            }
+
+            final Bundle bundle = new Bundle();
+            bundle.putString(CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID,
+                    mediaCollectionId);
+            bundle.putStringArrayList(ContentResolver.EXTRA_HONORED_ARGS, honoredArgs);
+
+            return bundle;
         }
 
         public void addMedia(String localId, String cloudId) {
@@ -152,6 +221,7 @@ public class PickerProviderMediaGenerator {
             mMedia.clear();
             mDeletedMedia.clear();
             mAlbums.clear();
+            clearCursorExtras();
         }
 
         public void setMediaCollectionId(String id) {

@@ -65,6 +65,7 @@ import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.cts.install.lib.TestApp;
+import com.android.modules.utils.build.SdkLevel;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -141,6 +142,9 @@ public class PermissionUtilsTest {
 
     @Test
     public void testDefaultPermissionsOnTestAppWithStoragePerms() throws Exception {
+        if (!SdkLevel.isAtLeastT()) {
+            return;
+        }
         String packageName = TEST_APP_WITH_STORAGE_PERMS.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
         adoptShellPermission(UPDATE_APP_OPS_STATS);
@@ -176,6 +180,9 @@ public class PermissionUtilsTest {
 
     @Test
     public void testDefaultPermissionsOnTestAppWithMediaPerms() throws Exception {
+        if (!SdkLevel.isAtLeastT()) {
+            return;
+        }
         String packageName = TEST_APP_WITH_MEDIA_PERMS.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
         adoptShellPermission(UPDATE_APP_OPS_STATS);
@@ -396,6 +403,9 @@ public class PermissionUtilsTest {
 
     @Test
     public void testReadVideoOnTestAppWithMediaPerms() throws Exception {
+        if (!SdkLevel.isAtLeastT()) {
+            return;
+        }
         assertReadVideoOnTestApp(TEST_APP_WITH_MEDIA_PERMS);
     }
 
@@ -451,6 +461,9 @@ public class PermissionUtilsTest {
 
     @Test
     public void testReadAudioOnTestAppWithMediaPerms() throws Exception {
+        if (!SdkLevel.isAtLeastT()) {
+            return;
+        }
         assertReadAudioOnTestApp(TEST_APP_WITH_MEDIA_PERMS);
     }
 
@@ -482,6 +495,9 @@ public class PermissionUtilsTest {
 
     @Test
     public void testReadImagesOnTestAppWithMediaPerms() throws Exception {
+        if (!SdkLevel.isAtLeastT()) {
+            return;
+        }
         assertReadImagesOnTestApp(TEST_APP_WITH_MEDIA_PERMS);
     }
 

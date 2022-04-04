@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
@@ -23,6 +24,7 @@ import static org.junit.Assert.assertThrows;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.MediaStore.PickerMediaColumns;
@@ -30,7 +32,7 @@ import android.provider.MediaStore.PickerMediaColumns;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.photopicker.data.model.Category;
+
 
 import java.io.File;
 
@@ -865,8 +867,8 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
-                    Category.CATEGORY_FAVORITES,
-                    Category.getCategoryName(mContext, Category.CATEGORY_FAVORITES),
+                    ALBUM_ID_FAVORITES,
+                    ALBUM_ID_FAVORITES,
                     LOCAL_ID + "1",
                     DATE_TAKEN_MS,
                     /* count */ 2);
@@ -911,8 +913,8 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
-                    Category.CATEGORY_FAVORITES,
-                    Category.getCategoryName(mContext, Category.CATEGORY_FAVORITES),
+                    ALBUM_ID_FAVORITES,
+                    ALBUM_ID_FAVORITES,
                     LOCAL_ID + "1",
                     DATE_TAKEN_MS,
                     /* count */ 2);
@@ -923,8 +925,8 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
-                    Category.CATEGORY_FAVORITES,
-                    Category.getCategoryName(mContext, Category.CATEGORY_FAVORITES),
+                    ALBUM_ID_FAVORITES,
+                    ALBUM_ID_FAVORITES,
                     CLOUD_ID + "1",
                     DATE_TAKEN_MS,
                     /* count */ 1);
@@ -935,8 +937,8 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
-                    Category.CATEGORY_FAVORITES,
-                    Category.getCategoryName(mContext, Category.CATEGORY_FAVORITES),
+                    ALBUM_ID_FAVORITES,
+                    ALBUM_ID_FAVORITES,
                     LOCAL_ID + "1",
                     DATE_TAKEN_MS,
                     /* count */ 1);

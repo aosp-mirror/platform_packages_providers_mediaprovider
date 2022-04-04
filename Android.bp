@@ -17,6 +17,7 @@ android_app {
         "com.google.android.material_material",
         "guava",
         "modules-utils-build",
+        "modules-utils-uieventlogger-interface",
         "glide-prebuilt",
         "glide-gifdecoder-prebuilt",
         "glide-disklrucache-prebuilt",
@@ -24,7 +25,7 @@ android_app {
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
-        "exoplayer2.15.1",
+        "exoplayer-mediaprovider-ui",
     ],
 
     libs: [
@@ -38,7 +39,7 @@ android_app {
 
     jni_libs: [
         "libfuse_jni",
-        "libfuse"
+        "libfuse",
     ],
 
     resource_dirs: [
@@ -139,14 +140,13 @@ genrule {
     name: "statslog-mediaprovider-java-gen",
     tools: ["stats-log-api-gen"],
     cmd: "$(location stats-log-api-gen) --java $(out) --module mediaprovider" +
-         " --javaPackage com.android.providers.media --javaClass MediaProviderStatsLog" +
-         " --minApiLevel 30",
+        " --javaPackage com.android.providers.media --javaClass MediaProviderStatsLog" +
+        " --minApiLevel 30",
     out: ["com/android/providers/media/MediaProviderStatsLog.java"],
 }
 
 prebuilt_etc {
-      name: "preinstalled-packages-com.android.providers.media.module.xml",
-      src: "preinstalled-packages-com.android.providers.media.module.xml",
-      sub_dir: "sysconfig",
+    name: "preinstalled-packages-com.android.providers.media.module.xml",
+    src: "preinstalled-packages-com.android.providers.media.module.xml",
+    sub_dir: "sysconfig",
 }
-

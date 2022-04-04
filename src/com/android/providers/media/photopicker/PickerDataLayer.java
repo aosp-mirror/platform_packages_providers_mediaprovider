@@ -67,24 +67,25 @@ public class PickerDataLayer {
 
     public Cursor fetchMedia(Bundle queryArgs) {
         final CloudProviderQueryExtras queryExtras
-                = CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs);
+                = CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs, mLocalProvider);
         final String albumId = queryExtras.getAlbumId();
+        final String authority = queryExtras.getAlbumAuthority();
+        final boolean isFavorite = queryExtras.isFavorite();
 
-        if (TextUtils.isEmpty(albumId)) {
+        if (TextUtils.isEmpty(albumId) || isFavorite) {
             // Refresh the 'media' table
             mSyncController.syncAllMedia();
 
             // Fetch all merged and deduped cloud and local media from 'media' table
+            // This also matches 'merged' albums like Favorites because |authority| will
+            // be null, hence we have to fetch the data from the picker db
             return mDbFacade.queryMediaForUi(queryExtras.toQueryFilter());
         } else {
             // The album type here can only be local or cloud because other album types
-            // like Favorites don't have albumIds hence would hit the first condition
-            final boolean isLocal = AlbumColumns.TYPE_LOCAL.equals(queryExtras.getAlbumType());
-            final String authority = isLocal ? mDbFacade.getLocalProvider()
-                    : queryExtras.getCloudProvider();
+            // like Favorites don't have album authorities hence would hit the first condition
 
             // Refresh the 'album_media' table
-            mSyncController.syncAlbumMedia(albumId, isLocal);
+            mSyncController.syncAlbumMedia(albumId, isLocal(authority));
 
             // Fetch album specific media for local or cloud from 'album_media' table
             return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), authority);
@@ -97,7 +98,7 @@ public class PickerDataLayer {
 
         final String cloudProvider = mDbFacade.getCloudProvider();
         final CloudProviderQueryExtras queryExtras
-                = CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs);
+                = CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs, mLocalProvider);
         final Bundle cloudMediaArgs = queryExtras.toCloudMediaBundle();
         final List<Cursor> cursors = new ArrayList<>();
         final Bundle cursorExtra = new Bundle();
@@ -167,6 +168,10 @@ public class PickerDataLayer {
     private Cursor query(Uri uri, Bundle extras) {
         return mContext.getContentResolver().query(uri, /* projection */ null, extras,
                 /* cancellationSignal */ null);
+    }
+
+    private boolean isLocal(String authority) {
+        return mLocalProvider.equals(authority);
     }
 
     public static class AccountInfo {

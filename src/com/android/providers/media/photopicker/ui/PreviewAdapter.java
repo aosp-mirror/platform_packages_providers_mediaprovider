@@ -109,10 +109,7 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     void onHandlePageSelected(View itemView) {
         if (mIsRemotePreviewEnabled) {
             final Item item = (Item) itemView.getTag();
-
-            if (item.isVideo()) {
-                mRemotePreviewHandler.onHandlePageSelected(item);
-            }
+            mRemotePreviewHandler.onHandlePageSelected(item);
             return;
         }
 

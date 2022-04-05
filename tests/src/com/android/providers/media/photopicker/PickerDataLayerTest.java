@@ -17,9 +17,12 @@
 package com.android.providers.media.photopicker;
 
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
+
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
+
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -27,7 +30,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.MediaStore;
@@ -40,16 +42,14 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.photopicker.data.model.Category;
-
-import java.io.File;
-import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.io.File;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerDataLayerTest {
@@ -339,10 +339,11 @@ public class PickerDataLayerTest {
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
 
         try (Cursor cr = mDataLayer.fetchAlbums(defaultQueryArgs)) {
-            assertThat(cr.getCount()).isEqualTo(3);
+            assertThat(cr.getCount()).isEqualTo(4);
 
-            assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_FAVORITES, LOCAL_PROVIDER_AUTHORITY);
+            assertAlbumCursor(cr, ALBUM_ID_VIDEOS, LOCAL_PROVIDER_AUTHORITY);
+            assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
 
@@ -449,8 +450,9 @@ public class PickerDataLayerTest {
         final Bundle sizeQueryArgs = buildQueryArgs(MIME_TYPE_DEFAULT, SIZE_BYTES - 1);
 
         try (Cursor cr = mDataLayer.fetchAlbums(sizeQueryArgs)) {
-            assertThat(cr.getCount()).isEqualTo(2);
+            assertThat(cr.getCount()).isEqualTo(3);
 
+            assertAlbumCursor(cr, ALBUM_ID_VIDEOS, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
@@ -498,8 +500,9 @@ public class PickerDataLayerTest {
                 CLOUD_PRIMARY_PROVIDER_AUTHORITY, VIDEO_MIME_TYPE, SIZE_BYTES - 1);
 
         try (Cursor cr = mDataLayer.fetchAlbums(mimeTypeAndSizeQueryArgs)) {
-            assertWithMessage("Local album count").that(cr.getCount()).isEqualTo(2);
+            assertWithMessage("Merged and Local album count").that(cr.getCount()).isEqualTo(3);
 
+            assertAlbumCursor(cr, ALBUM_ID_VIDEOS, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }

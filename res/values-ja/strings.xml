@@ -74,8 +74,10 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"モーション フォト"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"動画をミュートします"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"動画のミュートを解除します"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"動画を再生します"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"動画を一時停止します"</string>
+    <!-- no translation found for picker_play_video (5158816108935317185) -->
+    <skip />
+    <!-- no translation found for picker_pause_video (7239492902901477371) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{この音声ファイルの変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルの変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{音声ファイルを変更しています…}other{<xliff:g id="COUNT">^1</xliff:g> 件の音声ファイルを変更しています…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{この動画の変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 本の動画の変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>

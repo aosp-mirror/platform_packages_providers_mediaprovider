@@ -88,7 +88,7 @@ public class PickerUriResolver {
         final ContentResolver resolver;
         try {
             resolver = getContentResolverForUserId(uri);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalStateException e) {
             // This is to be consistent with MediaProvider's response when a file is not found.
             Log.e(TAG, "No item at " + uri, e);
             throw new FileNotFoundException("No item at " + uri);
@@ -107,7 +107,7 @@ public class PickerUriResolver {
         final ContentResolver resolver;
         try {
             resolver = getContentResolverForUserId(uri);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalStateException e) {
             // This is to be consistent with MediaProvider's response when a file is not found.
             Log.e(TAG, "No item at " + uri, e);
             throw new FileNotFoundException("No item at " + uri);
@@ -121,10 +121,9 @@ public class PickerUriResolver {
 
     public Cursor query(Uri uri, String[] projection, int callingPid, int callingUid) {
         checkUriPermission(uri, callingPid, callingUid);
-
         try {
             return queryInternal(uri, projection);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalStateException e) {
             // This is to be consistent with MediaProvider, it returns an empty cursor if the row
             // does not exist.
             Log.e(TAG, "File not found for uri: " + uri, e);
@@ -297,7 +296,7 @@ public class PickerUriResolver {
         try {
             return userId.getContentResolver(mContext);
         } catch (NameNotFoundException e) {
-            throw new IllegalArgumentException("Cannot find content resolver for uri: " + uri, e);
+            throw new IllegalStateException("Cannot find content resolver for uri: " + uri, e);
         }
     }
 }

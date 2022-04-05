@@ -16,8 +16,8 @@
 
 package android.provider;
 
-import static android.provider.CloudMediaProviderContract.EXTRA_ERROR_MESSAGE;
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
+import static android.provider.CloudMediaProviderContract.EXTRA_ERROR_MESSAGE;
 import static android.provider.CloudMediaProviderContract.EXTRA_FILE_DESCRIPTOR;
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
@@ -373,13 +373,16 @@ public abstract class CloudMediaProvider extends ContentProvider {
             throw new IllegalArgumentException("Missing surface state callback");
         }
 
+        final boolean enableLoop = extras.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED,
+                DEFAULT_LOOPING_PLAYBACK_ENABLED);
+        final boolean muteAudio = extras.getBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
+                DEFAULT_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED);
         final CloudMediaSurfaceStateChangedCallback callback =
                 new CloudMediaSurfaceStateChangedCallback(
                         ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder));
         final Bundle config = new Bundle();
-        config.putBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, DEFAULT_LOOPING_PLAYBACK_ENABLED);
-        config.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
-                DEFAULT_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED);
+        config.putBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, enableLoop);
+        config.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED, muteAudio);
         final CloudMediaSurfaceController controller =
                 onCreateCloudMediaSurfaceController(config, callback);
         if (controller == null) {

@@ -19,6 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"メディア"</string>
     <string name="storage_description" msgid="4081716890357580107">"ローカル ストレージ"</string>
     <string name="app_label" msgid="9035307001052716210">"メディア ストレージ"</string>
+    <!-- no translation found for picker_app_label (6035511670633386524) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"アーティスト"</string>
     <string name="unknown" msgid="2059049215682829375">"不明"</string>
     <string name="root_images" msgid="5861633549189045666">"画像"</string>
@@ -76,6 +78,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"動画のミュートを解除します"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"動画を再生します"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"動画を一時停止します"</string>
+    <string name="not_selected" msgid="2244008151669896758">"未選択"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{この音声ファイルの変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルの変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{音声ファイルを変更しています…}other{<xliff:g id="COUNT">^1</xliff:g> 件の音声ファイルを変更しています…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{この動画の変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 本の動画の変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>

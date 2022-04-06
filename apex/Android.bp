@@ -67,5 +67,15 @@ bootclasspath_fragment {
     // modified by the Soong or platform compat team.
     hidden_api: {
         max_target_o_low_priority: ["hiddenapi/hiddenapi-max-target-o-low-priority.txt"],
+
+        // The following packages contain classes from other modules on the
+        // bootclasspath. That means that the hidden API flags for this module
+        // has to explicitly list every single class this module provides in
+        // that package to differentiate them from the classes provided by other
+        // modules. That can include private classes that are not part of the
+        // API.
+        split_packages: [
+            "android.provider",
+        ],
     },
 }

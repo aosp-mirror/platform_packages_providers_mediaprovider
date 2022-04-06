@@ -18,7 +18,8 @@ package com.android.providers.media.photopicker.ui.remotepreview;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
-import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_EVENT_CALLBACK;
+import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
+import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_STATE_CALLBACK;
 import static android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER;
 
 import static com.android.providers.media.PickerUriResolver.createSurfaceControllerUri;
@@ -31,16 +32,16 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.RemoteException;
 import android.os.SystemProperties;
-import android.provider.CloudMediaProvider.CloudMediaSurfaceEventCallback.PlaybackEvent;
+import android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PlaybackState;
 import android.provider.ICloudMediaSurfaceController;
-import android.provider.ICloudSurfaceEventCallback;
+import android.provider.ICloudMediaSurfaceStateChangedCallback;
 import android.util.ArrayMap;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
 
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.PreviewVideoHolder;
 
@@ -58,13 +59,14 @@ public final class RemotePreviewHandler {
     private static final String TAG = "RemotePreviewHandler";
 
     private final Context mContext;
+    private final MuteStatus mMuteStatus;
     private final ArrayMap<SurfaceHolder, RemotePreviewSession>
             mSessionMap = new ArrayMap<>();
     private final Map<String, SurfaceControllerProxy> mControllers =
             new ArrayMap<>();
     private final SurfaceHolder.Callback mSurfaceHolderCallback = new PreviewSurfaceCallback();
-    private final SurfaceEventCallbackWrapper mSurfaceEventCallbackWrapper =
-            new SurfaceEventCallbackWrapper();
+    private final SurfaceStateChangedCallbackWrapper mSurfaceStateChangedCallbackWrapper =
+            new SurfaceStateChangedCallbackWrapper();
     private final Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
     private final ItemPreviewState mCurrentPreviewState = new ItemPreviewState();
 
@@ -75,15 +77,16 @@ public final class RemotePreviewHandler {
         return SystemProperties.getBoolean("sys.photopicker.remote_preview", false);
     }
 
-    public RemotePreviewHandler(Context context) {
+    public RemotePreviewHandler(Context context, MuteStatus muteStatus) {
         mContext = context;
+        mMuteStatus = muteStatus;
     }
 
     /**
      * Prepares the given {@link SurfaceView} for remote preview of the given {@link Item}.
      *
      * @param viewHolder {@link PreviewVideoHolder} for the media item under preview
-     * @param item        {@link Item} to be previewed
+     * @param item       {@link Item} to be previewed
      * @return true if the given {@link Item} can be previewed remotely, else false
      */
     public boolean onViewAttachedToWindow(PreviewVideoHolder viewHolder, Item item) {
@@ -152,11 +155,10 @@ public final class RemotePreviewHandler {
         }
 
         return new RemotePreviewSession(mSurfaceCounter++, item.getId(), authority, controller,
-                previewVideoHolder);
+                previewVideoHolder, mMuteStatus);
     }
 
     private void restorePreviewState(SurfaceHolder holder) {
-        mCurrentPreviewState.viewHolder.getThumbnailView().setVisibility(View.VISIBLE);
         RemotePreviewSession session = createRemotePreviewSession(mCurrentPreviewState.item,
                 mCurrentPreviewState.viewHolder);
         if (session == null) {
@@ -221,7 +223,8 @@ public final class RemotePreviewHandler {
         Log.i(TAG, "Creating new SurfaceController for authority: " + authority);
         Bundle extras = new Bundle();
         extras.putBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, true);
-        extras.putBinder(EXTRA_SURFACE_EVENT_CALLBACK, mSurfaceEventCallbackWrapper);
+        extras.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED, mMuteStatus.isVolumeMuted());
+        extras.putBinder(EXTRA_SURFACE_STATE_CALLBACK, mSurfaceStateChangedCallbackWrapper);
         final Bundle surfaceControllerBundle = mContext.getContentResolver().call(
                 createSurfaceControllerUri(authority),
                 METHOD_CREATE_SURFACE_CONTROLLER, /* arg */ null, extras);
@@ -232,15 +235,18 @@ public final class RemotePreviewHandler {
     }
 
     /**
-     * Wrapper class for {@link ICloudSurfaceEventCallback} interface implementation.
+     * Wrapper class for {@link android.provider.ICloudMediaSurfaceStateChangedCallback} interface
+     * implementation.
      */
-    private final class SurfaceEventCallbackWrapper extends ICloudSurfaceEventCallback.Stub {
+    private final class SurfaceStateChangedCallbackWrapper extends
+            ICloudMediaSurfaceStateChangedCallback.Stub {
 
         @Override
-        public void onPlaybackEvent(int surfaceId, @PlaybackEvent int eventType,
-                @Nullable Bundle eventInfo) {
+        public void setPlaybackState(int surfaceId, @PlaybackState int playbackState,
+                @Nullable Bundle playbackStateInfo) {
             Log.d(TAG, "Received onPlaybackEvent for surfaceId: " + surfaceId +
-                    " ; eventType: " + eventType + " ; eventInfo: " + eventInfo);
+                    " ; playbackState: " + playbackState + " ; playbackStateInfo: " +
+                    playbackStateInfo);
 
             mMainThreadHandler.post(() -> {
                 final RemotePreviewSession session = getSessionForSurfaceId(surfaceId);
@@ -248,7 +254,7 @@ public final class RemotePreviewHandler {
                     Log.w(TAG, "No RemotePreviewSession found.");
                     return;
                 }
-                session.onPlaybackEvent(eventType, eventInfo);
+                session.setPlaybackState(playbackState, playbackStateInfo);
             });
         }
     }

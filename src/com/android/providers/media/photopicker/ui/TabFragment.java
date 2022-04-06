@@ -15,10 +15,10 @@
  */
 package com.android.providers.media.photopicker.ui;
 
-import static android.app.admin.DevicePolicyResources.Drawables.Style.OUTLINE;
-import static android.app.admin.DevicePolicyResources.Drawables.WORK_PROFILE_ICON;
-import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.SWITCH_TO_PERSONAL_MESSAGE;
-import static android.app.admin.DevicePolicyResources.Strings.MediaProvider.SWITCH_TO_WORK_MESSAGE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Drawables.Style.OUTLINE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Drawables.WORK_PROFILE_ICON;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.SWITCH_TO_PERSONAL_MESSAGE;
+import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.SWITCH_TO_WORK_MESSAGE;
 
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
@@ -31,6 +31,9 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -65,12 +68,17 @@ public abstract class TabFragment extends Fragment {
     protected ImageLoader mImageLoader;
     protected AutoFitRecyclerView mRecyclerView;
 
-    private int mBottomBarSize;
     private ExtendedFloatingActionButton mProfileButton;
     private UserIdManager mUserIdManager;
     private boolean mHideProfileButton;
     private View mEmptyView;
     private TextView mEmptyTextView;
+    private boolean mIsAccessibilityEnabled;
+
+    private Button mAddButton;
+    private View mBottomBar;
+    private Animation mSlideUpAnimation;
+    private Animation mSlideDownAnimation;
 
     @ColorInt
     private int mButtonIconAndTextColor;
@@ -96,7 +104,8 @@ public abstract class TabFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        mImageLoader = new ImageLoader(getContext());
+        final Context context = getContext();
+        mImageLoader = new ImageLoader(context);
         mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
         mRecyclerView.setHasFixedSize(true);
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
@@ -108,14 +117,14 @@ public abstract class TabFragment extends Fragment {
         final int[] attrsDisabled =
                 new int[]{R.attr.pickerDisabledProfileButtonColor,
                         R.attr.pickerDisabledProfileButtonTextColor};
-        final TypedArray taDisabled = getContext().obtainStyledAttributes(attrsDisabled);
+        final TypedArray taDisabled = context.obtainStyledAttributes(attrsDisabled);
         mButtonDisabledBackgroundColor = taDisabled.getColor(/* index */ 0, /* defValue */ -1);
         mButtonDisabledIconAndTextColor = taDisabled.getColor(/* index */ 1, /* defValue */ -1);
         taDisabled.recycle();
 
         final int[] attrs =
                 new int[]{R.attr.pickerProfileButtonColor, R.attr.pickerProfileButtonTextColor};
-        final TypedArray ta = getContext().obtainStyledAttributes(attrs);
+        final TypedArray ta = context.obtainStyledAttributes(attrs);
         mButtonBackgroundColor = ta.getColor(/* index */ 0, /* defValue */ -1);
         mButtonIconAndTextColor = ta.getColor(/* index */ 1, /* defValue */ -1);
         ta.recycle();
@@ -125,8 +134,8 @@ public abstract class TabFragment extends Fragment {
 
         final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
-            final Button addButton = getActivity().findViewById(R.id.button_add);
-            addButton.setOnClickListener(v -> {
+            mAddButton = getActivity().findViewById(R.id.button_add);
+            mAddButton.setOnClickListener(v -> {
                 ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
             });
 
@@ -137,19 +146,20 @@ public abstract class TabFragment extends Fragment {
                 PreviewFragment.show(getActivity().getSupportFragmentManager(),
                         PreviewFragment.getArgsForPreviewOnViewSelected());
             });
-            mBottomBarSize = (int) getResources().getDimension(R.dimen.picker_bottom_bar_size);
+
+            // Get bottom bar, size, and load animations for bottom bar
+            final int bottomBarSize = (int) getResources().getDimension(
+                    R.dimen.picker_bottom_bar_size);
+            mBottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
+            mSlideUpAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_up);
+            mSlideDownAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_down);
 
             mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
-                final View bottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
-                int dimen = 0;
-                if (selectedItemListSize == 0) {
-                    bottomBar.setVisibility(View.GONE);
-                } else {
-                    bottomBar.setVisibility(View.VISIBLE);
-                    addButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
-                    dimen = getBottomGapForRecyclerView(mBottomBarSize);
-                }
-                mRecyclerView.setPadding(0, 0, 0, dimen);
+                updateVisibilityAndAnimateBottomBar(selectedItemListSize);
+
+                final int bottomGap = selectedItemListSize == 0 ? 0 : getBottomGapForRecyclerView(
+                        bottomBarSize);
+                mRecyclerView.setPadding(0, 0, 0, bottomGap);
 
                 updateProfileButtonVisibility();
             });
@@ -171,6 +181,33 @@ public abstract class TabFragment extends Fragment {
         if (isMultiUserProfiles != null) {
             isMultiUserProfiles.observe(this, this::setUpProfileButtonWithListeners);
         }
+
+        final AccessibilityManager accessibilityManager =
+                context.getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
+        accessibilityManager.addAccessibilityStateChangeListener(enabled -> {
+            mIsAccessibilityEnabled = enabled;
+            updateProfileButtonVisibility();
+        });
+    }
+
+    private void updateVisibilityAndAnimateBottomBar(int selectedItemListSize) {
+        if (!mSelection.canSelectMultiple()) {
+            return;
+        }
+
+        if (selectedItemListSize == 0) {
+            if (mBottomBar.getVisibility() == View.VISIBLE) {
+                mBottomBar.setVisibility(View.GONE);
+                mBottomBar.startAnimation(mSlideDownAnimation);
+            }
+        } else {
+            if (mBottomBar.getVisibility() == View.GONE) {
+                mBottomBar.setVisibility(View.VISIBLE);
+                mBottomBar.startAnimation(mSlideUpAnimation);
+            }
+            mAddButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
+        }
     }
 
     private void setUpListenersForProfileButton() {
@@ -179,6 +216,13 @@ public abstract class TabFragment extends Fragment {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
+
+                // Do not change profile button visibility on scroll if Accessibility mode is
+                // enabled. This is done to enhance button visibility in Accessibility mode.
+                if (mIsAccessibilityEnabled) {
+                    return;
+                }
+
                 if (dy > 0) {
                     mProfileButton.hide();
                 } else {
@@ -262,23 +306,27 @@ public abstract class TabFragment extends Fragment {
     }
 
     private String getSwitchToPersonalMessage() {
-        DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
         if (SdkLevel.isAtLeastT()) {
-            return dpm.getString(SWITCH_TO_PERSONAL_MESSAGE, () ->
-                    getContext().getString(R.string.picker_personal_profile));
+            return getUpdatedEnterpriseString(
+                    SWITCH_TO_PERSONAL_MESSAGE, R.string.picker_personal_profile);
         } else {
             return getContext().getString(R.string.picker_personal_profile);
         }
     }
 
     private String getSwitchToWorkMessage() {
-        DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
         if (SdkLevel.isAtLeastT()) {
-            return dpm.getString(SWITCH_TO_WORK_MESSAGE, () ->
-                    getContext().getString(R.string.picker_work_profile));
+            return getUpdatedEnterpriseString(
+                    SWITCH_TO_WORK_MESSAGE, R.string.picker_work_profile);
         } else {
             return getContext().getString(R.string.picker_work_profile);
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private String getUpdatedEnterpriseString(String updatableStringId, int defaultStringId) {
+        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
+        return dpm.getResources().getString(updatableStringId, () -> getString(defaultStringId));
     }
 
     private Drawable getWorkProfileIcon() {
@@ -292,8 +340,8 @@ public abstract class TabFragment extends Fragment {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private Drawable getUpdatedWorkProfileIcon() {
         DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
-        return dpm.getDrawable(WORK_PROFILE_ICON, OUTLINE, () -> getContext().getDrawable(
-                R.drawable.ic_work_outline));
+        return dpm.getResources().getDrawable(WORK_PROFILE_ICON, OUTLINE, () ->
+                getContext().getDrawable(R.drawable.ic_work_outline));
     }
 
     private void updateProfileButtonColor(boolean isDisabled) {

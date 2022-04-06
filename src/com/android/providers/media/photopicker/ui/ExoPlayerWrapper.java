@@ -21,6 +21,7 @@ import android.media.AudioManager;
 import android.net.Uri;
 import android.util.Log;
 import android.view.View;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 
@@ -71,6 +72,7 @@ class ExoPlayerWrapper {
     private ExoPlayer mExoPlayer;
     private boolean mIsPlayerReleased = true;
     private boolean mShouldShowControlsForNext = true;
+    private boolean mIsAccessibilityEnabled = false;
 
     public ExoPlayerWrapper(Context context, MuteStatus muteStatus) {
         mContext = context;
@@ -149,6 +151,15 @@ class ExoPlayerWrapper {
         });
 
         // Step2: Set-up player control view
+        // Set-up video controls for accessibility mode
+        // Set Accessibility listeners and update the video controller visibility accordingly
+        AccessibilityManager accessibilityManager =
+                mContext.getSystemService(AccessibilityManager.class);
+        accessibilityManager.addAccessibilityStateChangeListener(
+                enabled -> updateControllerForAccessibilty(enabled, styledPlayerView));
+        updateControllerForAccessibilty(accessibilityManager.isEnabled(), styledPlayerView);
+
+        // Set-up video controls for non-accessibility mode
         // Track if the controller layout should be visible for the next video.
         styledPlayerView.setControllerVisibilityListener(
                 visibility -> mShouldShowControlsForNext = (visibility == View.VISIBLE));
@@ -156,6 +167,7 @@ class ExoPlayerWrapper {
         // 1. this is the first video preview page or
         // 2. the previous video had controls visible when the page was swiped or
         // 3. the previous page was not a video preview
+        // or if we are in accessibility mode.
         if (mShouldShowControlsForNext) {
             styledPlayerView.showController();
         }
@@ -167,6 +179,11 @@ class ExoPlayerWrapper {
         mExoPlayer.addListener(new Player.Listener() {
             @Override
             public void onIsPlayingChanged(boolean isPlaying) {
+                if (mIsAccessibilityEnabled) {
+                    // Player controls are always visible in accessibility mode.
+                    return;
+                }
+
                 // We don't have to hide controls if the state changed to PAUSED or controller
                 // isn't visible.
                 if (!isPlaying || !mShouldShowControlsForNext) return;
@@ -183,12 +200,11 @@ class ExoPlayerWrapper {
         // Step3: Set-up mute button
         final ImageButton muteButton = styledPlayerView.findViewById(R.id.preview_mute);
         final boolean isVolumeMuted = mMuteStatus.isVolumeMuted();
-        // Set the status of the muteButton according to previous status of the mute button
-        muteButton.setSelected(isVolumeMuted);
         if (isVolumeMuted) {
             // If the previous volume was muted, set the volume status to mute.
             mExoPlayer.setVolume(0f);
         }
+        updateMuteButtonState(muteButton, isVolumeMuted);
 
         // Add click listeners for mute button
         muteButton.setOnClickListener(v -> {
@@ -205,8 +221,35 @@ class ExoPlayerWrapper {
                 mExoPlayer.setVolume(0f);
                 mMuteStatus.setVolumeMuted(true);
             }
-            muteButton.setSelected(mMuteStatus.isVolumeMuted());
+            updateMuteButtonState(muteButton, mMuteStatus.isVolumeMuted());
         });
+    }
+
+    private void updateControllerForAccessibilty(boolean isEnabled,
+            StyledPlayerView styledPlayerView) {
+        mIsAccessibilityEnabled = isEnabled;
+        if (isEnabled) {
+            styledPlayerView.showController();
+            styledPlayerView.setControllerHideOnTouch(false);
+        } else {
+            styledPlayerView.setControllerHideOnTouch(true);
+        }
+    }
+
+    private void updateMuteButtonState(ImageButton muteButton, boolean isVolumeMuted) {
+        updateMuteButtonContentDescription(muteButton, isVolumeMuted);
+        updateMuteButtonIcon(muteButton, isVolumeMuted);
+    }
+
+    private void updateMuteButtonContentDescription(ImageButton muteButton, boolean isVolumeMuted) {
+        muteButton.setContentDescription(
+                mContext.getString(
+                        isVolumeMuted ? R.string.picker_unmute_video : R.string.picker_mute_video));
+    }
+
+    private void updateMuteButtonIcon(ImageButton muteButton, boolean isVolumeMuted) {
+        muteButton.setImageResource(
+                isVolumeMuted ? R.drawable.ic_volume_off : R.drawable.ic_volume_up);
     }
 
     private void releaseIfNecessary() {

@@ -55,6 +55,7 @@ public class WorkAppsOffProfileButtonTest extends PhotoPickerBaseTest {
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule =
             new ActivityScenarioRule<>(PhotoPickerBaseTest.getSingleSelectionIntent());
 
+    @Ignore("Enable after b/222013536 is fixed")
     @Test
     public void testProfileButton_dialog() throws Exception {
         // Register bottom sheet idling resource so that we don't read bottom sheet state when

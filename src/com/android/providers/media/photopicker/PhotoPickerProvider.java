@@ -188,7 +188,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     }
 
     private static Uri fromMediaId(String mediaId) {
-        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY,
+        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
                 Long.parseLong(mediaId));
     }
 
@@ -304,7 +304,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                     final Uri mediaUri =
                             Uri.parse(
                                     MediaStore.Files.getContentUri(
-                                            MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                                            MediaStore.VOLUME_EXTERNAL)
                                     + File.separator + mediaId);
                     mPlayer.setMediaItem(MediaItem.fromUri(mediaUri));
                     mPlayer.setVideoSurface(surface);

@@ -43,6 +43,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -92,6 +93,11 @@ public abstract class TabFragment extends Fragment {
     @ColorInt
     private int mButtonDisabledBackgroundColor;
 
+    private int mRecyclerViewBottomPadding;
+
+    private final MutableLiveData<Boolean> mIsBottomBarVisible = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> mIsProfileButtonVisible = new MutableLiveData<>(false);
+
     @Override
     @NonNull
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -110,6 +116,11 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setHasFixedSize(true);
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
         mSelection = mPickerViewModel.getSelection();
+        mRecyclerViewBottomPadding = getResources().getDimensionPixelSize(
+                R.dimen.picker_recycler_view_bottom_padding);
+
+        mIsBottomBarVisible.observe(this, val -> updateRecyclerViewBottomPadding());
+        mIsProfileButtonVisible.observe(this, val -> updateRecyclerViewBottomPadding());
 
         mEmptyView = view.findViewById(android.R.id.empty);
         mEmptyTextView = mEmptyView.findViewById(R.id.empty_text_view);
@@ -147,21 +158,13 @@ public abstract class TabFragment extends Fragment {
                         PreviewFragment.getArgsForPreviewOnViewSelected());
             });
 
-            // Get bottom bar, size, and load animations for bottom bar
-            final int bottomBarSize = (int) getResources().getDimension(
-                    R.dimen.picker_bottom_bar_size);
             mBottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
             mSlideUpAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_up);
             mSlideDownAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_down);
 
             mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
-                updateVisibilityAndAnimateBottomBar(selectedItemListSize);
-
-                final int bottomGap = selectedItemListSize == 0 ? 0 : getBottomGapForRecyclerView(
-                        bottomBarSize);
-                mRecyclerView.setPadding(0, 0, 0, bottomGap);
-
                 updateProfileButtonVisibility();
+                updateVisibilityAndAnimateBottomBar(selectedItemListSize);
             });
         }
 
@@ -191,6 +194,17 @@ public abstract class TabFragment extends Fragment {
         });
     }
 
+    private void updateRecyclerViewBottomPadding() {
+        final int recyclerViewBottomPadding;
+        if (mIsProfileButtonVisible.getValue() || mIsBottomBarVisible.getValue()) {
+            recyclerViewBottomPadding = mRecyclerViewBottomPadding;
+        } else {
+            recyclerViewBottomPadding = 0;
+        }
+
+        mRecyclerView.setPadding(0, 0, 0, recyclerViewBottomPadding);
+    }
+
     private void updateVisibilityAndAnimateBottomBar(int selectedItemListSize) {
         if (!mSelection.canSelectMultiple()) {
             return;
@@ -208,6 +222,7 @@ public abstract class TabFragment extends Fragment {
             }
             mAddButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
         }
+        mIsBottomBarVisible.setValue(selectedItemListSize > 0);
     }
 
     private void setUpListenersForProfileButton() {
@@ -355,21 +370,19 @@ public abstract class TabFragment extends Fragment {
         mProfileButton.setBackgroundTintList(ColorStateList.valueOf(backgroundTintColor));
     }
 
-    protected int getBottomGapForRecyclerView(int bottomBarSize) {
-        return bottomBarSize;
-    }
-
     protected void hideProfileButton(boolean hide) {
         mHideProfileButton = hide;
         updateProfileButtonVisibility();
     }
 
     private void updateProfileButtonVisibility() {
-        if (shouldShowProfileButton()) {
+        final boolean shouldShowProfileButton = shouldShowProfileButton();
+        if (shouldShowProfileButton) {
             mProfileButton.show();
         } else {
             mProfileButton.hide();
         }
+        mIsProfileButtonVisible.setValue(shouldShowProfileButton);
     }
 
     protected void setEmptyMessage(int resId) {

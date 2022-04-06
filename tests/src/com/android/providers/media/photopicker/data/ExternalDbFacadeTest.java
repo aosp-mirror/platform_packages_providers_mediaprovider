@@ -16,23 +16,28 @@
 
 package com.android.providers.media.photopicker.data;
 
-import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
-import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
+import static android.content.ContentResolver.EXTRA_HONORED_ARGS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS;
-
-import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
+import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 
 import static com.android.providers.media.photopicker.data.ExternalDbFacade.COLUMN_OLD_ID;
 import static com.android.providers.media.photopicker.data.ExternalDbFacade.TABLE_DELETED_MEDIA;
 import static com.android.providers.media.photopicker.data.ExternalDbFacade.TABLE_FILES;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.os.Bundle;
 import android.provider.CloudMediaProviderContract;
+import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 
@@ -40,14 +45,14 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.DatabaseHelper;
-import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
-
-import java.util.ArrayList;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 @RunWith(AndroidJUnit4.class)
 public class ExternalDbFacadeTest {
@@ -421,6 +426,7 @@ public class ExternalDbFacadeTest {
 
             try (Cursor cursor = queryAllMedia(facade)) {
                 assertThat(cursor.getCount()).isEqualTo(2);
+                assertCursorExtras(cursor);
 
                 cursor.moveToFirst();
                 assertMediaColumns(facade, cursor, ID1, DATE_TAKEN_MS2);
@@ -432,6 +438,7 @@ public class ExternalDbFacadeTest {
             try (Cursor cursor = facade.queryMedia(GENERATION_MODIFIED1,
                             /* albumId */ null, /* mimeType */ null)) {
                 assertThat(cursor.getCount()).isEqualTo(1);
+                assertCursorExtras(cursor, EXTRA_SYNC_GENERATION);
 
                 cursor.moveToFirst();
                 assertMediaColumns(facade, cursor, ID2, DATE_TAKEN_MS1);
@@ -537,44 +544,34 @@ public class ExternalDbFacadeTest {
             initMediaInAllAlbums(helper);
 
             try (Cursor cursor = queryAllMedia(facade)) {
-                assertThat(cursor.getCount()).isEqualTo(5);
+                assertThat(cursor.getCount()).isEqualTo(3);
             }
 
-            try (Cursor cursor = facade.queryMedia(/* generation */ 0,
+            try (Cursor cursor = facade.queryMedia(/* generation */ -1,
                             ALBUM_ID_CAMERA, /* mimeType */ null)) {
                 assertThat(cursor.getCount()).isEqualTo(1);
+                assertCursorExtras(cursor, EXTRA_ALBUM_ID);
 
                 cursor.moveToFirst();
                 assertMediaColumns(facade, cursor, ID1, DATE_TAKEN_MS1);
             }
 
-            try (Cursor cursor = facade.queryMedia(/* generation */ 0,
+            try (Cursor cursor = facade.queryMedia(/* generation */ -1,
                             ALBUM_ID_SCREENSHOTS, /* mimeType */ null)) {
                 assertThat(cursor.getCount()).isEqualTo(1);
+                assertCursorExtras(cursor, EXTRA_ALBUM_ID);
 
                 cursor.moveToFirst();
                 assertMediaColumns(facade, cursor, ID2, DATE_TAKEN_MS2);
             }
 
-            try (Cursor cursor = facade.queryMedia(/* generation */ 0,
+            try (Cursor cursor = facade.queryMedia(/* generation */ -1,
                             ALBUM_ID_DOWNLOADS, /* mimeType */ null)) {
                 assertThat(cursor.getCount()).isEqualTo(1);
+                assertCursorExtras(cursor, EXTRA_ALBUM_ID);
 
                 cursor.moveToFirst();
                 assertMediaColumns(facade, cursor, ID3, DATE_TAKEN_MS3);
-            }
-
-            try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            ALBUM_ID_VIDEOS, /* mimeType */ null)) {
-                assertThat(cursor.getCount()).isEqualTo(2);
-
-                cursor.moveToFirst();
-                assertMediaColumns(facade, cursor, ID5, DATE_TAKEN_MS5, /* isFavorite */ 0,
-                        VIDEO_MIME_TYPE);
-
-                cursor.moveToNext();
-                assertMediaColumns(facade, cursor, ID4, DATE_TAKEN_MS4, /* isFavorite */ 0,
-                        VIDEO_MIME_TYPE);
             }
         }
     }
@@ -699,14 +696,14 @@ public class ExternalDbFacadeTest {
             initMediaInAllAlbums(helper);
 
             try (Cursor cursor = queryAllMedia(facade)) {
-                assertThat(cursor.getCount()).isEqualTo(5);
+                assertThat(cursor.getCount()).isEqualTo(3);
             }
 
             try (Cursor cursor = facade.queryAlbums(/* mimeType */ null)) {
-                assertThat(cursor.getCount()).isEqualTo(4);
+                assertThat(cursor.getCount()).isEqualTo(3);
 
                 // We verify the order of the albums:
-                // Camera, Videos, Screenshots and Downloads
+                // Camera, Screenshots and Downloads
                 cursor.moveToNext();
                 assertAlbumColumns(facade,
                         cursor,
@@ -714,14 +711,6 @@ public class ExternalDbFacadeTest {
                         /* mediaCoverId */ "1",
                         DATE_TAKEN_MS1,
                         /* count */ 1);
-
-                cursor.moveToNext();
-                assertAlbumColumns(facade,
-                        cursor,
-                        ALBUM_ID_VIDEOS,
-                        /* mediaCoverId */ "5",
-                        DATE_TAKEN_MS5,
-                        /* count */ 2);
 
                 cursor.moveToNext();
                 assertAlbumColumns(facade,
@@ -758,14 +747,8 @@ public class ExternalDbFacadeTest {
             cv2.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_VIDEO);
             helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv2));
 
-            // Insert video in video ablum
-            ContentValues cv3 = getContentValues(DATE_TAKEN_MS4, GENERATION_MODIFIED4);
-            cv3.put(FileColumns.MIME_TYPE, VIDEO_MIME_TYPE);
-            cv3.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_VIDEO);
-            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv3));
-
             try (Cursor cursor = queryAllMedia(facade)) {
-                assertThat(cursor.getCount()).isEqualTo(3);
+                assertThat(cursor.getCount()).isEqualTo(2);
             }
 
             try (Cursor cursor = facade.queryAlbums(IMAGE_MIME_TYPE)) {
@@ -785,12 +768,11 @@ public class ExternalDbFacadeTest {
 
     @Test
     public void testOrderOfLocalAlbumIds() {
-        // Camera, Videos, ScreenShots, Downloads
+        // Camera, ScreenShots, Downloads
         assertThat(ExternalDbFacade.LOCAL_ALBUM_IDS[0]).isEqualTo(ALBUM_ID_CAMERA);
-        assertThat(ExternalDbFacade.LOCAL_ALBUM_IDS[1]).isEqualTo(ALBUM_ID_VIDEOS);
-        assertThat(ExternalDbFacade.LOCAL_ALBUM_IDS[2])
+        assertThat(ExternalDbFacade.LOCAL_ALBUM_IDS[1])
                 .isEqualTo(ALBUM_ID_SCREENSHOTS);
-        assertThat(ExternalDbFacade.LOCAL_ALBUM_IDS[3])
+        assertThat(ExternalDbFacade.LOCAL_ALBUM_IDS[2])
                 .isEqualTo(ALBUM_ID_DOWNLOADS);
     }
 
@@ -809,18 +791,6 @@ public class ExternalDbFacadeTest {
         ContentValues cv3 = getContentValues(DATE_TAKEN_MS3, GENERATION_MODIFIED3);
         cv3.put(MediaColumns.IS_DOWNLOAD, 1);
         helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv3));
-
-        // Insert in video ablum
-        ContentValues cv4 = getContentValues(DATE_TAKEN_MS4, GENERATION_MODIFIED4);
-        cv4.put(FileColumns.MIME_TYPE, VIDEO_MIME_TYPE);
-        cv4.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_VIDEO);
-        helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv4));
-
-        // Insert again in video ablum
-        ContentValues cv5 = getContentValues(DATE_TAKEN_MS5, GENERATION_MODIFIED5);
-        cv5.put(FileColumns.MIME_TYPE, VIDEO_MIME_TYPE);
-        cv5.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_VIDEO);
-        helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv5));
     }
 
     private static void assertDeletedMediaEmpty(ExternalDbFacade facade) {
@@ -871,6 +841,17 @@ public class ExternalDbFacadeTest {
         assertThat(cursor.getInt(isFavoriteIndex)).isEqualTo(isFavorite);
     }
 
+    private static void assertCursorExtras(Cursor cursor, String... honoredArg) {
+        final Bundle bundle = cursor.getExtras();
+
+        assertThat(bundle.getString(EXTRA_MEDIA_COLLECTION_ID))
+                .isEqualTo(MediaStore.getVersion(sIsolatedContext));
+        if (honoredArg != null) {
+            assertThat(bundle.getStringArrayList(EXTRA_HONORED_ARGS))
+                    .containsExactlyElementsIn(Arrays.asList(honoredArg));
+        }
+    }
+
     private static void assertAlbumColumns(ExternalDbFacade facade, Cursor cursor,
             String displayName, String mediaCoverId, long dateTakenMs, long count) {
         int displayNameIndex = cursor.getColumnIndex(
@@ -895,7 +876,7 @@ public class ExternalDbFacadeTest {
     }
 
     private static Cursor queryAllMedia(ExternalDbFacade facade) {
-        return facade.queryMedia(/* generation */ 0, /* albumId */ null,
+        return facade.queryMedia(/* generation */ -1, /* albumId */ null,
                 /* mimeType */ null);
     }
 

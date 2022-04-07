@@ -615,6 +615,9 @@ public class MediaProvider extends ContentProvider {
                     String pkg = uri != null ? uri.getSchemeSpecificPart() : null;
                     if (pkg != null) {
                         invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
+                        if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
+                            mPickerSyncController.notifyPackageRemoval(pkg);
+                        }
                     } else {
                         Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());
                     }
@@ -5895,9 +5898,8 @@ public class MediaProvider extends ContentProvider {
     private int deleteWithOtherUriGrants(@NonNull Uri uri, DatabaseHelper helper,
             String[] projection, String userWhere, String[] userWhereArgs,
             @Nullable Bundle extras) {
-        try {
-            Cursor c = queryForSingleItemAsMediaProvider(uri, projection, userWhere, userWhereArgs,
-                    null);
+        try (Cursor c = queryForSingleItemAsMediaProvider(uri, projection, userWhere, userWhereArgs,
+                    null)) {
             final int mediaType = c.getInt(0);
             final String data = c.getString(1);
             final long id = c.getLong(2);
@@ -9998,7 +10000,8 @@ public class MediaProvider extends ContentProvider {
             boolean volumeAttached = false;
             UserHandle user = mCallingIdentity.get().getUser();
             for (MediaVolume vol : mAttachedVolumes) {
-                if (vol.getName().equals(volumeName) && vol.isVisibleToUser(user)) {
+                if (vol.getName().equals(volumeName)
+                        && (vol.isVisibleToUser(user) || vol.isPublicVolume()) ) {
                     volumeAttached = true;
                     break;
                 }

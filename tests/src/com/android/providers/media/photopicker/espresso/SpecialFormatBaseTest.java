@@ -60,26 +60,29 @@ public class SpecialFormatBaseTest extends PhotoPickerBaseTest {
     /**
      * The position of the gif item in the grid on the Photos tab
      */
-    protected static final int GIF_POSITION = 4;
+    protected static final int GIF_POSITION = 1;
 
     /**
      * The position of the animated webp item in the grid on the Photos tab
      */
-    protected static final int ANIMATED_WEBP_POSITION = 5;
+    protected static final int ANIMATED_WEBP_POSITION = 2;
 
     /**
      * The position of the motion photo item in the grid on the Photos tab
      */
-    protected static final int MOTION_PHOTO_POSITION = 6;
+    protected static final int MOTION_PHOTO_POSITION = 3;
 
     /**
      * The position of the non-animated webp item in the grid on the Photos tab
      */
-    protected static final int NON_ANIMATED_WEBP_POSITION = 7;
+    protected static final int NON_ANIMATED_WEBP_POSITION = 4;
 
     @BeforeClass
     public static void setupClass() throws Exception {
         PhotoPickerBaseTest.setupClass();
+        // Reduce the number of files for this test. This is to reduce the dependency on other
+        // PhotoPicker components. We don't need to swipe up bottomsheet to view more files.
+        deleteFiles(/* invalidateMediaStore */ true);
         createSpecialFormatFiles();
     }
 

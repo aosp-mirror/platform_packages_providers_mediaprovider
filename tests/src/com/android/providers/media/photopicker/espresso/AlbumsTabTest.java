@@ -31,6 +31,7 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewTestU
 
 import static org.hamcrest.Matchers.allOf;
 
+import androidx.test.InstrumentationRegistry;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
@@ -52,19 +53,22 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
     @Test
     public void testAlbumGrid() {
         // Goto Albums page
-        onView(allOf(withText(R.string.picker_albums), withParent(withId(R.id.chip_container))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
 
         // Verify that toolbar has correct components
-        onView(withId(CHIP_CONTAINER_ID)).check(matches((isDisplayed())));
-        // Photos chip
-        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(withId(TAB_LAYOUT_ID)).check(matches((isDisplayed())));
+        // Photos tab
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .check(matches((isDisplayed())));
-        // Albums chip
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        // Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .check(matches((isDisplayed())));
-        // Navigate up button
-        onView(withContentDescription("Navigate up")).check(matches((isDisplayed())));
+        // Cancel button
+        final String cancelString =
+                InstrumentationRegistry.getTargetContext().getResources().getString(
+                        android.R.string.cancel);
+        onView(withContentDescription(cancelString)).check(matches((isDisplayed())));
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -73,9 +77,9 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
                 .check(new RecyclerViewItemCountAssertion(expectedAlbumCount));
 
         // First album is Camera
-        assertItemContentInAlbumList(/* position */ 0, R.string.picker_category_camera);
+        assertItemContentInAlbumList(/* position */ 0, R.string.picker_category_videos);
         // Second album is Videos
-        assertItemContentInAlbumList(/* position */ 1, R.string.picker_category_videos);
+        assertItemContentInAlbumList(/* position */ 1, R.string.picker_category_camera);
         // Third album is Downloads
         assertItemContentInAlbumList(/* position */ 2, R.string.picker_category_downloads);
 

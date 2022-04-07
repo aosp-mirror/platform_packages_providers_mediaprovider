@@ -23,6 +23,9 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -30,6 +33,7 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -38,7 +42,6 @@ import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
-import com.android.providers.media.util.ForegroundThread;
 
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
@@ -49,17 +52,23 @@ import java.util.Locale;
  * The base abstract Tab fragment
  */
 public abstract class TabFragment extends Fragment {
+
     protected PickerViewModel mPickerViewModel;
     protected Selection mSelection;
     protected ImageLoader mImageLoader;
     protected AutoFitRecyclerView mRecyclerView;
 
-    private int mBottomBarSize;
     private ExtendedFloatingActionButton mProfileButton;
     private UserIdManager mUserIdManager;
     private boolean mHideProfileButton;
     private View mEmptyView;
     private TextView mEmptyTextView;
+    private boolean mIsAccessibilityEnabled;
+
+    private Button mAddButton;
+    private View mBottomBar;
+    private Animation mSlideUpAnimation;
+    private Animation mSlideDownAnimation;
 
     @ColorInt
     private int mButtonIconAndTextColor;
@@ -85,7 +94,8 @@ public abstract class TabFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        mImageLoader = new ImageLoader(getContext());
+        final Context context = getContext();
+        mImageLoader = new ImageLoader(context);
         mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
         mRecyclerView.setHasFixedSize(true);
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
@@ -94,58 +104,115 @@ public abstract class TabFragment extends Fragment {
         mEmptyView = view.findViewById(android.R.id.empty);
         mEmptyTextView = mEmptyView.findViewById(R.id.empty_text_view);
 
-        mButtonDisabledIconAndTextColor = getContext().getColor(
-                R.color.picker_profile_disabled_button_content_color);
-        mButtonDisabledBackgroundColor = getContext().getColor(
-                R.color.picker_profile_disabled_button_background_color);
+        final int[] attrsDisabled =
+                new int[]{R.attr.pickerDisabledProfileButtonColor,
+                        R.attr.pickerDisabledProfileButtonTextColor};
+        final TypedArray taDisabled = context.obtainStyledAttributes(attrsDisabled);
+        mButtonDisabledBackgroundColor = taDisabled.getColor(/* index */ 0, /* defValue */ -1);
+        mButtonDisabledIconAndTextColor = taDisabled.getColor(/* index */ 1, /* defValue */ -1);
+        taDisabled.recycle();
 
         final int[] attrs =
                 new int[]{R.attr.pickerProfileButtonColor, R.attr.pickerProfileButtonTextColor};
-        final TypedArray ta = getContext().obtainStyledAttributes(attrs);
+        final TypedArray ta = context.obtainStyledAttributes(attrs);
         mButtonBackgroundColor = ta.getColor(/* index */ 0, /* defValue */ -1);
         mButtonIconAndTextColor = ta.getColor(/* index */ 1, /* defValue */ -1);
         ta.recycle();
 
-        mProfileButton = view.findViewById(R.id.profile_button);
+        mProfileButton = getActivity().findViewById(R.id.profile_button);
         mUserIdManager = mPickerViewModel.getUserIdManager();
 
         final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
-            final Button addButton = view.findViewById(R.id.button_add);
-            addButton.setOnClickListener(v -> {
+            mAddButton = getActivity().findViewById(R.id.button_add);
+            mAddButton.setOnClickListener(v -> {
                 ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
             });
 
-            final Button viewSelectedButton = view.findViewById(R.id.button_view_selected);
+            final Button viewSelectedButton = getActivity().findViewById(R.id.button_view_selected);
             // Transition to PreviewFragment on clicking "View Selected".
             viewSelectedButton.setOnClickListener(v -> {
                 mSelection.prepareSelectedItemsForPreviewAll();
                 PreviewFragment.show(getActivity().getSupportFragmentManager(),
                         PreviewFragment.getArgsForPreviewOnViewSelected());
             });
-            mBottomBarSize = (int) getResources().getDimension(R.dimen.picker_bottom_bar_size);
+
+            // Get bottom bar, size, and load animations for bottom bar
+            final int bottomBarSize = (int) getResources().getDimension(
+                    R.dimen.picker_bottom_bar_size);
+            mBottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
+            mSlideUpAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_up);
+            mSlideDownAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_down);
 
             mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
-                final View bottomBar = view.findViewById(R.id.picker_bottom_bar);
-                int dimen = 0;
-                if (selectedItemListSize == 0) {
-                    bottomBar.setVisibility(View.GONE);
-                } else {
-                    bottomBar.setVisibility(View.VISIBLE);
-                    addButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
-                    dimen = getBottomGapForRecyclerView(mBottomBarSize);
-                }
-                mRecyclerView.setPadding(0, 0, 0, dimen);
+                updateVisibilityAndAnimateBottomBar(selectedItemListSize);
+
+                final int bottomGap = selectedItemListSize == 0 ? 0 : getBottomGapForRecyclerView(
+                        bottomBarSize);
+                mRecyclerView.setPadding(0, 0, 0, bottomGap);
 
                 updateProfileButtonVisibility();
             });
         }
 
+        // Initial setup
+        setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
+
+        // Observe for cross profile access changes.
+        final LiveData<Boolean> crossProfileAllowed = mUserIdManager.getCrossProfileAllowed();
+        if (crossProfileAllowed != null) {
+            crossProfileAllowed.observe(this, isCrossProfileAllowed -> {
+                setUpProfileButton();
+            });
+        }
+
+        // Observe for multi-user changes.
+        final LiveData<Boolean> isMultiUserProfiles = mUserIdManager.getIsMultiUserProfiles();
+        if (isMultiUserProfiles != null) {
+            isMultiUserProfiles.observe(this, this::setUpProfileButtonWithListeners);
+        }
+
+        final AccessibilityManager accessibilityManager =
+                context.getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
+        accessibilityManager.addAccessibilityStateChangeListener(enabled -> {
+            mIsAccessibilityEnabled = enabled;
+            updateProfileButtonVisibility();
+        });
+    }
+
+    private void updateVisibilityAndAnimateBottomBar(int selectedItemListSize) {
+        if (!mSelection.canSelectMultiple()) {
+            return;
+        }
+
+        if (selectedItemListSize == 0) {
+            if (mBottomBar.getVisibility() == View.VISIBLE) {
+                mBottomBar.setVisibility(View.GONE);
+                mBottomBar.startAnimation(mSlideDownAnimation);
+            }
+        } else {
+            if (mBottomBar.getVisibility() == View.GONE) {
+                mBottomBar.setVisibility(View.VISIBLE);
+                mBottomBar.startAnimation(mSlideUpAnimation);
+            }
+            mAddButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
+        }
+    }
+
+    private void setUpListenersForProfileButton() {
         mProfileButton.setOnClickListener(v -> onClickProfileButton());
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
+
+                // Do not change profile button visibility on scroll if Accessibility mode is
+                // enabled. This is done to enhance button visibility in Accessibility mode.
+                if (mIsAccessibilityEnabled) {
+                    return;
+                }
+
                 if (dy > 0) {
                     mProfileButton.hide();
                 } else {
@@ -156,12 +223,6 @@ public abstract class TabFragment extends Fragment {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        updateProfileButtonAsync();
-    }
-
-    @Override
     public void onDestroy() {
         super.onDestroy();
         if (mRecyclerView != null) {
@@ -169,12 +230,13 @@ public abstract class TabFragment extends Fragment {
         }
     }
 
-    private void updateProfileButtonAsync() {
-        ForegroundThread.getExecutor().execute(() -> {
-            mUserIdManager.updateCrossProfileValues();
-
-            getActivity().runOnUiThread(() -> setUpProfileButton());
-        });
+    private void setUpProfileButtonWithListeners(boolean isMultiUserProfile) {
+        if (isMultiUserProfile) {
+            setUpListenersForProfileButton();
+        } else {
+            mRecyclerView.clearOnScrollListeners();
+        }
+        setUpProfileButton();
     }
 
     private void setUpProfileButton() {

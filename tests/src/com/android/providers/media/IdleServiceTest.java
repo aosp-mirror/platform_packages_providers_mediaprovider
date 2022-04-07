@@ -23,6 +23,7 @@ import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 import static android.provider.MediaStore.MediaColumns.DATE_EXPIRES;
 import static android.provider.MediaStore.MediaColumns.DISPLAY_NAME;
+import static android.provider.MediaStore.MediaColumns.GENERATION_MODIFIED;
 import static android.provider.MediaStore.MediaColumns.RELATIVE_PATH;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -225,11 +226,13 @@ public class IdleServiceTest {
         file.createNewFile();
 
         try {
-            final String[] projection = new String[]{_SPECIAL_FORMAT};
+            final String[] projection = new String[]{_SPECIAL_FORMAT, GENERATION_MODIFIED};
+            final int initialGenerationModified;
             try (Cursor cr = resolver.query(uri, projection, null, null, null)) {
                 assertThat(cr.getCount()).isEqualTo(1);
                 assertThat(cr.moveToFirst()).isNotNull();
                 assertThat(cr.isNull(0)).isTrue();
+                initialGenerationModified = cr.getInt(1);
             }
 
             // We are not calling runIdleMaintenance as it also scans volumes.
@@ -243,6 +246,9 @@ public class IdleServiceTest {
                 assertThat(cr.getCount()).isEqualTo(1);
                 assertThat(cr.moveToFirst()).isNotNull();
                 assertThat(cr.getInt(0)).isEqualTo(_SPECIAL_FORMAT_NONE);
+                // Make sure updating special format column updates GENERATION_MODIFIED;
+                // This is essential for picker db to know which rows were modified.
+                assertThat(cr.getInt(1)).isGreaterThan(initialGenerationModified);
             }
         } finally {
             file.delete();

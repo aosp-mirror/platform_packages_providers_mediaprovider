@@ -29,7 +29,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.FrameLayout.LayoutParams;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -40,6 +39,7 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
@@ -72,6 +72,7 @@ public class PreviewFragment extends Fragment {
     private ViewPager2Wrapper mViewPager2Wrapper;
     private boolean mShouldShowGifBadge;
     private boolean mShouldShowMotionPhotoBadge;
+    private MuteStatus mMuteStatus;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -99,19 +100,24 @@ public class PreviewFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
             Bundle savedInstanceState) {
-        mSelection = new ViewModelProvider(requireActivity())
-                .get(PickerViewModel.class).getSelection();
+        mSelection = new ViewModelProvider(requireActivity()).get(PickerViewModel.class)
+                .getSelection();
+        mMuteStatus = new ViewModelProvider(requireActivity()).get(PickerViewModel.class)
+                .getMuteStatus();
         return inflater.inflate(R.layout.fragment_preview, parent, /* attachToRoot */ false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        // Set the pane title for A11y.
+        view.setAccessibilityPaneTitle(getString(R.string.picker_preview));
         final List<Item> selectedItemsList = mSelection.getSelectedItemsForPreview();
         final int selectedItemsListSize = selectedItemsList.size();
 
         if (selectedItemsListSize <= 0) {
-            // This should never happen.
-            throw new IllegalStateException("No items to preview");
+            // This can happen if we lost PickerViewModel to optimize memory.
+            Log.e(TAG, "No items to preview. Returning back to photo grid");
+            requireActivity().getSupportFragmentManager().popBackStack();
         } else if (selectedItemsListSize > 1 && !mSelection.canSelectMultiple()) {
             // This should never happen
             throw new IllegalStateException("Found more than one preview items in single select"
@@ -124,7 +130,7 @@ public class PreviewFragment extends Fragment {
             throw new IllegalStateException("Expected to find ViewPager2 in " + view
                     + ", but found null");
         }
-        mViewPager2Wrapper = new ViewPager2Wrapper(viewPager, selectedItemsList);
+        mViewPager2Wrapper = new ViewPager2Wrapper(viewPager, selectedItemsList, mMuteStatus);
 
         setUpPreviewLayout(view, getArguments());
         setupScrimLayerAndBottomBar(view);
@@ -196,8 +202,7 @@ public class PreviewFragment extends Fragment {
             // we can always use position=0 as current position.
             updateSelectButtonText(addOrSelectButton,
                     mSelection.isItemSelected(mViewPager2Wrapper.getItemAt(/* position */ 0)));
-            addOrSelectButton.setOnClickListener(
-                    v -> onClickSelect(addOrSelectButton, /* shouldUpdateButtonState */ false));
+            addOrSelectButton.setOnClickListener(v -> onClickSelectButton(addOrSelectButton));
         }
 
         // Set the appropriate special format icon based on the item in the preview
@@ -220,19 +225,19 @@ public class PreviewFragment extends Fragment {
             ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
         });
 
-        final Button selectButton = view.findViewById(R.id.preview_select_check_button);
-        selectButton.setVisibility(View.VISIBLE);
+        final Button selectedCheckButton = view.findViewById(R.id.preview_selected_check_button);
+        selectedCheckButton.setVisibility(View.VISIBLE);
         // Update the select icon and text according to the state of selection while swiping
         // between photos
-        mViewPager2Wrapper.addOnPageChangeCallback(new OnPageChangeCallback(selectButton));
+        mViewPager2Wrapper.addOnPageChangeCallback(new OnPageChangeCallback(selectedCheckButton));
 
         // Update add button text to include number of items selected.
         mSelection.getSelectedItemCount().observe(this, selectedItemCount -> {
             viewSelectedAddButton.setText(generateAddButtonString(getContext(), selectedItemCount));
         });
 
-        selectButton.setOnClickListener(
-                v -> onClickSelect(selectButton, /* shouldUpdateButtonState */ true));
+        selectedCheckButton.setOnClickListener(
+                v -> onClickSelectedCheckButton(selectedCheckButton));
     }
 
     @Override
@@ -269,7 +274,17 @@ public class PreviewFragment extends Fragment {
         }
     }
 
-    private void onClickSelect(@NonNull Button selectButton, boolean shouldUpdateButtonState) {
+    private void onClickSelectButton(@NonNull Button selectButton) {
+        final boolean isSelectedNow = updateSelectionAndGetState();
+        updateSelectButtonText(selectButton, isSelectedNow);
+    }
+
+    private void onClickSelectedCheckButton(@NonNull Button selectedCheckButton) {
+        final boolean isSelectedNow = updateSelectionAndGetState();
+        updateSelectedCheckButtonStateAndText(selectedCheckButton, isSelectedNow);
+    }
+
+    private boolean updateSelectionAndGetState() {
         final Item currentItem = mViewPager2Wrapper.getCurrentItem();
         final boolean wasSelectedBefore = mSelection.isItemSelected(currentItem);
 
@@ -287,19 +302,14 @@ public class PreviewFragment extends Fragment {
         // wasSelectedBefore = false. And item will be added to selected items. Now, user can only
         // deselect the item. Hence, isSelectedNow is opposite of previous state,
         // i.e., isSelectedNow = true.
-        final boolean isSelectedNow = !wasSelectedBefore;
-        if (shouldUpdateButtonState) {
-            updateSelectButtonStateAndText(selectButton, isSelectedNow);
-        } else {
-            updateSelectButtonText(selectButton, isSelectedNow);
-        }
+        return !wasSelectedBefore;
     }
 
     private class OnPageChangeCallback extends ViewPager2.OnPageChangeCallback {
-        private final Button mSelectButton;
+        private final Button mSelectedCheckButton;
 
-        public OnPageChangeCallback(@NonNull Button selectButton) {
-            mSelectButton = selectButton;
+        public OnPageChangeCallback(@NonNull Button selectedCheckButton) {
+            mSelectedCheckButton = selectedCheckButton;
         }
 
         @Override
@@ -310,25 +320,27 @@ public class PreviewFragment extends Fragment {
             final Item item = mViewPager2Wrapper.getItemAt(position);
             // Set the appropriate select/deselect state for each item in each page based on the
             // selection list.
-            updateSelectButtonStateAndText(mSelectButton, mSelection.isItemSelected(item));
+            updateSelectedCheckButtonStateAndText(mSelectedCheckButton,
+                    mSelection.isItemSelected(item));
 
             // Set the appropriate special format icon based on the item in the preview
             updateSpecialFormatIcon(item);
         }
     }
 
-    private static void updateSelectButtonStateAndText(@NonNull Button selectButton,
+    private static void updateSelectButtonText(@NonNull Button selectButton,
             boolean isSelected) {
-        selectButton.setSelected(isSelected);
-        updateSelectButtonText(selectButton, isSelected);
-    }
-
-    private static void updateSelectButtonText(@NonNull Button selectButton, boolean isSelected) {
         selectButton.setText(isSelected ? R.string.deselect : R.string.select);
     }
 
+    private static void updateSelectedCheckButtonStateAndText(@NonNull Button selectedCheckButton,
+            boolean isSelected) {
+        selectedCheckButton.setText(isSelected ? R.string.selected : R.string.deselected);
+        selectedCheckButton.setSelected(isSelected);
+    }
+
     private void updateSpecialFormatIcon(Item item) {
-        mShouldShowGifBadge = item.isGif();
+        mShouldShowGifBadge = item.isGifOrAnimatedWebp();
         mShouldShowMotionPhotoBadge = item.isMotionPhoto();
         // Invalidating options menu calls onPrepareOptionsMenu() where the logic for
         // hiding/showing menu items is placed.

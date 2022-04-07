@@ -25,6 +25,8 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
+import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
+import static android.provider.CloudMediaProviderContract.METHOD_GET_ASYNC_CONTENT_PROVIDER;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
@@ -41,6 +43,7 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
+import static android.provider.MediaStore.VOLUME_EXTERNAL;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
@@ -171,13 +174,14 @@ import android.os.storage.StorageManager;
 import android.os.storage.StorageManager.StorageVolumeCallback;
 import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
+import android.provider.AsyncContentProvider;
 import android.provider.BaseColumns;
-import android.provider.CloudMediaProviderContract;
 import android.provider.Column;
 import android.provider.DeviceConfig;
 import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.DocumentsContract;
 import android.provider.ExportedSince;
+import android.provider.IAsyncContentProvider;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.AudioColumns;
@@ -200,6 +204,7 @@ import android.util.ArraySet;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.LongSparseArray;
+import android.util.Pair;
 import android.util.Size;
 import android.util.SparseArray;
 import android.webkit.MimeTypeMap;
@@ -211,8 +216,8 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.BackgroundThread;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
@@ -222,6 +227,7 @@ import com.android.providers.media.photopicker.PickerDataLayer;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
@@ -268,12 +274,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
@@ -355,6 +364,13 @@ public class MediaProvider extends ContentProvider {
     private static final int MATCH_VISIBLE_FOR_FILEPATH = 32;
 
     private static final int NON_HIDDEN_CACHE_SIZE = 50;
+
+    /**
+     * This is required as idle maintenance maybe stopped anytime; we do not want to query
+     * and accumulate values to update for a long time, instead we want to batch query and update
+     * by a limited number.
+     */
+    private static final int IDLE_MAINTENANCE_ROWS_LIMIT = 1000;
 
     /**
      * Where clause to match pending files from FUSE. Pending files from FUSE will not have
@@ -599,6 +615,9 @@ public class MediaProvider extends ContentProvider {
                     String pkg = uri != null ? uri.getSchemeSpecificPart() : null;
                     if (pkg != null) {
                         invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
+                        if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
+                            mPickerSyncController.notifyPackageRemoval(pkg);
+                        }
                     } else {
                         Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());
                     }
@@ -606,6 +625,32 @@ public class MediaProvider extends ContentProvider {
             }
         }
     };
+
+    private BroadcastReceiver mUserIntentReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getAction()) {
+                case Intent.ACTION_USER_REMOVED:
+                    /**
+                     * Removing media files for user being deleted. This would impact if the deleted
+                     * user have been using same MediaProvider as the current user i.e. when
+                     * isMediaSharedWithParent is true.On removal of such user profile,
+                     * the owner's MediaProvider would need to clean any media files stored
+                     * by the removed user profile.
+                     */
+                    UserHandle userToBeRemoved  = intent.getParcelableExtra(Intent.EXTRA_USER);
+                    if(userToBeRemoved.getIdentifier() != sUserId){
+                        mExternalDatabase.runWithTransaction((db) -> {
+                            db.execSQL("delete from files where _user_id=?",
+                                    new String[]{String.valueOf(userToBeRemoved.getIdentifier())});
+                            return null ;
+                        });
+                    }
+                    break;
+            }
+        }
+    };
+
 
     private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
         synchronized (mCachedCallingIdentityForFuse) {
@@ -976,8 +1021,8 @@ public class MediaProvider extends ContentProvider {
                 MIGRATION_LISTENER, mIdGenerator);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase);
         mPickerDbFacade = new PickerDbFacade(context);
-        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade);
         mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
+        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade);
 
         if (SdkLevel.isAtLeastS()) {
@@ -995,6 +1040,12 @@ public class MediaProvider extends ContentProvider {
         packageFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
         packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         context.registerReceiver(mPackageReceiver, packageFilter);
+
+        // Creating intent broadcast receiver for user actions like Intent.ACTION_USER_REMOVED,
+        // where we would need to remove files stored by removed user.
+        final IntentFilter userIntentFilter = new IntentFilter();
+        userIntentFilter.addAction(Intent.ACTION_USER_REMOVED);
+        context.registerReceiver(mUserIntentReceiver, userIntentFilter);
 
         // Watch for invalidation of cached volumes
         mStorageManager.registerStorageVolumeCallback(context.getMainExecutor(),
@@ -1086,8 +1137,9 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.set(token);
     }
 
-    private boolean isPackageKnown(@NonNull String packageName) {
-        final PackageManager pm = getContext().getPackageManager();
+    private boolean isPackageKnown(@NonNull String packageName, int userId) {
+        final Context context = mUserCache.getContextForUser(UserHandle.of(userId));
+        final PackageManager pm = context.getPackageManager();
 
         // First, is the app actually installed?
         try {
@@ -1109,7 +1161,6 @@ public class MediaProvider extends ContentProvider {
 
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
         final long startTime = SystemClock.elapsedRealtime();
-
         // Trim any stale log files before we emit new events below
         Logging.trimPersistent();
 
@@ -1149,34 +1200,77 @@ public class MediaProvider extends ContentProvider {
         // Forget any stale volumes
         deleteStaleVolumes(signal);
 
-        // Populate _SPECIAL_FORMAT column for files which have column value as NULL
-        detectSpecialFormat(signal);
-
         final long itemCount = mExternalDatabase.runWithTransaction((db) -> {
             return DatabaseHelper.getItemCount(db);
         });
+
+        // Cleaning media files for users that have been removed
+        cleanMediaFilesForRemovedUser(signal);
+
+        // Populate _SPECIAL_FORMAT column for files which have column value as NULL
+        detectSpecialFormat(signal);
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
                 durationMillis, staleThumbnails, deletedExpiredMedia);
     }
 
+    /**
+     * This function find and clean the files related to user who have been removed
+     */
+    private void cleanMediaFilesForRemovedUser(CancellationSignal signal) {
+        //Finding userIds that are available in database
+        final List<String> userIds = mExternalDatabase.runWithTransaction((db) -> {
+            final List<String> userIdsPresent = new ArrayList<>();
+            try (Cursor c = db.query(true, "files", new String[] { "_user_id" },
+                    null, null, null, null, null,
+                    null, signal)) {
+                while (c.moveToNext()) {
+                    final String userId = c.getString(0);
+                    userIdsPresent.add(userId);
+                }
+            }
+            return userIdsPresent;
+        });
+
+        //removing calling userId
+        userIds.remove(String.valueOf(sUserId));
+        //removing all the valid/existing user, remaining userIds would be users who would have been
+        //removed
+        userIds.removeAll(mUserManager.getEnabledProfiles().stream()
+                .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
+                        Collectors.toList()));
+
+        // Cleaning media files of users who have been removed
+        mExternalDatabase.runWithTransaction((db) -> {
+            userIds.stream().forEach(userId ->{
+                Log.d(TAG, "Removing media files associated with user : " + userId);
+                db.execSQL("delete from files where _user_id=?",
+                        new String[]{String.valueOf(userId)});
+            });
+            return null ;
+        });
+    }
+
     private void pruneStalePackages(CancellationSignal signal) {
         final int stalePackages = mExternalDatabase.runWithTransaction((db) -> {
-            final ArraySet<String> unknownPackages = new ArraySet<>();
-            try (Cursor c = db.query(true, "files", new String[] { "owner_package_name" },
+            final ArraySet<Pair<String, Integer>> unknownPackages = new ArraySet<>();
+            try (Cursor c = db.query(true, "files",
+                    new String[] { "owner_package_name", "_user_id" },
                     null, null, null, null, null, null, signal)) {
                 while (c.moveToNext()) {
                     final String packageName = c.getString(0);
                     if (TextUtils.isEmpty(packageName)) continue;
 
-                    if (!isPackageKnown(packageName)) {
-                        unknownPackages.add(packageName);
+                    final int userId = c.getInt(1);
+
+                    if (!isPackageKnown(packageName, userId)) {
+                        unknownPackages.add(Pair.create(packageName, userId));
                     }
                 }
             }
-            for (String packageName : unknownPackages) {
-                onPackageOrphaned(db, packageName);
+            for (Pair<String, Integer> pair : unknownPackages) {
+                onPackageOrphaned(db, pair.first, pair.second);
             }
             return unknownPackages.size();
         });
@@ -1225,49 +1319,86 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void updateSpecialFormatColumn(SQLiteDatabase db, @NonNull CancellationSignal signal) {
-        try (Cursor c = queryForPendingSpecialFormatColumns(db, signal)) {
-            while (c.moveToNext() && !signal.isCanceled()) {
-                final long id = c.getLong(0);
-                final String path = c.getString(1);
-                final ContentValues contentValues = getContentValuesForSpecialFormat(path);
-                if (contentValues == null) {
-                    continue;
-                }
-                final String whereClause = MediaColumns._ID + "=?";
-                final String[] whereArgs = new String[]{String.valueOf(id)};
-                db.update("files", contentValues, whereClause, whereArgs);
-            }
+        // This is to ensure we only do a bounded iteration over the rows as updates can fail, and
+        // we don't want to keep running the query/update indefinitely.
+        final int totalRowsToUpdate = getPendingSpecialFormatRowsCount(db,signal);
+        for (int i = 0 ; i < totalRowsToUpdate ; i += IDLE_MAINTENANCE_ROWS_LIMIT) {
+            updateSpecialFormatForLimitedRows(db, signal);
         }
     }
 
-    private ContentValues getContentValuesForSpecialFormat(String path) {
-        ContentValues contentValues = new ContentValues();
+    private int getPendingSpecialFormatRowsCount(SQLiteDatabase db,
+            @NonNull CancellationSignal signal) {
+        try (Cursor c = queryForPendingSpecialFormatColumns(db, /* limit */ null, signal)) {
+            if (c == null) {
+                return 0;
+            }
+            return c.getCount();
+        }
+    }
+
+    private void updateSpecialFormatForLimitedRows(SQLiteDatabase db,
+            @NonNull CancellationSignal signal) {
+        final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE, FILES,
+                Files.getContentUri(VOLUME_EXTERNAL), Bundle.EMPTY, null);
+        // Accumulate all the new SPECIAL_FORMAT updates with their ids
+        ArrayMap<Long, Integer> newSpecialFormatValues = new ArrayMap<>();
+        final String limit = String.valueOf(IDLE_MAINTENANCE_ROWS_LIMIT);
+        try (Cursor c = queryForPendingSpecialFormatColumns(db, limit, signal)) {
+            while (c.moveToNext() && !signal.isCanceled()) {
+                final long id = c.getLong(0);
+                final String path = c.getString(1);
+                newSpecialFormatValues.put(id, getSpecialFormatValue(path));
+            }
+        }
+
+        // Now, update all the new SPECIAL_FORMAT values.
+        final ContentValues values = new ContentValues();
+        int count = 0;
+        for (long id: newSpecialFormatValues.keySet()) {
+            if (signal.isCanceled()) {
+                return;
+            }
+
+            values.clear();
+            values.put(_SPECIAL_FORMAT, newSpecialFormatValues.get(id));
+            final String selection = MediaColumns._ID + "=?";
+            final String[] selectionArgs = new String[]{String.valueOf(id)};
+            if (qbForUpdate.update(db, values, selection, selectionArgs) == 1) {
+                count++;
+            } else {
+                Log.e(TAG, "Unable to update _SPECIAL_FORMAT for id = " + id);
+            }
+        }
+        Log.d(TAG, "Updated _SPECIAL_FORMAT for " + count + " items");
+    }
+
+    private int getSpecialFormatValue(String path) {
         final File file = new File(path);
         if (!file.exists()) {
-            // Ignore if the file does not exist. This may happen if a file was
-            // inserted and then not opened, or if a file was deleted but db is not
-            // updated yet.
-            return null;
+            // We always update special format to none if the file is not found or there is an
+            // error, this is so that we do not repeat over the same column again and again.
+            return _SPECIAL_FORMAT_NONE;
         }
+
         try {
-            contentValues.put(_SPECIAL_FORMAT, SpecialFormatDetector.detect(file));
+            return SpecialFormatDetector.detect(file);
         } catch (Exception e) {
             // we tried our best, no need to run special detection again and again if it
             // throws exception once, it is likely to do so everytime.
             Log.d(TAG, "Failed to detect special format for file: " + file, e);
-            contentValues.put(_SPECIAL_FORMAT, _SPECIAL_FORMAT_NONE);
+            return _SPECIAL_FORMAT_NONE;
         }
-        return contentValues;
     }
 
-    private Cursor queryForPendingSpecialFormatColumns(SQLiteDatabase db,
+    private Cursor queryForPendingSpecialFormatColumns(SQLiteDatabase db, String limit,
             @NonNull CancellationSignal signal) {
         // Run special detection for images only
         final String selection = _SPECIAL_FORMAT + " IS NULL AND "
                 + MEDIA_TYPE + "=" + MEDIA_TYPE_IMAGE;
         final String[] projection = new String[] { MediaColumns._ID, MediaColumns.DATA };
         return db.query(/* distinct */ true, "files", projection, selection, null, null, null,
-                null, null, signal);
+                null, limit, signal);
     }
 
     /**
@@ -1411,33 +1542,62 @@ public class MediaProvider extends ContentProvider {
      * Orphan any content of the given package. This will delete Android/media orphaned files from
      * the database.
      */
-    public void onPackageOrphaned(String packageName) {
+    public void onPackageOrphaned(String packageName, int uid) {
         mExternalDatabase.runWithTransaction((db) -> {
-            onPackageOrphaned(db, packageName);
+            final int userId = uid / PER_USER_RANGE;
+            onPackageOrphaned(db, packageName, userId);
             return null;
         });
     }
 
     /**
      * Orphan any content of the given package from the given database. This will delete
-     * Android/media orphaned files from the database.
+     * Android/media files from the database if the underlying file no longe exists.
      */
-    public void onPackageOrphaned(@NonNull SQLiteDatabase db, @NonNull String packageName) {
-        // Delete files from Android/media.
-        String relativePath = "Android/media/" + DatabaseUtils.escapeForLike(packageName) + "/%";
-        final int countDeleted = db.delete(
-                "files",
-                "relative_path LIKE ? ESCAPE '\\' AND owner_package_name=?",
-                new String[] {relativePath, packageName});
-        Log.d(TAG, "Deleted " + countDeleted + " Android/media items belonging to "
-                + packageName + " on " + db.getPath());
+    public void onPackageOrphaned(@NonNull SQLiteDatabase db,
+            @NonNull String packageName, int userId) {
+        // Delete Android/media entries.
+        deleteAndroidMediaEntries(db, packageName, userId);
+        // Orphan rest of entries.
+        orphanEntries(db, packageName, userId);
+    }
 
-        // Orphan rest of files.
+    private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
+        String relativePath = "Android/media/" + DatabaseUtils.escapeForLike(packageName) + "/%";
+        try (Cursor cursor = db.query(
+                "files",
+                new String[] { MediaColumns._ID, MediaColumns.DATA },
+                "relative_path LIKE ? ESCAPE '\\' AND owner_package_name=? AND _user_id=?",
+                new String[] { relativePath, packageName, "" + userId },
+                /* groupBy= */ null,
+                /* having= */ null,
+                /* orderBy= */null,
+                /* limit= */ null)) {
+            int countDeleted = 0;
+            if (cursor != null) {
+                while (cursor.moveToNext()) {
+                    File file = new File(cursor.getString(1));
+                    // We check for existence to be sure we don't delete files that still exist.
+                    // This can happen even if the pair (package, userid) is unknown,
+                    // since some framework implementations may rely on special userids.
+                    if (!file.exists()) {
+                        countDeleted +=
+                                db.delete("files", "_id=?", new String[]{cursor.getString(0)});
+                    }
+                }
+            }
+            Log.d(TAG, "Deleted " + countDeleted + " Android/media items belonging to "
+                    + packageName + " on " + db.getPath());
+        }
+    }
+
+    private void orphanEntries(
+            @NonNull SQLiteDatabase db, @NonNull String packageName, int userId) {
         final ContentValues values = new ContentValues();
         values.putNull(FileColumns.OWNER_PACKAGE_NAME);
 
         final int countOrphaned = db.update("files", values,
-                "owner_package_name=?", new String[] { packageName });
+                "owner_package_name=? AND _user_id=?", new String[] { packageName, "" + userId });
         if (countOrphaned > 0) {
             Log.d(TAG, "Orphaned " + countOrphaned + " items belonging to "
                     + packageName + " on " + db.getPath());
@@ -1716,7 +1876,7 @@ public class MediaProvider extends ContentProvider {
                 extractSyntheticRelativePathSegements(path, userId);
         final int segmentCount = syntheticRelativePathSegments.size();
 
-        if (segmentCount < 1 || segmentCount > 4) {
+        if (segmentCount < 1 || segmentCount > 5) {
             throw new IllegalStateException("Unexpected synthetic picker path: " + file);
         }
 
@@ -1731,19 +1891,30 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             case 2:
-                // .../picker/<authority>
-                result = preparePickerAuthorityPathSegment(file, lastSegment, uid);
+                // .../picker/<user-id>
+                try {
+                    Integer.parseInt(lastSegment);
+                    result = file.exists() || file.mkdir();
+                } catch (NumberFormatException e) {
+                    Log.w(TAG, "Invalid user id for picker file lookup: " + lastSegment
+                            + ". File: " + file);
+                }
                 break;
             case 3:
-                // .../picker/<authority>/media
+                // .../picker/<user-id>/<authority>
+                result = preparePickerAuthorityPathSegment(file, lastSegment, uid);
+                break;
+            case 4:
+                // .../picker/<user-id>/<authority>/media
                 if (lastSegment.equals("media")) {
                     result = file.exists() || file.mkdir();
                 }
                 break;
-            case 4:
-                // .../picker/<authority>/media/<media-id.extension>
-                final String authority = syntheticRelativePathSegments.get(1);
-                result = preparePickerMediaIdPathSegment(file, authority, lastSegment);
+            case 5:
+                // .../picker/<user-id>/<authority>/media/<media-id.extension>
+                final String fileUserId = syntheticRelativePathSegments.get(1);
+                final String authority = syntheticRelativePathSegments.get(2);
+                result = preparePickerMediaIdPathSegment(file, authority, lastSegment, fileUserId);
                 break;
         }
 
@@ -1755,17 +1926,17 @@ public class MediaProvider extends ContentProvider {
 
     private FileOpenResult handlePickerFileOpen(String path, int uid) {
         final String[] segments = path.split("/");
-        if (segments.length != 10) {
+        if (segments.length != 11) {
             Log.e(TAG, "Picker file open failed. Unexpected segments: " + path);
             return new FileOpenResult(OsConstants.ENOENT /* status */, uid, /* transformsUid */ 0,
                     new long[0]);
         }
 
-        // ['', 'storage', 'emulated', '0', 'transforms', 'synthetic', 'picker', '<host>',
-        // 'media', '<fileName>']
-        final String userId = segments[3];
-        final String fileName = segments[9];
-        final String host = segments[7];
+        // ['', 'storage', 'emulated', '0', 'transforms', 'synthetic', 'picker', '<user-id>',
+        // '<host>', 'media', '<fileName>']
+        final String userId = segments[7];
+        final String fileName = segments[10];
+        final String host = segments[8];
         final String authority = userId + "@" + host;
         final int lastDotIndex = fileName.lastIndexOf('.');
 
@@ -1777,11 +1948,21 @@ public class MediaProvider extends ContentProvider {
         final String mediaId = fileName.substring(0, lastDotIndex);
         final Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
 
+        IBinder binder = getContext().getContentResolver()
+                .call(uri, METHOD_GET_ASYNC_CONTENT_PROVIDER, null, null)
+                .getBinder(EXTRA_ASYNC_CONTENT_PROVIDER);
+        if (binder == null) {
+            Log.e(TAG, "Picker file open failed. No cloud media provider found.");
+            return FileOpenResult.createError(OsConstants.ENOENT, uid);
+        }
+        IAsyncContentProvider iAsyncContentProvider = IAsyncContentProvider.Stub.asInterface(
+                binder);
+        AsyncContentProvider asyncContentProvider = new AsyncContentProvider(iAsyncContentProvider);
         final ParcelFileDescriptor pfd;
         try {
-            pfd = getContext().getContentResolver().openFile(uri, "r",
-                    /* cancellationSignal */ null);
-        } catch (IOException e) {
+            pfd = asyncContentProvider.openMedia(uri, "r");
+        } catch (FileNotFoundException | ExecutionException | InterruptedException
+                | TimeoutException | RemoteException e) {
             Log.e(TAG, "Picker file open failed. Failed to open URI: " + uri, e);
             return FileOpenResult.createError(OsConstants.ENOENT, uid);
         }
@@ -1799,17 +1980,21 @@ public class MediaProvider extends ContentProvider {
 
     private boolean preparePickerAuthorityPathSegment(File file, String authority, int uid) {
         if (mPickerSyncController.isProviderEnabled(authority)) {
-            return file.mkdir();
+            return file.exists() || file.mkdir();
         }
 
         return false;
     }
 
-    private boolean preparePickerMediaIdPathSegment(File file, String authority, String fileName) {
+    private boolean preparePickerMediaIdPathSegment(File file, String authority, String fileName,
+            String userId) {
         final String mediaId = extractFileName(fileName);
+        final String[] projection = new String[] { MediaStore.PickerMediaColumns.SIZE };
 
-        try (Cursor cursor = mPickerDbFacade.queryMediaIdForApps(authority, mediaId,
-                        new String[] { MediaStore.PickerMediaColumns.SIZE })) {
+        final Uri uri = Uri.parse("content://media/picker/" + userId + "/" + authority + "/media/"
+                + mediaId);
+        try (Cursor cursor =  mPickerUriResolver.query(uri, projection, /* callingUid */0,
+                android.os.Process.myUid())) {
             if (cursor != null && cursor.moveToFirst()) {
                 final int sizeBytesIdx = cursor.getColumnIndex(MediaStore.PickerMediaColumns.SIZE);
 
@@ -3002,8 +3187,8 @@ public class MediaProvider extends ContentProvider {
     private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal, boolean forSelf) throws FallbackException {
         if (isPickerUri(uri)) {
-            return mPickerUriResolver.query(uri, projection, queryArgs, signal,
-                    mCallingIdentity.get().pid, mCallingIdentity.get().uid);
+            return mPickerUriResolver.query(uri, projection, mCallingIdentity.get().pid,
+                    mCallingIdentity.get().uid);
         }
 
         final String volumeName = getVolumeName(uri);
@@ -5713,9 +5898,8 @@ public class MediaProvider extends ContentProvider {
     private int deleteWithOtherUriGrants(@NonNull Uri uri, DatabaseHelper helper,
             String[] projection, String userWhere, String[] userWhereArgs,
             @Nullable Bundle extras) {
-        try {
-            Cursor c = queryForSingleItemAsMediaProvider(uri, projection, userWhere, userWhereArgs,
-                    null);
+        try (Cursor c = queryForSingleItemAsMediaProvider(uri, projection, userWhere, userWhereArgs,
+                    null)) {
             final int mediaType = c.getInt(0);
             final String data = c.getString(1);
             final long id = c.getLong(2);
@@ -5884,7 +6068,7 @@ public class MediaProvider extends ContentProvider {
                 // Syncing the picker while waiting for idle fixes tests with the picker db
                 // flag enabled because the picker db is in a consistent state with the external
                 // db after the sync
-                syncPicker();
+                syncAllMedia();
                 ForegroundThread.waitForIdle();
                 final CountDownLatch latch = new CountDownLatch(1);
                 BackgroundThread.getExecutor().execute(() -> {
@@ -6083,19 +6267,28 @@ public class MediaProvider extends ContentProvider {
                 // fall through
             }
             case MediaStore.SYNC_PROVIDERS_CALL: {
-                syncPicker();
+                syncAllMedia();
                 return new Bundle();
             }
-            case MediaStore.GET_CLOUD_PROVIDER_CALL: {
-                final String cloudProvider = mPickerSyncController.getCloudProvider();
+            case MediaStore.IS_SUPPORTED_CLOUD_PROVIDER_CALL: {
+                final boolean isSupported = mPickerSyncController.isProviderSupported(arg,
+                        Binder.getCallingUid());
 
                 Bundle bundle = new Bundle();
-                bundle.putString(MediaStore.EXTRA_CLOUD_PROVIDER, cloudProvider);
+                bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT, isSupported);
                 return bundle;
             }
-            case MediaStore.NOTIFY_CLOUD_EVENT_CALL: {
+            case MediaStore.IS_CURRENT_CLOUD_PROVIDER_CALL: {
+                final boolean isEnabled = mPickerSyncController.isProviderEnabled(arg,
+                        Binder.getCallingUid());
+
+                Bundle bundle = new Bundle();
+                bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT, isEnabled);
+                return bundle;
+            }
+            case MediaStore.NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL: {
                 final boolean notifyCloudEventResult;
-                if (mPickerSyncController.isProviderEnabled(Binder.getCallingUid())) {
+                if (mPickerSyncController.isProviderEnabled(arg, Binder.getCallingUid())) {
                     mPickerSyncController.notifyMediaEvent();
                     notifyCloudEventResult = true;
                 } else {
@@ -6103,7 +6296,7 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 Bundle bundle = new Bundle();
-                bundle.putBoolean(MediaStore.EXTRA_NOTIFY_CLOUD_EVENT_RESULT,
+                bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT,
                         notifyCloudEventResult);
                 return bundle;
             }
@@ -6112,14 +6305,14 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void syncPicker() {
+    private void syncAllMedia() {
         // Clear the binder calling identity so that we can sync the unexported
         // local_provider while running as MediaProvider
         final long t = Binder.clearCallingIdentity();
         try {
             // TODO(b/190713331): Remove after initial development
             Log.v(TAG, "Developer initiated provider sync");
-            mPickerSyncController.syncPicker();
+            mPickerSyncController.syncAllMedia();
         } finally {
             Binder.restoreCallingIdentity(t);
         }
@@ -6143,18 +6336,22 @@ public class MediaProvider extends ContentProvider {
             }
 
             FuseDaemon fuseDaemon = getFuseDaemonForFile(file);
-            String outputPath = fuseDaemon.getOriginalMediaFormatFilePath(inputPfd);
-            if (TextUtils.isEmpty(outputPath)) {
+            int uid = Binder.getCallingUid();
+
+            FdAccessResult result = fuseDaemon.checkFdAccess(inputPfd, uid);
+            if (!result.isSuccess()) {
                 throw new FileNotFoundException("Invalid path for original media format file");
             }
+
+            String outputPath = result.filePath;
+            boolean shouldRedact = result.shouldRedact;
 
             int posixMode = Os.fcntlInt(inputPfd.getFileDescriptor(), F_GETFL,
                     0 /* args */);
             int modeBits = FileUtils.translateModePosixToPfd(posixMode);
-            int uid = Binder.getCallingUid();
 
             ParcelFileDescriptor pfd = openWithFuse(outputPath, uid, 0 /* mediaCapabilitiesUid */,
-                    modeBits, true /* shouldRedact */, false /* shouldTranscode */,
+                    modeBits, shouldRedact, false /* shouldTranscode */,
                     0 /* transcodeReason */);
             return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
         } catch (IOException e) {
@@ -7599,7 +7796,16 @@ public class MediaProvider extends ContentProvider {
 
     private AssetFileDescriptor openTypedAssetFileCommon(Uri uri, String mimeTypeFilter,
             Bundle opts, CancellationSignal signal) throws FileNotFoundException {
-        uri = safeUncanonicalize(uri);
+        final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
+                && StringUtils.startsWithIgnoreCase(mimeTypeFilter, "image/");
+        String mode = "r";
+
+        // If request is not for thumbnail and arising from MediaProvider, then check for EXTRA_MODE
+        if (opts != null && !wantsThumb && isCallingPackageSelf()) {
+            mode = opts.getString(MediaStore.EXTRA_MODE, "r");
+        } else if (opts != null) {
+            opts.remove(MediaStore.EXTRA_MODE);
+        }
 
         if (opts != null && opts.containsKey(MediaStore.EXTRA_FILE_DESCRIPTOR)) {
             // This is called as part of MediaStore#getOriginalMediaFormatFileDescriptor
@@ -7627,15 +7833,13 @@ public class MediaProvider extends ContentProvider {
         // TODO: enforce that caller has access to this uri
 
         // Offer thumbnail of media, when requested
-        final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
-                && StringUtils.startsWithIgnoreCase(mimeTypeFilter, "image/");
         if (wantsThumb) {
             final ParcelFileDescriptor pfd = ensureThumbnail(uri, signal);
             return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
         }
 
         // Worst case, return the underlying file
-        return new AssetFileDescriptor(openFileCommon(uri, "r", signal, opts), 0,
+        return new AssetFileDescriptor(openFileCommon(uri, mode, signal, opts), 0,
                 AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 
@@ -9558,12 +9762,15 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int table = matchUri(uri, allowHidden);
 
+        final String selection = extras.getString(QUERY_ARG_SQL_SELECTION);
+        final String[] selectionArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
+
         // First, check to see if caller has direct write access
         if (forWrite) {
             final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, table, uri, extras, null);
             qb.allowColumn(SQLiteQueryBuilder.ROWID_COLUMN);
             try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
-                    null, null, null, null, null, null, null)) {
+                    selection, selectionArgs, null, null, null, null, null)) {
                 if (c.moveToFirst()) {
                     // Direct write access granted, yay!
                     return;
@@ -9587,7 +9794,7 @@ public class MediaProvider extends ContentProvider {
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, extras, null);
         qb.allowColumn(SQLiteQueryBuilder.ROWID_COLUMN);
         try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
-                null, null, null, null, null, null, null)) {
+                selection, selectionArgs, null, null, null, null, null)) {
             if (c.moveToFirst()) {
                 if (!forWrite) {
                     // Direct read access granted, yay!
@@ -9793,7 +10000,8 @@ public class MediaProvider extends ContentProvider {
             boolean volumeAttached = false;
             UserHandle user = mCallingIdentity.get().getUser();
             for (MediaVolume vol : mAttachedVolumes) {
-                if (vol.getName().equals(volumeName) && vol.isVisibleToUser(user)) {
+                if (vol.getName().equals(volumeName)
+                        && (vol.isVisibleToUser(user) || vol.isPublicVolume()) ) {
                     volumeAttached = true;
                     break;
                 }

@@ -1723,7 +1723,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_S = 1209;
     // Leave some gaps in database version tagging to allow S schema changes
     // to go independent of T schema changes.
-    static final int VERSION_T = 1306;
+    static final int VERSION_T = 1307;
     public static final int VERSION_LATEST = VERSION_T;
 
     /**
@@ -1915,6 +1915,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1306) {
                 // Empty version bump to ensure views are recreated
+            }
+            if (fromVersion < 1307) {
+                // This is to ensure Animated Webp files are tagged
+                updateSpecialFormatToNotDetected(db);
             }
 
             // If this is the legacy database, it's not worth recomputing data

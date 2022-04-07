@@ -23,6 +23,8 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.os.Bundle;
+import android.os.Parcelable;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -33,13 +35,16 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.android.internal.logging.InstanceId;
+import com.android.internal.logging.InstanceIdSequence;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Category.CategoryType;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.util.ForegroundThread;
 
@@ -53,8 +58,11 @@ public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
 
     private static final int RECENT_MINIMUM_COUNT = 12;
- 
+
+    private static final int INSTANCE_ID_MAX = 1 << 15;
+
     private final Selection mSelection;
+    private final MuteStatus mMuteStatus;
 
     // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
     // data set to reduce memories.
@@ -68,6 +76,9 @@ public class PickerViewModel extends AndroidViewModel {
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
 
+    private InstanceId mInstanceId;
+    private PhotoPickerUiEventLogger mLogger;
+
     private String mMimeTypeFilter = null;
     private int mBottomSheetState;
 
@@ -77,6 +88,9 @@ public class PickerViewModel extends AndroidViewModel {
         mItemsProvider = new ItemsProvider(context);
         mSelection = new Selection();
         mUserIdManager = UserIdManager.create(context);
+        mMuteStatus = new MuteStatus();
+        mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
+        mLogger = new PhotoPickerUiEventLogger();
     }
 
     @VisibleForTesting
@@ -103,6 +117,27 @@ public class PickerViewModel extends AndroidViewModel {
         return mSelection;
     }
 
+
+    /**
+     * @return {@code mMuteStatus} that tracks the volume mute status of the video preview
+     */
+    public MuteStatus getMuteStatus() {
+        return mMuteStatus;
+    }
+
+    /**
+     * Reset to personal profile mode.
+     */
+    public void resetToPersonalProfile() {
+        // 1. Clear Selected items
+        mSelection.clearSelectedItems();
+        // 2. Change profile to personal user
+        mUserIdManager.setPersonalAsCurrentUserProfile();
+        // 3. Update Item and Category lists
+        updateItems();
+        updateCategories();
+    }
+
     /**
      * @return the list of Items with all photos and videos {@link #mItemList} on the device.
      */
@@ -113,9 +148,8 @@ public class PickerViewModel extends AndroidViewModel {
         return mItemList;
     }
 
-    private List<Item> loadItems(@Nullable @CategoryType String category) {
+    private List<Item> loadItems(Category category, UserId userId) {
         final List<Item> items = new ArrayList<>();
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
 
         try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
                 /* limit */ -1, mMimeTypeFilter, userId)) {
@@ -128,7 +162,7 @@ public class PickerViewModel extends AndroidViewModel {
             // We only add the RECENT header on the PhotosTabFragment with CATEGORY_DEFAULT. In this
             // case, we call this method {loadItems} with null category. When the category is not
             // empty, we don't show the RECENT header.
-            final boolean showRecent = TextUtils.isEmpty(category);
+            final boolean showRecent = category.isDefault();
 
             int recentSize = 0;
             long currentDateTaken = 0;
@@ -158,18 +192,15 @@ public class PickerViewModel extends AndroidViewModel {
             }
         }
 
-        if (TextUtils.isEmpty(category)) {
-            Log.d(TAG, "Loaded " + items.size() + " items for user " + userId.toString());
-        } else {
-            Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
-                    + userId.toString());
-        }
+        Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
+                + userId.toString());
         return items;
     }
 
     private void loadItemsAsync() {
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mItemList.postValue(loadItems(/* category= */ null));
+                    mItemList.postValue(loadItems(Category.DEFAULT, userId));
         });
     }
 
@@ -190,21 +221,22 @@ public class PickerViewModel extends AndroidViewModel {
      * @return the list of all photos and videos with the specific {@code category}
      *         {@link #mCategoryItemList}
      */
-    public LiveData<List<Item>> getCategoryItems(@NonNull @CategoryType String category) {
+    public LiveData<List<Item>> getCategoryItems(@NonNull Category category) {
         updateCategoryItems(category);
         return mCategoryItemList;
     }
 
-    private void loadCategoryItemsAsync(@NonNull @CategoryType String category) {
+    private void loadCategoryItemsAsync(@NonNull Category category) {
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mCategoryItemList.postValue(loadItems(category));
+            mCategoryItemList.postValue(loadItems(category, userId));
         });
     }
 
     /**
      * Update the item List with the {@code category} {@link #mCategoryItemList}
      */
-    public void updateCategoryItems(@NonNull @CategoryType String category) {
+    public void updateCategoryItems(@NonNull Category category) {
         if (mCategoryItemList == null) {
             mCategoryItemList = new MutableLiveData<>();
         }
@@ -221,9 +253,8 @@ public class PickerViewModel extends AndroidViewModel {
         return mCategoryList;
     }
 
-    private List<Category> loadCategories() {
+    private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
@@ -243,8 +274,9 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private void loadCategoriesAsync() {
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mCategoryList.postValue(loadCategories());
+            mCategoryList.postValue(loadCategories(userId));
         });
     }
 
@@ -295,5 +327,21 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public int getBottomSheetState() {
         return mBottomSheetState;
+    }
+
+    public void logPickerOpened(String callingPackage) {
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerOpenWork(mInstanceId, callingPackage);
+        } else {
+            mLogger.logPickerOpenPersonal(mInstanceId, callingPackage);
+        }
+    }
+
+    public InstanceId getInstanceId() {
+        return mInstanceId;
+    }
+
+    public void setInstanceId(InstanceId parcelable) {
+        mInstanceId = parcelable;
     }
 }

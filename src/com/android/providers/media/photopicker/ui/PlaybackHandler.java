@@ -24,6 +24,7 @@ import android.view.View;
 import android.widget.ImageView;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import com.google.android.exoplayer2.ui.StyledPlayerView;
@@ -39,11 +40,9 @@ class PlaybackHandler {
     // with lock while reading or writing to it.
     private Uri mVideoUri = null;
     private final ExoPlayerWrapper mExoPlayerWrapper;
-    private final ImageLoader mImageLoader;
 
-    PlaybackHandler(Context context, ImageLoader imageLoader) {
-        mExoPlayerWrapper = new ExoPlayerWrapper(context);
-        mImageLoader = imageLoader;
+    PlaybackHandler(Context context, MuteStatus muteStatus) {
+        mExoPlayerWrapper = new ExoPlayerWrapper(context, muteStatus);
     }
 
     /**
@@ -70,8 +69,9 @@ class PlaybackHandler {
         final Item item = (Item) tag;
         if (!item.isVideo()) {
             // We only need to handle video playback. For everything else, try releasing ExoPlayer
-            // if there is a prepared ExoPlayer of the previous page.
-            mExoPlayerWrapper.releaseIfNecessary();
+            // if there is a prepared ExoPlayer of the previous page, also reset any player states
+            // when necessary.
+            mExoPlayerWrapper.resetPlayerIfNecessary();
             mVideoUri = null;
             return;
         }
@@ -95,23 +95,13 @@ class PlaybackHandler {
         mExoPlayerWrapper.prepareAndPlay(styledPlayerView, imageView, mVideoUri);
     }
 
-    public void onBind(View itemView) {
-        final Item item = (Item) itemView.getTag();
-        // We set the ImageView with image from the video. ImageView is needed to improve the user
-        // experience while video player is not yet initialized or being prepared.
-        final ImageView imageView = itemView.findViewById(R.id.preview_video_image);
-        mImageLoader.loadImageFromVideoForPreview(item, imageView);
-
-        // Video playback needs granular page state events and hence video playback is initiated by
-        // ViewPagerWrapper and handled by PlaybackHandler#handleVideoPlayback
-    }
-
     public void onViewAttachedToWindow(View itemView) {
         final ImageView imageView = itemView.findViewById(R.id.preview_video_image);
-        final StyledPlayerView styledPlayerView = itemView.findViewById(R.id.preview_player_view);
-
         imageView.setVisibility(View.VISIBLE);
+        final StyledPlayerView styledPlayerView = itemView.findViewById(R.id.preview_player_view);
         styledPlayerView.setVisibility(View.GONE);
+        styledPlayerView.setControllerVisibilityListener(null);
+        styledPlayerView.hideController();
     }
 
     /**
@@ -121,7 +111,7 @@ class PlaybackHandler {
         assertMainThread();
 
         mVideoUri = null;
-        mExoPlayerWrapper.releaseIfNecessary();
+        mExoPlayerWrapper.resetPlayerIfNecessary();
     }
 
     private void assertMainThread() {

@@ -27,7 +27,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.storage.StorageVolume;
@@ -78,7 +77,8 @@ public class MediaService extends JobIntentService {
                 case Intent.ACTION_PACKAGE_FULLY_REMOVED:
                 case Intent.ACTION_PACKAGE_DATA_CLEARED: {
                     final String packageName = intent.getData().getSchemeSpecificPart();
-                    onPackageOrphaned(packageName);
+                    final int uid = intent.getIntExtra(Intent.EXTRA_UID, 0);
+                    onPackageOrphaned(packageName, uid);
                     break;
                 }
                 case Intent.ACTION_MEDIA_SCANNER_SCAN_FILE: {
@@ -117,10 +117,10 @@ public class MediaService extends JobIntentService {
         }
     }
 
-    private void onPackageOrphaned(String packageName) {
+    private void onPackageOrphaned(String packageName, int uid) {
         try (ContentProviderClient cpc = getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-            ((MediaProvider) cpc.getLocalContentProvider()).onPackageOrphaned(packageName);
+            ((MediaProvider) cpc.getLocalContentProvider()).onPackageOrphaned(packageName, uid);
         }
     }
 
@@ -150,6 +150,17 @@ public class MediaService extends JobIntentService {
     public static void onScanVolume(Context context, MediaVolume volume, int reason)
             throws IOException {
         final String volumeName = volume.getName();
+        if (volume.getPath() == null) {
+            /* This is a very unexpected state and can only ever happen with app-cloned users.
+              In general, MediaVolumes should always be mounted and have a path, however, if the
+              user failed to unlock properly, MediaProvider still gets the volume from the
+              StorageManagerService because MediaProvider is special cased there. See
+              StorageManagerService#getVolumeList. Reference bug: b/207723670. */
+            Log.w(TAG, String.format("Skipping volume scan for %s when volume path is null.",
+                    volumeName));
+            return;
+        }
+
         UserHandle owner = volume.getUser();
         if (owner == null) {
             // Can happen for the internal volume

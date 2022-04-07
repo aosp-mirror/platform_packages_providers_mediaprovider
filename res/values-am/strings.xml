@@ -39,7 +39,9 @@
     <string name="deny" msgid="6040983710442068936">"ከልክል"</string>
     <string name="add" msgid="2894574044585549298">"አክል"</string>
     <string name="deselect" msgid="4297825044827769490">"አትምረጥ"</string>
+    <string name="deselected" msgid="8488133193326208475">"አልተመረጠም"</string>
     <string name="select" msgid="2704765470563027689">"ምረጥ"</string>
+    <string name="selected" msgid="9151797369975828124">"ተመርጧል"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{እስከ <xliff:g id="COUNT_0">^1</xliff:g> ንጥል ድረስ ይምረጡ}one{እስከ <xliff:g id="COUNT_1">^1</xliff:g> ንጥል ድረስ ይምረጡ}other{እስከ <xliff:g id="COUNT_1">^1</xliff:g> ንጥሎች ድረስ ይምረጡ}}"</string>
     <string name="recent" msgid="6694613584743207874">"የቅርብ ጊዜ"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"ምንም ፎቶዎች ወይም ቪዲዮዎች የሉም"</string>
@@ -47,6 +49,8 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"የተመረጡትን አሳይ"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ፎቶዎች"</string>
     <string name="picker_albums" msgid="4822511902115299142">"አልበሞች"</string>
+    <!-- no translation found for picker_preview (6257414886055861039) -->
+    <skip />
     <string name="picker_work_profile" msgid="2083221066869141576">"ወደ የሥራ ቀይር"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ወደ የግል ቀይር"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"በእርስዎ አስተዳዳሪ ታግዷል"</string>
@@ -54,6 +58,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"የግል ውሂብን ከሥራ መተግበሪያ መድረስ አይፈቀድም"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"የስራ መተግበሪያዎች ባሉበት ቆመዋል"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"የሥራ ፎቶዎችን ለመክፈት የሥራ መተግበሪያዎችዎን ያብሩ እና እንደገና ይሞክሩ"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"ይህ መተግበሪያ መድረስ የሚችለው እርስዎ የሚመርጧቸውን ፎቶዎች ብቻ ነው"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ንጥል}one{<xliff:g id="COUNT_1">^1</xliff:g> ንጥል}other{<xliff:g id="COUNT_1">^1</xliff:g> ንጥሎች}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) አክል"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"ካሜራ"</string>
@@ -63,6 +68,14 @@
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"የእንቅስቃሴ ፎቶ"</string>
+    <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> <xliff:g id="TIME">%2$s</xliff:g> ላይ ተነስቷል"</string>
+    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
+    <skip />
+    <string name="picker_photo" msgid="1739342083494962153">"ፎቶ"</string>
+    <string name="picker_gif" msgid="8333318083107368726">"ጂአይኤፍ"</string>
+    <string name="picker_motion_photo" msgid="4385182195289546308">"የእንቅስቃሴ ፎቶ"</string>
+    <string name="picker_mute_video" msgid="2496585809229800096">"ቪዲዮ ላይ ድምፀ-ከል አድርግ"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"የቪዲዮን ድምፀ-ከል አንሣ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ይህን ኦዲዮ ፋይል እንዲቀይር ይፈቀድለት?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ኦዲዮ ፋይልን እንዲቀይር ይፈቀድለት?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ኦዲዮ ፋይሎችን እንዲቀይር ይፈቀድለት?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{የኦዲዮ ፋይልን በመቀየር ላይ…}one{<xliff:g id="COUNT">^1</xliff:g> የኦዲዮ ፋይልን በመቀየር ላይ…}other{<xliff:g id="COUNT">^1</xliff:g> የኦዲዮ ፋይሎችን በመቀየር ላይ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ይህን ቪዲዮ እንዲቀይር ይፈቀድለት?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ቪዲዮን እንዲቀይር ይፈቀድለት?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ቪዲዮዎችን እንዲቀይር ይፈቀድለት?}}"</string>

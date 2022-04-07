@@ -26,76 +26,22 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotDisplayed;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
-import static com.android.providers.media.scan.MediaScannerTest.stage;
-import static com.google.common.truth.Truth.assertThat;
 
 import static org.hamcrest.Matchers.not;
 
-import android.net.Uri;
-import android.os.Environment;
-import android.provider.MediaStore;
-
-import androidx.test.InstrumentationRegistry;
-import androidx.test.espresso.Espresso;
-import androidx.test.espresso.IdlingRegistry;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.providers.media.R;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
-
-public class SpecialFormatSingleSelectTest extends PhotoPickerBaseTest {
-    private static final int ICON_GIF_ID = R.id.icon_gif;
-    private static final int ICON_MOTION_PHOTO_ID = R.id.icon_motion_photo;
-    private static final int VIDEO_CONTAINER_ID = R.id.video_container;
-    private static final int OVERLAY_GRADIENT_ID = R.id.overlay_gradient;
-    private static final int PREVIEW_GIF_ID = R.id.preview_gif;
-    private static final int PREVIEW_MOTION_PHOTO_ID = R.id.preview_motion_photo;
-
-    private static final File MOTION_PHOTO_FILE =
-            new File(Environment.getExternalStorageDirectory(),
-                    Environment.DIRECTORY_PICTURES
-                            + "/motionphoto_" + System.currentTimeMillis() + ".jpeg");
-    private static final File GIF_FILE = new File(Environment.getExternalStorageDirectory(),
-            Environment.DIRECTORY_DOWNLOADS + "/gif_" + System.currentTimeMillis() + ".gif");
-
-    /**
-     * The position of the gif item in the grid on the Photos tab
-     */
-    private static final int GIF_POSITION = 4;
-
-    /**
-     * The position of the video item in the grid on the Photos tab
-     */
-    private static final int MOTION_PHOTO_POSITION = 5;
+public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
 
     @Rule
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getSingleSelectionIntent());
-
-    @BeforeClass
-    public static void setupClass() throws Exception {
-        PhotoPickerBaseTest.setupClass();
-        createSpecialFormatFiles();
-    }
-
-    @AfterClass
-    public static void destroyClass() {
-        PhotoPickerBaseTest.destroyClass();
-        MOTION_PHOTO_FILE.delete();
-        GIF_FILE.delete();
-    }
-
-    protected static void createSpecialFormatFiles() throws Exception {
-        createFile(MOTION_PHOTO_FILE, R.raw.test_motion_photo);
-        createFile(GIF_FILE, R.raw.test_gif);
-    }
 
     @Test
     public void testPhotoGridLayout_motionPhoto() throws Exception {
@@ -109,9 +55,7 @@ public class SpecialFormatSingleSelectTest extends PhotoPickerBaseTest {
                 ICON_MOTION_PHOTO_ID);
 
         // Verify check icon, video icon and gif icon are not displayed
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_CHECK_ID);
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION,
-                VIDEO_CONTAINER_ID);
+        assertSingleSelectImageThumbnailCommonLayout(MOTION_PHOTO_POSITION);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_GIF_ID);
     }
 
@@ -126,9 +70,43 @@ public class SpecialFormatSingleSelectTest extends PhotoPickerBaseTest {
         assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_GIF_ID);
 
         // Verify check icon, video icon and motion photo icon are not displayed
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_CHECK_ID);
-        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, VIDEO_CONTAINER_ID);
+        assertSingleSelectImageThumbnailCommonLayout(GIF_POSITION);
         assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_MOTION_PHOTO_ID);
+    }
+
+    @Test
+    public void testPhotoGridLayout_animatedWebp() throws Exception {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Verify we have the animated webp thumbnail
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
+        // Verify gif icon is displayed for animated webp
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION,
+                OVERLAY_GRADIENT_ID);
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION, ICON_GIF_ID);
+
+        // Verify check icon, video icon and motion photo icon are not displayed
+        assertSingleSelectImageThumbnailCommonLayout(ANIMATED_WEBP_POSITION);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION,
+                ICON_MOTION_PHOTO_ID);
+    }
+
+    @Test
+    public void testPhotoGridLayout_nonAnimatedWebp() throws Exception {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Verify we have the non-animated webp thumbnail
+        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, NON_ANIMATED_WEBP_POSITION,
+                ICON_THUMBNAIL_ID);
+        // Verify gif icon is not displayed for non-animated webp
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, NON_ANIMATED_WEBP_POSITION,
+                OVERLAY_GRADIENT_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, NON_ANIMATED_WEBP_POSITION, ICON_GIF_ID);
+
+        // Verify check icon, video icon and motion photo icon are not displayed
+        assertSingleSelectImageThumbnailCommonLayout(NON_ANIMATED_WEBP_POSITION);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, NON_ANIMATED_WEBP_POSITION,
+                ICON_MOTION_PHOTO_ID);
     }
 
     @Test
@@ -138,13 +116,49 @@ public class SpecialFormatSingleSelectTest extends PhotoPickerBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Verify gif icon is displayed for gif preview
+            assertSingleSelectImagePreviewCommonLayout();
+            onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        }
+    }
 
-        // Verify gif icon is displayed for gif preview
-        assertSingleSelectCommonLayoutMatches();
-        onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+    @Test
+    public void testPreview_singleSelect_animatedWebp() throws Exception {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Navigate to preview
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
+
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Verify gif icon is displayed for animated preview
+            assertSingleSelectImagePreviewCommonLayout();
+            onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        }
+    }
+
+    @Test
+    @Ignore("Enable after b/222013536 is fixed")
+    public void testPreview_singleSelect_nonAnimatedWebp() throws Exception {
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // This is the 4th item which is on the second row
+        BottomSheetTestUtils.swipeUp(mRule);
+
+        // Navigate to preview
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, NON_ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
+
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Verify gif icon is not displayed for non-animated webp preview
+            assertSingleSelectImagePreviewCommonLayout();
+            onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+        }
     }
 
     @Test
@@ -154,32 +168,13 @@ public class SpecialFormatSingleSelectTest extends PhotoPickerBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
-
-        // Verify motion photo icon is displayed for motion photo preview
-        assertSingleSelectCommonLayoutMatches();
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(matches(isDisplayed()));
-        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
-        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
-    }
-
-    private static void createFile(File file, int resId) throws IOException {
-        File parentFile = file.getParentFile();
-        parentFile.mkdirs();
-
-        assertThat(parentFile.exists()).isTrue();
-        file = stage(resId, file);
-        assertThat(file.exists()).isTrue();
-
-        final Uri uri = MediaStore.scanFile(getIsolatedContext().getContentResolver(), file);
-        MediaStore.waitForIdle(getIsolatedContext().getContentResolver());
-        assertThat(uri).isNotNull();
-    }
-
-    private void registerIdlingResourceAndWaitForIdle() {
-        mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
-                new ViewPager2IdlingResource(activity.findViewById(R.id.preview_viewPager)))));
-        Espresso.onIdle();
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Verify motion photo icon is displayed for motion photo preview
+            assertSingleSelectImagePreviewCommonLayout();
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(matches(isDisplayed()));
+            onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+        }
     }
 
     private void assertSingleSelectCommonLayoutMatches() {
@@ -188,7 +183,17 @@ public class SpecialFormatSingleSelectTest extends PhotoPickerBaseTest {
         // Verify that the text in Add button
         onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.add)));
 
-        onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.preview_selected_check_button)).check(matches(not(isDisplayed())));
         onView(withId(R.id.preview_add_button)).check(matches(not(isDisplayed())));
+    }
+
+    private void assertSingleSelectImagePreviewCommonLayout() {
+        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+        assertSingleSelectCommonLayoutMatches();
+    }
+
+    private void assertSingleSelectImageThumbnailCommonLayout(int position) {
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_CHECK_ID);
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, VIDEO_CONTAINER_ID);
     }
 }

@@ -51,4 +51,13 @@
     <!-- The selected color of the view selected button and check icon -->
     <attr name="pickerSelectedColor" format="reference|color" />
 
+    <!-- Photo Picker Profile Dialog button and icon color. -->
+    <attr name="pickerProfileDialogButtonAndIconColor" format="reference|color" />
+
+    <!-- Photo Picker Profile Dialog title color. -->
+    <attr name="pickerProfileDialogTitleColor" format="reference|color" />
+
+    <!-- Photo Picker Profile Dialog body color. -->
+    <attr name="pickerProfileDialogBodyColor" format="reference|color" />
+
 </resources>

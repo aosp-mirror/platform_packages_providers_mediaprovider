@@ -43,7 +43,8 @@ public class AlbumsTabFragment extends TabFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
+        // Set the pane title for A11y.
+        view.setAccessibilityPaneTitle(getString(R.string.picker_albums));
         mBottomBarGap = getResources().getDimensionPixelSize(R.dimen.picker_album_bottom_bar_gap);
 
         setEmptyMessage(R.string.picker_albums_empty_message);

@@ -615,6 +615,9 @@ public class MediaProvider extends ContentProvider {
                     String pkg = uri != null ? uri.getSchemeSpecificPart() : null;
                     if (pkg != null) {
                         invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
+                        if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
+                            mPickerSyncController.notifyPackageRemoval(pkg);
+                        }
                     } else {
                         Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());
                     }
@@ -1018,8 +1021,8 @@ public class MediaProvider extends ContentProvider {
                 MIGRATION_LISTENER, mIdGenerator);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase);
         mPickerDbFacade = new PickerDbFacade(context);
-        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade);
         mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
+        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade);
 
         if (SdkLevel.isAtLeastS()) {
@@ -3239,10 +3242,6 @@ public class MediaProvider extends ContentProvider {
 
         // TODO(b/195008831): Add test to verify that apps can't access
         if (table == PICKER_INTERNAL_MEDIA) {
-            String albumId = queryArgs.getString(MediaStore.QUERY_ARG_ALBUM_ID);
-            if (!TextUtils.isEmpty(albumId) && !Category.CATEGORY_FAVORITES.equals(albumId)) {
-                mPickerSyncController.syncAlbumMedia(albumId);
-            }
             return mPickerDataLayer.fetchMedia(queryArgs);
         } else if (table == PICKER_INTERNAL_ALBUMS) {
             return mPickerDataLayer.fetchAlbums(queryArgs);
@@ -5899,9 +5898,8 @@ public class MediaProvider extends ContentProvider {
     private int deleteWithOtherUriGrants(@NonNull Uri uri, DatabaseHelper helper,
             String[] projection, String userWhere, String[] userWhereArgs,
             @Nullable Bundle extras) {
-        try {
-            Cursor c = queryForSingleItemAsMediaProvider(uri, projection, userWhere, userWhereArgs,
-                    null);
+        try (Cursor c = queryForSingleItemAsMediaProvider(uri, projection, userWhere, userWhereArgs,
+                    null)) {
             final int mediaType = c.getInt(0);
             final String data = c.getString(1);
             final long id = c.getLong(2);
@@ -10002,7 +10000,8 @@ public class MediaProvider extends ContentProvider {
             boolean volumeAttached = false;
             UserHandle user = mCallingIdentity.get().getUser();
             for (MediaVolume vol : mAttachedVolumes) {
-                if (vol.getName().equals(volumeName) && vol.isVisibleToUser(user)) {
+                if (vol.getName().equals(volumeName)
+                        && (vol.isVisibleToUser(user) || vol.isPublicVolume()) ) {
                     volumeAttached = true;
                     break;
                 }
@@ -10214,7 +10213,6 @@ public class MediaProvider extends ContentProvider {
     static final int PICKER_ID = 901;
     static final int PICKER_INTERNAL_MEDIA = 902;
     static final int PICKER_INTERNAL_ALBUMS = 903;
-    static final int PICKER_INTERNAL_SURFACE_CONTROLLER = 904;
     static final int PICKER_UNRELIABLE_VOLUME = 904;
 
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
@@ -10317,8 +10315,6 @@ public class MediaProvider extends ContentProvider {
 
             mHidden.addURI(auth, "picker_internal/media", PICKER_INTERNAL_MEDIA);
             mHidden.addURI(auth, "picker_internal/albums", PICKER_INTERNAL_ALBUMS);
-            mHidden.addURI(auth, "picker_internal/surface_controller",
-                    PICKER_INTERNAL_SURFACE_CONTROLLER);
             mHidden.addURI(auth, "*", VOLUMES_ID);
             mHidden.addURI(auth, null, VOLUMES);
 

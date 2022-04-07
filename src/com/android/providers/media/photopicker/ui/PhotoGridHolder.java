@@ -17,7 +17,6 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
-import android.text.format.DateUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -72,7 +71,7 @@ public class PhotoGridHolder extends BaseViewHolder {
 
         if (item.isVideo()) {
             mVideoBadgeContainer.setVisibility(View.VISIBLE);
-            mVideoDuration.setText(DateUtils.formatElapsedTime(item.getDuration() / 1000));
+            mVideoDuration.setText(item.getDurationText());
         } else {
             mVideoBadgeContainer.setVisibility(View.GONE);
         }

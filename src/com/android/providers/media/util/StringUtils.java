@@ -16,13 +16,14 @@
 
 package com.android.providers.media.util;
 
+import android.content.Context;
+import android.content.res.Resources;
+import android.content.res.Resources.NotFoundException;
 import android.icu.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-
-import android.content.res.Resources;
 
 import androidx.annotation.Nullable;
 
@@ -41,6 +42,14 @@ public class StringUtils {
     return msgFormat.format(arguments);
   }
 
+  public static String getStringConfig(Context context, int resId) {
+      final Resources res = context.getResources();
+      try {
+          return res.getString(resId);
+      } catch (NotFoundException e) {
+          return null;
+      }
+  }
 
   /**
    * Variant of {@link String#startsWith(String)} but which tests with

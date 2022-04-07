@@ -19,9 +19,9 @@ package android.provider;
 import android.os.Bundle;
 
 /**
- * Interface through which Photo Picker receives playback events from the CloudMediaProviders
+ * Interface through which Photo Picker receives playback state updates from the CloudMediaProviders
  * @hide
  */
-interface ICloudSurfaceEventCallback {
-    void onPlaybackEvent(int surfaceId, int eventType, in Bundle eventInfo);
+interface ICloudMediaSurfaceStateChangedCallback {
+    void setPlaybackState(int surfaceId, int playbackState, in Bundle playbackStateInfo);
 }

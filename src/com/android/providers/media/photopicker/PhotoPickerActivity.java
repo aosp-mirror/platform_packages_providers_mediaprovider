@@ -31,11 +31,8 @@ import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.os.Binder;
 import android.os.Bundle;
-import android.os.SystemProperties;
 import android.os.UserHandle;
-import android.provider.DeviceConfig;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -51,7 +48,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.android.modules.utils.build.SdkLevel;
+import com.android.internal.logging.InstanceId;
+import com.android.internal.logging.InstanceIdSequence;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
@@ -74,6 +72,8 @@ import java.util.List;
 public class PhotoPickerActivity extends AppCompatActivity {
     private static final String TAG =  "PhotoPickerActivity";
     private static final float BOTTOM_SHEET_PEEK_HEIGHT_PERCENTAGE = 0.60f;
+    private static final float HIDE_PROFILE_BUTTON_THRESHOLD = -0.5f;
+    private static final String LOGGER_INSTANCE_ID_ARG = "loggerInstanceIdArg";
 
     private PickerViewModel mPickerViewModel;
     private Selection mSelection;
@@ -104,10 +104,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
 
         super.onCreate(savedInstanceState);
-
-        if (!isPhotoPickerEnabled()) {
-            setCancelledResultAndFinishSelf();
-        }
 
         setContentView(R.layout.activity_photo_picker);
 
@@ -142,6 +138,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         initBottomSheetBehavior();
         restoreState(savedInstanceState);
 
+        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
+        mPickerViewModel.logPickerOpened(getCallingPackage());
+
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
         mFragmentContainerView = findViewById(R.id.fragment_container);
@@ -154,44 +153,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         super.onDestroy();
         // This is required to unregister any broadcast receivers.
         mCrossProfileListeners.onDestroy();
-    }
-
-    /**
-     * TODO(b/205291616) Remove this before launch. This is a temporary method to hide the API
-     * until we are ready to launch it.
-     */
-    @VisibleForTesting
-    public boolean isPhotoPickerEnabled() {
-        // Always enabled on T+
-        if (SdkLevel.isAtLeastT()) {
-            return true;
-        }
-
-        // If the system property is enabled, then picker is enabled
-        boolean isSysPropertyEnabled =
-                SystemProperties.getBoolean(
-                        "persist.sys.storage_picker_enabled" /* key */,
-                        false /* def */);
-        if (isSysPropertyEnabled) {
-            return true;
-        }
-
-        // If build is < S, then picker is disabled since we cannot check device config
-        if (!SdkLevel.isAtLeastS()) {
-            // We cannot read device config on R
-            return false;
-        }
-
-        // If the device config is enabled, then picker is enabled
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getBoolean(
-                    DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                    "picker_intent_enabled",
-                    false /* defaultValue */ );
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
     }
 
     /**
@@ -241,11 +202,14 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void onSaveInstanceState(Bundle state) {
         super.onSaveInstanceState(state);
         saveBottomSheetState();
+        state.putParcelable(LOGGER_INSTANCE_ID_ARG, mPickerViewModel.getInstanceId());
     }
 
     private void restoreState(Bundle savedInstanceState) {
         if (savedInstanceState != null) {
             restoreBottomSheetState();
+            mPickerViewModel.setInstanceId(
+                    savedInstanceState.getParcelable(LOGGER_INSTANCE_ID_ARG));
         } else {
             setupInitialLaunchState();
         }
@@ -272,6 +236,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private BottomSheetCallback createBottomSheetCallBack() {
         return new BottomSheetCallback() {
+            private boolean mIsHiddenDueToBottomSheetClosing = false;
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
@@ -282,6 +247,25 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                // slideOffset = -1 is when bottomsheet is completely hidden
+                // slideOffset = 0 is when bottomsheet is in collapsed mode
+                // slideOffset = 1 is when bottomsheet is in expanded mode
+                // We hide the Profile button if the bottomsheet is 50% in between collapsed state
+                // and hidden state.
+                if (slideOffset < HIDE_PROFILE_BUTTON_THRESHOLD &&
+                        mProfileButton.getVisibility() == View.VISIBLE) {
+                    mProfileButton.setVisibility(View.GONE);
+                    mIsHiddenDueToBottomSheetClosing = true;
+                    return;
+                }
+
+                // We need to handle this state if the user is swiping till the bottom of the
+                // screen but then swipes up bottom sheet suddenly
+                if (slideOffset > HIDE_PROFILE_BUTTON_THRESHOLD &&
+                        mIsHiddenDueToBottomSheetClosing) {
+                    mProfileButton.setVisibility(View.VISIBLE);
+                    mIsHiddenDueToBottomSheetClosing = false;
+                }
             }
         };
     }

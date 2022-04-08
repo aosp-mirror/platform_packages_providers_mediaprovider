@@ -126,11 +126,11 @@ class ExoPlayerWrapper {
 
         return new ExoPlayer.Builder(mContext,
                 new DefaultRenderersFactory(mContext),
-                new DefaultTrackSelector(mContext),
                 mediaSourceFactory,
+                new DefaultTrackSelector(mContext),
                 sLoadControl,
                 DefaultBandwidthMeter.getSingletonInstance(mContext),
-                new AnalyticsCollector(Clock.DEFAULT)).buildExoPlayer();
+                new AnalyticsCollector(Clock.DEFAULT)).build();
     }
 
     private void setupPlayerLayout(StyledPlayerView styledPlayerView, ImageView imageView) {

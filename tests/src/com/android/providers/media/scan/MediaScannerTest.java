@@ -117,6 +117,11 @@ public class MediaScannerTest {
                 }
 
                 @Override
+                public int getIntDeviceConfig(String namespace, String key, int defaultValue) {
+                    return 0;
+                }
+
+                @Override
                 public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
                     // Ignore
                 }

@@ -305,7 +305,7 @@ public class ExternalDbFacade {
      * Returns the total count and max {@link MediaColumns#GENERATION_MODIFIED} value
      * of the media items in the files table greater than {@code generation}.
      */
-    public Cursor getMediaCollectionInfo(long generation) {
+    private Cursor getMediaCollectionInfoCursor(long generation) {
         final String[] selectionArgs = new String[] {String.valueOf(generation)};
         final String[] projection = new String[] {
             MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION
@@ -344,6 +344,22 @@ public class ExternalDbFacade {
                     return result;
                 }
             });
+    }
+
+    public Bundle getMediaCollectionInfo(long generation) {
+        final Bundle bundle = new Bundle();
+        try (Cursor cursor = getMediaCollectionInfoCursor(generation)) {
+            if (cursor.moveToFirst()) {
+                int generationIndex = cursor.getColumnIndexOrThrow(
+                        MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION);
+
+                bundle.putString(MediaCollectionInfo.MEDIA_COLLECTION_ID,
+                        MediaStore.getVersion(mContext));
+                bundle.putLong(MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION,
+                        cursor.getLong(generationIndex));
+            }
+        }
+        return bundle;
     }
 
     /**

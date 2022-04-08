@@ -90,7 +90,7 @@ public class LocalCallingIdentityTest {
         final Context context = InstrumentationRegistry.getContext();
         final PackageManager pm = context.getPackageManager();
 
-        final LocalCallingIdentity ident = LocalCallingIdentity.fromExternal(context, null,
+        final LocalCallingIdentity ident = LocalCallingIdentity.fromExternal(context,
                 pm.getPackageUid(MediaProviderTest.PERMISSIONLESS_APP, 0));
 
         assertEquals(MediaProviderTest.PERMISSIONLESS_APP,

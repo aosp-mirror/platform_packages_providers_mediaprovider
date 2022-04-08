@@ -111,10 +111,10 @@ public class Metrics {
     }
 
     public static void logSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
-            long itemCount, long durationMillis, @NonNull String databaseUuid) {
+            long itemCount, long durationMillis) {
         Logging.logPersistent(String.format(
-                "Changed schema version on %s from %d to %d, %d items taking %dms UUID %s",
-                volumeName, versionFrom, versionTo, itemCount, durationMillis, databaseUuid));
+                "Changed schema version on %s from %d to %d, %d items taking %dms",
+                volumeName, versionFrom, versionTo, itemCount, durationMillis));
 
         final float normalizedDurationMillis = ((float) durationMillis) / itemCount;
 

@@ -54,7 +54,7 @@ public class LegacyMediaScannerTest {
         } catch (UnsupportedOperationException expected) {
         }
         try {
-            scanner.onDetachVolume(null);
+            scanner.onDetachVolume(MediaStore.VOLUME_EXTERNAL_PRIMARY);
             fail();
         } catch (UnsupportedOperationException expected) {
         }

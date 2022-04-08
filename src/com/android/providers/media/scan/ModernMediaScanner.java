@@ -37,7 +37,6 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_IMAGE_WIDTH;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_MIMETYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_TITLE;
-import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_CODEC_MIME_TYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH;
@@ -92,12 +91,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.modules.utils.build.SdkLevel;
-import com.android.providers.media.MediaVolume;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
+import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
@@ -174,6 +172,12 @@ public class ModernMediaScanner implements MediaScanner {
     // See SQLITE_MAX_EXPR_DEPTH in sqlite3.c
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     static final int MAX_EXCLUDE_DIRS = 450;
+
+    private static final Pattern PATTERN_VISIBLE = Pattern.compile(
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?$");
+    private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?/" +
+                    "(?:(?:Android/(?:data|obb)$)|(?:(?:Movies|Music|Pictures)/.thumbnails$))");
 
     private static final Pattern PATTERN_YEAR = Pattern.compile("([1-9][0-9][0-9][0-9])");
 
@@ -263,10 +267,10 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void onDetachVolume(MediaVolume volume) {
+    public void onDetachVolume(String volumeName) {
         synchronized (mActiveScans) {
             for (Scan scan : mActiveScans) {
-                if (volume.equals(scan.mVolume)) {
+                if (volumeName.equals(scan.mVolumeName)) {
                     scan.mSignal.cancel();
                 }
             }
@@ -315,7 +319,6 @@ public class ModernMediaScanner implements MediaScanner {
 
         private final File mRoot;
         private final int mReason;
-        private final MediaVolume mVolume;
         private final String mVolumeName;
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
@@ -358,13 +361,7 @@ public class ModernMediaScanner implements MediaScanner {
 
             mRoot = root;
             mReason = reason;
-
-            if (FileUtils.contains(Environment.getStorageDirectory(), root)) {
-                mVolume = MediaVolume.fromStorageVolume(FileUtils.getStorageVolume(mContext, root));
-            } else {
-                mVolume = MediaVolume.fromInternal();
-            }
-            mVolumeName = mVolume.getName();
+            mVolumeName = FileUtils.getVolumeName(mContext, root);
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
             mSignal = new CancellationSignal();
 
@@ -658,8 +655,6 @@ public class ModernMediaScanner implements MediaScanner {
             synchronized (mPendingCleanDirectories) {
                 if (mIsDirectoryTreeDirty) {
                     // Directory tree is dirty, continue scanning subtree.
-                } else if (FileUtils.getTopLevelNoMedia(dir.toFile()) == null) {
-                  // No nomedia file found, continue scanning.
                 } else if (FileUtils.isDirectoryDirty(FileUtils.getTopLevelNoMedia(dir.toFile()))) {
                     // Track the directory dirty status for directory tree in mIsDirectoryDirty.
                     // This removes additional dirty state check for subdirectories of nomedia
@@ -1218,11 +1213,6 @@ public class ModernMediaScanner implements MediaScanner {
         sAudioTypes.put(Environment.DIRECTORY_PODCASTS, AudioColumns.IS_PODCAST);
         sAudioTypes.put(Environment.DIRECTORY_AUDIOBOOKS, AudioColumns.IS_AUDIOBOOK);
         sAudioTypes.put(Environment.DIRECTORY_MUSIC, AudioColumns.IS_MUSIC);
-        if (SdkLevel.isAtLeastS()) {
-            sAudioTypes.put(Environment.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
-        } else {
-            sAudioTypes.put(FileUtils.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
-        }
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemAudio(long existingId,
@@ -1311,7 +1301,6 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(VideoColumns.COLOR_STANDARD, null);
         op.withValue(VideoColumns.COLOR_TRANSFER, null);
         op.withValue(VideoColumns.COLOR_RANGE, null);
-        op.withValue(FileColumns._VIDEO_CODEC_TYPE, null);
 
         try (FileInputStream is = new FileInputStream(file)) {
             try (MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
@@ -1334,8 +1323,6 @@ public class ModernMediaScanner implements MediaScanner {
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_TRANSFER)));
                 withOptionalValue(op, VideoColumns.COLOR_RANGE,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_RANGE)));
-                withOptionalValue(op, FileColumns._VIDEO_CODEC_TYPE,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_CODEC_MIME_TYPE)));
             }
 
             // Also hunt around for XMP metadata
@@ -1671,14 +1658,14 @@ public class ModernMediaScanner implements MediaScanner {
 
         // Handle well-known paths that should always be visible or invisible,
         // regardless of .nomedia presence
-        if (FileUtils.shouldBeVisible(dir.getAbsolutePath())) {
+        if (PATTERN_VISIBLE.matcher(dir.getAbsolutePath()).matches()) {
             // Well known paths can never be a hidden directory. Delete any non-standard nomedia
             // presence in well known path.
             nomedia.delete();
             return true;
         }
 
-        if (FileUtils.shouldBeInvisible(dir.getAbsolutePath())) {
+        if (PATTERN_INVISIBLE.matcher(dir.getAbsolutePath()).matches()) {
             // Create the .nomedia file in paths that are not scannable. This is useful when user
             // ejects the SD card and brings it to an older device and its media scanner can
             // now correctly identify these paths as not scannable.

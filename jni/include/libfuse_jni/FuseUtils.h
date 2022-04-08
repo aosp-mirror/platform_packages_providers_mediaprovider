@@ -23,13 +23,13 @@ namespace mediaprovider {
 namespace fuse {
 
 /**
- * Returns true if the given path (ignoring case) is mounted for any
+ * Returns true if the given path (ignoring case) is mounted for the given
  * userid. Mounted paths are:
  * "/storage/emulated/<userid>/Android"
  * "/storage/emulated/<userid>/Android/data"
  * "/storage/emulated/<userid>/Android/obb" *
  */
-bool containsMount(const std::string& path);
+bool containsMount(const std::string& path, const std::string& userid);
 
 }  // namespace fuse
 }  // namespace mediaprovider

@@ -37,8 +37,7 @@ class FuseDaemon final {
     /**
      * Start the FUSE daemon loop that will handle filesystem calls.
      */
-    void Start(android::base::unique_fd fd, const std::string& path,
-               const std::vector<std::string>& supported_transcoding_relative_paths);
+    void Start(android::base::unique_fd fd, const std::string& path);
 
     /**
      * Checks if the FUSE daemon is started.
@@ -54,16 +53,6 @@ class FuseDaemon final {
      * Invalidate FUSE VFS dentry cache entry for path
      */
     void InvalidateFuseDentryCache(const std::string& path);
-
-    /**
-     * Return path of the original media format file for the given file descriptor.
-     */
-    const std::string GetOriginalMediaFormatFilePath(int fd) const;
-
-    /**
-     * Initialize device id for the FUSE daemon with the FUSE device id of the given path.
-     */
-    void InitializeDeviceId(const std::string& path);
 
   private:
     FuseDaemon(const FuseDaemon&) = delete;

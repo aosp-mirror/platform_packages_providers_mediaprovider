@@ -6,7 +6,6 @@ if [ $level == "on" ] || [ $level == "extreme" ]
 then
     adb shell setprop log.tag.MediaProvider VERBOSE
     adb shell setprop log.tag.ModernMediaScanner VERBOSE
-    adb shell setprop log.tag.TranscodeHelper VERBOSE
     adb shell setprop log.tag.FuseDaemon DEBUG
     adb shell setprop log.tag.libfuse DEBUG
 else
@@ -21,7 +20,6 @@ then
     adb shell setprop log.tag.SQLiteQueryBuilder VERBOSE
     adb shell setprop log.tag.FuseDaemon VERBOSE
     adb shell setprop log.tag.libfuse VERBOSE
-    adb shell setprop log.tag.TranscodeHelper VERBOSE
     adb shell setprop persist.sys.fuse.log true
 else
     adb shell setprop log.tag.SQLiteQueryBuilder INFO

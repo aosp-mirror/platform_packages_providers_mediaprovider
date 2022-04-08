@@ -21,8 +21,6 @@ import android.net.Uri;
 
 import androidx.annotation.Nullable;
 
-import com.android.providers.media.MediaVolume;
-
 import java.io.File;
 
 @Deprecated
@@ -54,7 +52,7 @@ public class LegacyMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void onDetachVolume(MediaVolume volume) {
+    public void onDetachVolume(String volumeName) {
         throw new UnsupportedOperationException();
     }
 

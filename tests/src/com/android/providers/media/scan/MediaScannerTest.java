@@ -22,7 +22,6 @@ import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 
 import static org.junit.Assert.assertEquals;
 
-import android.Manifest;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -34,7 +33,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.provider.BaseColumns;
-import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.Settings;
@@ -49,7 +47,6 @@ import com.android.providers.media.MediaDocumentsProvider;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.R;
 import com.android.providers.media.util.FileUtils;
-import com.android.providers.media.photopicker.PickerSyncController;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -88,26 +85,6 @@ public class MediaScannerTest {
                 public boolean isFuseThread() {
                     return asFuseThread;
                 }
-
-                @Override
-                public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
-                    return defaultValue;
-                }
-
-                @Override
-                public String getStringDeviceConfig(String key, String defaultValue) {
-                    return defaultValue;
-                }
-
-                @Override
-                public int getIntDeviceConfig(String key, int defaultValue) {
-                    return defaultValue;
-                }
-
-                @Override
-                public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
-                    // Ignore
-                }
             };
             mProvider.attachInfo(this, info);
             mResolver.addProvider(MediaStore.AUTHORITY, mProvider);
@@ -119,14 +96,6 @@ public class MediaScannerTest {
             mResolver.addProvider(MediaDocumentsProvider.AUTHORITY, mDocumentsProvider);
 
             mResolver.addProvider(Settings.AUTHORITY, new MockContentProvider() {
-                @Override
-                public Bundle call(String method, String request, Bundle args) {
-                    return Bundle.EMPTY;
-                }
-            });
-
-            mResolver.addProvider(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
-                    new MockContentProvider() {
                 @Override
                 public Bundle call(String method, String request, Bundle args) {
                     return Bundle.EMPTY;
@@ -153,8 +122,6 @@ public class MediaScannerTest {
     @Before
     public void setUp() {
         final Context context = InstrumentationRegistry.getTargetContext();
-        InstrumentationRegistry.getInstrumentation().getUiAutomation().adoptShellPermissionIdentity(
-                Manifest.permission.INTERACT_ACROSS_USERS);
 
         mLegacy = new LegacyMediaScanner(
                 new IsolatedContext(context, "legacy", /*asFuseThread*/ false));

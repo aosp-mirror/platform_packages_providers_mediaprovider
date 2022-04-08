@@ -38,7 +38,6 @@ import static com.android.providers.media.util.FileUtils.isDirectoryHidden;
 import static com.android.providers.media.util.FileUtils.isFileHidden;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -70,7 +69,6 @@ import android.util.Log;
 import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
-import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.R;
@@ -116,8 +114,7 @@ public class ModernMediaScannerTest {
         final Context context = InstrumentationRegistry.getTargetContext();
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
-                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
-                        Manifest.permission.INTERACT_ACROSS_USERS);
+                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
 
         mDir = new File(context.getExternalMediaDirs()[0], "test_" + System.nanoTime());
         mDir.mkdirs();
@@ -385,24 +382,22 @@ public class ModernMediaScannerTest {
 
     private static void assertShouldScanPathAndIsPathHidden(boolean isScannable, boolean isHidden,
         File dir) {
-        Pair<Boolean, Boolean> actual = shouldScanPathAndIsPathHidden(dir);
-        assertWithMessage("assert should scan for dir: " + dir.getAbsolutePath())
-            .that(actual.first)
-            .isEqualTo(isScannable);
-        assertWithMessage("assert is hidden for dir: " + dir.getAbsolutePath())
-            .that(actual.second)
-            .isEqualTo(isHidden);
+        assertEquals(Pair.create(isScannable, isHidden), shouldScanPathAndIsPathHidden(dir));
     }
 
     @Test
     public void testShouldScanPathAndIsPathHidden() {
         for (String prefix : new String[] {
                 "/storage/emulated/0",
+                "/storage/emulated/0/Android/sandbox/com.example",
                 "/storage/0000-0000",
+                "/storage/0000-0000/Android/sandbox/com.example",
         }) {
             assertShouldScanPathAndIsPathHidden(true, false, new File(prefix));
             assertShouldScanPathAndIsPathHidden(true, false, new File(prefix + "/meow"));
             assertShouldScanPathAndIsPathHidden(true, false, new File(prefix + "/Android/meow"));
+            assertShouldScanPathAndIsPathHidden(true, false,
+                    new File(prefix + "/Android/sandbox/meow"));
 
             assertShouldScanPathAndIsPathHidden(true, true, new File(prefix + "/.meow/dir"));
 
@@ -418,9 +413,6 @@ public class ModernMediaScannerTest {
                     new File(prefix + "/Movies/.thumbnails/meow"));
             assertShouldScanPathAndIsPathHidden(false, false,
                     new File(prefix + "/Music/.thumbnails/meow"));
-
-            assertShouldScanPathAndIsPathHidden(false, false,
-                    new File(prefix + "/.transforms/transcode"));
         }
     }
 
@@ -428,16 +420,12 @@ public class ModernMediaScannerTest {
         final File nomediaFile = new File(dir, ".nomedia");
 
         if (!nomediaFile.getParentFile().exists()) {
-            assertWithMessage("cannot create dir: " + nomediaFile.getParentFile().getAbsolutePath())
-                .that(nomediaFile.getParentFile().mkdirs())
-                .isTrue();
+            assertTrue(nomediaFile.getParentFile().mkdirs());
         }
         try {
             if (!nomediaFile.exists()) {
                 executeShellCommand("touch " + nomediaFile.getAbsolutePath());
-                assertWithMessage("cannot create nomedia file: " + nomediaFile.getAbsolutePath())
-                    .that(nomediaFile.exists())
-                    .isTrue();
+                assertTrue(nomediaFile.exists());
             }
             assertShouldScanPathAndIsPathHidden(true, false, dir);
         } finally {
@@ -446,13 +434,11 @@ public class ModernMediaScannerTest {
     }
 
     /**
-     * b/168830497: Test that root folder, default folders and Camera folder are always visible
+     * b/168830497: Test that default folders and Camera folder are always visible
      */
     @Test
     public void testVisibleDefaultFolders() throws Exception {
         final File root = new File("storage/emulated/0");
-
-        assertVisibleFolder(root);
 
         // Top level directories should always be visible
         for (String dirName : FileUtils.DEFAULT_FOLDER_NAMES) {
@@ -463,29 +449,6 @@ public class ModernMediaScannerTest {
         // DCIM/Camera should always be visible
         final File cameraDir = new File(root, Environment.DIRECTORY_DCIM + "/" + "Camera");
         assertVisibleFolder(cameraDir);
-    }
-
-    /**
-     *  b/192799231: Test that root folder which has .nomedia directory is always visible
-     */
-    @Test
-    public void testVisibleRootWithNoMediaDirectory() throws Exception {
-        final File root = new File("storage/emulated/0");
-        final File nomediaDir = new File(root, ".nomedia");
-        final File file = new File(nomediaDir, "test.jpg");
-
-        try {
-            if (!nomediaDir.exists()) {
-                executeShellCommand("mkdir -p " + nomediaDir.getAbsolutePath());
-            }
-            if (!file.exists()) {
-                executeShellCommand("touch " + file.getAbsolutePath());
-                assertTrue(file.exists());
-            }
-            assertShouldScanPathAndIsPathHidden(true, false, root);
-        } finally {
-            executeShellCommand("rm -rf " + nomediaDir.getAbsolutePath());
-        }
     }
 
     private static void assertShouldScanDirectory(File file) {
@@ -500,24 +463,26 @@ public class ModernMediaScannerTest {
     public void testShouldScanDirectory() throws Exception {
         for (String prefix : new String[] {
                 "/storage/emulated/0",
+                "/storage/emulated/0/Android/sandbox/com.example",
                 "/storage/0000-0000",
+                "/storage/0000-0000/Android/sandbox/com.example",
         }) {
             assertShouldScanDirectory(new File(prefix));
             assertShouldScanDirectory(new File(prefix + "/meow"));
             assertShouldScanDirectory(new File(prefix + "/Android"));
             assertShouldScanDirectory(new File(prefix + "/Android/meow"));
+            assertShouldScanDirectory(new File(prefix + "/Android/sandbox"));
+            assertShouldScanDirectory(new File(prefix + "/Android/sandbox/meow"));
             assertShouldScanDirectory(new File(prefix + "/.meow"));
 
             assertShouldntScanDirectory(new File(prefix + "/Android/data"));
             assertShouldntScanDirectory(new File(prefix + "/Android/obb"));
-            assertShouldntScanDirectory(new File(prefix + "/Android/sandbox"));
 
             assertShouldntScanDirectory(new File(prefix + "/Pictures/.thumbnails"));
             assertShouldntScanDirectory(new File(prefix + "/Movies/.thumbnails"));
             assertShouldntScanDirectory(new File(prefix + "/Music/.thumbnails"));
 
             assertShouldScanDirectory(new File(prefix + "/DCIM/.thumbnails"));
-            assertShouldntScanDirectory(new File(prefix + "/.transforms"));
         }
     }
 
@@ -533,7 +498,9 @@ public class ModernMediaScannerTest {
     public void testIsDirectoryHidden() throws Exception {
         for (String prefix : new String[] {
                 "/storage/emulated/0",
+                "/storage/emulated/0/Android/sandbox/com.example",
                 "/storage/0000-0000",
+                "/storage/0000-0000/Android/sandbox/com.example",
         }) {
             assertDirectoryNotHidden(new File(prefix));
             assertDirectoryNotHidden(new File(prefix + "/meow"));
@@ -705,7 +672,6 @@ public class ModernMediaScannerTest {
         redNomedia.createNewFile();
         mModern.scanDirectory(mDir, REASON_UNKNOWN);
         assertQueryCount(1, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        assertThat(FileUtils.readString(redNomedia)).isEqualTo(Optional.of(redDir.getPath()));
 
         // Unhide, rescan, and confirm visible again
         redNomedia.delete();
@@ -835,26 +801,6 @@ public class ModernMediaScannerTest {
             assertEquals(1, cursor.getCount());
             cursor.moveToFirst();
             assertEquals("audio", cursor.getString(cursor.getColumnIndex(MediaColumns.TITLE)));
-        }
-    }
-
-    @Test
-    @SdkSuppress(minSdkVersion = 31, codeName = "S")
-    public void testScan_audio_recording() throws Exception {
-        final File music = new File(mDir, "Recordings");
-        final File audio = new File(music, "audio.mp3");
-
-        music.mkdirs();
-        stage(R.raw.test_audio, audio);
-
-        mModern.scanFile(audio, REASON_UNKNOWN);
-
-        try (Cursor cursor = mIsolatedResolver
-                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
-            assertEquals(1, cursor.getCount());
-            cursor.moveToFirst();
-            assertEquals(1, cursor.getInt(cursor.getColumnIndex(AudioColumns.IS_RECORDING)));
-            assertEquals(0, cursor.getInt(cursor.getColumnIndex(AudioColumns.IS_MUSIC)));
         }
     }
 
@@ -1240,7 +1186,7 @@ public class ModernMediaScannerTest {
         firstDirScan.dumpResults();
 
         // Time taken : preVisitDirectory
-        Timer noOpDirScan = new Timer("noOpDirScan1");
+        Timer noOpDirScan = new Timer("noOpDirScan");
         for (int i = 0; i < COUNT_REPEAT; i++) {
             noOpDirScan.start();
             mModern.scanDirectory(mDir, REASON_UNKNOWN);
@@ -1250,21 +1196,23 @@ public class ModernMediaScannerTest {
         assertThat(noOpDirScan.getMaxDurationMillis()).isLessThan(
                 firstDirScan.getMaxDurationMillis());
 
-        // Creating new file in the nomedia dir by a non-M_E_S app should not set nomedia dir dirty.
-        File file = new File(mDir, "file_" + System.nanoTime());
-        assertThat(file.createNewFile()).isTrue();
+        // renaming directory for non-M_E_S apps does a scan of the directory as well;
+        // so subsequent scans should be noOp as the directory is not dirty.
+        File renamedTestDir = new File(mIsolatedContext.getExternalMediaDirs()[0],
+                "renamed_test_" + System.nanoTime());
+        assertThat(mDir.renameTo(renamedTestDir)).isTrue();
 
-        // The dir should not be dirty and subsequest scans should not scan the entire directory.
+        Timer renamedDirScan = new Timer("renamedDirScan");
+        renamedDirScan.start();
         // Time taken : preVisitDirectory
-        noOpDirScan = new Timer("noOpDirScan2");
-        for (int i = 0; i < COUNT_REPEAT; i++) {
-            noOpDirScan.start();
-            mModern.scanDirectory(mDir, REASON_UNKNOWN);
-            noOpDirScan.stop();
-        }
-        noOpDirScan.dumpResults();
-        assertThat(noOpDirScan.getMaxDurationMillis()).isLessThan(
+        mModern.scanDirectory(renamedTestDir, REASON_UNKNOWN);
+        renamedDirScan.stop();
+        renamedDirScan.dumpResults();
+        assertThat(renamedDirScan.getMaxDurationMillis()).isLessThan(
                 firstDirScan.getMaxDurationMillis());
+
+        // This is essential for folder cleanup in tearDown
+        mDir = renamedTestDir;
     }
 
     @Test

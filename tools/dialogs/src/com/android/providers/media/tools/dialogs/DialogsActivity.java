@@ -99,14 +99,6 @@ public class DialogsActivity extends Activity {
         addAction("Request delete", () -> {
             return MediaStore.createDeleteRequest(getContentResolver(), mRequestItems.get());
         });
-        addAction("Request favorite", () -> {
-            return MediaStore.createFavoriteRequest(getContentResolver(), mRequestItems.get(),
-                    true);
-        });
-        addAction("Request unfavorite", () -> {
-            return MediaStore.createFavoriteRequest(getContentResolver(), mRequestItems.get(),
-                    false);
-        });
 
         new BackgroundTask().execute();
     }

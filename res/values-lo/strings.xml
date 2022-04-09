@@ -19,6 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"ມີເດຍ"</string>
     <string name="storage_description" msgid="4081716890357580107">"ບ່ອນຈັດເກັບຂໍ້ມູນໃນເຄື່ອງ"</string>
     <string name="app_label" msgid="9035307001052716210">"ພື້ນທີ່ຈັດເກັບຂໍ້ມູນມີເດຍ"</string>
+    <!-- no translation found for picker_app_label (6035511670633386524) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"ສິນລະປິນ"</string>
     <string name="unknown" msgid="2059049215682829375">"ບໍ່ຮູ້ຈັກ"</string>
     <string name="root_images" msgid="5861633549189045666">"ຮູບພາບ"</string>
@@ -49,8 +51,7 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"ເບິ່ງອັນທີ່ເລືອກໄວ້"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ຮູບພາບ"</string>
     <string name="picker_albums" msgid="4822511902115299142">"ອະລະບ້ຳ"</string>
-    <!-- no translation found for picker_preview (6257414886055861039) -->
-    <skip />
+    <string name="picker_preview" msgid="6257414886055861039">"ຕົວຢ່າງ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ສະຫຼັບໄປໂປຣໄຟລ໌ວຽກ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ສະຫຼັບໄປໂປຣໄຟລ໌ສ່ວນຕົວ"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"ຖືກບລັອກໄວ້ໂດຍຜູ້ເບິ່ງແຍງຂອງທ່ານ"</string>
@@ -69,13 +70,15 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"ຮູບພາບໂມຊັນ"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> ຖ່າຍເມື່ອ <xliff:g id="TIME">%2$s</xliff:g>"</string>
-    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
-    <skip />
+    <string name="picker_video_item_content_desc" msgid="7828900089119214801">"ຖ່າຍວິດີໂອເມື່ອ <xliff:g id="TIME">%1$s</xliff:g> ໂດຍມີໄລຍະເວລາ <xliff:g id="DURATION">%2$s</xliff:g>"</string>
     <string name="picker_photo" msgid="1739342083494962153">"ຮູບພາບ"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"ຮູບພາບໂມຊັນ"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ປິດສຽງວິດີໂອ"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"ເຊົາປິດສຽງວິດີໂອ"</string>
+    <string name="picker_play_video" msgid="5158816108935317185">"ຫຼິ້ນວິດີໂອ"</string>
+    <string name="picker_pause_video" msgid="7239492902901477371">"ຢຸດວິດີໂອຊົ່ວຄາວ"</string>
+    <string name="not_selected" msgid="2244008151669896758">"ບໍ່ໄດ້ເລືອກ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_0">^1</xliff:g> ແກ້ໄຂໄຟລ໌ສຽງນີ້ບໍ?}other{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_1">^1</xliff:g> ແກ້ໄຂໄຟລ໌ສຽງ <xliff:g id="COUNT">^2</xliff:g> ໄຟລ໌ບໍ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ກຳລັງແກ້ໄຂໄຟລ໌ສຽງ…}other{ກຳລັງແກ້ໄຂໄຟລ໌ສຽງ <xliff:g id="COUNT">^1</xliff:g> ໄຟລ໌…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_0">^1</xliff:g> ແກ້ໄຂວິດີໂອນີ້ບໍ?}other{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_1">^1</xliff:g> ແກ້ໄຂວິດີໂອ <xliff:g id="COUNT">^2</xliff:g> ລາຍການບໍ?}}"</string>

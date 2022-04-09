@@ -243,6 +243,7 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/228574741 is fixed")
     public void testMultiSelectTabSwiping() throws Exception {
         onView(withId(TAB_LAYOUT_ID)).check(matches(isDisplayed()));
 

@@ -155,6 +155,7 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/222013536 is fixed")
     public void testBottomSheetStateInLandscapeMode() {
         // Bottom sheet assertions are different for landscape mode
         setLandscapeOrientation(mRule);

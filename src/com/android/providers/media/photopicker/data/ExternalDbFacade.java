@@ -18,14 +18,14 @@ package com.android.providers.media.photopicker.data;
 
 import static android.content.ContentResolver.EXTRA_HONORED_ARGS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
-import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
-import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
+
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
@@ -41,16 +41,15 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.CloudMediaProviderContract;
+import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
-import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.DatabaseHelper;
-import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.util.MimeUtils;
 
@@ -104,11 +103,9 @@ public class ExternalDbFacade {
     private static final String WHERE_VIDEO_TYPE = FileColumns.MEDIA_TYPE + " = "
             + FileColumns.MEDIA_TYPE_VIDEO;
     private static final String WHERE_MEDIA_TYPE = WHERE_IMAGE_TYPE + " OR " + WHERE_VIDEO_TYPE;
-    private static final String WHERE_IS_FAVORITE = MediaColumns.IS_FAVORITE + " = 1";
     private static final String WHERE_IS_DOWNLOAD = MediaColumns.IS_DOWNLOAD + " = 1";
     private static final String WHERE_NOT_TRASHED = MediaColumns.IS_TRASHED + " = 0";
     private static final String WHERE_NOT_PENDING = MediaColumns.IS_PENDING + " = 0";
-    private static final String WHERE_ID = MediaColumns._ID + " = ?";
     private static final String WHERE_GREATER_GENERATION =
             MediaColumns.GENERATION_MODIFIED + " > ?";
     private static final String WHERE_RELATIVE_PATH = MediaStore.MediaColumns.RELATIVE_PATH
@@ -124,7 +121,6 @@ public class ExternalDbFacade {
     @VisibleForTesting
     static String[] LOCAL_ALBUM_IDS = {
         ALBUM_ID_CAMERA,
-        ALBUM_ID_VIDEOS,
         ALBUM_ID_SCREENSHOTS,
         ALBUM_ID_DOWNLOADS
     };
@@ -413,9 +409,6 @@ public class ExternalDbFacade {
         }
 
         switch (albumId) {
-            case ALBUM_ID_VIDEOS:
-                qb.appendWhereStandalone(WHERE_VIDEO_TYPE);
-                break;
             case ALBUM_ID_CAMERA:
                 qb.appendWhereStandalone(WHERE_RELATIVE_PATH);
                 selectionArgs.add(RELATIVE_PATH_CAMERA);

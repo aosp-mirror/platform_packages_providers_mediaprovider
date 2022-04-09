@@ -24,6 +24,9 @@
     <!-- Label to show to user for this package. -->
     <string name="app_label">Media Storage</string>
 
+    <!-- Label to show to user for Photo picker. -->
+    <string name="picker_app_label">Photo picker</string>
+
     <!-- Description line for music artists in the search/suggestion results -->
     <string name="artist_label">Artist</string>
 

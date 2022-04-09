@@ -17,6 +17,8 @@
 package com.android.providers.media.photopicker.data;
 
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
@@ -24,7 +26,6 @@ import static org.junit.Assert.assertThrows;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
-import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.MediaStore.PickerMediaColumns;
@@ -32,13 +33,11 @@ import android.provider.MediaStore.PickerMediaColumns;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-
-
-import java.io.File;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.io.File;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerDbFacadeTest {
@@ -863,12 +862,19 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(4);
         }
 
-        try (Cursor cr = mFacade.getFavoriteAlbum(qfb.build())) {
-            assertThat(cr.getCount()).isEqualTo(1);
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+            assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
                     ALBUM_ID_FAVORITES,
                     ALBUM_ID_FAVORITES,
+                    LOCAL_ID + "1",
+                    DATE_TAKEN_MS,
+                    /* count */ 2);
+            cr.moveToNext();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_VIDEOS,
+                    ALBUM_ID_VIDEOS,
                     LOCAL_ID + "1",
                     DATE_TAKEN_MS,
                     /* count */ 2);
@@ -909,8 +915,8 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(4);
         }
 
-        try (Cursor cr = mFacade.getFavoriteAlbum(qfb.build())) {
-            assertThat(cr.getCount()).isEqualTo(1);
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+            assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
                     ALBUM_ID_FAVORITES,
@@ -918,10 +924,17 @@ public class PickerDbFacadeTest {
                     LOCAL_ID + "1",
                     DATE_TAKEN_MS,
                     /* count */ 2);
+            cr.moveToNext();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_VIDEOS,
+                    ALBUM_ID_VIDEOS,
+                    LOCAL_ID + "1",
+                    DATE_TAKEN_MS,
+                    /* count */ 2);
         }
 
         qfb.setMimeType(IMAGE_MIME_TYPE);
-        try (Cursor cr = mFacade.getFavoriteAlbum(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
@@ -933,8 +946,8 @@ public class PickerDbFacadeTest {
         }
 
         qfb.setMimeType(VIDEO_MIME_TYPE);
-        try (Cursor cr = mFacade.getFavoriteAlbum(qfb.build())) {
-            assertThat(cr.getCount()).isEqualTo(1);
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+            assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
                     ALBUM_ID_FAVORITES,
@@ -942,11 +955,18 @@ public class PickerDbFacadeTest {
                     LOCAL_ID + "1",
                     DATE_TAKEN_MS,
                     /* count */ 1);
+            cr.moveToNext();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_VIDEOS,
+                    ALBUM_ID_VIDEOS,
+                    LOCAL_ID + "1",
+                    DATE_TAKEN_MS,
+                    /* count */ 2);
         }
 
         qfb.setMimeType("foo");
-        try (Cursor cr = mFacade.getFavoriteAlbum(qfb.build())) {
-            assertThat(cr).isNull();
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+            assertThat(cr.getCount()).isEqualTo(0);
         }
     }
 

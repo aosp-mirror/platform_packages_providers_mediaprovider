@@ -19,6 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"미디어"</string>
     <string name="storage_description" msgid="4081716890357580107">"로컬 저장소"</string>
     <string name="app_label" msgid="9035307001052716210">"미디어 저장소"</string>
+    <!-- no translation found for picker_app_label (6035511670633386524) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"아티스트"</string>
     <string name="unknown" msgid="2059049215682829375">"알 수 없음"</string>
     <string name="root_images" msgid="5861633549189045666">"이미지"</string>
@@ -74,9 +76,9 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"모션 사진"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"동영상 음소거"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"동영상 음소거 해제"</string>
-    <!-- no translation found for picker_play_video (5158816108935317185) -->
-    <skip />
-    <!-- no translation found for picker_pause_video (7239492902901477371) -->
+    <string name="picker_play_video" msgid="5158816108935317185">"동영상 재생"</string>
+    <string name="picker_pause_video" msgid="7239492902901477371">"동영상 일시중지"</string>
+    <!-- no translation found for not_selected (2244008151669896758) -->
     <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 오디오 파일을 수정하도록 허용하시겠습니까?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>에서 오디오 파일 <xliff:g id="COUNT">^2</xliff:g>개를 수정하도록 허용하시겠습니까?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{오디오 파일 수정 중…}other{오디오 파일 <xliff:g id="COUNT">^1</xliff:g>개 수정 중…}}"</string>

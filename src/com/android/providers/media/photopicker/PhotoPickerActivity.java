@@ -39,6 +39,7 @@ import android.view.View;
 import android.view.ViewOutlineProvider;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityManager;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
@@ -48,6 +49,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.android.internal.logging.InstanceId;
+import com.android.internal.logging.InstanceIdSequence;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
@@ -71,6 +74,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private static final String TAG =  "PhotoPickerActivity";
     private static final float BOTTOM_SHEET_PEEK_HEIGHT_PERCENTAGE = 0.60f;
     private static final float HIDE_PROFILE_BUTTON_THRESHOLD = -0.5f;
+    private static final String LOGGER_INSTANCE_ID_ARG = "loggerInstanceIdArg";
 
     private PickerViewModel mPickerViewModel;
     private Selection mSelection;
@@ -92,6 +96,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private int mToolBarIconColor;
 
     private int mToolbarHeight = 0;
+    private boolean mIsAccessibilityEnabled;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -132,8 +137,17 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mProfileButton = findViewById(R.id.profile_button);
 
         mTabLayout = findViewById(R.id.tab_layout);
+
+        AccessibilityManager accessibilityManager = getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
+        accessibilityManager.addAccessibilityStateChangeListener(
+                enabled -> mIsAccessibilityEnabled = enabled);
+
         initBottomSheetBehavior();
         restoreState(savedInstanceState);
+
+        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
+        mPickerViewModel.logPickerOpened(getCallingPackage());
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
@@ -196,11 +210,14 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void onSaveInstanceState(Bundle state) {
         super.onSaveInstanceState(state);
         saveBottomSheetState();
+        state.putParcelable(LOGGER_INSTANCE_ID_ARG, mPickerViewModel.getInstanceId());
     }
 
     private void restoreState(Bundle savedInstanceState) {
         if (savedInstanceState != null) {
             restoreBottomSheetState();
+            mPickerViewModel.setInstanceId(
+                    savedInstanceState.getParcelable(LOGGER_INSTANCE_ID_ARG));
         } else {
             setupInitialLaunchState();
         }
@@ -275,7 +292,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void initStateForBottomSheet() {
-        if (!mSelection.canSelectMultiple() && !isOrientationLandscape()) {
+        if (!mIsAccessibilityEnabled && !mSelection.canSelectMultiple()
+                && !isOrientationLandscape()) {
             final int peekHeight = getBottomSheetPeekHeight(this);
             mBottomSheetBehavior.setPeekHeight(peekHeight);
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);

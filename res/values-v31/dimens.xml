@@ -23,6 +23,8 @@
 
     <dimen name="picker_bottom_bar_size">72dp</dimen>
 
+    <dimen name="picker_recycler_view_bottom_padding">92dp</dimen>
+
     <dimen name="picker_toolbar_title_text_size">22sp</dimen>
 
     <dimen name="preview_mute_marginBottom">88dp</dimen>

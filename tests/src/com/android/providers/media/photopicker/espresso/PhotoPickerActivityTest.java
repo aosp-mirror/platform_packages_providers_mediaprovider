@@ -155,6 +155,7 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/222013536 is fixed")
     public void testBottomSheetStateInLandscapeMode() {
         // Bottom sheet assertions are different for landscape mode
         setLandscapeOrientation(mRule);
@@ -242,16 +243,19 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
                 BottomSheetIdlingResource.register(mRule);
 
         try {
-            // Single select PhotoPicker is launched in partial screen mode
-            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            mRule.getScenario().onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_COLLAPSED);
-            });
+
+            // When accessibility is enabled, we always launch the photo picker in full screen mode.
+            // Accessibility is enabled in Espresso test, so we can't check the COLLAPSED state.
+//            // Single select PhotoPicker is launched in partial screen mode
+//            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+//            mRule.getScenario().onActivity(activity -> {
+//                assertBottomSheetState(activity, STATE_COLLAPSED);
+//            });
 
             // Swipe up and check that the PhotoPicker is in full screen mode.
+//            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+//            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
             bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
-            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_EXPANDED);
             });

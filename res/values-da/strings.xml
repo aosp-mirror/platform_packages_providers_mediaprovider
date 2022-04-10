@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Medier"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokalt lager"</string>
     <string name="app_label" msgid="9035307001052716210">"Medielagring"</string>
-    <!-- no translation found for picker_app_label (6035511670633386524) -->
+    <!-- no translation found for picker_app_label (5487796494405738578) -->
     <skip />
     <string name="artist_label" msgid="8105600993099120273">"Kunstner"</string>
     <string name="unknown" msgid="2059049215682829375">"Ukendt"</string>
@@ -78,8 +78,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Slå videolyden til"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Afspil video"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Sæt video på pause"</string>
-    <!-- no translation found for not_selected (2244008151669896758) -->
-    <skip />
+    <string name="not_selected" msgid="2244008151669896758">"ikke valgt"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vil du give <xliff:g id="APP_NAME_0">^1</xliff:g> tilladelse til at ændre denne lydfil?}one{Vil du give <xliff:g id="APP_NAME_1">^1</xliff:g> tilladelse til at ændre <xliff:g id="COUNT">^2</xliff:g> lydfil?}other{Vil du give <xliff:g id="APP_NAME_1">^1</xliff:g> tilladelse til at ændre <xliff:g id="COUNT">^2</xliff:g> lydfiler?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Ændrer lydfilen…}one{Ændrer <xliff:g id="COUNT">^1</xliff:g> lydfil…}other{Ændrer <xliff:g id="COUNT">^1</xliff:g> lydfiler…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Vil du give <xliff:g id="APP_NAME_0">^1</xliff:g> tilladelse til at ændre denne video?}one{Vil du give <xliff:g id="APP_NAME_1">^1</xliff:g> tilladelse til at ændre <xliff:g id="COUNT">^2</xliff:g> video?}other{Vil du give <xliff:g id="APP_NAME_1">^1</xliff:g> tilladelse til at ændre <xliff:g id="COUNT">^2</xliff:g> videoer?}}"</string>

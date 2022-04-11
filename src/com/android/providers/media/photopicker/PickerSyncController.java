@@ -40,6 +40,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Process;
+import android.os.SystemProperties;
 import android.provider.CloudMediaProvider;
 import android.provider.CloudMediaProviderContract;
 import android.text.TextUtils;
@@ -50,6 +51,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.R;
+import com.android.providers.media.util.DeviceConfigUtils;
 import com.android.providers.media.util.StringUtils;
 
 import java.lang.annotation.Retention;
@@ -76,6 +78,10 @@ public class PickerSyncController {
     public static final String PICKER_SYNC_PREFS_FILE_NAME = "picker_sync_prefs";
     public static final String LOCAL_PICKER_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker";
+
+    public static final String PROP_USE_ALLOWED_CLOUD_PROVIDERS =
+            "persist.sys.photopicker.use_allowed_cloud_providers";
+    public static final String ALLOWED_CLOUD_PROVIDERS_KEY = "allowed_cloud_providers";
 
     private static final String DEFAULT_CLOUD_PROVIDER_AUTHORITY = null;
     private static final String DEFAULT_CLOUD_PROVIDER_PKGNAME = null;
@@ -105,6 +111,7 @@ public class PickerSyncController {
     private final String mLocalProvider;
     private final long mSyncDelayMs;
     private final Runnable mSyncAllMediaCallback;
+    private final Set<String> mAllowedCloudProviders;
 
     @GuardedBy("mLock")
     private CloudProviderInfo mCloudProviderInfo;
@@ -134,6 +141,12 @@ public class PickerSyncController {
                 DEFAULT_CLOUD_PROVIDER_PKGNAME);
         final int cloudProviderUid = mUserPrefs.getInt(PREFS_KEY_CLOUD_PROVIDER_UID,
                 DEFAULT_CLOUD_PROVIDER_UID);
+
+        if (SystemProperties.getBoolean(PROP_USE_ALLOWED_CLOUD_PROVIDERS, false)) {
+            mAllowedCloudProviders = getAllowedCloudProviders();
+        } else {
+            mAllowedCloudProviders = new ArraySet<>();
+        }
 
         if (cloudProviderAuthority == null) {
             // TODO: Only get default if it wasn't set by the user
@@ -212,6 +225,14 @@ public class PickerSyncController {
     @VisibleForTesting
     List<CloudProviderInfo> getSupportedCloudProviders() {
         final List<CloudProviderInfo> result = new ArrayList<>();
+
+        final boolean useAllowedCloudProviders =
+            SystemProperties.getBoolean(PROP_USE_ALLOWED_CLOUD_PROVIDERS, false);
+
+        if (useAllowedCloudProviders && mAllowedCloudProviders.isEmpty()) {
+            return result;
+        }
+
         final PackageManager pm = mContext.getPackageManager();
         final Intent intent = new Intent(CloudMediaProviderContract.PROVIDER_INTERFACE);
         final List<ResolveInfo> providers = pm.queryIntentContentProviders(intent, /* flags */ 0);
@@ -220,7 +241,9 @@ public class PickerSyncController {
             ProviderInfo providerInfo = info.providerInfo;
             if (providerInfo.authority != null
                     && CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION.equals(
-                            providerInfo.readPermission)) {
+                            providerInfo.readPermission)
+                    && (!useAllowedCloudProviders
+                        || mAllowedCloudProviders.contains(providerInfo.authority))) {
                 result.add(new CloudProviderInfo(providerInfo.authority,
                                 providerInfo.applicationInfo.packageName,
                                 providerInfo.applicationInfo.uid));
@@ -666,6 +689,25 @@ public class PickerSyncController {
 
         // No default set or default not installed
         return CloudProviderInfo.EMPTY;
+    }
+
+    private Set<String> getAllowedCloudProviders() {
+        Set<String> allowedProviders = new ArraySet<>();
+        final String[] allowedProvidersConfig = DeviceConfigUtils.getStringDeviceConfig(
+                ALLOWED_CLOUD_PROVIDERS_KEY, "").split(",");
+
+        if (allowedProvidersConfig.length == 0 || allowedProvidersConfig[0].isEmpty()) {
+            Log.i(TAG, "Empty allowed cloud providers");
+            return allowedProviders;
+        }
+
+        for (String cloudProvider : allowedProvidersConfig) {
+            Log.d(TAG, "Parsed allowed cloud provider: " + cloudProvider + " from device config");
+            allowedProviders.add(cloudProvider);
+        }
+
+        Log.i(TAG, "Parsed " + allowedProviders.size() + " allowed providers from device config");
+        return allowedProviders;
     }
 
     private static String validateCursor(Cursor cursor, String expectedMediaCollectionId,

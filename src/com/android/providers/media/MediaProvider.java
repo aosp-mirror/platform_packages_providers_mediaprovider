@@ -835,16 +835,17 @@ public class MediaProvider extends ContentProvider {
             return;
         }
 
-        // TODO(b/222244140): Store next row id in memory to avoid reading from xattr on every
-        // insert.
-        if (!helper.getNextRowIdFromXattr().isPresent()) {
+        Optional<Long> nextRowIdBackupOptional = helper.getNextRowId();
+        if (!nextRowIdBackupOptional.isPresent()) {
             throw new RuntimeException(String.format("Cannot find next row id xattr for %s.",
                     helper.getDatabaseName()));
         }
 
-        long currentNextRowIdBackUp = helper.getNextRowIdFromXattr().get();
-        if (id >= currentNextRowIdBackUp) {
+        if (id >= nextRowIdBackupOptional.get()) {
             helper.backupNextRowId(id);
+        } else {
+            Log.v(TAG, String.format("Inserted id:%d less than next row id backup:%d.", id,
+                    nextRowIdBackupOptional.get()));
         }
     }
 

@@ -1058,7 +1058,7 @@ public class MediaProvider extends ContentProvider {
                 MIGRATION_LISTENER, mIdGenerator);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase);
         mPickerDbFacade = new PickerDbFacade(context);
-        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
+        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade, this);
         mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade);
 
@@ -9691,6 +9691,20 @@ public class MediaProvider extends ContentProvider {
         try {
             return DeviceConfig.getInt(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
                     defaultValue);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+    }
+
+    @VisibleForTesting
+    public int getIntDeviceConfig(String namespace, String key, int defaultValue) {
+        if (!canReadDeviceConfig(key, defaultValue)) {
+            return defaultValue;
+        }
+
+        final long token = Binder.clearCallingIdentity();
+        try {
+            return DeviceConfig.getInt(namespace, key, defaultValue);
         } finally {
             Binder.restoreCallingIdentity(token);
         }

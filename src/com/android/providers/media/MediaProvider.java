@@ -795,12 +795,13 @@ public class MediaProvider extends ContentProvider {
         }
 
         @Override
-        public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int mediaType, boolean isDownload, String ownerPackageName, String path) {
-            handleDeletedRowForFuse(path, ownerPackageName, id);
-            acceptWithExpansion(helper::notifyDelete, volumeName, id, mediaType, isDownload);
+        public void onDelete(@NonNull DatabaseHelper helper, @NonNull FileRow deletedRow) {
+            handleDeletedRowForFuse(deletedRow.getPath(), deletedRow.getOwnerPackageName(),
+                    deletedRow.getId());
+            acceptWithExpansion(helper::notifyDelete, deletedRow.getVolumeName(),
+                    deletedRow.getId(), deletedRow.getMediaType(), deletedRow.isDownload());
             // Remove cached transcoded file if any
-            mTranscodeHelper.deleteCachedTranscodeFile(id);
+            mTranscodeHelper.deleteCachedTranscodeFile(deletedRow.getId());
 
             helper.postBackground(() -> {
                 // Item no longer exists, so revoke all access to it
@@ -808,26 +809,31 @@ public class MediaProvider extends ContentProvider {
                 try {
                     acceptWithExpansion((uri) -> {
                         getContext().revokeUriPermission(uri, ~0);
-                    }, volumeName, id, mediaType, isDownload);
+                    },
+                            deletedRow.getVolumeName(), deletedRow.getId(),
+                            deletedRow.getMediaType(), deletedRow.isDownload());
                 } finally {
                     Trace.endSection();
                 }
 
-                switch (mediaType) {
+                switch (deletedRow.getMediaType()) {
                     case FileColumns.MEDIA_TYPE_PLAYLIST:
                     case FileColumns.MEDIA_TYPE_AUDIO:
                         if (helper.isExternal()) {
-                            removePlaylistMembers(mediaType, id);
+                            removePlaylistMembers(deletedRow.getMediaType(), deletedRow.getId());
                         }
                 }
 
                 // Invalidate any thumbnails now that media is gone
-                invalidateThumbnails(MediaStore.Files.getContentUri(volumeName, id));
+                invalidateThumbnails(MediaStore.Files.getContentUri(deletedRow.getVolumeName(),
+                        deletedRow.getId()));
 
                 // Tell our SAF provider so it can revoke too
-                MediaDocumentsProvider.onMediaStoreDelete(getContext(), volumeName, mediaType, id);
+                MediaDocumentsProvider.onMediaStoreDelete(getContext(), deletedRow.getVolumeName(),
+                        deletedRow.getMediaType(), deletedRow.getId());
 
-                if (mExternalDbFacade.onFileDeleted(id, mediaType)) {
+                if (mExternalDbFacade.onFileDeleted(deletedRow.getId(),
+                        deletedRow.getMediaType())) {
                     mPickerSyncController.notifyMediaEvent();
                 }
             });

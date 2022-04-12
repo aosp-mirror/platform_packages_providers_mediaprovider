@@ -222,6 +222,7 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
+import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.metrics.PulledMetrics;
@@ -229,7 +230,6 @@ import com.android.providers.media.photopicker.PickerDataLayer;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
@@ -730,22 +730,25 @@ public class MediaProvider extends ContentProvider {
      */
     private final OnFilesChangeListener mFilesListener = new OnFilesChangeListener() {
         @Override
-        public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int mediaType, boolean isDownload, boolean isPending) {
-            handleInsertedRowForFuse(id);
-            acceptWithExpansion(helper::notifyInsert, volumeName, id, mediaType, isDownload);
-            updateNextRowIdXattr(helper, id);
+        public void onInsert(@NonNull DatabaseHelper helper, @NonNull FileRow insertedRow) {
+            handleInsertedRowForFuse(insertedRow.getId());
+            acceptWithExpansion(helper::notifyInsert, insertedRow.getVolumeName(),
+                    insertedRow.getId(), insertedRow.getMediaType(), insertedRow.isDownload());
+            updateNextRowIdXattr(helper, insertedRow.getId());
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
-                    Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
-                    updateQuotaTypeForUri(fileUri, mediaType);
+                    Uri fileUri = MediaStore.Files.getContentUri(insertedRow.getVolumeName(),
+                            insertedRow.getId());
+                    updateQuotaTypeForUri(fileUri, insertedRow.getMediaType());
                 }
 
                 // Tell our SAF provider so it knows when views are no longer empty
-                MediaDocumentsProvider.onMediaStoreInsert(getContext(), volumeName, mediaType, id);
+                MediaDocumentsProvider.onMediaStoreInsert(getContext(), insertedRow.getVolumeName(),
+                        insertedRow.getMediaType(), insertedRow.getId());
 
-                if (mExternalDbFacade.onFileInserted(mediaType, isPending)) {
+                if (mExternalDbFacade.onFileInserted(insertedRow.getMediaType(),
+                        insertedRow.isPending())) {
                     mPickerSyncController.notifyMediaEvent();
                 }
             });

@@ -82,6 +82,8 @@ public class PickerViewModel extends AndroidViewModel {
     private String mMimeTypeFilter = null;
     private int mBottomSheetState;
 
+    private Category mCurrentCategory;
+
     public PickerViewModel(@NonNull Application application) {
         super(application);
         final Context context = application.getApplicationContext();
@@ -217,30 +219,44 @@ public class PickerViewModel extends AndroidViewModel {
     /**
      * Get the list of all photos and videos with the specific {@code category} on the device.
      *
+     * In our use case, we only keep the list of current category {@link #mCurrentCategory} in
+     * {@link #mCategoryItemList}. If the {@code category} and {@link #mCurrentCategory} are
+     * different, we will create the new LiveData to {@link #mCategoryItemList}.
+     *
      * @param category the category we want to be queried
      * @return the list of all photos and videos with the specific {@code category}
      *         {@link #mCategoryItemList}
      */
     public LiveData<List<Item>> getCategoryItems(@NonNull Category category) {
-        updateCategoryItems(category);
+        if (mCategoryItemList == null || !TextUtils.equals(mCurrentCategory.getId(),
+                category.getId())) {
+            mCategoryItemList = new MutableLiveData<>();
+            mCurrentCategory = category;
+        }
+        updateCategoryItems();
         return mCategoryItemList;
     }
 
-    private void loadCategoryItemsAsync(@NonNull Category category) {
+    private void loadCategoryItemsAsync() {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mCategoryItemList.postValue(loadItems(category, userId));
+            mCategoryItemList.postValue(loadItems(mCurrentCategory, userId));
         });
     }
 
     /**
-     * Update the item List with the {@code category} {@link #mCategoryItemList}
+     * Update the item List with the {@link #mCurrentCategory} {@link #mCategoryItemList}
+     *
+     * @throws IllegalStateException category and category items is not initiated before calling
+     *     this method
      */
-    public void updateCategoryItems(@NonNull Category category) {
-        if (mCategoryItemList == null) {
-            mCategoryItemList = new MutableLiveData<>();
+    @VisibleForTesting
+    public void updateCategoryItems() {
+        if (mCategoryItemList == null || mCurrentCategory == null) {
+            throw new IllegalStateException("mCurrentCategory and mCategoryItemList are not"
+                    + " initiated. Please call getCategoryItems before calling this method");
         }
-        loadCategoryItemsAsync(category);
+        loadCategoryItemsAsync();
     }
 
     /**

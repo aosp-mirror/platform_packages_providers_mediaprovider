@@ -35,6 +35,7 @@ import android.text.format.DateUtils;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.LiveData;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
@@ -186,13 +187,14 @@ public class PickerViewModelTest {
     @Test
     public void testGetCategoryItems() throws Exception {
         final int itemCount = 3;
+        final LiveData<List<Item>> categoryItems = mPickerViewModel.getCategoryItems(FAKE_CATEGORY);
         mItemsProvider.setItems(generateFakeImageItemList(itemCount));
-        mPickerViewModel.updateCategoryItems(FAKE_CATEGORY);
+        mPickerViewModel.updateCategoryItems();
         // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
         // thread idle
         ForegroundThread.waitForIdle();
 
-        final List<Item> itemList = mPickerViewModel.getCategoryItems(FAKE_CATEGORY).getValue();
+        final List<Item> itemList = categoryItems.getValue();
 
         // Original item count + 3 date items
         assertThat(itemList.size()).isEqualTo(itemCount + 3);
@@ -213,13 +215,14 @@ public class PickerViewModelTest {
     @Test
     public void testGetCategoryItems_dataIsUpdated() throws Exception {
         final int itemCount = 3;
+        final LiveData<List<Item>> categoryItems = mPickerViewModel.getCategoryItems(FAKE_CATEGORY);
         mItemsProvider.setItems(generateFakeImageItemList(itemCount));
-        mPickerViewModel.updateCategoryItems(FAKE_CATEGORY);
+        mPickerViewModel.updateCategoryItems();
         // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
         // thread idle
         ForegroundThread.waitForIdle();
 
-        final List<Item> itemList = mPickerViewModel.getCategoryItems(FAKE_CATEGORY).getValue();
+        final List<Item> itemList = categoryItems.getValue();
 
         // Original item count + 3 date items
         assertThat(itemList.size()).isEqualTo(itemCount + 3);
@@ -227,16 +230,15 @@ public class PickerViewModelTest {
         final int updatedItemCount = 5;
         mItemsProvider.setItems(generateFakeImageItemList(updatedItemCount));
 
-        // trigger updateCategoryItems in getCategoryItems first and wait the idle
-        mPickerViewModel.getCategoryItems(FAKE_CATEGORY).getValue();
+        // trigger updateCategoryItems and wait the idle
+        mPickerViewModel.updateCategoryItems();
 
         // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
         // thread idle
         ForegroundThread.waitForIdle();
 
         // Get the result again to check the result is as expected
-        final List<Item> updatedItemList =
-                mPickerViewModel.getCategoryItems(FAKE_CATEGORY).getValue();
+        final List<Item> updatedItemList = categoryItems.getValue();
 
         // Original item count + 5 date items
         assertThat(updatedItemList.size()).isEqualTo(updatedItemCount + 5);

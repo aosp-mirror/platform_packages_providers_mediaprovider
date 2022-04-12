@@ -42,12 +42,14 @@ import android.os.Bundle;
 import android.os.Process;
 import android.provider.CloudMediaProvider;
 import android.provider.CloudMediaProviderContract;
+import android.provider.DeviceConfig;
 import android.text.TextUtils;
 import android.util.ArraySet;
 import android.util.Log;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.BackgroundThread;
+import com.android.providers.media.MediaProvider;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.R;
 import com.android.providers.media.util.StringUtils;
@@ -66,6 +68,9 @@ import java.util.Set;
  */
 public class PickerSyncController {
     private static final String TAG = "PickerSyncController";
+
+    public static final String PROP_DEFAULT_SYNC_DELAY_MS = "pickerdb.default_sync_delay_ms";
+
     private static final String PREFS_KEY_CLOUD_PROVIDER_AUTHORITY = "cloud_provider_authority";
     private static final String PREFS_KEY_CLOUD_PROVIDER_PKGNAME = "cloud_provider_pkg_name";
     private static final String PREFS_KEY_CLOUD_PROVIDER_UID = "cloud_provider_uid";
@@ -80,8 +85,6 @@ public class PickerSyncController {
     private static final String DEFAULT_CLOUD_PROVIDER_AUTHORITY = null;
     private static final String DEFAULT_CLOUD_PROVIDER_PKGNAME = null;
     private static final int DEFAULT_CLOUD_PROVIDER_UID = -1;
-    private static final long DEFAULT_SYNC_DELAY_MS =
-            PickerDbFacade.getDefaultPickerDbSyncDelayMs();
 
     private static final int SYNC_TYPE_NONE = 0;
     private static final int SYNC_TYPE_MEDIA_INCREMENTAL = 1;
@@ -109,8 +112,10 @@ public class PickerSyncController {
     @GuardedBy("mLock")
     private CloudProviderInfo mCloudProviderInfo;
 
-    public PickerSyncController(Context context, PickerDbFacade dbFacade) {
-        this(context, dbFacade, LOCAL_PICKER_PROVIDER_AUTHORITY, DEFAULT_SYNC_DELAY_MS);
+    public PickerSyncController(Context context, PickerDbFacade dbFacade,
+            MediaProvider mediaProvider) {
+        this(context, dbFacade, LOCAL_PICKER_PROVIDER_AUTHORITY, mediaProvider.getIntDeviceConfig(
+                        DeviceConfig.NAMESPACE_STORAGE, PROP_DEFAULT_SYNC_DELAY_MS, 5000));
     }
 
     @VisibleForTesting

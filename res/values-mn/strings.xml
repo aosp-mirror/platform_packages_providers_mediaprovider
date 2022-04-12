@@ -19,6 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"Медиа"</string>
     <string name="storage_description" msgid="4081716890357580107">"Дотоод сан"</string>
     <string name="app_label" msgid="9035307001052716210">"Медиа санах ой"</string>
+    <!-- no translation found for picker_app_label (5487796494405738578) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"Уран бүтээлч"</string>
     <string name="unknown" msgid="2059049215682829375">"Тодорхойгүй"</string>
     <string name="root_images" msgid="5861633549189045666">"Зураг"</string>
@@ -74,6 +76,9 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Хөдөлгөөнт зураг"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Видеоны дууг хаах"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Видеоны дууг нээх"</string>
+    <string name="picker_play_video" msgid="5158816108935317185">"Видео тоглуулах"</string>
+    <string name="picker_pause_video" msgid="7239492902901477371">"Видеог түр зогсоох"</string>
+    <string name="not_selected" msgid="2244008151669896758">"сонгоогүй"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>-д энэ аудио файлыг өөрчлөхийг зөвшөөрөх үү?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>-д <xliff:g id="COUNT">^2</xliff:g> аудио файлыг өөрчлөхийг зөвшөөрөх үү?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Аудио файлыг өөрчилж байна…}other{<xliff:g id="COUNT">^1</xliff:g> аудио файлыг өөрчилж байна…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>-д энэ видеог өөрчлөхийг зөвшөөрөх үү?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>-д <xliff:g id="COUNT">^2</xliff:g> видеог өөрчлөхийг зөвшөөрөх үү?}}"</string>

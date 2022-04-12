@@ -49,6 +49,9 @@
         <item name="pickerTabBackgroundColor">@color/picker_background_color</item>
         <item name="pickerTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerSelectedColor">?android:attr/colorAccent</item>
+        <item name="pickerProfileDialogButtonAndIconColor">#669DF6</item>
+        <item name="pickerProfileDialogTitleColor">#F1F3F4</item>
+        <item name="pickerProfileDialogBodyColor">#DADCE0</item>
     </style>
 
 </resources>

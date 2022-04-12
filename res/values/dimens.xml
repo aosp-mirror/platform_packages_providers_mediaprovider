@@ -47,12 +47,14 @@
     <dimen name="picker_album_name_margin">8dp</dimen>
     <dimen name="picker_album_item_count_height">16dp</dimen>
     <dimen name="picker_album_item_count_margin">2dp</dimen>
-    <dimen name="picker_album_bottom_bar_gap">20dp</dimen>
     <dimen name="picker_album_grid_radius">8dp</dimen>
     <dimen name="picker_album_item_top_spacing">28dp</dimen>
     <dimen name="picker_album_item_spacing">16dp</dimen>
 
     <dimen name="picker_photo_item_spacing">3dp</dimen>
+
+    <!-- Photo Picker recycler view bottom padding for profile button or bottom bar -->
+    <dimen name="picker_recycler_view_bottom_padding">78dp</dimen>
 
     <dimen name="picker_tab_text_size">14sp</dimen>
     <dimen name="picker_tab_radius">16dp</dimen>
@@ -94,6 +96,7 @@
     <!-- PhotoPicker Work Profile -->
     <dimen name="picker_profile_button_margin_bottom">16dp</dimen>
     <dimen name="picker_profile_dialog_radius">8dp</dimen>
+    <dimen name="picker_profile_dialog_scrim">0.6</dimen>
     <dimen name="picker_profile_dialog_title_text_size">14sp</dimen>
     <dimen name="picker_profile_dialog_icon_height">24dp</dimen>
     <dimen name="picker_profile_dialog_icon_width">24dp</dimen>

@@ -90,6 +90,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -133,6 +134,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     /** Indicates a billion value used when next row id is not present in respective xattr. */
     private static final Long NEXT_ROW_ID_DEFAULT_BILLION_VALUE = Double.valueOf(
             Math.pow(10, 9)).longValue();
+
+    private static final Long INVALID_ROW_ID = -1L;
 
     /**
      * Path on which {@link DatabaseHelper#DATA_MEDIA_XATTR_DIRECTORY_PATH} is set.
@@ -203,6 +206,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * Object used to synchronise sequence of next row id in database.
      */
     private static final Object sRecoveryLock = new Object();
+
+    /** Stores cached value of next row id of the database which optimises new id inserts. */
+    private AtomicLong mNextRowIdBackup = new AtomicLong(INVALID_ROW_ID);
 
     public interface OnSchemaChangeListener {
         void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
@@ -493,10 +499,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         synchronized (sRecoveryLock) {
             boolean isLastUsedDatabaseSession = isLastUsedDatabaseSession(db);
-            boolean isNextRowIdPresent = getNextRowIdFromXattr().isPresent();
-            if (isLastUsedDatabaseSession && isNextRowIdPresent) {
+            Optional<Long> nextRowIdFromXattrOptional = getNextRowIdFromXattr();
+            if (isLastUsedDatabaseSession && nextRowIdFromXattrOptional.isPresent()) {
                 Log.i(TAG, String.format("No database change across sequential open calls for %s.",
                         mName));
+                mNextRowIdBackup.set(nextRowIdFromXattrOptional.get());
                 updateSessionIdInDatabaseAndExternalStorage(db);
                 return;
             }
@@ -504,7 +511,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             Log.w(TAG, String.format(
                     "%s database inconsistent: isLastUsedDatabaseSession:%b, "
                             + "nextRowIdOptionalPresent:%b",
-                    mName, isLastUsedDatabaseSession, isNextRowIdPresent));
+                    mName, isLastUsedDatabaseSession, nextRowIdFromXattrOptional.isPresent()));
             // TODO(b/222313219): Add an assert to ensure that next row id xattr is always
             // present when DB session id matches across sequential open calls.
             updateNextRowIdInDatabaseAndExternalStorage(db);
@@ -2224,12 +2231,17 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 nextRowId));
     }
 
+    /**
+     * Backs up next row id value in xattr to {@code nextRowId} + BackupFrequency. Also updates
+     * respective in-memory next row id cached value.
+     */
     protected void backupNextRowId(long nextRowId) {
         long backupId = nextRowId + getNextRowIdBackupFrequency();
         boolean setOnExternalStorage = setXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
                 getNextRowIdXattrKeyForDatabase(),
                 String.valueOf(backupId));
         if (setOnExternalStorage) {
+            mNextRowIdBackup.set(backupId);
             Log.i(TAG, String.format("Backed up next row id as:%d on path:%s for %s.", backupId,
                     DATA_MEDIA_XATTR_DIRECTORY_PATH, mName));
         }
@@ -2292,6 +2304,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                             path));
             return Optional.empty();
         }
+    }
+
+    protected Optional<Long> getNextRowId() {
+        if (mNextRowIdBackup.get() == INVALID_ROW_ID) {
+            return getNextRowIdFromXattr();
+        }
+
+        return Optional.of(mNextRowIdBackup.get());
     }
 
     public static boolean isNextRowIdBackupEnabled() {

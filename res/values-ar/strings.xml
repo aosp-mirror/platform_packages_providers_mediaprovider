@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"الوسائط"</string>
     <string name="storage_description" msgid="4081716890357580107">"التخزين المحلي"</string>
     <string name="app_label" msgid="9035307001052716210">"تخزين الوسائط"</string>
-    <!-- no translation found for picker_app_label (6035511670633386524) -->
+    <!-- no translation found for picker_app_label (5487796494405738578) -->
     <skip />
     <string name="artist_label" msgid="8105600993099120273">"الفنان"</string>
     <string name="unknown" msgid="2059049215682829375">"غير معروف"</string>
@@ -78,8 +78,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"إعادة صوت الفيديو"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"تشغيل الفيديو"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"إيقاف الفيديو مؤقتًا"</string>
-    <!-- no translation found for not_selected (2244008151669896758) -->
-    <skip />
+    <string name="not_selected" msgid="2244008151669896758">"غير محدّد"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذا الملف الصوتي؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل ملفَين صوتيين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملفات صوتية؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملفًا صوتيًا؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{جارٍ تعديل ملف صوتي واحد…}zero{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…}two{جارٍ تعديل ملفَين صوتين (<xliff:g id="COUNT">^1</xliff:g>)…}few{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملفات صوتية…}many{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملفًا صوتيًا…}other{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذا الفيديو؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل فيديوهين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديوهات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟}}"</string>

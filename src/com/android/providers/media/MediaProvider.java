@@ -835,16 +835,17 @@ public class MediaProvider extends ContentProvider {
             return;
         }
 
-        // TODO(b/222244140): Store next row id in memory to avoid reading from xattr on every
-        // insert.
-        if (!helper.getNextRowIdFromXattr().isPresent()) {
+        Optional<Long> nextRowIdBackupOptional = helper.getNextRowId();
+        if (!nextRowIdBackupOptional.isPresent()) {
             throw new RuntimeException(String.format("Cannot find next row id xattr for %s.",
                     helper.getDatabaseName()));
         }
 
-        long currentNextRowIdBackUp = helper.getNextRowIdFromXattr().get();
-        if (id >= currentNextRowIdBackUp) {
+        if (id >= nextRowIdBackupOptional.get()) {
             helper.backupNextRowId(id);
+        } else {
+            Log.v(TAG, String.format("Inserted id:%d less than next row id backup:%d.", id,
+                    nextRowIdBackupOptional.get()));
         }
     }
 
@@ -1056,7 +1057,7 @@ public class MediaProvider extends ContentProvider {
                 MIGRATION_LISTENER, mIdGenerator);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase);
         mPickerDbFacade = new PickerDbFacade(context);
-        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
+        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade, this);
         mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade);
 
@@ -9683,6 +9684,20 @@ public class MediaProvider extends ContentProvider {
         try {
             return DeviceConfig.getInt(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
                     defaultValue);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+    }
+
+    @VisibleForTesting
+    public int getIntDeviceConfig(String namespace, String key, int defaultValue) {
+        if (!canReadDeviceConfig(key, defaultValue)) {
+            return defaultValue;
+        }
+
+        final long token = Binder.clearCallingIdentity();
+        try {
+            return DeviceConfig.getInt(namespace, key, defaultValue);
         } finally {
             Binder.restoreCallingIdentity(token);
         }

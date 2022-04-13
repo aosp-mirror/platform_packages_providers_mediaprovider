@@ -382,8 +382,11 @@ public class PickerSyncController {
                 case SYNC_TYPE_MEDIA_FULL:
                     resetAllMedia(authority);
 
+                    // Pass a mutable empty bundle intentionally because it might be populated with
+                    // the next page token as part of a query to a cloud provider supporting
+                    // pagination
                     executeSyncAdd(authority, params.getMediaCollectionId(),
-                            /* isIncrementalSync */ false, /* queryArgs */ Bundle.EMPTY);
+                            /* isIncrementalSync */ false, /* queryArgs */ new Bundle());
 
                     // Commit sync position
                     cacheMediaCollectionInfo(authority, params.latestMediaCollectionInfo);

@@ -23,6 +23,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 
@@ -626,26 +627,14 @@ public class ExternalDbFacadeTest {
             cv.put(MediaColumns.GENERATION_MODIFIED, GENERATION_MODIFIED2);
             helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
 
-            try (Cursor cursor = facade.getMediaCollectionInfo(/* generation */ 0)) {
-                assertThat(cursor.getCount()).isEqualTo(1);
+            Bundle bundle = facade.getMediaCollectionInfo(/* generation */ 0);
+            assertMediaCollectionInfo(facade, bundle, /* generation */ 2);
 
-                cursor.moveToFirst();
-                assertMediaCollectionInfo(facade, cursor, /* count */ 2, /* generation */ 2);
-            }
+            bundle = facade.getMediaCollectionInfo(GENERATION_MODIFIED1);
+            assertMediaCollectionInfo(facade, bundle, /* generation */ 2);
 
-            try (Cursor cursor = facade.getMediaCollectionInfo(GENERATION_MODIFIED1)) {
-                assertThat(cursor.getCount()).isEqualTo(1);
-
-                cursor.moveToFirst();
-                assertMediaCollectionInfo(facade, cursor, /* count */ 1, GENERATION_MODIFIED2);
-            }
-
-            try (Cursor cursor = facade.getMediaCollectionInfo(GENERATION_MODIFIED2)) {
-                assertThat(cursor.getCount()).isEqualTo(1);
-
-                cursor.moveToFirst();
-                assertMediaCollectionInfo(facade, cursor, /* count */ 0, /* generation */ 0);
-            }
+            bundle = facade.getMediaCollectionInfo(GENERATION_MODIFIED2);
+            assertMediaCollectionInfo(facade, bundle, /* generation */ 0);
         }
     }
 
@@ -662,12 +651,8 @@ public class ExternalDbFacadeTest {
             cvDeleted.put(MediaColumns.GENERATION_MODIFIED, GENERATION_MODIFIED2);
             helper.runWithTransaction(db -> db.insert(TABLE_DELETED_MEDIA, null, cvDeleted));
 
-            try (Cursor cursor = facade.getMediaCollectionInfo(/* generation */ 0)) {
-                assertThat(cursor.getCount()).isEqualTo(1);
-
-                cursor.moveToFirst();
-                assertMediaCollectionInfo(facade, cursor, /* count */ 1, /* generation */ 2);
-            }
+            Bundle bundle = facade.getMediaCollectionInfo(/* generation */ 0);
+            assertMediaCollectionInfo(facade, bundle, /* generation */ 2);
         }
     }
 
@@ -868,12 +853,13 @@ public class ExternalDbFacadeTest {
         assertThat(cursor.getLong(countIndex)).isEqualTo(count);
     }
 
-    private static void assertMediaCollectionInfo(ExternalDbFacade facade, Cursor cursor,
-            long count, long generation) {
-        int generationIndex = cursor.getColumnIndex(
-                CloudMediaProviderContract.MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION);
+    private static void assertMediaCollectionInfo(ExternalDbFacade facade, Bundle bundle,
+            long expectedGeneration) {
+        long generation = bundle.getLong(MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION);
+        String mediaCollectionId = bundle.getString(MediaCollectionInfo.MEDIA_COLLECTION_ID);
 
-        assertThat(cursor.getLong(generationIndex)).isEqualTo(generation);
+        assertThat(generation).isEqualTo(expectedGeneration);
+        assertThat(mediaCollectionId).isEqualTo(MediaStore.getVersion(sIsolatedContext));
     }
 
     private static Cursor queryAllMedia(ExternalDbFacade facade) {

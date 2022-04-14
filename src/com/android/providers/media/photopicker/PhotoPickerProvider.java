@@ -149,19 +149,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        Bundle bundle = new Bundle();
-        try (Cursor cursor = mDbFacade.getMediaCollectionInfo(queryExtras.getGeneration())) {
-            if (cursor.moveToFirst()) {
-                int generationIndex = cursor.getColumnIndexOrThrow(
-                        MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION);
-
-                bundle.putString(MediaCollectionInfo.MEDIA_COLLECTION_ID,
-                        MediaStore.getVersion(getContext()));
-                bundle.putLong(MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION,
-                        cursor.getLong(generationIndex));
-            }
-        }
-        return bundle;
+        return mDbFacade.getMediaCollectionInfo(queryExtras.getGeneration());
     }
 
     @Override

@@ -25,7 +25,6 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.VOLUME_EXTERNAL;
 
-import static com.android.providers.media.photopicker.data.PickerDbFacade.PROP_DEFAULT_SYNC_DELAY_MS;
 import static com.android.providers.media.util.MimeUtils.isImageMimeType;
 import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
 
@@ -42,12 +41,14 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.provider.DeviceConfig;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
@@ -89,7 +90,8 @@ public class ItemsProviderTest {
                         Manifest.permission.INTERACT_ACROSS_USERS);
 
         // Remove sync delay to avoid flaky tests
-        final String setSyncDelayCommand = "setprop " + PROP_DEFAULT_SYNC_DELAY_MS + " 0";
+        final String setSyncDelayCommand =
+                "device_config put storage pickerdb.default_sync_delay_ms 0";
         uiAutomation.executeShellCommand(setSyncDelayCommand);
 
         final Context context = InstrumentationRegistry.getTargetContext();

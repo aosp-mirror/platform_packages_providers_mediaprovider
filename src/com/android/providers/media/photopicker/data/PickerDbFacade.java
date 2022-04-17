@@ -38,6 +38,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.os.SystemProperties;
+import android.provider.DeviceConfig;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -59,8 +60,6 @@ import java.util.Objects;
  * MediaProvider for the Photo Picker.
  */
 public class PickerDbFacade {
-    public static final String PROP_DEFAULT_SYNC_DELAY_MS =
-            "persist.sys.photopicker.pickerdb.default_sync_delay_ms";
     private static final String VIDEO_MIME_TYPES = "video/%";
 
     private final Object mLock = new Object();
@@ -767,10 +766,6 @@ public class PickerDbFacade {
             c.addRow(projectionValue);
         }
         return c;
-    }
-
-    public static int getDefaultPickerDbSyncDelayMs() {
-        return SystemProperties.getInt(PROP_DEFAULT_SYNC_DELAY_MS, 5000);
     }
 
     private boolean isLocal(String authority) {

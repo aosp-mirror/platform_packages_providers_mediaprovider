@@ -56,7 +56,7 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloqué par votre administrateur"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Vous n\'êtes pas autorisé à accéder à des données professionnelles depuis une appli personnelle"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Vous n\'êtes pas autorisé à accéder à des données à caractère personnel depuis une appli professionnelle"</string>
-    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Applis professionnelles en veille"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Applis professionnelles en pause"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Pour ouvrir des photos professionnelles, activez vos applis professionnelles, puis réessayez"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Cette appli peut uniquement accéder aux photos que vous sélectionnez"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> élément}one{<xliff:g id="COUNT_1">^1</xliff:g> élément}other{<xliff:g id="COUNT_1">^1</xliff:g> éléments}}"</string>

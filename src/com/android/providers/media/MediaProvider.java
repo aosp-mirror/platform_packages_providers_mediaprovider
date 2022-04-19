@@ -755,36 +755,37 @@ public class MediaProvider extends ContentProvider {
         }
 
         @Override
-        public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
-                long oldId, int oldMediaType, boolean oldIsDownload,
-                long newId, int newMediaType, boolean newIsDownload,
-                boolean oldIsTrashed, boolean newIsTrashed,
-                boolean oldIsPending, boolean newIsPending,
-                boolean oldIsFavorite, boolean newIsFavorite,
-                int oldSpecialFormat, int newSpecialFormat,
-                String oldOwnerPackage, String newOwnerPackage, String oldPath) {
-            final boolean isDownload = oldIsDownload || newIsDownload;
-            final Uri fileUri = MediaStore.Files.getContentUri(volumeName, oldId);
-            handleUpdatedRowForFuse(oldPath, oldOwnerPackage, oldId, newId);
-            handleOwnerPackageNameChange(oldPath, oldOwnerPackage, newOwnerPackage);
-            acceptWithExpansion(helper::notifyUpdate, volumeName, oldId, oldMediaType, isDownload);
-            updateNextRowIdXattr(helper, newId);
+        public void onUpdate(@NonNull DatabaseHelper helper, @NonNull FileRow oldRow,
+                @NonNull FileRow newRow) {
+            final boolean isDownload = oldRow.isDownload() || newRow.isDownload();
+            final Uri fileUri = MediaStore.Files.getContentUri(oldRow.getVolumeName(),
+                    oldRow.getId());
+            handleUpdatedRowForFuse(oldRow.getPath(), oldRow.getOwnerPackageName(), oldRow.getId(),
+                    newRow.getId());
+            handleOwnerPackageNameChange(oldRow.getPath(), oldRow.getOwnerPackageName(),
+                    newRow.getOwnerPackageName());
+            acceptWithExpansion(helper::notifyUpdate, oldRow.getVolumeName(), oldRow.getId(),
+                    oldRow.getMediaType(), isDownload);
+            updateNextRowIdXattr(helper, newRow.getId());
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
-                    updateQuotaTypeForUri(fileUri, newMediaType);
+                    updateQuotaTypeForUri(fileUri, newRow.getMediaType());
                 }
 
-                if (mExternalDbFacade.onFileUpdated(oldId, oldMediaType, newMediaType, oldIsTrashed,
-                                newIsTrashed, oldIsPending, newIsPending, oldIsFavorite,
-                                newIsFavorite, oldSpecialFormat, newSpecialFormat)) {
+                if (mExternalDbFacade.onFileUpdated(oldRow.getId(),
+                        oldRow.getMediaType(), newRow.getMediaType(),
+                        oldRow.isTrashed(), newRow.isTrashed(),
+                        oldRow.isPending(), newRow.isPending(),
+                        oldRow.isFavorite(), newRow.isFavorite(),
+                        oldRow.getSpecialFormat(), newRow.getSpecialFormat())) {
                     mPickerSyncController.notifyMediaEvent();
                 }
             });
 
-            if (newMediaType != oldMediaType) {
-                acceptWithExpansion(helper::notifyUpdate, volumeName, oldId, newMediaType,
-                        isDownload);
+            if (newRow.getMediaType() != oldRow.getMediaType()) {
+                acceptWithExpansion(helper::notifyUpdate, oldRow.getVolumeName(), oldRow.getId(),
+                        newRow.getMediaType(), isDownload);
 
                 helper.postBackground(() -> {
                     // Invalidate any thumbnails when the media type changes

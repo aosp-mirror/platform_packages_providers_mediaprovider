@@ -66,6 +66,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.BackgroundThread;
+import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -216,8 +217,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     public interface OnFilesChangeListener {
-        void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int mediaType, boolean isDownload, boolean isPending);
+        void onInsert(@NonNull DatabaseHelper helper, @NonNull FileRow insertedRow);
 
         void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
                 long oldId, int oldMediaType, boolean oldIsDownload,
@@ -360,10 +360,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final boolean isDownload = Integer.parseInt(split[3]) != 0;
                 final boolean isPending = Integer.parseInt(split[4]) != 0;
 
+                FileRow insertedRow = FileRow.newBuilder(id)
+                        .setVolumeName(volumeName)
+                        .setMediaType(mediaType)
+                        .setIsDownload(isDownload)
+                        .setIsPending(isPending)
+                        .build();
                 Trace.beginSection("_INSERT");
                 try {
-                    mFilesListener.onInsert(DatabaseHelper.this, volumeName, id,
-                            mediaType, isDownload, isPending);
+                    mFilesListener.onInsert(DatabaseHelper.this, insertedRow);
                 } finally {
                     Trace.endSection();
                 }

@@ -222,8 +222,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         void onUpdate(@NonNull DatabaseHelper helper, @NonNull FileRow oldRow,
                 @NonNull FileRow newRow);
 
-        void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int mediaType, boolean isDownload, String ownerPackage, String path);
+        /** Method invoked on database row delete. */
+        void onDelete(@NonNull DatabaseHelper helper, @NonNull FileRow deletedRow);
     }
 
     public interface OnLegacyMigrationListener {
@@ -434,10 +434,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final String ownerPackage = split[4];
                 final String path = split[5];
 
+                FileRow deletedRow = FileRow.newBuilder(id)
+                        .setVolumeName(volumeName)
+                        .setMediaType(mediaType)
+                        .setIsDownload(isDownload)
+                        .setOwnerPackageName(ownerPackage)
+                        .setPath(path)
+                        .build();
                 Trace.beginSection("_DELETE");
                 try {
-                    mFilesListener.onDelete(DatabaseHelper.this, volumeName, id,
-                            mediaType, isDownload, ownerPackage, path);
+                    mFilesListener.onDelete(DatabaseHelper.this, deletedRow);
                 } finally {
                     Trace.endSection();
                 }

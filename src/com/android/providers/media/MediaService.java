@@ -27,7 +27,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.storage.StorageVolume;
@@ -151,6 +150,16 @@ public class MediaService extends JobIntentService {
     public static void onScanVolume(Context context, MediaVolume volume, int reason)
             throws IOException {
         final String volumeName = volume.getName();
+        if (!MediaStore.VOLUME_INTERNAL.equals(volumeName) && volume.getPath() == null) {
+            /* This is a very unexpected state and can only ever happen with app-cloned users.
+              In general, MediaVolumes should always be mounted and have a path, however, if the
+              user failed to unlock properly, MediaProvider still gets the volume from the
+              StorageManagerService because MediaProvider is special cased there. See
+              StorageManagerService#getVolumeList. Reference bug: b/207723670. */
+            Log.w(TAG, String.format("Skipping volume scan for %s when volume path is null.",
+                    volumeName));
+            return;
+        }
         UserHandle owner = volume.getUser();
         if (owner == null) {
             // Can happen for the internal volume

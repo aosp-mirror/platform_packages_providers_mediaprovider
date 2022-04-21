@@ -32,6 +32,7 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Process;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.MediaStore;
@@ -40,11 +41,13 @@ import android.util.Pair;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.R;
+import com.android.providers.media.util.DeviceConfigUtils;
 
 import java.io.File;
 import java.util.List;
@@ -55,6 +58,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.MockitoSession;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerSyncControllerTest {
@@ -601,6 +605,61 @@ public class PickerSyncControllerTest {
                 Process.myUid());
 
         assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
+    }
+
+    @Test
+    public void testGetSupportedCloudProviders_useAllowList() {
+        MockitoSession mockSession = ExtendedMockito.mockitoSession()
+                .mockStatic(DeviceConfigUtils.class)
+                .mockStatic(SystemProperties.class)
+                .startMocking();
+
+        try {
+            when(SystemProperties.getBoolean(
+                PickerSyncController.PROP_USE_ALLOWED_CLOUD_PROVIDERS, false))
+                .thenReturn(true);
+
+            CloudProviderInfo primaryInfo = new CloudProviderInfo(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
+                    PACKAGE_NAME,
+                    Process.myUid());
+            CloudProviderInfo secondaryInfo = new CloudProviderInfo(
+                    CLOUD_SECONDARY_PROVIDER_AUTHORITY,
+                    PACKAGE_NAME,
+                    Process.myUid());
+
+            // 1. Allow list is subset of existing providers list
+            when(DeviceConfigUtils.getStringDeviceConfig(
+                    PickerSyncController.ALLOWED_CLOUD_PROVIDERS_KEY, ""))
+                .thenReturn(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            PickerSyncController controller = new PickerSyncController(mContext, mFacade,
+                    LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
+            List<CloudProviderInfo> providers = controller.getSupportedCloudProviders();
+            assertThat(providers).containsExactly(primaryInfo);
+
+            // 2. Allow list is exactly the same as existing providers list
+            when(DeviceConfigUtils.getStringDeviceConfig(
+                    PickerSyncController.ALLOWED_CLOUD_PROVIDERS_KEY, ""))
+                .thenReturn(CLOUD_PRIMARY_PROVIDER_AUTHORITY
+                            + "," + CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+            controller = new PickerSyncController(mContext, mFacade,
+                    LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
+            providers = controller.getSupportedCloudProviders();
+            assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
+
+            // 3. Allow list containing existing providers list + others
+            when(DeviceConfigUtils.getStringDeviceConfig(
+                    PickerSyncController.ALLOWED_CLOUD_PROVIDERS_KEY, ""))
+                .thenReturn(CLOUD_PRIMARY_PROVIDER_AUTHORITY
+                            + "," + CLOUD_SECONDARY_PROVIDER_AUTHORITY
+                            + "," + CLOUD_PRIMARY_PROVIDER_AUTHORITY + "invalid");
+            controller = new PickerSyncController(mContext, mFacade,
+                    LOCAL_PROVIDER_AUTHORITY, SYNC_DELAY_MS);
+            providers = controller.getSupportedCloudProviders();
+            assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
+        }
+        finally {
+            mockSession.finishMocking();
+        }
     }
 
     @Test

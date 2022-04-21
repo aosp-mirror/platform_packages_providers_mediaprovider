@@ -49,6 +49,7 @@
            parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog.Centered">
         <item name="shapeAppearanceOverlay">@style/ShapeAppearance</item>
         <item name="android:backgroundDimAmount">@dimen/picker_profile_dialog_scrim</item>
+        <item name="android:background">?attr/pickerProfileDialogBackgroundColor</item>
         <item name="materialAlertDialogTitleTextStyle">@style/MaterialAlertDialogTitleStyle</item>
         <item name="materialAlertDialogBodyTextStyle">@style/MaterialAlertDialogBodyStyle</item>
         <item name="materialAlertDialogTitleIconStyle">@style/MaterialAlertDialogIconStyle</item>
@@ -111,6 +112,7 @@
         <item name="pickerProfileDialogButtonAndIconColor">#1A73E8</item>
         <item name="pickerProfileDialogTitleColor">#202124</item>
         <item name="pickerProfileDialogBodyColor">#5F6368</item>
+        <item name="pickerProfileDialogBackgroundColor">@android:color/white</item>
     </style>
 
 </resources>

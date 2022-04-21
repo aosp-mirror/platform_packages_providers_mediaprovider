@@ -62,7 +62,7 @@ import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Player.State;
-import com.google.android.exoplayer2.analytics.AnalyticsCollector;
+import com.google.android.exoplayer2.analytics.DefaultAnalyticsCollector;
 import com.google.android.exoplayer2.source.MediaParserExtractorAdapter;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
@@ -401,7 +401,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                     new DefaultTrackSelector(mContext),
                     sLoadControl,
                     DefaultBandwidthMeter.getSingletonInstance(mContext),
-                    new AnalyticsCollector(Clock.DEFAULT)).build();
+                    new DefaultAnalyticsCollector(Clock.DEFAULT)).build();
         }
 
         private void updateLoopingPlaybackStatus() {

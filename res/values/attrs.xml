@@ -60,4 +60,7 @@
     <!-- Photo Picker Profile Dialog body color. -->
     <attr name="pickerProfileDialogBodyColor" format="reference|color" />
 
+    <!-- Photo Picker Profile Dialog background color. -->
+    <attr name="pickerProfileDialogBackgroundColor" format="reference|color" />
+
 </resources>

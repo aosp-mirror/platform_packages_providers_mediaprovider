@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Meedia"</string>
     <string name="storage_description" msgid="4081716890357580107">"Kohalik salvestusruum"</string>
     <string name="app_label" msgid="9035307001052716210">"Meediumi salvestusruum"</string>
-    <!-- no translation found for picker_app_label (5487796494405738578) -->
-    <skip />
+    <string name="picker_app_label" msgid="5487796494405738578">"Fotovalija"</string>
     <string name="artist_label" msgid="8105600993099120273">"Esitaja"</string>
     <string name="unknown" msgid="2059049215682829375">"Teadmata"</string>
     <string name="root_images" msgid="5861633549189045666">"Pildid"</string>

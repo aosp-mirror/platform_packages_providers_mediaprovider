@@ -1691,6 +1691,25 @@ static void pf_copy_file_range(fuse_req_t req, fuse_ino_t ino_in,
 }
 #endif
 
+/*
+ * This function does nothing except being a placeholder to keep the FUSE
+ * driver handling flushes on close(2).
+ * In fact, kernels prior to 5.8 stop attempting flushing the cache on close(2)
+ * if the .flush operation is not implemented by the FUSE daemon.
+ * This has been fixed in the kernel by commit 614c026e8a46 ("fuse: always
+ * flush dirty data on close(2)"), merged in Linux 5.8, but until then
+ * userspace must mitigate this behavior by not leaving the .flush function
+ * pointer empty.
+ */
+static void pf_flush(fuse_req_t req,
+                     fuse_ino_t ino,
+                     struct fuse_file_info* fi) {
+    ATRACE_CALL();
+    struct fuse* fuse = get_fuse(req);
+    TRACE_NODE(nullptr, req) << "noop";
+    fuse_reply_err(req, 0);
+}
+
 static void pf_release(fuse_req_t req,
                        fuse_ino_t ino,
                        struct fuse_file_info* fi) {
@@ -2136,7 +2155,7 @@ static struct fuse_lowlevel_ops ops{
     /*.link = pf_link,*/
     .open = pf_open, .read = pf_read,
     /*.write = pf_write,*/
-    /*.flush = pf_flush,*/
+    .flush = pf_flush,
     .release = pf_release, .fsync = pf_fsync, .opendir = pf_opendir, .readdir = pf_readdir,
     .releasedir = pf_releasedir, .fsyncdir = pf_fsyncdir, .statfs = pf_statfs,
     /*.setxattr = pf_setxattr,
@@ -2237,6 +2256,16 @@ bool FuseDaemon::IsStarted() const {
     return active.load(std::memory_order_acquire);
 }
 
+bool IsFuseBpfEnabled() {
+    std::string bpf_override = android::base::GetProperty("persist.sys.fuse.bpf.override", "");
+    if (bpf_override == "true") {
+        return true;
+    } else if (bpf_override == "false") {
+        return false;
+    }
+    return android::base::GetBoolProperty("ro.fuse.bpf.enabled", false);
+}
+
 void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
                        const bool uncached_mode,
                        const std::vector<std::string>& supported_transcoding_relative_paths,
@@ -2265,7 +2294,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
         return;
     }
 
-    bool bpf_enabled = android::base::GetBoolProperty("persist.sys.fuse.bpf.override", false);
+    bool bpf_enabled = IsFuseBpfEnabled();
     int bpf_fd = -1;
     if (bpf_enabled) {
         LOG(INFO) << "Using FUSE BPF";

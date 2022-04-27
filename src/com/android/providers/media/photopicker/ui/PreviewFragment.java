@@ -115,8 +115,9 @@ public class PreviewFragment extends Fragment {
         final int selectedItemsListSize = selectedItemsList.size();
 
         if (selectedItemsListSize <= 0) {
-            // This should never happen.
-            throw new IllegalStateException("No items to preview");
+            // This can happen if we lost PickerViewModel to optimize memory.
+            Log.e(TAG, "No items to preview. Returning back to photo grid");
+            requireActivity().getSupportFragmentManager().popBackStack();
         } else if (selectedItemsListSize > 1 && !mSelection.canSelectMultiple()) {
             // This should never happen
             throw new IllegalStateException("Found more than one preview items in single select"

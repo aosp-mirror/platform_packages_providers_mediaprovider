@@ -51,7 +51,7 @@ public class ViewPager2IdlingResource implements IdlingResource, AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        IdlingRegistry.getInstance().register(this);
+        IdlingRegistry.getInstance().unregister(this);
     }
 
     private final class IdleStateListener extends ViewPager2.OnPageChangeCallback {

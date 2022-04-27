@@ -96,6 +96,8 @@ class PlaybackHandler {
     }
 
     public void onViewAttachedToWindow(View itemView) {
+        final ImageView imageView = itemView.findViewById(R.id.preview_video_image);
+        imageView.setVisibility(View.VISIBLE);
         final StyledPlayerView styledPlayerView = itemView.findViewById(R.id.preview_player_view);
         styledPlayerView.setVisibility(View.GONE);
         styledPlayerView.setControllerVisibilityListener(null);

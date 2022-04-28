@@ -20,6 +20,7 @@ import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
 import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
 import static com.android.providers.media.util.Logging.TAG;
 
+import android.annotation.SuppressLint;
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
@@ -78,6 +79,7 @@ public class UserCache {
         update();
     }
 
+    @SuppressLint("NewApi")
     private void update() {
         List<UserHandle> profiles = mUserManager.getEnabledProfiles();
         synchronized (mLock) {

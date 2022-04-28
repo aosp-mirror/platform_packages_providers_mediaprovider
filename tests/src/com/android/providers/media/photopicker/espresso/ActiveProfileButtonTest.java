@@ -65,7 +65,7 @@ public class ActiveProfileButtonTest extends PhotoPickerBaseTest {
         onView(withId(PROFILE_BUTTON)).check(matches(isDisplayed()));
 
         // Goto Albums page
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
         // Verify profile button is displayed
         onView(withId(PROFILE_BUTTON)).check(matches(isDisplayed()));
@@ -80,13 +80,13 @@ public class ActiveProfileButtonTest extends PhotoPickerBaseTest {
         onView(withContentDescription("Navigate up")).perform(click());
 
         // on clicking back button we are back to Album grid
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .check(matches(isSelected()));
         // Verify profile button is displayed
         onView(withId(PROFILE_BUTTON)).check(matches(isDisplayed()));
 
         // Goto Photos grid
-        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
         // Verify profile button is displayed
         onView(withId(PROFILE_BUTTON)).check(matches(isDisplayed()));
@@ -115,7 +115,7 @@ public class ActiveProfileButtonTest extends PhotoPickerBaseTest {
         onView(withId(PROFILE_BUTTON)).check(matches(not(isDisplayed())));
 
         // Goto Albums page and verify profile button is not shown
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), withParent(withId(CHIP_CONTAINER_ID))))
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
         onView(withId(PROFILE_BUTTON)).check(matches(not(isDisplayed())));
     }

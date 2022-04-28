@@ -66,7 +66,6 @@
 #include "libfuse_jni/FuseUtils.h"
 #include "libfuse_jni/ReaddirHelper.h"
 #include "libfuse_jni/RedactionInfo.h"
-#include "node-inl.h"
 
 using mediaprovider::fuse::DirectoryEntry;
 using mediaprovider::fuse::dirhandle;
@@ -117,10 +116,8 @@ const std::string MY_USER_ID_STRING(std::to_string(MY_UID / PER_USER_RANGE));
 const std::regex PATTERN_OWNED_PATH(
         "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/([^/]+)(/?.*)?",
         std::regex_constants::icase);
-const std::regex PATTERN_DATA_PATH("^/storage/[^/]+/(?:[0-9]+/)?Android/data$",
-                                   std::regex_constants::icase);
-const std::regex PATTERN_OBB_PATH("^/storage/[^/]+/(?:[0-9]+/)?Android/obb$",
-                                  std::regex_constants::icase);
+const std::regex PATTERN_BPF_BACKING_PATH("^/storage/[^/]+/[0-9]+/Android/(data|obb)$",
+                                          std::regex_constants::icase);
 
 static constexpr char TRANSFORM_SYNTHETIC_DIR[] = "synthetic";
 static constexpr char TRANSFORM_TRANSCODE_DIR[] = "transcode";
@@ -128,7 +125,7 @@ static constexpr char PRIMARY_VOLUME_PREFIX[] = "/storage/emulated";
 
 static constexpr char FUSE_BPF_PROG_PATH[] = "/sys/fs/bpf/prog_fuse_media_fuse_media";
 
-enum class BpfFd { UNINITIALIZED = -2, REMOVE = -1 };
+enum class BpfFd { REMOVE = -1 };
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -257,6 +254,7 @@ class FAdviser {
 /* Single FUSE mount */
 struct fuse {
     explicit fuse(const std::string& _path, const ino_t _ino, const bool _uncached_mode,
+                  const bool _bpf, const int _bpf_fd,
                   const std::vector<string>& _supported_transcoding_relative_paths,
                   const std::vector<string>& _supported_uncached_relative_paths)
         : path(_path),
@@ -267,7 +265,8 @@ struct fuse {
           zero_addr(0),
           disable_dentry_cache(false),
           passthrough(false),
-          bpf(false),
+          bpf(_bpf),
+          bpf_fd(_bpf_fd),
           supported_transcoding_relative_paths(_supported_transcoding_relative_paths),
           supported_uncached_relative_paths(_supported_uncached_relative_paths) {}
 
@@ -390,7 +389,7 @@ struct fuse {
     std::atomic_bool passthrough;
     std::atomic_bool bpf;
 
-    int bpf_fd;
+    const int bpf_fd;
 
     // FUSE device id.
     std::atomic_uint dev;
@@ -476,12 +475,8 @@ static bool is_package_owned_path(const string& path, const string& fuse_path) {
     return std::regex_match(path, PATTERN_OWNED_PATH);
 }
 
-static bool is_data_path(const string& path) {
-    return std::regex_match(path, PATTERN_DATA_PATH);
-}
-
-static bool is_obb_path(const string& path) {
-    return std::regex_match(path, PATTERN_OBB_PATH);
+static bool is_bpf_backing_path(const string& path) {
+    return std::regex_match(path, PATTERN_BPF_BACKING_PATH);
 }
 
 // See fuse_lowlevel.h fuse_lowlevel_notify_inval_entry for how to call this safetly without
@@ -694,7 +689,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     // introduce a performance regression.
     // Currently FUSE BPF is limited to the Android/data and Android/obb
     // directories.
-    if (!fuse->bpf || !(is_data_path(path) || is_obb_path(path))) {
+    if (!fuse->bpf || !is_bpf_backing_path(path)) {
         e->entry_timeout = get_entry_timeout(path, should_invalidate, fuse);
         e->attr_timeout = std::numeric_limits<double>::max();
     }
@@ -747,8 +742,6 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
             fuse->passthrough = false;
         }
     }
-
-    fuse->bpf_fd = static_cast<int>(BpfFd::UNINITIALIZED);
 
     conn->want |= conn->capable & mask;
     if (disable_splice_write) {
@@ -804,15 +797,24 @@ static bool is_app_accessible_path(struct fuse* fuse, const string& path, uid_t 
     return true;
 }
 
-bool fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_entry_param* e) {
-    const int fd = open(path.c_str(), O_CLOEXEC | O_DIRECTORY | O_RDONLY);
-    if (fd < 0) {
+void fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_entry_param* e,
+                           int& backing_fd) {
+    /*
+     * The file descriptor `fd` must not be closed as it is closed
+     * automatically by the kernel as soon as it consumes the FUSE reply. This
+     * mechanism is necessary because userspace doesn't know when the kernel
+     * will consume the FUSE response containing `fd`, thus it may close the
+     * `fd` too soon, with the risk of assigning a backing file which is either
+     * invalid or corresponds to the wrong file in the lower file system.
+     */
+    backing_fd = open(path.c_str(), O_CLOEXEC | O_DIRECTORY | O_RDONLY);
+    if (backing_fd < 0) {
         PLOG(ERROR) << "Failed to open: " << path;
-        return false;
+        return;
     }
 
     e->backing_action = FUSE_ACTION_REPLACE;
-    e->backing_fd = fd;
+    e->backing_fd = backing_fd;
 
     if (bpf_fd >= 0) {
         e->bpf_action = FUSE_ACTION_REPLACE;
@@ -822,36 +824,25 @@ bool fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_ent
     } else {
         e->bpf_action = FUSE_ACTION_KEEP;
     }
-
-    return true;
 }
 
-void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const string& child_path) {
-    if (fuse->bpf_fd >= 0) {
-        // TODO(b/211873756) Enable only for the primary volume. Must be
-        // extended for other media devices.
-        if (android::base::StartsWith(child_path, PRIMARY_VOLUME_PREFIX)) {
-            if (is_data_path(child_path) || is_obb_path(child_path)) {
-                fuse_bpf_fill_entries(child_path, fuse->bpf_fd, e);
-            } else if (is_package_owned_path(child_path, fuse->path)) {
-                fuse_bpf_fill_entries(child_path, static_cast<int>(BpfFd::REMOVE), e);
-            }
-        }
-    } else if (fuse->bpf_fd == static_cast<int>(BpfFd::UNINITIALIZED)) {
-        // Initialize FUSE BPF
-        fuse->bpf_fd = android::bpf::bpfFdGet(FUSE_BPF_PROG_PATH, BPF_F_RDONLY);
-        if (fuse->bpf_fd < 0) {
-            PLOG(ERROR) << "Failed to fetch BPF prog fd: " << fuse->bpf_fd;
-            fuse->bpf = false;
-        } else {
-            LOG(INFO) << "BPF prog fd fetched";
+void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const string& child_path,
+                      int& backing_fd) {
+    // TODO(b/211873756) Enable only for the primary volume. Must be
+    // extended for other media devices.
+    if (android::base::StartsWith(child_path, PRIMARY_VOLUME_PREFIX)) {
+        if (is_bpf_backing_path(child_path)) {
+            fuse_bpf_fill_entries(child_path, fuse->bpf_fd, e, backing_fd);
+        } else if (is_package_owned_path(child_path, fuse->path)) {
+            fuse_bpf_fill_entries(child_path, static_cast<int>(BpfFd::REMOVE), e, backing_fd);
         }
     }
 }
 
 static std::regex storage_emulated_regex("^\\/storage\\/emulated\\/([0-9]+)");
 static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
-                       struct fuse_entry_param* e, int* error_code, const FuseOp op) {
+                       struct fuse_entry_param* e, int* error_code, const FuseOp op,
+                       int* backing_fd = NULL) {
     struct fuse* fuse = get_fuse(req);
     node* parent_node = fuse->FromInode(parent);
     if (!parent_node) {
@@ -886,7 +877,7 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
 
     auto node = make_node_entry(req, parent_node, name, child_path, e, error_code, op);
 
-    if (fuse->bpf) fuse_bpf_install(fuse, e, child_path);
+    if (fuse->bpf && op == FuseOp::lookup) fuse_bpf_install(fuse, e, child_path, *backing_fd);
 
     return node;
 }
@@ -894,14 +885,17 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
 static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
     ATRACE_CALL();
     struct fuse_entry_param e;
+    int backing_fd = -1;
 
     int error_code = 0;
-    if (do_lookup(req, parent, name, &e, &error_code, FuseOp::lookup)) {
+    if (do_lookup(req, parent, name, &e, &error_code, FuseOp::lookup, &backing_fd)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
         fuse_reply_err(req, error_code);
     }
+
+    if (backing_fd != -1) close(backing_fd);
 }
 
 static void do_forget(fuse_req_t req, struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
@@ -1525,7 +1519,8 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     fuse_reply_open(req, fi);
 }
 
-static void do_read(fuse_req_t req, size_t size, off_t off, struct fuse_file_info* fi) {
+static void do_read(fuse_req_t req, size_t size, off_t off, struct fuse_file_info* fi,
+                    bool direct_io) {
     handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse_bufvec buf = FUSE_BUFVEC_INIT(size);
 
@@ -1533,8 +1528,13 @@ static void do_read(fuse_req_t req, size_t size, off_t off, struct fuse_file_inf
     buf.buf[0].pos = off;
     buf.buf[0].flags =
             (enum fuse_buf_flags) (FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK);
-
-    fuse_reply_data(req, &buf, (enum fuse_buf_copy_flags) 0);
+    if (direct_io) {
+        // sdcardfs does not register splice_read_file_operations and some requests fail with EFAULT
+        // Specifically, FUSE splice is only enabled for 8KB+ buffers, hence such reads fail
+        fuse_reply_data(req, &buf, (enum fuse_buf_copy_flags)FUSE_BUF_NO_SPLICE);
+    } else {
+        fuse_reply_data(req, &buf, (enum fuse_buf_copy_flags)0);
+    }
 }
 
 /**
@@ -1561,7 +1561,8 @@ static void create_file_fuse_buf(size_t size, off_t pos, int fd, fuse_buf* buf) 
     buf->mem = nullptr;
 }
 
-static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_file_info* fi) {
+static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_file_info* fi,
+                                   bool direct_io) {
     handle* h = reinterpret_cast<handle*>(fi->fh);
 
     std::vector<ReadRange> ranges;
@@ -1569,7 +1570,7 @@ static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_
 
     // As an optimization, return early if there are no ranges to redact.
     if (ranges.size() == 0) {
-        do_read(req, size, off, fi);
+        do_read(req, size, off, fi, direct_io);
         return;
     }
 
@@ -1601,6 +1602,7 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                     struct fuse_file_info* fi) {
     ATRACE_CALL();
     handle* h = reinterpret_cast<handle*>(fi->fh);
+    const bool direct_io = !h->cached;
     struct fuse* fuse = get_fuse(req);
 
     node* node = fuse->FromInode(ino);
@@ -1618,9 +1620,9 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     fuse->fadviser.Record(h->fd, size);
 
     if (h->ri->isRedactionNeeded()) {
-        do_read_with_redaction(req, size, off, fi);
+        do_read_with_redaction(req, size, off, fi, direct_io);
     } else {
-        do_read(req, size, off, fi);
+        do_read(req, size, off, fi, direct_io);
     }
 }
 
@@ -1688,6 +1690,25 @@ static void pf_copy_file_range(fuse_req_t req, fuse_ino_t ino_in,
     fuse_reply_write(req, size);
 }
 #endif
+
+/*
+ * This function does nothing except being a placeholder to keep the FUSE
+ * driver handling flushes on close(2).
+ * In fact, kernels prior to 5.8 stop attempting flushing the cache on close(2)
+ * if the .flush operation is not implemented by the FUSE daemon.
+ * This has been fixed in the kernel by commit 614c026e8a46 ("fuse: always
+ * flush dirty data on close(2)"), merged in Linux 5.8, but until then
+ * userspace must mitigate this behavior by not leaving the .flush function
+ * pointer empty.
+ */
+static void pf_flush(fuse_req_t req,
+                     fuse_ino_t ino,
+                     struct fuse_file_info* fi) {
+    ATRACE_CALL();
+    struct fuse* fuse = get_fuse(req);
+    TRACE_NODE(nullptr, req) << "noop";
+    fuse_reply_err(req, 0);
+}
 
 static void pf_release(fuse_req_t req,
                        fuse_ino_t ino,
@@ -2134,7 +2155,7 @@ static struct fuse_lowlevel_ops ops{
     /*.link = pf_link,*/
     .open = pf_open, .read = pf_read,
     /*.write = pf_write,*/
-    /*.flush = pf_flush,*/
+    .flush = pf_flush,
     .release = pf_release, .fsync = pf_fsync, .opendir = pf_opendir, .readdir = pf_readdir,
     .releasedir = pf_releasedir, .fsyncdir = pf_fsyncdir, .statfs = pf_statfs,
     /*.setxattr = pf_setxattr,
@@ -2235,6 +2256,16 @@ bool FuseDaemon::IsStarted() const {
     return active.load(std::memory_order_acquire);
 }
 
+bool IsFuseBpfEnabled() {
+    std::string bpf_override = android::base::GetProperty("persist.sys.fuse.bpf.override", "");
+    if (bpf_override == "true") {
+        return true;
+    } else if (bpf_override == "false") {
+        return false;
+    }
+    return android::base::GetBoolProperty("ro.fuse.bpf.enabled", false);
+}
+
 void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
                        const bool uncached_mode,
                        const std::vector<std::string>& supported_transcoding_relative_paths,
@@ -2263,7 +2294,22 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
         return;
     }
 
-    struct fuse fuse_default(path, stat.st_ino, uncached_mode, supported_transcoding_relative_paths,
+    bool bpf_enabled = IsFuseBpfEnabled();
+    int bpf_fd = -1;
+    if (bpf_enabled) {
+        LOG(INFO) << "Using FUSE BPF";
+
+        bpf_fd = android::bpf::bpfFdGet(FUSE_BPF_PROG_PATH, BPF_F_RDONLY);
+        if (bpf_fd < 0) {
+            PLOG(ERROR) << "Failed to fetch BPF prog fd: " << bpf_fd;
+            bpf_enabled = false;
+        } else {
+            LOG(INFO) << "BPF prog fd fetched";
+        }
+    }
+
+    struct fuse fuse_default(path, stat.st_ino, uncached_mode, bpf_enabled, bpf_fd,
+                             supported_transcoding_relative_paths,
                              supported_uncached_relative_paths);
     fuse_default.mp = &mp;
     // fuse_default is stack allocated, but it's safe to save it as an instance variable because
@@ -2292,11 +2338,6 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
     fuse->passthrough = android::base::GetBoolProperty("persist.sys.fuse.passthrough.enable", false);
     if (fuse->passthrough) {
         LOG(INFO) << "Using FUSE passthrough";
-    }
-
-    fuse->bpf = android::base::GetBoolProperty("persist.sys.fuse.bpf.enable", false);
-    if (fuse->bpf) {
-        LOG(INFO) << "Using FUSE BPF";
     }
 
     struct fuse_session
@@ -2328,12 +2369,12 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
     return;
 }
 
-const string FuseDaemon::GetOriginalMediaFormatFilePath(int fd) const {
+std::unique_ptr<FdAccessResult> FuseDaemon::CheckFdAccess(int fd, uid_t uid) const {
     struct stat s;
     memset(&s, 0, sizeof(s));
     if (fstat(fd, &s) < 0) {
-        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath fstat failed.";
-        return string();
+        PLOG(DEBUG) << "CheckFdAccess fstat failed.";
+        return std::make_unique<FdAccessResult>(string(), false);
     }
 
     ino_t ino = s.st_ino;
@@ -2341,17 +2382,17 @@ const string FuseDaemon::GetOriginalMediaFormatFilePath(int fd) const {
 
     dev_t fuse_dev = fuse->dev.load(std::memory_order_acquire);
     if (dev != fuse_dev) {
-        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath FUSE device id does not match.";
-        return string();
+        PLOG(DEBUG) << "CheckFdAccess FUSE device id does not match.";
+        return std::make_unique<FdAccessResult>(string(), false);
     }
 
     const node* node = node::LookupInode(fuse->root, ino);
     if (!node) {
-        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath no node found with given ino";
-        return string();
+        PLOG(DEBUG) << "CheckFdAccess no node found with given ino";
+        return std::make_unique<FdAccessResult>(string(), false);
     }
 
-    return node->BuildPath();
+    return node->CheckHandleForUid(uid);
 }
 
 void FuseDaemon::InitializeDeviceId(const std::string& path) {

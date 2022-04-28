@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2021 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package android.provider;
 
-import android.os.Bundle;
+import android.os.RemoteCallback;
 
 /**
- * Interface through which Photo Picker receives playback events from the CloudMediaProviders
  * @hide
  */
-interface ICloudSurfaceEventCallback {
-    void onPlaybackEvent(int surfaceId, int eventType, in Bundle eventInfo);
+oneway interface IAsyncContentProvider {
+
+    void openMedia(String mediaId, in RemoteCallback callback);
 }

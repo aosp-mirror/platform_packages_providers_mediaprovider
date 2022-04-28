@@ -14,14 +14,23 @@
  * limitations under the License.
  */
 
-package android.provider;
-
-import android.os.Bundle;
+package com.android.providers.media.photopicker.ui.remotepreview;
 
 /**
- * Interface through which Photo Picker receives playback events from the CloudMediaProviders
- * @hide
+ * Tracks the visibility status of player controls in remote preview.
  */
-interface ICloudSurfaceEventCallback {
-    void onPlaybackEvent(int surfaceId, int eventType, in Bundle eventInfo);
+class PlayerControlsVisibilityStatus {
+
+    /**
+     * Player controls should be visible by default.
+     */
+    private boolean mShouldShowPlayerControlsForNextItem = true;
+
+    boolean shouldShowPlayerControls() {
+        return mShouldShowPlayerControlsForNextItem;
+    }
+
+    void setShouldShowPlayerControlsForNextItem(boolean shouldShowPlayerControlsForNextItem) {
+        mShouldShowPlayerControlsForNextItem = shouldShowPlayerControlsForNextItem;
+    }
 }

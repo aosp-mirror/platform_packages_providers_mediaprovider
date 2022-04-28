@@ -30,8 +30,11 @@
 namespace mediaprovider {
 namespace {
 
-constexpr const char* CLASS_NAME = "com/android/providers/media/fuse/FuseDaemon";
+constexpr const char* FUSE_DAEMON_CLASS_NAME = "com/android/providers/media/fuse/FuseDaemon";
+constexpr const char* FD_ACCESS_RESULT_CLASS_NAME = "com/android/providers/media/FdAccessResult";
 static jclass gFuseDaemonClass;
+static jclass gFdAccessResultClass;
+static jmethodID gFdAccessResultCtor;
 
 static std::vector<std::string> convert_object_array_to_string_vector(
         JNIEnv* env, jobjectArray java_object_array, const std::string& element_description) {
@@ -145,11 +148,13 @@ void com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache(JNIEnv*
     // TODO(b/145741152): Throw exception
 }
 
-jstring com_android_providers_media_FuseDaemon_get_original_media_format_file_path(
-        JNIEnv* env, jobject self, jlong java_daemon, jint fd) {
+jobject com_android_providers_media_FuseDaemon_check_fd_access(JNIEnv* env, jobject self,
+                                                               jlong java_daemon, jint fd,
+                                                               jint uid) {
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
-    const std::string path = daemon->GetOriginalMediaFormatFilePath(fd);
-    return env->NewStringUTF(path.c_str());
+    const std::unique_ptr<fuse::FdAccessResult> result = daemon->CheckFdAccess(fd, uid);
+    return env->NewObject(gFdAccessResultClass, gFdAccessResultCtor,
+                          env->NewStringUTF(result->file_path.c_str()), result->should_redact);
 }
 
 void com_android_providers_media_FuseDaemon_initialize_device_id(JNIEnv* env, jobject self,
@@ -184,22 +189,33 @@ const JNINativeMethod methods[] = {
         {"native_invalidate_fuse_dentry_cache", "(JLjava/lang/String;)V",
          reinterpret_cast<void*>(
                  com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache)},
-        {"native_get_original_media_format_file_path", "(JI)Ljava/lang/String;",
-         reinterpret_cast<void*>(
-                 com_android_providers_media_FuseDaemon_get_original_media_format_file_path)},
+        {"native_check_fd_access", "(JII)Lcom/android/providers/media/FdAccessResult;",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_check_fd_access)},
         {"native_initialize_device_id", "(JLjava/lang/String;)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_initialize_device_id)}};
 }  // namespace
 
 void register_android_providers_media_FuseDaemon(JavaVM* vm, JNIEnv* env) {
-    gFuseDaemonClass = static_cast<jclass>(env->NewGlobalRef(env->FindClass(CLASS_NAME)));
+    gFuseDaemonClass =
+            static_cast<jclass>(env->NewGlobalRef(env->FindClass(FUSE_DAEMON_CLASS_NAME)));
+    gFdAccessResultClass =
+            static_cast<jclass>(env->NewGlobalRef(env->FindClass(FD_ACCESS_RESULT_CLASS_NAME)));
 
     if (gFuseDaemonClass == nullptr) {
-        LOG(FATAL) << "Unable to find class : " << CLASS_NAME;
+        LOG(FATAL) << "Unable to find class : " << FUSE_DAEMON_CLASS_NAME;
+    }
+
+    if (gFdAccessResultClass == nullptr) {
+        LOG(FATAL) << "Unable to find class : " << FD_ACCESS_RESULT_CLASS_NAME;
     }
 
     if (env->RegisterNatives(gFuseDaemonClass, methods, sizeof(methods) / sizeof(methods[0])) < 0) {
         LOG(FATAL) << "Unable to register native methods";
+    }
+
+    gFdAccessResultCtor = env->GetMethodID(gFdAccessResultClass, "<init>", "(Ljava/lang/String;Z)V");
+    if (gFdAccessResultCtor == nullptr) {
+        LOG(FATAL) << "Unable to find ctor for FdAccessResult";
     }
 
     fuse::MediaProviderWrapper::OneTimeInit(vm);

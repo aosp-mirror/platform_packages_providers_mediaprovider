@@ -21,7 +21,6 @@
     <!-- PhotoPicker -->
     <color name="picker_background_color">@android:color/white</color>
     <color name="picker_default_white">@android:color/white</color>
-    <color name="picker_drag_bar_color">#DADCE0</color>
 
     <!-- PhotoPicker check button -->
     <color name="picker_unselected_check_color">@android:color/white</color>
@@ -36,8 +35,4 @@
     <color name="preview_highlight_color">#8AB4F8</color>
     <color name="preview_default_grey">#202124</color>
     <color name="preview_background_color">@android:color/black</color>
-
-    <!-- PhotoPicker Profile Button -->
-    <color name="picker_profile_disabled_button_content_color">#1F1F1F</color>
-    <color name="picker_profile_disabled_button_background_color">#DADADA</color>
 </resources>

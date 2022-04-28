@@ -39,6 +39,7 @@ import android.view.View;
 import android.view.ViewOutlineProvider;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityManager;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
@@ -95,6 +96,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private int mToolBarIconColor;
 
     private int mToolbarHeight = 0;
+    private boolean mIsAccessibilityEnabled;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -135,6 +137,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mProfileButton = findViewById(R.id.profile_button);
 
         mTabLayout = findViewById(R.id.tab_layout);
+
+        AccessibilityManager accessibilityManager = getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
+        accessibilityManager.addAccessibilityStateChangeListener(
+                enabled -> mIsAccessibilityEnabled = enabled);
+
         initBottomSheetBehavior();
         restoreState(savedInstanceState);
 
@@ -284,7 +292,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void initStateForBottomSheet() {
-        if (!mSelection.canSelectMultiple() && !isOrientationLandscape()) {
+        if (!mIsAccessibilityEnabled && !mSelection.canSelectMultiple()
+                && !isOrientationLandscape()) {
             final int peekHeight = getBottomSheetPeekHeight(this);
             mBottomSheetBehavior.setPeekHeight(peekHeight);
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);

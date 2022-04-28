@@ -79,9 +79,9 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
                 .check(new RecyclerViewItemCountAssertion(expectedAlbumCount));
 
         // First album is Camera
-        assertItemContentInAlbumList(/* position */ 0, R.string.picker_category_camera);
+        assertItemContentInAlbumList(/* position */ 0, R.string.picker_category_videos);
         // Second album is Videos
-        assertItemContentInAlbumList(/* position */ 1, R.string.picker_category_videos);
+        assertItemContentInAlbumList(/* position */ 1, R.string.picker_category_camera);
         // Third album is Downloads
         assertItemContentInAlbumList(/* position */ 2, R.string.picker_category_downloads);
 

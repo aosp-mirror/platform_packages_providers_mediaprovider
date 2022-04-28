@@ -18,16 +18,18 @@ package com.android.providers.media.photopicker.data;
 
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.PickerMediaColumns;
+
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
 import static com.android.providers.media.util.SyntheticPathUtils.getPickerRelativePath;
 
-import android.content.ContentValues;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -35,9 +37,10 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
+import android.os.SystemProperties;
+import android.provider.DeviceConfig;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
-import android.os.SystemProperties;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -57,8 +60,7 @@ import java.util.Objects;
  * MediaProvider for the Photo Picker.
  */
 public class PickerDbFacade {
-    public static final String PROP_DEFAULT_SYNC_DELAY_MS =
-            "persist.sys.photopicker.pickerdb.default_sync_delay_ms";
+    private static final String VIDEO_MIME_TYPES = "video/%";
 
     private final Object mLock = new Object();
     private final Context mContext;
@@ -537,25 +539,28 @@ public class PickerDbFacade {
 
     /** Filter for {@link #queryMedia} to modify returned results */
     public static class QueryFilter {
-        private final int limit;
-        private final long dateTakenBeforeMs;
-        private final long dateTakenAfterMs;
-        private final long id;
-        private final String albumId;
-        private final long sizeBytes;
-        private final String mimeType;
-        private final boolean isFavorite;
+        private final int mLimit;
+        private final long mDateTakenBeforeMs;
+        private final long mDateTakenAfterMs;
+        private final long mId;
+        private final String mAlbumId;
+        private final long mSizeBytes;
+        private final String mMimeType;
+        private final boolean mIsFavorite;
+        private final boolean mIsVideo;
 
         private QueryFilter(int limit, long dateTakenBeforeMs, long dateTakenAfterMs, long id,
-                String albumId, long sizeBytes, String mimeType, boolean isFavorite) {
-            this.limit = limit;
-            this.dateTakenBeforeMs = dateTakenBeforeMs;
-            this.dateTakenAfterMs = dateTakenAfterMs;
-            this.id = id;
-            this.albumId = albumId;
-            this.sizeBytes = sizeBytes;
-            this.mimeType = mimeType;
-            this.isFavorite = isFavorite;
+                String albumId, long sizeBytes, String mimeType, boolean isFavorite,
+                boolean isVideo) {
+            this.mLimit = limit;
+            this.mDateTakenBeforeMs = dateTakenBeforeMs;
+            this.mDateTakenAfterMs = dateTakenAfterMs;
+            this.mId = id;
+            this.mAlbumId = albumId;
+            this.mSizeBytes = sizeBytes;
+            this.mMimeType = mimeType;
+            this.mIsFavorite = isFavorite;
+            this.mIsVideo = isVideo;
         }
     }
 
@@ -575,6 +580,7 @@ public class PickerDbFacade {
         private long sizeBytes = LONG_DEFAULT;
         private String mimeType = STRING_DEFAULT;
         private boolean isFavorite = BOOLEAN_DEFAULT;
+        private boolean mIsVideo = BOOLEAN_DEFAULT;
 
         public QueryFilterBuilder(int limit) {
             this.limit = limit;
@@ -631,9 +637,19 @@ public class PickerDbFacade {
             return this;
         }
 
+        /**
+         * If {@code isVideo} is {@code true}, the {@link QueryFilter} returns only
+         * video items, however, if it is {@code false}, it returns all items including
+         * video and non-video items.
+         */
+        public QueryFilterBuilder setIsVideo(boolean isVideo) {
+            this.mIsVideo = isVideo;
+            return this;
+        }
+
         public QueryFilter build() {
             return new QueryFilter(limit, dateTakenBeforeMs, dateTakenAfterMs, id, albumId,
-                    sizeBytes, mimeType, isFavorite);
+                    sizeBytes, mimeType, isFavorite, mIsVideo);
         }
     }
 
@@ -655,7 +671,7 @@ public class PickerDbFacade {
             cloudProvider = mCloudProvider;
         }
 
-        return queryMediaForUi(qb, selectionArgs, query.limit, TABLE_MEDIA, cloudProvider);
+        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_MEDIA, cloudProvider);
     }
 
     /**
@@ -673,7 +689,7 @@ public class PickerDbFacade {
         final SQLiteQueryBuilder qb = createAlbumMediaQueryBuilder(isLocal(authority));
         final String[] selectionArgs = buildSelectionArgs(qb, query);
 
-        return queryMediaForUi(qb, selectionArgs, query.limit, TABLE_ALBUM_MEDIA, authority);
+        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_ALBUM_MEDIA, authority);
     }
 
     /**
@@ -705,46 +721,51 @@ public class PickerDbFacade {
         return null;
     }
 
-    /** Returns {@code null} if there are no favorited items matching {@code query} */
-    public Cursor getFavoriteAlbum(QueryFilter query) {
-        final String[] selectionArgs;
-        final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
-        qb.appendWhereStandalone(WHERE_IS_FAVORITE);
-        if (query.mimeType != null) {
-            qb.appendWhereStandalone(WHERE_MIME_TYPE);
-            selectionArgs = new String [] { query.mimeType.replace('*', '%') };
-        } else {
-            selectionArgs = null;
-        }
-
-        Cursor cursor = qb.query(mDatabase, PROJECTION_ALBUM_DB, /* selection */ null,
-                selectionArgs, /* groupBy */ null, /* having */ null,
-                /* orderBy */ null, /* limit */ null);
-
-        if (cursor == null || !cursor.moveToFirst()) {
-            return null;
-        }
-
-        long count = getCursorLong(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT);
-        if (count == 0) {
-            return null;
-        }
-
+    /**
+     * Returns empty {@link Cursor} if there are no items matching merged album constraints {@code
+     * query}
+     */
+    public Cursor getMergedAlbums(QueryFilter query) {
         final MatrixCursor c = new MatrixCursor(AlbumColumns.ALL_PROJECTION);
-        final String[] projectionValue = new String[] {
-            /* albumId */ ALBUM_ID_FAVORITES,
-            getCursorString(cursor, AlbumColumns.DATE_TAKEN_MILLIS),
-            /* displayName */ ALBUM_ID_FAVORITES,
-            getCursorString(cursor, AlbumColumns.MEDIA_COVER_ID),
-            String.valueOf(count),
-            mLocalProvider,
-        };
-        c.addRow(projectionValue);
-        return c;
-    }
+        List<String> mergedAlbums = List.of(ALBUM_ID_FAVORITES, ALBUM_ID_VIDEOS);
+        for (String albumId : mergedAlbums) {
+            List<String> selectionArgs = new ArrayList<>();
+            final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
+            if (albumId.equals(ALBUM_ID_FAVORITES)) {
+                qb.appendWhereStandalone(WHERE_IS_FAVORITE);
+            } else if (albumId.equals(ALBUM_ID_VIDEOS)) {
+                qb.appendWhereStandalone(WHERE_MIME_TYPE);
+                selectionArgs.add("video/%");
+            }
+            if (query.mMimeType != null) {
+                qb.appendWhereStandalone(WHERE_MIME_TYPE);
+                selectionArgs.add(query.mMimeType.replace('*', '%'));
+            }
 
-    public static int getDefaultPickerDbSyncDelayMs() {
-        return SystemProperties.getInt(PROP_DEFAULT_SYNC_DELAY_MS, 5000);
+            Cursor cursor = qb.query(mDatabase, PROJECTION_ALBUM_DB, /* selection */ null,
+                    selectionArgs.toArray(new String[0]), /* groupBy */ null, /* having */ null,
+                    /* orderBy */ null, /* limit */ null);
+
+            if (cursor == null || !cursor.moveToFirst()) {
+                continue;
+            }
+
+            long count = getCursorLong(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT);
+            if (count == 0) {
+                continue;
+            }
+
+            final String[] projectionValue = new String[]{
+                    /* albumId */ albumId,
+                    getCursorString(cursor, AlbumColumns.DATE_TAKEN_MILLIS),
+                    /* displayName */ albumId,
+                    getCursorString(cursor, AlbumColumns.MEDIA_COVER_ID),
+                    String.valueOf(count),
+                    mLocalProvider,
+            };
+            c.addRow(projectionValue);
+        }
+        return c;
     }
 
     private boolean isLocal(String authority) {
@@ -963,36 +984,38 @@ public class PickerDbFacade {
     private static String[] buildSelectionArgs(SQLiteQueryBuilder qb, QueryFilter query) {
         List<String> selectArgs = new ArrayList<>();
 
-        if (query.id >= 0) {
-            if (query.dateTakenAfterMs >= 0) {
+        if (query.mId >= 0) {
+            if (query.mDateTakenAfterMs >= 0) {
                 qb.appendWhereStandalone(WHERE_DATE_TAKEN_MS_AFTER);
                 // Add date args twice because the sql statement evaluates date twice
-                selectArgs.add(String.valueOf(query.dateTakenAfterMs));
-                selectArgs.add(String.valueOf(query.dateTakenAfterMs));
+                selectArgs.add(String.valueOf(query.mDateTakenAfterMs));
+                selectArgs.add(String.valueOf(query.mDateTakenAfterMs));
             } else {
                 qb.appendWhereStandalone(WHERE_DATE_TAKEN_MS_BEFORE);
                 // Add date args twice because the sql statement evaluates date twice
-                selectArgs.add(String.valueOf(query.dateTakenBeforeMs));
-                selectArgs.add(String.valueOf(query.dateTakenBeforeMs));
+                selectArgs.add(String.valueOf(query.mDateTakenBeforeMs));
+                selectArgs.add(String.valueOf(query.mDateTakenBeforeMs));
             }
-            selectArgs.add(String.valueOf(query.id));
+            selectArgs.add(String.valueOf(query.mId));
         }
 
-        if (query.sizeBytes >= 0) {
+        if (query.mSizeBytes >= 0) {
             qb.appendWhereStandalone(WHERE_SIZE_BYTES);
-            selectArgs.add(String.valueOf(query.sizeBytes));
+            selectArgs.add(String.valueOf(query.mSizeBytes));
         }
 
-        if (query.mimeType != null) {
+        if (query.mMimeType != null) {
             qb.appendWhereStandalone(WHERE_MIME_TYPE);
-            selectArgs.add(replaceMatchAnyChar(query.mimeType));
+            selectArgs.add(replaceMatchAnyChar(query.mMimeType));
         }
-
-        if (query.isFavorite) {
+        if (query.mIsVideo) {
+            qb.appendWhereStandalone(WHERE_MIME_TYPE);
+            selectArgs.add(VIDEO_MIME_TYPES);
+        } else if (query.mIsFavorite) {
             qb.appendWhereStandalone(WHERE_IS_FAVORITE);
-        } else if (!TextUtils.isEmpty(query.albumId)) {
+        } else if (!TextUtils.isEmpty(query.mAlbumId)) {
             qb.appendWhereStandalone(WHERE_ALBUM_ID);
-            selectArgs.add(query.albumId);
+            selectArgs.add(query.mAlbumId);
         }
 
         if (selectArgs.isEmpty()) {

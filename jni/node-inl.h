@@ -77,6 +77,15 @@ struct dirhandle {
     ~dirhandle() { closedir(d); }
 };
 
+/** Represents file open result from MediaProvider */
+struct FdAccessResult {
+    FdAccessResult(const std::string& file_path, const bool should_redact)
+        : file_path(file_path), should_redact(should_redact) {}
+
+    const std::string file_path;
+    const bool should_redact;
+};
+
 // Whether inode tracking is enabled or not. When enabled, we maintain a
 // separate mapping from inode numbers to "live" nodes so we can detect when
 // we receive a request to a node that has been deleted.
@@ -330,6 +339,25 @@ class node {
             }
         }
         return false;
+    }
+
+    std::unique_ptr<FdAccessResult> CheckHandleForUid(const uid_t uid) const {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+
+        bool found_handle = false;
+        bool redaction_not_needed = false;
+        for (const auto& handle : handles_) {
+            if (handle->uid == uid) {
+                found_handle = true;
+                redaction_not_needed |= !handle->ri->isRedactionNeeded();
+            }
+        }
+
+        if (found_handle) {
+            return std::make_unique<FdAccessResult>(BuildPath(), !redaction_not_needed);
+        }
+
+        return std::make_unique<FdAccessResult>(std::string(), false);
     }
 
     void SetName(std::string name) {

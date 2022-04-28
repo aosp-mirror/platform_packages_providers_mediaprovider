@@ -69,6 +69,8 @@ public final class RemotePreviewHandler {
             new SurfaceStateChangedCallbackWrapper();
     private final Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
     private final ItemPreviewState mCurrentPreviewState = new ItemPreviewState();
+    private final PlayerControlsVisibilityStatus mPlayerControlsVisibilityStatus =
+            new PlayerControlsVisibilityStatus();
 
     private boolean mIsInBackground = false;
     private int mSurfaceCounter = 0;
@@ -118,6 +120,13 @@ public final class RemotePreviewHandler {
      * @return true if the given {@link Item} can be played, else false
      */
     public boolean onHandlePageSelected(Item item) {
+        if (!item.isVideo()) {
+            // Clear state of the previous player controls visibility state. Controls visibility
+            // state will only be tracked and used for contiguous videos in the preview.
+            mPlayerControlsVisibilityStatus.setShouldShowPlayerControlsForNextItem(true);
+            return false;
+        }
+
         Log.i(TAG, "onHandlePageSelected() called, attempting to start playback.");
         RemotePreviewSession session = getSessionForItem(item);
         if (session == null) {
@@ -155,7 +164,7 @@ public final class RemotePreviewHandler {
         }
 
         return new RemotePreviewSession(mSurfaceCounter++, item.getId(), authority, controller,
-                previewVideoHolder, mMuteStatus);
+                previewVideoHolder, mMuteStatus, mPlayerControlsVisibilityStatus, mContext);
     }
 
     private void restorePreviewState(SurfaceHolder holder) {

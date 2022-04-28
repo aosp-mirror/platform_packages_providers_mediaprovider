@@ -269,7 +269,7 @@ public final class MediaStore {
     /** {@hide} */
     public static final String QUERY_ARG_ALBUM_ID = "android:query-arg-album_id";
     /** {@hide} */
-    public static final String QUERY_ARG_ALBUM_TYPE = "android:query-arg-album_type";
+    public static final String QUERY_ARG_ALBUM_AUTHORITY = "android:query-arg-album_authority";
 
     /**
      * This is for internal use by the media scanner only.

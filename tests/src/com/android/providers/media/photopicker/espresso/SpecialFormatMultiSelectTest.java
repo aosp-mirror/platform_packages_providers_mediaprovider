@@ -132,59 +132,48 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
         try (ViewPager2IdlingResource idlingResource
                      = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
             // Preview Order
-            // 1 - Image
-            // 2 - Gif
-            // 3 - Animated Webp
-            // 4 - MotionPhoto
-            // 5 - Non-Animated Webp
-            // Navigate from Image -> Gif -> Motion Photo -> Animated Webp -> Non-Animated Webp ->
-            // Animated Webp-> Gif -> Image and verify the layout
-            // matches. This test does not check for common layout as that is already covered in
+            // 1 - Gif
+            // 2 - Animated Webp
+            // 3 - MotionPhoto
+            // 4 - Non-Animated Webp
+            // Navigate from Gif -> Motion Photo -> Animated Webp -> Non-Animated Webp ->
+            // Animated Webp -> Gif and verify the layout matches.
+            // This test does not check for common layout as that is already covered in
             // other tests.
 
-            // 1. Image
-            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
-            onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
-
-            swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
-            // 2. Gif
+            // 1. Gif
             onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
 
             swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
-            // 3. Animated Webp
+            // 2. Animated Webp
             onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
 
             swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
-            // 4. Motion Photo
+            // 3. Motion Photo
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(matches(isDisplayed()));
             onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
 
             swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
-            // 5. Non-Animated Webp
+            // 4. Non-Animated Webp
             onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
 
             swipeRightAndWait(PREVIEW_VIEW_PAGER_ID);
-            // 4. Motion Photo
+            // 3. Motion Photo
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(matches(isDisplayed()));
             onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
 
             swipeRightAndWait(PREVIEW_VIEW_PAGER_ID);
-            // 3. Animated Webp
+            // 2. Animated Webp
             onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
 
             swipeRightAndWait(PREVIEW_VIEW_PAGER_ID);
-            // 2. Gif
+            // 1. Gif
             onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
-
-            swipeRightAndWait(PREVIEW_VIEW_PAGER_ID);
-            // 1. Image
-            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
-            onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
         }
     }
 }

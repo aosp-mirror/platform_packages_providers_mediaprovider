@@ -23,6 +23,8 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.os.Bundle;
+import android.os.Parcelable;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -33,6 +35,8 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.android.internal.logging.InstanceId;
+import com.android.internal.logging.InstanceIdSequence;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
@@ -40,6 +44,7 @@ import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.util.ForegroundThread;
 
@@ -53,6 +58,8 @@ public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
 
     private static final int RECENT_MINIMUM_COUNT = 12;
+
+    private static final int INSTANCE_ID_MAX = 1 << 15;
 
     private final Selection mSelection;
     private final MuteStatus mMuteStatus;
@@ -69,8 +76,13 @@ public class PickerViewModel extends AndroidViewModel {
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
 
+    private InstanceId mInstanceId;
+    private PhotoPickerUiEventLogger mLogger;
+
     private String mMimeTypeFilter = null;
     private int mBottomSheetState;
+
+    private Category mCurrentCategory;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -79,6 +91,8 @@ public class PickerViewModel extends AndroidViewModel {
         mSelection = new Selection();
         mUserIdManager = UserIdManager.create(context);
         mMuteStatus = new MuteStatus();
+        mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
+        mLogger = new PhotoPickerUiEventLogger();
     }
 
     @VisibleForTesting
@@ -205,30 +219,44 @@ public class PickerViewModel extends AndroidViewModel {
     /**
      * Get the list of all photos and videos with the specific {@code category} on the device.
      *
+     * In our use case, we only keep the list of current category {@link #mCurrentCategory} in
+     * {@link #mCategoryItemList}. If the {@code category} and {@link #mCurrentCategory} are
+     * different, we will create the new LiveData to {@link #mCategoryItemList}.
+     *
      * @param category the category we want to be queried
      * @return the list of all photos and videos with the specific {@code category}
      *         {@link #mCategoryItemList}
      */
     public LiveData<List<Item>> getCategoryItems(@NonNull Category category) {
-        updateCategoryItems(category);
+        if (mCategoryItemList == null || !TextUtils.equals(mCurrentCategory.getId(),
+                category.getId())) {
+            mCategoryItemList = new MutableLiveData<>();
+            mCurrentCategory = category;
+        }
+        updateCategoryItems();
         return mCategoryItemList;
     }
 
-    private void loadCategoryItemsAsync(@NonNull Category category) {
+    private void loadCategoryItemsAsync() {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mCategoryItemList.postValue(loadItems(category, userId));
+            mCategoryItemList.postValue(loadItems(mCurrentCategory, userId));
         });
     }
 
     /**
-     * Update the item List with the {@code category} {@link #mCategoryItemList}
+     * Update the item List with the {@link #mCurrentCategory} {@link #mCategoryItemList}
+     *
+     * @throws IllegalStateException category and category items is not initiated before calling
+     *     this method
      */
-    public void updateCategoryItems(@NonNull Category category) {
-        if (mCategoryItemList == null) {
-            mCategoryItemList = new MutableLiveData<>();
+    @VisibleForTesting
+    public void updateCategoryItems() {
+        if (mCategoryItemList == null || mCurrentCategory == null) {
+            throw new IllegalStateException("mCurrentCategory and mCategoryItemList are not"
+                    + " initiated. Please call getCategoryItems before calling this method");
         }
-        loadCategoryItemsAsync(category);
+        loadCategoryItemsAsync();
     }
 
     /**
@@ -315,5 +343,21 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public int getBottomSheetState() {
         return mBottomSheetState;
+    }
+
+    public void logPickerOpened(String callingPackage) {
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerOpenWork(mInstanceId, callingPackage);
+        } else {
+            mLogger.logPickerOpenPersonal(mInstanceId, callingPackage);
+        }
+    }
+
+    public InstanceId getInstanceId() {
+        return mInstanceId;
+    }
+
+    public void setInstanceId(InstanceId parcelable) {
+        mInstanceId = parcelable;
     }
 }

@@ -62,7 +62,7 @@ import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Player.State;
-import com.google.android.exoplayer2.analytics.AnalyticsCollector;
+import com.google.android.exoplayer2.analytics.DefaultAnalyticsCollector;
 import com.google.android.exoplayer2.source.MediaParserExtractorAdapter;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
@@ -149,20 +149,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        // TODO(b/190713331): Handle extra_filter_albums
-        Bundle bundle = new Bundle();
-        try (Cursor cursor = mDbFacade.getMediaCollectionInfo(queryExtras.getGeneration())) {
-            if (cursor.moveToFirst()) {
-                int generationIndex = cursor.getColumnIndexOrThrow(
-                        MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION);
-
-                bundle.putString(MediaCollectionInfo.MEDIA_COLLECTION_ID,
-                        MediaStore.getVersion(getContext()));
-                bundle.putLong(MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION,
-                        cursor.getLong(generationIndex));
-            }
-        }
-        return bundle;
+        return mDbFacade.getMediaCollectionInfo(queryExtras.getGeneration());
     }
 
     @Override
@@ -189,7 +176,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     }
 
     private static Uri fromMediaId(String mediaId) {
-        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY,
+        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
                 Long.parseLong(mediaId));
     }
 
@@ -313,7 +300,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                     final Uri mediaUri =
                             Uri.parse(
                                     MediaStore.Files.getContentUri(
-                                            MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                                            MediaStore.VOLUME_EXTERNAL)
                                     + File.separator + mediaId);
                     mPlayer.setMediaItem(MediaItem.fromUri(mediaUri));
                     mPlayer.setVideoSurface(surface);
@@ -410,11 +397,11 @@ public class PhotoPickerProvider extends CloudMediaProvider {
 
             return new ExoPlayer.Builder(mContext,
                     new DefaultRenderersFactory(mContext),
-                    new DefaultTrackSelector(mContext),
                     mediaSourceFactory,
+                    new DefaultTrackSelector(mContext),
                     sLoadControl,
                     DefaultBandwidthMeter.getSingletonInstance(mContext),
-                    new AnalyticsCollector(Clock.DEFAULT)).buildExoPlayer();
+                    new DefaultAnalyticsCollector(Clock.DEFAULT)).build();
         }
 
         private void updateLoopingPlaybackStatus() {

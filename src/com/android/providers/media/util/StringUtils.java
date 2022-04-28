@@ -49,6 +49,14 @@ public class StringUtils {
     return msgFormat.format(arguments);
   }
 
+  public static String getStringConfig(Context context, int resId) {
+      final Resources res = context.getResources();
+      try {
+          return res.getString(resId);
+      } catch (NotFoundException e) {
+          return null;
+      }
+  }
 
   /**
    * Variant of {@link String#startsWith(String)} but which tests with

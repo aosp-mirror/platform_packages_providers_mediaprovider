@@ -269,7 +269,7 @@ public final class MediaStore {
     /** {@hide} */
     public static final String QUERY_ARG_ALBUM_ID = "android:query-arg-album_id";
     /** {@hide} */
-    public static final String QUERY_ARG_ALBUM_TYPE = "android:query-arg-album_type";
+    public static final String QUERY_ARG_ALBUM_AUTHORITY = "android:query-arg-album_authority";
 
     /**
      * This is for internal use by the media scanner only.
@@ -4713,9 +4713,12 @@ public final class MediaStore {
      *
      * @return {@code true} if the notification was successful, {@code false} otherwise
      */
-    public static boolean notifyCloudMediaChangedEvent(@NonNull ContentResolver resolver,
-            @NonNull String authority) {
-        return callForCloudProvider(resolver, NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL, authority);
+    public static void notifyCloudMediaChangedEvent(@NonNull ContentResolver resolver,
+            @NonNull String authority, @NonNull String currentMediaCollectionId)
+            throws SecurityException {
+        if (!callForCloudProvider(resolver, NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL, authority)) {
+            throw new SecurityException("Failed to notify cloud media changed event");
+        }
     }
 
     private static boolean callForCloudProvider(ContentResolver resolver, String method,

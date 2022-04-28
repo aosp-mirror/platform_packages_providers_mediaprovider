@@ -1,0 +1,2 @@
+per-file *.xml,OWNERS = set noparent
+per-file *.xml,OWNERS = file:platform/frameworks/base:/data/etc/OWNERS

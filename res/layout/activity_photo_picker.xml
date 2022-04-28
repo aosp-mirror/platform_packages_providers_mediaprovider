@@ -111,23 +111,6 @@
 
             </com.google.android.material.appbar.AppBarLayout>
 
-            <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-                android:id="@+id/profile_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/picker_profile_button_margin_bottom"
-                android:layout_gravity="bottom|center"
-                android:textAppearance="@style/PickerButtonTextAppearance"
-                android:textColor="?attr/pickerProfileButtonTextColor"
-                android:text="@string/picker_work_profile"
-                android:visibility="gone"
-                android:accessibilityTraversalAfter="@+id/toolbar"
-                android:accessibilityTraversalBefore="@+id/fragment_container"
-                app:backgroundTint="?attr/pickerProfileButtonColor"
-                app:borderWidth="0dp"
-                app:elevation="3dp"
-                app:icon="@drawable/ic_work_outline"/>
-
             <FrameLayout
                 android:id="@+id/picker_bottom_bar"
                 android:layout_width="match_parent"
@@ -171,5 +154,22 @@
         </FrameLayout>
 
     </LinearLayout>
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/profile_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/picker_profile_button_margin_bottom"
+        android:layout_gravity="bottom|center"
+        android:textAppearance="@style/PickerButtonTextAppearance"
+        android:textColor="?attr/pickerProfileButtonTextColor"
+        android:text="@string/picker_work_profile"
+        android:visibility="gone"
+        android:accessibilityTraversalAfter="@+id/toolbar"
+        android:accessibilityTraversalBefore="@+id/fragment_container"
+        app:backgroundTint="?attr/pickerProfileButtonColor"
+        app:borderWidth="0dp"
+        app:elevation="3dp"
+        app:icon="@drawable/ic_work_outline"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

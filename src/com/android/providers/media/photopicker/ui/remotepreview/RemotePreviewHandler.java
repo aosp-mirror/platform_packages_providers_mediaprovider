@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.ui.remotepreview;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
+import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_STATE_CALLBACK;
 import static android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER;
 
@@ -39,8 +40,8 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
 
+import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.PreviewVideoHolder;
 
@@ -58,6 +59,7 @@ public final class RemotePreviewHandler {
     private static final String TAG = "RemotePreviewHandler";
 
     private final Context mContext;
+    private final MuteStatus mMuteStatus;
     private final ArrayMap<SurfaceHolder, RemotePreviewSession>
             mSessionMap = new ArrayMap<>();
     private final Map<String, SurfaceControllerProxy> mControllers =
@@ -67,6 +69,8 @@ public final class RemotePreviewHandler {
             new SurfaceStateChangedCallbackWrapper();
     private final Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
     private final ItemPreviewState mCurrentPreviewState = new ItemPreviewState();
+    private final PlayerControlsVisibilityStatus mPlayerControlsVisibilityStatus =
+            new PlayerControlsVisibilityStatus();
 
     private boolean mIsInBackground = false;
     private int mSurfaceCounter = 0;
@@ -75,15 +79,16 @@ public final class RemotePreviewHandler {
         return SystemProperties.getBoolean("sys.photopicker.remote_preview", false);
     }
 
-    public RemotePreviewHandler(Context context) {
+    public RemotePreviewHandler(Context context, MuteStatus muteStatus) {
         mContext = context;
+        mMuteStatus = muteStatus;
     }
 
     /**
      * Prepares the given {@link SurfaceView} for remote preview of the given {@link Item}.
      *
      * @param viewHolder {@link PreviewVideoHolder} for the media item under preview
-     * @param item        {@link Item} to be previewed
+     * @param item       {@link Item} to be previewed
      * @return true if the given {@link Item} can be previewed remotely, else false
      */
     public boolean onViewAttachedToWindow(PreviewVideoHolder viewHolder, Item item) {
@@ -115,6 +120,13 @@ public final class RemotePreviewHandler {
      * @return true if the given {@link Item} can be played, else false
      */
     public boolean onHandlePageSelected(Item item) {
+        if (!item.isVideo()) {
+            // Clear state of the previous player controls visibility state. Controls visibility
+            // state will only be tracked and used for contiguous videos in the preview.
+            mPlayerControlsVisibilityStatus.setShouldShowPlayerControlsForNextItem(true);
+            return false;
+        }
+
         Log.i(TAG, "onHandlePageSelected() called, attempting to start playback.");
         RemotePreviewSession session = getSessionForItem(item);
         if (session == null) {
@@ -152,11 +164,10 @@ public final class RemotePreviewHandler {
         }
 
         return new RemotePreviewSession(mSurfaceCounter++, item.getId(), authority, controller,
-                previewVideoHolder);
+                previewVideoHolder, mMuteStatus, mPlayerControlsVisibilityStatus, mContext);
     }
 
     private void restorePreviewState(SurfaceHolder holder) {
-        mCurrentPreviewState.viewHolder.getThumbnailView().setVisibility(View.VISIBLE);
         RemotePreviewSession session = createRemotePreviewSession(mCurrentPreviewState.item,
                 mCurrentPreviewState.viewHolder);
         if (session == null) {
@@ -221,6 +232,7 @@ public final class RemotePreviewHandler {
         Log.i(TAG, "Creating new SurfaceController for authority: " + authority);
         Bundle extras = new Bundle();
         extras.putBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, true);
+        extras.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED, mMuteStatus.isVolumeMuted());
         extras.putBinder(EXTRA_SURFACE_STATE_CALLBACK, mSurfaceStateChangedCallbackWrapper);
         final Bundle surfaceControllerBundle = mContext.getContentResolver().call(
                 createSurfaceControllerUri(authority),

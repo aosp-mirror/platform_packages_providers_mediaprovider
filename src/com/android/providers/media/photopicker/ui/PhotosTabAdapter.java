@@ -16,12 +16,15 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.android.providers.media.R;
 
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -72,9 +75,20 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         if (getItemViewType(position) == ITEM_TYPE_PHOTO) {
             itemHolder.itemView.setOnClickListener(mOnClickListener);
             itemHolder.itemView.setOnLongClickListener(mOnLongClickListener);
-            itemHolder.itemView.setSelected(mSelection.isItemSelected(item));
-            itemHolder.itemView.setContentDescription(
-                    item.getContentDescription(itemHolder.itemView.getContext()));
+
+            final Context context = itemHolder.itemView.getContext();
+            itemHolder.itemView.setContentDescription(item.getContentDescription(context));
+
+            if (mSelection.canSelectMultiple()) {
+                final boolean isSelected = mSelection.isItemSelected(item);
+                itemHolder.itemView.setSelected(isSelected);
+
+                // There is an issue b/223695510 about not selected in Accessibility mode. It only
+                // says selected state, but it doesn't say not selected state. Add the not selected
+                // only to avoid that it says selected twice.
+                itemHolder.itemView.setStateDescription(
+                        isSelected ? null : context.getString(R.string.not_selected));
+            }
         }
         itemHolder.bind();
     }

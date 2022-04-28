@@ -19,7 +19,9 @@ package com.android.providers.media.photopicker.ui;
 import android.content.Context;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 
 import androidx.viewpager2.widget.ViewPager2;
@@ -37,19 +39,31 @@ public class PreviewVideoHolder extends BaseViewHolder {
     private final ImageLoader mImageLoader;
     private final ImageView mImageView;
     private final SurfaceView mSurfaceView;
-    private final AspectRatioFrameLayout mPlayerContainer;
+    private final AspectRatioFrameLayout mPlayerFrame;
+    private final View mPlayerContainer;
+    private final View mPlayerControlsRoot;
+    private final ImageButton mPlayPauseButton;
+    private final ImageButton mMuteButton;
 
     PreviewVideoHolder(Context context, ViewGroup parent, ImageLoader imageLoader,
             boolean enabledCloudMediaPreview) {
         super(context, parent, enabledCloudMediaPreview ? R.layout.item_cloud_video_preview
                 : R.layout.item_video_preview);
 
-        mImageView = itemView.findViewById(R.id.preview_video_image);
         mImageLoader = imageLoader;
+        mImageView = itemView.findViewById(R.id.preview_video_image);
         mSurfaceView = enabledCloudMediaPreview ? itemView.findViewById(R.id.preview_player_view)
                 : null;
+        mPlayerFrame = enabledCloudMediaPreview ?
+                itemView.findViewById(R.id.preview_player_frame) : null;
         mPlayerContainer = enabledCloudMediaPreview ?
                 itemView.findViewById(R.id.preview_player_container) : null;
+        mPlayerControlsRoot = enabledCloudMediaPreview ? itemView.findViewById(
+                R.id.preview_player_controls) : null;
+        mPlayPauseButton = enabledCloudMediaPreview ? itemView.findViewById(
+                R.id.exo_play_pause) : null;
+        mMuteButton = enabledCloudMediaPreview ? itemView.findViewById(
+                R.id.preview_mute) : null;
     }
 
     @Override
@@ -62,15 +76,31 @@ public class PreviewVideoHolder extends BaseViewHolder {
         mImageLoader.loadImageFromVideoForPreview(item, mImageView);
     }
 
+    public ImageView getThumbnailView() {
+        return mImageView;
+    }
+
     public SurfaceHolder getSurfaceHolder() {
         return mSurfaceView.getHolder();
     }
 
-    public AspectRatioFrameLayout getPlayerContainer() {
+    public AspectRatioFrameLayout getPlayerFrame() {
+        return mPlayerFrame;
+    }
+
+    public View getPlayerContainer() {
         return mPlayerContainer;
     }
 
-    public ImageView getThumbnailView() {
-        return mImageView;
+    public View getPlayerControlsRoot() {
+        return mPlayerControlsRoot;
+    }
+
+    public ImageButton getPlayPauseButton() {
+        return mPlayPauseButton;
+    }
+
+    public ImageButton getMuteButton() {
+        return mMuteButton;
     }
 }

@@ -1,0 +1,2 @@
+rule com.android.modules.utils.** com.android.providers.media.internal.modules.utils.@1
+rule com.android.internal.logging.** com.android.providers.media.internal.logging.@1

@@ -305,7 +305,7 @@ public class LocalCallingIdentity {
     }
 
     private boolean hasPermissionInternal(int permission) {
-        boolean targetSdkIsAtLeastT = getTargetSdkVersion() > Build.VERSION_CODES.S;
+        boolean targetSdkIsAtLeastT = getTargetSdkVersion() > Build.VERSION_CODES.S_V2;
         // While we're here, enforce any broad user-level restrictions
         if ((uid == Process.SHELL_UID) && context.getSystemService(UserManager.class)
                 .hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER)) {

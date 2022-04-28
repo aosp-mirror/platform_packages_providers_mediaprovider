@@ -23,6 +23,7 @@ import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.provider.CloudMediaProviderContract;
 
 import com.bumptech.glide.Priority;
 import com.bumptech.glide.load.DataSource;
@@ -54,6 +55,7 @@ public class PickerThumbnailFetcher implements DataFetcher<ParcelFileDescriptor>
         ContentResolver contentResolver = context.getContentResolver();
         final Bundle opts = new Bundle();
         opts.putParcelable(ContentResolver.EXTRA_SIZE, new Point(width, height));
+        opts.putBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL, true);
         try (AssetFileDescriptor afd = contentResolver.openTypedAssetFileDescriptor(model,
                 /* mimeType */ "image/*", opts, /* cancellationSignal */ null)) {
             if (afd == null) {

@@ -61,7 +61,12 @@
             "name": "fuse_node_test"
         },
         {
-            "name": "CtsPhotoPickerTest"
+            "name": "CtsPhotoPickerTest",
+            "options": [
+                {
+                    "exclude-annotation": "androidx.test.filters.LargeTest"
+                }
+            ]
         }
     ],
     "postsubmit": [
@@ -79,6 +84,9 @@
                     "include-filter": "android.appsecurity.cts.ExternalStorageHostTest"
                 }
             ]
+        },
+        {
+            "name": "CtsPhotoPickerTest"
         }
     ]
 }

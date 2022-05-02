@@ -222,6 +222,7 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
+import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.metrics.PulledMetrics;
@@ -229,7 +230,6 @@ import com.android.providers.media.photopicker.PickerDataLayer;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
@@ -248,6 +248,7 @@ import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.SpecialFormatDetector;
 import com.android.providers.media.util.StringUtils;
 import com.android.providers.media.util.UserCache;
+import com.android.providers.media.util.XAttrUtils;
 import com.android.providers.media.util.XmpInterface;
 
 import com.google.common.hash.Hashing;
@@ -730,58 +731,62 @@ public class MediaProvider extends ContentProvider {
      */
     private final OnFilesChangeListener mFilesListener = new OnFilesChangeListener() {
         @Override
-        public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int mediaType, boolean isDownload, boolean isPending) {
-            handleInsertedRowForFuse(id);
-            acceptWithExpansion(helper::notifyInsert, volumeName, id, mediaType, isDownload);
-            updateNextRowIdXattr(helper, id);
+        public void onInsert(@NonNull DatabaseHelper helper, @NonNull FileRow insertedRow) {
+            handleInsertedRowForFuse(insertedRow.getId());
+            acceptWithExpansion(helper::notifyInsert, insertedRow.getVolumeName(),
+                    insertedRow.getId(), insertedRow.getMediaType(), insertedRow.isDownload());
+            updateNextRowIdXattr(helper, insertedRow.getId());
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
-                    Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
-                    updateQuotaTypeForUri(fileUri, mediaType);
+                    Uri fileUri = MediaStore.Files.getContentUri(insertedRow.getVolumeName(),
+                            insertedRow.getId());
+                    updateQuotaTypeForUri(fileUri, insertedRow.getMediaType());
                 }
 
                 // Tell our SAF provider so it knows when views are no longer empty
-                MediaDocumentsProvider.onMediaStoreInsert(getContext(), volumeName, mediaType, id);
+                MediaDocumentsProvider.onMediaStoreInsert(getContext(), insertedRow.getVolumeName(),
+                        insertedRow.getMediaType(), insertedRow.getId());
 
-                if (mExternalDbFacade.onFileInserted(mediaType, isPending)) {
+                if (mExternalDbFacade.onFileInserted(insertedRow.getMediaType(),
+                        insertedRow.isPending())) {
                     mPickerSyncController.notifyMediaEvent();
                 }
             });
         }
 
         @Override
-        public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
-                long oldId, int oldMediaType, boolean oldIsDownload,
-                long newId, int newMediaType, boolean newIsDownload,
-                boolean oldIsTrashed, boolean newIsTrashed,
-                boolean oldIsPending, boolean newIsPending,
-                boolean oldIsFavorite, boolean newIsFavorite,
-                int oldSpecialFormat, int newSpecialFormat,
-                String oldOwnerPackage, String newOwnerPackage, String oldPath) {
-            final boolean isDownload = oldIsDownload || newIsDownload;
-            final Uri fileUri = MediaStore.Files.getContentUri(volumeName, oldId);
-            handleUpdatedRowForFuse(oldPath, oldOwnerPackage, oldId, newId);
-            handleOwnerPackageNameChange(oldPath, oldOwnerPackage, newOwnerPackage);
-            acceptWithExpansion(helper::notifyUpdate, volumeName, oldId, oldMediaType, isDownload);
-            updateNextRowIdXattr(helper, newId);
+        public void onUpdate(@NonNull DatabaseHelper helper, @NonNull FileRow oldRow,
+                @NonNull FileRow newRow) {
+            final boolean isDownload = oldRow.isDownload() || newRow.isDownload();
+            final Uri fileUri = MediaStore.Files.getContentUri(oldRow.getVolumeName(),
+                    oldRow.getId());
+            handleUpdatedRowForFuse(oldRow.getPath(), oldRow.getOwnerPackageName(), oldRow.getId(),
+                    newRow.getId());
+            handleOwnerPackageNameChange(oldRow.getPath(), oldRow.getOwnerPackageName(),
+                    newRow.getOwnerPackageName());
+            acceptWithExpansion(helper::notifyUpdate, oldRow.getVolumeName(), oldRow.getId(),
+                    oldRow.getMediaType(), isDownload);
+            updateNextRowIdXattr(helper, newRow.getId());
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
-                    updateQuotaTypeForUri(fileUri, newMediaType);
+                    updateQuotaTypeForUri(fileUri, newRow.getMediaType());
                 }
 
-                if (mExternalDbFacade.onFileUpdated(oldId, oldMediaType, newMediaType, oldIsTrashed,
-                                newIsTrashed, oldIsPending, newIsPending, oldIsFavorite,
-                                newIsFavorite, oldSpecialFormat, newSpecialFormat)) {
+                if (mExternalDbFacade.onFileUpdated(oldRow.getId(),
+                        oldRow.getMediaType(), newRow.getMediaType(),
+                        oldRow.isTrashed(), newRow.isTrashed(),
+                        oldRow.isPending(), newRow.isPending(),
+                        oldRow.isFavorite(), newRow.isFavorite(),
+                        oldRow.getSpecialFormat(), newRow.getSpecialFormat())) {
                     mPickerSyncController.notifyMediaEvent();
                 }
             });
 
-            if (newMediaType != oldMediaType) {
-                acceptWithExpansion(helper::notifyUpdate, volumeName, oldId, newMediaType,
-                        isDownload);
+            if (newRow.getMediaType() != oldRow.getMediaType()) {
+                acceptWithExpansion(helper::notifyUpdate, oldRow.getVolumeName(), oldRow.getId(),
+                        newRow.getMediaType(), isDownload);
 
                 helper.postBackground(() -> {
                     // Invalidate any thumbnails when the media type changes
@@ -791,12 +796,13 @@ public class MediaProvider extends ContentProvider {
         }
 
         @Override
-        public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int mediaType, boolean isDownload, String ownerPackageName, String path) {
-            handleDeletedRowForFuse(path, ownerPackageName, id);
-            acceptWithExpansion(helper::notifyDelete, volumeName, id, mediaType, isDownload);
+        public void onDelete(@NonNull DatabaseHelper helper, @NonNull FileRow deletedRow) {
+            handleDeletedRowForFuse(deletedRow.getPath(), deletedRow.getOwnerPackageName(),
+                    deletedRow.getId());
+            acceptWithExpansion(helper::notifyDelete, deletedRow.getVolumeName(),
+                    deletedRow.getId(), deletedRow.getMediaType(), deletedRow.isDownload());
             // Remove cached transcoded file if any
-            mTranscodeHelper.deleteCachedTranscodeFile(id);
+            mTranscodeHelper.deleteCachedTranscodeFile(deletedRow.getId());
 
             helper.postBackground(() -> {
                 // Item no longer exists, so revoke all access to it
@@ -804,26 +810,31 @@ public class MediaProvider extends ContentProvider {
                 try {
                     acceptWithExpansion((uri) -> {
                         getContext().revokeUriPermission(uri, ~0);
-                    }, volumeName, id, mediaType, isDownload);
+                    },
+                            deletedRow.getVolumeName(), deletedRow.getId(),
+                            deletedRow.getMediaType(), deletedRow.isDownload());
                 } finally {
                     Trace.endSection();
                 }
 
-                switch (mediaType) {
+                switch (deletedRow.getMediaType()) {
                     case FileColumns.MEDIA_TYPE_PLAYLIST:
                     case FileColumns.MEDIA_TYPE_AUDIO:
                         if (helper.isExternal()) {
-                            removePlaylistMembers(mediaType, id);
+                            removePlaylistMembers(deletedRow.getMediaType(), deletedRow.getId());
                         }
                 }
 
                 // Invalidate any thumbnails now that media is gone
-                invalidateThumbnails(MediaStore.Files.getContentUri(volumeName, id));
+                invalidateThumbnails(MediaStore.Files.getContentUri(deletedRow.getVolumeName(),
+                        deletedRow.getId()));
 
                 // Tell our SAF provider so it can revoke too
-                MediaDocumentsProvider.onMediaStoreDelete(getContext(), volumeName, mediaType, id);
+                MediaDocumentsProvider.onMediaStoreDelete(getContext(), deletedRow.getVolumeName(),
+                        deletedRow.getMediaType(), deletedRow.getId());
 
-                if (mExternalDbFacade.onFileDeleted(id, mediaType)) {
+                if (mExternalDbFacade.onFileDeleted(deletedRow.getId(),
+                        deletedRow.getMediaType())) {
                     mPickerSyncController.notifyMediaEvent();
                 }
             });
@@ -836,16 +847,17 @@ public class MediaProvider extends ContentProvider {
             return;
         }
 
-        // TODO(b/222244140): Store next row id in memory to avoid reading from xattr on every
-        // insert.
-        if (!helper.getNextRowIdFromXattr().isPresent()) {
+        Optional<Long> nextRowIdBackupOptional = helper.getNextRowId();
+        if (!nextRowIdBackupOptional.isPresent()) {
             throw new RuntimeException(String.format("Cannot find next row id xattr for %s.",
                     helper.getDatabaseName()));
         }
 
-        long currentNextRowIdBackUp = helper.getNextRowIdFromXattr().get();
-        if (id >= currentNextRowIdBackUp) {
+        if (id >= nextRowIdBackupOptional.get()) {
             helper.backupNextRowId(id);
+        } else {
+            Log.v(TAG, String.format("Inserted id:%d less than next row id backup:%d.", id,
+                    nextRowIdBackupOptional.get()));
         }
     }
 
@@ -1055,9 +1067,9 @@ public class MediaProvider extends ContentProvider {
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false,
                 Column.class, ExportedSince.class, Metrics::logSchemaChange, mFilesListener,
                 MIGRATION_LISTENER, mIdGenerator);
-        mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase);
+        mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
         mPickerDbFacade = new PickerDbFacade(context);
-        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
+        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade, this);
         mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade);
 
@@ -5958,9 +5970,8 @@ public class MediaProvider extends ContentProvider {
     private int deleteWithOtherUriGrants(@NonNull Uri uri, DatabaseHelper helper,
             String[] projection, String userWhere, String[] userWhereArgs,
             @Nullable Bundle extras) {
-        try {
-            Cursor c = queryForSingleItemAsMediaProvider(uri, projection, userWhere, userWhereArgs,
-                    null);
+        try (Cursor c = queryForSingleItemAsMediaProvider(uri, projection, userWhere, userWhereArgs,
+                    null)) {
             final int mediaType = c.getInt(0);
             final String data = c.getString(1);
             final long id = c.getLong(2);
@@ -8811,6 +8822,69 @@ public class MediaProvider extends ContentProvider {
         return !matcher.matches();
     }
 
+    private FileAccessAttributes queryForFileAttributes(final String path)
+            throws FileNotFoundException {
+        Trace.beginSection("queryFileAttr");
+        final Uri contentUri = FileUtils.getContentUriForPath(path);
+        final String[] projection = new String[]{
+                MediaColumns._ID,
+                MediaColumns.OWNER_PACKAGE_NAME,
+                MediaColumns.IS_PENDING,
+                FileColumns.MEDIA_TYPE,
+                MediaColumns.IS_TRASHED
+        };
+        final String selection = MediaColumns.DATA + "=?";
+        final String[] selectionArgs = new String[]{path};
+        FileAccessAttributes fileAccessAttributes;
+        try (final Cursor c = queryForSingleItemAsMediaProvider(contentUri, projection,
+                selection,
+                selectionArgs, null)) {
+            fileAccessAttributes = FileAccessAttributes.fromCursor(c);
+        }
+        Trace.endSection();
+        return fileAccessAttributes;
+    }
+
+    private void checkIfFileOpenIsPermitted(String path,
+            FileAccessAttributes fileAccessAttributes, String redactedUriId,
+            boolean forWrite) throws FileNotFoundException {
+        final File file = new File(path);
+        Uri fileUri = MediaStore.Files.getContentUri(extractVolumeName(path),
+                fileAccessAttributes.getId());
+        // We don't check ownership for files with IS_PENDING set by FUSE
+        // Please note that even if ownerPackageName is null, the check below will throw an
+        // IllegalStateException
+        if (fileAccessAttributes.isTrashed() || (fileAccessAttributes.isPending()
+                && !isPendingFromFuse(new File(path)))) {
+            requireOwnershipForItem(fileAccessAttributes.getOwnerPackageName(), fileUri);
+        }
+
+        // Check that path looks consistent before uri checks
+        if (!FileUtils.contains(Environment.getStorageDirectory(), file)) {
+            checkWorldReadAccess(file.getAbsolutePath());
+        }
+
+        try {
+            // checkAccess throws FileNotFoundException only from checkWorldReadAccess(),
+            // which we already check above. Hence, handling only SecurityException.
+            if (redactedUriId != null) {
+                fileUri = ContentUris.removeId(fileUri).buildUpon().appendPath(
+                        redactedUriId).build();
+            }
+            checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
+        } catch (SecurityException e) {
+            // Check for other Uri formats only when the single uri check flow fails.
+            // Throw the previous exception if the multi-uri checks failed.
+            final String uriId = redactedUriId == null
+                    ? Long.toString(fileAccessAttributes.getId()) : redactedUriId;
+            if (getOtherUriGrantsForPath(path, fileAccessAttributes.getMediaType(),
+                    uriId, forWrite) == null) {
+                throw e;
+            }
+        }
+    }
+
+
     /**
      * Checks if the app identified by the given UID is allowed to open the given file for the given
      * access mode.
@@ -8894,59 +8968,23 @@ public class MediaProvider extends ContentProvider {
                 return new FileOpenResult(OsConstants.EACCES /* status */, originalUid,
                         mediaCapabilitiesUid, new long[0]);
             }
-
-            final Uri contentUri = FileUtils.getContentUriForPath(path);
-            final String[] projection = new String[]{
-                    MediaColumns._ID,
-                    MediaColumns.OWNER_PACKAGE_NAME,
-                    MediaColumns.IS_PENDING,
-                    FileColumns.MEDIA_TYPE,
-                    MediaColumns.IS_TRASHED
-            };
-            final String selection = MediaColumns.DATA + "=?";
-            final String[] selectionArgs = new String[]{path};
-            final long id;
-            final int mediaType;
-            final boolean isPending;
-            final boolean isTrashed;
-            String ownerPackageName = null;
-            try (final Cursor c = queryForSingleItemAsMediaProvider(contentUri, projection,
-                    selection,
-                    selectionArgs, null)) {
-                id = c.getLong(0);
-                ownerPackageName = c.getString(1);
-                isPending = c.getInt(2) != 0;
-                mediaType = c.getInt(3);
-                isTrashed = c.getInt(4) != 0;
-            }
-            final File file = new File(path);
-            Uri fileUri = MediaStore.Files.getContentUri(extractVolumeName(path), id);
-            // We don't check ownership for files with IS_PENDING set by FUSE
-            if (isTrashed || (isPending && !isPendingFromFuse(new File(path)))) {
-                requireOwnershipForItem(ownerPackageName, fileUri);
-            }
-
-            // Check that path looks consistent before uri checks
-            if (!FileUtils.contains(Environment.getStorageDirectory(), file)) {
-                checkWorldReadAccess(file.getAbsolutePath());
-            }
-
-            try {
-                // checkAccess throws FileNotFoundException only from checkWorldReadAccess(),
-                // which we already check above. Hence, handling only SecurityException.
-                if (redactedUriId != null) {
-                    fileUri = ContentUris.removeId(fileUri).buildUpon().appendPath(
-                            redactedUriId).build();
-                }
-                checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
-            } catch (SecurityException e) {
-                // Check for other Uri formats only when the single uri check flow fails.
-                // Throw the previous exception if the multi-uri checks failed.
-                final String uriId = redactedUriId == null ? Long.toString(id) : redactedUriId;
-                if (getOtherUriGrantsForPath(path, mediaType, uriId, forWrite) == null) {
-                    throw e;
+            // TODO: Fetch owner id from Android/media directory and check if caller is owner
+            FileAccessAttributes fileAttributes = null;
+            if (XAttrUtils.ENABLE_XATTR_METADATA_FOR_FUSE) {
+                Optional<FileAccessAttributes> fileAttributesThroughXattr =
+                        XAttrUtils.getFileAttributesFromXAttr(path,
+                                XAttrUtils.FILE_ACCESS_XATTR_KEY);
+                if (fileAttributesThroughXattr.isPresent()) {
+                    fileAttributes = fileAttributesThroughXattr.get();
                 }
             }
+
+            // FileAttributes will be null if the xattr call failed or the flag to enable xattr
+            // metadata support is not set
+            if (fileAttributes == null)  {
+                fileAttributes = queryForFileAttributes(path);
+            }
+            checkIfFileOpenIsPermitted(path, fileAttributes, redactedUriId, forWrite);
             isSuccess = true;
             return new FileOpenResult(0 /* status */, originalUid, mediaCapabilitiesUid,
                     redact ? getRedactionRangesForFuse(path, ioPath, originalUid, uid, tid,
@@ -9691,6 +9729,20 @@ public class MediaProvider extends ContentProvider {
         try {
             return DeviceConfig.getInt(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
                     defaultValue);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+    }
+
+    @VisibleForTesting
+    public int getIntDeviceConfig(String namespace, String key, int defaultValue) {
+        if (!canReadDeviceConfig(key, defaultValue)) {
+            return defaultValue;
+        }
+
+        final long token = Binder.clearCallingIdentity();
+        try {
+            return DeviceConfig.getInt(namespace, key, defaultValue);
         } finally {
             Binder.restoreCallingIdentity(token);
         }

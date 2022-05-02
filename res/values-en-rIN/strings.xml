@@ -19,6 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Media"</string>
     <string name="storage_description" msgid="4081716890357580107">"Local storage"</string>
     <string name="app_label" msgid="9035307001052716210">"Media Storage"</string>
+    <string name="picker_app_label" msgid="5487796494405738578">"Photo picker"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artist"</string>
     <string name="unknown" msgid="2059049215682829375">"Unknown"</string>
     <string name="root_images" msgid="5861633549189045666">"Images"</string>
@@ -76,6 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Unmute video"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Play video"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Pause video"</string>
+    <string name="not_selected" msgid="2244008151669896758">"not selected"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to modify this audio file?}other{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> audio files?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modifying audio file…}other{Modifying <xliff:g id="COUNT">^1</xliff:g> audio files…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to modify this video?}other{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> videos?}}"</string>

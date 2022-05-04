@@ -33,7 +33,7 @@ import static com.android.providers.media.photopicker.espresso.CustomSwipeAction
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
 import static com.android.providers.media.photopicker.espresso.OrientationUtils.setLandscapeOrientation;
 import static com.android.providers.media.photopicker.espresso.OrientationUtils.setPortraitOrientation;
-import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertBrowseButtonInOverflowMenu;
+import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
@@ -198,7 +198,8 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         onView(allOf(withText(PICKER_ALBUMS_STRING_ID),
                 isDescendantOfA(withId(TAB_LAYOUT_ID)))).check(matches(isDisplayed()));
 
-        assertBrowseButtonInOverflowMenu();
+        // Verify the overflow menu is not shown for PICK_IMAGES intent
+        assertOverflowMenuNotShown();
 
         // TODO(b/200513333): Check close icon
     }

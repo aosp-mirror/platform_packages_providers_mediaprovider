@@ -220,7 +220,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(@NonNull Menu menu) {
-        getMenuInflater().inflate(R.menu.picker_overflow_menu, menu);
+        if (getIntent().getAction().equals(Intent.ACTION_GET_CONTENT)) {
+            getMenuInflater().inflate(R.menu.picker_overflow_menu, menu);
+        }
 
         return true;
     }
@@ -474,7 +476,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         getSupportActionBar().setHomeActionContentDescription(
                 shouldShowTabLayout ? android.R.string.cancel
                         : R.string.abc_action_bar_up_description);
-        mToolbar.getOverflowIcon().setTint(isPreview ? Color.WHITE : mToolBarIconColor);
+        if (mToolbar.getOverflowIcon() != null) {
+            mToolbar.getOverflowIcon().setTint(isPreview ? Color.WHITE : mToolBarIconColor);
+        }
     }
 
     /**

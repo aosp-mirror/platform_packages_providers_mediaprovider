@@ -515,12 +515,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {
-        if (isInternal()) {
-            // Skip id reuse fix for internal db as it can lead to ids starting from a billion
-            // and can cause aberrant behaviour in Ringtones Manager. Reference: b/229153534.
-            Log.d(TAG, "Skipping next row id recovery for internal database.");
-            return;
-        }
         if (!isNextRowIdBackupEnabled()) {
             Log.d(TAG, "Skipping row id recovery as backup is not enabled.");
             return;
@@ -2343,7 +2337,21 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         return Optional.of(mNextRowIdBackup.get());
     }
 
-    public static boolean isNextRowIdBackupEnabled() {
+    boolean isNextRowIdBackupEnabled() {
+        if (mVersion < VERSION_R) {
+            // Do not back up next row id if DB version is less than R. This is unlikely to hit
+            // as we will backport row id backup changes till Android R.
+            Log.v(TAG, "Skipping next row id backup for android versions less than R.");
+            return false;
+        }
+
+        if (isInternal()) {
+            // Skip id reuse fix for internal db as it can lead to ids starting from a billion
+            // and can cause aberrant behaviour in Ringtones Manager. Reference: b/229153534.
+            Log.v(TAG, "Skipping next row id backup for internal database.");
+            return false;
+        }
+
         return SystemProperties.getBoolean("persist.sys.fuse.backup.nextrowid_enabled",
                 false);
     }

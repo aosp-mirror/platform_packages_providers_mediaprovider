@@ -232,7 +232,8 @@ public final class RemotePreviewHandler {
         Log.i(TAG, "Creating new SurfaceController for authority: " + authority);
         Bundle extras = new Bundle();
         extras.putBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, true);
-        extras.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED, mMuteStatus.isVolumeMuted());
+        // Only start audio after audio focus gain
+        extras.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED, true);
         extras.putBinder(EXTRA_SURFACE_STATE_CALLBACK, mSurfaceStateChangedCallbackWrapper);
         final Bundle surfaceControllerBundle = mContext.getContentResolver().call(
                 createSurfaceControllerUri(authority),

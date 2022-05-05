@@ -16,24 +16,18 @@
 
 package com.android.providers.media.photopicker.espresso;
 
-import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.Espresso.openActionBarOverflowOrOptionsMenu;
-import static androidx.test.espresso.assertion.ViewAssertions.matches;
-import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
-import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
-import androidx.test.espresso.Espresso;
-
-import com.android.providers.media.R;
+import static org.junit.Assert.fail;
 
 public class OverflowMenuUtils {
 
-    public static void assertBrowseButtonInOverflowMenu() {
-        // Opens the Overflow menu
-        openActionBarOverflowOrOptionsMenu(PhotoPickerBaseTest.getIsolatedContext());
-        // Checks that "Browse..." is displayed
-        onView(withText(R.string.picker_browse)).check(matches(isDisplayed()));
-        // Closes the overflow menu so that other tests are not affected
-        Espresso.pressBack();
+    public static void assertOverflowMenuNotShown() {
+        try {
+            openActionBarOverflowOrOptionsMenu(PhotoPickerBaseTest.getIsolatedContext());
+            fail("Overflow menu is only visible with GET_CONTENT intent");
+        } catch (Exception e) {
+            // This is normal as we don't have overflow menu.
+        }
     }
 }

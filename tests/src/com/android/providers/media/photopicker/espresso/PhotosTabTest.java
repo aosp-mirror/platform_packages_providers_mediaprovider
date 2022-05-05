@@ -27,6 +27,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertBrowseButtonInOverflowMenu;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotDisplayed;
@@ -127,6 +128,9 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
 
         // Verify that tab tabs are not shown on the toolbar
         onView(withId(TAB_LAYOUT_ID)).check(matches(not(isDisplayed())));
+
+        // Verify that the overflow menu is shown
+        assertBrowseButtonInOverflowMenu();
 
         // Verify that privacy text is not shown
         onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));

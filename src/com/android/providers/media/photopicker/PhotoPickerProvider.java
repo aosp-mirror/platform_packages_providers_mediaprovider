@@ -16,15 +16,14 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_PAUSED;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_STARTED;
-import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_BUFFERING;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_COMPLETED;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_MEDIA_SIZE_CHANGED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_PAUSED;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_READY;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_STARTED;
+import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
-import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 
 import android.annotation.DurationMillisLong;
 import android.content.ContentProviderClient;
@@ -46,14 +45,14 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Surface;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.android.providers.media.LocalCallingIdentity;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.ui.remotepreview.RemotePreviewHandler;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
@@ -62,7 +61,7 @@ import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Player.State;
-import com.google.android.exoplayer2.analytics.AnalyticsCollector;
+import com.google.android.exoplayer2.analytics.DefaultAnalyticsCollector;
 import com.google.android.exoplayer2.source.MediaParserExtractorAdapter;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
@@ -126,7 +125,13 @@ public class PhotoPickerProvider extends CloudMediaProvider {
 
         final LocalCallingIdentity token = mMediaProvider.clearLocalCallingIdentity();
         try {
-            return mMediaProvider.openTypedAssetFile(fromMediaId(mediaId), "image/*", opts);
+            // Open the original file (not thumbnail). For videos, the PhotoPicker should not
+            // use MediaProviers thumbnail cache because it fetches frames from the middle of the
+            // video, meanwhile the requirement is to fetch frames from the start of the video.
+            // Glide processes the returned fd here and extracts a thumbnail from it anyways.
+            // Additonally, glide caches this thumbnail used so future requests for the same
+            // thumbnail will not require extraction.
+            return mMediaProvider.openTypedAssetFile(fromMediaId(mediaId), null, opts);
         } finally {
             mMediaProvider.restoreLocalCallingIdentity(token);
         }
@@ -149,19 +154,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        Bundle bundle = new Bundle();
-        try (Cursor cursor = mDbFacade.getMediaCollectionInfo(queryExtras.getGeneration())) {
-            if (cursor.moveToFirst()) {
-                int generationIndex = cursor.getColumnIndexOrThrow(
-                        MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION);
-
-                bundle.putString(MediaCollectionInfo.MEDIA_COLLECTION_ID,
-                        MediaStore.getVersion(getContext()));
-                bundle.putLong(MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION,
-                        cursor.getLong(generationIndex));
-            }
-        }
-        return bundle;
+        return mDbFacade.getMediaCollectionInfo(queryExtras.getGeneration());
     }
 
     @Override
@@ -409,11 +402,11 @@ public class PhotoPickerProvider extends CloudMediaProvider {
 
             return new ExoPlayer.Builder(mContext,
                     new DefaultRenderersFactory(mContext),
-                    new DefaultTrackSelector(mContext),
                     mediaSourceFactory,
+                    new DefaultTrackSelector(mContext),
                     sLoadControl,
                     DefaultBandwidthMeter.getSingletonInstance(mContext),
-                    new AnalyticsCollector(Clock.DEFAULT)).buildExoPlayer();
+                    new DefaultAnalyticsCollector(Clock.DEFAULT)).build();
         }
 
         private void updateLoopingPlaybackStatus() {

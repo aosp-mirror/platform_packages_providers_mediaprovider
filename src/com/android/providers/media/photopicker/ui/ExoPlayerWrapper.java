@@ -34,7 +34,7 @@ import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.analytics.AnalyticsCollector;
+import com.google.android.exoplayer2.analytics.DefaultAnalyticsCollector;
 import com.google.android.exoplayer2.source.MediaParserExtractorAdapter;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
@@ -126,11 +126,11 @@ class ExoPlayerWrapper {
 
         return new ExoPlayer.Builder(mContext,
                 new DefaultRenderersFactory(mContext),
-                new DefaultTrackSelector(mContext),
                 mediaSourceFactory,
+                new DefaultTrackSelector(mContext),
                 sLoadControl,
                 DefaultBandwidthMeter.getSingletonInstance(mContext),
-                new AnalyticsCollector(Clock.DEFAULT)).buildExoPlayer();
+                new DefaultAnalyticsCollector(Clock.DEFAULT)).build();
     }
 
     private void setupPlayerLayout(StyledPlayerView styledPlayerView, ImageView imageView) {

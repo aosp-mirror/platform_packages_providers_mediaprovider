@@ -400,13 +400,16 @@ public class PhotoPickerProvider extends CloudMediaProvider {
             ProgressiveMediaSource.Factory mediaSourceFactory = new ProgressiveMediaSource.Factory(
                     () -> new ContentDataSource(mContext), MediaParserExtractorAdapter.FACTORY);
 
+            // TODO(b/216099324): Handle AudioBecomingNoisy for cloud.
             return new ExoPlayer.Builder(mContext,
                     new DefaultRenderersFactory(mContext),
                     mediaSourceFactory,
                     new DefaultTrackSelector(mContext),
                     sLoadControl,
                     DefaultBandwidthMeter.getSingletonInstance(mContext),
-                    new DefaultAnalyticsCollector(Clock.DEFAULT)).build();
+                    new DefaultAnalyticsCollector(Clock.DEFAULT))
+                    .setHandleAudioBecomingNoisy(true)
+                    .build();
         }
 
         private void updateLoopingPlaybackStatus() {

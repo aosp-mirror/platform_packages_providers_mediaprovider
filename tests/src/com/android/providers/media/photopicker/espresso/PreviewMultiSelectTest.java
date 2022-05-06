@@ -33,6 +33,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static com.android.providers.media.photopicker.espresso.BottomSheetTestUtils.assertBottomSheetState;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
+import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
@@ -92,6 +93,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_EXPANDED);
             });
+
+            // Verify the overflow menu is not shown for PICK_IMAGES intent
+            assertOverflowMenuNotShown();
 
             assertMultiSelectPreviewCommonLayoutDisplayed();
             onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(not(isDisplayed())));

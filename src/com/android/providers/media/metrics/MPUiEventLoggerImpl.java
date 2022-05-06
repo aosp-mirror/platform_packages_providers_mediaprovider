@@ -71,7 +71,8 @@ public class MPUiEventLoggerImpl implements UiEventLogger {
                     /* event_id = 1 */ eventID,
                     /* package_name = 2 */ packageName,
                     /* instance_id = 3 */ 0,
-                    /* position_picked = 4 */ position);
+                    /* position_picked = 4 */ position,
+                    /* is_pinned = 5 */ false);
         }
     }
 
@@ -84,7 +85,8 @@ public class MPUiEventLoggerImpl implements UiEventLogger {
                     /* event_id = 1 */ eventID,
                     /* package_name = 2 */ packageName,
                     /* instance_id = 3 */ instance.getId(),
-                    /* position_picked = 4 */ position);
+                    /* position_picked = 4 */ position,
+                    /* is_pinned = 5 */ false);
         } else {
             logWithPosition(event, uid, packageName, position);
         }

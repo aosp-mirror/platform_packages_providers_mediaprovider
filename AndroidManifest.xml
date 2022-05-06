@@ -175,6 +175,14 @@
                 <action android:name="android.provider.action.PICK_IMAGES" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+        </activity>
+
+        <activity-alias
+            android:name="com.android.providers.media.photopicker.PhotoPickerGetContentActivity"
+            android:targetActivity="com.android.providers.media.photopicker.PhotoPickerActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:enabled="false">
             <intent-filter>
                 <action android:name="android.intent.action.GET_CONTENT" />
                 <category android:name="android.intent.category.OPENABLE" />
@@ -182,7 +190,7 @@
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
             </intent-filter>
-        </activity>
+        </activity-alias>
 
     </application>
 </manifest>

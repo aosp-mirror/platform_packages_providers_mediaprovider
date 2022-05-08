@@ -1175,11 +1175,7 @@ public final class MediaStore {
          * {@link ContentResolver#openFileDescriptor(Uri, String)} API is recommended for better
          * performance.
          *
-         * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-         *             may not update the value of this column. However they may read the file path
-         *             value from this column and use in file operations.
          */
-        @Deprecated
         @Column(Cursor.FIELD_TYPE_STRING)
         public static final String DATA = "_data";
 
@@ -2615,12 +2611,7 @@ public final class MediaStore {
              *
              * As of {@link android.os.Build.VERSION_CODES#Q}, this thumbnail
              * has correct rotation, don't need to rotate it again.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -2795,66 +2786,36 @@ public final class MediaStore {
 
             /**
              * Non-zero if the audio file is music
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_MUSIC = "is_music";
 
             /**
              * Non-zero if the audio file is a podcast
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_PODCAST = "is_podcast";
 
             /**
              * Non-zero if the audio file may be a ringtone
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
-             * and {@link #IS_RECORDING}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RINGTONE = "is_ringtone";
 
             /**
              * Non-zero if the audio file may be an alarm
-             *
-             * This is mutually exclusive with {@link #IS_AUDIOBOOK},
-             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_ALARM = "is_alarm";
 
             /**
              * Non-zero if the audio file may be a notification sound
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_NOTIFICATION = "is_notification";
 
             /**
              * Non-zero if the audio file is an audiobook
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
-             * {@link #IS_PODCAST}, {@link #IS_RECORDING}, and
-             * {@link #IS_RINGTONE}
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_AUDIOBOOK = "is_audiobook";
@@ -2862,11 +2823,6 @@ public final class MediaStore {
             /**
              * Non-zero if the audio file is a voice recording recorded
              * by voice recorder apps
-             *
-             * This is mutually exclusive with {@link #IS_ALARM},
-             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
-             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
-             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RECORDING = "is_recording";
@@ -3172,12 +3128,7 @@ public final class MediaStore {
 
             /**
              * Path to the playlist file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -3590,12 +3541,7 @@ public final class MediaStore {
         public static class Thumbnails implements BaseColumns {
             /**
              * Path to the thumbnail file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -3927,12 +3873,7 @@ public final class MediaStore {
 
             /**
              * Path to the thumbnail file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 

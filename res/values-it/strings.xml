@@ -30,12 +30,12 @@
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Consenti"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Rifiuta"</string>
     <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
-      <item quantity="one">+<xliff:g id="COUNT_1">^1</xliff:g></item>
       <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
     </plurals>
     <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
-      <item quantity="one">Più altri <xliff:g id="COUNT_1">^1</xliff:g> elementi</item>
       <item quantity="other">Più altri <xliff:g id="COUNT_1">^1</xliff:g> elementi</item>
+      <item quantity="one">Più <xliff:g id="COUNT_0">^1</xliff:g> altro elemento</item>
     </plurals>
     <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Cancellare file temporanei delle app"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"L\'app <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> vorrebbe cancellare alcuni file temporanei. In tal caso potrebbe verificarsi un maggiore utilizzo della batteria o della rete dati."</string>
@@ -44,132 +44,132 @@
     <string name="allow" msgid="8885707816848569619">"Consenti"</string>
     <string name="deny" msgid="6040983710442068936">"Rifiuta"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> file audio?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> file audio?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di modificare questo file audio?</item>
     </plurals>
     <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
-      <item quantity="one">Modifica di <xliff:g id="COUNT">^1</xliff:g> file audio in corso…</item>
       <item quantity="other">Modifica di <xliff:g id="COUNT">^1</xliff:g> file audio in corso…</item>
+      <item quantity="one">Modifica del file audio in corso…</item>
     </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> video?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> video?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di modificare questo video?</item>
     </plurals>
     <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
-      <item quantity="one">Modifica di <xliff:g id="COUNT">^1</xliff:g> video in corso…</item>
       <item quantity="other">Modifica di <xliff:g id="COUNT">^1</xliff:g> video in corso…</item>
+      <item quantity="one">Modifica del video in corso…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> foto?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> foto?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di modificare questa foto?</item>
     </plurals>
     <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
-      <item quantity="one">Modifica di <xliff:g id="COUNT">^1</xliff:g> foto in corso…</item>
       <item quantity="other">Modifica di <xliff:g id="COUNT">^1</xliff:g> foto in corso…</item>
+      <item quantity="one">Modifica della foto in corso…</item>
     </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> elementi?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> elementi?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di modificare questo elemento?</item>
     </plurals>
     <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
-      <item quantity="one">Modifica di <xliff:g id="COUNT">^1</xliff:g> elementi in corso…</item>
       <item quantity="other">Modifica di <xliff:g id="COUNT">^1</xliff:g> elementi in corso…</item>
+      <item quantity="one">Modifica dell\'elemento in corso…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> file audio nel cestino?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> file audio nel cestino?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di spostare questo file audio nel cestino?</item>
     </plurals>
     <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
-      <item quantity="one">Spostamento di <xliff:g id="COUNT">^1</xliff:g> file audio nel cestino in corso…</item>
       <item quantity="other">Spostamento di <xliff:g id="COUNT">^1</xliff:g> file audio nel cestino in corso…</item>
+      <item quantity="one">Spostamento del file audio nel cestino in corso…</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> video nel cestino?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> video nel cestino?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di spostare questo video nel cestino?</item>
     </plurals>
     <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
-      <item quantity="one">Spostamento di <xliff:g id="COUNT">^1</xliff:g> video nel cestino in corso…</item>
       <item quantity="other">Spostamento di <xliff:g id="COUNT">^1</xliff:g> video nel cestino in corso…</item>
+      <item quantity="one">Spostamento del video nel cestino in corso…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> foto nel cestino?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> foto nel cestino?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di spostare questa foto nel cestino?</item>
     </plurals>
     <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
-      <item quantity="one">Spostamento di <xliff:g id="COUNT">^1</xliff:g> foto nel cestino in corso…</item>
       <item quantity="other">Spostamento di <xliff:g id="COUNT">^1</xliff:g> foto nel cestino in corso…</item>
+      <item quantity="one">Spostamento della foto nel cestino in corso…</item>
     </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> elementi nel cestino?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> elementi nel cestino?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di spostare questo elemento nel cestino?</item>
     </plurals>
     <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="one">Spostamento di <xliff:g id="COUNT">^1</xliff:g> elementi nel cestino in corso…</item>
       <item quantity="other">Spostamento di <xliff:g id="COUNT">^1</xliff:g> elementi nel cestino in corso…</item>
+      <item quantity="one">Spostamento dell\'elemento nel cestino in corso…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> file audio fuori dal cestino?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> file audio fuori dal cestino?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di spostare questo file audio fuori dal cestino?</item>
     </plurals>
     <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
-      <item quantity="one">Spostamento di <xliff:g id="COUNT">^1</xliff:g> file audio fuori dal cestino in corso…</item>
       <item quantity="other">Spostamento di <xliff:g id="COUNT">^1</xliff:g> file audio fuori dal cestino in corso…</item>
+      <item quantity="one">Spostamento del file audio fuori dal cestino in corso…</item>
     </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> video fuori dal cestino?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> video fuori dal cestino?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di spostare questo video fuori dal cestino?</item>
     </plurals>
     <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
-      <item quantity="one">Spostamento di <xliff:g id="COUNT">^1</xliff:g> video fuori dal cestino in corso…</item>
       <item quantity="other">Spostamento di <xliff:g id="COUNT">^1</xliff:g> video fuori dal cestino in corso…</item>
+      <item quantity="one">Spostamento del video fuori dal cestino in corso…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> foto fuori dal cestino?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> foto fuori dal cestino?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di spostare questa foto fuori dal dispositivo?</item>
     </plurals>
     <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
-      <item quantity="one">Spostamento di <xliff:g id="COUNT">^1</xliff:g> foto fuori dal cestino in corso…</item>
       <item quantity="other">Spostamento di <xliff:g id="COUNT">^1</xliff:g> foto fuori dal cestino in corso…</item>
+      <item quantity="one">Spostamento della foto fuori dal cestino in corso…</item>
     </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> elementi fuori dal cestino?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di spostare <xliff:g id="COUNT">^2</xliff:g> elementi fuori dal cestino?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di spostare questo elemento fuori dal cestino?</item>
     </plurals>
     <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
-      <item quantity="one">Spostamento di <xliff:g id="COUNT">^1</xliff:g> elementi fuori dal cestino in corso…</item>
       <item quantity="other">Spostamento di <xliff:g id="COUNT">^1</xliff:g> elementi fuori dal cestino in corso…</item>
+      <item quantity="one">Spostamento dell\'elemento fuori dal cestino in corso…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di eliminare <xliff:g id="COUNT">^2</xliff:g> file audio?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di eliminare <xliff:g id="COUNT">^2</xliff:g> file audio?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di eliminare questo file audio?</item>
     </plurals>
     <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
-      <item quantity="one">Eliminazione di <xliff:g id="COUNT">^1</xliff:g> file audio in corso…</item>
       <item quantity="other">Eliminazione di <xliff:g id="COUNT">^1</xliff:g> file audio in corso…</item>
+      <item quantity="one">Eliminazione del file audio in corso…</item>
     </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di eliminare <xliff:g id="COUNT">^2</xliff:g> video?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di eliminare <xliff:g id="COUNT">^2</xliff:g> video?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di eliminare questo video?</item>
     </plurals>
     <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
-      <item quantity="one">Eliminazione di <xliff:g id="COUNT">^1</xliff:g> video in corso…</item>
       <item quantity="other">Eliminazione di <xliff:g id="COUNT">^1</xliff:g> video in corso…</item>
+      <item quantity="one">Eliminazione del video in corso…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di eliminare <xliff:g id="COUNT">^2</xliff:g> foto?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di eliminare <xliff:g id="COUNT">^2</xliff:g> foto?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di eliminare questa foto?</item>
     </plurals>
     <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
-      <item quantity="one">Eliminazione di <xliff:g id="COUNT">^1</xliff:g> foto in corso…</item>
       <item quantity="other">Eliminazione di <xliff:g id="COUNT">^1</xliff:g> foto in corso…</item>
+      <item quantity="one">Eliminazione della foto in corso…</item>
     </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
-      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di eliminare <xliff:g id="COUNT">^2</xliff:g> elementi?</item>
       <item quantity="other">Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di eliminare <xliff:g id="COUNT">^2</xliff:g> elementi?</item>
+      <item quantity="one">Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di eliminare questo elemento?</item>
     </plurals>
     <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
-      <item quantity="one">Eliminazione di <xliff:g id="COUNT">^1</xliff:g> elementi in corso…</item>
       <item quantity="other">Eliminazione di <xliff:g id="COUNT">^1</xliff:g> elementi in corso…</item>
+      <item quantity="one">Eliminazione dell\'elemento in corso…</item>
     </plurals>
     <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> non può elaborare file multimediali"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Elaborazione dei contenuti multimediali annullata"</string>

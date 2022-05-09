@@ -46,4 +46,54 @@ public class Memory {
             dst[offset  ] = (byte) ((value >> 24) & 0xff);
         }
     }
+
+    public static long peekLong(byte[] src, int offset, ByteOrder order) {
+        if (order == ByteOrder.BIG_ENDIAN) {
+            int h = ((src[offset++] & 0xff) << 24) |
+                    ((src[offset++] & 0xff) << 16) |
+                    ((src[offset++] & 0xff) <<  8) |
+                    ((src[offset++] & 0xff) <<  0);
+            int l = ((src[offset++] & 0xff) << 24) |
+                    ((src[offset++] & 0xff) << 16) |
+                    ((src[offset++] & 0xff) <<  8) |
+                    ((src[offset  ] & 0xff) <<  0);
+            return (((long) h) << 32L) | ((long) l) & 0xffffffffL;
+        } else {
+            int l = ((src[offset++] & 0xff) <<  0) |
+                    ((src[offset++] & 0xff) <<  8) |
+                    ((src[offset++] & 0xff) << 16) |
+                    ((src[offset++] & 0xff) << 24);
+            int h = ((src[offset++] & 0xff) <<  0) |
+                    ((src[offset++] & 0xff) <<  8) |
+                    ((src[offset++] & 0xff) << 16) |
+                    ((src[offset  ] & 0xff) << 24);
+            return (((long) h) << 32L) | ((long) l) & 0xffffffffL;
+        }
+    }
+
+    public static void pokeLong(byte[] dst, int offset, long value, ByteOrder order) {
+        if (order == ByteOrder.BIG_ENDIAN) {
+            int i = (int) (value >> 32);
+            dst[offset++] = (byte) ((i >> 24) & 0xff);
+            dst[offset++] = (byte) ((i >> 16) & 0xff);
+            dst[offset++] = (byte) ((i >>  8) & 0xff);
+            dst[offset++] = (byte) ((i >>  0) & 0xff);
+            i = (int) value;
+            dst[offset++] = (byte) ((i >> 24) & 0xff);
+            dst[offset++] = (byte) ((i >> 16) & 0xff);
+            dst[offset++] = (byte) ((i >>  8) & 0xff);
+            dst[offset  ] = (byte) ((i >>  0) & 0xff);
+        } else {
+            int i = (int) value;
+            dst[offset++] = (byte) ((i >>  0) & 0xff);
+            dst[offset++] = (byte) ((i >>  8) & 0xff);
+            dst[offset++] = (byte) ((i >> 16) & 0xff);
+            dst[offset++] = (byte) ((i >> 24) & 0xff);
+            i = (int) (value >> 32);
+            dst[offset++] = (byte) ((i >>  0) & 0xff);
+            dst[offset++] = (byte) ((i >>  8) & 0xff);
+            dst[offset++] = (byte) ((i >> 16) & 0xff);
+            dst[offset  ] = (byte) ((i >> 24) & 0xff);
+        }
+    }
 }

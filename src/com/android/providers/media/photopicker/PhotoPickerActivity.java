@@ -33,7 +33,12 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.UserHandle;
+import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewOutlineProvider;
@@ -211,6 +216,61 @@ public class PhotoPickerActivity extends AppCompatActivity {
         super.onSaveInstanceState(state);
         saveBottomSheetState();
         state.putParcelable(LOGGER_INSTANCE_ID_ARG, mPickerViewModel.getInstanceId());
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(@NonNull Menu menu) {
+        if (getIntent().getAction().equals(Intent.ACTION_GET_CONTENT)) {
+            getMenuInflater().inflate(R.menu.picker_overflow_menu, menu);
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.browse) {
+            launchDocumentsUiAndFinishPicker();
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void launchDocumentsUiAndFinishPicker() {
+        final UserId userId = mPickerViewModel.getUserIdManager().getCurrentUserProfileId();
+        startActivityAsUser(getGetContentIntent(getIntent()), userId.getUserHandle());
+        finish();
+    }
+
+    @VisibleForTesting
+    static Intent getGetContentIntent(Intent intent) {
+        if (intent.getAction().equals(Intent.ACTION_GET_CONTENT)) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+            intent.addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP);
+            return intent;
+        }
+
+        final Intent result = new Intent(Intent.ACTION_GET_CONTENT);
+        result.putExtras(intent);
+        if (intent.hasExtra(MediaStore.EXTRA_PICK_IMAGES_MAX)) {
+            result.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        }
+
+        if (TextUtils.isEmpty(intent.getType())) {
+            result.setType("*/*");
+
+            // Photo Picker is expected to show images and videos only.
+            if (!result.hasExtra(Intent.EXTRA_MIME_TYPES)) {
+                result.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/*", "video/*"});
+            }
+        } else {
+            // PhotoPicker getType will always be media mime type
+            result.setType(intent.getType());
+        }
+
+        result.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+        result.addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP);
+
+        return result;
     }
 
     private void restoreState(Bundle savedInstanceState) {
@@ -416,6 +476,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         getSupportActionBar().setHomeActionContentDescription(
                 shouldShowTabLayout ? android.R.string.cancel
                         : R.string.abc_action_bar_up_description);
+        if (mToolbar.getOverflowIcon() != null) {
+            mToolbar.getOverflowIcon().setTint(isPreview ? Color.WHITE : mToolBarIconColor);
+        }
     }
 
     /**

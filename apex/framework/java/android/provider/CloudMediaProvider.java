@@ -105,8 +105,6 @@ import java.util.Objects;
  * {@link #onGetMediaCollectionInfo}.
  *
  * @see MediaStore#ACTION_PICK_IMAGES
- *
- * @hide
  */
 public abstract class CloudMediaProvider extends ContentProvider {
     private static final String TAG = "CloudMediaProvider";

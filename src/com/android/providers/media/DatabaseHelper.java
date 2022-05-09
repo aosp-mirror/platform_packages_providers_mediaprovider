@@ -496,14 +496,34 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     @Override
     public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
-        Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
-        mSchemaLock.writeLock().lock();
-        try {
-            downgradeDatabase(db, oldV, newV);
-        } finally {
-            mSchemaLock.writeLock().unlock();
+        Log.w(TAG,
+                String.format(
+                        "onDowngrade() for %s from %s to %s. Deleting database:%s in case of a "
+                                + "downgrade.",
+                        mName, oldV, newV, mName));
+        deleteDatabaseFiles();
+        throw new IllegalStateException(
+                String.format("Crashing MP process on database downgrade of %s.", mName));
+    }
+
+    private void deleteDatabaseFiles() {
+        File dbDir = mContext.getDatabasePath(mName).getParentFile();
+        File[] files = dbDir.listFiles();
+        if (files == null) {
+            Log.w(TAG,
+                    String.format("No database files found on path:%s.", dbDir.getAbsolutePath()));
+            return;
+        }
+
+        for (File file : files) {
+            if (file.getName().startsWith(mName)) {
+                file.delete();
+                Log.w(TAG,
+                        String.format("Database file:%s deleted.", file.getAbsolutePath()));
+            }
         }
     }
+
 
     @Override
     public void onOpen(final SQLiteDatabase db) {
@@ -515,12 +535,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {
-        if (isInternal()) {
-            // Skip id reuse fix for internal db as it can lead to ids starting from a billion
-            // and can cause aberrant behaviour in Ringtones Manager. Reference: b/229153534.
-            Log.d(TAG, "Skipping next row id recovery for internal database.");
-            return;
-        }
         if (!isNextRowIdBackupEnabled()) {
             Log.d(TAG, "Skipping row id recovery as backup is not enabled.");
             return;
@@ -2343,9 +2357,23 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         return Optional.of(mNextRowIdBackup.get());
     }
 
-    public static boolean isNextRowIdBackupEnabled() {
+    boolean isNextRowIdBackupEnabled() {
+        if (mVersion < VERSION_R) {
+            // Do not back up next row id if DB version is less than R. This is unlikely to hit
+            // as we will backport row id backup changes till Android R.
+            Log.v(TAG, "Skipping next row id backup for android versions less than R.");
+            return false;
+        }
+
+        if (isInternal()) {
+            // Skip id reuse fix for internal db as it can lead to ids starting from a billion
+            // and can cause aberrant behaviour in Ringtones Manager. Reference: b/229153534.
+            Log.v(TAG, "Skipping next row id backup for internal database.");
+            return false;
+        }
+
         return SystemProperties.getBoolean("persist.sys.fuse.backup.nextrowid_enabled",
-                false);
+                true);
     }
 
     public static int getNextRowIdBackupFrequency() {

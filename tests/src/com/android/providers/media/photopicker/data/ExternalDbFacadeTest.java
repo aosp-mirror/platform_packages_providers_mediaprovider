@@ -738,27 +738,14 @@ public class ExternalDbFacadeTest {
                 // We verify the order of the albums:
                 // Camera, Screenshots and Downloads
                 cursor.moveToNext();
-                assertAlbumColumns(facade,
-                        cursor,
-                        ALBUM_ID_CAMERA,
-                        /* mediaCoverId */ "1",
-                        DATE_TAKEN_MS1,
+                assertAlbumColumns(facade, cursor, ALBUM_ID_CAMERA, DATE_TAKEN_MS1, /* count */ 1);
+
+                cursor.moveToNext();
+                assertAlbumColumns(facade, cursor, ALBUM_ID_SCREENSHOTS, DATE_TAKEN_MS2,
                         /* count */ 1);
 
                 cursor.moveToNext();
-                assertAlbumColumns(facade,
-                        cursor,
-                        ALBUM_ID_SCREENSHOTS,
-                        /* mediaCoverId */ "2",
-                        DATE_TAKEN_MS2,
-                        /* count */ 1);
-
-                cursor.moveToNext();
-                assertAlbumColumns(facade,
-                        cursor,
-                        ALBUM_ID_DOWNLOADS,
-                        /* mediaCoverId */ "3",
-                        DATE_TAKEN_MS3,
+                assertAlbumColumns(facade, cursor, ALBUM_ID_DOWNLOADS, DATE_TAKEN_MS3,
                         /* count */ 1);
             }
         }
@@ -790,12 +777,7 @@ public class ExternalDbFacadeTest {
 
                 // We verify the order of the albums only the image in camera is shown
                 cursor.moveToNext();
-                assertAlbumColumns(facade,
-                        cursor,
-                        ALBUM_ID_CAMERA,
-                        /* mediaCoverId */ "1",
-                        DATE_TAKEN_MS1,
-                        /* count */ 1);
+                assertAlbumColumns(facade, cursor, ALBUM_ID_CAMERA, DATE_TAKEN_MS1, /* count */ 1);
             }
         }
     }
@@ -887,7 +869,7 @@ public class ExternalDbFacadeTest {
     }
 
     private static void assertAlbumColumns(ExternalDbFacade facade, Cursor cursor,
-            String displayName, String mediaCoverId, long dateTakenMs, long count) {
+            String displayName, long dateTakenMs, long count) {
         int displayNameIndex = cursor.getColumnIndex(
                 CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME);
         int idIndex = cursor.getColumnIndex(CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID);
@@ -896,7 +878,7 @@ public class ExternalDbFacadeTest {
         int countIndex = cursor.getColumnIndex(CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT);
 
         assertThat(cursor.getString(displayNameIndex)).isEqualTo(displayName);
-        assertThat(cursor.getString(idIndex)).isEqualTo(mediaCoverId);
+        assertThat(cursor.getString(idIndex)).isNotNull();
         assertThat(cursor.getLong(dateTakenIndex)).isEqualTo(dateTakenMs);
         assertThat(cursor.getLong(countIndex)).isEqualTo(count);
     }

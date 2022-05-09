@@ -13,8 +13,14 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_selected="true" android:drawable="@drawable/ic_volume_off"/>
-    <item android:drawable="@drawable/ic_volume_up"/>
-</selector>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:gravity="center">
+        <shape android:shape="rectangle">
+            <size
+                android:width="@dimen/picker_tab_width"
+                android:height="@dimen/picker_tab_height" />
+            <corners android:radius="@dimen/picker_tab_radius"/>
+            <solid android:color="?attr/pickerTabBackgroundColor"/>
+        </shape>
+    </item>
+</layer-list>

@@ -61,7 +61,7 @@ public class AlbumGridHolder extends BaseViewHolder {
     public void bind() {
         final Category category = (Category) itemView.getTag();
         mImageLoader.loadAlbumThumbnail(category, mIconThumb);
-        mAlbumName.setText(category.getCategoryName(itemView.getContext()));
+        mAlbumName.setText(category.getDisplayName(itemView.getContext()));
 
         // Check whether there is a mime type filter or not. If yes, hide the item count. Otherwise,
         // show the item count and update the count.

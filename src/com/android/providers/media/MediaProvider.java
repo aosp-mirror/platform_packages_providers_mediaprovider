@@ -49,7 +49,6 @@ import static android.system.OsConstants.F_GETFL;
 
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
-import static com.android.providers.media.DatabaseHelper.isNextRowIdBackupEnabled;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_ACCESS_MTP;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_INSTALL_PACKAGES;
@@ -842,8 +841,8 @@ public class MediaProvider extends ContentProvider {
     };
 
     protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
-        if (!isNextRowIdBackupEnabled()) {
-            Log.d(TAG, "Skipping next row id backup.");
+        if (!helper.isNextRowIdBackupEnabled()) {
+            Log.v(TAG, "Skipping next row id backup.");
             return;
         }
 

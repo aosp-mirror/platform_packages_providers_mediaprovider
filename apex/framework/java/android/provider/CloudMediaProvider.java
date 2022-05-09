@@ -54,6 +54,7 @@ import android.os.CancellationSignal;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteCallback;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -446,15 +447,24 @@ public abstract class CloudMediaProvider extends ContentProvider {
     public final AssetFileDescriptor openTypedAssetFile(
             @NonNull Uri uri, @NonNull String mimeTypeFilter, @Nullable Bundle opts,
             @Nullable CancellationSignal signal) throws FileNotFoundException {
-        String mediaId = uri.getLastPathSegment();
-        final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
-                && mimeTypeFilter.startsWith("image/");
-        if (wantsThumb) {
-            Point point = (Point) opts.getParcelable(ContentResolver.EXTRA_SIZE);
-            return onOpenPreview(mediaId, point, opts, signal);
+        final String mediaId = uri.getLastPathSegment();
+        final boolean previewThumbnail = (opts != null)
+                && opts.containsKey(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL);
+        final DisplayMetrics screenMetrics = getContext().getResources().getDisplayMetrics();
+
+        final Bundle bundle = new Bundle();
+        int minPreviewLength = Math.min(screenMetrics.widthPixels, screenMetrics.heightPixels);
+        if (previewThumbnail) {
+            bundle.putBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL, true);
+            minPreviewLength = minPreviewLength / 2;
         }
-        return new AssetFileDescriptor(onOpenMedia(mediaId, opts, signal), 0 /* startOffset */,
-                AssetFileDescriptor.UNKNOWN_LENGTH);
+
+        Point previewSize = (opts != null) ? (Point) opts.getParcelable(ContentResolver.EXTRA_SIZE)
+                : null;
+        if (previewSize == null) {
+            previewSize = new Point(minPreviewLength, minPreviewLength);
+        }
+        return onOpenPreview(mediaId, previewSize, bundle, signal);
     }
 
     /**

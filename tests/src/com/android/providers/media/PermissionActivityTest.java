@@ -53,6 +53,7 @@ import android.text.TextUtils;
 import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
+import androidx.test.rule.ActivityTestRule;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.scan.MediaScannerTest;
@@ -117,6 +118,13 @@ public class PermissionActivityTest {
 
         final GetResultActivity activity = (GetResultActivity) inst.startActivitySync(intent);
         activity.startActivityForResult(createIntent(), 42);
+    }
+
+    @Test
+    public void testLaunchWithNoCallerInfoNoCrash() throws Exception {
+        ActivityTestRule<PermissionActivity> activityTestRule = new ActivityTestRule<>(
+                PermissionActivity.class, /* initialTouchMode */ true, /* launchActivity */ false);
+        activityTestRule.launchActivity(new Intent());
     }
 
     @Test

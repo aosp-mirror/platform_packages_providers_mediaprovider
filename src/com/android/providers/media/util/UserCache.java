@@ -16,18 +16,28 @@
 
 package com.android.providers.media.util;
 
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
+import static com.android.providers.media.util.Logging.TAG;
+
+import android.annotation.SuppressLint;
+import android.app.admin.DevicePolicyManager;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.util.Log;
 import android.util.LongSparseArray;
+import android.util.SparseArray;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
 import com.android.modules.utils.build.SdkLevel;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,12 +53,21 @@ import java.util.List;
  * aren't guaranteed to be received before the volume events for a user.
  */
 public class UserCache {
+    // This is being used for non work profile users. It is introduced to remove the necessity of
+    // second cache i.e. mUserIsWorkProfile
+    private static final String NO_WORK_PROFILE_OWNER_APP = "No Work Profile Owner App";
+
     final Object mLock = new Object();
     final Context mContext;
     final UserManager mUserManager;
 
     @GuardedBy("mLock")
     final LongSparseArray<Context> mUserContexts = new LongSparseArray<>();
+
+    // This contains a mapping from userId to packageName of the Profile Owner App
+    // or NO_WORK_PROFILE_OWNER_APP
+    @GuardedBy("mLock")
+    final SparseArray<String> mWorkProfileOwnerApps = new SparseArray<>();
 
     @GuardedBy("mLock")
     final ArrayList<UserHandle> mUsers = new ArrayList<>();
@@ -60,6 +79,7 @@ public class UserCache {
         update();
     }
 
+    @SuppressLint("NewApi")
     private void update() {
         List<UserHandle> profiles = mUserManager.getEnabledProfiles();
         synchronized (mLock) {
@@ -70,17 +90,30 @@ public class UserCache {
                 // Before S, we only handle the owner user
                 return;
             }
+
+            // App cloning is not supported for profile users like AFW.
+            if (mUserManager.isProfile()) {
+                return;
+            }
+
             // And find all profiles that share media with us
             for (UserHandle profile : profiles) {
                 if (!profile.equals(mContext.getUser())) {
-                    // Check if it's a profile that shares media with us
-                    Context userContext = getContextForUser(profile);
-                    if (userContext.getSystemService(UserManager.class).isMediaSharedWithParent()) {
+                    // Check if it's unlocked, and it's a profile that shares media with us
+                    if (isUnlockedAndMediaSharedWithParent(profile)) {
                         mUsers.add(profile);
                     }
                 }
             }
         }
+    }
+
+    private boolean isUnlockedAndMediaSharedWithParent(@NonNull UserHandle profile) {
+        Context userContext = getContextForUser(profile);
+        UserManager userManager = userContext.getSystemService(UserManager.class);
+        return (SdkLevel.isAtLeastT() ?
+                userManager.isUserUnlocked() : userManager.isUserUnlocked(profile))
+                && userManager.isMediaSharedWithParent();
     }
 
     public @NonNull List<UserHandle> updateAndGetUsers() {
@@ -94,6 +127,45 @@ public class UserCache {
         synchronized (mLock) {
             return (List<UserHandle>) mUsers.clone();
         }
+    }
+
+    public boolean isWorkProfile(int userId) {
+        if (userId == 0) {
+            // Owner user can not have a work profile
+            return false;
+        }
+
+        synchronized (mLock) {
+            int index = mWorkProfileOwnerApps.indexOfKey(userId);
+            if (index >= 0) {
+                return !NO_WORK_PROFILE_OWNER_APP.equals(mWorkProfileOwnerApps.valueAt(index));
+            }
+        }
+
+        Context userContext = getContextForUser(UserHandle.of(userId));
+        PackageManager packageManager = userContext.getPackageManager();
+        DevicePolicyManager policyManager = userContext.getSystemService(
+                DevicePolicyManager.class);
+        boolean isWorkProfile = false;
+        for (ApplicationInfo ai : packageManager.getInstalledApplications(
+                MATCH_DIRECT_BOOT_AWARE | MATCH_DIRECT_BOOT_UNAWARE)) {
+            if (policyManager.isProfileOwnerApp(ai.packageName)) {
+                synchronized (mLock) {
+                    mWorkProfileOwnerApps.put(userId, ai.packageName);
+                }
+                isWorkProfile = true;
+                break;
+            }
+        }
+
+        if(!isWorkProfile) {
+            synchronized (mLock) {
+                // NO_WORK_PROFILE_OWNER_APP is being used for all the non work profile users
+                mWorkProfileOwnerApps.put(userId, NO_WORK_PROFILE_OWNER_APP);
+            }
+        }
+
+        return isWorkProfile;
     }
 
     public @NonNull Context getContextForUser(@NonNull UserHandle user) {
@@ -147,6 +219,39 @@ public class UserCache {
         synchronized (mLock) {
             // It must be a user that we manage, and not equal to the main user that we run as
             return !Process.myUserHandle().equals(user) && mUsers.contains(user);
+        }
+    }
+
+    public void dump(PrintWriter writer) {
+        writer.println("User cache state:");
+        synchronized (mLock) {
+            for (UserHandle user : mUsers) {
+                writer.println("  user: " + user);
+            }
+        }
+    }
+
+    public void invalidateWorkProfileOwnerApps(@NonNull String packageName) {
+        synchronized (mLock) {
+            if (mWorkProfileOwnerApps.size() == 0) {
+                Log.w(TAG, "WorkProfileOwnerApps cache is empty");
+                return;
+            }
+
+            boolean cacheMissForGivenPackage = true;
+            for (int i = 0; i < mWorkProfileOwnerApps.size(); i++) {
+                final int userId = mWorkProfileOwnerApps.keyAt(i);
+                if (packageName.equals(mWorkProfileOwnerApps.get(userId))) {
+                    Log.i(TAG, "Invalidating WorkProfileOwnerApps cache for package " + packageName
+                            + ". UserId: " + userId);
+                    mWorkProfileOwnerApps.remove(userId);
+                    cacheMissForGivenPackage = false;
+                }
+            }
+
+            if(cacheMissForGivenPackage) {
+                Log.w(TAG, "WorkProfileOwnerApps cache miss for package " + packageName);
+            }
         }
     }
 }

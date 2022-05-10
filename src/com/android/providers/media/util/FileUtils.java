@@ -50,6 +50,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
+import android.os.SystemProperties;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
@@ -733,8 +734,8 @@ public class FileUtils {
                 extFromMimeType = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
             }
 
-            if (MimeUtils.equalIgnoreCase(mimeType, mimeTypeFromExt)
-                    || MimeUtils.equalIgnoreCase(ext, extFromMimeType)) {
+            if (StringUtils.equalIgnoreCase(mimeType, mimeTypeFromExt)
+                    || StringUtils.equalIgnoreCase(ext, extFromMimeType)) {
                 // Extension maps back to requested MIME type; allow it
             } else {
                 // No match; insist that create file matches requested MIME
@@ -945,24 +946,61 @@ public class FileUtils {
         return PATTERN_DOWNLOADS_DIRECTORY.matcher(path).matches();
     }
 
+    private static final boolean PROP_CROSS_USER_ALLOWED =
+            SystemProperties.getBoolean("external_storage.cross_user.enabled", false);
+
+    private static final String PROP_CROSS_USER_ROOT = isCrossUserEnabled()
+            ? SystemProperties.get("external_storage.cross_user.root", "") : "";
+
+    private static final String PROP_CROSS_USER_ROOT_PATTERN = ((PROP_CROSS_USER_ROOT.isEmpty())
+            ? "" : "(?:" + PROP_CROSS_USER_ROOT + "/)?");
+
     /**
      * Regex that matches paths in all well-known package-specific directories,
      * and which captures the package name as the first group.
      */
     public static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb)/([^/]+)(/?.*)?");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?"
+            + PROP_CROSS_USER_ROOT_PATTERN
+            + "Android/(?:data|media|obb)/([^/]+)(/?.*)?");
+
+    /**
+     * Regex that matches paths in all well-known package-specific relative directory
+     * path (as defined in {@link MediaColumns#RELATIVE_PATH})
+     * and which captures the package name as the first group.
+     */
+    private static final Pattern PATTERN_OWNED_RELATIVE_PATH = Pattern.compile(
+            "(?i)^Android/(?:data|media|obb)/([^/]+)(/?.*)?");
 
     /**
      * Regex that matches Android/obb or Android/data path.
      */
-    public static final Pattern PATTERN_DATA_OR_OBB_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/?$");
+    private static final Pattern PATTERN_DATA_OR_OBB_PATH = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?"
+            + PROP_CROSS_USER_ROOT_PATTERN
+            + "Android/(?:data|obb)(?:/.*)?$");
 
     /**
-     * Regex that matches Android/obb paths.
+     * Regex that matches Android/obb or Android/data relative path (as defined in
+     * {@link MediaColumns#RELATIVE_PATH})
      */
-    public static final Pattern PATTERN_OBB_OR_CHILD_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:obb)(/?.*)");
+    private static final Pattern PATTERN_DATA_OR_OBB_RELATIVE_PATH = Pattern.compile(
+            "(?i)^Android/(?:data|obb)(?:/.*)?$");
+
+    /**
+     * Regex that matches Android/obb {@link MediaColumns#RELATIVE_PATH}.
+     */
+    private static final Pattern PATTERN_OBB_OR_CHILD_RELATIVE_PATH = Pattern.compile(
+            "(?i)^Android/obb(?:/.*)?$");
+
+    private static final Pattern PATTERN_VISIBLE = Pattern.compile(
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?$");
+
+    private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?/"
+                    + "(?:(?:Android/(?:data|obb|sandbox)$)|"
+                    + "(?:\\.transforms$)|"
+                    + "(?:(?:Movies|Music|Pictures)/.thumbnails$))");
 
     /**
      * The recordings directory. This is used for R OS. For S OS or later,
@@ -1027,6 +1065,10 @@ public class FileUtils {
     private static final String CAMERA_RELATIVE_PATH =
             String.format("%s/%s/", Environment.DIRECTORY_DCIM, "Camera");
 
+    public static boolean isCrossUserEnabled() {
+        return PROP_CROSS_USER_ALLOWED || SdkLevel.isAtLeastS();
+    }
+
     private static @Nullable String normalizeUuid(@Nullable String fsUuid) {
         return fsUuid != null ? fsUuid.toLowerCase(Locale.ROOT) : null;
     }
@@ -1084,14 +1126,13 @@ public class FileUtils {
     }
 
     /**
-     * Returns relative path for the directory.
+     * Returns relative path with display name.
      */
     @VisibleForTesting
-    public static @Nullable String extractRelativePathForDirectory(@Nullable String directoryPath) {
-        if (directoryPath == null) return null;
+    public static @Nullable String extractRelativePathWithDisplayName(@Nullable String path) {
+        if (path == null) return null;
 
-        if (directoryPath.equals("/storage/emulated") ||
-                directoryPath.equals("/storage/emulated/")) {
+        if (path.equals("/storage/emulated") || path.equals("/storage/emulated/")) {
             // This path is not reachable for MediaProvider.
             return null;
         }
@@ -1100,18 +1141,18 @@ public class FileUtils {
         // same PATTERN_RELATIVE_PATH to match relative path for directory. For example, relative
         // path of '/storage/<volume_name>' is null where as relative path for directory is "/", for
         // PATTERN_RELATIVE_PATH to match '/storage/<volume_name>', it should end with "/".
-        if (!directoryPath.endsWith("/")) {
+        if (!path.endsWith("/")) {
             // Relative path for directory should end with "/".
-            directoryPath += "/";
+            path += "/";
         }
 
-        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(directoryPath);
+        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(path);
         if (matcher.find()) {
-            if (matcher.end() == directoryPath.length()) {
+            if (matcher.end() == path.length()) {
                 // This is the top-level directory, so relative path is "/"
                 return "/";
             }
-            return directoryPath.substring(matcher.end());
+            return path.substring(matcher.end());
         }
         return null;
     }
@@ -1121,26 +1162,76 @@ public class FileUtils {
         final Matcher m = PATTERN_OWNED_PATH.matcher(path);
         if (m.matches()) {
             return m.group(1);
-        } else {
-            return null;
         }
+        return null;
+    }
+
+    public static @Nullable String extractOwnerPackageNameFromRelativePath(@Nullable String path) {
+        if (path == null) return null;
+        final Matcher m = PATTERN_OWNED_RELATIVE_PATH.matcher(path);
+        if (m.matches()) {
+            return m.group(1);
+        }
+        return null;
+    }
+
+    public static boolean isExternalMediaDirectory(@NonNull String path) {
+        return isExternalMediaDirectory(path, PROP_CROSS_USER_ROOT);
+    }
+
+    @VisibleForTesting
+    static boolean isExternalMediaDirectory(@NonNull String path, String crossUserRoot) {
+        final String relativePath = extractRelativePath(path);
+        if (relativePath == null) {
+            return false;
+        }
+
+        if (StringUtils.startsWithIgnoreCase(relativePath, "Android/media")) {
+            return true;
+        }
+        if (!TextUtils.isEmpty(crossUserRoot)) {
+            return StringUtils.startsWithIgnoreCase(relativePath, crossUserRoot + "/Android/media");
+        }
+
+        return false;
     }
 
     /**
-     * Returns true if relative path is Android/data or Android/obb path.
+     * Returns true if path is Android/data or Android/obb path.
      */
-    public static boolean isDataOrObbPath(String path) {
+    public static boolean isDataOrObbPath(@Nullable String path) {
         if (path == null) return false;
         final Matcher m = PATTERN_DATA_OR_OBB_PATH.matcher(path);
         return m.matches();
     }
 
     /**
+     * Returns true if relative path is Android/data or Android/obb path.
+     */
+    public static boolean isDataOrObbRelativePath(@Nullable String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_DATA_OR_OBB_RELATIVE_PATH.matcher(path);
+        return m.matches();
+    }
+
+    /**
      * Returns true if relative path is Android/obb path.
      */
-    public static boolean isObbOrChildPath(String path) {
+    public static boolean isObbOrChildRelativePath(@Nullable String path) {
         if (path == null) return false;
-        final Matcher m = PATTERN_OBB_OR_CHILD_PATH.matcher(path);
+        final Matcher m = PATTERN_OBB_OR_CHILD_RELATIVE_PATH.matcher(path);
+        return m.matches();
+    }
+
+    public static boolean shouldBeVisible(@Nullable String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_VISIBLE.matcher(path);
+        return m.matches();
+    }
+
+    public static boolean shouldBeInvisible(@Nullable String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_INVISIBLE.matcher(path);
         return m.matches();
     }
 
@@ -1154,8 +1245,26 @@ public class FileUtils {
         if (relativePath == null) {
             return null;
         }
-        final String[] relativePathSegments = relativePath.split("/");
-        return relativePathSegments.length > 0 ? relativePathSegments[0] : null;
+
+        return extractTopLevelDir(relativePath.split("/"));
+    }
+
+    @Nullable
+    public static String extractTopLevelDir(String[] relativePathSegments) {
+        return extractTopLevelDir(relativePathSegments, PROP_CROSS_USER_ROOT);
+    }
+
+    @VisibleForTesting
+    @Nullable
+    static String extractTopLevelDir(String[] relativePathSegments, String crossUserRoot) {
+        if (relativePathSegments == null) return null;
+
+        final String topLevelDir = relativePathSegments.length > 0 ? relativePathSegments[0] : null;
+        if (crossUserRoot != null && crossUserRoot.equals(topLevelDir)) {
+            return relativePathSegments.length > 1 ? relativePathSegments[1] : null;
+        }
+
+        return topLevelDir;
     }
 
     public static boolean isDefaultDirectoryName(@Nullable String dirName) {
@@ -1250,6 +1359,8 @@ public class FileUtils {
             // The relative path for files in the top directory is "/"
             if (!"/".equals(values.getAsString(MediaColumns.RELATIVE_PATH))) {
                 values.put(MediaColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
+            } else {
+                values.putNull(MediaColumns.BUCKET_DISPLAY_NAME);
             }
         }
     }
@@ -1362,6 +1473,48 @@ public class FileUtils {
     }
 
     /**
+     * Returns true if the given File should be hidden (if it or any of its parents is hidden).
+     * This can be called before the file is created, to check if it will be hidden once created.
+     */
+    @VisibleForTesting
+    public static boolean shouldFileBeHidden(@NonNull File file) {
+        if (isFileHidden(file)) {
+            return true;
+        }
+
+        File parent = file.getParentFile();
+        while (parent != null) {
+            if (isDirectoryHidden(parent)) {
+                return true;
+            }
+            parent = parent.getParentFile();
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns true if the given dir should be hidden (if it or any of its parents is hidden).
+     * This can be called before the file is created, to check if it will be hidden once created.
+     */
+    @VisibleForTesting
+    public static boolean shouldDirBeHidden(@NonNull File file) {
+        if (isDirectoryHidden(file)) {
+            return true;
+        }
+
+        File parent = file.getParentFile();
+        while (parent != null) {
+            if (isDirectoryHidden(parent)) {
+                return true;
+            }
+            parent = parent.getParentFile();
+        }
+
+        return false;
+    }
+
+    /**
      * Test if this given directory should be considered hidden.
      */
     @VisibleForTesting
@@ -1378,6 +1531,11 @@ public class FileUtils {
             return false;
         }
 
+        if (shouldBeVisible(dir.getAbsolutePath())) {
+            nomedia.delete();
+            return false;
+        }
+
         // Handle top-level default directories. These directories should always be visible,
         // regardless of .nomedia presence.
         final String[] relativePath = sanitizePath(extractRelativePath(dir.getAbsolutePath()));
@@ -1390,7 +1548,7 @@ public class FileUtils {
 
         // DCIM/Camera should always be visible regardless of .nomedia presence.
         if (CAMERA_RELATIVE_PATH.equalsIgnoreCase(
-                extractRelativePathForDirectory(dir.getAbsolutePath()))) {
+                extractRelativePathWithDisplayName(dir.getAbsolutePath()))) {
             nomedia.delete();
             return false;
         }
@@ -1485,22 +1643,33 @@ public class FileUtils {
     }
 
     /**
-     * @return {@code true} if {@code dir} is dirty and should be scanned, {@code false} otherwise.
+     * @return {@code true} if {@code dir} has nomedia and it is dirty directory, so it should be
+     * scanned. Returns {@code false} otherwise.
      */
     public static boolean isDirectoryDirty(File dir) {
         File nomedia = new File(dir, ".nomedia");
-        if (nomedia.exists()) {
-            try {
-                Optional<String> expectedPath = readString(nomedia);
-                // Returns true If .nomedia file is empty or content doesn't match |dir|
-                // Returns false otherwise
-                return !expectedPath.isPresent()
-                        || !expectedPath.get().equals(dir.getPath());
-            } catch (IOException e) {
-                Log.w(TAG, "Failed to read directory dirty" + dir);
-            }
+
+        // We return false for directories that don't have .nomedia
+        if (!nomedia.exists()) {
+            return false;
         }
-        return true;
+
+        // We don't write to ".nomedia" dirs, only to ".nomedia" files. If this ".nomedia" is not
+        // a file, then don't try to read it.
+        if (!nomedia.isFile()) {
+            return true;
+        }
+
+        try {
+            Optional<String> expectedPath = readString(nomedia);
+            // Returns true If .nomedia file is empty or content doesn't match |dir|
+            // Returns false otherwise
+            return !expectedPath.isPresent()
+                    || !expectedPath.get().equals(dir.getPath());
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to read directory dirty" + dir);
+            return true;
+        }
     }
 
     /**
@@ -1509,7 +1678,7 @@ public class FileUtils {
      */
     public static void setDirectoryDirty(File dir, boolean isDirty) {
         File nomedia = new File(dir, ".nomedia");
-        if (nomedia.exists()) {
+        if (nomedia.exists() && nomedia.isFile()) {
             try {
                 writeString(nomedia, isDirty ? Optional.of("") : Optional.of(dir.getPath()));
             } catch (IOException e) {
@@ -1563,5 +1732,20 @@ public class FileUtils {
         }
 
         return null;
+    }
+
+    public static File buildPrimaryVolumeFile(int userId, String... segments) {
+        return buildPath(new File("/storage/emulated/" + userId), segments);
+    }
+
+    private static final String LOWER_FS_PREFIX = "/storage/";
+    private static final String FUSE_FS_PREFIX = "/mnt/user/" + UserHandle.myUserId() + "/";
+
+    public static File toFuseFile(File file) {
+        return new File(file.getPath().replaceFirst(LOWER_FS_PREFIX, FUSE_FS_PREFIX));
+    }
+
+    public static File fromFuseFile(File file) {
+        return new File(file.getPath().replaceFirst(FUSE_FS_PREFIX, LOWER_FS_PREFIX));
     }
 }

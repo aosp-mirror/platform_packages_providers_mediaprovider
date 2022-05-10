@@ -23,15 +23,18 @@ import static android.Manifest.permission.INSTALL_PACKAGES;
 import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.MANAGE_MEDIA;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
+import static android.Manifest.permission.READ_MEDIA_AUDIO;
+import static android.Manifest.permission.READ_MEDIA_IMAGES;
+import static android.Manifest.permission.READ_MEDIA_VIDEO;
 import static android.Manifest.permission.UPDATE_DEVICE_STATS;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
-import static android.app.AppOpsManager.OPSTR_REQUEST_INSTALL_PACKAGES;
 import static android.app.AppOpsManager.OPSTR_LEGACY_STORAGE;
 import static android.app.AppOpsManager.OPSTR_NO_ISOLATED_STORAGE;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_AUDIO;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_IMAGES;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_VIDEO;
+import static android.app.AppOpsManager.OPSTR_REQUEST_INSTALL_PACKAGES;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_AUDIO;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO;
@@ -41,10 +44,13 @@ import android.app.AppOpsManager;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.UserHandle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+
+import com.android.modules.utils.build.SdkLevel;
 
 public class PermissionUtils {
 
@@ -61,7 +67,7 @@ public class PermissionUtils {
     public static void clearOpDescription() { sOpDescription.set(null); }
 
     public static boolean checkPermissionSelf(@NonNull Context context, int pid, int uid) {
-        return android.os.Process.myUid() == uid;
+        return UserHandle.getAppId(android.os.Process.myUid()) == UserHandle.getAppId(uid);
     }
 
     public static boolean checkPermissionShell(@NonNull Context context, int pid, int uid) {
@@ -146,9 +152,18 @@ public class PermissionUtils {
         return checkNoIsolatedStorageGranted(context, uid, packageName, attributionTag);
     }
 
-    public static boolean checkPermissionReadAudio(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag) {
-        if (!checkPermissionForPreflight(context, READ_EXTERNAL_STORAGE, pid, uid, packageName)) {
+    public static boolean checkPermissionReadAudio(
+            @NonNull Context context,
+            int pid,
+            int uid,
+            @NonNull String packageName,
+            @Nullable String attributionTag,
+            boolean targetSdkIsAtLeastT) {
+
+        String permission = targetSdkIsAtLeastT && SdkLevel.isAtLeastT()
+                ? READ_MEDIA_AUDIO : READ_EXTERNAL_STORAGE;
+
+        if (!checkPermissionForPreflight(context, permission, pid, uid, packageName)) {
             return false;
         }
         return checkAppOpAllowingLegacy(context, OPSTR_READ_MEDIA_AUDIO, pid,
@@ -167,11 +182,20 @@ public class PermissionUtils {
                 generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
-    public static boolean checkPermissionReadVideo(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag) {
-        if (!checkPermissionForPreflight(context, READ_EXTERNAL_STORAGE, pid, uid, packageName)) {
+    public static boolean checkPermissionReadVideo(
+            @NonNull Context context,
+            int pid,
+            int uid,
+            @NonNull String packageName,
+            @Nullable String attributionTag,
+            boolean targetSdkIsAtLeastT) {
+        String permission = targetSdkIsAtLeastT && SdkLevel.isAtLeastT()
+                ? READ_MEDIA_VIDEO : READ_EXTERNAL_STORAGE;
+
+        if (!checkPermissionForPreflight(context, permission, pid, uid, packageName)) {
             return false;
         }
+
         return checkAppOpAllowingLegacy(context, OPSTR_READ_MEDIA_VIDEO, pid,
                 uid, packageName, attributionTag,
                 generateAppOpMessage(packageName, sOpDescription.get()));
@@ -188,11 +212,20 @@ public class PermissionUtils {
                 generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
-    public static boolean checkPermissionReadImages(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag) {
-        if (!checkPermissionForPreflight(context, READ_EXTERNAL_STORAGE, pid, uid, packageName)) {
+    public static boolean checkPermissionReadImages(
+            @NonNull Context context,
+            int pid,
+            int uid,
+            @NonNull String packageName,
+            @Nullable String attributionTag,
+            boolean targetSdkIsAtLeastT) {
+        String permission = targetSdkIsAtLeastT && SdkLevel.isAtLeastT()
+                ? READ_MEDIA_IMAGES : READ_EXTERNAL_STORAGE;
+
+        if (!checkPermissionForPreflight(context, permission, pid, uid, packageName)) {
             return false;
         }
+
         return checkAppOpAllowingLegacy(context, OPSTR_READ_MEDIA_IMAGES, pid,
                 uid, packageName, attributionTag,
                 generateAppOpMessage(packageName, sOpDescription.get()));
@@ -423,6 +456,7 @@ public class PermissionUtils {
             return checkRuntimePermission(context, permission, pid, uid, packageName,
                     attributionTag, message, forDataDelivery);
         }
+
         return context.checkPermission(permission, pid, uid) == PERMISSION_GRANTED;
     }
 
@@ -440,6 +474,9 @@ public class PermissionUtils {
             case ACCESS_MEDIA_LOCATION:
             case READ_EXTERNAL_STORAGE:
             case WRITE_EXTERNAL_STORAGE:
+            case READ_MEDIA_AUDIO:
+            case READ_MEDIA_VIDEO:
+            case READ_MEDIA_IMAGES:
                 return true;
         }
         return false;

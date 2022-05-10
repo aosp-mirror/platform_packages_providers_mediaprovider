@@ -16,9 +16,6 @@
 
 package com.android.providers.media.util;
 
-import static com.android.providers.media.util.MimeUtils.equalIgnoreCase;
-import static com.android.providers.media.util.MimeUtils.startsWithIgnoreCase;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -39,30 +36,6 @@ public class MimeUtilsTest {
     @Test
     public void testConstructor() {
         new MimeUtils();
-    }
-
-    @Test
-    public void testEqualIgnoreCase() throws Exception {
-        assertTrue(equalIgnoreCase("image/jpg", "image/jpg"));
-        assertTrue(equalIgnoreCase("image/jpg", "Image/Jpg"));
-
-        assertFalse(equalIgnoreCase("image/jpg", "image/png"));
-        assertFalse(equalIgnoreCase("image/jpg", null));
-        assertFalse(equalIgnoreCase(null, "image/jpg"));
-        assertFalse(equalIgnoreCase(null, null));
-    }
-
-    @Test
-    public void testStartsWithIgnoreCase() throws Exception {
-        assertTrue(startsWithIgnoreCase("image/jpg", "image/"));
-        assertTrue(startsWithIgnoreCase("Image/Jpg", "image/"));
-
-        assertFalse(startsWithIgnoreCase("image/", "image/jpg"));
-
-        assertFalse(startsWithIgnoreCase("image/jpg", "audio/"));
-        assertFalse(startsWithIgnoreCase("image/jpg", null));
-        assertFalse(startsWithIgnoreCase(null, "audio/"));
-        assertFalse(startsWithIgnoreCase(null, null));
     }
 
     @Test

@@ -1,0 +1,99 @@
+<!--
+  ~ Copyright (C) 2021 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:background="@color/preview_background_color"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent">
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/preview_viewPager"
+        android:layout_gravity="center"
+        android:accessibilityTraversalBefore="@+id/toolbar"/>
+
+    <!-- Adds scrim for Toolbar -->
+    <FrameLayout
+        android:id="@+id/preview_top_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/preview_toolbar_scrim_height"
+        android:background="@drawable/preview_gradient_desc"
+        android:layout_gravity="top"
+        android:visibility="gone"/>
+
+    <!-- Adds scrim for deselect and Add button -->
+    <FrameLayout
+        android:id="@+id/preview_bottom_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/preview_deselect_scrim_height"
+        android:background="@drawable/preview_gradient_asc"
+        android:layout_gravity="bottom"
+        android:visibility="gone"/>
+
+    <FrameLayout
+        android:id="@+id/preview_bottom_bar"
+        android:layout_gravity="bottom"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/picker_bottom_bar_size"
+        android:paddingHorizontal="@dimen/preview_buttons_padding_horizontal"
+        android:importantForAccessibility="yes"
+        android:accessibilityTraversalAfter="@+id/toolbar">
+
+        <!-- Buttons for Preview on Long press. Visible by default -->
+        <Button
+            android:id="@+id/preview_add_or_select_button"
+            android:layout_width="@dimen/preview_add_or_select_width"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:backgroundTint="@color/preview_highlight_color"
+            android:paddingVertical="@dimen/picker_bottom_bar_buttons_vertical_gap"
+            android:text="@string/add"
+            android:textAllCaps="false"
+            android:textColor="@color/preview_default_grey"
+            style="@style/MaterialButtonStyle"/>
+
+        <!-- Buttons for Preview on View Selected. Hidden by default -->
+        <Button
+            android:id="@+id/preview_selected_check_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|center_vertical"
+            android:paddingStart="@dimen/preview_deselect_padding_start"
+            android:paddingVertical="@dimen/picker_bottom_bar_buttons_vertical_gap"
+            android:background="@android:color/transparent"
+            android:drawableLeft="@drawable/preview_check"
+            android:drawableTint="@color/preview_highlight_color"
+            android:textAllCaps="false"
+            android:text="@string/selected"
+            android:textColor="@color/picker_default_white"
+            android:visibility="gone"
+            style="@style/MaterialBorderlessButtonStyle"/>
+
+        <Button
+            android:id="@+id/preview_add_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:backgroundTint="@color/preview_highlight_color"
+            android:paddingVertical="@dimen/picker_bottom_bar_buttons_vertical_gap"
+            android:text="@string/add"
+            android:textAllCaps="false"
+            android:textColor="@color/preview_default_grey"
+            android:visibility="gone"
+            style="@style/MaterialButtonStyle"/>
+    </FrameLayout>
+</FrameLayout>

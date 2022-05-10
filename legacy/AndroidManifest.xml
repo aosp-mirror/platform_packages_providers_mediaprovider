@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
         package="com.android.providers.media"
         android:sharedUserId="android.media"
         android:versionCode="1024">
@@ -19,5 +20,11 @@
                 android:authorities="media_legacy"
                 android:exported="true"
                 android:permission="android.permission.WRITE_MEDIA_STORAGE" />
+
+        <!-- (b/197891819) Remove startup provider due to resource loading issues. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            tools:node="remove" />
     </application>
 </manifest>

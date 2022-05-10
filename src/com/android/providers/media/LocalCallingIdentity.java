@@ -17,7 +17,6 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
-import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
@@ -76,12 +75,6 @@ public class LocalCallingIdentity {
     // Info used for logging permission checks
     private final @Nullable String attributionTag;
     private final Object lock = new Object();
-
-    private LocalCallingIdentity(Context context, int pid, int uid, String packageNameUnchecked,
-            @Nullable String attributionTag) {
-        this(context, pid, uid, UserHandle.getUserHandleForUid(uid), packageNameUnchecked,
-                attributionTag);
-    }
 
     private LocalCallingIdentity(Context context, int pid, int uid, UserHandle user,
             String packageNameUnchecked, @Nullable String attributionTag) {
@@ -145,12 +138,14 @@ public class LocalCallingIdentity {
                 user, callingPackage, callingAttributionTag);
     }
 
-    public static LocalCallingIdentity fromExternal(Context context, int uid) {
+    public static LocalCallingIdentity fromExternal(Context context, @Nullable UserCache userCache,
+            int uid) {
         final String[] sharedPackageNames = context.getPackageManager().getPackagesForUid(uid);
         if (sharedPackageNames == null || sharedPackageNames.length == 0) {
             throw new IllegalArgumentException("UID " + uid + " has no associated package");
         }
-        LocalCallingIdentity ident =  fromExternal(context, uid, sharedPackageNames[0], null);
+        LocalCallingIdentity ident = fromExternal(context, userCache, uid, sharedPackageNames[0],
+                null);
         ident.sharedPackageNames = sharedPackageNames;
         ident.sharedPackageNamesResolved = true;
         if (uid == Process.SHELL_UID) {
@@ -164,9 +159,18 @@ public class LocalCallingIdentity {
         return ident;
     }
 
-    public static LocalCallingIdentity fromExternal(Context context, int uid, String packageName,
-            @Nullable String attributionTag) {
-        return new LocalCallingIdentity(context, -1, uid, packageName, attributionTag);
+    public static LocalCallingIdentity fromExternal(Context context, @Nullable UserCache userCache,
+            int uid, String packageName, @Nullable String attributionTag) {
+        UserHandle user = UserHandle.getUserHandleForUid(uid);
+        if (userCache != null && !userCache.userSharesMediaWithParentCached(user)) {
+            // This can happen on some proprietary app clone solutions, where the owner
+            // and clone user each have their own MediaProvider instance, but refer to
+            // each other for cross-user file access through the use of bind mounts.
+            // In this case, assume the access is for the owner user, since that is
+            // the only user for which we manage volumes anyway.
+            user = Process.myUserHandle();
+        }
+        return new LocalCallingIdentity(context, -1, uid, user, packageName, attributionTag);
     }
 
     public static LocalCallingIdentity fromSelf(Context context) {
@@ -301,6 +305,7 @@ public class LocalCallingIdentity {
     }
 
     private boolean hasPermissionInternal(int permission) {
+        boolean targetSdkIsAtLeastT = getTargetSdkVersion() > Build.VERSION_CODES.S_V2;
         // While we're here, enforce any broad user-level restrictions
         if ((uid == Process.SHELL_UID) && context.getSystemService(UserManager.class)
                 .hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER)) {
@@ -333,13 +338,13 @@ public class LocalCallingIdentity {
 
             case PERMISSION_READ_AUDIO:
                 return checkPermissionReadAudio(
-                        context, pid, uid, getPackageName(), attributionTag);
+                        context, pid, uid, getPackageName(), attributionTag, targetSdkIsAtLeastT);
             case PERMISSION_READ_VIDEO:
                 return checkPermissionReadVideo(
-                        context, pid, uid, getPackageName(), attributionTag);
+                        context, pid, uid, getPackageName(), attributionTag, targetSdkIsAtLeastT);
             case PERMISSION_READ_IMAGES:
                 return checkPermissionReadImages(
-                        context, pid, uid, getPackageName(), attributionTag);
+                        context, pid, uid, getPackageName(), attributionTag, targetSdkIsAtLeastT);
             case PERMISSION_WRITE_AUDIO:
                 return checkPermissionWriteAudio(
                         context, pid, uid, getPackageName(), attributionTag);

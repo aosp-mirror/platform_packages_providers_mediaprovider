@@ -29,6 +29,7 @@ import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
+import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
 
 import android.content.ContentValues;
@@ -50,10 +51,12 @@ import android.util.Log;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.DatabaseHelper;
+import com.android.providers.media.VolumeCache;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -112,6 +115,8 @@ public class ExternalDbFacade {
             + " LIKE ?";
     private static final String WHERE_MIME_TYPE = MediaStore.MediaColumns.MIME_TYPE
             + " LIKE ?";
+    private static final String WHERE_VOLUME_IN_PREFIX = MediaStore.MediaColumns.VOLUME_NAME
+            + " IN %s";
 
     public static final String RELATIVE_PATH_SCREENSHOTS =
             "%/" + Environment.DIRECTORY_SCREENSHOTS + "/%";
@@ -125,12 +130,15 @@ public class ExternalDbFacade {
         ALBUM_ID_DOWNLOADS
     };
 
-    private final DatabaseHelper mDatabaseHelper;
     private final Context mContext;
+    private final DatabaseHelper mDatabaseHelper;
+    private final VolumeCache mVolumeCache;
 
-    public ExternalDbFacade(Context context, DatabaseHelper databaseHelper) {
+    public ExternalDbFacade(Context context, DatabaseHelper databaseHelper,
+            VolumeCache volumeCache) {
         mContext = context;
         mDatabaseHelper = databaseHelper;
+        mVolumeCache = volumeCache;
     }
 
     /**
@@ -295,7 +303,7 @@ public class ExternalDbFacade {
             honoredArgs.add(EXTRA_ALBUM_ID);
         }
 
-        bundle.putString(EXTRA_MEDIA_COLLECTION_ID, MediaStore.getVersion(mContext));
+        bundle.putString(EXTRA_MEDIA_COLLECTION_ID, getMediaCollectionId());
         bundle.putStringArrayList(EXTRA_HONORED_ARGS, honoredArgs);
 
         return bundle;
@@ -353,8 +361,7 @@ public class ExternalDbFacade {
                 int generationIndex = cursor.getColumnIndexOrThrow(
                         MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION);
 
-                bundle.putString(MediaCollectionInfo.MEDIA_COLLECTION_ID,
-                        MediaStore.getVersion(mContext));
+                bundle.putString(MediaCollectionInfo.MEDIA_COLLECTION_ID, getMediaCollectionId());
                 bundle.putLong(MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION,
                         cursor.getLong(generationIndex));
             }
@@ -451,13 +458,38 @@ public class ExternalDbFacade {
         return qb;
     }
 
-    private static SQLiteQueryBuilder createMediaQueryBuilder() {
+    private SQLiteQueryBuilder createMediaQueryBuilder() {
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         qb.setTables(TABLE_FILES);
         qb.appendWhereStandalone(WHERE_MEDIA_TYPE);
         qb.appendWhereStandalone(WHERE_NOT_TRASHED);
         qb.appendWhereStandalone(WHERE_NOT_PENDING);
 
+        String[] volumes = getVolumeList();
+        if (volumes.length > 0) {
+            qb.appendWhereStandalone(buildWhereVolumeIn(volumes));
+        }
+
         return qb;
+    }
+
+    private String buildWhereVolumeIn(String[] volumes) {
+        return String.format(WHERE_VOLUME_IN_PREFIX, bindList((Object[]) volumes));
+    }
+
+    private String[] getVolumeList() {
+        String[] volumeNames = mVolumeCache.getExternalVolumeNames().toArray(new String[0]);
+        Arrays.sort(volumeNames);
+
+        return volumeNames;
+    }
+
+    private String getMediaCollectionId() {
+        final String[] volumes = getVolumeList();
+        if (volumes.length == 0) {
+            return MediaStore.getVersion(mContext);
+        }
+
+        return MediaStore.getVersion(mContext) + ":" + TextUtils.join(":", getVolumeList());
     }
 }

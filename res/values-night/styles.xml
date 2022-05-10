@@ -52,6 +52,7 @@
         <item name="pickerProfileDialogButtonAndIconColor">#669DF6</item>
         <item name="pickerProfileDialogTitleColor">#F1F3F4</item>
         <item name="pickerProfileDialogBodyColor">#DADCE0</item>
+        <item name="pickerProfileDialogBackgroundColor">@android:color/black</item>
     </style>
 
 </resources>

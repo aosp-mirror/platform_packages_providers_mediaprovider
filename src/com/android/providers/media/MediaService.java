@@ -150,7 +150,7 @@ public class MediaService extends JobIntentService {
     public static void onScanVolume(Context context, MediaVolume volume, int reason)
             throws IOException {
         final String volumeName = volume.getName();
-        if (volume.getPath() == null) {
+        if (!MediaStore.VOLUME_INTERNAL.equals(volumeName) && volume.getPath() == null) {
             /* This is a very unexpected state and can only ever happen with app-cloned users.
               In general, MediaVolumes should always be mounted and have a path, however, if the
               user failed to unlock properly, MediaProvider still gets the volume from the
@@ -160,7 +160,6 @@ public class MediaService extends JobIntentService {
                     volumeName));
             return;
         }
-
         UserHandle owner = volume.getUser();
         if (owner == null) {
             // Can happen for the internal volume

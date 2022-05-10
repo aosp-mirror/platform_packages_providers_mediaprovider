@@ -82,6 +82,9 @@
     <!-- Deny dialog action text. [CHAR LIMIT=30] -->
     <string name="deny">Deny</string>
 
+    <!-- Add browse menu item in Photo Picker to browse items in DocumentsUI. [CHAR LIMIT=30] -->
+    <string name="picker_browse">Browse\u2026</string>
+
     <!-- Add button for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="add">Add</string>
 

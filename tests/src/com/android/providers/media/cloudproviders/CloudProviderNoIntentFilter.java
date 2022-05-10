@@ -36,11 +36,6 @@ public class CloudProviderNoIntentFilter extends CloudMediaProvider {
     }
 
     @Override
-    public Cursor onQueryMedia(String mediaId) {
-        throw new UnsupportedOperationException("onQueryMedia by id not supported");
-    }
-
-    @Override
     public Cursor onQueryMedia(Bundle extras) {
         throw new UnsupportedOperationException("onQueryMedia not supported");
     }
@@ -63,7 +58,7 @@ public class CloudProviderNoIntentFilter extends CloudMediaProvider {
     }
 
     @Override
-    public Bundle onGetMediaInfo(Bundle extras) {
-        throw new UnsupportedOperationException("onGetMediaInfo not supported");
+    public Bundle onGetMediaCollectionInfo(Bundle extras) {
+        throw new UnsupportedOperationException("onGetMediaCollectionInfo not supported");
     }
 }

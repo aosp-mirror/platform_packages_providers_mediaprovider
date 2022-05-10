@@ -17,10 +17,12 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.net.Uri;
-import android.util.Log;
 import android.view.View;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 
@@ -33,7 +35,7 @@ import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.analytics.AnalyticsCollector;
+import com.google.android.exoplayer2.analytics.DefaultAnalyticsCollector;
 import com.google.android.exoplayer2.source.MediaParserExtractorAdapter;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
@@ -65,12 +67,19 @@ class ExoPlayerWrapper {
                     BUFFER_FOR_PLAYBACK_MS,
                     BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS).build();
     private static final long PLAYER_CONTROL_ON_PLAY_TIMEOUT_MS = 1000;
+    private static final float VOLUME_LEVEL_MUTE = 0.0f;
+    private static final AudioAttributes sAudioAttributes = new AudioAttributes.Builder()
+            .setContentType(AudioAttributes.USAGE_MEDIA)
+            .setUsage(AudioAttributes.CONTENT_TYPE_MOVIE)
+            .build();
 
     private final Context mContext;
     private final MuteStatus mMuteStatus;
     private ExoPlayer mExoPlayer;
     private boolean mIsPlayerReleased = true;
     private boolean mShouldShowControlsForNext = true;
+    private boolean mIsAccessibilityEnabled = false;
+    private AudioFocusRequest mAudioFocusRequest = null;
 
     public ExoPlayerWrapper(Context context, MuteStatus muteStatus) {
         mContext = context;
@@ -124,11 +133,13 @@ class ExoPlayerWrapper {
 
         return new ExoPlayer.Builder(mContext,
                 new DefaultRenderersFactory(mContext),
-                new DefaultTrackSelector(mContext),
                 mediaSourceFactory,
+                new DefaultTrackSelector(mContext),
                 sLoadControl,
                 DefaultBandwidthMeter.getSingletonInstance(mContext),
-                new AnalyticsCollector(Clock.DEFAULT)).buildExoPlayer();
+                new DefaultAnalyticsCollector(Clock.DEFAULT))
+                .setHandleAudioBecomingNoisy(true)
+                .build();
     }
 
     private void setupPlayerLayout(StyledPlayerView styledPlayerView, ImageView imageView) {
@@ -149,6 +160,15 @@ class ExoPlayerWrapper {
         });
 
         // Step2: Set-up player control view
+        // Set-up video controls for accessibility mode
+        // Set Accessibility listeners and update the video controller visibility accordingly
+        AccessibilityManager accessibilityManager =
+                mContext.getSystemService(AccessibilityManager.class);
+        accessibilityManager.addAccessibilityStateChangeListener(
+                enabled -> updateControllerForAccessibilty(enabled, styledPlayerView));
+        updateControllerForAccessibilty(accessibilityManager.isEnabled(), styledPlayerView);
+
+        // Set-up video controls for non-accessibility mode
         // Track if the controller layout should be visible for the next video.
         styledPlayerView.setControllerVisibilityListener(
                 visibility -> mShouldShowControlsForNext = (visibility == View.VISIBLE));
@@ -156,6 +176,7 @@ class ExoPlayerWrapper {
         // 1. this is the first video preview page or
         // 2. the previous video had controls visible when the page was swiped or
         // 3. the previous page was not a video preview
+        // or if we are in accessibility mode.
         if (mShouldShowControlsForNext) {
             styledPlayerView.showController();
         }
@@ -167,6 +188,11 @@ class ExoPlayerWrapper {
         mExoPlayer.addListener(new Player.Listener() {
             @Override
             public void onIsPlayingChanged(boolean isPlaying) {
+                if (mIsAccessibilityEnabled) {
+                    // Player controls are always visible in accessibility mode.
+                    return;
+                }
+
                 // We don't have to hide controls if the state changed to PAUSED or controller
                 // isn't visible.
                 if (!isPlaying || !mShouldShowControlsForNext) return;
@@ -182,31 +208,104 @@ class ExoPlayerWrapper {
 
         // Step3: Set-up mute button
         final ImageButton muteButton = styledPlayerView.findViewById(R.id.preview_mute);
-        final boolean isVolumeMuted = mMuteStatus.isVolumeMuted();
-        // Set the status of the muteButton according to previous status of the mute button
-        muteButton.setSelected(isVolumeMuted);
-        if (isVolumeMuted) {
-            // If the previous volume was muted, set the volume status to mute.
-            mExoPlayer.setVolume(0f);
-        }
+        handleAudioFocusAndInitVolumeState(muteButton);
 
         // Add click listeners for mute button
         muteButton.setOnClickListener(v -> {
-            if (mMuteStatus.isVolumeMuted()) {
-                AudioManager audioManager = mContext.getSystemService(AudioManager.class);
-                if (audioManager == null) {
-                    Log.e(TAG, "Couldn't find AudioManager while trying to set volume,"
-                            + " unable to set volume");
-                    return;
-                }
-                mExoPlayer.setVolume(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
-                mMuteStatus.setVolumeMuted(false);
-            } else {
-                mExoPlayer.setVolume(0f);
-                mMuteStatus.setVolumeMuted(true);
-            }
-            muteButton.setSelected(mMuteStatus.isVolumeMuted());
+            mMuteStatus.setVolumeMuted(!mMuteStatus.isVolumeMuted());
+            handleAudioFocusAndInitVolumeState(muteButton);
         });
+
+        // Request or abandon audio focus on player state change.
+        mExoPlayer.addListener(new Player.Listener() {
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                if (isPlaying) {
+                    handleAudioFocusAndInitVolumeState(muteButton);
+                } else {
+                    abandonAudioFocusIfAny();
+                }
+            }
+        });
+    }
+
+    /**
+     * Requests AudioFocus if current state of the volume state is volume on. Sets the volume of
+     * the playback if the AudioFocus request is granted.
+     * Also, updates the mute button based on the state of the muteStatus.
+     */
+    private void handleAudioFocusAndInitVolumeState(ImageButton muteButton) {
+        if (mMuteStatus.isVolumeMuted()) {
+            mExoPlayer.setVolume(VOLUME_LEVEL_MUTE);
+            abandonAudioFocusIfAny();
+        } else if (requestAudioFocus() == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            mExoPlayer.setVolume(getAudioManager().getStreamVolume(AudioManager.STREAM_MUSIC));
+        }
+
+        updateMuteButtonState(muteButton, mMuteStatus.isVolumeMuted());
+    }
+
+    /**
+     * Abandons the AudioFocus request so that the previous focus owner can resume their playback
+     */
+    private void abandonAudioFocusIfAny() {
+        if (mAudioFocusRequest == null) return;
+
+        getAudioManager().abandonAudioFocusRequest(mAudioFocusRequest);
+        mAudioFocusRequest = null;
+    }
+
+    private void updateControllerForAccessibilty(boolean isEnabled,
+            StyledPlayerView styledPlayerView) {
+        mIsAccessibilityEnabled = isEnabled;
+        if (isEnabled) {
+            styledPlayerView.showController();
+            styledPlayerView.setControllerHideOnTouch(false);
+        } else {
+            styledPlayerView.setControllerHideOnTouch(true);
+        }
+    }
+
+    private void updateMuteButtonState(ImageButton muteButton, boolean isVolumeMuted) {
+        updateMuteButtonContentDescription(muteButton, isVolumeMuted);
+        updateMuteButtonIcon(muteButton, isVolumeMuted);
+    }
+
+    private void updateMuteButtonContentDescription(ImageButton muteButton, boolean isVolumeMuted) {
+        muteButton.setContentDescription(
+                mContext.getString(
+                        isVolumeMuted ? R.string.picker_unmute_video : R.string.picker_mute_video));
+    }
+
+    private void updateMuteButtonIcon(ImageButton muteButton, boolean isVolumeMuted) {
+        muteButton.setImageResource(
+                isVolumeMuted ? R.drawable.ic_volume_off : R.drawable.ic_volume_up);
+    }
+
+    private AudioManager getAudioManager() {
+        return mContext.getSystemService(AudioManager.class);
+    }
+
+    private int requestAudioFocus() {
+        // Always request new AudioFocus
+        abandonAudioFocusIfAny();
+
+        mAudioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                .setAudioAttributes(sAudioAttributes)
+                .setWillPauseWhenDucked(true)
+                .setAcceptsDelayedFocusGain(true)
+                .setOnAudioFocusChangeListener(focusChange -> {
+                    if (focusChange == AudioManager.AUDIOFOCUS_LOSS
+                            || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
+                            || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                        mExoPlayer.setPlayWhenReady(false);
+                    }
+                }).build();
+
+        // We don't need to reset mAudioFocusRequest to null on failure of requestAudioFocus. This
+        // is because we always reset the AudioFocus before requesting, reset mechanism will also
+        // try to abandon AudioFocus if there is any.
+        return getAudioManager().requestAudioFocus(mAudioFocusRequest);
     }
 
     private void releaseIfNecessary() {
@@ -215,6 +314,7 @@ class ExoPlayerWrapper {
         // call release() only when it's not already released.
         if (!mIsPlayerReleased) {
             mExoPlayer.release();
+            abandonAudioFocusIfAny();
             mIsPlayerReleased = true;
         }
     }

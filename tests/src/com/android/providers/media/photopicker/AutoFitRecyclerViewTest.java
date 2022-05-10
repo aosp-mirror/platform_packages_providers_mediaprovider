@@ -31,6 +31,28 @@ import org.junit.Test;
 public class AutoFitRecyclerViewTest {
 
     @Test
+    public void testMeasure_spanCountIsRounded() {
+        final int defaultSpanCount = 2;
+        final int size = 520;
+        final int columnWidth = 200;
+        final int measureSpec = View.MeasureSpec.makeMeasureSpec(size, View.MeasureSpec.EXACTLY);
+        final Context context = InstrumentationRegistry.getTargetContext();
+        AutoFitRecyclerView recyclerView = new AutoFitRecyclerView(context);
+        final GridLayoutManager gridLayoutManager = new GridLayoutManager(context,
+                defaultSpanCount);
+
+        assertThat(gridLayoutManager.getSpanCount()).isEqualTo(defaultSpanCount);
+
+        recyclerView.setLayoutManager(gridLayoutManager);
+        recyclerView.setColumnWidth(columnWidth);
+
+        recyclerView.onMeasure(measureSpec, measureSpec);
+
+        // The calculated count is 2.6. The result of Math.round should be 3
+        assertThat(gridLayoutManager.getSpanCount()).isEqualTo(3);
+    }
+
+    @Test
     public void testSetMinimumSpanCount_resultSmallerThanMinSpanCount() {
         final int defaultSpanCount = 1;
         final int minSpanCount = 3;

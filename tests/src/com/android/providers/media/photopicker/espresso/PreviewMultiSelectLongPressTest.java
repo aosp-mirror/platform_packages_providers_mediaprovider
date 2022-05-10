@@ -16,11 +16,6 @@
 
 package com.android.providers.media.photopicker.espresso;
 
-import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
-import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-import static android.content.res.Configuration.ORIENTATION_LANDSCAPE;
-import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
-
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
@@ -32,6 +27,8 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
+import static com.android.providers.media.photopicker.espresso.OrientationUtils.setLandscapeOrientation;
+import static com.android.providers.media.photopicker.espresso.OrientationUtils.setPortraitOrientation;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.*;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
@@ -44,8 +41,6 @@ import static org.hamcrest.Matchers.not;
 import android.widget.Button;
 
 import androidx.lifecycle.ViewModelProvider;
-import androidx.test.espresso.Espresso;
-import androidx.test.espresso.IdlingRegistry;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
@@ -66,26 +61,27 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getMultiSelectionIntent());
 
     @Test
-    public void testPreview_multiSelect_longPress_image() {
+    public void testPreview_multiSelect_longPress_image() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // No dragBar in preview
+            onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
 
-        // No dragBar in preview
-        onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
+            // No privacy text in preview
+            onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
 
-        // No privacy text in preview
-        onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
-
-        // Verify image is previewed
-        assertMultiSelectLongPressCommonLayoutMatches();
-        onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
-        // Verify no special format icon is previewed
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
-        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+            // Verify image is previewed
+            assertMultiSelectLongPressCommonLayoutMatches();
+            onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
+            // Verify no special format icon is previewed
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+            onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+        }
 
         // Navigate back to Photo grid
         onView(withContentDescription("Navigate up")).perform(click());
@@ -97,37 +93,39 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    public void testPreview_multiSelect_longPress_video() {
+    public void testPreview_multiSelect_longPress_video() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
-
-        // Verify video player is displayed
-        assertMultiSelectLongPressCommonLayoutMatches();
-        onView(withId(R.id.preview_player_view)).check(matches(isDisplayed()));
-        // Verify no special format icon is previewed
-        onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
-        onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Verify video player is displayed
+            assertMultiSelectLongPressCommonLayoutMatches();
+            onView(withId(R.id.preview_player_view)).check(matches(isDisplayed()));
+            // Verify no special format icon is previewed
+            onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+            onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+        }
     }
 
     @Test
-    public void testPreview_multiSelect_longPress_select() {
+    public void testPreview_multiSelect_longPress_select() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         final int position = 1;
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
-
         final int selectButtonId = PREVIEW_ADD_OR_SELECT_BUTTON_ID;
-        // Select the item within Preview
-        onView(withId(selectButtonId)).perform(click());
-        // Check that button text is changed to "deselect"
-        onView(withId(selectButtonId)).check(matches(withText(R.string.deselect)));
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Select the item within Preview
+            onView(withId(selectButtonId)).perform(click());
+            // Check that button text is changed to "deselect"
+            onView(withId(selectButtonId)).check(matches(withText(R.string.deselect)));
+        }
 
         // Navigate back to PhotoGrid and check that item is selected
         onView(withContentDescription("Navigate up")).perform(click());
@@ -138,15 +136,16 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         // Navigate to Preview and check the select button text
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Check that button text is set to "deselect" and common layout matches
+            assertMultiSelectLongPressCommonLayoutMatches(/* isSelected */ true);
 
-        // Check that button text is set to "deselect" and common layout matches
-        assertMultiSelectLongPressCommonLayoutMatches(/* isSelected */ true);
-
-        // Click on "Deselect" and verify text changes to "Select"
-        onView(withId(selectButtonId)).perform(click());
-        // Check that button text is changed to "select"
-        onView(withId(selectButtonId)).check(matches(withText(R.string.select)));
+            // Click on "Deselect" and verify text changes to "Select"
+            onView(withId(selectButtonId)).perform(click());
+            // Check that button text is changed to "select"
+            onView(withId(selectButtonId)).check(matches(withText(R.string.select)));
+        }
 
         // Navigate back to Photo grid and verify the item is not selected
         onView(withContentDescription("Navigate up")).perform(click());
@@ -155,7 +154,7 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    public void testPreview_multiSelect_longPress_showsOnlyOne() {
+    public void testPreview_multiSelect_longPress_showsOnlyOne() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select two items - first image and video item
@@ -167,73 +166,69 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         // Long press second image item to preview the item.
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            mRule.getScenario().onActivity(activity -> {
+                Selection selection
+                        = new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
+                // Verify that we have two items(first image and video) as selected items and
+                // 1 item (second image) as item for preview
+                assertThat(selection.getSelectedItemCount().getValue()).isEqualTo(2);
+                assertThat(selection.getSelectedItemsForPreview().size()).isEqualTo(1);
+            });
 
-        mRule.getScenario().onActivity(activity -> {
-            Selection selection
-                    = new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
-            // Verify that we have two items(first image and video) as selected items and
-            // 1 item (second image) as item for preview
-            assertThat(selection.getSelectedItemCount().getValue()).isEqualTo(2);
-            assertThat(selection.getSelectedItemsForPreview().size()).isEqualTo(1);
-        });
+            final int imageViewId = R.id.preview_imageView;
+            onView(withId(imageViewId)).check(matches(isDisplayed()));
 
-        final int imageViewId = R.id.preview_imageView;
-        onView(withId(imageViewId)).check(matches(isDisplayed()));
+            // Verify that only one item is being previewed. Swipe left and right, and verify we
+            // still have ImageView in preview.
+            swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
+            onView(withId(imageViewId)).check(matches(isDisplayed()));
 
-        // Verify that only one item is being previewed. Swipe left and right, and verify we still
-        // have ImageView in preview.
-        swipeLeftAndWait();
-        onView(withId(imageViewId)).check(matches(isDisplayed()));
-
-        swipeRightAndWait();
-        onView(withId(imageViewId)).check(matches(isDisplayed()));
+            swipeRightAndWait(PREVIEW_VIEW_PAGER_ID);
+            onView(withId(imageViewId)).check(matches(isDisplayed()));
+        }
     }
 
     @Test
-    public void testPreview_selectButtonWidth() {
+    public void testPreview_selectButtonWidth() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
-        registerIdlingResourceAndWaitForIdle();
-        // Check that Select button is visible
-        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
-        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.select)));
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            // Check that Select button is visible
+            onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
+            onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(
+                    matches(withText(R.string.select)));
+        }
 
-        mRule.getScenario().onActivity(activity -> {
-            activity.setRequestedOrientation(SCREEN_ORIENTATION_PORTRAIT);
-        });
-        mRule.getScenario().onActivity(activity -> {
-            assertThat(activity.getResources().getConfiguration().orientation)
-                    .isEqualTo(ORIENTATION_PORTRAIT);
-            final Button addOrSelectButton
-                    = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
-            final int expectedAddOrSelectButtonWidth = activity.getResources()
-                    .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
-            // Check that button width in portrait mode = R.dimen.preview_add_or_select_width
-            assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
-        });
+        setPortraitOrientation(mRule);
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            mRule.getScenario().onActivity(activity -> {
+                final Button addOrSelectButton
+                        = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
+                final int expectedAddOrSelectButtonWidth = activity.getResources()
+                        .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
+                // Check that button width in portrait mode = R.dimen.preview_add_or_select_width
+                assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
+            });
+        }
 
-        mRule.getScenario().onActivity(activity -> {
-            activity.setRequestedOrientation(SCREEN_ORIENTATION_LANDSCAPE);
-        });
-        mRule.getScenario().onActivity(activity -> {
-            assertThat(activity.getResources().getConfiguration().orientation)
-                    .isEqualTo(ORIENTATION_LANDSCAPE);
-            final Button addOrSelectButton
-                    = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
-            final int expectedAddOrSelectButtonWidth = activity.getResources()
-                    .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
-            // Check that button width in landscape mode is = R.dimen.preview_add_or_select_width
-            assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
-        });
-    }
-
-    private void registerIdlingResourceAndWaitForIdle() {
-        mRule.getScenario().onActivity((activity -> IdlingRegistry.getInstance().register(
-                new ViewPager2IdlingResource(activity.findViewById(R.id.preview_viewPager)))));
-        Espresso.onIdle();
+        setLandscapeOrientation(mRule);
+        try (ViewPager2IdlingResource idlingResource
+                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            mRule.getScenario().onActivity(activity -> {
+                final Button addOrSelectButton
+                        = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
+                final int expectedAddOrSelectButtonWidth = activity.getResources()
+                        .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
+                // Check that button width in landscape mode is R.dimen.preview_add_or_select_width
+                assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
+            });
+        }
     }
 
     private void assertMultiSelectLongPressCommonLayoutMatches() {
@@ -252,7 +247,7 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
                     .check(matches(withText(R.string.select)));
         }
 
-        onView(withId(R.id.preview_select_check_button)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.preview_selected_check_button)).check(matches(not(isDisplayed())));
         onView(withId(R.id.preview_add_button)).check(matches(not(isDisplayed())));
     }
 }

@@ -16,7 +16,7 @@
 
 package com.android.providers.media.cloudproviders;
 
-import static android.provider.CloudMediaProviderContract.MediaInfo;
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
 import android.content.res.AssetFileDescriptor;
@@ -46,11 +46,6 @@ public class CloudProviderSecondary extends CloudMediaProvider {
     @Override
     public boolean onCreate() {
         return true;
-    }
-
-    @Override
-    public Cursor onQueryMedia(String mediaId) {
-        throw new UnsupportedOperationException("onQueryMedia by id not supported");
     }
 
     @Override
@@ -92,12 +87,7 @@ public class CloudProviderSecondary extends CloudMediaProvider {
     }
 
     @Override
-    public Bundle onGetMediaInfo(Bundle extras) {
-        Bundle bundle = new Bundle();
-        bundle.putString(MediaInfo.MEDIA_VERSION, mMediaGenerator.getVersion());
-        bundle.putLong(MediaInfo.MEDIA_GENERATION, mMediaGenerator.getGeneration());
-        bundle.putLong(MediaInfo.MEDIA_COUNT, mMediaGenerator.getCount());
-
-        return bundle;
+    public Bundle onGetMediaCollectionInfo(Bundle extras) {
+        return mMediaGenerator.getMediaCollectionInfo();
     }
 }

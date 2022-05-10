@@ -109,12 +109,15 @@ public class PreviewFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        // Set the pane title for A11y.
+        view.setAccessibilityPaneTitle(getString(R.string.picker_preview));
         final List<Item> selectedItemsList = mSelection.getSelectedItemsForPreview();
         final int selectedItemsListSize = selectedItemsList.size();
 
         if (selectedItemsListSize <= 0) {
-            // This should never happen.
-            throw new IllegalStateException("No items to preview");
+            // This can happen if we lost PickerViewModel to optimize memory.
+            Log.e(TAG, "No items to preview. Returning back to photo grid");
+            requireActivity().getSupportFragmentManager().popBackStack();
         } else if (selectedItemsListSize > 1 && !mSelection.canSelectMultiple()) {
             // This should never happen
             throw new IllegalStateException("Found more than one preview items in single select"

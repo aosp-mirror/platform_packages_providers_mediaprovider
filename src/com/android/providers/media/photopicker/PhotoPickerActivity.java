@@ -33,12 +33,18 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.UserHandle;
+import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewOutlineProvider;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityManager;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
@@ -48,6 +54,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.android.internal.logging.InstanceId;
+import com.android.internal.logging.InstanceIdSequence;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
@@ -70,6 +78,8 @@ import java.util.List;
 public class PhotoPickerActivity extends AppCompatActivity {
     private static final String TAG =  "PhotoPickerActivity";
     private static final float BOTTOM_SHEET_PEEK_HEIGHT_PERCENTAGE = 0.60f;
+    private static final float HIDE_PROFILE_BUTTON_THRESHOLD = -0.5f;
+    private static final String LOGGER_INSTANCE_ID_ARG = "loggerInstanceIdArg";
 
     private PickerViewModel mPickerViewModel;
     private Selection mSelection;
@@ -91,6 +101,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private int mToolBarIconColor;
 
     private int mToolbarHeight = 0;
+    private boolean mIsAccessibilityEnabled;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -131,8 +142,17 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mProfileButton = findViewById(R.id.profile_button);
 
         mTabLayout = findViewById(R.id.tab_layout);
+
+        AccessibilityManager accessibilityManager = getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
+        accessibilityManager.addAccessibilityStateChangeListener(
+                enabled -> mIsAccessibilityEnabled = enabled);
+
         initBottomSheetBehavior();
         restoreState(savedInstanceState);
+
+        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
+        mPickerViewModel.logPickerOpened(getCallingPackage());
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
@@ -195,11 +215,69 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void onSaveInstanceState(Bundle state) {
         super.onSaveInstanceState(state);
         saveBottomSheetState();
+        state.putParcelable(LOGGER_INSTANCE_ID_ARG, mPickerViewModel.getInstanceId());
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(@NonNull Menu menu) {
+        if (getIntent().getAction().equals(Intent.ACTION_GET_CONTENT)) {
+            getMenuInflater().inflate(R.menu.picker_overflow_menu, menu);
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.browse) {
+            launchDocumentsUiAndFinishPicker();
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void launchDocumentsUiAndFinishPicker() {
+        final UserId userId = mPickerViewModel.getUserIdManager().getCurrentUserProfileId();
+        startActivityAsUser(getGetContentIntent(getIntent()), userId.getUserHandle());
+        finish();
+    }
+
+    @VisibleForTesting
+    static Intent getGetContentIntent(Intent intent) {
+        if (intent.getAction().equals(Intent.ACTION_GET_CONTENT)) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+            intent.addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP);
+            return intent;
+        }
+
+        final Intent result = new Intent(Intent.ACTION_GET_CONTENT);
+        result.putExtras(intent);
+        if (intent.hasExtra(MediaStore.EXTRA_PICK_IMAGES_MAX)) {
+            result.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        }
+
+        if (TextUtils.isEmpty(intent.getType())) {
+            result.setType("*/*");
+
+            // Photo Picker is expected to show images and videos only.
+            if (!result.hasExtra(Intent.EXTRA_MIME_TYPES)) {
+                result.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/*", "video/*"});
+            }
+        } else {
+            // PhotoPicker getType will always be media mime type
+            result.setType(intent.getType());
+        }
+
+        result.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+        result.addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP);
+
+        return result;
     }
 
     private void restoreState(Bundle savedInstanceState) {
         if (savedInstanceState != null) {
             restoreBottomSheetState();
+            mPickerViewModel.setInstanceId(
+                    savedInstanceState.getParcelable(LOGGER_INSTANCE_ID_ARG));
         } else {
             setupInitialLaunchState();
         }
@@ -226,6 +304,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private BottomSheetCallback createBottomSheetCallBack() {
         return new BottomSheetCallback() {
+            private boolean mIsHiddenDueToBottomSheetClosing = false;
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
@@ -236,6 +315,25 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                // slideOffset = -1 is when bottomsheet is completely hidden
+                // slideOffset = 0 is when bottomsheet is in collapsed mode
+                // slideOffset = 1 is when bottomsheet is in expanded mode
+                // We hide the Profile button if the bottomsheet is 50% in between collapsed state
+                // and hidden state.
+                if (slideOffset < HIDE_PROFILE_BUTTON_THRESHOLD &&
+                        mProfileButton.getVisibility() == View.VISIBLE) {
+                    mProfileButton.setVisibility(View.GONE);
+                    mIsHiddenDueToBottomSheetClosing = true;
+                    return;
+                }
+
+                // We need to handle this state if the user is swiping till the bottom of the
+                // screen but then swipes up bottom sheet suddenly
+                if (slideOffset > HIDE_PROFILE_BUTTON_THRESHOLD &&
+                        mIsHiddenDueToBottomSheetClosing) {
+                    mProfileButton.setVisibility(View.VISIBLE);
+                    mIsHiddenDueToBottomSheetClosing = false;
+                }
             }
         };
     }
@@ -254,7 +352,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void initStateForBottomSheet() {
-        if (!mSelection.canSelectMultiple() && !isOrientationLandscape()) {
+        if (!mIsAccessibilityEnabled && !mSelection.canSelectMultiple()
+                && !isOrientationLandscape()) {
             final int peekHeight = getBottomSheetPeekHeight(this);
             mBottomSheetBehavior.setPeekHeight(peekHeight);
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
@@ -377,6 +476,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         getSupportActionBar().setHomeActionContentDescription(
                 shouldShowTabLayout ? android.R.string.cancel
                         : R.string.abc_action_bar_up_description);
+        if (mToolbar.getOverflowIcon() != null) {
+            mToolbar.getOverflowIcon().setTint(isPreview ? Color.WHITE : mToolBarIconColor);
+        }
     }
 
     /**

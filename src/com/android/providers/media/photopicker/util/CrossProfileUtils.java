@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.UserManager;
 import android.provider.MediaStore;
 import android.util.Log;
 
@@ -72,5 +73,17 @@ public class CrossProfileUtils {
             Log.e(TAG, "Unable to get content resolver for the given userId: " + userId, e);
         }
         return false;
+    }
+
+    /**
+     * Whether the given profile is in quiet mode or not.
+     * Notes: Quiet mode is only supported for managed profiles.
+     *
+     * @param userId The user id of the profile to be queried.
+     * @return true if the profile is in quiet mode, false otherwise.
+     */
+    public static boolean isQuietModeEnabled(UserId userId, Context context) {
+        final UserManager userManager = context.getSystemService(UserManager.class);
+        return userManager.isQuietModeEnabled(userId.getUserHandle());
     }
 }

@@ -34,5 +34,7 @@ interface ICloudMediaSurfaceController {
     void onMediaPause(int surfaceId);
     void onMediaSeekTo(int surfaceId, long timestampMillis);
 
+    void onConfigChange(in Bundle config);
+
     void onDestroy();
 }

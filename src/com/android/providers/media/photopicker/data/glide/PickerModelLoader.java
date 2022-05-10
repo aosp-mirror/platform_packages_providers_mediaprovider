@@ -17,15 +17,14 @@
 package com.android.providers.media.photopicker.data.glide;
 
 import android.content.Context;
+import android.content.UriMatcher;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
-import android.provider.MediaStore;
-
-import com.android.providers.media.photopicker.PickerSyncController;
+import android.provider.CloudMediaProviderContract;
 
 import com.bumptech.glide.load.Options;
-import com.bumptech.glide.signature.ObjectKey;
 import com.bumptech.glide.load.model.ModelLoader;
+import com.bumptech.glide.signature.ObjectKey;
 
 /**
  * Custom {@link ModelLoader} to load thumbnails from cloud media provider.
@@ -46,16 +45,11 @@ public final class PickerModelLoader implements ModelLoader<Uri, ParcelFileDescr
 
     @Override
     public boolean handles(Uri model) {
-        if (model == null) return false;
+        final int pickerId = 1;
+        final UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
+        matcher.addURI(model.getAuthority(), CloudMediaProviderContract.URI_PATH_MEDIA, pickerId);
 
-        String authority = model.getAuthority();
-        // TODO(b/210190677): Handle all local picker provider uris irrespective of cloud or local.
-        // PickerModuleLoader fetches thumbnail data by forwarding the request to corresponding
-        // ContentProvider. For local provider uris, this request goes to MediaProvider where video
-        // thumbnail is obtained from the mid-point of the video. For PhotoPicker, we need the
-        // thumbnail from the first frame. Hence, as a temporary fix, local provider uris will be
-        // handled by default Glide module.
-        return !PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority)
-                && !MediaStore.AUTHORITY.equals(authority);
+        // Matches picker URIs of the form content://<authority>/media
+        return matcher.match(model) == pickerId;
     }
 }

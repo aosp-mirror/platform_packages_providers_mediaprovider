@@ -22,10 +22,6 @@ import static com.android.compatibility.common.util.SystemUtil.runShellCommand;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import android.content.ClipData;
 import android.content.ContentUris;
 import android.content.Context;
@@ -39,7 +35,6 @@ import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.PickerSyncController;
-import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import org.junit.Before;
@@ -71,8 +66,7 @@ public class PickerResultTest {
         List<Item> items = null;
         try {
             items = createItemSelection(1);
-            final Uri expectedPickerUri = PickerResult.getPickerUri(items.get(0).getContentUri(),
-                    items.get(0).getId());
+            final Uri expectedPickerUri = PickerResult.getPickerUri(items.get(0).getContentUri());
             final Intent intent = PickerResult.getPickerResponseIntent(
                     /* canSelectMultiple */ false, items);
 
@@ -103,8 +97,7 @@ public class PickerResultTest {
             items = createItemSelection(itemCount);
             List<Uri> expectedPickerUris = new ArrayList<>();
             for (Item item: items) {
-                expectedPickerUris.add(PickerResult.getPickerUri(item.getContentUri(),
-                        item.getId()));
+                expectedPickerUris.add(PickerResult.getPickerUri(item.getContentUri()));
             }
             final Intent intent = PickerResult.getPickerResponseIntent(/* canSelectMultiple */ true,
                     items);
@@ -133,8 +126,7 @@ public class PickerResultTest {
         try {
             final int itemCount = 1;
             items = createItemSelection(itemCount);
-            final Uri expectedPickerUri = PickerResult.getPickerUri(items.get(0).getContentUri(),
-                    items.get(0).getId());
+            final Uri expectedPickerUri = PickerResult.getPickerUri(items.get(0).getContentUri());
             final Intent intent = PickerResult.getPickerResponseIntent(/* canSelectMultiple */ true,
                     items);
 
@@ -172,14 +164,12 @@ public class PickerResultTest {
         // Create an image and revoke test app's access on it
         Uri imageUri = assertCreateNewImage();
         clearMediaOwner(imageUri, mContext.getUserId());
-        if (PickerDbFacade.isPickerDbEnabled()) {
-            // Create with a picker URI with picker db enabled
-            imageUri = PickerUriResolver
-                    .getMediaUri(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
-                    .buildUpon()
-                    .appendPath(String.valueOf(ContentUris.parseId(imageUri)))
-                    .build();
-        }
+        // Create with a picker URI with picker db enabled
+        imageUri = PickerUriResolver
+                .getMediaUri(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                .buildUpon()
+                .appendPath(String.valueOf(ContentUris.parseId(imageUri)))
+                .build();
 
         return new Item(imageUri.getLastPathSegment(), "image/jpeg", /* dateTaken */ 0,
                 /* generationModified */ 0, /* duration */ 0, imageUri, _SPECIAL_FORMAT_NONE);

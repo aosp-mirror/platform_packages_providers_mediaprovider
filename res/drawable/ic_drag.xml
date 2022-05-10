@@ -19,6 +19,6 @@
     android:shape="rectangle" >
     <size android:width="32dp"
           android:height="4dp" />
-    <solid android:color="@color/picker_drag_bar_color" />
+    <solid android:color="?attr/pickerDragBarColor" />
     <corners android:radius="2dp" />
 </shape>

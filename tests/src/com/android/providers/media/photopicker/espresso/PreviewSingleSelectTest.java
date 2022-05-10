@@ -30,9 +30,9 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static com.android.providers.media.photopicker.espresso.BottomSheetTestUtils.assertBottomSheetState;
 import static com.android.providers.media.photopicker.espresso.OrientationUtils.setLandscapeOrientation;
 import static com.android.providers.media.photopicker.espresso.OrientationUtils.setPortraitOrientation;
+import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 
-import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 import static com.google.common.truth.Truth.assertThat;
 
@@ -74,12 +74,15 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
                 BottomSheetIdlingResource.register(mRule);
 
         try {
-            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            mRule.getScenario().onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_COLLAPSED);
-            });
+            // TODO(b/226318844): When accessibility is enabled, we always launch the photo picker
+            // in full screen mode. Accessibility is enabled in Espresso test, we can't check the
+            // COLLAPSED state.
+//            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+//            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+//            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+//            mRule.getScenario().onActivity(activity -> {
+//                assertBottomSheetState(activity, STATE_COLLAPSED);
+//            });
 
             // Navigate to preview
             longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
@@ -101,19 +104,24 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
                 // Verify no special format icon is previewed
                 onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
                 onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+                // Verify the overflow menu is not shown for PICK_IMAGES intent
+                assertOverflowMenuNotShown();
             }
             // Navigate back to Photo grid
             onView(withContentDescription("Navigate up")).perform(click());
 
             onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-
-            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            // Shows dragBar and privacy text after we are back to Photos tab
             onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
             onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            mRule.getScenario().onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_COLLAPSED);
-            });
+
+            // TODO(b/226318844): When accessibility is enabled, we always launch the photo picker
+            // in full screen mode. Accessibility is enabled in Espresso test, we can't check the
+            // COLLAPSED state.
+//            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+//            // Shows dragBar and privacy text after we are back to Photos tab
+//            mRule.getScenario().onActivity(activity -> {
+//                assertBottomSheetState(activity, STATE_COLLAPSED);
+//            });
         } finally {
             IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
         }
@@ -134,6 +142,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
             // Verify no special format icon is previewed
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
             onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+            // Verify the overflow menu is not shown for PICK_IMAGES intent
+            assertOverflowMenuNotShown();
         }
     }
 

@@ -31,8 +31,6 @@ import java.util.UUID;
  * provides a foundational implementation of this contract.
  *
  * @see CloudMediaProvider
- *
- * @hide
  */
 public final class CloudMediaProviderContract {
     private static final String TAG = "CloudMediaProviderContract";
@@ -458,7 +456,6 @@ public final class CloudMediaProviderContract {
      * @see CloudMediaProvider#onQueryAlbums
      * <p>
      * Type: STRING
-     * @hide
      */
     public static final String EXTRA_MEDIA_COLLECTION_ID =
             "android.provider.extra.MEDIA_COLLECTION_ID";

@@ -31,6 +31,9 @@ import static com.android.providers.media.photopicker.espresso.BottomSheetTestUt
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.customSwipeDownPartialScreen;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
+import static com.android.providers.media.photopicker.espresso.OrientationUtils.setLandscapeOrientation;
+import static com.android.providers.media.photopicker.espresso.OrientationUtils.setPortraitOrientation;
+import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
@@ -74,6 +77,8 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         onView(withId(R.id.fragment_container)).check(matches(isDisplayed()));
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
         onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+        // Partial screen does not show profile button
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
         onView(withId(android.R.id.empty)).check(matches(not(isDisplayed())));
 
         final String cancelString =
@@ -85,57 +90,30 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    public void testDoesNotShowProfileButton() {
-        // Register bottom sheet idling resource so that we don't read bottom sheet state when
-        // in between changing states
-        final BottomSheetIdlingResource bottomSheetIdlingResource =
-                BottomSheetIdlingResource.register(mRule);
-
-        try {
-            // Single select PhotoPicker is launched in partial screen mode
-            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            mRule.getScenario().onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_COLLAPSED);
-            });
-            // Partial screen does not show profile button
-            onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-            // Swipe up and check that the PhotoPicker is in full screen mode
-            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
-            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
-            mRule.getScenario().onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_EXPANDED);
-            });
-            // Full screen does not show profile button as well
-            onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-            // Navigate to Albums tab
-            onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                    .perform(click());
-            onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-            final int cameraStringId = R.string.picker_category_camera;
-            // Navigate to photos in Camera album
-            onView(allOf(withText(cameraStringId),
-                    isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
-            onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-            // Click back button
-            onView(withContentDescription("Navigate up")).perform(click());
-
-            // on clicking back button we are back to Album grid
-            onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                    .check(matches(isSelected()));
-            onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-        } finally {
-            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
-        }
+    public void testDoesNotShowProfileButton_partialScreen() {
+        assertProfileButtonNotShown();
     }
 
     @Test
+    @Ignore("Enable after b/222013536 is fixed")
+    public void testDoesNotShowProfileButton_fullScreen() {
+        // Bottomsheet assertions are different for landscape mode
+        setPortraitOrientation(mRule);
+
+        // Partial screen does not show profile button
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+
+        BottomSheetTestUtils.swipeUp(mRule);
+
+        assertProfileButtonNotShown();
+    }
+
+    @Test
+    @Ignore("Enable after b/222013536 is fixed")
     public void testBottomSheetState() {
+        // Bottom sheet assertions are different for landscape mode
+        setPortraitOrientation(mRule);
+
         // Register bottom sheet idling resource so that we don't read bottom sheet state when
         // in between changing states
         final BottomSheetIdlingResource bottomSheetIdlingResource =
@@ -178,6 +156,33 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/222013536 is fixed")
+    public void testBottomSheetStateInLandscapeMode() {
+        // Bottom sheet assertions are different for landscape mode
+        setLandscapeOrientation(mRule);
+
+        // Register bottom sheet idling resource so that we don't read bottom sheet state when
+        // in between changing states
+        final BottomSheetIdlingResource bottomSheetIdlingResource =
+                BottomSheetIdlingResource.register(mRule);
+
+        try {
+            // Single select PhotoPicker is launched in full screen mode in Landscape orientation
+            mRule.getScenario().onActivity(activity -> {
+                assertBottomSheetState(activity, STATE_EXPANDED);
+            });
+
+            // Swiping down on drag bar / privacy text is not strong enough as closing the
+            // bottomsheet requires a stronger downward swipe using espresso.
+            onView(withId(R.id.bottom_sheet)).perform(ViewActions.swipeDown());
+        } finally {
+            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
+        }
+        assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
+                Activity.RESULT_CANCELED);
+    }
+
+    @Test
     public void testToolbarLayout() {
         onView(withId(R.id.toolbar)).check(matches(isDisplayed()));
 
@@ -192,6 +197,9 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
                 isDescendantOfA(withId(TAB_LAYOUT_ID)))).check(matches(isDisplayed()));
         onView(allOf(withText(PICKER_ALBUMS_STRING_ID),
                 isDescendantOfA(withId(TAB_LAYOUT_ID)))).check(matches(isDisplayed()));
+
+        // Verify the overflow menu is not shown for PICK_IMAGES intent
+        assertOverflowMenuNotShown();
 
         // TODO(b/200513333): Check close icon
     }
@@ -211,7 +219,6 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         onView(allOf(withText(R.string.picker_category_camera),
                 isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(matches(isDisplayed()));
 
-
         // On clicking photos tab item, we should see photos tab
         onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .perform(click());
@@ -226,6 +233,7 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("Enable after b/222013536 is fixed")
     public void testTabSwiping() throws Exception {
         onView(withId(TAB_LAYOUT_ID)).check(matches(isDisplayed()));
 
@@ -238,16 +246,19 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
                 BottomSheetIdlingResource.register(mRule);
 
         try {
-            // Single select PhotoPicker is launched in partial screen mode
-            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            mRule.getScenario().onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_COLLAPSED);
-            });
+
+            // When accessibility is enabled, we always launch the photo picker in full screen mode.
+            // Accessibility is enabled in Espresso test, so we can't check the COLLAPSED state.
+//            // Single select PhotoPicker is launched in partial screen mode
+//            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+//            mRule.getScenario().onActivity(activity -> {
+//                assertBottomSheetState(activity, STATE_COLLAPSED);
+//            });
 
             // Swipe up and check that the PhotoPicker is in full screen mode.
+//            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+//            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
             bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
-            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
             mRule.getScenario().onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_EXPANDED);
             });
@@ -281,5 +292,29 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
                     .atPositionOnView(0, R.id.date_header_title))
                     .check(matches(withText(R.string.recent)));
         }
+    }
+
+    private void assertProfileButtonNotShown() {
+        // Partial screen does not show profile button
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+
+        // Navigate to Albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .perform(click());
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+
+        final int cameraStringId = R.string.picker_category_camera;
+        // Navigate to photos in Camera album
+        onView(allOf(withText(cameraStringId),
+                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
+
+        // Click back button
+        onView(withContentDescription("Navigate up")).perform(click());
+
+        // on clicking back button we are back to Album grid
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .check(matches(isSelected()));
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
     }
 }

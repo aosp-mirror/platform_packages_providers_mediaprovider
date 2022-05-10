@@ -16,6 +16,11 @@
 
 package com.android.providers.media;
 
+import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_READ;
+import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_WRITE;
+import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_CREATE;
+import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_DELETE;
+
 import android.Manifest;
 import android.app.UiAutomation;
 import android.content.ContentResolver;
@@ -25,6 +30,7 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.system.OsConstants;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -107,7 +113,10 @@ public class MediaProviderForFuseTest {
 
         // We can write our file
         FileOpenResult result = sMediaProvider.onFileOpenForFuse(
-                file.getPath(), file.getPath(), sTestUid, 0 /* tid */, 0 /* transforms_reason */,
+                file.getPath(),
+                file.getPath(),
+                sTestUid,
+                0 /* tid */, 0 /* transforms_reason */,
                 true /* forWrite */, false /* redact */, false /* transcode_metrics */);
         Truth.assertThat(result.status).isEqualTo(0);
         Truth.assertThat(result.redactionRanges).isEqualTo(new long[0]);
@@ -228,14 +237,76 @@ public class MediaProviderForFuseTest {
     }
 
     @Test
-    public void test_isOpendirAllowedForFuse() throws Exception {
-        Truth.assertThat(sMediaProvider.isOpendirAllowedForFuse(
-                sTestDir.getPath(), sTestUid, /* forWrite */ false)).isEqualTo(0);
-    }
+    public void test_isDirAccessAllowedForFuse() throws Exception {
+        //verify can create and write but not delete top-level default folder
+        final File topLevelDefaultDir = Environment.buildExternalStoragePublicDirs(
+                Environment.DIRECTORY_PICTURES)[0];
+        final String topLevelDefaultDirPath = topLevelDefaultDir.getPath();
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                topLevelDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_READ)).isEqualTo(0);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                topLevelDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_CREATE)).isEqualTo(0);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                topLevelDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_WRITE)).isEqualTo(0);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                topLevelDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_DELETE)).isEqualTo(
+                OsConstants.EACCES);
 
-    @Test
-    public void test_isDirectoryCreationOrDeletionAllowedForFuse() throws Exception {
-        Truth.assertThat(sMediaProvider.isDirectoryCreationOrDeletionAllowedForFuse(
-                sTestDir.getPath(), sTestUid, true)).isEqualTo(0);
+        //verify cannot create or write top-level non-default folder, but can read it
+        final File topLevelNonDefaultDir = Environment.buildExternalStoragePublicDirs(
+                "non-default-dir")[0];
+        final String topLevelNonDefaultDirPath = topLevelNonDefaultDir.getPath();
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                topLevelNonDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_READ)).isEqualTo(0);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                topLevelNonDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_CREATE)).isEqualTo(
+                OsConstants.EACCES);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                topLevelNonDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_WRITE)).isEqualTo(OsConstants.EACCES);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                topLevelNonDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_DELETE)).isEqualTo(OsConstants.EACCES);
+
+        //verify can read, create, write and delete random non-top-level folder
+        final File lowerLevelNonDefaultDir = new File(topLevelDefaultDir,
+                "subdir" + System.nanoTime());
+        lowerLevelNonDefaultDir.mkdirs();
+        final String lowerLevelNonDefaultDirPath = lowerLevelNonDefaultDir.getPath();
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                lowerLevelNonDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_READ)).isEqualTo(0);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                lowerLevelNonDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_CREATE)).isEqualTo(0);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                lowerLevelNonDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_WRITE)).isEqualTo(0);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                lowerLevelNonDefaultDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_DELETE)).isEqualTo(0);
+
+        //verify cannot update outside /storage folder
+        final File rootDir = new File("/myfolder");
+        final String rootDirPath = rootDir.getPath();
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                rootDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_READ)).isEqualTo(0);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                rootDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_CREATE)).isEqualTo(OsConstants.EPERM);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                rootDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_WRITE)).isEqualTo(OsConstants.EPERM);
+        Truth.assertThat(sMediaProvider.isDirAccessAllowedForFuse(
+                rootDirPath, sTestUid,
+                DIRECTORY_ACCESS_FOR_DELETE)).isEqualTo(OsConstants.EPERM);
+
     }
 }

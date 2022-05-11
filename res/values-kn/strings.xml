@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"ಮಾಧ್ಯಮ"</string>
     <string name="storage_description" msgid="4081716890357580107">"ಸ್ಥಳೀಯ ಸಂಗ್ರಹಣೆ"</string>
     <string name="app_label" msgid="9035307001052716210">"ಮಾಧ್ಯಮ ಸಂಗ್ರಹಣೆ"</string>
-    <!-- no translation found for picker_app_label (5487796494405738578) -->
-    <skip />
+    <string name="picker_app_label" msgid="5487796494405738578">"ಫೋಟೋ ಪಿಕರ್"</string>
     <string name="artist_label" msgid="8105600993099120273">"ಕಲಾವಿದರು"</string>
     <string name="unknown" msgid="2059049215682829375">"ಅಪರಿಚಿತ"</string>
     <string name="root_images" msgid="5861633549189045666">"ಚಿತ್ರಗಳು"</string>
@@ -39,6 +38,8 @@
     <string name="clear" msgid="5524638938415865915">"ತೆರವುಗೊಳಿಸಿ"</string>
     <string name="allow" msgid="8885707816848569619">"ಅನುಮತಿಸಿ"</string>
     <string name="deny" msgid="6040983710442068936">"ನಿರಾಕರಿಸಿ"</string>
+    <!-- no translation found for picker_browse (5554477454636075934) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"ಸೇರಿಸಿ"</string>
     <string name="deselect" msgid="4297825044827769490">"ಆಯ್ಕೆ ರದ್ದುಮಾಡಿ"</string>
     <string name="deselected" msgid="8488133193326208475">"ಆಯ್ಕೆ ರದ್ದುಮಾಡಲಾಗಿದೆ"</string>
@@ -54,7 +55,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"ಪೂರ್ವವೀಕ್ಷಣೆ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ಕೆಲಸಕ್ಕೆ ಬದಲಿಸಿ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ವೈಯಕ್ತಿಕಕ್ಕೆ ಬದಲಿಸಿ"</string>
-    <string name="picker_profile_admin_title" msgid="4172022376418293777">"ನಿಮ್ಮ ನಿರ್ವಾಹಕರಿಂದ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"ನಿಮ್ಮ ನಿರ್ವಾಹಕರು ನಿರ್ಬಂಧಿಸಿದ್ದಾರೆ"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ವೈಯಕ್ತಿಕ ಆ್ಯಪ್ ಮೂಲಕ ಅಧಿಕೃತ ಡೇಟಾವನ್ನು ಪ್ರವೇಶಿಸಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್ ಮೂಲಕ ಅಧಿಕೃತ ಡೇಟಾವನ್ನು ಪ್ರವೇಶಿಸಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳನ್ನು ವಿರಾಮಗೊಳಿಸಲಾಗಿದೆ"</string>

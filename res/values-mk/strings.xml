@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Аудио-визуелни содржини"</string>
     <string name="storage_description" msgid="4081716890357580107">"Локална меморија"</string>
     <string name="app_label" msgid="9035307001052716210">"Капацитет за аудиовизуелни содржини"</string>
-    <!-- no translation found for picker_app_label (5487796494405738578) -->
-    <skip />
+    <string name="picker_app_label" msgid="5487796494405738578">"Избирач на фотографии"</string>
     <string name="artist_label" msgid="8105600993099120273">"Изведувач"</string>
     <string name="unknown" msgid="2059049215682829375">"Непознат"</string>
     <string name="root_images" msgid="5861633549189045666">"Слики"</string>
@@ -39,6 +38,8 @@
     <string name="clear" msgid="5524638938415865915">"Избриши"</string>
     <string name="allow" msgid="8885707816848569619">"Дозволи"</string>
     <string name="deny" msgid="6040983710442068936">"Одбиј"</string>
+    <!-- no translation found for picker_browse (5554477454636075934) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"Додај"</string>
     <string name="deselect" msgid="4297825044827769490">"Поништи го изборот"</string>
     <string name="deselected" msgid="8488133193326208475">"Изборот е поништен"</string>
@@ -54,7 +55,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"Преглед"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Префрли на работен профил"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Префрли на личен профил"</string>
-    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано од вашиот администратор"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано од администраторот"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Не е дозволено пристапување до работни податоци од лична апликација"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Не е дозволено пристапување до лични податоци од работна апликација"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Работните апликации се паузирани"</string>

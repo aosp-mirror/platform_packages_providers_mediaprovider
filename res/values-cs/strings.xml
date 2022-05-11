@@ -38,6 +38,8 @@
     <string name="clear" msgid="5524638938415865915">"Vymazat"</string>
     <string name="allow" msgid="8885707816848569619">"Povolit"</string>
     <string name="deny" msgid="6040983710442068936">"Zakázat"</string>
+    <!-- no translation found for picker_browse (5554477454636075934) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"Přidat"</string>
     <string name="deselect" msgid="4297825044827769490">"Zrušit výběr"</string>
     <string name="deselected" msgid="8488133193326208475">"Výběr zrušen"</string>

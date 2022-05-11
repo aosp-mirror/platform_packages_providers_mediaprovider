@@ -38,6 +38,8 @@
     <string name="clear" msgid="5524638938415865915">"Obriši"</string>
     <string name="allow" msgid="8885707816848569619">"Dozvoli"</string>
     <string name="deny" msgid="6040983710442068936">"Odbij"</string>
+    <!-- no translation found for picker_browse (5554477454636075934) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Opozovi izbor"</string>
     <string name="deselected" msgid="8488133193326208475">"Opozvan je izbor"</string>

@@ -76,7 +76,7 @@ public final class RemotePreviewHandler {
     private int mSurfaceCounter = 0;
 
     public static boolean isRemotePreviewEnabled() {
-        return SystemProperties.getBoolean("sys.photopicker.remote_preview", true);
+        return SystemProperties.getBoolean("sys.photopicker.remote_preview", false);
     }
 
     public RemotePreviewHandler(Context context, MuteStatus muteStatus) {

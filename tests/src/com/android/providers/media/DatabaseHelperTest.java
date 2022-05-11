@@ -18,20 +18,18 @@ package com.android.providers.media;
 
 import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 
-import static com.android.providers.media.DatabaseHelper.VERSION_LATEST;
-import static com.android.providers.media.DatabaseHelper.VERSION_S;
-import static com.android.providers.media.DatabaseHelper.makePristineSchema;
+import static com.android.providers.media.DatabaseHelper.TEST_CLEAN_DB;
+import static com.android.providers.media.DatabaseHelper.TEST_DOWNGRADE_DB;
 import static com.android.providers.media.DatabaseHelper.TEST_RECOMPUTE_DB;
 import static com.android.providers.media.DatabaseHelper.TEST_UPGRADE_DB;
-import static com.android.providers.media.DatabaseHelper.TEST_DOWNGRADE_DB;
-import static com.android.providers.media.DatabaseHelper.TEST_CLEAN_DB;
+import static com.android.providers.media.DatabaseHelper.makePristineSchema;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
@@ -43,8 +41,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.UserHandle;
 import android.provider.Column;
 import android.provider.ExportedSince;
-import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Audio;
+import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
 import android.util.Log;
 
@@ -270,6 +268,7 @@ public class DatabaseHelperTest {
         try (DatabaseHelper helper = before.getConstructor(Context.class, String.class)
                 .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
             SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            assertThat(sIsolatedContext.getDatabasePath(TEST_DOWNGRADE_DB).exists()).isTrue();
             {
                 final ContentValues values = new ContentValues();
                 values.put(FileColumns.DATA,
@@ -285,13 +284,11 @@ public class DatabaseHelperTest {
             }
         }
 
-        // Downgrade will wipe data, but at least we don't crash
+        // Downgrade will delete the database file and crash the process
         try (DatabaseHelper helper = after.getConstructor(Context.class, String.class)
                 .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
-            SQLiteDatabase db = helper.getWritableDatabaseForTest();
-            try (Cursor c = db.query("files", null, null, null, null, null, null, null)) {
-                assertEquals(0, c.getCount());
-            }
+            assertThrows(RuntimeException.class, helper::getWritableDatabaseForTest);
+            assertThat(sIsolatedContext.getDatabasePath(TEST_DOWNGRADE_DB).exists()).isFalse();
         }
     }
 
@@ -566,52 +563,6 @@ public class DatabaseHelperTest {
                     assertThat(cr.isNull(0)).isTrue();
                 }
             }
-        }
-    }
-
-    /**
-     * Test that database downgrade changed the UUID saved in database file.
-     */
-    @Test
-    public void testDowngradeChangesUUID() throws Exception {
-        Class<? extends DatabaseHelper> dbVersionHigher = DatabaseHelperT.class;
-        Class<? extends DatabaseHelper> dbVersionLower = DatabaseHelperS.class;
-        String originalUUID;
-        int originalVersion;
-        // Create the database with database version = dbVersionLower
-        try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
-                .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
-            SQLiteDatabase db = helper.getWritableDatabaseForTest();
-            originalUUID = DatabaseHelper.getOrCreateUuid(db);
-            originalVersion = db.getVersion();
-            // Verify that original version of the database is dbVersionLower.
-            assertWithMessage("Current database version")
-                    .that(db.getVersion()).isEqualTo(VERSION_S);
-        }
-        // Upgrade the database by changing the version to dbVersionHigher
-        try (DatabaseHelper helper = dbVersionHigher.getConstructor(Context.class, String.class)
-                .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
-            SQLiteDatabase db = helper.getWritableDatabaseForTest();
-            // Verify that upgrade resulted in database version change.
-            assertWithMessage("Current database version after upgrade")
-                    .that(db.getVersion()).isNotEqualTo(originalVersion);
-            // Verify that upgrade resulted in database version same as latest version.
-            assertWithMessage("Current database version after upgrade")
-                    .that(db.getVersion()).isEqualTo(DatabaseHelper.VERSION_T);
-            // Verify that upgrade didn't change UUID
-            assertWithMessage("Current database UUID after upgrade")
-                    .that(DatabaseHelper.getOrCreateUuid(db)).isEqualTo(originalUUID);
-        }
-        // Downgrade the database by changing the version to dbVersionLower
-        try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
-                .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
-            SQLiteDatabase db = helper.getWritableDatabaseForTest();
-            // Verify that downgraded version is same as original database version before upgrade
-            assertWithMessage("Current database version after downgrade")
-                    .that(db.getVersion()).isEqualTo(originalVersion);
-            // Verify that downgrade changed UUID
-            assertWithMessage("Current database UUID after downgrade")
-                    .that(DatabaseHelper.getOrCreateUuid(db)).isNotEqualTo(originalUUID);
         }
     }
 

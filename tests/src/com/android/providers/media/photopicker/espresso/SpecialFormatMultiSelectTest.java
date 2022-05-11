@@ -26,6 +26,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
 
+import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 
@@ -76,6 +77,9 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
 
             // Verify Motion Photo icon is not shown for animated webp preview
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+
+            // Verify the overflow menu is not shown for PICK_IMAGES intent
+            assertOverflowMenuNotShown();
         }
     }
 
@@ -96,6 +100,9 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
 
             // Verify Motion Photo icon is not shown for non-animated webp preview
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+
+            // Verify the overflow menu is not shown for PICK_IMAGES intent
+            assertOverflowMenuNotShown();
         }
     }
 
@@ -112,6 +119,8 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(matches(isDisplayed()));
             onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
             onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+            // Verify the overflow menu is not shown for PICK_IMAGES intent
+            assertOverflowMenuNotShown();
         }
     }
 

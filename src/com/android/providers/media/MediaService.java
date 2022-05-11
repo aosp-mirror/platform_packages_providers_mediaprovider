@@ -27,7 +27,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.storage.StorageVolume;
@@ -78,11 +77,16 @@ public class MediaService extends JobIntentService {
                 case Intent.ACTION_PACKAGE_FULLY_REMOVED:
                 case Intent.ACTION_PACKAGE_DATA_CLEARED: {
                     final String packageName = intent.getData().getSchemeSpecificPart();
-                    onPackageOrphaned(packageName);
+                    final int uid = intent.getIntExtra(Intent.EXTRA_UID, 0);
+                    onPackageOrphaned(packageName, uid);
                     break;
                 }
                 case Intent.ACTION_MEDIA_SCANNER_SCAN_FILE: {
                     onScanFile(this, intent.getData());
+                    break;
+                }
+                case Intent.ACTION_MEDIA_MOUNTED: {
+                    onMediaMountedBroadcast(this, intent);
                     break;
                 }
                 case ACTION_SCAN_VOLUME: {
@@ -113,19 +117,31 @@ public class MediaService extends JobIntentService {
         }
     }
 
-    private void onPackageOrphaned(String packageName) {
+    private void onPackageOrphaned(String packageName, int uid) {
         try (ContentProviderClient cpc = getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-            ((MediaProvider) cpc.getLocalContentProvider()).onPackageOrphaned(packageName);
+            ((MediaProvider) cpc.getLocalContentProvider()).onPackageOrphaned(packageName, uid);
         }
     }
 
-    private static void onScanVolume(Context context, Intent intent, int reason)
+    private static void onMediaMountedBroadcast(Context context, Intent intent)
             throws IOException {
-
         final StorageVolume volume = intent.getParcelableExtra(StorageVolume.EXTRA_STORAGE_VOLUME);
         if (volume != null) {
-            onScanVolume(context, MediaVolume.fromStorageVolume(volume), reason);
+            MediaVolume mediaVolume = MediaVolume.fromStorageVolume(volume);
+            try (ContentProviderClient cpc = context.getContentResolver()
+                    .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+                if (!((MediaProvider)cpc.getLocalContentProvider()).isVolumeAttached(mediaVolume)) {
+                    // This can happen on some legacy app clone implementations, where the
+                    // framework is modified to send MEDIA_MOUNTED broadcasts for clone volumes
+                    // to u0 MediaProvider; these volumes are not reported through the usual
+                    // volume attach events, so we need to scan them here if they weren't
+                    // attached previously
+                    onScanVolume(context, mediaVolume, REASON_MOUNTED);
+                } else {
+                    Log.i(TAG, "Volume " + mediaVolume + " already attached");
+                }
+            }
         } else {
             Log.e(TAG, "Couldn't retrieve StorageVolume from intent");
         }
@@ -134,6 +150,16 @@ public class MediaService extends JobIntentService {
     public static void onScanVolume(Context context, MediaVolume volume, int reason)
             throws IOException {
         final String volumeName = volume.getName();
+        if (!MediaStore.VOLUME_INTERNAL.equals(volumeName) && volume.getPath() == null) {
+            /* This is a very unexpected state and can only ever happen with app-cloned users.
+              In general, MediaVolumes should always be mounted and have a path, however, if the
+              user failed to unlock properly, MediaProvider still gets the volume from the
+              StorageManagerService because MediaProvider is special cased there. See
+              StorageManagerService#getVolumeList. Reference bug: b/207723670. */
+            Log.w(TAG, String.format("Skipping volume scan for %s when volume path is null.",
+                    volumeName));
+            return;
+        }
         UserHandle owner = volume.getUser();
         if (owner == null) {
             // Can happen for the internal volume

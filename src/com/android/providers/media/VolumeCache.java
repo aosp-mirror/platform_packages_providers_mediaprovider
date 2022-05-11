@@ -28,16 +28,15 @@ import android.provider.MediaStore;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
-import android.util.LongSparseArray;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.UserCache;
-
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -85,6 +84,24 @@ public class VolumeCache {
             }
             return volNames;
         }
+    }
+
+    /**
+     * @return List of paths to unreliable volumes if any, an empty list otherwise
+     */
+    public @NonNull List<File> getUnreliableVolumePath() throws FileNotFoundException {
+        List<File> unreliableVolumes = new ArrayList<>();
+        synchronized (mLock) {
+            for (MediaVolume volume : mExternalVolumes){
+                final File volPath = volume.getPath();
+                if (volPath != null && volPath.getPath() != null
+                        && !volPath.getPath().startsWith("/storage/")){
+                    unreliableVolumes.add(volPath);
+                }
+            }
+        }
+
+        return unreliableVolumes;
     }
 
     public @NonNull MediaVolume findVolume(@NonNull String volumeName, @NonNull UserHandle user)
@@ -197,6 +214,15 @@ public class VolumeCache {
             for (UserHandle user : users) {
                 Context userContext = mUserCache.getContextForUser(user);
                 updateExternalVolumesForUserLocked(userContext);
+            }
+        }
+    }
+
+    public void dump(PrintWriter writer) {
+        writer.println("Volume cache state:");
+        synchronized (mLock) {
+            for (MediaVolume volume : mExternalVolumes)  {
+                writer.println("  " + volume.toString());
             }
         }
     }

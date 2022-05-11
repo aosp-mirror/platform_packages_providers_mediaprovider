@@ -535,6 +535,10 @@ public class DatabaseUtils {
         return sb.toString();
     }
 
+    public static String replaceMatchAnyChar(@NonNull String arg) {
+        return arg.replace('*', '%');
+    }
+
     public static boolean parseBoolean(@Nullable Object value, boolean def) {
         if (value instanceof Boolean) {
             return (Boolean) value;

@@ -19,7 +19,7 @@ package com.android.providers.media;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractRelativePath;
-import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
+import static com.android.providers.media.util.FileUtils.extractRelativePathWithDisplayName;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isDownloadDir;
 
@@ -45,7 +45,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
+import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteException;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -57,10 +59,14 @@ import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.system.ErrnoException;
+import android.system.Os;
+import android.system.OsConstants;
 import android.util.ArrayMap;
 import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.MediaProvider.FallbackException;
@@ -80,8 +86,9 @@ import org.junit.runner.RunWith;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
-import java.sql.Array;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -94,13 +101,11 @@ import java.util.regex.Pattern;
 public class MediaProviderTest {
     static final String TAG = "MediaProviderTest";
 
-    /**
-     * To confirm behaviors, we need to pick an app installed on all devices
-     * which has no permissions, and the best candidate is the "Easter Egg" app.
-     */
-    static final String PERMISSIONLESS_APP = "com.android.egg";
+    // The test app without permissions
+    static final String PERMISSIONLESS_APP = "com.android.providers.media.testapp.withoutperms";
 
     private static Context sIsolatedContext;
+    private static Context sContext;
     private static ContentResolver sIsolatedResolver;
 
     @BeforeClass
@@ -111,9 +116,7 @@ public class MediaProviderTest {
                         Manifest.permission.READ_DEVICE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS);
 
-        final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
-        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        resetIsolatedContext();
     }
 
     @AfterClass
@@ -256,9 +259,7 @@ public class MediaProviderTest {
     @Test
     public void testCanonicalize() throws Exception {
         // We might have old files lurking, so force a clean slate
-        final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
-        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        resetIsolatedContext();
 
         final File dir = Environment
                 .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -335,9 +336,7 @@ public class MediaProviderTest {
 
     private void testActionLongFileNameItemHasTrimmedFileName(String columnKey) throws Exception {
         // We might have old files lurking, so force a clean slate
-        final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
-        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        resetIsolatedContext();
         final String[] projection = new String[]{MediaColumns.DATA};
         final File dir = Environment
                 .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -533,6 +532,24 @@ public class MediaProviderTest {
             assertTrue(c.moveToFirst());
             assertEquals("test_userid.png", c.getString(0));
             assertEquals(UserHandle.myUserId(), c.getInt(1));
+        }
+    }
+
+    @Test
+    public void testSpecialFormatDefaultValue() throws Exception {
+        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test_specialFormat");
+        values.put(MediaColumns.MIME_TYPE, "image/png");
+        Uri result = sIsolatedResolver.insert(uri, values);
+        try (Cursor c = sIsolatedResolver.query(result,
+                new String[]{MediaColumns.DISPLAY_NAME, FileColumns._SPECIAL_FORMAT},
+                null, null)) {
+            assertNotNull(c);
+            assertEquals(1, c.getCount());
+            assertTrue(c.moveToFirst());
+            assertEquals("test_specialFormat.png", c.getString(0));
+            assertEquals(FileColumns._SPECIAL_FORMAT_NONE, c.getInt(1));
         }
     }
 
@@ -1071,7 +1088,7 @@ public class MediaProviderTest {
                 "Foo.jpg",
                 "storage/Foo"
         }) {
-            assertEquals(null, FileUtils.extractRelativePathForDirectory(path));
+            assertEquals(null, FileUtils.extractRelativePathWithDisplayName(path));
         }
     }
 
@@ -1221,9 +1238,8 @@ public class MediaProviderTest {
 
     private void testQueryAudioViewsNoItemWithColumn(String columnKey) throws Exception {
         // We might have old files lurking, so force a clean slate
-        final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
-        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        resetIsolatedContext();
+
         final File dir = Environment
                 .getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
 
@@ -1247,20 +1263,127 @@ public class MediaProviderTest {
 
         Uri result = sIsolatedResolver.insert(audioUri, values);
 
+        final long genreId;
         // Check the audio file is inserted correctly
         try (Cursor c = sIsolatedResolver.query(result,
-                new String[]{MediaColumns.DISPLAY_NAME, columnKey}, null, null)) {
+                new String[]{MediaColumns.DISPLAY_NAME, AudioColumns.GENRE_ID, columnKey},
+                null, null)) {
             assertNotNull(c);
             assertEquals(1, c.getCount());
             assertTrue(c.moveToFirst());
             assertEquals(displayName, c.getString(0));
-            assertEquals(1, c.getInt(1));
+            assertEquals(1, c.getInt(2));
+            genreId = c.getLong(1);
         }
 
         final String volume = MediaStore.VOLUME_EXTERNAL_PRIMARY;
         assertQueryResultNoItems(MediaStore.Audio.Albums.getContentUri(volume));
         assertQueryResultNoItems(MediaStore.Audio.Artists.getContentUri(volume));
         assertQueryResultNoItems(MediaStore.Audio.Genres.getContentUri(volume));
+        assertQueryResultNoItems(MediaStore.Audio.Genres.Members.getContentUri(volume, genreId));
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R, maxSdkVersion = Build.VERSION_CODES.R)
+    @Ignore("b/211068960")
+    public void testQueryAudioTableNoIsRecordingColumnInR() throws Exception {
+        final File file = createAudioRecordingFile();
+        final Uri audioUri =
+                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+
+        try (Cursor c = sIsolatedResolver.query(audioUri, null, null, null, null)) {
+            assertThat(c).isNotNull();
+            assertThat(c.getCount()).isEqualTo(1);
+            assertThat(c.getColumnIndex("is_recording")).isEqualTo(-1);
+        } finally {
+            file.delete();
+            final File dir = file.getParentFile();
+            dir.delete();
+        }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R, maxSdkVersion = Build.VERSION_CODES.R)
+    @Ignore("b/211068960")
+    public void testQueryIsRecordingInAudioTableExceptionInR() throws Exception {
+        final File file = createAudioRecordingFile();
+        final Uri audioUri =
+                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final String[] projection = new String[]{"is_recording"};
+
+        try (Cursor c = sIsolatedResolver.query(audioUri, projection, null, null, null)) {
+            fail("Expected exception with the is_recording is not a column in Audio table");
+        } catch (IllegalArgumentException | SQLiteException expected) {
+        } finally {
+            file.delete();
+            final File dir = file.getParentFile();
+            dir.delete();
+        }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
+    public void testQueryAudioTableHasIsRecordingColumnAfterR() throws Exception {
+        final File file = createAudioRecordingFile();
+        final Uri audioUri =
+                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+
+        try (Cursor c = sIsolatedResolver.query(audioUri, null, null, null, null)) {
+            assertThat(c).isNotNull();
+            assertThat(c.getCount()).isEqualTo(1);
+            final int columnIndex = c.getColumnIndex(AudioColumns.IS_RECORDING);
+            assertThat(columnIndex).isNotEqualTo(-1);
+            assertThat(c.moveToFirst()).isTrue();
+            assertThat(c.getInt(columnIndex)).isEqualTo(1);
+        } finally {
+            file.delete();
+            final File dir = file.getParentFile();
+            dir.delete();
+        }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
+    public void testQueryIsRecordingInAudioTableAfterR() throws Exception {
+        final File file = createAudioRecordingFile();
+        final Uri audioUri =
+                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final String[] projection = new String[]{AudioColumns.IS_RECORDING};
+
+        try (Cursor c = sIsolatedResolver.query(audioUri, projection, null, null, null)) {
+            assertThat(c).isNotNull();
+            assertThat(c.getCount()).isEqualTo(1);
+            assertThat(c.moveToFirst()).isTrue();
+            assertThat(c.getInt(0)).isEqualTo(1);
+        } finally {
+            file.delete();
+            final File dir = file.getParentFile();
+            dir.delete();
+        }
+    }
+
+    private File createAudioRecordingFile() throws Exception {
+        // We might have old files lurking, so force a clean slate
+        resetIsolatedContext();
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File recordingDir = new File(dir, "Recordings");
+        recordingDir.mkdirs();
+        final String displayName = "test" + System.nanoTime() + ".mp3";
+        final File audio = new File(recordingDir, displayName);
+        stage(R.raw.test_audio, audio);
+        final Uri result = MediaStore.scanFile(sIsolatedResolver, audio);
+
+        // Check the audio music file exists
+        try (Cursor c = sIsolatedResolver.query(result,
+                new String[]{MediaColumns.DISPLAY_NAME, AudioColumns.IS_MUSIC}, null, null)) {
+            assertThat(c).isNotNull();
+            assertThat(c.getCount()).isEqualTo(1);
+            assertThat(c.moveToFirst()).isTrue();
+            assertThat(c.getString(0)).isEqualTo(displayName);
+            assertThat(c.getInt(1)).isEqualTo(0);
+        }
+        return audio;
     }
 
     private static void assertQueryResultNoItems(Uri uri) throws Exception {
@@ -1272,7 +1395,7 @@ public class MediaProviderTest {
 
     private static void assertRelativePathForDirectory(String directoryPath, String relativePath) {
         assertWithMessage("extractRelativePathForDirectory(" + directoryPath + ") :")
-                .that(extractRelativePathForDirectory(directoryPath))
+                .that(extractRelativePathWithDisplayName(directoryPath))
                 .isEqualTo(relativePath);
     }
 
@@ -1443,6 +1566,32 @@ public class MediaProviderTest {
         testRedactionForFileExtension(R.raw.lg_g4_iso_800_jpg, ".jpg");
     }
 
+    @Test
+    public void testOpenTypedAssetFile_setModeInBundle_failsWrite() throws IOException {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+        final File file = new File(dir, "test" + System.nanoTime() + ".txt");
+        stage(R.raw.test_txt, file);
+        Uri mediaUri = MediaStore.scanFile(sContext.getContentResolver(), file);
+        Bundle opts = new Bundle();
+        opts.putString(MediaStore.EXTRA_MODE, "w");
+
+        try {
+            AssetFileDescriptor afd = sContext.getContentResolver().openTypedAssetFile(mediaUri,
+                    "*/*", opts, null);
+            String rawText = "Hello";
+            Os.write(afd.getFileDescriptor(), rawText.getBytes(StandardCharsets.UTF_8),
+                    0, rawText.length());
+            fail("Expected failure in write to fail with ErrnoException.");
+        } catch (ErrnoException expected) {
+            // Expecting ErrnoException: Bad File Descriptor. Mode set in bundle would not be
+            // respected if calling app is not MediaProvider itself.
+            assertThat(expected.errno).isEqualTo(OsConstants.EBADF);
+        } finally {
+            file.delete();
+        }
+    }
+
     private void testRedactionForFileExtension(int resId, String extension) throws Exception {
         final File dir = Environment
                 .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -1471,5 +1620,17 @@ public class MediaProviderTest {
         } finally {
             file.delete();
         }
+    }
+
+    private static void resetIsolatedContext() {
+        if (sIsolatedResolver != null) {
+            // This is necessary, we wait for all unfinished tasks to finish before we create a
+            // new IsolatedContext.
+            MediaStore.waitForIdle(sIsolatedResolver);
+        }
+
+        sContext = InstrumentationRegistry.getTargetContext();
+        sIsolatedContext = new IsolatedContext(sContext, "modern", /*asFuseThread*/ false);
+        sIsolatedResolver = sIsolatedContext.getContentResolver();
     }
 }

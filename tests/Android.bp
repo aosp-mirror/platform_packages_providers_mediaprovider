@@ -1,3 +1,27 @@
+package {
+    // See: http://go/android-license-faq
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+android_test_helper_app {
+    name: "MediaProviderTestAppForPermissionActivity",
+    manifest: "test_app/TestAppForPermissionActivity.xml",
+    srcs: [
+        "test_app/src/**/*.java",
+        "src/com/android/providers/media/util/TestUtils.java",
+    ],
+    static_libs: [
+        "cts-install-lib",
+    ],
+    sdk_version: "test_current",
+    target_sdk_version: "30",
+    min_sdk_version: "30",
+    test_suites: [
+        "general-tests",
+        "mts-mediaprovider",
+    ],
+}
+
 android_test_helper_app {
     name: "MediaProviderTestAppWithStoragePerms",
     manifest: "test_app/TestAppWithStoragePerms.xml",
@@ -12,7 +36,26 @@ android_test_helper_app {
     target_sdk_version: "30",
     min_sdk_version: "30",
     test_suites: [
-        "device-tests",
+        "general-tests",
+        "mts-mediaprovider",
+    ],
+}
+
+android_test_helper_app {
+    name: "MediaProviderTestAppWithMediaPerms",
+    manifest: "test_app/TestAppWithMediaPerms.xml",
+    srcs: [
+        "test_app/src/**/*.java",
+        "src/com/android/providers/media/util/TestUtils.java",
+    ],
+    static_libs: [
+        "cts-install-lib",
+    ],
+    sdk_version: "test_current",
+    target_sdk_version: "30",
+    min_sdk_version: "30",
+    test_suites: [
+        "general-tests",
         "mts-mediaprovider",
     ],
 }
@@ -31,7 +74,7 @@ android_test_helper_app {
     target_sdk_version: "30",
     min_sdk_version: "30",
     test_suites: [
-        "device-tests",
+        "general-tests",
         "mts-mediaprovider",
     ],
 }
@@ -50,7 +93,7 @@ android_test_helper_app {
     target_sdk_version: "28",
     min_sdk_version: "30",
     test_suites: [
-        "device-tests",
+        "general-tests",
         "mts-mediaprovider",
     ],
 }
@@ -60,19 +103,10 @@ android_test_helper_app {
 // on the device being tested, so we can't sign our tests with a key that
 // will allow instrumentation.  Thus we pull all the sources we need to
 // run tests against into the test itself.
-package {
-    // See: http://go/android-license-faq
-    // A large-scale-change added 'default_applicable_licenses' to import
-    // all of the 'license_kinds' from "packages_providers_MediaProvider_license"
-    // to get the below license kinds:
-    //   SPDX-license-identifier-Apache-2.0
-    default_applicable_licenses: ["packages_providers_MediaProvider_license"],
-}
-
 android_test {
     name: "MediaProviderTests",
     test_suites: [
-        "device-tests",
+        "general-tests",
         "mts-mediaprovider",
     ],
     compile_multilib: "both",
@@ -96,17 +130,38 @@ android_test {
         "android.test.mock",
         "android.test.runner",
         "unsupportedappusage",
+        "framework-mediaprovider.impl",
     ],
 
     static_libs: [
         "androidx.appcompat_appcompat",
+        "modules-utils-backgroundthread",
         "androidx.core_core",
         "androidx.test.rules",
         "guava",
-        "mockito-target",
+        "mockito-target-extended-minus-junit4",
         "modules-utils-build",
         "truth-prebuilt",
+        "com.google.android.material_material",
         "cts-install-lib",
+        "androidx.test.espresso.core",
+        "androidx.test.espresso.contrib",
+        "androidx.test.core",
+        "androidx.arch.core_core-runtime",
+        "glide-prebuilt",
+        "glide-gifdecoder-prebuilt",
+        "glide-disklrucache-prebuilt",
+        "glide-annotation-and-compiler-prebuilt",
+        "androidx.fragment_fragment",
+        "androidx.vectordrawable_vectordrawable-animated",
+        "androidx.exifinterface_exifinterface",
+        "exoplayer-mediaprovider-ui",
+    ],
+
+    // these are needed for Extended Mockito
+    jni_libs: [
+        "libdexmakerjvmtiagent",
+        "libstaticjvmtiagent",
     ],
 
     certificate: "media",
@@ -122,7 +177,9 @@ android_test {
 
     java_resources: [
         ":MediaProviderTestAppWithStoragePerms",
+        ":MediaProviderTestAppWithMediaPerms",
         ":MediaProviderTestAppWithoutPerms",
+        ":MediaProviderTestAppForPermissionActivity",
         ":LegacyMediaProviderTestApp",
     ],
 

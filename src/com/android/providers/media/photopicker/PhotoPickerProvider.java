@@ -1,0 +1,157 @@
+/*
+ * Copyright (C) 2021 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.android.providers.media.photopicker;
+
+import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
+import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
+
+import android.content.ContentProviderClient;
+import android.content.ContentResolver;
+import android.content.res.AssetFileDescriptor;
+import android.database.Cursor;
+import android.graphics.Point;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.CancellationSignal;
+import android.os.OperationCanceledException;
+import android.os.ParcelFileDescriptor;
+import android.provider.CloudMediaProvider;
+import android.provider.MediaStore;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.android.providers.media.LocalCallingIdentity;
+import com.android.providers.media.MediaProvider;
+import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
+import com.android.providers.media.photopicker.data.ExternalDbFacade;
+import com.android.providers.media.photopicker.ui.remotepreview.RemotePreviewHandler;
+import com.android.providers.media.photopicker.ui.remotepreview.RemoteSurfaceController;
+
+import java.io.FileNotFoundException;
+
+/**
+ * Implements the {@link CloudMediaProvider} interface over the local items in the MediaProvider
+ * database.
+ */
+public class PhotoPickerProvider extends CloudMediaProvider {
+    private static final String TAG = "PhotoPickerProvider";
+
+    private MediaProvider mMediaProvider;
+    private ExternalDbFacade mDbFacade;
+
+    @Override
+    public boolean onCreate() {
+        mMediaProvider = getMediaProvider();
+        mDbFacade = mMediaProvider.getExternalDbFacade();
+        return true;
+    }
+
+    @Override
+    public Cursor onQueryMedia(@Nullable Bundle extras) {
+        // TODO(b/190713331): Handle extra_page
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromCloudMediaBundle(extras);
+
+        return mDbFacade.queryMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
+                queryExtras.getMimeType());
+    }
+
+    @Override
+    public Cursor onQueryDeletedMedia(@Nullable Bundle extras) {
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromCloudMediaBundle(extras);
+
+        return mDbFacade.queryDeletedMedia(queryExtras.getGeneration());
+    }
+
+    @Override
+    public Cursor onQueryAlbums(@Nullable Bundle extras) {
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromCloudMediaBundle(extras);
+
+        return mDbFacade.queryAlbums(queryExtras.getMimeType());
+    }
+
+    @Override
+    public AssetFileDescriptor onOpenPreview(@NonNull String mediaId, @NonNull Point size,
+            @NonNull Bundle extras, @NonNull CancellationSignal signal)
+            throws FileNotFoundException {
+        final Bundle opts = new Bundle();
+        opts.putParcelable(ContentResolver.EXTRA_SIZE, size);
+
+        final LocalCallingIdentity token = mMediaProvider.clearLocalCallingIdentity();
+        try {
+            // Open the original file (not thumbnail). For videos, the PhotoPicker should not
+            // use MediaProviers thumbnail cache because it fetches frames from the middle of the
+            // video, meanwhile the requirement is to fetch frames from the start of the video.
+            // Glide processes the returned fd here and extracts a thumbnail from it anyways.
+            // Additonally, glide caches this thumbnail used so future requests for the same
+            // thumbnail will not require extraction.
+            return mMediaProvider.openTypedAssetFile(fromMediaId(mediaId), null, opts);
+        } finally {
+            mMediaProvider.restoreLocalCallingIdentity(token);
+        }
+    }
+
+    @Override
+    public ParcelFileDescriptor onOpenMedia(@NonNull String mediaId,
+            @NonNull Bundle extras, @NonNull CancellationSignal signal)
+            throws FileNotFoundException {
+        final LocalCallingIdentity token = mMediaProvider.clearLocalCallingIdentity();
+        try {
+            return mMediaProvider.openFile(fromMediaId(mediaId), "r");
+        } finally {
+            mMediaProvider.restoreLocalCallingIdentity(token);
+        }
+    }
+
+    @Override
+    public Bundle onGetMediaCollectionInfo(@Nullable Bundle extras) {
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromCloudMediaBundle(extras);
+
+        return mDbFacade.getMediaCollectionInfo(queryExtras.getGeneration());
+    }
+
+    @Override
+    @Nullable
+    public CloudMediaSurfaceController onCreateCloudMediaSurfaceController(@NonNull Bundle config,
+            CloudMediaSurfaceStateChangedCallback callback) {
+        if (RemotePreviewHandler.isRemotePreviewEnabled()) {
+            boolean enableLoop = config.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, false);
+            boolean muteAudio = config.getBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
+                    false);
+            return new RemoteSurfaceController(getContext(), enableLoop, muteAudio, callback);
+        }
+        return null;
+    }
+
+    private MediaProvider getMediaProvider() {
+        ContentResolver cr = getContext().getContentResolver();
+        try (ContentProviderClient cpc = cr.acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            return (MediaProvider) cpc.getLocalContentProvider();
+        } catch (OperationCanceledException e) {
+            throw new IllegalStateException("Failed to acquire MediaProvider", e);
+        }
+    }
+
+    private static Uri fromMediaId(String mediaId) {
+        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
+                Long.parseLong(mediaId));
+    }
+}

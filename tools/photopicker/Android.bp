@@ -1,0 +1,25 @@
+package {
+    // See: http://go/android-license-faq
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+android_app {
+    name: "PhotoPickerTool",
+    manifest: "AndroidManifest.xml",
+
+    static_libs: [
+        "com.google.android.material_material",
+        "glide-prebuilt",
+        "glide-gifdecoder-prebuilt",
+        "glide-disklrucache-prebuilt",
+        "glide-annotation-and-compiler-prebuilt",
+        "androidx.fragment_fragment",
+        "androidx.vectordrawable_vectordrawable-animated",
+        "androidx.exifinterface_exifinterface",
+    ],
+
+    srcs: ["src/**/*.java"],
+    sdk_version: "current",
+    target_sdk_version: "30",
+    min_sdk_version: "30",
+}

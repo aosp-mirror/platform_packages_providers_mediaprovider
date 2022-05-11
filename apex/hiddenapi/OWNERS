@@ -1,0 +1,5 @@
+# soong-team@ as the hiddenapi files are tightly coupled with Soong
+file:platform/build/soong:/OWNERS
+
+# compat-team@ for changes to hiddenapi files
+file:tools/platform-compat:/OWNERS

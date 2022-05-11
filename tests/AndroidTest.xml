@@ -18,6 +18,7 @@
         <option name="test-file-name" value="MediaProviderTests.apk" />
         <option name="test-file-name" value="MediaProviderTestAppForPermissionActivity.apk" />
         <option name="test-file-name" value="MediaProviderTestAppWithStoragePerms.apk" />
+        <option name="test-file-name" value="MediaProviderTestAppWithMediaPerms.apk" />
         <option name="test-file-name" value="MediaProviderTestAppWithoutPerms.apk" />
         <option name="test-file-name" value="LegacyMediaProviderTestApp.apk" />
         <option name="install-arg" value="-g" />

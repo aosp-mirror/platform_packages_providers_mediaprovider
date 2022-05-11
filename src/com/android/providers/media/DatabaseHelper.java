@@ -2372,8 +2372,30 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             return false;
         }
 
+        if (hasAdoptableStorage()) {
+            Log.v(TAG, "Skipping next row id backup for devices which support adoptable storage.");
+            return false;
+        }
+
+        if (!(new File(DATA_MEDIA_XATTR_DIRECTORY_PATH)).exists()) {
+            Log.w(TAG, String.format("Skipping row id recovery as path:%s does not exist.",
+                    DATA_MEDIA_XATTR_DIRECTORY_PATH));
+            return false;
+        }
+
         return SystemProperties.getBoolean("persist.sys.fuse.backup.nextrowid_enabled",
                 true);
+    }
+
+    boolean hasAdoptableStorage() {
+        switch (SystemProperties.get("persist.sys.adoptable")) {
+            case "force_on":
+                return true;
+            case "force_off":
+                return false;
+            default:
+                return SystemProperties.getBoolean("vold.has_adoptable", false);
+        }
     }
 
     public static int getNextRowIdBackupFrequency() {

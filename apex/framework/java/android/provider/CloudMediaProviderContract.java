@@ -657,6 +657,13 @@ public final class CloudMediaProviderContract {
     public static final String EXTRA_ERROR_MESSAGE = "android.provider.extra.error_message";
 
     /**
+     * Constant used to get/set the {@link CloudMediaProvider} authority.
+     *
+     * {@hide}
+     */
+    public static final String EXTRA_AUTHORITY = "android.provider.extra.authority";
+
+    /**
      * URI path for {@link CloudMediaProvider#onQueryMedia}
      *
      * {@hide}

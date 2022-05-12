@@ -51,7 +51,8 @@ public final class PickerModelLoader implements ModelLoader<Uri, ParcelFileDescr
     public boolean handles(Uri model) {
         final int pickerId = 1;
         final UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
-        matcher.addURI(model.getAuthority(), CloudMediaProviderContract.URI_PATH_MEDIA, pickerId);
+        matcher.addURI(model.getAuthority(),
+                CloudMediaProviderContract.URI_PATH_MEDIA + "/*", pickerId);
 
         // Matches picker URIs of the form content://<authority>/media
         return matcher.match(model) == pickerId;

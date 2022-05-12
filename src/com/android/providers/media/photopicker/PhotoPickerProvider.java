@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker;
 
+import static android.provider.CloudMediaProviderContract.EXTRA_GLIDE_DEFAULT_FRAME;
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
 
@@ -94,15 +95,17 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         final Bundle opts = new Bundle();
         opts.putParcelable(ContentResolver.EXTRA_SIZE, size);
 
+        String mimeTypeFilter = null;
+        if (extras.getBoolean(EXTRA_GLIDE_DEFAULT_FRAME)) {
+            // If the thumbnail requested is requested with the default frame of the video, we can
+            // use MediaProvider's thumbnail cache which fetches the frames from the middle of the
+            // video. Set mimeTypeFilter to "image/*" to use MediaProvider thumbnail in this case.
+            mimeTypeFilter = "image/*";
+        }
+
         final LocalCallingIdentity token = mMediaProvider.clearLocalCallingIdentity();
         try {
-            // Open the original file (not thumbnail). For videos, the PhotoPicker should not
-            // use MediaProviers thumbnail cache because it fetches frames from the middle of the
-            // video, meanwhile the requirement is to fetch frames from the start of the video.
-            // Glide processes the returned fd here and extracts a thumbnail from it anyways.
-            // Additonally, glide caches this thumbnail used so future requests for the same
-            // thumbnail will not require extraction.
-            return mMediaProvider.openTypedAssetFile(fromMediaId(mediaId), null, opts);
+            return mMediaProvider.openTypedAssetFile(fromMediaId(mediaId), mimeTypeFilter, opts);
         } finally {
             mMediaProvider.restoreLocalCallingIdentity(token);
         }

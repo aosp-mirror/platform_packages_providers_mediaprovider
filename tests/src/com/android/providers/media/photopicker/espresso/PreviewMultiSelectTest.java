@@ -65,7 +65,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
-    private static final int PLAYER_VIEW_ID = R.id.preview_player_view;
+    private static final int PLAYER_VIEW_ID = R.id.preview_player_container;
 
     @Rule
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule

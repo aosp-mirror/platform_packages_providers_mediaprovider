@@ -19,6 +19,7 @@ package android.provider;
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
 import static android.provider.CloudMediaProviderContract.EXTRA_ERROR_MESSAGE;
 import static android.provider.CloudMediaProviderContract.EXTRA_FILE_DESCRIPTOR;
+import static android.provider.CloudMediaProviderContract.EXTRA_GLIDE_DEFAULT_FRAME;
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
@@ -448,22 +449,28 @@ public abstract class CloudMediaProvider extends ContentProvider {
             @NonNull Uri uri, @NonNull String mimeTypeFilter, @Nullable Bundle opts,
             @Nullable CancellationSignal signal) throws FileNotFoundException {
         final String mediaId = uri.getLastPathSegment();
-        final boolean previewThumbnail = (opts != null)
-                && opts.containsKey(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL);
-        final DisplayMetrics screenMetrics = getContext().getResources().getDisplayMetrics();
-
         final Bundle bundle = new Bundle();
+        Point previewSize = null;
+
+        final DisplayMetrics screenMetrics = getContext().getResources().getDisplayMetrics();
         int minPreviewLength = Math.min(screenMetrics.widthPixels, screenMetrics.heightPixels);
-        if (previewThumbnail) {
-            bundle.putBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL, true);
-            minPreviewLength = minPreviewLength / 2;
+
+        if (opts != null) {
+            bundle.putBoolean(EXTRA_GLIDE_DEFAULT_FRAME,
+                    opts.getBoolean(EXTRA_GLIDE_DEFAULT_FRAME));
+
+            if (opts.containsKey(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL)) {
+                bundle.putBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL, true);
+                minPreviewLength = minPreviewLength / 2;
+            }
+
+            previewSize = opts.getParcelable(ContentResolver.EXTRA_SIZE);
         }
 
-        Point previewSize = (opts != null) ? (Point) opts.getParcelable(ContentResolver.EXTRA_SIZE)
-                : null;
         if (previewSize == null) {
             previewSize = new Point(minPreviewLength, minPreviewLength);
         }
+
         return onOpenPreview(mediaId, previewSize, bundle, signal);
     }
 

@@ -16,26 +16,26 @@
 
 package com.android.providers.media.photopicker;
 
+import static android.content.ContentResolver.EXTRA_HONORED_ARGS;
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
-import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
-import static android.content.ContentResolver.EXTRA_HONORED_ARGS;
-import static com.android.providers.media.PickerUriResolver.getMediaUri;
+
 import static com.android.providers.media.PickerUriResolver.getDeletedMediaUri;
 import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
+import static com.android.providers.media.PickerUriResolver.getMediaUri;
 
 import android.annotation.IntDef;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ResolveInfo;
-import android.content.res.Resources;
-import android.content.res.Resources.NotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -47,13 +47,17 @@ import android.provider.DeviceConfig;
 import android.text.TextUtils;
 import android.util.ArraySet;
 import android.util.Log;
+import android.widget.Toast;
+
 import androidx.annotation.GuardedBy;
 import androidx.annotation.VisibleForTesting;
+
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.MediaProvider;
-import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.util.DeviceConfigUtils;
+import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.StringUtils;
 
 import java.lang.annotation.Retention;
@@ -76,6 +80,8 @@ public class PickerSyncController {
     private static final String PREFS_KEY_CLOUD_PROVIDER_AUTHORITY = "cloud_provider_authority";
     private static final String PREFS_KEY_CLOUD_PROVIDER_PKGNAME = "cloud_provider_pkg_name";
     private static final String PREFS_KEY_CLOUD_PROVIDER_UID = "cloud_provider_uid";
+    private static final String PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION =
+            "cloud_provider_pending_notification";
     private static final String PREFS_KEY_CLOUD_PREFIX = "cloud_provider:";
     private static final String PREFS_KEY_LOCAL_PREFIX = "local_provider:";
 
@@ -380,6 +386,48 @@ public class PickerSyncController {
         }
     }
 
+    /**
+     * Notifies about picker UI launched
+     */
+    public void notifyPickerLaunch() {
+        final String packageName;
+        synchronized (mLock) {
+            packageName = mCloudProviderInfo.packageName;
+        }
+
+        final boolean hasPendingNotification = mUserPrefs.getBoolean(
+                PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, false);
+
+        if (!hasPendingNotification || (packageName == DEFAULT_CLOUD_PROVIDER_PKGNAME)) {
+            Log.d(TAG, "No pending UI notification");
+            return;
+        }
+
+        // Offload showing the UI on a fg thread to avoid the expensive binder request
+        // to fetch the app name blocking the picker launch
+        ForegroundThread.getHandler().post(() -> {
+            Log.i(TAG, "Cloud media now available in the picker");
+
+            final PackageManager pm = mContext.getPackageManager();
+            String appName = packageName;
+            try {
+                ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0);
+                appName = (String) pm.getApplicationLabel(appInfo);
+            } catch (final NameNotFoundException e) {
+                Log.i(TAG, "Failed to get appName for package: " + packageName);
+            }
+
+            final String message = mContext.getResources().getString(R.string.picker_cloud_sync,
+                    appName);
+            Toast.makeText(mContext, message, Toast.LENGTH_LONG).show();
+        });
+
+        // Clear the notification
+        final SharedPreferences.Editor editor = mUserPrefs.edit();
+        editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, false);
+        editor.apply();
+    }
+
     private void syncAlbumMediaFromProvider(String authority, String albumId) {
         final Bundle queryArgs = new Bundle();
         queryArgs.putString(EXTRA_ALBUM_ID, albumId);
@@ -526,10 +574,12 @@ public class PickerSyncController {
             editor.remove(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY);
             editor.remove(PREFS_KEY_CLOUD_PROVIDER_PKGNAME);
             editor.remove(PREFS_KEY_CLOUD_PROVIDER_UID);
+            editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, false);
         } else {
             editor.putString(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, info.authority);
             editor.putString(PREFS_KEY_CLOUD_PROVIDER_PKGNAME, info.packageName);
             editor.putInt(PREFS_KEY_CLOUD_PROVIDER_UID, info.uid);
+            editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, true);
         }
 
         editor.apply();

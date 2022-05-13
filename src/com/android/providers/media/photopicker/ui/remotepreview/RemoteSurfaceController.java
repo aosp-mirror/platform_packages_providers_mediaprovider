@@ -36,11 +36,12 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
+
+import com.android.providers.media.PickerUriResolver;
 
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
@@ -57,8 +58,6 @@ import com.google.android.exoplayer2.upstream.ContentDataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.util.Clock;
 import com.google.android.exoplayer2.video.VideoSize;
-
-import java.io.File;
 
 /**
  * Implements a {@link CloudMediaSurfaceController} for a cloud provider authority and initializes
@@ -85,6 +84,7 @@ public class RemoteSurfaceController extends CloudMediaSurfaceController {
                     BUFFER_FOR_PLAYBACK_MS,
                     BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS).build();
 
+    private final String mAuthority;
     private final Context mContext;
     private final CloudMediaSurfaceStateChangedCallback mCallback;
     private final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -131,8 +131,9 @@ public class RemoteSurfaceController extends CloudMediaSurfaceController {
     private ExoPlayer mPlayer;
     private int mCurrentSurfaceId = -1;
 
-    public RemoteSurfaceController(Context context, boolean enableLoop, boolean muteAudio,
-            CloudMediaSurfaceStateChangedCallback callback) {
+    public RemoteSurfaceController(Context context, String authority, boolean enableLoop,
+            boolean muteAudio, CloudMediaSurfaceStateChangedCallback callback) {
+        mAuthority = authority;
         mCallback = callback;
         mContext = context;
         mEnableLoop = enableLoop;
@@ -182,11 +183,8 @@ public class RemoteSurfaceController extends CloudMediaSurfaceController {
 
                 mCurrentSurfaceId = surfaceId;
 
-                final Uri mediaUri =
-                        Uri.parse(
-                                MediaStore.Files.getContentUri(
-                                        MediaStore.VOLUME_EXTERNAL)
-                                + File.separator + mediaId);
+                final Uri mediaUri = PickerUriResolver.getMediaUri(mAuthority).buildUpon()
+                        .appendPath(mediaId).build();
                 mPlayer.setMediaItem(MediaItem.fromUri(mediaUri));
                 mPlayer.setVideoSurface(surface);
                 mPlayer.prepare();

@@ -555,6 +555,17 @@ public final class CloudMediaProviderContract {
             "android.provider.extra.PREVIEW_THUMBNAIL";
 
     /**
+     * A boolean to indicate {@link com.android.providers.media.photopicker.PhotoPickerProvider}
+     * this request needs thumbnail from Glide DEFAULT_FRAME of the video.
+     *
+     * Type: BOOLEAN
+     *
+     * {@hide}
+     */
+    public static final String EXTRA_GLIDE_DEFAULT_FRAME =
+            "android.provider.extra.GLIDE_DEFAULT_FRAME";
+
+    /**
      * Constant used to execute {@link CloudMediaProvider#onGetMediaCollectionInfo} via
      * {@link ContentProvider#call}.
      *
@@ -644,6 +655,13 @@ public final class CloudMediaProviderContract {
      * {@hide}
      */
     public static final String EXTRA_ERROR_MESSAGE = "android.provider.extra.error_message";
+
+    /**
+     * Constant used to get/set the {@link CloudMediaProvider} authority.
+     *
+     * {@hide}
+     */
+    public static final String EXTRA_AUTHORITY = "android.provider.extra.authority";
 
     /**
      * URI path for {@link CloudMediaProvider#onQueryMedia}

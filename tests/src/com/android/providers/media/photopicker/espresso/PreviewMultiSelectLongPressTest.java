@@ -103,7 +103,7 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
                      = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
             // Verify video player is displayed
             assertMultiSelectLongPressCommonLayoutMatches();
-            onView(withId(R.id.preview_player_view)).check(matches(isDisplayed()));
+            onView(withId(R.id.preview_player_container)).check(matches(isDisplayed()));
             // Verify no special format icon is previewed
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
             onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());

@@ -38,8 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Wyczyść"</string>
     <string name="allow" msgid="8885707816848569619">"Zezwól"</string>
     <string name="deny" msgid="6040983710442068936">"Odmów"</string>
-    <!-- no translation found for picker_browse (5554477454636075934) -->
-    <skip />
+    <string name="picker_browse" msgid="5554477454636075934">"Przeglądaj…"</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Odznacz"</string>
     <string name="deselected" msgid="8488133193326208475">"Usunięto wybór"</string>
@@ -77,8 +76,12 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Zdjęcie ruchome"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Wycisz wideo"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Wyłącz wyciszenie wideo"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Odtwórz film"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Wstrzymaj film"</string>
+    <!-- no translation found for picker_play_video (7106025944628666250) -->
+    <skip />
+    <!-- no translation found for picker_pause_video (1092718225234326702) -->
+    <skip />
+    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
+    <skip />
     <string name="not_selected" msgid="2244008151669896758">"nie wybrano"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Zezwolić aplikacji <xliff:g id="APP_NAME_0">^1</xliff:g> na zmodyfikowanie tego pliku audio?}few{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> plików audio?}many{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> plików audio?}other{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> pliku audio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modyfikuję plik audio…}few{Modyfikuję <xliff:g id="COUNT">^1</xliff:g> pliki audio…}many{Modyfikuję <xliff:g id="COUNT">^1</xliff:g> plików audio…}other{Modyfikuję <xliff:g id="COUNT">^1</xliff:g> pliku audio…}}"</string>

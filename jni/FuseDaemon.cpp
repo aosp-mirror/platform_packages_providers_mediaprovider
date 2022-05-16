@@ -2225,6 +2225,10 @@ bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& pa
     return use_fuse;
 }
 
+bool FuseDaemon::UsesFusePassthrough() const {
+    return fuse->passthrough;
+}
+
 void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
     LOG(VERBOSE) << "Invalidating FUSE dentry cache";
     if (active.load(std::memory_order_acquire)) {

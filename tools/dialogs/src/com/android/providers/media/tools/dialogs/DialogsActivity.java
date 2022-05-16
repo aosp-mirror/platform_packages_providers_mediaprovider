@@ -17,6 +17,9 @@
 package com.android.providers.media.tools.dialogs;
 
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
+import static android.Manifest.permission.READ_MEDIA_AUDIO;
+import static android.Manifest.permission.READ_MEDIA_IMAGES;
+import static android.Manifest.permission.READ_MEDIA_VIDEO;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
@@ -25,6 +28,7 @@ import android.app.PendingIntent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
@@ -62,11 +66,23 @@ public class DialogsActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (checkSelfPermission(READ_EXTERNAL_STORAGE) != PERMISSION_GRANTED
-                || checkSelfPermission(WRITE_EXTERNAL_STORAGE) != PERMISSION_GRANTED) {
-            requestPermissions(new String[] { READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE }, 42);
-            finish();
-            return;
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+            if (checkSelfPermission(READ_EXTERNAL_STORAGE) != PERMISSION_GRANTED
+                    || checkSelfPermission(WRITE_EXTERNAL_STORAGE) != PERMISSION_GRANTED) {
+                requestPermissions(new String[]{READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE}, 42);
+                android.util.Log.d("doc", "finish");
+                finish();
+                return;
+            }
+        } else {
+            if (checkSelfPermission(READ_MEDIA_AUDIO) != PERMISSION_GRANTED
+                    || checkSelfPermission(READ_MEDIA_IMAGES) != PERMISSION_GRANTED
+                    || checkSelfPermission(READ_MEDIA_VIDEO) != PERMISSION_GRANTED) {
+                requestPermissions(
+                        new String[]{READ_MEDIA_AUDIO, READ_MEDIA_IMAGES, READ_MEDIA_VIDEO}, 42);
+                finish();
+                return;
+            }
         }
 
         mBody = new LinearLayout(this);

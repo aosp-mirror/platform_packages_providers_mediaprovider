@@ -50,6 +50,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.build.SdkLevel;
+
 public class PermissionUtils {
 
     // Callers must hold both the old and new permissions, so that we can
@@ -158,7 +160,8 @@ public class PermissionUtils {
             @Nullable String attributionTag,
             boolean targetSdkIsAtLeastT) {
 
-        String permission = targetSdkIsAtLeastT ? READ_MEDIA_AUDIO : READ_EXTERNAL_STORAGE;
+        String permission = targetSdkIsAtLeastT && SdkLevel.isAtLeastT()
+                ? READ_MEDIA_AUDIO : READ_EXTERNAL_STORAGE;
 
         if (!checkPermissionForPreflight(context, permission, pid, uid, packageName)) {
             return false;
@@ -186,7 +189,8 @@ public class PermissionUtils {
             @NonNull String packageName,
             @Nullable String attributionTag,
             boolean targetSdkIsAtLeastT) {
-        String permission = targetSdkIsAtLeastT ? READ_MEDIA_VIDEO : READ_EXTERNAL_STORAGE;
+        String permission = targetSdkIsAtLeastT && SdkLevel.isAtLeastT()
+                ? READ_MEDIA_VIDEO : READ_EXTERNAL_STORAGE;
 
         if (!checkPermissionForPreflight(context, permission, pid, uid, packageName)) {
             return false;
@@ -215,7 +219,8 @@ public class PermissionUtils {
             @NonNull String packageName,
             @Nullable String attributionTag,
             boolean targetSdkIsAtLeastT) {
-        String permission = targetSdkIsAtLeastT ? READ_MEDIA_IMAGES : READ_EXTERNAL_STORAGE;
+        String permission = targetSdkIsAtLeastT && SdkLevel.isAtLeastT()
+                ? READ_MEDIA_IMAGES : READ_EXTERNAL_STORAGE;
 
         if (!checkPermissionForPreflight(context, permission, pid, uid, packageName)) {
             return false;

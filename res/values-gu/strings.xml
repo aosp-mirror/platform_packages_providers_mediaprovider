@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"સાફ કરો"</string>
     <string name="allow" msgid="8885707816848569619">"મંજૂરી આપો"</string>
     <string name="deny" msgid="6040983710442068936">"નકારો"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"બ્રાઉઝ કરો…"</string>
     <string name="add" msgid="2894574044585549298">"ઉમેરો"</string>
     <string name="deselect" msgid="4297825044827769490">"નાપસંદ કરો"</string>
     <string name="deselected" msgid="8488133193326208475">"નાપસંદ કર્યું"</string>
@@ -75,8 +76,10 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"મોશન ફોટો"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"વીડિયો મ્યૂટ કરો"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"વીડિયોનો અવાજ ચાલુ કરો"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"વીડિયો ચલાવો"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"વીડિયો થોભાવો"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"ચલાવો"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"અટકાવો"</string>
+    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
+    <skip />
     <string name="not_selected" msgid="2244008151669896758">"પસંદ નહીં કરેલી"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ને આ ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}one{<xliff:g id="COUNT">^1</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}other{<xliff:g id="COUNT">^1</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}}"</string>

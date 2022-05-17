@@ -281,10 +281,11 @@ final class RemotePreviewSession {
     }
 
     private void initUI() {
-        // We hide the player view and show the thumbnail till the player is ready and we know the
-        // media size. However, since we want the surface to be created, we cannot use View.GONE
-        // here.
-        mPreviewVideoHolder.getPlayerContainer().setVisibility(View.INVISIBLE);
+        // We show both the  player view and thumbnail view till the player is ready and we know the
+        // media size, then we hide the thumbnail view. This works because in the layout, the
+        // thumbnail view appears last in the FrameLayout container and will thus be shown over the
+        // player view.
+        mPreviewVideoHolder.getPlayerContainer().setVisibility(View.VISIBLE);
         mPreviewVideoHolder.getThumbnailView().setVisibility(View.VISIBLE);
         mPreviewVideoHolder.getPlayerControlsRoot().setVisibility(View.GONE);
 

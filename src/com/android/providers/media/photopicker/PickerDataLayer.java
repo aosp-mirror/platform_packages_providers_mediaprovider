@@ -69,6 +69,11 @@ public class PickerDataLayer {
             // Refresh the 'media' table
             mSyncController.syncAllMedia();
 
+            if (TextUtils.isEmpty(albumId)) {
+                // Notify that the picker is launched in case there's any pending UI notification
+                mSyncController.notifyPickerLaunch();
+            }
+
             // Fetch all merged and deduped cloud and local media from 'media' table
             // This also matches 'merged' albums like Favorites because |authority| will
             // be null, hence we have to fetch the data from the picker db

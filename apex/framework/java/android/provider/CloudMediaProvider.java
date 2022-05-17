@@ -17,6 +17,7 @@
 package android.provider;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
+import static android.provider.CloudMediaProviderContract.EXTRA_AUTHORITY;
 import static android.provider.CloudMediaProviderContract.EXTRA_ERROR_MESSAGE;
 import static android.provider.CloudMediaProviderContract.EXTRA_FILE_DESCRIPTOR;
 import static android.provider.CloudMediaProviderContract.EXTRA_GLIDE_DEFAULT_FRAME;
@@ -379,12 +380,14 @@ public abstract class CloudMediaProvider extends ContentProvider {
                 DEFAULT_LOOPING_PLAYBACK_ENABLED);
         final boolean muteAudio = extras.getBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
                 DEFAULT_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED);
+        final String authority = extras.getString(EXTRA_AUTHORITY);
         final CloudMediaSurfaceStateChangedCallback callback =
                 new CloudMediaSurfaceStateChangedCallback(
                         ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder));
         final Bundle config = new Bundle();
         config.putBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, enableLoop);
         config.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED, muteAudio);
+        config.putString(EXTRA_AUTHORITY, authority);
         final CloudMediaSurfaceController controller =
                 onCreateCloudMediaSurfaceController(config, callback);
         if (controller == null) {

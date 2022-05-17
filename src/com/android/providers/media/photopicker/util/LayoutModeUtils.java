@@ -33,7 +33,7 @@ public class LayoutModeUtils {
 
 
     public static class Mode {
-        public boolean shouldShowTabChips;
+        public boolean isPhotosTabOrAlbumsTab;
         public boolean isPreview;
         @IntDef(prefix = { "MODE_" }, value = {
                 MODE_PHOTOS_TAB,
@@ -54,15 +54,15 @@ public class LayoutModeUtils {
             switch(modeType) {
                 case MODE_PHOTOS_TAB:
                 case MODE_ALBUMS_TAB:
-                    mode.shouldShowTabChips = true;
+                    mode.isPhotosTabOrAlbumsTab = true;
                     mode.isPreview = false;
                     break;
                 case MODE_ALBUM_PHOTOS_TAB:
-                    mode.shouldShowTabChips = false;
+                    mode.isPhotosTabOrAlbumsTab = false;
                     mode.isPreview = false;
                     break;
                 case MODE_PREVIEW:
-                    mode.shouldShowTabChips = false;
+                    mode.isPhotosTabOrAlbumsTab = false;
                     mode.isPreview = true;
                     break;
                 default:

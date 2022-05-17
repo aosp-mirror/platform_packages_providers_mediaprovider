@@ -30,31 +30,44 @@
 namespace mediaprovider {
 namespace {
 
-constexpr const char* CLASS_NAME = "com/android/providers/media/fuse/FuseDaemon";
+constexpr const char* FUSE_DAEMON_CLASS_NAME = "com/android/providers/media/fuse/FuseDaemon";
+constexpr const char* FD_ACCESS_RESULT_CLASS_NAME = "com/android/providers/media/FdAccessResult";
 static jclass gFuseDaemonClass;
+static jclass gFdAccessResultClass;
+static jmethodID gFdAccessResultCtor;
 
-static std::vector<std::string> get_supported_transcoding_relative_paths(
-        JNIEnv* env, jobjectArray java_supported_transcoding_relative_paths) {
-    ScopedLocalRef<jobjectArray> j_transcoding_relative_paths(
-            env, java_supported_transcoding_relative_paths);
-    std::vector<std::string> transcoding_relative_paths;
+static std::vector<std::string> convert_object_array_to_string_vector(
+        JNIEnv* env, jobjectArray java_object_array, const std::string& element_description) {
+    ScopedLocalRef<jobjectArray> j_ref_object_array(env, java_object_array);
+    std::vector<std::string> utf_strings;
 
-    const int transcoding_relative_paths_count =
-            env->GetArrayLength(j_transcoding_relative_paths.get());
-    for (int i = 0; i < transcoding_relative_paths_count; i++) {
-        ScopedLocalRef<jstring> j_ref_relative_path(
-                env, (jstring)env->GetObjectArrayElement(j_transcoding_relative_paths.get(), i));
-        ScopedUtfChars j_utf_relative_path(env, j_ref_relative_path.get());
-        const char* relative_path = j_utf_relative_path.c_str();
+    const int object_array_length = env->GetArrayLength(j_ref_object_array.get());
+    for (int i = 0; i < object_array_length; i++) {
+        ScopedLocalRef<jstring> j_ref_string(
+                env, (jstring)env->GetObjectArrayElement(j_ref_object_array.get(), i));
+        ScopedUtfChars utf_chars(env, j_ref_string.get());
+        const char* utf_string = utf_chars.c_str();
 
-        if (relative_path) {
-            transcoding_relative_paths.push_back(relative_path);
+        if (utf_string) {
+            utf_strings.push_back(utf_string);
         } else {
-            LOG(ERROR) << "Error reading supported transcoding relative path at index: " << i;
+            LOG(ERROR) << "Error reading " << element_description << " at index: " << i;
         }
     }
 
-    return transcoding_relative_paths;
+    return utf_strings;
+}
+
+static std::vector<std::string> get_supported_transcoding_relative_paths(
+        JNIEnv* env, jobjectArray java_supported_transcoding_relative_paths) {
+    return convert_object_array_to_string_vector(env, java_supported_transcoding_relative_paths,
+                                                 "supported transcoding relative path");
+}
+
+static std::vector<std::string> get_supported_uncached_relative_paths(
+        JNIEnv* env, jobjectArray java_supported_uncached_relative_paths) {
+    return convert_object_array_to_string_vector(env, java_supported_uncached_relative_paths,
+                                                 "supported uncached relative path");
 }
 
 jlong com_android_providers_media_FuseDaemon_new(JNIEnv* env, jobject self,
@@ -65,7 +78,8 @@ jlong com_android_providers_media_FuseDaemon_new(JNIEnv* env, jobject self,
 
 void com_android_providers_media_FuseDaemon_start(
         JNIEnv* env, jobject self, jlong java_daemon, jint fd, jstring java_path,
-        jobjectArray java_supported_transcoding_relative_paths) {
+        jboolean uncached_mode, jobjectArray java_supported_transcoding_relative_paths,
+        jobjectArray java_supported_uncached_relative_paths) {
     LOG(DEBUG) << "Starting the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
 
@@ -79,8 +93,11 @@ void com_android_providers_media_FuseDaemon_start(
     const std::vector<std::string>& transcoding_relative_paths =
             get_supported_transcoding_relative_paths(env,
                     java_supported_transcoding_relative_paths);
+    const std::vector<std::string>& uncached_relative_paths =
+            get_supported_uncached_relative_paths(env, java_supported_uncached_relative_paths);
 
-    daemon->Start(std::move(ufd), utf_chars_path.c_str(), transcoding_relative_paths);
+    daemon->Start(std::move(ufd), utf_chars_path.c_str(), uncached_mode, transcoding_relative_paths,
+                  uncached_relative_paths);
 }
 
 bool com_android_providers_media_FuseDaemon_is_started(JNIEnv* env, jobject self,
@@ -114,6 +131,15 @@ jboolean com_android_providers_media_FuseDaemon_should_open_with_fuse(JNIEnv* en
     return JNI_FALSE;
 }
 
+jboolean com_android_providers_media_FuseDaemon_uses_fuse_passthrough(JNIEnv* env, jobject self,
+                                                                      jlong java_daemon) {
+    fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
+    if (daemon) {
+        return daemon->UsesFusePassthrough();
+    }
+    return JNI_FALSE;
+}
+
 void com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache(JNIEnv* env, jobject self,
                                                                          jlong java_daemon,
                                                                          jstring java_path) {
@@ -131,11 +157,13 @@ void com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache(JNIEnv*
     // TODO(b/145741152): Throw exception
 }
 
-jstring com_android_providers_media_FuseDaemon_get_original_media_format_file_path(
-        JNIEnv* env, jobject self, jlong java_daemon, jint fd) {
+jobject com_android_providers_media_FuseDaemon_check_fd_access(JNIEnv* env, jobject self,
+                                                               jlong java_daemon, jint fd,
+                                                               jint uid) {
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
-    const std::string path = daemon->GetOriginalMediaFormatFilePath(fd);
-    return env->NewStringUTF(path.c_str());
+    const std::unique_ptr<fuse::FdAccessResult> result = daemon->CheckFdAccess(fd, uid);
+    return env->NewObject(gFdAccessResultClass, gFdAccessResultCtor,
+                          env->NewStringUTF(result->file_path.c_str()), result->should_redact);
 }
 
 void com_android_providers_media_FuseDaemon_initialize_device_id(JNIEnv* env, jobject self,
@@ -157,12 +185,14 @@ bool com_android_providers_media_FuseDaemon_is_fuse_thread(JNIEnv* env, jclass c
 const JNINativeMethod methods[] = {
         {"native_new", "(Lcom/android/providers/media/MediaProvider;)J",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_new)},
-        {"native_start", "(JILjava/lang/String;[Ljava/lang/String;)V",
+        {"native_start", "(JILjava/lang/String;Z[Ljava/lang/String;[Ljava/lang/String;)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_start)},
         {"native_delete", "(J)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete)},
         {"native_should_open_with_fuse", "(JLjava/lang/String;ZI)Z",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_should_open_with_fuse)},
+        {"native_uses_fuse_passthrough", "(J)Z",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_uses_fuse_passthrough)},
         {"native_is_fuse_thread", "()Z",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_is_fuse_thread)},
         {"native_is_started", "(J)Z",
@@ -170,22 +200,33 @@ const JNINativeMethod methods[] = {
         {"native_invalidate_fuse_dentry_cache", "(JLjava/lang/String;)V",
          reinterpret_cast<void*>(
                  com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache)},
-        {"native_get_original_media_format_file_path", "(JI)Ljava/lang/String;",
-         reinterpret_cast<void*>(
-                 com_android_providers_media_FuseDaemon_get_original_media_format_file_path)},
+        {"native_check_fd_access", "(JII)Lcom/android/providers/media/FdAccessResult;",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_check_fd_access)},
         {"native_initialize_device_id", "(JLjava/lang/String;)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_initialize_device_id)}};
 }  // namespace
 
 void register_android_providers_media_FuseDaemon(JavaVM* vm, JNIEnv* env) {
-    gFuseDaemonClass = static_cast<jclass>(env->NewGlobalRef(env->FindClass(CLASS_NAME)));
+    gFuseDaemonClass =
+            static_cast<jclass>(env->NewGlobalRef(env->FindClass(FUSE_DAEMON_CLASS_NAME)));
+    gFdAccessResultClass =
+            static_cast<jclass>(env->NewGlobalRef(env->FindClass(FD_ACCESS_RESULT_CLASS_NAME)));
 
     if (gFuseDaemonClass == nullptr) {
-        LOG(FATAL) << "Unable to find class : " << CLASS_NAME;
+        LOG(FATAL) << "Unable to find class : " << FUSE_DAEMON_CLASS_NAME;
+    }
+
+    if (gFdAccessResultClass == nullptr) {
+        LOG(FATAL) << "Unable to find class : " << FD_ACCESS_RESULT_CLASS_NAME;
     }
 
     if (env->RegisterNatives(gFuseDaemonClass, methods, sizeof(methods) / sizeof(methods[0])) < 0) {
         LOG(FATAL) << "Unable to register native methods";
+    }
+
+    gFdAccessResultCtor = env->GetMethodID(gFdAccessResultClass, "<init>", "(Ljava/lang/String;Z)V");
+    if (gFdAccessResultCtor == nullptr) {
+        LOG(FATAL) << "Unable to find ctor for FdAccessResult";
     }
 
     fuse::MediaProviderWrapper::OneTimeInit(vm);

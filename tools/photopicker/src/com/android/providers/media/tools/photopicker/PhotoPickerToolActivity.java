@@ -101,6 +101,8 @@ public class PhotoPickerToolActivity extends Activity {
                 try {
                     mMaxCount = Integer.parseInt(mMaxCountText.getText().toString().trim());
                 } catch (NumberFormatException ex) {
+                    // The input is not an integer type, set the mMaxCount to -1.
+                    mMaxCount = -1;
                     final String wrongFormatWarning =
                             "The count format is wrong! Please input correct number!";
                     Snackbar.make(mMaxCountText, wrongFormatWarning, Snackbar.LENGTH_LONG).show();
@@ -253,7 +255,7 @@ public class PhotoPickerToolActivity extends Activity {
     private ImageView generateImageView(Uri uri, LinearLayout.LayoutParams params) {
         final ImageView image = new ImageView(this);
         image.setLayoutParams(params);
-        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
         Glide.with(this)
                 .load(uri)
                 .thumbnail()

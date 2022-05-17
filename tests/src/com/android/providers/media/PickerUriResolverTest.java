@@ -19,7 +19,6 @@ package com.android.providers.media;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.provider.MediaStore.MediaColumns._ID;
-import static android.provider.MediaStore.MediaColumns.RELATIVE_PATH;
 
 import static androidx.test.InstrumentationRegistry.getTargetContext;
 
@@ -31,13 +30,13 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import android.Manifest;
-import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
@@ -50,7 +49,6 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.scan.MediaScannerTest;
 
 import org.junit.AfterClass;
@@ -74,20 +72,36 @@ public class PickerUriResolverTest {
     private static Context sCurrentContext;
     private static TestPickerUriResolver sTestPickerUriResolver;
     private static Uri sTestPickerUri;
-    private static PickerDbFacade sPickerDbFacade;
     private static String TEST_ID;
 
     private static class TestPickerUriResolver extends PickerUriResolver {
-        TestPickerUriResolver(Context context, PickerDbFacade facade) {
-            super(context, facade);
+        TestPickerUriResolver(Context context) {
+            super(context, new PickerDbFacade(getTargetContext()));
         }
 
         @Override
-        protected Uri getRedactedUri(ContentResolver contentResolver, Uri uri) {
-            // Cannot mock static method MediaStore.getRedactedUri(). Cannot mock implementation of
-            // MediaStore.getRedactedUri as it depends on final methods which cannot be mocked as
-            // well.
-            return uri;
+        Cursor queryPickerUri(Uri uri, String[] projection) {
+            if (!uri.getLastPathSegment().equals(TEST_ID)) {
+                return super.queryPickerUri(uri, projection);
+            }
+
+            final String[] p = new String[] {
+                CloudMediaProviderContract.MediaColumns.ID,
+                CloudMediaProviderContract.MediaColumns.MIME_TYPE
+            };
+
+            final MatrixCursor c = new MatrixCursor(p);
+            c.addRow(new String[] { TEST_ID, "image/jpeg"});
+            return c;
+        }
+
+        @Override
+        File getPickerFileFromUri(Uri uri) {
+            if (!uri.getLastPathSegment().equals(TEST_ID)) {
+                return super.getPickerFileFromUri(uri);
+            }
+
+            return TEST_FILE;
         }
     }
 
@@ -99,9 +113,10 @@ public class PickerUriResolverTest {
                         android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS);
         sCurrentContext = mock(Context.class);
+        when(sCurrentContext.getUser()).thenReturn(UserHandle.of(UserHandle.myUserId()));
+
         final Context otherUserContext = createOtherUserContext(TEST_USER);
-        sPickerDbFacade = new PickerDbFacade(otherUserContext);
-        sTestPickerUriResolver = new TestPickerUriResolver(sCurrentContext, sPickerDbFacade);
+        sTestPickerUriResolver = new TestPickerUriResolver(sCurrentContext);
 
         final Uri mediaStoreUriInOtherContext = createTestFileInContext(otherUserContext);
         TEST_ID = mediaStoreUriInOtherContext.getLastPathSegment();
@@ -180,6 +195,13 @@ public class PickerUriResolverTest {
         final String authority = "foo";
         final Uri uri = Uri.parse("content://foo/deleted_media");
         assertThat(PickerUriResolver.getDeletedMediaUri(authority)).isEqualTo(uri);
+    }
+
+    @Test
+    public void testCreateSurfaceControllerUri() throws Exception {
+        final String authority = "foo";
+        final Uri uri = Uri.parse("content://foo/surface_controller");
+        assertThat(PickerUriResolver.createSurfaceControllerUri(authority)).isEqualTo(uri);
     }
 
     @Test
@@ -277,7 +299,7 @@ public class PickerUriResolverTest {
     public void testPickerUriResolver_userValid() throws Exception {
         updateReadUriPermission(sTestPickerUri, /* grant */ true);
 
-        testGetUserId(sTestPickerUri, UserHandle.of(TEST_USER));
+        assertThat(PickerUriResolver.getUserId(sTestPickerUri)).isEqualTo(TEST_USER);
         testOpenFile(sTestPickerUri);
         testOpenTypedAssetFile(sTestPickerUri);
         testQuery(sTestPickerUri);
@@ -289,8 +311,11 @@ public class PickerUriResolverTest {
         // For unit testing: IsolatedContext is the context of another User: user.
         // PickerUriResolver should correctly be able to call into other user's content resolver
         // from the current context.
-        final Context otherUserContext = new MediaScannerTest.IsolatedContext(getTargetContext(),
-                "databases", /* asFuseThread */ false);
+        final MediaScannerTest.IsolatedContext otherUserContext =
+                new MediaScannerTest.IsolatedContext(getTargetContext(), "databases",
+                        /* asFuseThread */ false, userHandle);
+        otherUserContext.setPickerUriResolver(new TestPickerUriResolver(otherUserContext));
+
         when(sCurrentContext.createPackageContextAsUser("android", /* flags= */ 0, userHandle)).
                 thenReturn(otherUserContext);
         return otherUserContext;
@@ -316,20 +341,12 @@ public class PickerUriResolverTest {
     }
 
     private static Uri getPickerUriForId(long id, int user) {
-        if (PickerDbFacade.isPickerDbEnabled()) {
-            final Uri providerUri = PickerUriResolver
-                    .getMediaUri(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
-                    .buildUpon()
-                    .appendPath(String.valueOf(id))
-                    .build();
-            return PickerUriResolver.wrapProviderUri(providerUri, user);
-        }
-        return Uri.parse("content://media/picker/" + user + "/" + id);
-    }
-
-    private void testGetUserId(Uri uri, UserHandle userHandle) {
-        assertThat(PickerUriResolver.getUserId(uri).toString()).isEqualTo(
-                UserId.of(userHandle).toString());
+        final Uri providerUri = PickerUriResolver
+                .getMediaUri(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                .buildUpon()
+                .appendPath(String.valueOf(id))
+                .build();
+        return PickerUriResolver.wrapProviderUri(providerUri, user);
     }
 
     private void testOpenFile(Uri uri) throws Exception {
@@ -348,8 +365,7 @@ public class PickerUriResolverTest {
 
     private void testQuery(Uri uri) throws Exception {
         Cursor result = sTestPickerUriResolver.query(uri,
-                /* projection */ new String[]{_ID},
-                /* queryArgs */ null, /* signal */ null, /* callingPid */ -1, /* callingUid */ -1);
+                /* projection */ new String[]{_ID}, /* callingPid */ -1, /* callingUid */ -1);
         assertThat(result).isNotNull();
         assertThat(result.getCount()).isEqualTo(1);
         result.moveToFirst();
@@ -368,9 +384,7 @@ public class PickerUriResolverTest {
             fail("Invalid user specified in the picker uri: " + uri);
         } catch (FileNotFoundException expected) {
             // expected
-            assertThat(expected.getMessage()).isEqualTo("File not found due to unavailable content"
-                    + " resolver for uri: " + uri
-                    + " ; error: android.content.pm.PackageManager$NameNotFoundException");
+            assertThat(expected.getMessage()).isEqualTo("No item at " + uri);
         }
     }
 
@@ -381,15 +395,13 @@ public class PickerUriResolverTest {
             fail("Invalid user specified in the picker uri: " + uri);
         } catch (FileNotFoundException expected) {
             // expected
-            assertThat(expected.getMessage()).isEqualTo("File not found due to unavailable content"
-                    + " resolver for uri: " + uri
-                    + " ; error: android.content.pm.PackageManager$NameNotFoundException");
+            assertThat(expected.getMessage()).isEqualTo("No item at " + uri);
         }
     }
 
     private void testQueryInvalidUser(Uri uri) throws Exception {
         Cursor result = sTestPickerUriResolver.query(uri, /* projection */ null,
-                /* queryArgs */ null, /* signal */ null, /* callingPid */ -1, /* callingUid */ -1);
+                /* callingPid */ -1, /* callingUid */ -1);
         assertThat(result).isNotNull();
         assertThat(result.getCount()).isEqualTo(0);
     }
@@ -398,11 +410,10 @@ public class PickerUriResolverTest {
         try {
             sTestPickerUriResolver.getType(uri);
             fail("Invalid user specified in the picker uri: " + uri);
-        } catch (IllegalArgumentException expected) {
+        } catch (IllegalStateException expected) {
             // expected
-            assertThat(expected.getMessage()).isEqualTo("File not found due to unavailable "
-                    + "content resolver for uri: " + uri
-                    + " ; error: android.content.pm.PackageManager$NameNotFoundException");
+            assertThat(expected.getMessage()).isEqualTo("Cannot find content resolver for uri: "
+                    + uri);
         }
     }
 
@@ -434,8 +445,8 @@ public class PickerUriResolverTest {
 
     private void testQuery_permissionDenied(Uri uri) throws Exception {
         try {
-            sTestPickerUriResolver.query(uri, /* projection */ null, /* queryArgs */ null,
-                    /* signal */ null, /* callingPid */ -1, /* callingUid */ -1);
+            sTestPickerUriResolver.query(uri, /* projection */ null
+                    , /* callingPid */ -1, /* callingUid */ -1);
             fail("query should fail if the caller does not have permission grant on"
                     + " the picker uri: " + uri);
         } catch (SecurityException expected) {

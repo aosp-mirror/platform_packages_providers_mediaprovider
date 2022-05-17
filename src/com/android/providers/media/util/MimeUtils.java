@@ -29,23 +29,6 @@ import java.util.Locale;
 import java.util.Objects;
 
 public class MimeUtils {
-    /**
-     * Variant of {@link Objects#equal(Object, Object)} but which tests with
-     * case-insensitivity.
-     */
-    public static boolean equalIgnoreCase(@Nullable String a, @Nullable String b) {
-        return (a != null) && a.equalsIgnoreCase(b);
-    }
-
-    /**
-     * Variant of {@link String#startsWith(String)} but which tests with
-     * case-insensitivity.
-     */
-    public static boolean startsWithIgnoreCase(@Nullable String target, @Nullable String other) {
-        if (target == null || other == null) return false;
-        if (other.length() > target.length()) return false;
-        return target.regionMatches(true, 0, other, 0, other.length());
-    }
 
     /**
      * Resolve the MIME type of the given file, returning
@@ -114,17 +97,17 @@ public class MimeUtils {
 
     public static boolean isAudioMimeType(@Nullable String mimeType) {
         if (mimeType == null) return false;
-        return startsWithIgnoreCase(mimeType, "audio/");
+        return StringUtils.startsWithIgnoreCase(mimeType, "audio/");
     }
 
     public static boolean isVideoMimeType(@Nullable String mimeType) {
         if (mimeType == null) return false;
-        return startsWithIgnoreCase(mimeType, "video/");
+        return StringUtils.startsWithIgnoreCase(mimeType, "video/");
     }
 
     public static boolean isImageMimeType(@Nullable String mimeType) {
         if (mimeType == null) return false;
-        return startsWithIgnoreCase(mimeType, "image/");
+        return StringUtils.startsWithIgnoreCase(mimeType, "image/");
     }
 
     public static boolean isImageOrVideoMediaType(int mediaType) {
@@ -170,7 +153,7 @@ public class MimeUtils {
     public static boolean isDocumentMimeType(@Nullable String mimeType) {
         if (mimeType == null) return false;
 
-        if (startsWithIgnoreCase(mimeType, "text/")) return true;
+        if (StringUtils.startsWithIgnoreCase(mimeType, "text/")) return true;
 
         switch (mimeType.toLowerCase(Locale.ROOT)) {
             case "application/epub+zip":

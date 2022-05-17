@@ -19,10 +19,11 @@ package com.android.providers.media.photopicker.util;
 import static android.icu.text.DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE;
 import static android.icu.text.RelativeDateTimeFormatter.Style.LONG;
 
-import android.content.Context;
+import android.icu.text.DateFormat;
+import android.icu.text.DisplayContext;
 import android.icu.text.RelativeDateTimeFormatter;
-import android.icu.text.RelativeDateTimeFormatter.Direction;
 import android.icu.text.RelativeDateTimeFormatter.AbsoluteUnit;
+import android.icu.text.RelativeDateTimeFormatter.Direction;
 import android.icu.util.ULocale;
 import android.text.format.DateUtils;
 
@@ -41,8 +42,12 @@ import java.util.Locale;
  */
 public class DateTimeUtils {
 
+    private static final String DATE_FORMAT_SKELETON_WITH_YEAR = "EMMMdy";
+    private static final String DATE_FORMAT_SKELETON_WITHOUT_YEAR = "EMMMd";
+    private static final String DATE_FORMAT_SKELETON_WITH_TIME = "MMMdyhmmss";
+
     /**
-     * Formats a time according to the local conventions.
+     * Formats a time according to the local conventions for PhotoGrid.
      *
      * If the difference of the date between the time and now is zero, show
      * "Today".
@@ -52,21 +57,34 @@ public class DateTimeUtils {
      * If they have different years, show the weekday, the date and the year.
      * E.g. "Sat, Jun 5, 2021"
      *
-     * @param context the context
      * @param when    the time to be formatted. The unit is in milliseconds
      *                since January 1, 1970 00:00:00.0 UTC.
      * @return the formatted string
      */
-    public static String getDateTimeString(Context context, long when) {
+    public static String getDateHeaderString(long when) {
         // Get the system time zone
         final ZoneId zoneId = ZoneId.systemDefault();
         final LocalDate nowDate = LocalDate.now(zoneId);
 
-        return getDateTimeString(context, when, nowDate);
+        return getDateHeaderString(when, nowDate);
+    }
+
+    /**
+     * Formats a time according to the local conventions for content description.
+     *
+     * The format of the returned string is fixed to {@code DATE_FORMAT_SKELETON_WITH_TIME}.
+     * E.g. "Feb 2, 2022, 2:22:22 PM"
+     *
+     * @param when    the time to be formatted. The unit is in milliseconds
+     *                since January 1, 1970 00:00:00.0 UTC.
+     * @return the formatted string
+     */
+    public static String getDateTimeStringForContentDesc(long when) {
+        return getDateTimeString(when, DATE_FORMAT_SKELETON_WITH_TIME, Locale.getDefault());
     }
 
     @VisibleForTesting
-    static String getDateTimeString(Context context, long when, LocalDate nowDate) {
+    static String getDateHeaderString(long when, LocalDate nowDate) {
         // Get the system time zone
         final ZoneId zoneId = ZoneId.systemDefault();
         final LocalDate whenDate = LocalDateTime.ofInstant(Instant.ofEpochMilli(when),
@@ -80,15 +98,22 @@ public class DateTimeUtils {
         } else if (dayDiff > 0 && dayDiff < 7) {
             return whenDate.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.getDefault());
         } else {
-            int flags = DateUtils.FORMAT_SHOW_WEEKDAY | DateUtils.FORMAT_SHOW_DATE
-                    | DateUtils.FORMAT_ABBREV_ALL;
+            final String skeleton;
             if (whenDate.getYear() == nowDate.getYear()) {
-                flags |= DateUtils.FORMAT_NO_YEAR;
+                skeleton = DATE_FORMAT_SKELETON_WITHOUT_YEAR;
             } else {
-                flags |= DateUtils.FORMAT_SHOW_YEAR;
+                skeleton = DATE_FORMAT_SKELETON_WITH_YEAR;
             }
-            return DateUtils.formatDateTime(context, when, flags);
+
+            return getDateTimeString(when, skeleton, Locale.getDefault());
         }
+    }
+
+    @VisibleForTesting
+    static String getDateTimeString(long when, String skeleton, Locale locale) {
+        final DateFormat format = DateFormat.getInstanceForSkeleton(skeleton, locale);
+        format.setContext(DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE);
+        return format.format(when);
     }
 
     /**

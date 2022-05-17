@@ -16,8 +16,10 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.provider.CloudMediaProviderContract.EXTRA_GENERATION;
-import static android.provider.CloudMediaProviderContract.MediaInfo;
+import static android.provider.CloudMediaProviderContract.EXTRA_AUTHORITY;
+import static android.provider.CloudMediaProviderContract.EXTRA_GLIDE_DEFAULT_FRAME;
+import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
+import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
 
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -25,22 +27,22 @@ import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Point;
 import android.net.Uri;
-import android.os.Binder;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProvider;
-import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.android.providers.media.LocalCallingIdentity;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import com.android.providers.media.photopicker.ui.remotepreview.RemotePreviewHandler;
+import com.android.providers.media.photopicker.ui.remotepreview.RemoteSurfaceController;
 
 import java.io.FileNotFoundException;
 
@@ -62,17 +64,12 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     }
 
     @Override
-    public Cursor onQueryMedia(@NonNull String mediaId) {
-        return mDbFacade.queryMediaId(Long.parseLong(mediaId));
-    }
-
-    @Override
     public Cursor onQueryMedia(@Nullable Bundle extras) {
         // TODO(b/190713331): Handle extra_page
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        return mDbFacade.queryMediaGeneration(queryExtras.getGeneration(), queryExtras.getAlbumId(),
+        return mDbFacade.queryMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
                 queryExtras.getMimeType());
     }
 
@@ -93,14 +90,23 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     }
 
     @Override
-    public AssetFileDescriptor onOpenThumbnail(@NonNull String mediaId, @NonNull Point size,
-            @NonNull CancellationSignal signal) throws FileNotFoundException {
+    public AssetFileDescriptor onOpenPreview(@NonNull String mediaId, @NonNull Point size,
+            @NonNull Bundle extras, @NonNull CancellationSignal signal)
+            throws FileNotFoundException {
         final Bundle opts = new Bundle();
         opts.putParcelable(ContentResolver.EXTRA_SIZE, size);
 
+        String mimeTypeFilter = null;
+        if (extras.getBoolean(EXTRA_GLIDE_DEFAULT_FRAME)) {
+            // If the thumbnail requested is requested with the default frame of the video, we can
+            // use MediaProvider's thumbnail cache which fetches the frames from the middle of the
+            // video. Set mimeTypeFilter to "image/*" to use MediaProvider thumbnail in this case.
+            mimeTypeFilter = "image/*";
+        }
+
         final LocalCallingIdentity token = mMediaProvider.clearLocalCallingIdentity();
         try {
-            return mMediaProvider.openTypedAssetFile(fromMediaId(mediaId), "image/*", opts);
+            return mMediaProvider.openTypedAssetFile(fromMediaId(mediaId), mimeTypeFilter, opts);
         } finally {
             mMediaProvider.restoreLocalCallingIdentity(token);
         }
@@ -108,7 +114,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
 
     @Override
     public ParcelFileDescriptor onOpenMedia(@NonNull String mediaId,
-            @NonNull CancellationSignal signal)
+            @NonNull Bundle extras, @NonNull CancellationSignal signal)
             throws FileNotFoundException {
         final LocalCallingIdentity token = mMediaProvider.clearLocalCallingIdentity();
         try {
@@ -119,23 +125,27 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     }
 
     @Override
-    public Bundle onGetMediaInfo(@Nullable Bundle extras) {
+    public Bundle onGetMediaCollectionInfo(@Nullable Bundle extras) {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        // TODO(b/190713331): Handle extra_filter_albums
-        Bundle bundle = new Bundle();
-        try (Cursor cursor = mDbFacade.getMediaInfo(queryExtras.getGeneration())) {
-            if (cursor.moveToFirst()) {
-                int generationIndex = cursor.getColumnIndexOrThrow(MediaInfo.MEDIA_GENERATION);
-                int countIndex = cursor.getColumnIndexOrThrow(MediaInfo.MEDIA_COUNT);
+        return mDbFacade.getMediaCollectionInfo(queryExtras.getGeneration());
+    }
 
-                bundle.putString(MediaInfo.MEDIA_VERSION, MediaStore.getVersion(getContext()));
-                bundle.putLong(MediaInfo.MEDIA_GENERATION, cursor.getLong(generationIndex));
-                bundle.putLong(MediaInfo.MEDIA_COUNT, cursor.getLong(countIndex));
-            }
+    @Override
+    @Nullable
+    public CloudMediaSurfaceController onCreateCloudMediaSurfaceController(@NonNull Bundle config,
+            CloudMediaSurfaceStateChangedCallback callback) {
+        if (RemotePreviewHandler.isRemotePreviewEnabled()) {
+            final String authority = config.getString(EXTRA_AUTHORITY,
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+            final boolean enableLoop = config.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, false);
+            final boolean muteAudio = config.getBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
+                    false);
+            return new RemoteSurfaceController(getContext(), authority, enableLoop, muteAudio,
+                    callback);
         }
-        return bundle;
+        return null;
     }
 
     private MediaProvider getMediaProvider() {
@@ -148,7 +158,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     }
 
     private static Uri fromMediaId(String mediaId) {
-        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY,
+        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
                 Long.parseLong(mediaId));
     }
 }

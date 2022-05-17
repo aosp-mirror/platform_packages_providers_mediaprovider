@@ -463,6 +463,12 @@ public class ModernMediaScannerTest {
         // DCIM/Camera should always be visible
         final File cameraDir = new File(root, Environment.DIRECTORY_DCIM + "/" + "Camera");
         assertVisibleFolder(cameraDir);
+
+        // Screenshots should always be visible
+        for (String dirName : FileUtils.DEFAULT_FOLDER_NAMES) {
+            File screenshotsDir = new File(root, dirName + "/" + Environment.DIRECTORY_SCREENSHOTS);
+            assertVisibleFolder(screenshotsDir);
+        }
     }
 
     /**

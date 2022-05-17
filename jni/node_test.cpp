@@ -7,7 +7,6 @@
 #include <memory>
 #include <mutex>
 
-using mediaprovider::fuse::dirhandle;
 using mediaprovider::fuse::handle;
 using mediaprovider::fuse::node;
 using mediaprovider::fuse::NodeTracker;
@@ -33,7 +32,7 @@ class NodeTest : public ::testing::Test {
 
     unique_node_ptr CreateNode(node* parent, const std::string& path, const int transforms = 0) {
         return unique_node_ptr(
-                node::Create(parent, path, "", true, true, transforms, 0, &lock_, 0, &tracker_),
+                node::Create(parent, path, "", true, transforms, 0, &lock_, 0, &tracker_),
                 &NodeTest::destroy);
     }
 
@@ -68,7 +67,7 @@ TEST_F(NodeTest, TestCreate_withParent) {
 }
 
 TEST_F(NodeTest, TestRelease) {
-    node* node = node::Create(nullptr, "/path", "", false, true, 0, 0, &lock_, 0, &tracker_);
+    node* node = node::Create(nullptr, "/path", "", true, 0, 0, &lock_, 0, &tracker_);
     acquire(node);
     acquire(node);
     ASSERT_EQ(3, GetRefCount(node));
@@ -278,10 +277,10 @@ TEST_F(NodeTest, DeleteTree) {
     unique_node_ptr parent = CreateNode(nullptr, "/path");
 
     // This is the tree that we intend to delete.
-    node* child = node::Create(parent.get(), "subdir", "", false, true, 0, 0, &lock_, 0, &tracker_);
-    node::Create(child, "s1", "", false, true, 0, 0, &lock_, 0, &tracker_);
-    node* subchild2 = node::Create(child, "s2", "", false, true, 0, 0, &lock_, 0, &tracker_);
-    node::Create(subchild2, "sc2", "", false, true, 0, 0, &lock_, 0, &tracker_);
+    node* child = node::Create(parent.get(), "subdir", "", true, 0, 0, &lock_, 0, &tracker_);
+    node::Create(child, "s1", "", true, 0, 0, &lock_, 0, &tracker_);
+    node* subchild2 = node::Create(child, "s2", "", true, 0, 0, &lock_, 0, &tracker_);
+    node::Create(subchild2, "sc2", "", true, 0, 0, &lock_, 0, &tracker_);
 
     ASSERT_EQ(child, parent->LookupChildByName("subdir", false /* acquire */));
     node::DeleteTree(child);
@@ -365,6 +364,80 @@ TEST_F(NodeTest, AddDestroyHandle) {
                                           true /* cached */, false /* passthrough */, 0 /* uid */,
                                           0 /* transforms_uid */));
     EXPECT_DEATH(node->DestroyHandle(h2.get()), "");
+}
+
+TEST_F(NodeTest, CheckHandleForUid_foundSingle_shouldRedact) {
+    unique_node_ptr node = CreateNode(nullptr, "/path");
+
+    off64_t ranges[2] = {0, 1};
+    mediaprovider::fuse::RedactionInfo* infoWithLocation =
+            new mediaprovider::fuse::RedactionInfo(1, ranges);
+
+    handle* h = new handle(-1, infoWithLocation, true /* cached */, false /* passthrough */,
+                           1 /* uid */, 0 /* transforms_uid */);
+
+    node->AddHandle(h);
+    std::unique_ptr<mediaprovider::fuse::FdAccessResult> res(node->CheckHandleForUid(1));
+    ASSERT_TRUE(res->should_redact);
+    ASSERT_EQ(res->file_path, "/path");
+}
+
+TEST_F(NodeTest, CheckHandleForUid_foundSingle_shouldNotRedact) {
+    unique_node_ptr node = CreateNode(nullptr, "/path");
+
+    mediaprovider::fuse::RedactionInfo* infoWithoutLocation = new mediaprovider::fuse::RedactionInfo;
+
+    handle* h = new handle(-1, infoWithoutLocation, true /* cached */, false /* passthrough */,
+                           1 /* uid */, 0 /* transforms_uid */);
+
+    node->AddHandle(h);
+    std::unique_ptr<mediaprovider::fuse::FdAccessResult> res(node->CheckHandleForUid(1));
+    ASSERT_FALSE(res->should_redact);
+    ASSERT_EQ(res->file_path, "/path");
+}
+
+TEST_F(NodeTest, CheckHandleForUid_foundMultiple_shouldNotRedact) {
+    unique_node_ptr node = CreateNode(nullptr, "/path");
+
+    off64_t ranges[2] = {0, 1};
+    mediaprovider::fuse::RedactionInfo* infoWithLocation =
+            new mediaprovider::fuse::RedactionInfo(1, ranges);
+    mediaprovider::fuse::RedactionInfo* infoWithoutLocation = new mediaprovider::fuse::RedactionInfo;
+
+    handle* h1 = new handle(-1, infoWithLocation, true /* cached */, false /* passthrough */,
+                            1 /* uid */, 0 /* transforms_uid */);
+    handle* h2 = new handle(-1, infoWithoutLocation, true /* cached */, false /* passthrough */,
+                            1 /* uid */, 0 /* transforms_uid */);
+
+    node->AddHandle(h1);
+    node->AddHandle(h2);
+    std::unique_ptr<mediaprovider::fuse::FdAccessResult> res(node->CheckHandleForUid(1));
+    ASSERT_FALSE(res->should_redact);
+    ASSERT_EQ(res->file_path, "/path");
+}
+
+TEST_F(NodeTest, CheckHandleForUid_notFound_differentUid) {
+    unique_node_ptr node = CreateNode(nullptr, "/path");
+
+    off64_t ranges[2] = {0, 1};
+    mediaprovider::fuse::RedactionInfo* infoWithLocation =
+            new mediaprovider::fuse::RedactionInfo(1, ranges);
+
+    handle* h = new handle(-1, infoWithLocation, true /* cached */, false /* passthrough */,
+                           2 /* uid */, 0 /* transforms_uid */);
+
+    node->AddHandle(h);
+    std::unique_ptr<mediaprovider::fuse::FdAccessResult> res(node->CheckHandleForUid(1));
+    ASSERT_FALSE(res->should_redact);
+    ASSERT_EQ(res->file_path, "");
+}
+
+TEST_F(NodeTest, CheckHandleForUid_notFound_noHandle) {
+    unique_node_ptr node = CreateNode(nullptr, "/path");
+
+    std::unique_ptr<mediaprovider::fuse::FdAccessResult> res(node->CheckHandleForUid(1));
+    ASSERT_FALSE(res->should_redact);
+    ASSERT_EQ(res->file_path, "");
 }
 
 TEST_F(NodeTest, CaseInsensitive) {

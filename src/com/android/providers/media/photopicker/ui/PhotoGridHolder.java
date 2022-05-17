@@ -17,7 +17,6 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
-import android.text.format.DateUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -36,7 +35,7 @@ public class PhotoGridHolder extends BaseViewHolder {
     private final ImageLoader mImageLoader;
     private final ImageView mIconThumb;
     private final ImageView mIconGif;
-    private final ImageView mIconVideo;
+    private final ImageView mIconMotionPhoto;
     private final View mVideoBadgeContainer;
     private final TextView mVideoDuration;
     private final View mOverlayGradient;
@@ -48,8 +47,8 @@ public class PhotoGridHolder extends BaseViewHolder {
 
         mIconThumb = itemView.findViewById(R.id.icon_thumbnail);
         mIconGif = itemView.findViewById(R.id.icon_gif);
+        mIconMotionPhoto = itemView.findViewById(R.id.icon_motion_photo);
         mVideoBadgeContainer = itemView.findViewById(R.id.video_container);
-        mIconVideo = mVideoBadgeContainer.findViewById(R.id.icon_video);
         mVideoDuration = mVideoBadgeContainer.findViewById(R.id.video_duration);
         mOverlayGradient = itemView.findViewById(R.id.overlay_gradient);
         mImageLoader = imageLoader;
@@ -67,15 +66,12 @@ public class PhotoGridHolder extends BaseViewHolder {
         final Item item = (Item) itemView.getTag();
         mImageLoader.loadPhotoThumbnail(item, mIconThumb);
 
-        if (item.isGif()) {
-            mIconGif.setVisibility(View.VISIBLE);
-        } else {
-            mIconGif.setVisibility(View.GONE);
-        }
+        mIconGif.setVisibility(item.isGifOrAnimatedWebp() ? View.VISIBLE : View.GONE);
+        mIconMotionPhoto.setVisibility(item.isMotionPhoto() ? View.VISIBLE : View.GONE);
 
         if (item.isVideo()) {
             mVideoBadgeContainer.setVisibility(View.VISIBLE);
-            mVideoDuration.setText(DateUtils.formatElapsedTime(item.getDuration() / 1000));
+            mVideoDuration.setText(item.getDurationText());
         } else {
             mVideoBadgeContainer.setVisibility(View.GONE);
         }
@@ -88,6 +84,7 @@ public class PhotoGridHolder extends BaseViewHolder {
     }
 
     private boolean showShowOverlayGradient(@NonNull Item item) {
-        return mCanSelectMultiple || item.isGif() || item.isVideo();
+        return mCanSelectMultiple || item.isGifOrAnimatedWebp() || item.isVideo() ||
+                item.isMotionPhoto();
     }
 }

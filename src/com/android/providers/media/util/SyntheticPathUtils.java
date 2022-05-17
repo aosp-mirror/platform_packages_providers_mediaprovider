@@ -81,8 +81,8 @@ public final class SyntheticPathUtils {
 
     public static List<String> extractSyntheticRelativePathSegements(String path, int userId) {
         final List<String> segments = new ArrayList<>();
-        final String syntheticDir = buildPrimaryVolumeFile(userId, getSyntheticRelativePath())
-                .getAbsolutePath();
+        final String syntheticDir = buildPrimaryVolumeFile(userId,
+                getSyntheticRelativePath()).getAbsolutePath();
 
         if (path.toLowerCase(Locale.ROOT).indexOf(syntheticDir.toLowerCase(Locale.ROOT)) < 0) {
             return segments;

@@ -49,7 +49,8 @@ public class AutoFitRecyclerView extends RecyclerView {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
         if (mIsGridLayout && mColumnWidth > 0) {
-            final int spanCount = Math.max(mMinimumSpanCount, getMeasuredWidth() / mColumnWidth);
+            final int spanCount = Math.max(mMinimumSpanCount,
+                    Math.round((float) getMeasuredWidth() / mColumnWidth));
             ((GridLayoutManager) getLayoutManager()).setSpanCount(spanCount);
         }
     }
@@ -57,9 +58,7 @@ public class AutoFitRecyclerView extends RecyclerView {
     @Override
     public void setLayoutManager(@Nullable RecyclerView.LayoutManager layoutManager) {
         super.setLayoutManager(layoutManager);
-        if (layoutManager instanceof GridLayoutManager) {
-            mIsGridLayout = true;
-        }
+        mIsGridLayout = (layoutManager instanceof GridLayoutManager);
     }
 
     public void setColumnWidth(int columnWidth) {

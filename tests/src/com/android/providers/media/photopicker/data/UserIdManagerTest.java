@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.data;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,8 @@ import static org.mockito.Mockito.when;
 import android.content.Context;
 import android.os.UserHandle;
 import android.os.UserManager;
+
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.photopicker.data.model.UserId;
 
@@ -60,19 +63,34 @@ public class UserIdManagerTest {
         when(mockContext.getSystemService(UserManager.class)).thenReturn(mockUserManager);
     }
 
+    @Test
+    public void testUserIdManagerThrowsErrorIfCalledFromNonMainThread() {
+        UserId currentUser = UserId.of(personalUser);
+        initializeUserIdManager(currentUser, Arrays.asList(personalUser));
+
+        assertThrows(IllegalStateException.class, () -> userIdManager.isMultiUserProfiles());
+        assertThrows(IllegalStateException.class, () -> userIdManager.getCurrentUserProfileId());
+        assertThrows(IllegalStateException.class, () -> userIdManager.isPersonalUserId());
+        assertThrows(IllegalStateException.class, () -> userIdManager.isManagedUserId());
+        assertThrows(IllegalStateException.class, () -> userIdManager.getPersonalUserId());
+        assertThrows(IllegalStateException.class, () -> userIdManager.getManagedUserId());
+    }
+
     // common cases for User Profiles
     @Test
     public void testUserIds_personaUser_currentUserIsPersonalUser() {
         // Returns the current user if there is only 1 user.
         UserId currentUser = UserId.of(personalUser);
         initializeUserIdManager(currentUser, Arrays.asList(personalUser));
-        assertThat(userIdManager.isMultiUserProfiles()).isFalse();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            assertThat(userIdManager.isMultiUserProfiles()).isFalse();
 
-        assertThat(userIdManager.isPersonalUserId()).isFalse();
-        assertThat(userIdManager.isManagedUserId()).isFalse();
+            assertThat(userIdManager.isPersonalUserId()).isFalse();
+            assertThat(userIdManager.isManagedUserId()).isFalse();
 
-        assertThat(userIdManager.getPersonalUserId()).isNull();
-        assertThat(userIdManager.getManagedUserId()).isNull();
+            assertThat(userIdManager.getPersonalUserId()).isNull();
+            assertThat(userIdManager.getManagedUserId()).isNull();
+        });
     }
 
     @Test
@@ -80,13 +98,15 @@ public class UserIdManagerTest {
         // Returns both if there are personal and managed users.
         UserId currentUser = UserId.of(personalUser);
         initializeUserIdManager(currentUser, Arrays.asList(personalUser, managedUser1));
-        assertThat(userIdManager.isMultiUserProfiles()).isTrue();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            assertThat(userIdManager.isMultiUserProfiles()).isTrue();
 
-        assertThat(userIdManager.isPersonalUserId()).isTrue();
-        assertThat(userIdManager.isManagedUserId()).isFalse();
+            assertThat(userIdManager.isPersonalUserId()).isTrue();
+            assertThat(userIdManager.isManagedUserId()).isFalse();
 
-        assertThat(userIdManager.getPersonalUserId()).isEqualTo(currentUser);
-        assertThat(userIdManager.getManagedUserId()).isEqualTo(UserId.of(managedUser1));
+            assertThat(userIdManager.getPersonalUserId()).isEqualTo(currentUser);
+            assertThat(userIdManager.getManagedUserId()).isEqualTo(UserId.of(managedUser1));
+        });
     }
 
     @Test
@@ -94,13 +114,15 @@ public class UserIdManagerTest {
         // Returns both if there are system and managed users.
         UserId currentUser = UserId.of(managedUser1);
         initializeUserIdManager(currentUser, Arrays.asList(personalUser, managedUser1));
-        assertThat(userIdManager.isMultiUserProfiles()).isTrue();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            assertThat(userIdManager.isMultiUserProfiles()).isTrue();
 
-        assertThat(userIdManager.isPersonalUserId()).isFalse();
-        assertThat(userIdManager.isManagedUserId()).isTrue();
+            assertThat(userIdManager.isPersonalUserId()).isFalse();
+            assertThat(userIdManager.isManagedUserId()).isTrue();
 
-        assertThat(userIdManager.getPersonalUserId()).isEqualTo(UserId.of(personalUser));
-        assertThat(userIdManager.getManagedUserId()).isEqualTo(currentUser);
+            assertThat(userIdManager.getPersonalUserId()).isEqualTo(UserId.of(personalUser));
+            assertThat(userIdManager.getManagedUserId()).isEqualTo(currentUser);
+        });
     }
 
     // other cases for User Profiles involving different users
@@ -109,28 +131,31 @@ public class UserIdManagerTest {
         // When there is no managed user, returns the current user.
         UserId currentUser = UserId.of(otherUser2);
         initializeUserIdManager(currentUser, Arrays.asList(otherUser1, otherUser2));
-        assertThat(userIdManager.isMultiUserProfiles()).isFalse();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            assertThat(userIdManager.isMultiUserProfiles()).isFalse();
 
-        assertThat(userIdManager.isPersonalUserId()).isFalse();
-        assertThat(userIdManager.isManagedUserId()).isFalse();
+            assertThat(userIdManager.isPersonalUserId()).isFalse();
+            assertThat(userIdManager.isManagedUserId()).isFalse();
 
-        assertThat(userIdManager.getPersonalUserId()).isNull();
-        assertThat(userIdManager.getManagedUserId()).isNull();
+            assertThat(userIdManager.getPersonalUserId()).isNull();
+            assertThat(userIdManager.getManagedUserId()).isNull();
+        });
     }
 
     @Test
-    public void testUserIds_otherUserAndManagedUserAndPersonalUser_currentUserIsOtherUser(
-        ) {
+    public void testUserIds_otherUserAndManagedUserAndPersonalUser_currentUserIsOtherUser() {
         UserId currentUser = UserId.of(otherUser1);
         initializeUserIdManager(currentUser, Arrays.asList(otherUser1, managedUser1,
                 personalUser));
-        assertThat(userIdManager.isMultiUserProfiles()).isFalse();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            assertThat(userIdManager.isMultiUserProfiles()).isFalse();
 
-        assertThat(userIdManager.isPersonalUserId()).isFalse();
-        assertThat(userIdManager.isManagedUserId()).isFalse();
+            assertThat(userIdManager.isPersonalUserId()).isFalse();
+            assertThat(userIdManager.isManagedUserId()).isFalse();
 
-        assertThat(userIdManager.getPersonalUserId()).isNull();
-        assertThat(userIdManager.getManagedUserId()).isNull();
+            assertThat(userIdManager.getPersonalUserId()).isNull();
+            assertThat(userIdManager.getManagedUserId()).isNull();
+        });
     }
 
     @Test
@@ -141,27 +166,33 @@ public class UserIdManagerTest {
         UserId currentUser = UserId.of(managedUser1);
         initializeUserIdManager(currentUser, Arrays.asList(otherUser1, managedUser1,
                 personalUser));
-        assertThat(userIdManager.isMultiUserProfiles()).isTrue();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            assertThat(userIdManager.isMultiUserProfiles()).isTrue();
 
-        assertThat(userIdManager.isPersonalUserId()).isFalse();
-        assertThat(userIdManager.isManagedUserId()).isTrue();
+            assertThat(userIdManager.isPersonalUserId()).isFalse();
+            assertThat(userIdManager.isManagedUserId()).isTrue();
 
-        assertThat(userIdManager.getPersonalUserId()).isEqualTo(UserId.of(personalUser));
-        assertThat(userIdManager.getManagedUserId()).isEqualTo(currentUser);
+            assertThat(userIdManager.getPersonalUserId()).isEqualTo(UserId.of(personalUser));
+            assertThat(userIdManager.getManagedUserId()).isEqualTo(currentUser);
+        });
     }
 
     @Test
     public void testUserIds_personalUserAndManagedUser_returnCachedList() {
         UserId currentUser = UserId.of(personalUser);
         initializeUserIdManager(currentUser, Arrays.asList(personalUser, managedUser1));
-        assertThat(userIdManager.getPersonalUserId()).isSameInstanceAs(
-                userIdManager.getPersonalUserId());
-        assertThat(userIdManager.getManagedUserId()).isSameInstanceAs(
-                userIdManager.getManagedUserId());
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            assertThat(userIdManager.getPersonalUserId()).isSameInstanceAs(
+                    userIdManager.getPersonalUserId());
+            assertThat(userIdManager.getManagedUserId()).isSameInstanceAs(
+                    userIdManager.getManagedUserId());
+        });
     }
 
     private void initializeUserIdManager(UserId current, List<UserHandle> usersOnDevice) {
         when(mockUserManager.getUserProfiles()).thenReturn(usersOnDevice);
-        userIdManager = new UserIdManager.RuntimeUserIdManager(mockContext, current);
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            userIdManager = new UserIdManager.RuntimeUserIdManager(mockContext, current);
+        });
     }
 }

@@ -44,28 +44,4 @@ public abstract class BaseViewHolder extends RecyclerView.ViewHolder {
     }
 
     public abstract void bind();
-
-    /**
-     * Called when view in this {@code RecyclerView.ViewHolder} has been recycled.
-     * <p>
-     * Optional method for BaseViewHolder subclasses to implement if they have additional actions to
-     * take on {@link RecyclerView.Adapter#onViewRecycled}
-     */
-    public void onViewRecycled() {};
-
-    /**
-     * Called when a view in this {@code RecyclerView.ViewHolder} has been attached to a window.
-     * <p>
-     * Optional method for BaseViewHolder subclasses to implement if they have additional actions to
-     * take on {@link RecyclerView.Adapter#onViewAttachedToWindow}
-     */
-    public void onViewAttachedToWindow() {};
-
-    /**
-     * Called when a view in this {@code RecyclerView.ViewHolder} has been detached from its window.
-     * <p>
-     * Optional method for BaseViewHolder subclasses to implement if they have additional actions to
-     * take on {@link RecyclerView.Adapter#onViewDetachedFromWindow}
-     */
-    public void onViewDetachedFromWindow() {};
 }

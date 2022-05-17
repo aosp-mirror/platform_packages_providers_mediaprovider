@@ -111,6 +111,57 @@ public class SpecialFormatDetectorTest {
     }
 
     @Test
+    public void testDetect_animatedWebp() throws Exception {
+        final File dir = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS);
+        final File file = stage(R.raw.test_animated_webp, new File(dir, TAG + System.nanoTime() +
+                ".webp"));
+
+        final Uri uri = MediaStore.scanFile(mIsolatedResolver, file);
+        assertThat(uri).isNotNull();
+
+        final Uri filesUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
+                ContentUris.parseId(uri));
+
+        try (Cursor cr = mIsolatedResolver.query(filesUri,
+                new String[]{MediaStore.Files.FileColumns.MIME_TYPE,
+                        MediaStore.Files.FileColumns._SPECIAL_FORMAT}, null, null, null)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertThat(cr.getString(0)).isEqualTo("image/webp");
+            assertThat(cr.getInt(1)).isEqualTo(
+                    MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP);
+        }
+
+        file.delete();
+    }
+
+    @Test
+    public void testDetect_nonAnimatedWebp() throws Exception {
+        final File dir = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS);
+        final File file = stage(R.raw.test_non_animated_webp, new File(dir, TAG + System.nanoTime()
+                + ".webp"));
+
+        final Uri uri = MediaStore.scanFile(mIsolatedResolver, file);
+        assertThat(uri).isNotNull();
+
+        final Uri filesUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
+                ContentUris.parseId(uri));
+
+        try (Cursor cr = mIsolatedResolver.query(filesUri,
+                new String[]{MediaStore.Files.FileColumns.MIME_TYPE,
+                        MediaStore.Files.FileColumns._SPECIAL_FORMAT}, null, null, null)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertThat(cr.getString(0)).isEqualTo("image/webp");
+            assertThat(cr.getInt(1)).isEqualTo(MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE);
+        }
+
+        file.delete();
+    }
+
+    @Test
     public void testDetect_notSpecialFormat() throws Exception {
         final File dir = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOWNLOADS);

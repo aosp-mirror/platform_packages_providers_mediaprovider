@@ -19,7 +19,7 @@
         android:height="24dp"
         android:viewportHeight="24"
         android:viewportWidth="24"
-        android:tint="@color/picker_toolbar_icon_color"
+        android:tint="?attr/pickerTextColor"
         android:autoMirrored="true">
     <path
         android:fillColor="@android:color/white"

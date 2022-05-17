@@ -53,13 +53,13 @@ public class MaxSelectionTest extends PhotoPickerBaseTest {
     public void testMaxSelection() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // Select image item thumbnail and verify select icon is selected
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_POSITION, ICON_CHECK_ID);
+        // Select first image item thumbnail and verify select icon is selected
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_CHECK_ID);
 
-        // Select gif item thumbnail and verify select icon is selected
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
-        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_CHECK_ID);
+        // Select second image item thumbnail and verify select icon is selected
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+        assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_CHECK_ID);
 
         // Click Video item thumbnail and verify select icon is not selected. Because we set the
         // max selection is 2.
@@ -79,9 +79,9 @@ public class MaxSelectionTest extends PhotoPickerBaseTest {
         onView(withContentDescription("Navigate up")).perform(click());
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        // DeSelect Gif item and verify select icon is not selected
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
-        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_CHECK_ID);
+        // DeSelect second image item and verify select icon is not selected
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+        assertItemNotSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_CHECK_ID);
 
         // Click Video item thumbnail and verify select icon is selected.
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);

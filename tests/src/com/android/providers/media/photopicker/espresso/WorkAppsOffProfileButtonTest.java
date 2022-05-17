@@ -43,11 +43,12 @@ public class WorkAppsOffProfileButtonTest extends PhotoPickerBaseTest {
 
     @Rule
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule =
-            new ActivityScenarioRule<>(PhotoPickerBaseTest.getMultiSelectionIntent());
+            new ActivityScenarioRule<>(PhotoPickerBaseTest.getSingleSelectionIntent());
 
     @Test
-    public void testProfileButton_dialog() throws Exception {
+    public void testProfileButton_dialog() {
         final int profileButtonId = R.id.profile_button;
+
         // Verify profile button is displayed
         onView(withId(profileButtonId)).check(matches(isDisplayed()));
         // Check the text on the button. It should be "Switch to work"
@@ -55,7 +56,8 @@ public class WorkAppsOffProfileButtonTest extends PhotoPickerBaseTest {
 
         // Verify onClick shows a dialog
         onView(withId(profileButtonId)).check(matches(isDisplayed())).perform(click());
-        onView(withText(R.string.picker_profile_work_paused_title)).check(matches(isDisplayed()));
+        onView(withText(R.string.picker_profile_work_paused_title)).check(
+                matches(isDisplayed()));
         onView(withText(R.string.picker_profile_work_paused_msg)).check(matches(isDisplayed()));
         onView(withText(android.R.string.ok)).check(matches(isDisplayed())).perform(click());
     }

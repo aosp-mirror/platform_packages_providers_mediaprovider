@@ -17,13 +17,14 @@
 #ifndef MEDIAPROVIDER_JNI_FUSEDAEMON_H_
 #define MEDIAPROVIDER_JNI_FUSEDAEMON_H_
 
+#include <android-base/unique_fd.h>
+
 #include <memory>
 #include <string>
 
-#include <android-base/unique_fd.h>
-
 #include "MediaProviderWrapper.h"
 #include "jni.h"
+#include "node-inl.h"
 
 struct fuse;
 namespace mediaprovider {
@@ -37,8 +38,9 @@ class FuseDaemon final {
     /**
      * Start the FUSE daemon loop that will handle filesystem calls.
      */
-    void Start(android::base::unique_fd fd, const std::string& path,
-               const std::vector<std::string>& supported_transcoding_relative_paths);
+    void Start(android::base::unique_fd fd, const std::string& path, const bool uncached_mode,
+               const std::vector<std::string>& supported_transcoding_relative_paths,
+               const std::vector<std::string>& supported_uncached_relative_paths);
 
     /**
      * Checks if the FUSE daemon is started.
@@ -51,14 +53,19 @@ class FuseDaemon final {
     bool ShouldOpenWithFuse(int fd, bool for_read, const std::string& path);
 
     /**
+     * Check if the FUSE daemon uses FUSE passthrough
+     */
+    bool UsesFusePassthrough() const;
+
+    /**
      * Invalidate FUSE VFS dentry cache entry for path
      */
     void InvalidateFuseDentryCache(const std::string& path);
 
     /**
-     * Return path of the original media format file for the given file descriptor.
+     * Checks if the given uid has access to the given fd with or without redaction.
      */
-    const std::string GetOriginalMediaFormatFilePath(int fd) const;
+    std::unique_ptr<FdAccessResult> CheckFdAccess(int fd, uid_t uid) const;
 
     /**
      * Initialize device id for the FUSE daemon with the FUSE device id of the given path.

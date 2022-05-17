@@ -77,6 +77,8 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"صدادار کردن ویدیو"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"پخش ویدیو"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"مکث ویدیو"</string>
+    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
+    <skip />
     <string name="not_selected" msgid="2244008151669896758">"انتخاب نشده است"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{به <xliff:g id="APP_NAME_0">^1</xliff:g> اجازه می‌دهید این فایل صوتی را تغییر دهد؟}one{به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را تغییر دهد؟}other{به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را تغییر دهد؟}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{درحال اصلاح فایل صوتی…}one{درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> فایل صوتی…}other{درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> فایل صوتی…}}"</string>

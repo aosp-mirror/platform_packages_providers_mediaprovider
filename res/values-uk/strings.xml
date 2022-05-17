@@ -38,8 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Очистити"</string>
     <string name="allow" msgid="8885707816848569619">"Дозволити"</string>
     <string name="deny" msgid="6040983710442068936">"Заборонити"</string>
-    <!-- no translation found for picker_browse (5554477454636075934) -->
-    <skip />
+    <string name="picker_browse" msgid="5554477454636075934">"Перегляд…"</string>
     <string name="add" msgid="2894574044585549298">"Додати"</string>
     <string name="deselect" msgid="4297825044827769490">"Не вибирати"</string>
     <string name="deselected" msgid="8488133193326208475">"Не вибрано"</string>
@@ -77,8 +76,12 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Фото з рухом"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Вимкнути звук у відео"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Увімкнути звук у відео"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Відтворити відео"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Призупинити відео"</string>
+    <!-- no translation found for picker_play_video (7106025944628666250) -->
+    <skip />
+    <!-- no translation found for picker_pause_video (1092718225234326702) -->
+    <skip />
+    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
+    <skip />
     <string name="not_selected" msgid="2244008151669896758">"не вибрано"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Дозволити додатку <xliff:g id="APP_NAME_0">^1</xliff:g> змінити цей аудіофайл?}one{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайл?}few{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайли?}many{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайлів?}other{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайлу?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Змінення аудіофайлу…}one{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлу…}few{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлів…}many{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлів…}other{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлу…}}"</string>

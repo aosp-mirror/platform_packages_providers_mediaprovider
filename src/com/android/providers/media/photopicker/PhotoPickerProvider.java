@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker;
 
+import static android.provider.CloudMediaProviderContract.EXTRA_AUTHORITY;
 import static android.provider.CloudMediaProviderContract.EXTRA_GLIDE_DEFAULT_FRAME;
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
@@ -136,10 +137,13 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     public CloudMediaSurfaceController onCreateCloudMediaSurfaceController(@NonNull Bundle config,
             CloudMediaSurfaceStateChangedCallback callback) {
         if (RemotePreviewHandler.isRemotePreviewEnabled()) {
-            boolean enableLoop = config.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, false);
-            boolean muteAudio = config.getBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
+            final String authority = config.getString(EXTRA_AUTHORITY,
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+            final boolean enableLoop = config.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, false);
+            final boolean muteAudio = config.getBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
                     false);
-            return new RemoteSurfaceController(getContext(), enableLoop, muteAudio, callback);
+            return new RemoteSurfaceController(getContext(), authority, enableLoop, muteAudio,
+                    callback);
         }
         return null;
     }

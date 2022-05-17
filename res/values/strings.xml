@@ -194,10 +194,13 @@
     <string name="picker_unmute_video">Unmute video</string>
 
     <!-- Content description for a button that playes the current video. [CHAR LIMIT=50] -->
-    <string name="picker_play_video">Play video</string>
+    <string name="picker_play_video">Play</string>
 
     <!-- Content description for a button that pauses the current video. [CHAR LIMIT=50] -->
-    <string name="picker_pause_video">Pause video</string>
+    <string name="picker_pause_video">Pause</string>
+
+    <!-- Toast notifying user that cloud media content is now available from an app on their device. [CHAR LIMIT=NONE] -->
+    <string name="picker_cloud_sync">Cloud media now available from <xliff:g id="pkg_name" example="Gmail">%1$s</xliff:g></string>
 
     <!-- Default not selected text used by accessibility for an element that can be unselected. [CHAR LIMIT=NONE] -->
     <string name="not_selected">not selected</string>

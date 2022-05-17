@@ -1068,7 +1068,16 @@ public class MediaProvider extends ContentProvider {
                 MIGRATION_LISTENER, mIdGenerator);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
         mPickerDbFacade = new PickerDbFacade(context);
-        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade, this);
+
+        final String localPickerProvider = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
+        final String allowedCloudProviders =
+                getStringDeviceConfig(PickerSyncController.ALLOWED_CLOUD_PROVIDERS_KEY,
+                        /* default */ "");
+        final int pickerSyncDelayMs = getIntDeviceConfig(PickerSyncController.SYNC_DELAY_MS,
+                /* default */ 5000);
+
+        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade,
+                localPickerProvider, allowedCloudProviders, pickerSyncDelayMs);
         mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade);
 
@@ -6333,12 +6342,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 // TODO(b/190713331): Remove after initial development
                 final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);
-                Log.i(TAG, "Developer initiated cloud provider switch: " + cloudProvider);
-                if (mPickerSyncController.setCloudProvider(cloudProvider)
-                        && SdkLevel.isAtLeastT()) {
-                    mStorageManager.setCloudMediaProvider(cloudProvider);
-                }
-                // fall through
+                Log.i(TAG, "Test initiated cloud provider switch: " + cloudProvider);
+                mPickerSyncController.forceSetCloudProvider(cloudProvider);
+                // fall-through
             }
             case MediaStore.SYNC_PROVIDERS_CALL: {
                 syncAllMedia();
@@ -6374,6 +6380,20 @@ public class MediaProvider extends ContentProvider {
                         notifyCloudEventResult);
                 return bundle;
             }
+            case MediaStore.USES_FUSE_PASSTHROUGH: {
+                boolean isEnabled = false;
+                try {
+                    FuseDaemon daemon = getFuseDaemonForFile(new File(arg));
+                    if (daemon != null) {
+                        isEnabled = daemon.usesFusePassthrough();
+                    }
+                } catch (FileNotFoundException e) {
+                }
+
+                Bundle bundle = new Bundle();
+                bundle.putBoolean(MediaStore.USES_FUSE_PASSTHROUGH_RESULT, isEnabled);
+                return bundle;
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
@@ -6384,8 +6404,7 @@ public class MediaProvider extends ContentProvider {
         // local_provider while running as MediaProvider
         final long t = Binder.clearCallingIdentity();
         try {
-            // TODO(b/190713331): Remove after initial development
-            Log.v(TAG, "Developer initiated provider sync");
+            Log.v(TAG, "Test initiated cloud provider sync");
             mPickerSyncController.syncAllMedia();
         } finally {
             Binder.restoreCallingIdentity(t);

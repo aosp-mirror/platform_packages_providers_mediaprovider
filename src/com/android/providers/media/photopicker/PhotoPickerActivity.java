@@ -16,14 +16,18 @@
 
 package com.android.providers.media.photopicker;
 
+import static android.content.Intent.ACTION_GET_CONTENT;
+
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -33,11 +37,8 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.UserHandle;
-import android.provider.MediaStore;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
@@ -54,14 +55,13 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.android.internal.logging.InstanceId;
-import com.android.internal.logging.InstanceIdSequence;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.TabContainerFragment;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
+import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -105,6 +105,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // This is required as GET_CONTENT with type "*/*" is also received by PhotoPicker due
+        // to higher priority than DocumentsUi. "*/*" mime type filter is caught as it is a superset
+        // of "image/*" and "video/*".
+        rerouteGetContentRequestIfRequired();
+
         // We use the device default theme as the base theme. Apply the material them for the
         // material components. We use force "false" here, only values that are not already defined
         // in the base theme will be copied.
@@ -220,7 +225,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(@NonNull Menu menu) {
-        if (getIntent().getAction().equals(Intent.ACTION_GET_CONTENT)) {
+        if (getIntent().getAction().equals(ACTION_GET_CONTENT)) {
             getMenuInflater().inflate(R.menu.picker_overflow_menu, menu);
         }
 
@@ -235,42 +240,38 @@ public class PhotoPickerActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    private void rerouteGetContentRequestIfRequired() {
+        final Intent intent = getIntent();
+        if (!intent.getAction().equals(ACTION_GET_CONTENT)) {
+            return;
+        }
+
+        if (MimeFilterUtils.requiresMoreThanMediaItems(intent)) {
+            launchDocumentsUiAndFinishPicker();
+        }
+    }
+
     private void launchDocumentsUiAndFinishPicker() {
-        final UserId userId = mPickerViewModel.getUserIdManager().getCurrentUserProfileId();
-        startActivityAsUser(getGetContentIntent(getIntent()), userId.getUserHandle());
+        startActivityAsUser(getDocumentsUiForwardingIntent(this, getIntent()),
+                UserId.CURRENT_USER.getUserHandle());
         finish();
     }
 
     @VisibleForTesting
-    static Intent getGetContentIntent(Intent intent) {
-        if (intent.getAction().equals(Intent.ACTION_GET_CONTENT)) {
-            intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
-            intent.addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP);
-            return intent;
-        }
+    static Intent getDocumentsUiForwardingIntent(Context context, Intent intent) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+        intent.addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP);
+        intent.setComponent(getDocumentsUiComponentName(context));
+        return intent;
+    }
 
-        final Intent result = new Intent(Intent.ACTION_GET_CONTENT);
-        result.putExtras(intent);
-        if (intent.hasExtra(MediaStore.EXTRA_PICK_IMAGES_MAX)) {
-            result.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        }
-
-        if (TextUtils.isEmpty(intent.getType())) {
-            result.setType("*/*");
-
-            // Photo Picker is expected to show images and videos only.
-            if (!result.hasExtra(Intent.EXTRA_MIME_TYPES)) {
-                result.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/*", "video/*"});
-            }
-        } else {
-            // PhotoPicker getType will always be media mime type
-            result.setType(intent.getType());
-        }
-
-        result.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
-        result.addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP);
-
-        return result;
+    private static ComponentName getDocumentsUiComponentName(Context context) {
+        final PackageManager pm = context.getPackageManager();
+        // DocumentsUI is the default handler for ACTION_OPEN_DOCUMENT
+        final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        return intent.resolveActivity(pm);
     }
 
     private void restoreState(Bundle savedInstanceState) {

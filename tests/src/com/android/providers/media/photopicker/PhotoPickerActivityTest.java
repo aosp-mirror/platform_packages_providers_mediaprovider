@@ -18,9 +18,10 @@ package com.android.providers.media.photopicker;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import android.content.Context;
 import android.content.Intent;
-import android.provider.MediaStore;
 
+import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Test;
@@ -36,68 +37,18 @@ public class PhotoPickerActivityTest {
     private static final String[] MEDIA_MIME_TYPES = new String[] {"image/*", "video/*"};
 
     @Test
-    public void testGetGetContentIntent_pickImages_singleSelect() {
-        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-
-        Intent getContentIntent = PhotoPickerActivity.getGetContentIntent(intent);
-
-        assertThat(getContentIntent.getAction().equals(Intent.ACTION_GET_CONTENT)).isTrue();
-        assertThat(getContentIntent.getType().equals("*/*")).isTrue();
-        final String[] actualMimeType = getContentIntent.getStringArrayExtra(
-                Intent.EXTRA_MIME_TYPES);
-        assertThat(Arrays.equals(actualMimeType, MEDIA_MIME_TYPES)).isTrue();
-        assertThat(getContentIntent.getFlags()).isEqualTo(INTENT_FORWARDING_FLAGS);
-
-        assertThat(getContentIntent.hasExtra(Intent.EXTRA_ALLOW_MULTIPLE)).isFalse();
-        assertThat(getContentIntent.hasExtra(Intent.EXTRA_LOCAL_ONLY)).isFalse();
-    }
-
-    @Test
-    public void testGetGetContentIntent_pickImages_multiSelect() {
-        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit());
-
-        Intent getContentIntent = PhotoPickerActivity.getGetContentIntent(intent);
-
-        assertThat(getContentIntent.getAction().equals(Intent.ACTION_GET_CONTENT)).isTrue();
-        assertThat(getContentIntent.getType().equals("*/*")).isTrue();
-        final String[] actualMimeType = getContentIntent.getStringArrayExtra(
-                Intent.EXTRA_MIME_TYPES);
-        assertThat(Arrays.equals(actualMimeType, MEDIA_MIME_TYPES)).isTrue();
-        assertThat(getContentIntent.hasExtra(Intent.EXTRA_ALLOW_MULTIPLE)).isTrue();
-        assertThat(getContentIntent.getFlags()).isEqualTo(INTENT_FORWARDING_FLAGS);
-
-        assertThat(getContentIntent.hasExtra(Intent.EXTRA_LOCAL_ONLY)).isFalse();
-    }
-
-    @Test
-    public void testGetGetContentIntent_pickImages_imageType() {
-        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-        final String mimeType = "image/gif";
-        intent.setType(mimeType);
-
-        Intent getContentIntent = PhotoPickerActivity.getGetContentIntent(intent);
-
-        assertThat(getContentIntent.getAction().equals(Intent.ACTION_GET_CONTENT)).isTrue();
-        assertThat(getContentIntent.getType().equals(mimeType)).isTrue();
-        assertThat(getContentIntent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)).isNull();
-        assertThat(getContentIntent.getFlags()).isEqualTo(INTENT_FORWARDING_FLAGS);
-
-        assertThat(getContentIntent.hasExtra(Intent.EXTRA_ALLOW_MULTIPLE)).isFalse();
-        assertThat(getContentIntent.hasExtra(Intent.EXTRA_LOCAL_ONLY)).isFalse();
-    }
-
-    @Test
-    public void testGetGetContentIntent_getContent() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+    public void testGetDocumentsUiForwardingIntent() {
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         final String mimeType = "image/*";
         intent.setType(mimeType);
         intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
         intent.putExtra(Intent.EXTRA_MIME_TYPES, MEDIA_MIME_TYPES);
 
-        Intent getContentIntent = PhotoPickerActivity.getGetContentIntent(intent);
+        Intent getContentIntent = PhotoPickerActivity.getDocumentsUiForwardingIntent(context,
+                intent);
 
-        assertThat(getContentIntent.equals(intent)).isTrue();
+        assertThat(getContentIntent.getAction().equals(Intent.ACTION_GET_CONTENT)).isTrue();
         assertThat(getContentIntent.getType().equals(mimeType)).isTrue();
         final String[] actualMimeType = getContentIntent.getStringArrayExtra(
                 Intent.EXTRA_MIME_TYPES);

@@ -26,11 +26,11 @@ import android.content.Context;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
-import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.tests.utils.PublicVolumeSetupHelper;
 import com.android.providers.media.util.FileUtils;
 
 import org.junit.AfterClass;
@@ -54,33 +54,12 @@ public class PublicVolumeTest {
     @AfterClass
     public static void tearDown() throws Exception {
         deletePublicVolumes();
-    }
-
-    public boolean containsDefaultFolders(String rootPath) {
-        for (String dirName : FileUtils.DEFAULT_FOLDER_NAMES) {
-            final File defaultFolder = new File(rootPath, dirName);
-            if (!defaultFolder.exists()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean pollContainsDefaultFolders(String rootPath) {
-        // Default folders are created by MediaProvider after receiving a callback from
-        // the StorageManagerService that the volume has been mounted.
-        // Unfortunately, we don't have a reliable way to determine when this callback has
-        // happened, so poll here.
-        for (int i = 0; i < WAIT_FOR_DEFAULT_FOLDERS_MS / POLL_DELAY_MS; i++) {
-            if (containsDefaultFolders(rootPath)) {
-                return true;
-            }
-            try {
-                Thread.sleep(POLL_DELAY_MS);
-            } catch (InterruptedException e) {
-            }
-        }
-        return false;
+        // Make sure External Storage is mounted so that this does not crash other tests
+        // in the suite.
+        PublicVolumeSetupHelper.pollForExternalStorageStateMounted();
+        // Make sure all work is completed so that the device is left in a stable state
+        Context context = InstrumentationRegistry.getTargetContext();
+        MediaStore.waitForIdle(context.getContentResolver());
     }
 
     @Test
@@ -110,6 +89,33 @@ public class PublicVolumeTest {
                 assertTrue(pollContainsDefaultFolders(volume.getPath()));
             }
         }
+    }
+
+    private boolean containsDefaultFolders(String rootPath) {
+        for (String dirName : FileUtils.DEFAULT_FOLDER_NAMES) {
+            final File defaultFolder = new File(rootPath, dirName);
+            if (!defaultFolder.exists()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean pollContainsDefaultFolders(String rootPath) {
+        // Default folders are created by MediaProvider after receiving a callback from
+        // the StorageManagerService that the volume has been mounted.
+        // Unfortunately, we don't have a reliable way to determine when this callback has
+        // happened, so poll here.
+        for (int i = 0; i < WAIT_FOR_DEFAULT_FOLDERS_MS / POLL_DELAY_MS; i++) {
+            if (containsDefaultFolders(rootPath)) {
+                return true;
+            }
+            try {
+                Thread.sleep(POLL_DELAY_MS);
+            } catch (InterruptedException e) {
+            }
+        }
+        return false;
     }
 }
 

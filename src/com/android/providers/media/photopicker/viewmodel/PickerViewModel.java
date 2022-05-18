@@ -16,20 +16,14 @@
 
 package com.android.providers.media.photopicker.viewmodel;
 
-import static com.android.providers.media.util.MimeUtils.isImageMimeType;
-import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
-
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.os.Bundle;
-import android.os.Parcelable;
 import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
@@ -46,6 +40,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
+import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.util.ForegroundThread;
 
 import java.util.ArrayList;
@@ -319,16 +314,9 @@ public class PickerViewModel extends AndroidViewModel {
     public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
         mUserIdManager.setIntentAndCheckRestrictions(intent);
 
-        final String mimeType = intent.getType();
-        if (isMimeTypeMedia(mimeType)) {
-            mMimeTypeFilter = mimeType;
-        }
+        mMimeTypeFilter = MimeFilterUtils.getMimeTypeFilter(intent);
 
         mSelection.parseSelectionValuesFromIntent(intent);
-    }
-
-    private static boolean isMimeTypeMedia(@Nullable String mimeType) {
-        return isImageMimeType(mimeType) || isVideoMimeType(mimeType);
     }
 
     /**

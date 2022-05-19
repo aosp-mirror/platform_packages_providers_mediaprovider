@@ -2386,7 +2386,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
 
         return SystemProperties.getBoolean("persist.sys.fuse.backup.nextrowid_enabled",
-                false);
+                true);
     }
 
     public static int getNextRowIdBackupFrequency() {

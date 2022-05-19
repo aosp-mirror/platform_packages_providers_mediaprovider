@@ -246,12 +246,28 @@ public class PhotoPickerActivity extends AppCompatActivity {
             return;
         }
 
-        if (MimeFilterUtils.requiresMoreThanMediaItems(intent)) {
+        // TODO(b/232775643): Workaround to support PhotoPicker invoked from DocumentsUi.
+        // GET_CONTENT for all (media and non-media) files opens DocumentsUi, but it still shows
+        // "Photo Picker app option. When the user clicks on "Photo Picker", the same intent which
+        // includes filters to show non-media files as well is forwarded to PhotoPicker.
+        // Make sure Photo Picker is opened when the intent is explicitly forwarded.
+        if (isIntentForwarded(intent)) {
+            Log.i(TAG, "Open PhotoPicker when a forwarded ACTION_GET_CONTENT intent is received");
+            return;
+        }
+
+        if (MimeFilterUtils.requiresUnsupportedFilters(intent)) {
             launchDocumentsUiAndFinishPicker();
         }
     }
 
+    private static boolean isIntentForwarded(Intent intent) {
+        return (intent.getFlags() & Intent.FLAG_ACTIVITY_FORWARD_RESULT) > 0;
+    }
+
     private void launchDocumentsUiAndFinishPicker() {
+        Log.i(TAG, "Launch DocumentsUI and finish picker");
+
         startActivityAsUser(getDocumentsUiForwardingIntent(this, getIntent()),
                 UserId.CURRENT_USER.getUserHandle());
         finish();

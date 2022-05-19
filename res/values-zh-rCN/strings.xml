@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"清除"</string>
     <string name="allow" msgid="8885707816848569619">"允许"</string>
     <string name="deny" msgid="6040983710442068936">"拒绝"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"浏览…"</string>
     <string name="add" msgid="2894574044585549298">"添加"</string>
     <string name="deselect" msgid="4297825044827769490">"取消选择"</string>
     <string name="deselected" msgid="8488133193326208475">"已取消选中"</string>
@@ -75,8 +76,9 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"动态照片"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"将视频静音"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"将视频取消静音"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"播放视频"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"暂停视频"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"播放"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"暂停"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"现在可以从“<xliff:g id="PKG_NAME">%1$s</xliff:g>”获取云端媒体"</string>
     <string name="not_selected" msgid="2244008151669896758">"未选择"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{要允许<xliff:g id="APP_NAME_0">^1</xliff:g>修改这个音频文件吗？}other{要允许<xliff:g id="APP_NAME_1">^1</xliff:g>修改这 <xliff:g id="COUNT">^2</xliff:g> 个音频文件吗？}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{正在修改音频文件…}other{正在修改 <xliff:g id="COUNT">^1</xliff:g> 个音频文件…}}"</string>

@@ -16,34 +16,23 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_BUFFERING;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_COMPLETED;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_MEDIA_SIZE_CHANGED;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_PAUSED;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_READY;
-import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_STARTED;
+import static android.provider.CloudMediaProviderContract.EXTRA_AUTHORITY;
+import static android.provider.CloudMediaProviderContract.EXTRA_GLIDE_DEFAULT_FRAME;
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
 
-import android.annotation.DurationMillisLong;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
-import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Point;
-import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
-import android.os.Handler;
-import android.os.Looper;
 import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProvider;
 import android.provider.MediaStore;
-import android.util.Log;
-import android.view.Surface;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -53,24 +42,8 @@ import com.android.providers.media.MediaProvider;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.ui.remotepreview.RemotePreviewHandler;
+import com.android.providers.media.photopicker.ui.remotepreview.RemoteSurfaceController;
 
-import com.google.android.exoplayer2.DefaultLoadControl;
-import com.google.android.exoplayer2.DefaultRenderersFactory;
-import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.LoadControl;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.Player.State;
-import com.google.android.exoplayer2.analytics.DefaultAnalyticsCollector;
-import com.google.android.exoplayer2.source.MediaParserExtractorAdapter;
-import com.google.android.exoplayer2.source.ProgressiveMediaSource;
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.upstream.ContentDataSource;
-import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
-import com.google.android.exoplayer2.util.Clock;
-import com.google.android.exoplayer2.video.VideoSize;
-
-import java.io.File;
 import java.io.FileNotFoundException;
 
 /**
@@ -123,15 +96,17 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         final Bundle opts = new Bundle();
         opts.putParcelable(ContentResolver.EXTRA_SIZE, size);
 
+        String mimeTypeFilter = null;
+        if (extras.getBoolean(EXTRA_GLIDE_DEFAULT_FRAME)) {
+            // If the thumbnail requested is requested with the default frame of the video, we can
+            // use MediaProvider's thumbnail cache which fetches the frames from the middle of the
+            // video. Set mimeTypeFilter to "image/*" to use MediaProvider thumbnail in this case.
+            mimeTypeFilter = "image/*";
+        }
+
         final LocalCallingIdentity token = mMediaProvider.clearLocalCallingIdentity();
         try {
-            // Open the original file (not thumbnail). For videos, the PhotoPicker should not
-            // use MediaProviers thumbnail cache because it fetches frames from the middle of the
-            // video, meanwhile the requirement is to fetch frames from the start of the video.
-            // Glide processes the returned fd here and extracts a thumbnail from it anyways.
-            // Additonally, glide caches this thumbnail used so future requests for the same
-            // thumbnail will not require extraction.
-            return mMediaProvider.openTypedAssetFile(fromMediaId(mediaId), null, opts);
+            return mMediaProvider.openTypedAssetFile(fromMediaId(mediaId), mimeTypeFilter, opts);
         } finally {
             mMediaProvider.restoreLocalCallingIdentity(token);
         }
@@ -162,10 +137,12 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     public CloudMediaSurfaceController onCreateCloudMediaSurfaceController(@NonNull Bundle config,
             CloudMediaSurfaceStateChangedCallback callback) {
         if (RemotePreviewHandler.isRemotePreviewEnabled()) {
-            boolean enableLoop = config.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, false);
-            boolean muteAudio = config.getBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
+            final String authority = config.getString(EXTRA_AUTHORITY,
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+            final boolean enableLoop = config.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, false);
+            final boolean muteAudio = config.getBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
                     false);
-            return new CloudMediaSurfaceControllerImpl(getContext(), enableLoop, muteAudio,
+            return new RemoteSurfaceController(getContext(), authority, enableLoop, muteAudio,
                     callback);
         }
         return null;
@@ -183,251 +160,5 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     private static Uri fromMediaId(String mediaId) {
         return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
                 Long.parseLong(mediaId));
-    }
-
-    private static final class CloudMediaSurfaceControllerImpl extends CloudMediaSurfaceController {
-
-        // The minimum duration of media that the player will attempt to ensure is buffered at all
-        // times.
-        private static final int MIN_BUFFER_MS = 1000;
-        // The maximum duration of media that the player will attempt to buffer.
-        private static final int MAX_BUFFER_MS = 2000;
-        // The duration of media that must be buffered for playback to start or resume following a
-        // user action such as a seek.
-        private static final int BUFFER_FOR_PLAYBACK_MS = 1000;
-        // The default duration of media that must be buffered for playback to resume after a
-        // rebuffer.
-        private static final int BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = 1000;
-        private static final LoadControl sLoadControl = new DefaultLoadControl.Builder()
-                .setBufferDurationsMs(
-                        MIN_BUFFER_MS,
-                        MAX_BUFFER_MS,
-                        BUFFER_FOR_PLAYBACK_MS,
-                        BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS).build();
-
-        private final Context mContext;
-        private final CloudMediaSurfaceStateChangedCallback mCallback;
-        private final Handler mHandler = new Handler(Looper.getMainLooper());
-        private final Player.Listener mEventListener = new Player.Listener() {
-            @Override
-            public void onPlaybackStateChanged(@State int state) {
-                Log.d(TAG, "Received player event " + state);
-
-                switch (state) {
-                    case Player.STATE_READY:
-                        mCallback.setPlaybackState(mCurrentSurfaceId, PLAYBACK_STATE_READY,
-                                null);
-                        return;
-                    case Player.STATE_BUFFERING:
-                        mCallback.setPlaybackState(mCurrentSurfaceId, PLAYBACK_STATE_BUFFERING,
-                                null);
-                        return;
-                    case Player.STATE_ENDED:
-                        mCallback.setPlaybackState(mCurrentSurfaceId, PLAYBACK_STATE_COMPLETED,
-                                null);
-                        return;
-                    default:
-                }
-            }
-
-            @Override
-            public void onIsPlayingChanged(boolean isPlaying) {
-                mCallback.setPlaybackState(mCurrentSurfaceId, isPlaying ? PLAYBACK_STATE_STARTED :
-                                PLAYBACK_STATE_PAUSED, null);
-            }
-
-            @Override
-            public void onVideoSizeChanged(VideoSize videoSize) {
-                Point size = new Point(videoSize.width, videoSize.height);
-                Bundle bundle = new Bundle();
-                bundle.putParcelable(ContentResolver.EXTRA_SIZE, size);
-                mCallback.setPlaybackState(mCurrentSurfaceId, PLAYBACK_STATE_MEDIA_SIZE_CHANGED,
-                        bundle);
-            }
-        };
-
-        private boolean mEnableLoop;
-        private boolean mMuteAudio;
-        private ExoPlayer mPlayer;
-        private int mCurrentSurfaceId = -1;
-
-        CloudMediaSurfaceControllerImpl(Context context, boolean enableLoop, boolean muteAudio,
-                CloudMediaSurfaceStateChangedCallback callback) {
-            mCallback = callback;
-            mContext = context;
-            mEnableLoop = enableLoop;
-            mMuteAudio = muteAudio;
-            Log.d(TAG, "Surface controller created.");
-        }
-
-        @Override
-        public void onPlayerCreate() {
-            mHandler.post(() -> {
-                mPlayer = createExoPlayer();
-                mPlayer.addListener(mEventListener);
-                updateLoopingPlaybackStatus();
-                updateAudioMuteStatus();
-                Log.d(TAG, "Player created.");
-            });
-        }
-
-        @Override
-        public void onPlayerRelease() {
-            mHandler.post(() -> {
-                mPlayer.removeListener(mEventListener);
-                mPlayer.release();
-                mPlayer = null;
-                Log.d(TAG, "Player released.");
-            });
-        }
-
-        @Override
-        public void onSurfaceCreated(int surfaceId, @NonNull Surface surface,
-                @NonNull String mediaId) {
-            mHandler.post(() -> {
-                try {
-                    // onSurfaceCreated may get called while the player is already rendering on a
-                    // different surface. In that case, pause the player before preparing it for
-                    // rendering on the new surface.
-                    // Unfortunately, Exoplayer#stop doesn't seem to work here. If we call stop(),
-                    // as soon as the player becomes ready again, it automatically starts to play
-                    // the new media. The reason is that Exoplayer treats play/pause as calls to
-                    // the method Exoplayer#setPlayWhenReady(boolean) with true and false
-                    // respectively. So, if we don't pause(), then since the previous play() call
-                    // had set setPlayWhenReady to true, the player would start the playback as soon
-                    // as it gets ready with the new media item.
-                    if (mPlayer.isPlaying()) {
-                        mPlayer.pause();
-                    }
-
-                    mCurrentSurfaceId = surfaceId;
-
-                    final Uri mediaUri =
-                            Uri.parse(
-                                    MediaStore.Files.getContentUri(
-                                            MediaStore.VOLUME_EXTERNAL)
-                                    + File.separator + mediaId);
-                    mPlayer.setMediaItem(MediaItem.fromUri(mediaUri));
-                    mPlayer.setVideoSurface(surface);
-                    mPlayer.prepare();
-
-                    Log.d(TAG, "Surface prepared: " + surfaceId + ". Surface: " + surface
-                            + ". MediaId: " + mediaId);
-                } catch (RuntimeException e) {
-                    Log.e(TAG, "Error preparing player with surface.", e);
-                }
-            });
-        }
-
-        @Override
-        public void onSurfaceChanged(int surfaceId, int format, int width, int height) {
-            Log.d(TAG, "Surface changed: " + surfaceId + ". Format: " + format + ". Width: "
-                    + width + ". Height: " + height);
-        }
-
-        @Override
-        public void onSurfaceDestroyed(int surfaceId) {
-            mHandler.post(() -> {
-                if (mCurrentSurfaceId != surfaceId) {
-                    // This means that the player is already using some other surface, hence
-                    // nothing to do.
-                    return;
-                }
-                if (mPlayer.isPlaying()) {
-                    mPlayer.stop();
-                }
-                mPlayer.clearVideoSurface();
-                mCurrentSurfaceId = -1;
-
-                Log.d(TAG, "Surface released: " + surfaceId);
-            });
-        }
-
-        @Override
-        public void onMediaPlay(int surfaceId) {
-            mHandler.post(() -> {
-                mPlayer.play();
-                Log.d(TAG, "Media played: " + surfaceId);
-            });
-        }
-
-        @Override
-        public void onMediaPause(int surfaceId) {
-            mHandler.post(() -> {
-                if (mPlayer.isPlaying()) {
-                    mPlayer.pause();
-                    Log.d(TAG, "Media paused: " + surfaceId);
-                }
-            });
-        }
-
-        @Override
-        public void onMediaSeekTo(int surfaceId, @DurationMillisLong long timestampMillis) {
-            mHandler.post(() -> {
-                mPlayer.seekTo((int) timestampMillis);
-                Log.d(TAG, "Media seeked: " + surfaceId + ". Timestamp: " + timestampMillis);
-            });
-        }
-
-        @Override
-        public void onConfigChange(@NonNull Bundle config) {
-            final boolean enableLoop = config.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED,
-                    mEnableLoop);
-            final boolean muteAudio = config.getBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
-                    mMuteAudio);
-            mHandler.post(() -> {
-                if (mEnableLoop != enableLoop) {
-                    mEnableLoop = enableLoop;
-                    updateLoopingPlaybackStatus();
-                }
-
-                if (mMuteAudio != muteAudio) {
-                    mMuteAudio = muteAudio;
-                    updateAudioMuteStatus();
-                }
-            });
-            Log.d(TAG, "Config changed. Updated config params: " + config);
-        }
-
-        @Override
-        public void onDestroy() {
-            Log.d(TAG, "Surface controller destroyed.");
-        }
-
-        private ExoPlayer createExoPlayer() {
-            // ProgressiveMediaFactory will be enough for video playback of videos on the device.
-            // This also reduces apk size.
-            ProgressiveMediaSource.Factory mediaSourceFactory = new ProgressiveMediaSource.Factory(
-                    () -> new ContentDataSource(mContext), MediaParserExtractorAdapter.FACTORY);
-
-            // TODO(b/216099324): Handle AudioBecomingNoisy for cloud.
-            return new ExoPlayer.Builder(mContext,
-                    new DefaultRenderersFactory(mContext),
-                    mediaSourceFactory,
-                    new DefaultTrackSelector(mContext),
-                    sLoadControl,
-                    DefaultBandwidthMeter.getSingletonInstance(mContext),
-                    new DefaultAnalyticsCollector(Clock.DEFAULT))
-                    .setHandleAudioBecomingNoisy(true)
-                    .build();
-        }
-
-        private void updateLoopingPlaybackStatus() {
-            mPlayer.setRepeatMode(mEnableLoop ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
-        }
-
-        private void updateAudioMuteStatus() {
-            if (mMuteAudio) {
-                mPlayer.setVolume(0f);
-            } else {
-                AudioManager audioManager = mContext.getSystemService(AudioManager.class);
-                if (audioManager == null) {
-                    Log.e(TAG, "Couldn't find AudioManager while trying to set volume,"
-                            + " unable to set volume");
-                    return;
-                }
-                mPlayer.setVolume(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
-            }
-        }
     }
 }

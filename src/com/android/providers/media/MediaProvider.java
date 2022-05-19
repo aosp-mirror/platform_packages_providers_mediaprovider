@@ -1062,10 +1062,10 @@ public class MediaProvider extends ContentProvider {
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false, false,
                 Column.class, ExportedSince.class, Metrics::logSchemaChange, mFilesListener,
-                MIGRATION_LISTENER, mIdGenerator);
+                MIGRATION_LISTENER, mIdGenerator, true);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false,
                 Column.class, ExportedSince.class, Metrics::logSchemaChange, mFilesListener,
-                MIGRATION_LISTENER, mIdGenerator);
+                MIGRATION_LISTENER, mIdGenerator, true);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
         mPickerDbFacade = new PickerDbFacade(context);
 

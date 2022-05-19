@@ -585,7 +585,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperO extends DatabaseHelper {
         public DatabaseHelperO(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_O, false, false, Column.class,
-                    ExportedSince.class, null, null, null, null);
+                    ExportedSince.class, null, null, null, null, false);
         }
 
         @Override
@@ -597,7 +597,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperP extends DatabaseHelper {
         public DatabaseHelperP(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_P, false, false, Column.class,
-                    ExportedSince.class, null, null, null, null);
+                    ExportedSince.class, null, null, null, null, false);
         }
 
         @Override
@@ -609,7 +609,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperQ extends DatabaseHelper {
         public DatabaseHelperQ(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_Q, false, false, Column.class,
-                    ExportedSince.class, null, null, null, null);
+                    ExportedSince.class, null, null, null, null, false);
         }
 
         @Override
@@ -621,7 +621,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperR extends DatabaseHelper {
         public DatabaseHelperR(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_R, false, false, Column.class,
-                    ExportedSince.class, null, null, MediaProvider.MIGRATION_LISTENER, null);
+                    ExportedSince.class, null, null, MediaProvider.MIGRATION_LISTENER, null, false);
         }
 
         @Override
@@ -633,7 +633,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperS extends DatabaseHelper {
         public DatabaseHelperS(Context context, String name) {
             super(context, name, VERSION_S, false, false, Column.class, ExportedSince.class, null,
-                    null, MediaProvider.MIGRATION_LISTENER, null);
+                    null, MediaProvider.MIGRATION_LISTENER, null, false);
         }
 
 
@@ -646,7 +646,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperT extends DatabaseHelper {
         public DatabaseHelperT(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_T, false, false, Column.class,
-                    ExportedSince.class, null, null, MediaProvider.MIGRATION_LISTENER, null);
+                    ExportedSince.class, null, null, MediaProvider.MIGRATION_LISTENER, null, false);
         }
     }
 

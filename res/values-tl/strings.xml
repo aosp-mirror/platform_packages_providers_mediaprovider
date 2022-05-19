@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"I-clear"</string>
     <string name="allow" msgid="8885707816848569619">"Payagan"</string>
     <string name="deny" msgid="6040983710442068936">"Tanggihan"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Mag-browse…"</string>
     <string name="add" msgid="2894574044585549298">"Magdagdag"</string>
     <string name="deselect" msgid="4297825044827769490">"I-deselect"</string>
     <string name="deselected" msgid="8488133193326208475">"Na-deselect"</string>
@@ -75,8 +76,9 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Gumagalaw na Larawan"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"I-mute ang video"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"I-unmute ang video"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"I-play ang video"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"I-pause ang video"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"I-play"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"I-pause"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Available na ang cloud media sa <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"hindi pinili"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Payagan ang <xliff:g id="APP_NAME_0">^1</xliff:g> na baguhin ang audio file na ito?}one{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> audio file?}other{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> na audio file?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Binabago ang audio file…}one{Nagbabago ng <xliff:g id="COUNT">^1</xliff:g> audio file…}other{Nagbabago ng <xliff:g id="COUNT">^1</xliff:g> na audio file…}}"</string>

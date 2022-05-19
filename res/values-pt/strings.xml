@@ -77,8 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Ativar o som do vídeo"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Iniciar vídeo"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Pausar vídeo"</string>
-    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
-    <skip />
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Mídia em nuvem agora disponível no app <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"não selecionado"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Permitir que o app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique esse arquivo de áudio?}one{Permitir que o app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> arquivo de áudio?}other{Permitir que o app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> arquivos de áudio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modificando o arquivo de áudio…}one{Modificando <xliff:g id="COUNT">^1</xliff:g> arquivo de áudio…}other{Modificando <xliff:g id="COUNT">^1</xliff:g> arquivos de áudio…}}"</string>

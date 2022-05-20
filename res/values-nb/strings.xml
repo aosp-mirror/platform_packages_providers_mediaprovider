@@ -38,8 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Slett"</string>
     <string name="allow" msgid="8885707816848569619">"Tillat"</string>
     <string name="deny" msgid="6040983710442068936">"Avvis"</string>
-    <!-- no translation found for picker_browse (5554477454636075934) -->
-    <skip />
+    <string name="picker_browse" msgid="5554477454636075934">"Bla gjennom…"</string>
     <string name="add" msgid="2894574044585549298">"Legg til"</string>
     <string name="deselect" msgid="4297825044827769490">"Fjern merking"</string>
     <string name="deselected" msgid="8488133193326208475">"Ikke valgt"</string>
@@ -77,8 +76,10 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Levende bilde"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Kutt lyden i videoen"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Slå på lyden i videoen"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Spill av videoen"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Sett videoen på pause"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Spill av"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Sett på pause"</string>
+    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
+    <skip />
     <string name="not_selected" msgid="2244008151669896758">"ikke valgt"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> endrer denne lydfilen?}other{Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> endrer <xliff:g id="COUNT">^2</xliff:g> lydfiler?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Endrer lydfilen …}other{Endrer <xliff:g id="COUNT">^1</xliff:g> lydfiler …}}"</string>

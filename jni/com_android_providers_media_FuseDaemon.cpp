@@ -131,6 +131,15 @@ jboolean com_android_providers_media_FuseDaemon_should_open_with_fuse(JNIEnv* en
     return JNI_FALSE;
 }
 
+jboolean com_android_providers_media_FuseDaemon_uses_fuse_passthrough(JNIEnv* env, jobject self,
+                                                                      jlong java_daemon) {
+    fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
+    if (daemon) {
+        return daemon->UsesFusePassthrough();
+    }
+    return JNI_FALSE;
+}
+
 void com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache(JNIEnv* env, jobject self,
                                                                          jlong java_daemon,
                                                                          jstring java_path) {
@@ -182,6 +191,8 @@ const JNINativeMethod methods[] = {
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete)},
         {"native_should_open_with_fuse", "(JLjava/lang/String;ZI)Z",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_should_open_with_fuse)},
+        {"native_uses_fuse_passthrough", "(J)Z",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_uses_fuse_passthrough)},
         {"native_is_fuse_thread", "()Z",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_is_fuse_thread)},
         {"native_is_started", "(J)Z",

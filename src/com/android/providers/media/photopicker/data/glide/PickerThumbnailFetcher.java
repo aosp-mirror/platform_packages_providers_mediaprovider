@@ -23,6 +23,7 @@ import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.provider.CloudMediaProviderContract;
 
 import com.bumptech.glide.Priority;
 import com.bumptech.glide.load.DataSource;
@@ -37,27 +38,36 @@ import java.io.IOException;
  */
 public class PickerThumbnailFetcher implements DataFetcher<ParcelFileDescriptor> {
 
-    private final Context context;
-    private final Uri model;
-    private final int width;
-    private final int height;
+    private final Context mContext;
+    private final Uri mModel;
+    private final int mWidth;
+    private final int mHeight;
+    private final boolean mDefaultFrame;
 
-    PickerThumbnailFetcher(Context context, Uri model, int width, int height) {
-        this.context = context;
-        this.model = model;
-        this.width = width;
-        this.height = height;
+    PickerThumbnailFetcher(Context context, Uri model, int width, int height,
+            boolean defaultFrame) {
+        mContext = context;
+        mModel = model;
+        mWidth = width;
+        mHeight = height;
+        mDefaultFrame = defaultFrame;
     }
 
     @Override
     public void loadData(Priority priority, DataCallback<? super ParcelFileDescriptor> callback) {
-        ContentResolver contentResolver = context.getContentResolver();
+        ContentResolver contentResolver = mContext.getContentResolver();
         final Bundle opts = new Bundle();
-        opts.putParcelable(ContentResolver.EXTRA_SIZE, new Point(width, height));
-        try (AssetFileDescriptor afd = contentResolver.openTypedAssetFileDescriptor(model,
+        opts.putParcelable(ContentResolver.EXTRA_SIZE, new Point(mWidth, mHeight));
+        opts.putBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL, true);
+
+        if (mDefaultFrame) {
+            opts.putBoolean(CloudMediaProviderContract.EXTRA_GLIDE_DEFAULT_FRAME, true);
+        }
+
+        try (AssetFileDescriptor afd = contentResolver.openTypedAssetFileDescriptor(mModel,
                 /* mimeType */ "image/*", opts, /* cancellationSignal */ null)) {
             if (afd == null) {
-                final String err = "Failed to load data for " + model;
+                final String err = "Failed to load data for " + mModel;
                 callback.onLoadFailed(new FileNotFoundException(err));
                 return;
             }

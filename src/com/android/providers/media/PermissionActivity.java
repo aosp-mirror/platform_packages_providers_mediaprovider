@@ -17,6 +17,8 @@
 package com.android.providers.media;
 
 import static com.android.providers.media.MediaProvider.AUDIO_MEDIA_ID;
+import static com.android.providers.media.MediaProvider.AUDIO_PLAYLISTS_ID;
+import static com.android.providers.media.MediaProvider.FILES_ID;
 import static com.android.providers.media.MediaProvider.IMAGES_MEDIA_ID;
 import static com.android.providers.media.MediaProvider.VIDEO_MEDIA_ID;
 import static com.android.providers.media.MediaProvider.collectUris;
@@ -25,7 +27,10 @@ import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaLocation;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManageMedia;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManager;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVideo;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -47,9 +52,9 @@ import android.graphics.ImageDecoder.ImageInfo;
 import android.graphics.ImageDecoder.Source;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Icon;
-import android.icu.text.MessageFormat;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
@@ -71,6 +76,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.MediaProvider.LocalUriMatcher;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.StringUtils;
@@ -78,10 +84,7 @@ import com.android.providers.media.util.StringUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
@@ -121,6 +124,13 @@ public class PermissionActivity extends Activity {
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
         progressDialog.show();
     };
+
+    private boolean mShouldCheckReadAudio;
+    private boolean mShouldCheckReadAudioOrReadVideo;
+    private boolean mShouldCheckReadImages;
+    private boolean mShouldCheckReadVideo;
+    private boolean mShouldCheckMediaPermissions;
+    private boolean mShouldForceShowingDialog;
 
     private static final Long LEAST_SHOW_PROGRESS_TIME_MS = 300L;
     private static final Long BEFORE_SHOW_PROGRESS_TIME_MS = 300L;
@@ -164,7 +174,7 @@ public class PermissionActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
         getWindow().setDimAmount(0.0f);
 
-
+        boolean isTargetSdkAtLeastT = false;
         // All untrusted input values here were validated when generating the
         // original PendingIntent
         try {
@@ -174,6 +184,8 @@ public class PermissionActivity extends Activity {
             appInfo = resolveCallingAppInfo();
             label = resolveAppLabel(appInfo);
             verb = resolveVerb();
+            isTargetSdkAtLeastT = appInfo.targetSdkVersion > Build.VERSION_CODES.S_V2;
+            mShouldCheckMediaPermissions = isTargetSdkAtLeastT && SdkLevel.isAtLeastT();
             data = resolveData();
             volumeName = MediaStore.getVolumeName(uris.get(0));
         } catch (Exception e) {
@@ -186,8 +198,23 @@ public class PermissionActivity extends Activity {
         // Create Progress dialog
         createProgressDialog();
 
-        if (!shouldShowActionDialog(this, -1 /* pid */, appInfo.uid, getCallingPackage(),
-                null /* attributionTag */, verb)) {
+        final boolean shouldShowActionDialog;
+        if (mShouldCheckMediaPermissions) {
+            if (mShouldForceShowingDialog) {
+                shouldShowActionDialog = true;
+            } else {
+                shouldShowActionDialog = shouldShowActionDialog(this, -1 /* pid */, appInfo.uid,
+                        getCallingPackage(), null /* attributionTag */, verb,
+                        mShouldCheckMediaPermissions, mShouldCheckReadAudio, mShouldCheckReadImages,
+                        mShouldCheckReadVideo, mShouldCheckReadAudioOrReadVideo,
+                        isTargetSdkAtLeastT);
+            }
+        } else {
+            shouldShowActionDialog = shouldShowActionDialog(this, -1 /* pid */, appInfo.uid,
+                    getCallingPackage(), null /* attributionTag */, verb);
+        }
+
+        if (!shouldShowActionDialog) {
             onPositiveAction(null, 0);
             return;
         }
@@ -382,6 +409,18 @@ public class PermissionActivity extends Activity {
     @VisibleForTesting
     static boolean shouldShowActionDialog(@NonNull Context context, int pid, int uid,
             @NonNull String packageName, @Nullable String attributionTag, @NonNull String verb) {
+        return shouldShowActionDialog(context, pid, uid, packageName, attributionTag,
+                verb, /* shouldCheckMediaPermissions */ false, /* shouldCheckReadAudio */ false,
+                /* shouldCheckReadImages */ false, /* shouldCheckReadVideo */ false,
+                /* mShouldCheckReadAudioOrReadVideo */ false, /* isTargetSdkAtLeastT */ false);
+    }
+
+    @VisibleForTesting
+    static boolean shouldShowActionDialog(@NonNull Context context, int pid, int uid,
+            @NonNull String packageName, @Nullable String attributionTag, @NonNull String verb,
+            boolean shouldCheckMediaPermissions, boolean shouldCheckReadAudio,
+            boolean shouldCheckReadImages, boolean shouldCheckReadVideo,
+            boolean mShouldCheckReadAudioOrReadVideo, boolean isTargetSdkAtLeastT) {
         // Favorite-related requests are automatically granted for now; we still
         // make developers go through this no-op dialog flow to preserve our
         // ability to start prompting in the future
@@ -389,12 +428,49 @@ public class PermissionActivity extends Activity {
             return false;
         }
 
-        // check READ_EXTERNAL_STORAGE and MANAGE_EXTERNAL_STORAGE permissions
-        if (!checkPermissionReadStorage(context, pid, uid, packageName, attributionTag)
-                && !checkPermissionManager(context, pid, uid, packageName, attributionTag)) {
-            Log.d(TAG, "No permission READ_EXTERNAL_STORAGE or MANAGE_EXTERNAL_STORAGE");
-            return true;
+        // no MANAGE_EXTERNAL_STORAGE permission
+        if (!checkPermissionManager(context, pid, uid, packageName, attributionTag)) {
+            if (shouldCheckMediaPermissions) {
+                // check READ_MEDIA_AUDIO
+                if (shouldCheckReadAudio && !checkPermissionReadAudio(context, pid, uid,
+                        packageName, attributionTag, isTargetSdkAtLeastT)) {
+                    Log.d(TAG, "No permission READ_MEDIA_AUDIO or MANAGE_EXTERNAL_STORAGE");
+                    return true;
+                }
+
+                // check READ_MEDIA_IMAGES
+                if (shouldCheckReadImages && !checkPermissionReadImages(context, pid, uid,
+                        packageName, attributionTag, isTargetSdkAtLeastT)) {
+                    Log.d(TAG, "No permission READ_MEDIA_IMAGES or MANAGE_EXTERNAL_STORAGE");
+                    return true;
+                }
+
+                // check READ_MEDIA_VIDEO
+                if (shouldCheckReadVideo && !checkPermissionReadVideo(context, pid, uid,
+                        packageName, attributionTag, isTargetSdkAtLeastT)) {
+                    Log.d(TAG, "No permission READ_MEDIA_VIDEO or MANAGE_EXTERNAL_STORAGE");
+                    return true;
+                }
+
+                // For subtitle case, check READ_MEDIA_AUDIO or READ_MEDIA_VIDEO
+                if (mShouldCheckReadAudioOrReadVideo
+                        && !checkPermissionReadAudio(context, pid, uid, packageName, attributionTag,
+                        isTargetSdkAtLeastT)
+                        && !checkPermissionReadVideo(context, pid, uid, packageName, attributionTag,
+                        isTargetSdkAtLeastT)) {
+                    Log.d(TAG, "No permission READ_MEDIA_AUDIO, READ_MEDIA_VIDEO or "
+                            + "MANAGE_EXTERNAL_STORAGE");
+                    return true;
+                }
+            } else {
+                // check READ_EXTERNAL_STORAGE
+                if (!checkPermissionReadStorage(context, pid, uid, packageName, attributionTag)) {
+                    Log.d(TAG, "No permission READ_EXTERNAL_STORAGE or MANAGE_EXTERNAL_STORAGE");
+                    return true;
+                }
+            }
         }
+
         // check MANAGE_MEDIA permission
         if (!checkPermissionManageMedia(context, pid, uid, packageName, attributionTag)) {
             Log.d(TAG, "No permission MANAGE_MEDIA");
@@ -490,18 +566,71 @@ public class PermissionActivity extends Activity {
     private @NonNull String resolveData() {
         final LocalUriMatcher matcher = new LocalUriMatcher(MediaStore.AUTHORITY);
         final int firstMatch = matcher.matchUri(uris.get(0), false);
+        parseDataToCheckPermissions(firstMatch);
+        boolean isMixedTypes = false;
+
         for (int i = 1; i < uris.size(); i++) {
             final int match = matcher.matchUri(uris.get(i), false);
             if (match != firstMatch) {
+                // If we don't need to check new permission, we can return DATA_GENERIC here. We
+                // don't need to resolve the other uris.
+                if (!mShouldCheckMediaPermissions) {
+                    return DATA_GENERIC;
+                }
                 // Any mismatch means we need to use generic strings
-                return DATA_GENERIC;
+                isMixedTypes = true;
+            }
+
+            parseDataToCheckPermissions(match);
+
+            if (isMixedTypes && mShouldForceShowingDialog) {
+                // Already know the data is mixed types and should force showing dialog. Don't need
+                // to resolve the other uris.
+                break;
+            }
+
+            if (mShouldCheckReadAudio && mShouldCheckReadImages && mShouldCheckReadVideo
+                    && mShouldCheckReadAudioOrReadVideo) {
+                // Already need to check all permissions for the mixed types. Don't need to resolve
+                // the other uris.
+                break;
             }
         }
+
+        if (isMixedTypes) {
+            return DATA_GENERIC;
+        }
+
         switch (firstMatch) {
             case AUDIO_MEDIA_ID: return DATA_AUDIO;
             case VIDEO_MEDIA_ID: return DATA_VIDEO;
             case IMAGES_MEDIA_ID: return DATA_IMAGE;
             default: return DATA_GENERIC;
+        }
+    }
+
+    private void parseDataToCheckPermissions(int match) {
+        switch (match) {
+            case AUDIO_MEDIA_ID:
+            case AUDIO_PLAYLISTS_ID:
+                mShouldCheckReadAudio = true;
+                break;
+            case VIDEO_MEDIA_ID:
+                mShouldCheckReadVideo = true;
+                break;
+            case IMAGES_MEDIA_ID:
+                mShouldCheckReadImages = true;
+                break;
+            case FILES_ID:
+                //  PermissionActivity is not exported. And we have a check in
+                //  MediaProvider#createRequest method. If it matches FILES_ID, it is subtitle case.
+                //  Check audio or video for it.
+                mShouldCheckReadAudioOrReadVideo = true;
+                break;
+            default:
+                // It is not the expected case. Force showing the dialog
+                mShouldForceShowingDialog = true;
+
         }
     }
 

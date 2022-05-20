@@ -76,10 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Foto con movimiento"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Silenciar vídeo"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Dejar de silenciar vídeo"</string>
-    <!-- no translation found for picker_play_video (7106025944628666250) -->
-    <skip />
-    <!-- no translation found for picker_pause_video (1092718225234326702) -->
-    <skip />
+    <string name="picker_play_video" msgid="7106025944628666250">"Reproducir"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Pausar"</string>
     <!-- no translation found for picker_cloud_sync (997251377538536319) -->
     <skip />
     <string name="not_selected" msgid="2244008151669896758">"no seleccionado"</string>

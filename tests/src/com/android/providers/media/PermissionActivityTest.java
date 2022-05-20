@@ -176,7 +176,7 @@ public class PermissionActivityTest {
 
     @Test
     @SdkSuppress(minSdkVersion = 33, codeName = "T")
-    public void testShouldShowActionDialog_noRMAndMES_true_33() throws Exception {
+    public void testShouldShowActionDialog_noRMAAndMES_true_33() throws Exception {
         final String[] enableAppOpsList =
                 {OP_MANAGE_MEDIA, OP_READ_MEDIA_IMAGES, OP_READ_MEDIA_VIDEO};
         final String[] disableAppOpsList = {OP_MANAGE_EXTERNAL_STORAGE, OP_READ_MEDIA_AUDIO};
@@ -190,6 +190,7 @@ public class PermissionActivityTest {
                     TEST_APP_33_PACKAGE_NAME, null, VERB_TRASH,
                     /* shouldCheckMediaPermissions */ true, /* shouldCheckReadAudio */ true,
                     /* shouldCheckReadImages */ false, /* shouldCheckReadVideo */ false,
+                    /* mShouldCheckReadAudioOrReadVideo */ false,
                     /* isTargetSdkAtLeastT */ true)).isTrue();
         } finally {
             restoreDefaultAppOpPermissions(mTestAppUid33);
@@ -199,7 +200,7 @@ public class PermissionActivityTest {
 
     @Test
     @SdkSuppress(minSdkVersion = 33, codeName = "T")
-    public void testShouldShowActionDialog_noRMIndMES_true_33() throws Exception {
+    public void testShouldShowActionDialog_noRMIAndMES_true_33() throws Exception {
         final String[] enableAppOpsList =
                 {OP_MANAGE_MEDIA, OP_READ_MEDIA_AUDIO, OP_READ_MEDIA_VIDEO};
         final String[] disableAppOpsList = {OP_MANAGE_EXTERNAL_STORAGE, OP_READ_MEDIA_IMAGES};
@@ -213,6 +214,7 @@ public class PermissionActivityTest {
                     TEST_APP_33_PACKAGE_NAME, null, VERB_TRASH,
                     /* shouldCheckMediaPermissions */ true, /* shouldCheckReadAudio */ false,
                     /* shouldCheckReadImages */ true, /* shouldCheckReadVideo */ false,
+                    /* mShouldCheckReadAudioOrReadVideo */ false,
                     /* isTargetSdkAtLeastT */ true)).isTrue();
         } finally {
             restoreDefaultAppOpPermissions(mTestAppUid33);
@@ -222,7 +224,7 @@ public class PermissionActivityTest {
 
     @Test
     @SdkSuppress(minSdkVersion = 33, codeName = "T")
-    public void testShouldShowActionDialog_noRMVndMES_true_33() throws Exception {
+    public void testShouldShowActionDialog_noRMVAndMES_true_33() throws Exception {
         final String[] enableAppOpsList =
                 {OP_MANAGE_MEDIA, OP_READ_MEDIA_AUDIO, OP_READ_MEDIA_IMAGES};
         final String[] disableAppOpsList = {OP_MANAGE_EXTERNAL_STORAGE, OP_READ_MEDIA_VIDEO};
@@ -236,6 +238,32 @@ public class PermissionActivityTest {
                     TEST_APP_33_PACKAGE_NAME, null, VERB_TRASH,
                     /* shouldCheckMediaPermissions */ true, /* shouldCheckReadAudio */ false,
                     /* shouldCheckReadImages */ false, /* shouldCheckReadVideo */ true,
+                    /* mShouldCheckReadAudioOrReadVideo */ false,
+                    /* isTargetSdkAtLeastT */ true)).isTrue();
+        } finally {
+            restoreDefaultAppOpPermissions(mTestAppUid33);
+            dropShellPermission();
+        }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 33, codeName = "T")
+    public void testShouldShowActionDialogForSubtitle_noRMARMVAndMES_true_33() throws Exception {
+        final String[] enableAppOpsList =
+                {OP_MANAGE_MEDIA, OP_READ_MEDIA_IMAGES};
+        final String[] disableAppOpsList =
+                {OP_MANAGE_EXTERNAL_STORAGE, OP_READ_MEDIA_AUDIO, OP_READ_MEDIA_VIDEO};
+        adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
+
+        try {
+            setupPermissions(
+                    mTestAppUid33, enableAppOpsList, disableAppOpsList, TEST_APP_33_PACKAGE_NAME);
+
+            assertThat(shouldShowActionDialog(getContext(), TEST_APP_PID, mTestAppUid33,
+                    TEST_APP_33_PACKAGE_NAME, null, VERB_TRASH,
+                    /* shouldCheckMediaPermissions */ true, /* shouldCheckReadAudio */ false,
+                    /* shouldCheckReadImages */ false, /* shouldCheckReadVideo */ false,
+                    /* mShouldCheckReadAudioOrReadVideo */ true,
                     /* isTargetSdkAtLeastT */ true)).isTrue();
         } finally {
             restoreDefaultAppOpPermissions(mTestAppUid33);
@@ -282,6 +310,7 @@ public class PermissionActivityTest {
                     TEST_APP_33_PACKAGE_NAME, null, VERB_TRASH,
                     /* shouldCheckMediaPermissions */ true, /* shouldCheckReadAudio */ true,
                     /* shouldCheckReadImages */ true, /* shouldCheckReadVideo */ true,
+                    /* mShouldCheckReadAudioOrReadVideo */ true,
                     /* isTargetSdkAtLeastT */ true)).isTrue();
         } finally {
             restoreDefaultAppOpPermissions(mTestAppUid33);
@@ -310,7 +339,7 @@ public class PermissionActivityTest {
 
     @Test
     @SdkSuppress(minSdkVersion = 33, codeName = "T")
-    public void testShouldShowActionDialog_hasMMwithRM_false_33() throws Exception {
+    public void testShouldShowActionDialog_hasMMWithRM_false_33() throws Exception {
         final String[] enableAppOpsList = {
             OP_MANAGE_MEDIA, OP_READ_MEDIA_AUDIO, OP_READ_MEDIA_VIDEO, OP_READ_MEDIA_IMAGES
         };
@@ -325,6 +354,7 @@ public class PermissionActivityTest {
                     TEST_APP_33_PACKAGE_NAME, null, VERB_TRASH,
                     /* shouldCheckMediaPermissions */ true, /* shouldCheckReadAudio */ true,
                     /* shouldCheckReadImages */ true, /* shouldCheckReadVideo */ true,
+                    /* mShouldCheckReadAudioOrReadVideo */ true,
                     /* isTargetSdkAtLeastT */ true)).isFalse();
         } finally {
             restoreDefaultAppOpPermissions(mTestAppUid33);
@@ -369,6 +399,7 @@ public class PermissionActivityTest {
                     TEST_APP_33_PACKAGE_NAME, null, VERB_TRASH,
                     /* shouldCheckMediaPermissions */ true, /* shouldCheckReadAudio */ true,
                     /* shouldCheckReadImages */ true, /* shouldCheckReadVideo */ true,
+                    /* mShouldCheckReadAudioOrReadVideo */ true,
                     /* isTargetSdkAtLeastT */ true)).isFalse();
         } finally {
             restoreDefaultAppOpPermissions(mTestAppUid33);

@@ -112,4 +112,13 @@ public class StringUtils {
 
       return verifiedPaths;
   }
+
+   /** Returns an empty string if input string is null. */
+    public static String getEmptyStringIfNull(String str) {
+        if (str == null) {
+            return "";
+        }
+
+        return str;
+    }
 }

@@ -94,7 +94,6 @@ public final class RemotePreviewHandler {
      *
      * @param viewHolder {@link PreviewVideoHolder} for the media item under preview
      * @param item       {@link Item} to be previewed
-     * @return true if the given {@link Item} can be previewed remotely, else false
      */
     public void onViewAttachedToWindow(PreviewVideoHolder viewHolder, Item item) {
         final RemotePreviewSession session = createRemotePreviewSession(item, viewHolder);
@@ -105,9 +104,6 @@ public final class RemotePreviewHandler {
         // anywhere else.
         holder.removeCallback(mSurfaceHolderCallback);
         holder.addCallback(mSurfaceHolderCallback);
-
-        mCurrentPreviewState.item = item;
-        mCurrentPreviewState.viewHolder = viewHolder;
     }
 
     /**
@@ -132,6 +128,9 @@ public final class RemotePreviewHandler {
             Log.w(TAG, "No RemotePreviewSession found.");
             return false;
         }
+
+        mCurrentPreviewState.item = item;
+        mCurrentPreviewState.viewHolder = session.getPreviewVideoHolder();
 
         session.requestPlayMedia();
         return true;
@@ -176,7 +175,7 @@ public final class RemotePreviewHandler {
         }
 
         mSessionMap.put(holder, session);
-        session.surfaceCreated(holder.getSurface());
+        session.surfaceCreated();
         session.requestPlayMedia();
     }
 
@@ -295,7 +294,7 @@ public final class RemotePreviewHandler {
 
             Surface surface = holder.getSurface();
             RemotePreviewSession session = mSessionMap.get(holder);
-            session.surfaceCreated(surface);
+            session.surfaceCreated();
         }
 
         @Override

@@ -2661,9 +2661,18 @@ public class MediaProvider extends ContentProvider {
         boolean allowHidden = isCallingPackageAllowedHidden();
         final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE,
                 matchUri(uriOldPath, allowHidden), uriOldPath, qbExtras, null);
+
+        // uriOldPath may use Files uri which doesn't allow modifying AudioColumns. Include
+        // AudioColumns projection map if we are modifying any audio columns while renaming
+        // database rows.
+        if (values.containsKey(AudioColumns.IS_RINGTONE)) {
+            qbForUpdate.setProjectionMap(getProjectionMap(AudioColumns.class, FileColumns.class));
+        }
+
         if (values.containsKey(FileColumns._MODIFIER)) {
             qbForUpdate.allowColumn(FileColumns._MODIFIER);
         }
+
         final String selection = MediaColumns.DATA + " =? ";
         int count = 0;
         boolean retryUpdateWithReplace = false;
@@ -2736,12 +2745,12 @@ public class MediaProvider extends ContentProvider {
             values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_FUSE);
         }
 
-        final boolean allowHidden = isCallingPackageAllowedHidden();
-        if (!newMimeType.equalsIgnoreCase("null") &&
-                matchUri(getContentUriForFile(path, newMimeType), allowHidden) == AUDIO_MEDIA) {
+        if (MimeUtils.isAudioMimeType(newMimeType) && !values.containsKey(FileColumns._MODIFIER)) {
             computeAudioLocalizedValues(values);
             computeAudioKeyValues(values);
+            FileUtils.computeAudioTypeValuesFromData(path, values::put);
         }
+
         FileUtils.computeValuesFromData(values, isFuseThread());
         return values;
     }

@@ -119,8 +119,10 @@ public class PickerDataLayerTest {
 
         mDbHelper = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
+        final String allowedCloudProviders = CLOUD_PRIMARY_PROVIDER_AUTHORITY + ","
+                + CLOUD_SECONDARY_PROVIDER_AUTHORITY;
         mController = new PickerSyncController(mContext, mFacade, LOCAL_PROVIDER_AUTHORITY,
-                /* syncDelay */ 0);
+                allowedCloudProviders, /* syncDelay */ 0);
         mDataLayer = new PickerDataLayer(mContext, mFacade, mController);
 
         // Set cloud provider to null to discard

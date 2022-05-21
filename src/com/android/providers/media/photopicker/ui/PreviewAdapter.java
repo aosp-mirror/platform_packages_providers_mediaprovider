@@ -42,8 +42,7 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private final ImageLoader mImageLoader;
     private final RemotePreviewHandler mRemotePreviewHandler;
     private final PlaybackHandler mPlaybackHandler;
-    private final boolean mIsRemotePreviewEnabled =
-            RemotePreviewHandler.isRemotePreviewEnabled();
+    private final boolean mIsRemotePreviewEnabled = RemotePreviewHandler.isRemotePreviewEnabled();
 
     PreviewAdapter(Context context, MuteStatus muteStatus) {
         mImageLoader = new ImageLoader(context);
@@ -109,10 +108,7 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     void onHandlePageSelected(View itemView) {
         if (mIsRemotePreviewEnabled) {
             final Item item = (Item) itemView.getTag();
-
-            if (item.isVideo()) {
-                mRemotePreviewHandler.onHandlePageSelected(item);
-            }
+            mRemotePreviewHandler.onHandlePageSelected(item);
             return;
         }
 

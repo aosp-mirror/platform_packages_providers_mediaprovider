@@ -19,6 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"ਮੀਡੀਆ"</string>
     <string name="storage_description" msgid="4081716890357580107">"ਸਥਾਨਕ ਸਟੋਰੇਜ"</string>
     <string name="app_label" msgid="9035307001052716210">"ਮੀਡੀਆ ਸਟੋਰੇਜ"</string>
+    <string name="picker_app_label" msgid="5487796494405738578">"ਫ਼ੋਟੋ ਚੋਣਕਾਰ"</string>
     <string name="artist_label" msgid="8105600993099120273">"ਕਲਾਕਾਰ"</string>
     <string name="unknown" msgid="2059049215682829375">"ਅਗਿਆਤ"</string>
     <string name="root_images" msgid="5861633549189045666">"ਚਿੱਤਰ"</string>
@@ -36,7 +37,7 @@
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"ਅਸਥਾਈ ਐਪ ਫ਼ਾਈਲਾਂ ਨੂੰ ਕਲੀਅਰ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ…"</string>
     <string name="clear" msgid="5524638938415865915">"ਕਲੀਅਰ ਕਰੋ"</string>
     <string name="allow" msgid="8885707816848569619">"ਆਗਿਆ ਦਿਓ"</string>
-    <string name="deny" msgid="6040983710442068936">"ਮਨ੍ਹਾ ਕਰੋ"</string>
+    <string name="deny" msgid="6040983710442068936">"ਨਾ ਕਰਨ ਦਿਓ"</string>
     <string name="add" msgid="2894574044585549298">"ਸ਼ਾਮਲ ਕਰੋ"</string>
     <string name="deselect" msgid="4297825044827769490">"ਅਣ-ਚੁਣਿਆ ਕਰੋ"</string>
     <string name="deselected" msgid="8488133193326208475">"ਅਣ-ਚੁਣਿਆ"</string>
@@ -49,8 +50,7 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"ਚੁਣੀਆਂ ਗਈਆਂ ਆਈਟਮਾਂ ਦੇਖੋ"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ਫ਼ੋਟੋਆਂ"</string>
     <string name="picker_albums" msgid="4822511902115299142">"ਐਲਬਮਾਂ"</string>
-    <!-- no translation found for picker_preview (6257414886055861039) -->
-    <skip />
+    <string name="picker_preview" msgid="6257414886055861039">"ਪੂਰਵ-ਝਲਕ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ਕਾਰਜ ਪ੍ਰੋਫਾਈਲ \'ਤੇ ਸਵਿੱਚ ਕਰੋ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ਨਿੱਜੀ ਪ੍ਰੋਫਾਈਲ \'ਤੇ ਸਵਿੱਚ ਕਰੋ"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"ਤੁਹਾਡੇ ਪ੍ਰਸ਼ਾਸਕ ਵੱਲੋਂ ਬਲਾਕ ਕੀਤਾ ਗਿਆ"</string>
@@ -69,13 +69,17 @@
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"ਮੋਸ਼ਨ ਫ਼ੋਟੋ"</string>
     <string name="picker_item_content_desc" msgid="7680591530155286423">"<xliff:g id="ITEM_NAME">%1$s</xliff:g> ਨੂੰ <xliff:g id="TIME">%2$s</xliff:g> \'ਤੇ ਲਿਆ ਗਿਆ"</string>
-    <!-- no translation found for picker_video_item_content_desc (7828900089119214801) -->
-    <skip />
+    <string name="picker_video_item_content_desc" msgid="7828900089119214801">"<xliff:g id="DURATION">%2$s</xliff:g> ਮਿਆਦ ਵਾਲੇ ਵੀਡੀਓ ਨੂੰ <xliff:g id="TIME">%1$s</xliff:g> ਨੂੰ ਬਣਾਇਆ ਗਿਆ"</string>
     <string name="picker_photo" msgid="1739342083494962153">"ਫ਼ੋਟੋ"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"ਮੋਸ਼ਨ ਫ਼ੋਟੋ"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ਵੀਡੀਓ ਮਿਊਟ ਕਰੋ"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"ਵੀਡੀਓ ਅਣਮਿਊਟ ਕਰੋ"</string>
+    <string name="picker_play_video" msgid="5158816108935317185">"ਵੀਡੀਓ ਚਲਾਓ"</string>
+    <string name="picker_pause_video" msgid="7239492902901477371">"ਵੀਡੀਓ ਰੋਕੋ"</string>
+    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
+    <skip />
+    <string name="not_selected" msgid="2244008151669896758">"ਚੁਣਿਆ ਨਹੀਂ ਗਿਆ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਆਡੀਓ ਫ਼ਾਈਲ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲਾਂ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ਆਡੀਓ ਫ਼ਾਈਲ ਸੋਧੀ ਜਾ ਰਹੀ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲ ਸੋਧੀ ਜਾ ਰਹੀ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲਾਂ ਸੋਧੀਆਂ ਜਾ ਰਹੀਆਂ ਹਨ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਵੀਡੀਓ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਵੀਡੀਓ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਵੀਡੀਓ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}}"</string>
@@ -88,7 +92,7 @@
     <string name="permission_progress_trash_audio" msgid="3116279868733641329">"{count,plural, =1{ਆਡੀਓ ਫ਼ਾਈਲ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲਾਂ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਈਆਂ ਜਾ ਰਹੀਆਂ ਹਨ…}}"</string>
     <string name="permission_trash_video" msgid="7555850843259959642">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਵੀਡੀਓ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਵੀਡੀਓ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਵੀਡੀਓ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}}"</string>
     <string name="permission_progress_trash_video" msgid="4637821778329459681">"{count,plural, =1{ਵੀਡੀਓ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਇਆ ਜਾ ਰਿਹਾ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਵੀਡੀਓ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਇਆ ਜਾ ਰਿਹਾ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਵੀਡੀਓ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਏ ਜਾ ਰਹੇ ਹਨ…}}"</string>
-    <string name="permission_trash_image" msgid="3333128084684156675">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋਆਂ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}}"</string>
+    <string name="permission_trash_image" msgid="3333128084684156675">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਉਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਉਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋਆਂ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਉਣ ਦੇਣਾ ਹੈ?}}"</string>
     <string name="permission_progress_trash_image" msgid="3063857679090024764">"{count,plural, =1{ਫ਼ੋਟੋ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਫ਼ੋਟੋ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਫ਼ੋਟੋਆਂ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਈਆਂ ਜਾ ਰਹੀਆਂ ਹਨ…}}"</string>
     <string name="permission_trash_generic" msgid="5545420534785075362">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਆਈਟਮ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਈਟਮ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਈਟਮਾਂ ਨੂੰ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}}"</string>
     <string name="permission_progress_trash_generic" msgid="7815124979717814057">"{count,plural, =1{ਆਈਟਮ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਆਈਟਮ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਆਈਟਮਾਂ ਰੱਦੀ ਵਿੱਚ ਲਿਜਾਈਆਂ ਜਾ ਰਹੀਆਂ ਹਨ…}}"</string>
@@ -96,7 +100,7 @@
     <string name="permission_progress_untrash_audio" msgid="2775372344946464508">"{count,plural, =1{ਆਡੀਓ ਫ਼ਾਈਲ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲਾਂ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਈਆਂ ਜਾ ਰਹੀਆਂ ਹਨ…}}"</string>
     <string name="permission_untrash_video" msgid="3178914827607608162">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਵੀਡੀਓ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਵੀਡੀਓ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਵੀਡੀਓ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}}"</string>
     <string name="permission_progress_untrash_video" msgid="5500929409733841567">"{count,plural, =1{ਵੀਡੀਓ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਇਆ ਜਾ ਰਿਹਾ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਵੀਡੀਓ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਇਆ ਜਾ ਰਿਹਾ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਵੀਡੀਓ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਏ ਜਾ ਰਹੇ ਹਨ…}}"</string>
-    <string name="permission_untrash_image" msgid="3397523279351032265">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋਆਂ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}}"</string>
+    <string name="permission_untrash_image" msgid="3397523279351032265">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਉਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਉਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਫ਼ੋਟੋਆਂ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਉਣ ਦੇਣਾ ਹੈ?}}"</string>
     <string name="permission_progress_untrash_image" msgid="5295061520504846264">"{count,plural, =1{ਫ਼ੋਟੋ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਫ਼ੋਟੋ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਫ਼ੋਟੋਆਂ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਈਆਂ ਜਾ ਰਹੀਆਂ ਹਨ…}}"</string>
     <string name="permission_untrash_generic" msgid="2118366929431671046">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਆਈਟਮ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਈਟਮ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਈਟਮਾਂ ਨੂੰ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਣ ਦੇਣਾ ਹੈ?}}"</string>
     <string name="permission_progress_untrash_generic" msgid="1489511601966842579">"{count,plural, =1{ਆਈਟਮ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਆਈਟਮ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਈ ਜਾ ਰਹੀ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਆਈਟਮਾਂ ਰੱਦੀ ਤੋਂ ਬਾਹਰ ਲਿਜਾਈਆਂ ਜਾ ਰਹੀਆਂ ਹਨ…}}"</string>

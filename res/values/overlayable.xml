@@ -17,6 +17,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
     <overlayable name="MediaProviderConfig">
         <policy type="product|system|vendor">
+            <item type="string" name="config_default_cloud_provider_authority"/>
             <item type="array" name="config_supported_transcoding_relative_paths"/>
             <item type="array" name="config_supported_uncached_relative_paths"/>
         </policy>

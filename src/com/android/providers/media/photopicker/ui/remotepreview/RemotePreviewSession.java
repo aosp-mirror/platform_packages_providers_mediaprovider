@@ -33,8 +33,9 @@ import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PlaybackState;
 import android.util.Log;
-import android.view.Surface;
 import android.view.View;
+import android.view.accessibility.AccessibilityManager;
+import android.view.accessibility.AccessibilityManager.AccessibilityStateChangeListener;
 import android.widget.ImageButton;
 
 import com.android.providers.media.R;
@@ -55,21 +56,59 @@ final class RemotePreviewSession {
     private final SurfaceControllerProxy mSurfaceController;
     private final PreviewVideoHolder mPreviewVideoHolder;
     private final MuteStatus mMuteStatus;
+    private final PlayerControlsVisibilityStatus mPlayerControlsVisibilityStatus;
+    private final AccessibilityManager mAccessibilityManager;
+    private final View.OnClickListener mPlayPauseButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (mCurrentPlaybackState == PLAYBACK_STATE_STARTED) {
+                pauseMedia();
+            } else {
+                playMedia();
+            }
+        }
+    };
+    private final View.OnClickListener mMuteButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            boolean newMutedValue = !mMuteStatus.isVolumeMuted();
+            setAudioMuted(newMutedValue);
+            mMuteStatus.setVolumeMuted(newMutedValue);
+            updateMuteButtonState(mMuteStatus.isVolumeMuted());
+        }
+    };
+    private final View.OnClickListener mPlayerContainerClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            boolean playerControlsVisible =
+                    mPreviewVideoHolder.getPlayerControlsRoot().getVisibility() == View.VISIBLE;
+            updatePlayerControlsVisibilityState(!playerControlsVisible);
+        }
+    };
+    private final AccessibilityStateChangeListener mAccessibilityStateChangeListener =
+            this::updateAccessibilityState;
 
+    private SurfaceChangeData mSurfaceChangeData;
     private boolean mIsSurfaceCreated = false;
+    private boolean mIsSurfaceCreationNotified = false;
     private boolean mIsPlaybackRequested = false;
     @PlaybackState
     private int mCurrentPlaybackState = PLAYBACK_STATE_BUFFERING;
+    private boolean mIsAccessibilityEnabled;
 
     RemotePreviewSession(int surfaceId, @NonNull String mediaId, @NonNull String authority,
             @NonNull SurfaceControllerProxy surfaceController,
-            @NonNull PreviewVideoHolder previewVideoHolder, @NonNull MuteStatus muteStatus) {
+            @NonNull PreviewVideoHolder previewVideoHolder, @NonNull MuteStatus muteStatus,
+            @NonNull PlayerControlsVisibilityStatus playerControlsVisibilityStatus,
+            @NonNull Context context) {
         this.mSurfaceId = surfaceId;
         this.mMediaId = mediaId;
         this.mAuthority = authority;
         this.mSurfaceController = surfaceController;
         this.mPreviewVideoHolder = previewVideoHolder;
         this.mMuteStatus = muteStatus;
+        this.mPlayerControlsVisibilityStatus = playerControlsVisibilityStatus;
+        this.mAccessibilityManager = context.getSystemService(AccessibilityManager.class);
 
         initUI();
     }
@@ -88,20 +127,36 @@ final class RemotePreviewSession {
         return mAuthority;
     }
 
-    void surfaceCreated(@NonNull Surface surface) {
+    @NonNull
+    PreviewVideoHolder getPreviewVideoHolder() {
+        return mPreviewVideoHolder;
+    }
+
+    void surfaceCreated() {
         if (mIsSurfaceCreated) {
             throw new IllegalStateException("Surface is already created.");
         }
-
-        if (surface == null) {
-            throw new IllegalStateException("surfaceCreated() called with null surface.");
+        if (mIsSurfaceCreationNotified) {
+            throw new IllegalStateException(
+                    "Surface creation has been already notified to SurfaceController.");
         }
 
-        try {
-            mSurfaceController.onSurfaceCreated(mSurfaceId, surface, mMediaId);
-            mIsSurfaceCreated = true;
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failure in onSurfaceCreated().", e);
+        mIsSurfaceCreated = true;
+
+        // Notify surface creation only if playback has been already requested, else this will be
+        // done in requestPlayMedia() when playback is explicitly requested.
+        if (mIsPlaybackRequested) {
+            notifySurfaceCreated();
+        }
+    }
+
+    void surfaceChanged(int format, int width, int height) {
+        mSurfaceChangeData = new SurfaceChangeData(format, width, height);
+
+        // Notify surface change only if playback has been already requested, else this will be
+        // done in requestPlayMedia() when playback is explicitly requested.
+        if (mIsPlaybackRequested) {
+            notifySurfaceChanged();
         }
     }
 
@@ -110,22 +165,20 @@ final class RemotePreviewSession {
             throw new IllegalStateException("Surface is not created.");
         }
 
+        mSurfaceChangeData = null;
+
+        tearDownUI();
+
+        if (!mIsSurfaceCreationNotified) {
+            // If we haven't notified surface creation yet, then no need to notify surface
+            // destruction either.
+            return;
+        }
+
         try {
             mSurfaceController.onSurfaceDestroyed(mSurfaceId);
         } catch (RemoteException e) {
             Log.e(TAG, "Failure in onSurfaceDestroyed().", e);
-        }
-    }
-
-    void surfaceChanged(int format, int width, int height) {
-        if (!mIsSurfaceCreated) {
-            throw new IllegalStateException("Surface is not created.");
-        }
-
-        try {
-            mSurfaceController.onSurfaceChanged(mSurfaceId, format, width, height);
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failure in onSurfaceChanged().", e);
         }
     }
 
@@ -146,6 +199,15 @@ final class RemotePreviewSession {
             return;
         }
 
+        // Now that playback has been requested, try to notify surface creation and surface change
+        // so that player can be prepared with the surface.
+        if (mIsSurfaceCreated) {
+            notifySurfaceCreated();
+        }
+        if (mSurfaceChangeData != null) {
+            notifySurfaceChanged();
+        }
+
         mIsPlaybackRequested = true;
     }
 
@@ -164,7 +226,13 @@ final class RemotePreviewSession {
                 return;
             case PLAYBACK_STATE_STARTED:
                 updatePlayPauseButtonState(true /* isPlaying */);
-                hidePlayerControlsWithDelay();
+                if (mIsAccessibilityEnabled
+                        || mPlayerControlsVisibilityStatus.shouldShowPlayerControls()) {
+                    updatePlayerControlsVisibilityState(true /* visible */);
+                }
+                if (!mIsAccessibilityEnabled) {
+                    hidePlayerControlsWithDelay();
+                }
                 return;
             case PLAYBACK_STATE_PAUSED:
                 updatePlayPauseButtonState(false /* isPlaying */);
@@ -173,10 +241,54 @@ final class RemotePreviewSession {
         }
     }
 
+    private void notifySurfaceCreated() {
+        if (!mIsSurfaceCreated) {
+            throw new IllegalStateException("Surface is not created.");
+        }
+        if (mIsSurfaceCreationNotified) {
+            throw new IllegalStateException(
+                    "Surface creation has already been notified to SurfaceController.");
+        }
+
+        try {
+            mSurfaceController.onSurfaceCreated(mSurfaceId,
+                    mPreviewVideoHolder.getSurfaceHolder().getSurface(), mMediaId);
+            mIsSurfaceCreationNotified = true;
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failure in notifySurfaceCreated().", e);
+        }
+    }
+
+    private void notifySurfaceChanged() {
+        if (!mIsSurfaceCreated) {
+            throw new IllegalStateException("Surface is not created.");
+        }
+        if (!mIsSurfaceCreationNotified) {
+            throw new IllegalStateException(
+                    "Surface creation has not been notified to SurfaceController.");
+        }
+
+        if (mSurfaceChangeData == null) {
+            throw new IllegalStateException("No surface change data present.");
+        }
+
+        try {
+            mSurfaceController.onSurfaceChanged(mSurfaceId, mSurfaceChangeData.getFormat(),
+                    mSurfaceChangeData.getWidth(), mSurfaceChangeData.getHeight());
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failure in notifySurfaceChanged().", e);
+        }
+    }
+
     private void playMedia() {
         if (!mIsSurfaceCreated) {
             throw new IllegalStateException("Surface is not created.");
         }
+        if (!mIsSurfaceCreationNotified) {
+            throw new IllegalStateException(
+                    "Surface creation has not been notified to SurfaceController.");
+        }
+
         if (mCurrentPlaybackState == PLAYBACK_STATE_STARTED) {
             throw new IllegalStateException("Player is already playing.");
         }
@@ -192,6 +304,11 @@ final class RemotePreviewSession {
         if (!mIsSurfaceCreated) {
             throw new IllegalStateException("Surface is not created.");
         }
+        if (!mIsSurfaceCreationNotified) {
+            throw new IllegalStateException(
+                    "Surface creation has not been notified to SurfaceController.");
+        }
+
         if (mCurrentPlaybackState != PLAYBACK_STATE_STARTED) {
             throw new IllegalStateException("Player is not playing.");
         }
@@ -219,40 +336,40 @@ final class RemotePreviewSession {
 
         // We want to show the player view only when we have the correct aspect ratio.
         mPreviewVideoHolder.getPlayerContainer().setVisibility(View.VISIBLE);
-        mPreviewVideoHolder.getPlayerControlsRoot().setVisibility(View.VISIBLE);
         mPreviewVideoHolder.getThumbnailView().setVisibility(View.GONE);
     }
 
     private void initUI() {
-        // We hide the player view and show the thumbnail till the player is ready and we know the
-        // media size. However, since we want the surface to be created, we cannot use View.GONE
-        // here.
+        // We show the thumbnail view till the player is ready and when we know the
+        // media size, then we hide the thumbnail view.
         mPreviewVideoHolder.getPlayerContainer().setVisibility(View.INVISIBLE);
         mPreviewVideoHolder.getThumbnailView().setVisibility(View.VISIBLE);
         mPreviewVideoHolder.getPlayerControlsRoot().setVisibility(View.GONE);
 
         updatePlayPauseButtonState(false /* isPlaying */);
-        mPreviewVideoHolder.getPlayPauseButton().setOnClickListener(v -> {
-            if (mCurrentPlaybackState == PLAYBACK_STATE_STARTED) {
-                pauseMedia();
-            } else {
-                playMedia();
-            }
-        });
+        mPreviewVideoHolder.getPlayPauseButton().setOnClickListener(mPlayPauseButtonClickListener);
 
         updateMuteButtonState(mMuteStatus.isVolumeMuted());
-        mPreviewVideoHolder.getMuteButton().setOnClickListener(v -> {
-            boolean newMutedValue = !mMuteStatus.isVolumeMuted();
-            setAudioMuted(newMutedValue);
-            mMuteStatus.setVolumeMuted(newMutedValue);
-            updateMuteButtonState(mMuteStatus.isVolumeMuted());
-        });
+        mPreviewVideoHolder.getMuteButton().setOnClickListener(mMuteButtonClickListener);
 
-        mPreviewVideoHolder.getPlayerContainer().setOnClickListener(v -> {
-            View playerControlsRoot = mPreviewVideoHolder.getPlayerControlsRoot();
-            boolean playerControlsVisible = playerControlsRoot.getVisibility() == View.VISIBLE;
-            playerControlsRoot.setVisibility(playerControlsVisible ? View.GONE : View.VISIBLE);
-        });
+        updateAccessibilityState(mAccessibilityManager.isEnabled());
+        mAccessibilityManager.addAccessibilityStateChangeListener(
+                mAccessibilityStateChangeListener);
+    }
+
+    private void tearDownUI() {
+        mAccessibilityManager.removeAccessibilityStateChangeListener(
+                mAccessibilityStateChangeListener);
+        mPreviewVideoHolder.getPlayPauseButton().setOnClickListener(null);
+        mPreviewVideoHolder.getMuteButton().setOnClickListener(null);
+        mPreviewVideoHolder.getPlayerContainer().setOnClickListener(null);
+    }
+
+    private void updateAccessibilityState(boolean enabled) {
+        mIsAccessibilityEnabled = enabled;
+        mPreviewVideoHolder.getPlayerContainer().setOnClickListener(
+                mIsAccessibilityEnabled ? null : mPlayerContainerClickListener);
+        updatePlayerControlsVisibilityState(mIsAccessibilityEnabled);
     }
 
     private void updatePlayPauseButtonState(boolean isPlaying) {
@@ -277,7 +394,38 @@ final class RemotePreviewSession {
 
     private void hidePlayerControlsWithDelay() {
         mPreviewVideoHolder.getPlayerControlsRoot().postDelayed(
-                () -> mPreviewVideoHolder.getPlayerControlsRoot().setVisibility(View.GONE),
+                () -> updatePlayerControlsVisibilityState(false /* visible */),
                 PLAYER_CONTROL_ON_PLAY_TIMEOUT_MS);
+    }
+
+    private void updatePlayerControlsVisibilityState(boolean visible) {
+        mPreviewVideoHolder.getPlayerControlsRoot().setVisibility(
+                visible ? View.VISIBLE : View.GONE);
+        mPlayerControlsVisibilityStatus.setShouldShowPlayerControlsForNextItem(visible);
+    }
+
+    private static final class SurfaceChangeData {
+
+        private int mFormat;
+        private int mWidth;
+        private int mHeight;
+
+        SurfaceChangeData(int format, int width, int height) {
+            mFormat = format;
+            mWidth = width;
+            mHeight = height;
+        }
+
+        int getFormat() {
+            return mFormat;
+        }
+
+        int getWidth() {
+            return mWidth;
+        }
+
+        int getHeight() {
+            return mHeight;
+        }
     }
 }

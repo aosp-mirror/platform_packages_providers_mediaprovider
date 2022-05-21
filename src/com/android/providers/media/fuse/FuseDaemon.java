@@ -168,6 +168,21 @@ public final class FuseDaemon extends Thread {
     }
 
     /**
+     * Checks if the FuseDaemon uses the FUSE passthrough feature.
+     *
+     * @return {@code true} if the FuseDaemon uses FUSE passthrough, {@code false} otherwise
+     */
+    public boolean usesFusePassthrough() {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                Log.i(TAG, "usesFusePassthrough failed, FUSE daemon unavailable");
+                return false;
+            }
+            return native_uses_fuse_passthrough(mPtr);
+        }
+    }
+
+    /**
      * Invalidates FUSE VFS dentry cache for {@code path}
      */
     public void invalidateFuseDentryCache(String path) {
@@ -200,6 +215,7 @@ public final class FuseDaemon extends Thread {
     private native void native_delete(long daemon);
     private native boolean native_should_open_with_fuse(long daemon, String path, boolean readLock,
             int fd);
+    private native boolean native_uses_fuse_passthrough(long daemon);
     private native void native_invalidate_fuse_dentry_cache(long daemon, String path);
     private native boolean native_is_started(long daemon);
     private native FdAccessResult native_check_fd_access(long daemon, int fd, int uid);

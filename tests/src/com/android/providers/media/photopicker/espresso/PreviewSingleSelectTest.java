@@ -67,16 +67,22 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
     public void testPreview_singleSelect_image() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
+        // Bottomsheet assertions are different for landscape mode
+        setPortraitOrientation(mRule);
+
         final BottomSheetIdlingResource bottomSheetIdlingResource =
                 BottomSheetIdlingResource.register(mRule);
 
         try {
-            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            mRule.getScenario().onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_COLLAPSED);
-            });
+            // TODO(b/226318844): When accessibility is enabled, we always launch the photo picker
+            // in full screen mode. Accessibility is enabled in Espresso test, we can't check the
+            // COLLAPSED state.
+//            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+//            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
+//            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
+//            mRule.getScenario().onActivity(activity -> {
+//                assertBottomSheetState(activity, STATE_COLLAPSED);
+//            });
 
             // Navigate to preview
             longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
@@ -103,14 +109,17 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
             onView(withContentDescription("Navigate up")).perform(click());
 
             onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-
-            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            // Shows dragBar and privacy text after we are back to Photos tab
             onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
             onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            mRule.getScenario().onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_COLLAPSED);
-            });
+
+            // TODO(b/226318844): When accessibility is enabled, we always launch the photo picker
+            // in full screen mode. Accessibility is enabled in Espresso test, we can't check the
+            // COLLAPSED state.
+//            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
+//            // Shows dragBar and privacy text after we are back to Photos tab
+//            mRule.getScenario().onActivity(activity -> {
+//                assertBottomSheetState(activity, STATE_COLLAPSED);
+//            });
         } finally {
             IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
         }
@@ -125,9 +134,11 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
         try (ViewPager2IdlingResource idlingResource
                      = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
-            // Verify video player is displayed
             assertSingleSelectCommonLayoutMatches();
-            onView(withId(R.id.preview_player_view)).check(matches(isDisplayed()));
+            // Verify thumbnail view is displayed
+            onView(withId(R.id.preview_video_image)).check(matches(isDisplayed()));
+            // TODO (b/232792753): Assert video player visibility using custom IdlingResource
+
             // Verify no special format icon is previewed
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
             onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());

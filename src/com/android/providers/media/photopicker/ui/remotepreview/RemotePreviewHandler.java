@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.ui.remotepreview;
 
+import static android.provider.CloudMediaProviderContract.EXTRA_AUTHORITY;
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
@@ -41,6 +42,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.PreviewVideoHolder;
@@ -69,12 +71,17 @@ public final class RemotePreviewHandler {
             new SurfaceStateChangedCallbackWrapper();
     private final Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
     private final ItemPreviewState mCurrentPreviewState = new ItemPreviewState();
+    private final PlayerControlsVisibilityStatus mPlayerControlsVisibilityStatus =
+            new PlayerControlsVisibilityStatus();
 
     private boolean mIsInBackground = false;
     private int mSurfaceCounter = 0;
 
+    /**
+     * Returns {@code true} if remote preview is enabled.
+     */
     public static boolean isRemotePreviewEnabled() {
-        return SystemProperties.getBoolean("sys.photopicker.remote_preview", false);
+        return SystemProperties.getBoolean("sys.photopicker.remote_preview", true);
     }
 
     public RemotePreviewHandler(Context context, MuteStatus muteStatus) {
@@ -87,26 +94,16 @@ public final class RemotePreviewHandler {
      *
      * @param viewHolder {@link PreviewVideoHolder} for the media item under preview
      * @param item       {@link Item} to be previewed
-     * @return true if the given {@link Item} can be previewed remotely, else false
      */
-    public boolean onViewAttachedToWindow(PreviewVideoHolder viewHolder, Item item) {
-        RemotePreviewSession session = createRemotePreviewSession(item, viewHolder);
-        if (session == null) {
-            Log.w(TAG, "Failed to create RemotePreviewSession.");
-            return false;
-        }
+    public void onViewAttachedToWindow(PreviewVideoHolder viewHolder, Item item) {
+        final RemotePreviewSession session = createRemotePreviewSession(item, viewHolder);
+        final SurfaceHolder holder = viewHolder.getSurfaceHolder();
 
-        SurfaceHolder holder = viewHolder.getSurfaceHolder();
         mSessionMap.put(holder, session);
         // Ensure that we don't add the same callback twice, since we don't remove callbacks
         // anywhere else.
         holder.removeCallback(mSurfaceHolderCallback);
         holder.addCallback(mSurfaceHolderCallback);
-
-        mCurrentPreviewState.item = item;
-        mCurrentPreviewState.viewHolder = viewHolder;
-
-        return true;
     }
 
     /**
@@ -118,12 +115,22 @@ public final class RemotePreviewHandler {
      * @return true if the given {@link Item} can be played, else false
      */
     public boolean onHandlePageSelected(Item item) {
+        if (!item.isVideo()) {
+            // Clear state of the previous player controls visibility state. Controls visibility
+            // state will only be tracked and used for contiguous videos in the preview.
+            mPlayerControlsVisibilityStatus.setShouldShowPlayerControlsForNextItem(true);
+            return false;
+        }
+
         Log.i(TAG, "onHandlePageSelected() called, attempting to start playback.");
         RemotePreviewSession session = getSessionForItem(item);
         if (session == null) {
             Log.w(TAG, "No RemotePreviewSession found.");
             return false;
         }
+
+        mCurrentPreviewState.item = item;
+        mCurrentPreviewState.viewHolder = session.getPreviewVideoHolder();
 
         session.requestPlayMedia();
         return true;
@@ -149,13 +156,15 @@ public final class RemotePreviewHandler {
     private RemotePreviewSession createRemotePreviewSession(Item item,
             PreviewVideoHolder previewVideoHolder) {
         String authority = item.getContentUri().getAuthority();
-        SurfaceControllerProxy controller = getSurfaceController(authority);
+        SurfaceControllerProxy controller = getSurfaceController(authority, false);
         if (controller == null) {
-            return null;
+            Log.w(TAG, "Failed to create RemotePreviewSession for " + authority
+                    + ". Fallback to openPreview");
+            controller = getSurfaceController(authority, true);
         }
 
         return new RemotePreviewSession(mSurfaceCounter++, item.getId(), authority, controller,
-                previewVideoHolder, mMuteStatus);
+                previewVideoHolder, mMuteStatus, mPlayerControlsVisibilityStatus, mContext);
     }
 
     private void restorePreviewState(SurfaceHolder holder) {
@@ -166,7 +175,7 @@ public final class RemotePreviewHandler {
         }
 
         mSessionMap.put(holder, session);
-        session.surfaceCreated(holder.getSurface());
+        session.surfaceCreated();
         session.requestPlayMedia();
     }
 
@@ -191,14 +200,15 @@ public final class RemotePreviewHandler {
     }
 
     @Nullable
-    private SurfaceControllerProxy getSurfaceController(String authority) {
+    private SurfaceControllerProxy getSurfaceController(String authority,
+            boolean localControllerFallback) {
         if (mControllers.containsKey(authority)) {
             return mControllers.get(authority);
         }
 
         SurfaceControllerProxy controller = null;
         try {
-            controller = createController(authority);
+            controller = createController(authority, localControllerFallback);
             if (controller != null) {
                 mControllers.put(authority, controller);
             }
@@ -219,12 +229,20 @@ public final class RemotePreviewHandler {
         mControllers.clear();
     }
 
-    private SurfaceControllerProxy createController(String authority) {
-        Log.i(TAG, "Creating new SurfaceController for authority: " + authority);
+    private SurfaceControllerProxy createController(String authority,
+            boolean localControllerFallback) {
+        Log.i(TAG, "Creating new SurfaceController for authority: " + authority
+                + ". localControllerFallback: " + localControllerFallback);
         Bundle extras = new Bundle();
         extras.putBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, true);
         extras.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED, mMuteStatus.isVolumeMuted());
         extras.putBinder(EXTRA_SURFACE_STATE_CALLBACK, mSurfaceStateChangedCallbackWrapper);
+
+        if (localControllerFallback) {
+            extras.putString(EXTRA_AUTHORITY, authority);
+            authority = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
+        }
+
         final Bundle surfaceControllerBundle = mContext.getContentResolver().call(
                 createSurfaceControllerUri(authority),
                 METHOD_CREATE_SURFACE_CONTROLLER, /* arg */ null, extras);
@@ -275,7 +293,7 @@ public final class RemotePreviewHandler {
 
             Surface surface = holder.getSurface();
             RemotePreviewSession session = mSessionMap.get(holder);
-            session.surfaceCreated(surface);
+            session.surfaceCreated();
         }
 
         @Override

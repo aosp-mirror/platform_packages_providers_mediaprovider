@@ -225,4 +225,16 @@ public class MediaService extends JobIntentService {
             return provider.scanFile(file, REASON_DEMAND);
         }
     }
+
+    @Override
+    public boolean onStopCurrentWork() {
+        // Scans are not stopped even if the job is stopped. So, no need to reschedule it again.
+        // MediaProvider scans are highly unlikely to get killed. But even if it does, we would run
+        // a scan on attachVolume(). But other requests to MediaService may get lost if
+        // MediaProvider process is killed, which would otherwise have been rescheduled by
+        // JobScheduler.
+        // TODO(b/233357418): Fix this by adhering to the protocol of stopping current work when job
+        // scheduler asks
+        return false;
+    }
 }

@@ -77,8 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"ਵੀਡੀਓ ਅਣਮਿਊਟ ਕਰੋ"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"ਵੀਡੀਓ ਚਲਾਓ"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"ਵੀਡੀਓ ਰੋਕੋ"</string>
-    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
-    <skip />
+    <string name="picker_cloud_sync" msgid="997251377538536319">"ਕਲਾਊਡ ਮੀਡੀਆ ਹੁਣ <xliff:g id="PKG_NAME">%1$s</xliff:g> ਤੋਂ ਉਪਲਬਧ ਹੈ"</string>
     <string name="not_selected" msgid="2244008151669896758">"ਚੁਣਿਆ ਨਹੀਂ ਗਿਆ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਆਡੀਓ ਫ਼ਾਈਲ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲਾਂ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ਆਡੀਓ ਫ਼ਾਈਲ ਸੋਧੀ ਜਾ ਰਹੀ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲ ਸੋਧੀ ਜਾ ਰਹੀ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲਾਂ ਸੋਧੀਆਂ ਜਾ ਰਹੀਆਂ ਹਨ…}}"</string>

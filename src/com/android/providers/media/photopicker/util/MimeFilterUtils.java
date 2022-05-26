@@ -32,12 +32,14 @@ public class MimeFilterUtils {
      * Checks if mime type filters set via {@link Intent#setType(String)} and
      * {@link Intent#EXTRA_MIME_TYPES} on the intent requires more than media items.
      *
+     * Note: TODO(b/224756380): Returns true if there are more than 1 mime type filters.
+     *
      * @param intent the intent to check mimeType filters of
      */
-    public static boolean requiresMoreThanMediaItems(Intent intent) {
+    public static boolean requiresUnsupportedFilters(Intent intent) {
         // EXTRA_MIME_TYPES has higher priority over getType() filter.
         if (intent.hasExtra(Intent.EXTRA_MIME_TYPES)) {
-            return requiresMoreThanMediaItems(intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES));
+            return requiresUnsupportedFilters(intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES));
         }
 
         // GET_CONTENT intent filter catches "images/*", "video/*" and "*/*" mimeTypes only
@@ -56,16 +58,36 @@ public class MimeFilterUtils {
      * Extracts relevant mime type filter for the given intent
      */
     public static String getMimeTypeFilter(Intent intent) {
+        // EXTRA_MIME_TYPES has higher priority over getType() filter.
+        if (intent.hasExtra(Intent.EXTRA_MIME_TYPES)) {
+            final String[] extraMimeTypes = intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES);
+
+            if (extraMimeTypes.length == 1) {
+                // We only support 1 mime type filter
+                // TODO(b/224756380): Add support for multiple mime type filters
+                return extraMimeTypes[0];
+            }
+
+            // Show all images/videos for multiple or empty mime type filters
+            return null;
+        }
+
         final String mimeType = intent.getType();
         if (MimeFilterUtils.isMimeTypeMedia(mimeType)) {
             return mimeType;
         }
+
         return null;
     }
 
-    private static boolean requiresMoreThanMediaItems(String[] mimeTypeFilters) {
+    private static boolean requiresUnsupportedFilters(String[] mimeTypeFilters) {
         // no filters imply that we should show non-media files as well
         if (mimeTypeFilters == null || mimeTypeFilters.length == 0) {
+            return true;
+        }
+
+        // TODO(b/224756380): Add support for multiple mime type filters
+        if (mimeTypeFilters.length > 1) {
             return true;
         }
 

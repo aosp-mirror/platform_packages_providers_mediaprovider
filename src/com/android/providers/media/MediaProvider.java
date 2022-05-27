@@ -5737,6 +5737,20 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
+            case MediaStore.USES_FUSE_PASSTHROUGH: {
+                boolean isEnabled = false;
+                try {
+                    FuseDaemon daemon = getFuseDaemonForFile(new File(arg));
+                    if (daemon != null) {
+                        isEnabled = daemon.usesFusePassthrough();
+                    }
+                } catch (FileNotFoundException e) {
+                }
+
+                Bundle bundle = new Bundle();
+                bundle.putBoolean(MediaStore.USES_FUSE_PASSTHROUGH_RESULT, isEnabled);
+                return bundle;
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }

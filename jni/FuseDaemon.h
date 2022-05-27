@@ -50,6 +50,11 @@ class FuseDaemon final {
     bool ShouldOpenWithFuse(int fd, bool for_read, const std::string& path);
 
     /**
+     * Check if the FUSE daemon uses FUSE passthrough
+     */
+    bool UsesFusePassthrough() const;
+
+    /**
      * Invalidate FUSE VFS dentry cache entry for path
      */
     void InvalidateFuseDentryCache(const std::string& path);

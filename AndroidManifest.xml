@@ -81,6 +81,12 @@
             android:authorities="com.android.providers.media.photopicker"
             android:exported="false" />
 
+        <provider
+            android:name="com.android.providers.media.photopicker.RemoteVideoPreviewProvider"
+            android:process=":PhotoPicker"
+            android:authorities="com.android.providers.media.remote_video_preview"
+            android:exported="false" />
+
         <!-- Handles database upgrades after OTAs, then disables itself -->
         <receiver android:name="com.android.providers.media.MediaUpgradeReceiver"
             android:exported="true">

@@ -1,25 +1,29 @@
 {
-    // TODO(b/204107787): Re-enable this once MP from master can be installed on R and S devices
-    // "mainline-presubmit": [
-    //     {
-    //         "name": "MediaProviderTests[com.google.android.mediaprovider.apex]"
-    //     }
-    //     {
-    //         "name": "MediaProviderTests[com.google.android.mediaprovider.apex]"
-    //     },
-    //     {
-    //         "name": "CtsScopedStorageCoreHostTest"
-    //     },
-    //     {
-    //         "name": "CtsScopedStorageHostTest"
-    //     },
-    //     {
-    //         "name": "CtsScopedStorageDeviceOnlyTest"
-    //     },
-    //    {
-    //        "name": "CtsMediaProviderTranscodeTests[com.google.android.mediaprovider.apex]"
-    //    }
-    // ],
+    "mainline-presubmit": [
+        {
+            "name": "MediaProviderTests[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsScopedStorageCoreHostTest[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsScopedStorageHostTest[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsScopedStorageDeviceOnlyTest[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsMediaProviderTranscodeTests[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsPhotoPickerTest[com.google.android.mediaprovider.apex]",
+            "options": [
+              {
+                "exclude-annotation": "androidx.test.filters.LargeTest"
+              }
+            ]
+        }
+    ],
     "presubmit": [
         {
             "name": "MediaProviderTests"

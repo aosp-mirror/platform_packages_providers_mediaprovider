@@ -599,7 +599,7 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
 
     // We don't want a getattr request with every read request
     conn->want &= ~FUSE_CAP_AUTO_INVAL_DATA & ~FUSE_CAP_READDIRPLUS_AUTO;
-    unsigned mask = (FUSE_CAP_SPLICE_WRITE | FUSE_CAP_SPLICE_MOVE | FUSE_CAP_SPLICE_READ |
+    uint64_t mask = (FUSE_CAP_SPLICE_WRITE | FUSE_CAP_SPLICE_MOVE | FUSE_CAP_SPLICE_READ |
                      FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE |
                      FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
 
@@ -2021,6 +2021,10 @@ bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& pa
     }
 
     return use_fuse;
+}
+
+bool FuseDaemon::UsesFusePassthrough() const {
+    return fuse->passthrough;
 }
 
 void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {

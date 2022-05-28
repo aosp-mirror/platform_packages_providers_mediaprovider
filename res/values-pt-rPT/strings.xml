@@ -78,8 +78,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Reative o som do vídeo"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Reproduzir"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pausar"</string>
-    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
-    <skip />
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Multimédia da nuvem já disponível da app <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"não selecionado"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Pretende permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este ficheiro de áudio?}other{Pretende permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> ficheiros de áudio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{A modificar o ficheiro de áudio…}other{A modificar <xliff:g id="COUNT">^1</xliff:g> ficheiro(s) de áudio…}}"</string>

@@ -42,7 +42,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.RemoteVideoPreviewProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.PreviewVideoHolder;
@@ -241,7 +241,7 @@ public final class RemotePreviewHandler {
 
         if (localControllerFallback) {
             extras.putString(EXTRA_AUTHORITY, authority);
-            authority = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
+            authority = RemoteVideoPreviewProvider.AUTHORITY;
         }
 
         final Bundle surfaceControllerBundle = mContext.getContentResolver().call(

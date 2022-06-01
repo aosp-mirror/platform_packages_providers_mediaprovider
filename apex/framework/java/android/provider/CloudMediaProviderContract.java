@@ -556,14 +556,13 @@ public final class CloudMediaProviderContract {
 
     /**
      * A boolean to indicate {@link com.android.providers.media.photopicker.PhotoPickerProvider}
-     * this request needs thumbnail from Glide DEFAULT_FRAME of the video.
+     * this request is requesting a cached thumbnail file from MediaStore.
      *
      * Type: BOOLEAN
      *
      * {@hide}
      */
-    public static final String EXTRA_GLIDE_DEFAULT_FRAME =
-            "android.provider.extra.GLIDE_DEFAULT_FRAME";
+    public static final String EXTRA_MEDIASTORE_THUMB = "android.provider.extra.MEDIASTORE_THUMB";
 
     /**
      * Constant used to execute {@link CloudMediaProvider#onGetMediaCollectionInfo} via

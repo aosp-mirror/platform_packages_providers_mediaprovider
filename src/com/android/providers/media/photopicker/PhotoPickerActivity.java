@@ -225,7 +225,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(@NonNull Menu menu) {
-        if (getIntent().getAction().equals(ACTION_GET_CONTENT)) {
+        if (ACTION_GET_CONTENT.equals(getIntent().getAction())) {
             getMenuInflater().inflate(R.menu.picker_overflow_menu, menu);
         }
 
@@ -242,7 +242,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private void rerouteGetContentRequestIfRequired() {
         final Intent intent = getIntent();
-        if (!intent.getAction().equals(ACTION_GET_CONTENT)) {
+        if (!ACTION_GET_CONTENT.equals(intent.getAction())) {
             return;
         }
 

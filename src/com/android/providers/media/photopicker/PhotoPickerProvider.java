@@ -17,8 +17,8 @@
 package com.android.providers.media.photopicker;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_AUTHORITY;
-import static android.provider.CloudMediaProviderContract.EXTRA_GLIDE_DEFAULT_FRAME;
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
+import static android.provider.CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
 
 import android.content.ContentProviderClient;
@@ -97,10 +97,9 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         opts.putParcelable(ContentResolver.EXTRA_SIZE, size);
 
         String mimeTypeFilter = null;
-        if (extras.getBoolean(EXTRA_GLIDE_DEFAULT_FRAME)) {
-            // If the thumbnail requested is requested with the default frame of the video, we can
-            // use MediaProvider's thumbnail cache which fetches the frames from the middle of the
-            // video. Set mimeTypeFilter to "image/*" to use MediaProvider thumbnail in this case.
+        if (extras.getBoolean(EXTRA_MEDIASTORE_THUMB)) {
+            // This is a request for thumbnail, set "image/*" to get cached thumbnails from
+            // MediaProvider.
             mimeTypeFilter = "image/*";
         }
 

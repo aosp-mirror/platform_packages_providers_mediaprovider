@@ -77,8 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Бейненің дыбысын қосу"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Бейнені ойнату"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Бейнені кідірту"</string>
-    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
-    <skip />
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Бұлтқа сақталған медиафайл енді <xliff:g id="PKG_NAME">%1$s</xliff:g> қолданбасында қолжетімді."</string>
     <string name="not_selected" msgid="2244008151669896758">"таңдалмаған"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> қолданбасына осы аудиофайлды өзгертуге рұқсат етілсін бе?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> қолданбасына <xliff:g id="COUNT">^2</xliff:g> аудиофайлды өзгертуге рұқсат етілсін бе?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Аудиофайл өзгертілуде…}other{<xliff:g id="COUNT">^1</xliff:g> аудиофайл өзгертілуде…}}"</string>

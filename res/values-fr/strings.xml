@@ -77,8 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Réactiver le son de la vidéo"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Lire la vidéo"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Mettre la vidéo en pause"</string>
-    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
-    <skip />
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Fichier multimédia cloud désormais disponible depuis <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"non sélectionné"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Autoriser <xliff:g id="APP_NAME_0">^1</xliff:g> à modifier ce fichier audio ?}one{Autoriser <xliff:g id="APP_NAME_1">^1</xliff:g> à modifier <xliff:g id="COUNT">^2</xliff:g> fichier audio ?}other{Autoriser <xliff:g id="APP_NAME_1">^1</xliff:g> à modifier <xliff:g id="COUNT">^2</xliff:g> fichiers audio ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modification du fichier audio…}one{Modification de <xliff:g id="COUNT">^1</xliff:g> fichier audio…}other{Modification de <xliff:g id="COUNT">^1</xliff:g> fichiers audio…}}"</string>

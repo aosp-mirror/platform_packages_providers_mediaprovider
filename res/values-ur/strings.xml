@@ -171,7 +171,7 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> آئٹمز حذف کئے جا رہے ہیں…</item>
       <item quantity="one">آئٹم حذف کیا جا رہا ہے…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> میڈیا کی فائلز پر کارروائی نہیں کر سکتی"</string>
+    <string name="transcode_denied" msgid="6760546817138288976">"‫<xliff:g id="APP_NAME">%s</xliff:g> میڈیا فائلز پر کارروائی نہیں کر سکتی"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"میڈیا پر کارروائی منسوخ ہو گئی"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"میڈیا پر کارروائی کرنے میں خرابی"</string>
     <string name="transcode_processing_success" msgid="447288876429730122">"میڈیا پر کارروائی کامیاب ہو گئی"</string>

@@ -135,8 +135,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mPickerViewModel = createViewModel();
         mSelection = mPickerViewModel.getSelection();
 
+        final Intent intent = getIntent();
         try {
-            mPickerViewModel.parseValuesFromIntent(getIntent());
+            mPickerViewModel.parseValuesFromIntent(intent);
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Finished activity due to an exception while parsing extras", e);
             setCancelledResultAndFinishSelf();
@@ -157,8 +158,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         initBottomSheetBehavior();
         restoreState(savedInstanceState);
 
+        String intentAction = intent != null ? intent.getAction() : null;
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
-        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage());
+        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.

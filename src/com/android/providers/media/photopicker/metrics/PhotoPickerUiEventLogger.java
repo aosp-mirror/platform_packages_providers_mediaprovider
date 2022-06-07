@@ -47,20 +47,20 @@ public class PhotoPickerUiEventLogger {
         logger = new MPUiEventLoggerImpl();
     }
 
-    public void logPickerOpenPersonal(InstanceId instanceId,
+    public void logPickerOpenPersonal(InstanceId instanceId, int callingUid,
             String callingPackage) {
         logger.logWithInstanceId(
                 PhotoPickerEvent.PHOTO_PICKER_OPEN_PERSONAL_PROFILE,
-                0,
+                callingUid,
                 callingPackage,
                 instanceId);
     }
 
-    public void logPickerOpenWork(InstanceId instanceId,
+    public void logPickerOpenWork(InstanceId instanceId, int callingUid,
             String callingPackage) {
         logger.logWithInstanceId(
                 PhotoPickerEvent.PHOTO_PICKER_OPEN_WORK_PROFILE,
-                0,
+                callingUid,
                 callingPackage,
                 instanceId);
     }

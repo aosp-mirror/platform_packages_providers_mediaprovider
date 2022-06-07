@@ -76,32 +76,32 @@
       <item quantity="one">वस्तु परिमार्जन गरिँदै छ…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> अडियो फाइलहरू सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो अडियो फाइल सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> अडियो फाइलहरू सारेर ट्र्यासमा लैजान दिने हो?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो अडियो फाइल सारेर ट्र्यासमा लैजान दिने हो?</item>
     </plurals>
     <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> वटा अडियो फाइल सारेर ट्र्यासमा लगिँदै छन्…</item>
       <item quantity="one">अडियो फाइल सारेर ट्र्यासमा लगिँदै छ…</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> भिडियोहरू सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो भिडियो सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> भिडियोहरू सारेर ट्र्यासमा लैजान दिने हो?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो भिडियो सारेर ट्र्यासमा लैजान दिने हो?</item>
     </plurals>
     <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> वटा भिडियो सारेर ट्र्यासमा लगिँदै छन्…</item>
       <item quantity="one">भिडियो सारेर ट्र्यासमा लगिँदै छ…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> फोटोहरू सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो फोटो सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> फोटोहरू सारेर ट्र्यासमा लैजान दिने हो?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो फोटो सारेर ट्र्यासमा लैजान दिने हो?</item>
     </plurals>
     <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> वटा फोटो सारेर ट्र्यासमा लगिँदै छन्…</item>
       <item quantity="one">फोटो सारेर ट्र्यासमा लगिँदै छ…</item>
     </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> वस्तुहरू सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो वस्तु सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> वस्तुहरू सारेर ट्र्यासमा लैजान दिने हो?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो वस्तु सारेर ट्र्यासमा लैजान दिने हो?</item>
     </plurals>
     <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> वटा वस्तु सारेर ट्र्यासमा लगिँदै छन्…</item>

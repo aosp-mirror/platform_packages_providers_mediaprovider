@@ -44,32 +44,32 @@
     <string name="allow" msgid="8885707816848569619">"అనుమతించండి"</string>
     <string name="deny" msgid="6040983710442068936">"నిరాకరించు"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను సవరించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
-      <item quantity="one">ఈ ఆడియో ఫైల్‌ను సవరించడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="one">ఈ ఆడియో ఫైల్‌ను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ఆడియో ఫైళ్లను సవరిస్తోంది…</item>
       <item quantity="one">ఆడియో ఫైల్‌ను సవరిస్తోంది…</item>
     </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> వీడియోలను సవరించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
-      <item quantity="one">ఈ వీడియోను సవరించడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> వీడియోలను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="one">ఈ వీడియోను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> వీడియోలను సవరిస్తోంది…</item>
       <item quantity="one">వీడియోను సవరిస్తోంది…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఫోటోలను సవరించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
-      <item quantity="one">ఈ ఫోటోను సవరించడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఫోటోలను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="one">ఈ ఫోటోను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ఫోటోలను సవరిస్తోంది…</item>
       <item quantity="one">ఫోటోను సవరిస్తోంది…</item>
     </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఐటెమ్‌లను సవరించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
-      <item quantity="one">ఈ ఐటెమ్‌ను సవరించడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఐటెమ్‌లను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="one">ఈ ఐటెమ్‌ను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ఐటెమ్‌లను సవరిస్తోంది…</item>

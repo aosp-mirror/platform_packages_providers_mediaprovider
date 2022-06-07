@@ -1576,9 +1576,8 @@ public class MediaProviderTest {
         Bundle opts = new Bundle();
         opts.putString(MediaStore.EXTRA_MODE, "w");
 
-        try {
-            AssetFileDescriptor afd = sContext.getContentResolver().openTypedAssetFile(mediaUri,
-                    "*/*", opts, null);
+        try (AssetFileDescriptor afd = sContext.getContentResolver().openTypedAssetFile(mediaUri,
+                    "*/*", opts, null)) {
             String rawText = "Hello";
             Os.write(afd.getFileDescriptor(), rawText.getBytes(StandardCharsets.UTF_8),
                     0, rawText.length());

@@ -26,51 +26,61 @@ public class MimeFilterUtilsTest {
     private static final String[] MEDIA_MIME_TYPES = new String[] {"image/*", "video/*"};
 
     @Test
-    public void testRequiresMoreThanMediaItems_imagesType() {
+    public void testRequiresUnsupportedFilters_imagesType() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         final String mimeType = "image/*";
         intent.setType(mimeType);
 
-        assertThat(MimeFilterUtils.requiresMoreThanMediaItems(intent)).isFalse();
+        assertThat(MimeFilterUtils.requiresUnsupportedFilters(intent)).isFalse();
     }
 
     @Test
-    public void testRequiresMoreThanMediaItems_videosType() {
+    public void testRequiresUnsupportedFilters_videosType() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         final String mimeType = "video/*";
         intent.setType(mimeType);
 
-        assertThat(MimeFilterUtils.requiresMoreThanMediaItems(intent)).isFalse();
+        assertThat(MimeFilterUtils.requiresUnsupportedFilters(intent)).isFalse();
     }
 
     @Test
-    public void testRequiresMoreThanMediaItems_allType() {
+    public void testRequiresUnsupportedFilters_allType() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         final String mimeType = "*/*";
         intent.setType(mimeType);
 
-        assertThat(MimeFilterUtils.requiresMoreThanMediaItems(intent)).isTrue();
+        assertThat(MimeFilterUtils.requiresUnsupportedFilters(intent)).isTrue();
     }
 
     @Test
-    public void testRequiresMoreThanMediaItems_extraMimeTypeImagesVideos() {
+    public void testRequiresUnsupportedFilters_extraMimeTypeImagesVideos() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         final String mimeType = "*/*";
         intent.setType(mimeType);
         intent.putExtra(Intent.EXTRA_MIME_TYPES, MEDIA_MIME_TYPES);
 
-        assertThat(MimeFilterUtils.requiresMoreThanMediaItems(intent)).isFalse();
+        assertThat(MimeFilterUtils.requiresUnsupportedFilters(intent)).isTrue();
     }
 
     @Test
-    public void testRequiresMoreThanMediaItems_extraMimeTypeAllFiles() {
+    public void testRequiresUnsupportedFilters_extraMimeTypeAllFiles() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         final String mimeType = "image/*";
         intent.setType(mimeType);
         intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"audio/*", "video/mp4",
                 "image/gif"});
 
-        assertThat(MimeFilterUtils.requiresMoreThanMediaItems(intent)).isTrue();
+        assertThat(MimeFilterUtils.requiresUnsupportedFilters(intent)).isTrue();
+    }
+
+    @Test
+    public void testRequiresUnsupportedFilters_multipleFilters() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        final String mimeType = "image/*";
+        intent.setType(mimeType);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"video/mp4", "image/gif"});
+
+        assertThat(MimeFilterUtils.requiresUnsupportedFilters(intent)).isTrue();
     }
 
     @Test
@@ -106,5 +116,11 @@ public class MimeFilterUtilsTest {
         mimeType = "*/*";
         intent.setType(mimeType);
         assertThat(MimeFilterUtils.getMimeTypeFilter(intent)).isNull();
+
+        mimeType = "image/*";
+        intent.setType(mimeType);
+        String[] extraMimeTypes = new String[] {"video/*"};
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, extraMimeTypes);
+        assertThat(MimeFilterUtils.getMimeTypeFilter(intent).equals("video/*")).isTrue();
     }
 }

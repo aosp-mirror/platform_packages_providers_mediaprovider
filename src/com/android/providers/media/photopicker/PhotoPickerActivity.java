@@ -35,6 +35,7 @@ import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.UserHandle;
 import android.util.Log;
@@ -157,7 +158,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         restoreState(savedInstanceState);
 
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
-        mPickerViewModel.logPickerOpened(getCallingPackage());
+        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage());
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.

@@ -333,11 +333,11 @@ public class PickerViewModel extends AndroidViewModel {
         return mBottomSheetState;
     }
 
-    public void logPickerOpened(String callingPackage) {
+    public void logPickerOpened(int callingUid, String callingPackage) {
         if (getUserIdManager().isManagedUserSelected()) {
-            mLogger.logPickerOpenWork(mInstanceId, callingPackage);
+            mLogger.logPickerOpenWork(mInstanceId, callingUid, callingPackage);
         } else {
-            mLogger.logPickerOpenPersonal(mInstanceId, callingPackage);
+            mLogger.logPickerOpenPersonal(mInstanceId, callingUid, callingPackage);
         }
     }
 

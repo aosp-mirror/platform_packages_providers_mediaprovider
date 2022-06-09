@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.viewmodel;
 
+import static android.content.Intent.ACTION_GET_CONTENT;
+
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
@@ -333,11 +335,18 @@ public class PickerViewModel extends AndroidViewModel {
         return mBottomSheetState;
     }
 
-    public void logPickerOpened(String callingPackage) {
+    public void logPickerOpened(int callingUid, String callingPackage, String intentAction) {
         if (getUserIdManager().isManagedUserSelected()) {
-            mLogger.logPickerOpenWork(mInstanceId, callingPackage);
+            mLogger.logPickerOpenWork(mInstanceId, callingUid, callingPackage);
         } else {
-            mLogger.logPickerOpenPersonal(mInstanceId, callingPackage);
+            mLogger.logPickerOpenPersonal(mInstanceId, callingUid, callingPackage);
+        }
+
+        // TODO(b/235326735): Optimise logging multiple times on picker opened
+        // TODO(b/235326736): Check if we should add a metric for PICK_IMAGES intent to simplify
+        // metrics reading
+        if (ACTION_GET_CONTENT.equals(intentAction)) {
+            mLogger.logPickerOpenViaGetContent(mInstanceId, callingUid, callingPackage);
         }
     }
 

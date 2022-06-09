@@ -22,7 +22,6 @@ import android.content.res.AssetFileDescriptor;
 import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProviderContract;
 
 import com.bumptech.glide.Priority;
@@ -31,39 +30,48 @@ import com.bumptech.glide.load.data.DataFetcher;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
- * Custom {@link DataFetcher} to fetch a {@link ParcelFileDescriptor} for a thumbnail from a cloud
+ * Custom {@link DataFetcher} to fetch a {@link InputStream} for a thumbnail from a cloud
  * media provider.
  */
-public class PickerThumbnailFetcher implements DataFetcher<ParcelFileDescriptor> {
+public class PickerThumbnailFetcher implements DataFetcher<InputStream> {
 
-    private final Context context;
-    private final Uri model;
-    private final int width;
-    private final int height;
+    private final Context mContext;
+    private final Uri mModel;
+    private final int mWidth;
+    private final int mHeight;
+    private final boolean mIsThumbRequest;
 
-    PickerThumbnailFetcher(Context context, Uri model, int width, int height) {
-        this.context = context;
-        this.model = model;
-        this.width = width;
-        this.height = height;
+    PickerThumbnailFetcher(Context context, Uri model, int width, int height,
+            boolean isThumbRequest) {
+        mContext = context;
+        mModel = model;
+        mWidth = width;
+        mHeight = height;
+        mIsThumbRequest = isThumbRequest;
     }
 
     @Override
-    public void loadData(Priority priority, DataCallback<? super ParcelFileDescriptor> callback) {
-        ContentResolver contentResolver = context.getContentResolver();
+    public void loadData(Priority priority, DataCallback<? super InputStream> callback) {
+        ContentResolver contentResolver = mContext.getContentResolver();
         final Bundle opts = new Bundle();
-        opts.putParcelable(ContentResolver.EXTRA_SIZE, new Point(width, height));
+        opts.putParcelable(ContentResolver.EXTRA_SIZE, new Point(mWidth, mHeight));
         opts.putBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL, true);
-        try (AssetFileDescriptor afd = contentResolver.openTypedAssetFileDescriptor(model,
+
+        if (mIsThumbRequest) {
+            opts.putBoolean(CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB, true);
+        }
+
+        try (AssetFileDescriptor afd = contentResolver.openTypedAssetFileDescriptor(mModel,
                 /* mimeType */ "image/*", opts, /* cancellationSignal */ null)) {
             if (afd == null) {
-                final String err = "Failed to load data for " + model;
+                final String err = "Failed to load data for " + mModel;
                 callback.onLoadFailed(new FileNotFoundException(err));
                 return;
             }
-            callback.onDataReady(afd.getParcelFileDescriptor());
+            callback.onDataReady(afd.createInputStream());
         } catch (IOException e) {
             callback.onLoadFailed(e);
         }
@@ -81,8 +89,8 @@ public class PickerThumbnailFetcher implements DataFetcher<ParcelFileDescriptor>
     }
 
     @Override
-    public Class<ParcelFileDescriptor> getDataClass() {
-        return ParcelFileDescriptor.class;
+    public Class<InputStream> getDataClass() {
+        return InputStream.class;
     }
 
     @Override

@@ -25,7 +25,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.MergeCursor;
-import android.net.Uri;
 import android.os.Bundle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
@@ -68,6 +67,11 @@ public class PickerDataLayer {
         if (TextUtils.isEmpty(albumId) || isMergedAlbum(queryExtras)) {
             // Refresh the 'media' table
             mSyncController.syncAllMedia();
+
+            if (TextUtils.isEmpty(albumId)) {
+                // Notify that the picker is launched in case there's any pending UI notification
+                mSyncController.notifyPickerLaunch();
+            }
 
             // Fetch all merged and deduped cloud and local media from 'media' table
             // This also matches 'merged' albums like Favorites because |authority| will
@@ -162,13 +166,13 @@ public class PickerDataLayer {
             // Can happen if there is no cloud provider
             return null;
         }
-
-        return query(getAlbumUri(authority), queryArgs);
-    }
-
-    private Cursor query(Uri uri, Bundle extras) {
-        return mContext.getContentResolver().query(uri, /* projection */ null, extras,
-                /* cancellationSignal */ null);
+        try {
+            return mContext.getContentResolver().query(getAlbumUri(authority),
+                    /* projection */ null, queryArgs, /* cancellationSignal */ null);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to fetch cloud albums for: " + authority, e);
+            return null;
+        }
     }
 
     private boolean isLocal(String authority) {

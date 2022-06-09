@@ -20,8 +20,8 @@ import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PR
 import static android.provider.CloudMediaProviderContract.EXTRA_AUTHORITY;
 import static android.provider.CloudMediaProviderContract.EXTRA_ERROR_MESSAGE;
 import static android.provider.CloudMediaProviderContract.EXTRA_FILE_DESCRIPTOR;
-import static android.provider.CloudMediaProviderContract.EXTRA_GLIDE_DEFAULT_FRAME;
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
+import static android.provider.CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_STATE_CALLBACK;
@@ -459,8 +459,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
         int minPreviewLength = Math.min(screenMetrics.widthPixels, screenMetrics.heightPixels);
 
         if (opts != null) {
-            bundle.putBoolean(EXTRA_GLIDE_DEFAULT_FRAME,
-                    opts.getBoolean(EXTRA_GLIDE_DEFAULT_FRAME));
+            bundle.putBoolean(EXTRA_MEDIASTORE_THUMB, opts.getBoolean(EXTRA_MEDIASTORE_THUMB));
 
             if (opts.containsKey(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL)) {
                 bundle.putBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL, true);
@@ -789,10 +788,23 @@ public abstract class CloudMediaProvider extends ContentProvider {
                         e);
             }
         }
+
+        /**
+         * Returns the underliying {@link IBinder} object.
+         *
+         * @hide
+         */
+        public IBinder getIBinder() {
+            return mCallback.asBinder();
+        }
     }
 
-    /** {@hide} */
-    private static class CloudMediaSurfaceControllerWrapper
+    /**
+     * {@link Binder} object backing a {@link CloudMediaSurfaceController} instance.
+     *
+     * @hide
+     */
+    public static class CloudMediaSurfaceControllerWrapper
             extends ICloudMediaSurfaceController.Stub {
 
         final private CloudMediaSurfaceController mSurfaceController;

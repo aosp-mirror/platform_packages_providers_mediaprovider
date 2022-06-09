@@ -115,22 +115,26 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     /**
      * Key name of xattr used to set next row id for internal DB.
      */
-    private static final String INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY = "user.intdbnextrowid";
+    private static final String INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY = "user.intdbnextrowid".concat(
+            String.valueOf(UserHandle.myUserId()));
 
     /**
      * Key name of xattr used to set next row id for external DB.
      */
-    private static final String EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY = "user.extdbnextrowid";
+    private static final String EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY = "user.extdbnextrowid".concat(
+            String.valueOf(UserHandle.myUserId()));
 
     /**
      * Key name of xattr used to set session id for internal DB.
      */
-    private static final String INTERNAL_DB_SESSION_ID_XATTR_KEY = "user.intdbsessionid";
+    private static final String INTERNAL_DB_SESSION_ID_XATTR_KEY = "user.intdbsessionid".concat(
+            String.valueOf(UserHandle.myUserId()));
 
     /**
      * Key name of xattr used to set session id for external DB.
      */
-    private static final String EXTERNAL_DB_SESSION_ID_XATTR_KEY = "user.extdbsessionid";
+    private static final String EXTERNAL_DB_SESSION_ID_XATTR_KEY = "user.extdbsessionid".concat(
+            String.valueOf(UserHandle.myUserId()));
 
     /** Indicates a billion value used when next row id is not present in respective xattr. */
     private static final Long NEXT_ROW_ID_DEFAULT_BILLION_VALUE = Double.valueOf(
@@ -139,16 +143,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private static final Long INVALID_ROW_ID = -1L;
 
     /**
-     * Path on which {@link DatabaseHelper#DATA_MEDIA_XATTR_DIRECTORY_PATH} is set.
-     * /storage/emulated/.. can point to /data/media/.. on ext4/f2fs on modern devices. However, for
-     * legacy devices with sdcardfs, it points to /mnt/runtime/.. which then points to
-     * /data/media/.. sdcardfs does not support xattrs, hence xattrs are set on /data/media/.. path.
-     *
-     * TODO(b/220895679): Add logic to handle external sd cards with primary volume with paths
-     * /mnt/expand/<volume>/media/<user-id>.
+     * Path used for setting next row id and database session id for each user profile. Storing here
+     * because media provider does not have required permission on path /data/media/<user-id> for
+     * work profiles.
+     * For devices with adoptable storage support, opting for adoptable storage will not delete
+     * /data/media/0 directory.
      */
-    public static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = String.format(
-            "/data/media/%s", UserHandle.myUserId());
+    public static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
 
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";
@@ -178,6 +179,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private final String mMigrationFileName;
     long mScanStartTime;
     long mScanStopTime;
+    private boolean mEnableNextRowIdRecovery;
 
     /**
      * Unfortunately we can have multiple instances of DatabaseHelper, causing
@@ -242,10 +244,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
-            @Nullable UnaryOperator<String> idGenerator) {
+            @Nullable UnaryOperator<String> idGenerator, boolean enableNextRowIdRecovery) {
         this(context, name, getDatabaseVersion(context), earlyUpgrade, legacyProvider,
                 columnAnnotation, exportedSinceAnnotation, schemaListener, filesListener,
-                migrationListener, idGenerator);
+                migrationListener, idGenerator, enableNextRowIdRecovery);
     }
 
     public DatabaseHelper(Context context, String name, int version,
@@ -255,7 +257,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
-            @Nullable UnaryOperator<String> idGenerator) {
+            @Nullable UnaryOperator<String> idGenerator, boolean enableNextRowIdRecovery) {
         super(context, name, null, version);
         mContext = context;
         mName = name;
@@ -276,6 +278,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mMigrationListener = migrationListener;
         mIdGenerator = idGenerator;
         mMigrationFileName = "." + mVolumeName;
+        this.mEnableNextRowIdRecovery = enableNextRowIdRecovery;
 
         // Configure default filters until we hear differently
         if (isInternal()) {
@@ -2297,7 +2300,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                             getNextRowIdXattrKeyForDatabase()))));
         } catch (Exception e) {
             Log.e(TAG, String.format("Xattr:%s not found on external storage.",
-                    getNextRowIdXattrKeyForDatabase()));
+                    getNextRowIdXattrKeyForDatabase()), e);
             return Optional.empty();
         }
     }
@@ -2358,6 +2361,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     boolean isNextRowIdBackupEnabled() {
+        if (!mEnableNextRowIdRecovery) {
+            return false;
+        }
+
         if (mVersion < VERSION_R) {
             // Do not back up next row id if DB version is less than R. This is unlikely to hit
             // as we will backport row id backup changes till Android R.
@@ -2369,6 +2376,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             // Skip id reuse fix for internal db as it can lead to ids starting from a billion
             // and can cause aberrant behaviour in Ringtones Manager. Reference: b/229153534.
             Log.v(TAG, "Skipping next row id backup for internal database.");
+            return false;
+        }
+
+        if (!(new File(DATA_MEDIA_XATTR_DIRECTORY_PATH)).exists()) {
+            Log.w(TAG, String.format("Skipping row id recovery as path:%s does not exist.",
+                    DATA_MEDIA_XATTR_DIRECTORY_PATH));
             return false;
         }
 

@@ -27,7 +27,9 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "Photo picker opened in personal profile")
         PHOTO_PICKER_OPEN_PERSONAL_PROFILE(942),
         @UiEvent(doc = "Photo picker opened in work profile")
-        PHOTO_PICKER_OPEN_WORK_PROFILE(943);
+        PHOTO_PICKER_OPEN_WORK_PROFILE(943),
+        @UiEvent(doc = "Photo picker opened via GET_CONTENT intent")
+        PHOTO_PICKER_OPEN_GET_CONTENT(1080);
 
         private final int mId;
 
@@ -47,20 +49,29 @@ public class PhotoPickerUiEventLogger {
         logger = new MPUiEventLoggerImpl();
     }
 
-    public void logPickerOpenPersonal(InstanceId instanceId,
+    public void logPickerOpenPersonal(InstanceId instanceId, int callingUid,
             String callingPackage) {
         logger.logWithInstanceId(
                 PhotoPickerEvent.PHOTO_PICKER_OPEN_PERSONAL_PROFILE,
-                0,
+                callingUid,
                 callingPackage,
                 instanceId);
     }
 
-    public void logPickerOpenWork(InstanceId instanceId,
+    public void logPickerOpenWork(InstanceId instanceId, int callingUid,
             String callingPackage) {
         logger.logWithInstanceId(
                 PhotoPickerEvent.PHOTO_PICKER_OPEN_WORK_PROFILE,
-                0,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    public void logPickerOpenViaGetContent(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_OPEN_GET_CONTENT,
+                callingUid,
                 callingPackage,
                 instanceId);
     }

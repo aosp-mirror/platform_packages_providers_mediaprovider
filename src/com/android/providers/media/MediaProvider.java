@@ -7917,7 +7917,15 @@ public class MediaProvider extends ContentProvider {
             // level from #3
             // 5. Return the fd from #4 to the app or throw an exception if any of the conditions
             // are not met
-            return getOriginalMediaFormatFileDescriptor(opts);
+            try {
+                return getOriginalMediaFormatFileDescriptor(opts);
+            } finally {
+                // Clearing the Bundle closes the underlying Parcel, ensuring that the input fd
+                // owned by the Parcel is closed immediately and not at the next GC.
+                // This works around a change in behavior introduced by:
+                // aosp/Icfe8880cad00c3cd2afcbe4b92400ad4579e680e
+                opts.clear();
+            }
         }
 
         // This is needed for thumbnail resolution as it doesn't go through openFileCommon

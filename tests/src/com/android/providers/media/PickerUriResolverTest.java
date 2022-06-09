@@ -24,10 +24,10 @@ import static androidx.test.InstrumentationRegistry.getTargetContext;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import android.Manifest;
 import android.content.ContentUris;
@@ -57,8 +57,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerUriResolverTest {
@@ -350,17 +350,17 @@ public class PickerUriResolverTest {
     }
 
     private void testOpenFile(Uri uri) throws Exception {
-        ParcelFileDescriptor pfd = sTestPickerUriResolver.openFile(uri, "r", /* signal */ null,
-                /* callingPid */ -1, /* callingUid */ -1);
-
-        assertThat(pfd).isNotNull();
+        try (ParcelFileDescriptor pfd = sTestPickerUriResolver.openFile(uri, "r", /* signal */ null,
+                /* callingPid */ -1, /* callingUid */ -1)) {
+            assertThat(pfd).isNotNull();
+        }
     }
 
     private void testOpenTypedAssetFile(Uri uri) throws Exception {
-        AssetFileDescriptor afd =  sTestPickerUriResolver.openTypedAssetFile(uri, "image/*",
-                /* opts */ null, /* signal */ null, /* callingPid */ -1, /* callingUid */ -1);
-
-        assertThat(afd).isNotNull();
+        try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(uri, "image/*",
+                /* opts */ null, /* signal */ null, /* callingPid */ -1, /* callingUid */ -1)) {
+            assertThat(afd).isNotNull();
+        }
     }
 
     private void testQuery(Uri uri) throws Exception {

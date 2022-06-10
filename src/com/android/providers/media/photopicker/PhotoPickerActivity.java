@@ -35,6 +35,7 @@ import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.UserHandle;
 import android.util.Log;
@@ -134,8 +135,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mPickerViewModel = createViewModel();
         mSelection = mPickerViewModel.getSelection();
 
+        final Intent intent = getIntent();
         try {
-            mPickerViewModel.parseValuesFromIntent(getIntent());
+            mPickerViewModel.parseValuesFromIntent(intent);
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Finished activity due to an exception while parsing extras", e);
             setCancelledResultAndFinishSelf();
@@ -156,8 +158,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         initBottomSheetBehavior();
         restoreState(savedInstanceState);
 
+        String intentAction = intent != null ? intent.getAction() : null;
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
-        mPickerViewModel.logPickerOpened(getCallingPackage());
+        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
@@ -225,7 +228,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(@NonNull Menu menu) {
-        if (getIntent().getAction().equals(ACTION_GET_CONTENT)) {
+        if (ACTION_GET_CONTENT.equals(getIntent().getAction())) {
             getMenuInflater().inflate(R.menu.picker_overflow_menu, menu);
         }
 
@@ -242,16 +245,32 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private void rerouteGetContentRequestIfRequired() {
         final Intent intent = getIntent();
-        if (!intent.getAction().equals(ACTION_GET_CONTENT)) {
+        if (!ACTION_GET_CONTENT.equals(intent.getAction())) {
             return;
         }
 
-        if (MimeFilterUtils.requiresMoreThanMediaItems(intent)) {
+        // TODO(b/232775643): Workaround to support PhotoPicker invoked from DocumentsUi.
+        // GET_CONTENT for all (media and non-media) files opens DocumentsUi, but it still shows
+        // "Photo Picker app option. When the user clicks on "Photo Picker", the same intent which
+        // includes filters to show non-media files as well is forwarded to PhotoPicker.
+        // Make sure Photo Picker is opened when the intent is explicitly forwarded.
+        if (isIntentForwarded(intent)) {
+            Log.i(TAG, "Open PhotoPicker when a forwarded ACTION_GET_CONTENT intent is received");
+            return;
+        }
+
+        if (MimeFilterUtils.requiresUnsupportedFilters(intent)) {
             launchDocumentsUiAndFinishPicker();
         }
     }
 
+    private static boolean isIntentForwarded(Intent intent) {
+        return (intent.getFlags() & Intent.FLAG_ACTIVITY_FORWARD_RESULT) > 0;
+    }
+
     private void launchDocumentsUiAndFinishPicker() {
+        Log.i(TAG, "Launch DocumentsUI and finish picker");
+
         startActivityAsUser(getDocumentsUiForwardingIntent(this, getIntent()),
                 UserId.CURRENT_USER.getUserHandle());
         finish();

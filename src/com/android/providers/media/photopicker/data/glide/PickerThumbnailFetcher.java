@@ -42,15 +42,15 @@ public class PickerThumbnailFetcher implements DataFetcher<ParcelFileDescriptor>
     private final Uri mModel;
     private final int mWidth;
     private final int mHeight;
-    private final boolean mDefaultFrame;
+    private final boolean mIsThumbRequest;
 
     PickerThumbnailFetcher(Context context, Uri model, int width, int height,
-            boolean defaultFrame) {
+            boolean isThumbRequest) {
         mContext = context;
         mModel = model;
         mWidth = width;
         mHeight = height;
-        mDefaultFrame = defaultFrame;
+        mIsThumbRequest = isThumbRequest;
     }
 
     @Override
@@ -60,8 +60,8 @@ public class PickerThumbnailFetcher implements DataFetcher<ParcelFileDescriptor>
         opts.putParcelable(ContentResolver.EXTRA_SIZE, new Point(mWidth, mHeight));
         opts.putBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL, true);
 
-        if (mDefaultFrame) {
-            opts.putBoolean(CloudMediaProviderContract.EXTRA_GLIDE_DEFAULT_FRAME, true);
+        if (mIsThumbRequest) {
+            opts.putBoolean(CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB, true);
         }
 
         try (AssetFileDescriptor afd = contentResolver.openTypedAssetFileDescriptor(mModel,

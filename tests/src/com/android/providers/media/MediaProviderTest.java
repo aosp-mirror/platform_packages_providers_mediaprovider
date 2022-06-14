@@ -78,7 +78,6 @@ import com.android.providers.media.util.FileUtilsTest;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -374,23 +373,6 @@ public class MediaProviderTest {
             assertThat(result.length()).isAtMost(FileUtilsTest.MAX_FILENAME_BYTES);
             assertNotEquals(originalName, result);
         }
-    }
-
-    @Test
-    public void testInsertionWithInvalidFilePath_throwsIllegalArgumentException() {
-        final ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Android/media/com.example");
-        values.put(MediaStore.Images.Media.DISPLAY_NAME,
-                "./../../../../../../../../../../../data/media/test.txt");
-
-        IllegalArgumentException illegalArgumentException = Assert.assertThrows(
-                IllegalArgumentException.class, () -> sIsolatedResolver.insert(
-                        MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
-                        values));
-
-        assertThat(illegalArgumentException).hasMessageThat().contains(
-                "Primary directory Android not allowed for content://media/external_primary/file;"
-                        + " allowed directories are [Download, Documents]");
     }
 
     /**
@@ -1594,9 +1576,8 @@ public class MediaProviderTest {
         Bundle opts = new Bundle();
         opts.putString(MediaStore.EXTRA_MODE, "w");
 
-        try {
-            AssetFileDescriptor afd = sContext.getContentResolver().openTypedAssetFile(mediaUri,
-                    "*/*", opts, null);
+        try (AssetFileDescriptor afd = sContext.getContentResolver().openTypedAssetFile(mediaUri,
+                    "*/*", opts, null)) {
             String rawText = "Hello";
             Os.write(afd.getFileDescriptor(), rawText.getBytes(StandardCharsets.UTF_8),
                     0, rawText.length());

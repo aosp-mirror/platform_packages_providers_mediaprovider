@@ -130,6 +130,11 @@ public class MediaScannerTest {
                 protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
                     // Ignoring this as test app would not have access to update xattr.
                 }
+
+                @Override
+                protected void checkDeviceConfigAndUpdateGetContentAlias() {
+                    // Ignore this as test app cannot read device config
+                }
             };
             mProvider.attachInfo(this, info);
             mResolver.addProvider(MediaStore.AUTHORITY, mProvider);

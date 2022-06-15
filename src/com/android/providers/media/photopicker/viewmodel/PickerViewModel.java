@@ -350,6 +350,13 @@ public class PickerViewModel extends AndroidViewModel {
         }
     }
 
+    /**
+     * Log metrics to notify that the user has clicked Browse to open DocumentsUi
+     */
+    public void logBrowseToDocumentsUi(int callingUid, String callingPackage) {
+        mLogger.logBrowseToDocumentsUi(mInstanceId, callingUid, callingPackage);
+    }
+
     public InstanceId getInstanceId() {
         return mInstanceId;
     }

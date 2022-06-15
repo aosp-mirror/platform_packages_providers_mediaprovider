@@ -38,9 +38,8 @@ class FuseDaemon final {
     /**
      * Start the FUSE daemon loop that will handle filesystem calls.
      */
-    void Start(android::base::unique_fd fd, const std::string& path, const bool uncached_mode,
-               const std::vector<std::string>& supported_transcoding_relative_paths,
-               const std::vector<std::string>& supported_uncached_relative_paths);
+    void Start(android::base::unique_fd fd, const std::string& path,
+               const std::vector<std::string>& supported_transcoding_relative_paths);
 
     /**
      * Checks if the FUSE daemon is started.
@@ -51,11 +50,6 @@ class FuseDaemon final {
      * Check if file should be opened with FUSE
      */
     bool ShouldOpenWithFuse(int fd, bool for_read, const std::string& path);
-
-    /**
-     * Check if the FUSE daemon uses FUSE passthrough
-     */
-    bool UsesFusePassthrough() const;
 
     /**
      * Invalidate FUSE VFS dentry cache entry for path

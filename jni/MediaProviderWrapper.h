@@ -264,7 +264,8 @@ class MediaProviderWrapper final {
     jmethodID mid_delete_file_;
     jmethodID mid_on_file_open_;
     jmethodID mid_scan_file_;
-    jmethodID mid_is_diraccess_allowed_;
+    jmethodID mid_is_mkdir_or_rmdir_allowed_;
+    jmethodID mid_is_opendir_allowed_;
     jmethodID mid_get_files_in_dir_;
     jmethodID mid_rename_;
     jmethodID mid_is_uid_allowed_access_to_data_or_obb_path_;
@@ -290,7 +291,8 @@ class MediaProviderWrapper final {
     /**
      * Auxiliary for caching MediaProvider methods.
      */
-    jmethodID CacheMethod(JNIEnv* env, const char method_name[], const char signature[]);
+    jmethodID CacheMethod(JNIEnv* env, const char method_name[], const char signature[],
+                          bool is_static);
 
     // Attaches the current thread (if necessary) and returns the JNIEnv
     // associated with it.

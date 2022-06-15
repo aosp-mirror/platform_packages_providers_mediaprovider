@@ -261,11 +261,6 @@ public final class MediaStore {
     public static final String CREATE_SURFACE_CONTROLLER = "create_surface_controller";
 
     /** {@hide} */
-    public static final String USES_FUSE_PASSTHROUGH = "uses_fuse_passthrough";
-    /** {@hide} */
-    public static final String USES_FUSE_PASSTHROUGH_RESULT = "uses_fuse_passthrough_result";
-
-    /** {@hide} */
     public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
     /** {@hide} */
     public static final String QUERY_ARG_MIME_TYPE = "android:query-arg-mime_type";
@@ -711,9 +706,9 @@ public final class MediaStore {
      * expose a limited set of read-only operations. Specifically, picker URIs
      * can only be opened for read and queried for columns in {@link PickerMediaColumns}.
      * <p>
-     * Before this API, apps could use {@link Intent#ACTION_GET_CONTENT}. However,
-     * {@link #ACTION_PICK_IMAGES} is now the recommended option for images and videos,
-     * since it ofers a better user experience.
+     * Before this API, apps could use {@link Intent#ACTION_GET_CONTENT}. However, this
+     * new action is recommended for images and videos use-cases, since it ofers a
+     * better user experience.
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
@@ -727,6 +722,7 @@ public final class MediaStore {
      *
      * @see #ACTION_PICK_IMAGES
      * @see #isCurrentCloudMediaProviderAuthority(ContentResolver, String)
+     * @hide
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES_SETTINGS =
@@ -4686,6 +4682,7 @@ public final class MediaStore {
      *
      * @see android.provider.CloudMediaProvider
      * @see #isSupportedCloudMediaProviderAuthority(ContentResolver, String)
+     * @hide
      */
     public static boolean isCurrentCloudMediaProviderAuthority(@NonNull ContentResolver resolver,
             @NonNull String authority) {
@@ -4699,6 +4696,7 @@ public final class MediaStore {
      *
      * @see android.provider.CloudMediaProvider
      * @see #isCurrentCloudMediaProviderAuthority(ContentResolver, String)
+     * @hide
      */
     public static boolean isSupportedCloudMediaProviderAuthority(@NonNull ContentResolver resolver,
             @NonNull String authority) {
@@ -4717,6 +4715,8 @@ public final class MediaStore {
      * unsuccessful.
      *
      * @return {@code true} if the notification was successful, {@code false} otherwise
+     *
+     * @hide
      */
     public static void notifyCloudMediaChangedEvent(@NonNull ContentResolver resolver,
             @NonNull String authority, @NonNull String currentMediaCollectionId)

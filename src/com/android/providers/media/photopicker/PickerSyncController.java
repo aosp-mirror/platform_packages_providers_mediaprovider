@@ -16,46 +16,44 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.content.ContentResolver.EXTRA_HONORED_ARGS;
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
-
+import static android.content.ContentResolver.EXTRA_HONORED_ARGS;
+import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.PickerUriResolver.getDeletedMediaUri;
 import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
-import static com.android.providers.media.PickerUriResolver.getMediaUri;
 
 import android.annotation.IntDef;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ResolveInfo;
+import android.content.res.Resources;
+import android.content.res.Resources.NotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Process;
-import android.os.storage.StorageManager;
+import android.os.SystemProperties;
 import android.provider.CloudMediaProvider;
 import android.provider.CloudMediaProviderContract;
+import android.provider.DeviceConfig;
 import android.text.TextUtils;
 import android.util.ArraySet;
 import android.util.Log;
-import android.widget.Toast;
-
 import androidx.annotation.GuardedBy;
 import androidx.annotation.VisibleForTesting;
-
 import com.android.modules.utils.BackgroundThread;
-import com.android.modules.utils.build.SdkLevel;
-import com.android.providers.media.R;
+import com.android.providers.media.MediaProvider;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.util.ForegroundThread;
+import com.android.providers.media.R;
+import com.android.providers.media.util.DeviceConfigUtils;
 import com.android.providers.media.util.StringUtils;
 
 import java.lang.annotation.Retention;
@@ -73,12 +71,11 @@ import java.util.Set;
 public class PickerSyncController {
     private static final String TAG = "PickerSyncController";
 
-    public static final String SYNC_DELAY_MS = "default_sync_delay_ms";
-    public static final String ALLOWED_CLOUD_PROVIDERS_KEY = "allowed_cloud_providers";
+    public static final String PROP_DEFAULT_SYNC_DELAY_MS = "pickerdb.default_sync_delay_ms";
 
     private static final String PREFS_KEY_CLOUD_PROVIDER_AUTHORITY = "cloud_provider_authority";
-    private static final String PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION =
-            "cloud_provider_pending_notification";
+    private static final String PREFS_KEY_CLOUD_PROVIDER_PKGNAME = "cloud_provider_pkg_name";
+    private static final String PREFS_KEY_CLOUD_PROVIDER_UID = "cloud_provider_uid";
     private static final String PREFS_KEY_CLOUD_PREFIX = "cloud_provider:";
     private static final String PREFS_KEY_LOCAL_PREFIX = "local_provider:";
 
@@ -86,6 +83,14 @@ public class PickerSyncController {
     public static final String PICKER_SYNC_PREFS_FILE_NAME = "picker_sync_prefs";
     public static final String LOCAL_PICKER_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker";
+
+    public static final String PROP_USE_ALLOWED_CLOUD_PROVIDERS =
+            "persist.sys.photopicker.use_allowed_cloud_providers";
+    public static final String ALLOWED_CLOUD_PROVIDERS_KEY = "allowed_cloud_providers";
+
+    private static final String DEFAULT_CLOUD_PROVIDER_AUTHORITY = null;
+    private static final String DEFAULT_CLOUD_PROVIDER_PKGNAME = null;
+    private static final int DEFAULT_CLOUD_PROVIDER_UID = -1;
 
     private static final int SYNC_TYPE_NONE = 0;
     private static final int SYNC_TYPE_MEDIA_INCREMENTAL = 1;
@@ -115,7 +120,14 @@ public class PickerSyncController {
     private CloudProviderInfo mCloudProviderInfo;
 
     public PickerSyncController(Context context, PickerDbFacade dbFacade,
-            String localProvider, String allowedCloudProviders, long syncDelayMs) {
+            MediaProvider mediaProvider) {
+        this(context, dbFacade, LOCAL_PICKER_PROVIDER_AUTHORITY, mediaProvider.getIntDeviceConfig(
+                        DeviceConfig.NAMESPACE_STORAGE, PROP_DEFAULT_SYNC_DELAY_MS, 5000));
+    }
+
+    @VisibleForTesting
+    PickerSyncController(Context context, PickerDbFacade dbFacade,
+            String localProvider, long syncDelayMs) {
         mContext = context;
         mSyncPrefs = mContext.getSharedPreferences(PICKER_SYNC_PREFS_FILE_NAME,
                 Context.MODE_PRIVATE);
@@ -126,23 +138,30 @@ public class PickerSyncController {
         mSyncDelayMs = syncDelayMs;
         mSyncAllMediaCallback = this::syncAllMedia;
 
-        final String cachedAuthority = mUserPrefs.getString(
-                PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, null);
+        final String cloudProviderAuthority = mUserPrefs.getString(
+                PREFS_KEY_CLOUD_PROVIDER_AUTHORITY,
+                DEFAULT_CLOUD_PROVIDER_AUTHORITY);
+        final String cloudProviderPackageName = mUserPrefs.getString(
+                PREFS_KEY_CLOUD_PROVIDER_PKGNAME,
+                DEFAULT_CLOUD_PROVIDER_PKGNAME);
+        final int cloudProviderUid = mUserPrefs.getInt(PREFS_KEY_CLOUD_PROVIDER_UID,
+                DEFAULT_CLOUD_PROVIDER_UID);
 
-        mAllowedCloudProviders = parseAllowedCloudProviders(allowedCloudProviders);
-
-        final CloudProviderInfo defaultInfo = getDefaultCloudProviderInfo(cachedAuthority);
-
-        if (Objects.equals(defaultInfo.authority, cachedAuthority)) {
-            // Just set it without persisting since it's not changing and persisting would
-            // notify the user that cloud media is now available
-            mCloudProviderInfo = defaultInfo;
+        if (SystemProperties.getBoolean(PROP_USE_ALLOWED_CLOUD_PROVIDERS, false)) {
+            mAllowedCloudProviders = getAllowedCloudProviders();
         } else {
-            // Persist it so that we notify the user that cloud media is now available
-            persistCloudProviderInfo(defaultInfo);
+            mAllowedCloudProviders = new ArraySet<>();
         }
 
-        Log.d(TAG, "Initialized cloud provider to: " + mCloudProviderInfo.authority);
+        if (cloudProviderAuthority == null) {
+            // TODO: Only get default if it wasn't set by the user
+            final CloudProviderInfo defaultCloudProviderInfo = getDefaultCloudProviderInfo();
+            Log.i(TAG, "Cloud provider is set to Default " + defaultCloudProviderInfo.authority);
+            setCloudProviderInfo(defaultCloudProviderInfo);
+        } else {
+            mCloudProviderInfo = new CloudProviderInfo(cloudProviderAuthority,
+                cloudProviderPackageName, cloudProviderUid);
+        }
     }
 
     /**
@@ -196,7 +215,7 @@ public class PickerSyncController {
      * Returns the supported cloud {@link CloudMediaProvider} infos.
      */
     public CloudProviderInfo getCloudProviderInfo(String authority) {
-        for (CloudProviderInfo info : getSupportedCloudProviders(/* ignoreAllowList */ false)) {
+        for (CloudProviderInfo info : getSupportedCloudProviders()) {
             if (info.authority.equals(authority)) {
                 return info;
             }
@@ -210,11 +229,14 @@ public class PickerSyncController {
      */
     @VisibleForTesting
     List<CloudProviderInfo> getSupportedCloudProviders() {
-        return getSupportedCloudProviders(/* ignoreAllowList */ false);
-    }
-
-    private List<CloudProviderInfo> getSupportedCloudProviders(boolean ignoreAllowList) {
         final List<CloudProviderInfo> result = new ArrayList<>();
+
+        final boolean useAllowedCloudProviders =
+            SystemProperties.getBoolean(PROP_USE_ALLOWED_CLOUD_PROVIDERS, false);
+
+        if (useAllowedCloudProviders && mAllowedCloudProviders.isEmpty()) {
+            return result;
+        }
 
         final PackageManager pm = mContext.getPackageManager();
         final Intent intent = new Intent(CloudMediaProviderContract.PROVIDER_INTERFACE);
@@ -225,8 +247,8 @@ public class PickerSyncController {
             if (providerInfo.authority != null
                     && CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION.equals(
                             providerInfo.readPermission)
-                    && (ignoreAllowList
-                            || mAllowedCloudProviders.contains(providerInfo.authority))) {
+                    && (!useAllowedCloudProviders
+                        || mAllowedCloudProviders.contains(providerInfo.authority))) {
                 result.add(new CloudProviderInfo(providerInfo.authority,
                                 providerInfo.applicationInfo.packageName,
                                 providerInfo.applicationInfo.uid));
@@ -259,7 +281,7 @@ public class PickerSyncController {
         if (authority == null || !newProviderInfo.isEmpty()) {
             synchronized (mLock) {
                 final String oldAuthority = mCloudProviderInfo.authority;
-                persistCloudProviderInfo(newProviderInfo);
+                setCloudProviderInfo(newProviderInfo);
                 resetCachedMediaCollectionInfo(newProviderInfo.authority);
 
                 // Disable cloud provider queries on the db until next sync
@@ -277,20 +299,6 @@ public class PickerSyncController {
 
         Log.w(TAG, "Cloud provider not supported: " + authority);
         return false;
-    }
-
-    /**
-     * Set cloud provider and update allowed cloud providers
-     */
-    @VisibleForTesting
-    public void forceSetCloudProvider(String authority) {
-        if (authority == null) {
-            mAllowedCloudProviders.clear();
-        } else {
-            mAllowedCloudProviders.add(authority);
-        }
-
-        setCloudProvider(authority);
     }
 
     public String getCloudProvider() {
@@ -337,11 +345,7 @@ public class PickerSyncController {
             return true;
         }
 
-        // TODO(b/232738117): Enforce allow list here. This works around some CTS failure late in
-        // Android T. The current implementation is fine since cloud providers is only supported
-        // for app developers testing.
-        final List<CloudProviderInfo> infos = getSupportedCloudProviders(
-                /* ignoreAllowList */ true);
+        final List<CloudProviderInfo> infos = getSupportedCloudProviders();
         for (CloudProviderInfo info : infos) {
             if (info.uid == uid && info.authority.equals(authority)) {
                 return true;
@@ -374,48 +378,6 @@ public class PickerSyncController {
                 setCloudProvider(null);
             }
         }
-    }
-
-    /**
-     * Notifies about picker UI launched
-     */
-    public void notifyPickerLaunch() {
-        final String packageName;
-        synchronized (mLock) {
-            packageName = mCloudProviderInfo.packageName;
-        }
-
-        final boolean hasPendingNotification = mUserPrefs.getBoolean(
-                PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, false);
-
-        if (!hasPendingNotification || (packageName == null)) {
-            Log.d(TAG, "No pending UI notification");
-            return;
-        }
-
-        // Offload showing the UI on a fg thread to avoid the expensive binder request
-        // to fetch the app name blocking the picker launch
-        ForegroundThread.getHandler().post(() -> {
-            Log.i(TAG, "Cloud media now available in the picker");
-
-            final PackageManager pm = mContext.getPackageManager();
-            String appName = packageName;
-            try {
-                ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0);
-                appName = (String) pm.getApplicationLabel(appInfo);
-            } catch (final NameNotFoundException e) {
-                Log.i(TAG, "Failed to get appName for package: " + packageName);
-            }
-
-            final String message = mContext.getResources().getString(R.string.picker_cloud_sync,
-                    appName);
-            Toast.makeText(mContext, message, Toast.LENGTH_LONG).show();
-        });
-
-        // Clear the notification
-        final SharedPreferences.Editor editor = mUserPrefs.edit();
-        editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, false);
-        editor.apply();
     }
 
     private void syncAlbumMediaFromProvider(String authority, String albumId) {
@@ -553,36 +515,24 @@ public class PickerSyncController {
         }
     }
 
-    private void persistCloudProviderInfo(CloudProviderInfo info) {
+    private void setCloudProviderInfo(CloudProviderInfo info) {
         synchronized (mLock) {
             mCloudProviderInfo = info;
         }
 
-        final String authority = info.authority;
         final SharedPreferences.Editor editor = mUserPrefs.edit();
 
         if (info.isEmpty()) {
             editor.remove(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY);
-            editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, false);
+            editor.remove(PREFS_KEY_CLOUD_PROVIDER_PKGNAME);
+            editor.remove(PREFS_KEY_CLOUD_PROVIDER_UID);
         } else {
-            editor.putString(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, authority);
-            editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, true);
+            editor.putString(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, info.authority);
+            editor.putString(PREFS_KEY_CLOUD_PROVIDER_PKGNAME, info.packageName);
+            editor.putInt(PREFS_KEY_CLOUD_PROVIDER_UID, info.uid);
         }
 
         editor.apply();
-
-        if (SdkLevel.isAtLeastT()) {
-            try {
-                StorageManager sm = mContext.getSystemService(StorageManager.class);
-                sm.setCloudMediaProvider(authority);
-            } catch (SecurityException e) {
-                // When run as part of the unit tests, the notification fails because only the
-                // MediaProvider uid can notify
-                Log.w(TAG, "Failed to notify the system of cloud provider update to: " + authority);
-            }
-        }
-
-        Log.d(TAG, "Updated cloud provider to: " + authority);
     }
 
     private void cacheMediaCollectionInfo(String authority, Bundle bundle) {
@@ -724,9 +674,8 @@ public class PickerSyncController {
                 + totalRowcount + ". Cursor count: " + cursorCount);
     }
 
-    private CloudProviderInfo getDefaultCloudProviderInfo(String cachedProvider) {
-        final List<CloudProviderInfo> infos =
-                getSupportedCloudProviders(/* ignoreAllowList */ false);
+    private CloudProviderInfo getDefaultCloudProviderInfo() {
+        final List<CloudProviderInfo> infos = getSupportedCloudProviders();
 
         if (infos.size() == 1) {
             Log.i(TAG, "Only 1 cloud provider found, hence "
@@ -735,16 +684,7 @@ public class PickerSyncController {
         } else {
             final String defaultCloudProviderAuthority = StringUtils.getStringConfig(
                 mContext, R.string.config_default_cloud_provider_authority);
-            Log.i(TAG, "Found multiple cloud providers but OEM default is: "
-                    + defaultCloudProviderAuthority);
-
-            if (cachedProvider != null) {
-                for (CloudProviderInfo info : infos) {
-                    if (info.authority.equals(defaultCloudProviderAuthority)) {
-                        return info;
-                    }
-                }
-            }
+            Log.i(TAG, "Default cloud provider to be used is " + defaultCloudProviderAuthority);
 
             if (defaultCloudProviderAuthority != null) {
                 for (CloudProviderInfo info : infos) {
@@ -759,9 +699,10 @@ public class PickerSyncController {
         return CloudProviderInfo.EMPTY;
     }
 
-    private Set<String> parseAllowedCloudProviders(String config) {
+    private Set<String> getAllowedCloudProviders() {
         Set<String> allowedProviders = new ArraySet<>();
-        final String[] allowedProvidersConfig = config.split(",");
+        final String[] allowedProvidersConfig = DeviceConfigUtils.getStringDeviceConfig(
+                ALLOWED_CLOUD_PROVIDERS_KEY, "").split(",");
 
         if (allowedProvidersConfig.length == 0 || allowedProvidersConfig[0].isEmpty()) {
             Log.i(TAG, "Empty allowed cloud providers");
@@ -821,9 +762,9 @@ public class PickerSyncController {
         private final int uid;
 
         private CloudProviderInfo() {
-            this.authority = null;
-            this.packageName = null;
-            this.uid = -1;
+            this.authority = DEFAULT_CLOUD_PROVIDER_AUTHORITY;
+            this.packageName = DEFAULT_CLOUD_PROVIDER_PKGNAME;
+            this.uid = DEFAULT_CLOUD_PROVIDER_UID;
         }
 
         CloudProviderInfo(String authority, String packageName, int uid) {

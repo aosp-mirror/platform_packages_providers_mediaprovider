@@ -29,13 +29,11 @@ import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.Point;
-import android.media.AudioAttributes;
-import android.media.AudioFocusRequest;
-import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PlaybackState;
 import android.util.Log;
+import android.view.Surface;
 import android.view.View;
 import android.view.accessibility.AccessibilityManager;
 import android.view.accessibility.AccessibilityManager.AccessibilityStateChangeListener;
@@ -52,11 +50,6 @@ final class RemotePreviewSession {
 
     private static final String TAG = "RemotePreviewSession";
     private static final long PLAYER_CONTROL_ON_PLAY_TIMEOUT_MS = 1000;
-    private static final AudioAttributes sAudioAttributes = new AudioAttributes.Builder()
-            .setContentType(AudioAttributes.USAGE_MEDIA)
-            .setUsage(AudioAttributes.CONTENT_TYPE_MOVIE)
-            .build();
-
 
     private final int mSurfaceId;
     private final String mMediaId;
@@ -66,8 +59,6 @@ final class RemotePreviewSession {
     private final MuteStatus mMuteStatus;
     private final PlayerControlsVisibilityStatus mPlayerControlsVisibilityStatus;
     private final AccessibilityManager mAccessibilityManager;
-    private final AudioManager mAudioManager;
-    private AudioFocusRequest mAudioFocusRequest = null;
     private final View.OnClickListener mPlayPauseButtonClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -82,8 +73,9 @@ final class RemotePreviewSession {
         @Override
         public void onClick(View v) {
             boolean newMutedValue = !mMuteStatus.isVolumeMuted();
+            setAudioMuted(newMutedValue);
             mMuteStatus.setVolumeMuted(newMutedValue);
-            handleAudioFocusAndInitVolumeState();
+            updateMuteButtonState(mMuteStatus.isVolumeMuted());
         }
     };
     private final View.OnClickListener mPlayerContainerClickListener = new View.OnClickListener() {
@@ -97,9 +89,7 @@ final class RemotePreviewSession {
     private final AccessibilityStateChangeListener mAccessibilityStateChangeListener =
             this::updateAccessibilityState;
 
-    private SurfaceChangeData mSurfaceChangeData;
     private boolean mIsSurfaceCreated = false;
-    private boolean mIsSurfaceCreationNotified = false;
     private boolean mIsPlaybackRequested = false;
     @PlaybackState
     private int mCurrentPlaybackState = PLAYBACK_STATE_BUFFERING;
@@ -118,7 +108,6 @@ final class RemotePreviewSession {
         this.mMuteStatus = muteStatus;
         this.mPlayerControlsVisibilityStatus = playerControlsVisibilityStatus;
         this.mAccessibilityManager = context.getSystemService(AccessibilityManager.class);
-        this.mAudioManager = context.getSystemService(AudioManager.class);
 
         initUI();
     }
@@ -137,36 +126,20 @@ final class RemotePreviewSession {
         return mAuthority;
     }
 
-    @NonNull
-    PreviewVideoHolder getPreviewVideoHolder() {
-        return mPreviewVideoHolder;
-    }
-
-    void surfaceCreated() {
+    void surfaceCreated(@NonNull Surface surface) {
         if (mIsSurfaceCreated) {
             throw new IllegalStateException("Surface is already created.");
         }
-        if (mIsSurfaceCreationNotified) {
-            throw new IllegalStateException(
-                    "Surface creation has been already notified to SurfaceController.");
+
+        if (surface == null) {
+            throw new IllegalStateException("surfaceCreated() called with null surface.");
         }
 
-        mIsSurfaceCreated = true;
-
-        // Notify surface creation only if playback has been already requested, else this will be
-        // done in requestPlayMedia() when playback is explicitly requested.
-        if (mIsPlaybackRequested) {
-            notifySurfaceCreated();
-        }
-    }
-
-    void surfaceChanged(int format, int width, int height) {
-        mSurfaceChangeData = new SurfaceChangeData(format, width, height);
-
-        // Notify surface change only if playback has been already requested, else this will be
-        // done in requestPlayMedia() when playback is explicitly requested.
-        if (mIsPlaybackRequested) {
-            notifySurfaceChanged();
+        try {
+            mSurfaceController.onSurfaceCreated(mSurfaceId, surface, mMediaId);
+            mIsSurfaceCreated = true;
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failure in onSurfaceCreated().", e);
         }
     }
 
@@ -175,20 +148,24 @@ final class RemotePreviewSession {
             throw new IllegalStateException("Surface is not created.");
         }
 
-        mSurfaceChangeData = null;
-
         tearDownUI();
-
-        if (!mIsSurfaceCreationNotified) {
-            // If we haven't notified surface creation yet, then no need to notify surface
-            // destruction either.
-            return;
-        }
 
         try {
             mSurfaceController.onSurfaceDestroyed(mSurfaceId);
         } catch (RemoteException e) {
             Log.e(TAG, "Failure in onSurfaceDestroyed().", e);
+        }
+    }
+
+    void surfaceChanged(int format, int width, int height) {
+        if (!mIsSurfaceCreated) {
+            throw new IllegalStateException("Surface is not created.");
+        }
+
+        try {
+            mSurfaceController.onSurfaceChanged(mSurfaceId, format, width, height);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failure in onSurfaceChanged().", e);
         }
     }
 
@@ -207,15 +184,6 @@ final class RemotePreviewSession {
                 || mCurrentPlaybackState == PLAYBACK_STATE_PAUSED) {
             playMedia();
             return;
-        }
-
-        // Now that playback has been requested, try to notify surface creation and surface change
-        // so that player can be prepared with the surface.
-        if (mIsSurfaceCreated) {
-            notifySurfaceCreated();
-        }
-        if (mSurfaceChangeData != null) {
-            notifySurfaceChanged();
         }
 
         mIsPlaybackRequested = true;
@@ -243,52 +211,11 @@ final class RemotePreviewSession {
                 if (!mIsAccessibilityEnabled) {
                     hidePlayerControlsWithDelay();
                 }
-                handleAudioFocusAndInitVolumeState();
                 return;
             case PLAYBACK_STATE_PAUSED:
                 updatePlayPauseButtonState(false /* isPlaying */);
-                abandonAudioFocusIfAny();
                 return;
             default:
-        }
-    }
-
-    private void notifySurfaceCreated() {
-        if (!mIsSurfaceCreated) {
-            throw new IllegalStateException("Surface is not created.");
-        }
-        if (mIsSurfaceCreationNotified) {
-            throw new IllegalStateException(
-                    "Surface creation has already been notified to SurfaceController.");
-        }
-
-        try {
-            mSurfaceController.onSurfaceCreated(mSurfaceId,
-                    mPreviewVideoHolder.getSurfaceHolder().getSurface(), mMediaId);
-            mIsSurfaceCreationNotified = true;
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failure in notifySurfaceCreated().", e);
-        }
-    }
-
-    private void notifySurfaceChanged() {
-        if (!mIsSurfaceCreated) {
-            throw new IllegalStateException("Surface is not created.");
-        }
-        if (!mIsSurfaceCreationNotified) {
-            throw new IllegalStateException(
-                    "Surface creation has not been notified to SurfaceController.");
-        }
-
-        if (mSurfaceChangeData == null) {
-            throw new IllegalStateException("No surface change data present.");
-        }
-
-        try {
-            mSurfaceController.onSurfaceChanged(mSurfaceId, mSurfaceChangeData.getFormat(),
-                    mSurfaceChangeData.getWidth(), mSurfaceChangeData.getHeight());
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failure in notifySurfaceChanged().", e);
         }
     }
 
@@ -296,11 +223,6 @@ final class RemotePreviewSession {
         if (!mIsSurfaceCreated) {
             throw new IllegalStateException("Surface is not created.");
         }
-        if (!mIsSurfaceCreationNotified) {
-            throw new IllegalStateException(
-                    "Surface creation has not been notified to SurfaceController.");
-        }
-
         if (mCurrentPlaybackState == PLAYBACK_STATE_STARTED) {
             throw new IllegalStateException("Player is already playing.");
         }
@@ -316,11 +238,6 @@ final class RemotePreviewSession {
         if (!mIsSurfaceCreated) {
             throw new IllegalStateException("Surface is not created.");
         }
-        if (!mIsSurfaceCreationNotified) {
-            throw new IllegalStateException(
-                    "Surface creation has not been notified to SurfaceController.");
-        }
-
         if (mCurrentPlaybackState != PLAYBACK_STATE_STARTED) {
             throw new IllegalStateException("Player is not playing.");
         }
@@ -352,8 +269,9 @@ final class RemotePreviewSession {
     }
 
     private void initUI() {
-        // We show the thumbnail view till the player is ready and when we know the
-        // media size, then we hide the thumbnail view.
+        // We hide the player view and show the thumbnail till the player is ready and we know the
+        // media size. However, since we want the surface to be created, we cannot use View.GONE
+        // here.
         mPreviewVideoHolder.getPlayerContainer().setVisibility(View.INVISIBLE);
         mPreviewVideoHolder.getThumbnailView().setVisibility(View.VISIBLE);
         mPreviewVideoHolder.getPlayerControlsRoot().setVisibility(View.GONE);
@@ -375,55 +293,6 @@ final class RemotePreviewSession {
         mPreviewVideoHolder.getPlayPauseButton().setOnClickListener(null);
         mPreviewVideoHolder.getMuteButton().setOnClickListener(null);
         mPreviewVideoHolder.getPlayerContainer().setOnClickListener(null);
-        abandonAudioFocusIfAny();
-    }
-
-    /**
-     * Requests AudioFocus if current state of the volume state is volume on. Sets the volume of
-     * the playback if the AudioFocus request is granted.
-     * Also, updates the mute button based on the state of the muteStatus.
-     */
-    private void handleAudioFocusAndInitVolumeState() {
-        if (mMuteStatus.isVolumeMuted()) {
-            setAudioMuted(true);
-            abandonAudioFocusIfAny();
-        } else if (requestAudioFocus() == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-            setAudioMuted(false);
-        }
-
-        updateMuteButtonState(mMuteStatus.isVolumeMuted());
-    }
-
-    /**
-     * Abandons the AudioFocus request so that the previous focus owner can resume their playback
-     */
-    private void abandonAudioFocusIfAny() {
-        if (mAudioFocusRequest == null) return;
-
-        mAudioManager.abandonAudioFocusRequest(mAudioFocusRequest);
-        mAudioFocusRequest = null;
-    }
-
-    private int requestAudioFocus() {
-        // Always request new AudioFocus
-        abandonAudioFocusIfAny();
-
-        mAudioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
-                .setAudioAttributes(sAudioAttributes)
-                .setWillPauseWhenDucked(true)
-                .setAcceptsDelayedFocusGain(true)
-                .setOnAudioFocusChangeListener(focusChange -> {
-                    if (focusChange == AudioManager.AUDIOFOCUS_LOSS
-                            || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
-                            || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-                        pauseMedia();
-                    }
-                }).build();
-
-        // We don't need to reset mAudioFocusRequest to null on failure of requestAudioFocus. This
-        // is because we always reset the AudioFocus before requesting, reset mechanism will also
-        // try to abandon AudioFocus if there is any.
-        return mAudioManager.requestAudioFocus(mAudioFocusRequest);
     }
 
     private void updateAccessibilityState(boolean enabled) {
@@ -463,30 +332,5 @@ final class RemotePreviewSession {
         mPreviewVideoHolder.getPlayerControlsRoot().setVisibility(
                 visible ? View.VISIBLE : View.GONE);
         mPlayerControlsVisibilityStatus.setShouldShowPlayerControlsForNextItem(visible);
-    }
-
-    private static final class SurfaceChangeData {
-
-        private int mFormat;
-        private int mWidth;
-        private int mHeight;
-
-        SurfaceChangeData(int format, int width, int height) {
-            mFormat = format;
-            mWidth = width;
-            mHeight = height;
-        }
-
-        int getFormat() {
-            return mFormat;
-        }
-
-        int getWidth() {
-            return mWidth;
-        }
-
-        int getHeight() {
-            return mHeight;
-        }
     }
 }

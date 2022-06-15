@@ -16,12 +16,7 @@
             "name": "CtsMediaProviderTranscodeTests[com.google.android.mediaprovider.apex]"
         },
         {
-            "name": "CtsPhotoPickerTest[com.google.android.mediaprovider.apex]",
-            "options": [
-              {
-                "exclude-annotation": "androidx.test.filters.LargeTest"
-              }
-            ]
+            "name": "CtsPhotoPickerTest[com.google.android.mediaprovider.apex]"
         }
     ],
     "presubmit": [

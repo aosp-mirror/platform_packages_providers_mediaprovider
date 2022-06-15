@@ -31,6 +31,8 @@ import java.util.UUID;
  * provides a foundational implementation of this contract.
  *
  * @see CloudMediaProvider
+ *
+ * @hide
  */
 public final class CloudMediaProviderContract {
     private static final String TAG = "CloudMediaProviderContract";
@@ -456,6 +458,7 @@ public final class CloudMediaProviderContract {
      * @see CloudMediaProvider#onQueryAlbums
      * <p>
      * Type: STRING
+     * @hide
      */
     public static final String EXTRA_MEDIA_COLLECTION_ID =
             "android.provider.extra.MEDIA_COLLECTION_ID";
@@ -555,16 +558,6 @@ public final class CloudMediaProviderContract {
             "android.provider.extra.PREVIEW_THUMBNAIL";
 
     /**
-     * A boolean to indicate {@link com.android.providers.media.photopicker.PhotoPickerProvider}
-     * this request is requesting a cached thumbnail file from MediaStore.
-     *
-     * Type: BOOLEAN
-     *
-     * {@hide}
-     */
-    public static final String EXTRA_MEDIASTORE_THUMB = "android.provider.extra.MEDIASTORE_THUMB";
-
-    /**
      * Constant used to execute {@link CloudMediaProvider#onGetMediaCollectionInfo} via
      * {@link ContentProvider#call}.
      *
@@ -654,13 +647,6 @@ public final class CloudMediaProviderContract {
      * {@hide}
      */
     public static final String EXTRA_ERROR_MESSAGE = "android.provider.extra.error_message";
-
-    /**
-     * Constant used to get/set the {@link CloudMediaProvider} authority.
-     *
-     * {@hide}
-     */
-    public static final String EXTRA_AUTHORITY = "android.provider.extra.authority";
 
     /**
      * URI path for {@link CloudMediaProvider#onQueryMedia}

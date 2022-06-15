@@ -31,11 +31,6 @@ public class MPUiEventLoggerImpl implements UiEventLogger {
     }
 
     @Override
-    public void log(@NonNull UiEventEnum event, @Nullable InstanceId instance) {
-        logWithInstanceId(event, 0, null, instance);
-    }
-
-    @Override
     public void log(@NonNull UiEventEnum event, int uid, @Nullable String packageName) {
         final int eventID = event.getId();
         if (eventID > 0) {
@@ -71,8 +66,7 @@ public class MPUiEventLoggerImpl implements UiEventLogger {
                     /* event_id = 1 */ eventID,
                     /* package_name = 2 */ packageName,
                     /* instance_id = 3 */ 0,
-                    /* position_picked = 4 */ position,
-                    /* is_pinned = 5 */ false);
+                    /* position_picked = 4 */ position);
         }
     }
 
@@ -85,8 +79,7 @@ public class MPUiEventLoggerImpl implements UiEventLogger {
                     /* event_id = 1 */ eventID,
                     /* package_name = 2 */ packageName,
                     /* instance_id = 3 */ instance.getId(),
-                    /* position_picked = 4 */ position,
-                    /* is_pinned = 5 */ false);
+                    /* position_picked = 4 */ position);
         } else {
             logWithPosition(event, uid, packageName, position);
         }

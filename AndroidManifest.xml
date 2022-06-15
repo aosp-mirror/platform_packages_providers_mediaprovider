@@ -26,7 +26,6 @@
     <uses-permission android:name="android.permission.USE_RESERVED_DISK" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.HIDE_NON_SYSTEM_OVERLAY_WINDOWS" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Permissions required for reading and logging compat changes -->
     <uses-permission android:name="android.permission.LOG_COMPAT_CHANGE"/>
@@ -79,12 +78,6 @@
         <provider
             android:name="com.android.providers.media.photopicker.PhotoPickerProvider"
             android:authorities="com.android.providers.media.photopicker"
-            android:exported="false" />
-
-        <provider
-            android:name="com.android.providers.media.photopicker.RemoteVideoPreviewProvider"
-            android:process=":PhotoPicker"
-            android:authorities="com.android.providers.media.remote_video_preview"
             android:exported="false" />
 
         <!-- Handles database upgrades after OTAs, then disables itself -->
@@ -189,7 +182,7 @@
             android:exported="true"
             android:excludeFromRecents="true"
             android:enabled="false">
-            <intent-filter android:priority="101" >
+            <intent-filter>
                 <action android:name="android.intent.action.GET_CONTENT" />
                 <category android:name="android.intent.category.OPENABLE" />
                 <category android:name="android.intent.category.DEFAULT" />

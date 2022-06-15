@@ -42,27 +42,22 @@ public final class FuseDaemon extends Thread {
     private final MediaProvider mMediaProvider;
     private final int mFuseDeviceFd;
     private final String mPath;
-    private final boolean mUncachedMode;
     private final String[] mSupportedTranscodingRelativePaths;
-    private final String[] mSupportedUncachedRelativePaths;
     private final ExternalStorageServiceImpl mService;
     @GuardedBy("mLock")
     private long mPtr;
 
     public FuseDaemon(@NonNull MediaProvider mediaProvider,
             @NonNull ExternalStorageServiceImpl service, @NonNull ParcelFileDescriptor fd,
-            @NonNull String sessionId, @NonNull String path, boolean uncachedMode,
-            String[] supportedTranscodingRelativePaths, String[] supportedUncachedRelativePaths) {
+            @NonNull String sessionId, @NonNull String path,
+            String[] supportedTranscodingRelativePaths) {
         mMediaProvider = Objects.requireNonNull(mediaProvider);
         mService = Objects.requireNonNull(service);
         setName(Objects.requireNonNull(sessionId));
         mFuseDeviceFd = Objects.requireNonNull(fd).detachFd();
         mPath = Objects.requireNonNull(path);
-        mUncachedMode = uncachedMode;
         mSupportedTranscodingRelativePaths
                 = Objects.requireNonNull(supportedTranscodingRelativePaths);
-        mSupportedUncachedRelativePaths
-                = Objects.requireNonNull(supportedUncachedRelativePaths);
     }
 
     /** Starts a FUSE session. Does not return until the lower filesystem is unmounted. */
@@ -78,9 +73,7 @@ public final class FuseDaemon extends Thread {
         }
 
         Log.i(TAG, "Starting thread for " + getName() + " ...");
-        native_start(ptr, mFuseDeviceFd, mPath, mUncachedMode,
-                mSupportedTranscodingRelativePaths,
-                mSupportedUncachedRelativePaths); // Blocks
+        native_start(ptr, mFuseDeviceFd, mPath, mSupportedTranscodingRelativePaths); // Blocks
         Log.i(TAG, "Exiting thread for " + getName() + " ...");
 
         synchronized (mLock) {
@@ -168,21 +161,6 @@ public final class FuseDaemon extends Thread {
     }
 
     /**
-     * Checks if the FuseDaemon uses the FUSE passthrough feature.
-     *
-     * @return {@code true} if the FuseDaemon uses FUSE passthrough, {@code false} otherwise
-     */
-    public boolean usesFusePassthrough() {
-        synchronized (mLock) {
-            if (mPtr == 0) {
-                Log.i(TAG, "usesFusePassthrough failed, FUSE daemon unavailable");
-                return false;
-            }
-            return native_uses_fuse_passthrough(mPtr);
-        }
-    }
-
-    /**
      * Invalidates FUSE VFS dentry cache for {@code path}
      */
     public void invalidateFuseDentryCache(String path) {
@@ -209,13 +187,11 @@ public final class FuseDaemon extends Thread {
 
     // Takes ownership of the passed in file descriptor!
     private native void native_start(long daemon, int deviceFd, String path,
-            boolean uncachedMode, String[] supportedTranscodingRelativePaths,
-            String[] supportedUncachedRelativePaths);
+            String[] supportedTranscodingRelativePaths);
 
     private native void native_delete(long daemon);
     private native boolean native_should_open_with_fuse(long daemon, String path, boolean readLock,
             int fd);
-    private native boolean native_uses_fuse_passthrough(long daemon);
     private native void native_invalidate_fuse_dentry_cache(long daemon, String path);
     private native boolean native_is_started(long daemon);
     private native FdAccessResult native_check_fd_access(long daemon, int fd, int uid);

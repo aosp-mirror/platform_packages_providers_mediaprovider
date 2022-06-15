@@ -17,11 +17,9 @@
 package android.provider;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
-import static android.provider.CloudMediaProviderContract.EXTRA_AUTHORITY;
 import static android.provider.CloudMediaProviderContract.EXTRA_ERROR_MESSAGE;
 import static android.provider.CloudMediaProviderContract.EXTRA_FILE_DESCRIPTOR;
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
-import static android.provider.CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_STATE_CALLBACK;
@@ -56,7 +54,6 @@ import android.os.CancellationSignal;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteCallback;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -108,6 +105,8 @@ import java.util.Objects;
  * {@link #onGetMediaCollectionInfo}.
  *
  * @see MediaStore#ACTION_PICK_IMAGES
+ *
+ * @hide
  */
 public abstract class CloudMediaProvider extends ContentProvider {
     private static final String TAG = "CloudMediaProvider";
@@ -380,14 +379,12 @@ public abstract class CloudMediaProvider extends ContentProvider {
                 DEFAULT_LOOPING_PLAYBACK_ENABLED);
         final boolean muteAudio = extras.getBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
                 DEFAULT_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED);
-        final String authority = extras.getString(EXTRA_AUTHORITY);
         final CloudMediaSurfaceStateChangedCallback callback =
                 new CloudMediaSurfaceStateChangedCallback(
                         ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder));
         final Bundle config = new Bundle();
         config.putBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, enableLoop);
         config.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED, muteAudio);
-        config.putString(EXTRA_AUTHORITY, authority);
         final CloudMediaSurfaceController controller =
                 onCreateCloudMediaSurfaceController(config, callback);
         if (controller == null) {
@@ -451,29 +448,15 @@ public abstract class CloudMediaProvider extends ContentProvider {
     public final AssetFileDescriptor openTypedAssetFile(
             @NonNull Uri uri, @NonNull String mimeTypeFilter, @Nullable Bundle opts,
             @Nullable CancellationSignal signal) throws FileNotFoundException {
-        final String mediaId = uri.getLastPathSegment();
-        final Bundle bundle = new Bundle();
-        Point previewSize = null;
-
-        final DisplayMetrics screenMetrics = getContext().getResources().getDisplayMetrics();
-        int minPreviewLength = Math.min(screenMetrics.widthPixels, screenMetrics.heightPixels);
-
-        if (opts != null) {
-            bundle.putBoolean(EXTRA_MEDIASTORE_THUMB, opts.getBoolean(EXTRA_MEDIASTORE_THUMB));
-
-            if (opts.containsKey(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL)) {
-                bundle.putBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL, true);
-                minPreviewLength = minPreviewLength / 2;
-            }
-
-            previewSize = opts.getParcelable(ContentResolver.EXTRA_SIZE);
+        String mediaId = uri.getLastPathSegment();
+        final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
+                && mimeTypeFilter.startsWith("image/");
+        if (wantsThumb) {
+            Point point = (Point) opts.getParcelable(ContentResolver.EXTRA_SIZE);
+            return onOpenPreview(mediaId, point, opts, signal);
         }
-
-        if (previewSize == null) {
-            previewSize = new Point(minPreviewLength, minPreviewLength);
-        }
-
-        return onOpenPreview(mediaId, previewSize, bundle, signal);
+        return new AssetFileDescriptor(onOpenMedia(mediaId, opts, signal), 0 /* startOffset */,
+                AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 
     /**
@@ -788,23 +771,10 @@ public abstract class CloudMediaProvider extends ContentProvider {
                         e);
             }
         }
-
-        /**
-         * Returns the underliying {@link IBinder} object.
-         *
-         * @hide
-         */
-        public IBinder getIBinder() {
-            return mCallback.asBinder();
-        }
     }
 
-    /**
-     * {@link Binder} object backing a {@link CloudMediaSurfaceController} instance.
-     *
-     * @hide
-     */
-    public static class CloudMediaSurfaceControllerWrapper
+    /** {@hide} */
+    private static class CloudMediaSurfaceControllerWrapper
             extends ICloudMediaSurfaceController.Stub {
 
         final private CloudMediaSurfaceController mSurfaceController;

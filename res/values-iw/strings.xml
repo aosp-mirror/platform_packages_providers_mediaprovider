@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"מדיה"</string>
     <string name="storage_description" msgid="4081716890357580107">"אחסון מקומי"</string>
     <string name="app_label" msgid="9035307001052716210">"אחסון מדיה"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"בורר התמונות"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"מדיה"</string>
     <string name="artist_label" msgid="8105600993099120273">"אומן"</string>
     <string name="unknown" msgid="2059049215682829375">"לא ידוע"</string>
     <string name="root_images" msgid="5861633549189045666">"תמונות"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"ניקוי"</string>
     <string name="allow" msgid="8885707816848569619">"אישור"</string>
     <string name="deny" msgid="6040983710442068936">"דחייה"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"עיון…"</string>
     <string name="add" msgid="2894574044585549298">"הוספה"</string>
     <string name="deselect" msgid="4297825044827769490">"ביטול הבחירה"</string>
     <string name="deselected" msgid="8488133193326208475">"הבחירה בוטלה"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"תמונה עם תנועה"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"השתקת הסרטון"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"ביטול ההשתקה של הסרטון"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"הפעלת הסרטון"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"השהיית הסרטון"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"הפעלה"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"השהיה"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"מדיה בענן מתוך <xliff:g id="PKG_NAME">%1$s</xliff:g> זמינה עכשיו"</string>
     <string name="not_selected" msgid="2244008151669896758">"לא נבחר"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את קובץ האודיו הזה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}}"</string>

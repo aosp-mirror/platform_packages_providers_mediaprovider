@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Медіа-файли"</string>
     <string name="storage_description" msgid="4081716890357580107">"Локальна пам’ять"</string>
     <string name="app_label" msgid="9035307001052716210">"Сховище медіа-файлів"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Засіб вибору фотографій"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Медіа"</string>
     <string name="artist_label" msgid="8105600993099120273">"Виконавець"</string>
     <string name="unknown" msgid="2059049215682829375">"Невідомо"</string>
     <string name="root_images" msgid="5861633549189045666">"Зображення"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Очистити"</string>
     <string name="allow" msgid="8885707816848569619">"Дозволити"</string>
     <string name="deny" msgid="6040983710442068936">"Заборонити"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Перегляд…"</string>
     <string name="add" msgid="2894574044585549298">"Додати"</string>
     <string name="deselect" msgid="4297825044827769490">"Не вибирати"</string>
     <string name="deselected" msgid="8488133193326208475">"Не вибрано"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Фото з рухом"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Вимкнути звук у відео"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Увімкнути звук у відео"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Відтворити відео"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Призупинити відео"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Відтворити"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Призупинити"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Тепер медіаконтент із хмари доступний у додатку <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не вибрано"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Дозволити додатку <xliff:g id="APP_NAME_0">^1</xliff:g> змінити цей аудіофайл?}one{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайл?}few{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайли?}many{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайлів?}other{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайлу?}}"</string>

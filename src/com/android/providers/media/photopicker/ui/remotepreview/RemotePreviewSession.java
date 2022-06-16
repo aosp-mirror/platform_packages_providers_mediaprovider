@@ -29,6 +29,9 @@ import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.Point;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PlaybackState;
@@ -49,6 +52,11 @@ final class RemotePreviewSession {
 
     private static final String TAG = "RemotePreviewSession";
     private static final long PLAYER_CONTROL_ON_PLAY_TIMEOUT_MS = 1000;
+    private static final AudioAttributes sAudioAttributes = new AudioAttributes.Builder()
+            .setContentType(AudioAttributes.USAGE_MEDIA)
+            .setUsage(AudioAttributes.CONTENT_TYPE_MOVIE)
+            .build();
+
 
     private final int mSurfaceId;
     private final String mMediaId;
@@ -58,6 +66,8 @@ final class RemotePreviewSession {
     private final MuteStatus mMuteStatus;
     private final PlayerControlsVisibilityStatus mPlayerControlsVisibilityStatus;
     private final AccessibilityManager mAccessibilityManager;
+    private final AudioManager mAudioManager;
+    private AudioFocusRequest mAudioFocusRequest = null;
     private final View.OnClickListener mPlayPauseButtonClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -72,9 +82,8 @@ final class RemotePreviewSession {
         @Override
         public void onClick(View v) {
             boolean newMutedValue = !mMuteStatus.isVolumeMuted();
-            setAudioMuted(newMutedValue);
             mMuteStatus.setVolumeMuted(newMutedValue);
-            updateMuteButtonState(mMuteStatus.isVolumeMuted());
+            handleAudioFocusAndInitVolumeState();
         }
     };
     private final View.OnClickListener mPlayerContainerClickListener = new View.OnClickListener() {
@@ -109,6 +118,7 @@ final class RemotePreviewSession {
         this.mMuteStatus = muteStatus;
         this.mPlayerControlsVisibilityStatus = playerControlsVisibilityStatus;
         this.mAccessibilityManager = context.getSystemService(AccessibilityManager.class);
+        this.mAudioManager = context.getSystemService(AudioManager.class);
 
         initUI();
     }
@@ -233,9 +243,11 @@ final class RemotePreviewSession {
                 if (!mIsAccessibilityEnabled) {
                     hidePlayerControlsWithDelay();
                 }
+                handleAudioFocusAndInitVolumeState();
                 return;
             case PLAYBACK_STATE_PAUSED:
                 updatePlayPauseButtonState(false /* isPlaying */);
+                abandonAudioFocusIfAny();
                 return;
             default:
         }
@@ -363,6 +375,55 @@ final class RemotePreviewSession {
         mPreviewVideoHolder.getPlayPauseButton().setOnClickListener(null);
         mPreviewVideoHolder.getMuteButton().setOnClickListener(null);
         mPreviewVideoHolder.getPlayerContainer().setOnClickListener(null);
+        abandonAudioFocusIfAny();
+    }
+
+    /**
+     * Requests AudioFocus if current state of the volume state is volume on. Sets the volume of
+     * the playback if the AudioFocus request is granted.
+     * Also, updates the mute button based on the state of the muteStatus.
+     */
+    private void handleAudioFocusAndInitVolumeState() {
+        if (mMuteStatus.isVolumeMuted()) {
+            setAudioMuted(true);
+            abandonAudioFocusIfAny();
+        } else if (requestAudioFocus() == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            setAudioMuted(false);
+        }
+
+        updateMuteButtonState(mMuteStatus.isVolumeMuted());
+    }
+
+    /**
+     * Abandons the AudioFocus request so that the previous focus owner can resume their playback
+     */
+    private void abandonAudioFocusIfAny() {
+        if (mAudioFocusRequest == null) return;
+
+        mAudioManager.abandonAudioFocusRequest(mAudioFocusRequest);
+        mAudioFocusRequest = null;
+    }
+
+    private int requestAudioFocus() {
+        // Always request new AudioFocus
+        abandonAudioFocusIfAny();
+
+        mAudioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                .setAudioAttributes(sAudioAttributes)
+                .setWillPauseWhenDucked(true)
+                .setAcceptsDelayedFocusGain(true)
+                .setOnAudioFocusChangeListener(focusChange -> {
+                    if (focusChange == AudioManager.AUDIOFOCUS_LOSS
+                            || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
+                            || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                        pauseMedia();
+                    }
+                }).build();
+
+        // We don't need to reset mAudioFocusRequest to null on failure of requestAudioFocus. This
+        // is because we always reset the AudioFocus before requesting, reset mechanism will also
+        // try to abandon AudioFocus if there is any.
+        return mAudioManager.requestAudioFocus(mAudioFocusRequest);
     }
 
     private void updateAccessibilityState(boolean enabled) {

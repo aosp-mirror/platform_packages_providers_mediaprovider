@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"رسانه"</string>
     <string name="storage_description" msgid="4081716890357580107">"فضای ذخیره‌سازی محلی"</string>
     <string name="app_label" msgid="9035307001052716210">"فضای ذخیره‌سازی رسانه"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"انتخاب‌گر عکس"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"رسانه"</string>
     <string name="artist_label" msgid="8105600993099120273">"هنرمند"</string>
     <string name="unknown" msgid="2059049215682829375">"نامشخص"</string>
     <string name="root_images" msgid="5861633549189045666">"تصویر"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"پاک کردن"</string>
     <string name="allow" msgid="8885707816848569619">"اجازه دادن"</string>
     <string name="deny" msgid="6040983710442068936">"مجاز نبودن"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"مرور کردن…"</string>
     <string name="add" msgid="2894574044585549298">"افزودن"</string>
     <string name="deselect" msgid="4297825044827769490">"لغو انتخاب"</string>
     <string name="deselected" msgid="8488133193326208475">"لغو انتخاب‌شده"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"عکس حرکتی"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"بی‌صدا کردن ویدیو"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"صدادار کردن ویدیو"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"پخش ویدیو"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"مکث ویدیو"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"پخش"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"مکث"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"رسانه ابری اکنون از <xliff:g id="PKG_NAME">%1$s</xliff:g> دردسترس است"</string>
     <string name="not_selected" msgid="2244008151669896758">"انتخاب نشده است"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{به <xliff:g id="APP_NAME_0">^1</xliff:g> اجازه می‌دهید این فایل صوتی را تغییر دهد؟}one{به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را تغییر دهد؟}other{به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را تغییر دهد؟}}"</string>

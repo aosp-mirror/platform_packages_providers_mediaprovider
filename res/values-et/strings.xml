@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Meedia"</string>
     <string name="storage_description" msgid="4081716890357580107">"Kohalik salvestusruum"</string>
     <string name="app_label" msgid="9035307001052716210">"Meediumi salvestusruum"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Fotovalija"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Meedia"</string>
     <string name="artist_label" msgid="8105600993099120273">"Esitaja"</string>
     <string name="unknown" msgid="2059049215682829375">"Teadmata"</string>
     <string name="root_images" msgid="5861633549189045666">"Pildid"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Kustuta"</string>
     <string name="allow" msgid="8885707816848569619">"Luba"</string>
     <string name="deny" msgid="6040983710442068936">"Keela"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Sirvimine …"</string>
     <string name="add" msgid="2894574044585549298">"Lisa"</string>
     <string name="deselect" msgid="4297825044827769490">"Tühista valik"</string>
     <string name="deselected" msgid="8488133193326208475">"Valik on tühistatud"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Liikuv foto"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Video vaigistamine"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Video vaigistuse tühistamine"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Esita video"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Peata video"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Esita"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Peata"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Pilvemeedia on nüüd rakenduse <xliff:g id="PKG_NAME">%1$s</xliff:g> kaudu saadaval"</string>
     <string name="not_selected" msgid="2244008151669896758">"pole valitud"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda helifaili muuta?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> helifaili muuta?}}"</string>

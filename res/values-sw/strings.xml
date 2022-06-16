@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Maudhui"</string>
     <string name="storage_description" msgid="4081716890357580107">"Hifadhi ya ndani"</string>
     <string name="app_label" msgid="9035307001052716210">"Hifadhi ya Maudhui"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Kiteua picha"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Maudhui"</string>
     <string name="artist_label" msgid="8105600993099120273">"Msanii"</string>
     <string name="unknown" msgid="2059049215682829375">"Isiyojulikana"</string>
     <string name="root_images" msgid="5861633549189045666">"Picha"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Futa"</string>
     <string name="allow" msgid="8885707816848569619">"Ruhusu"</string>
     <string name="deny" msgid="6040983710442068936">"Kataa"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Vinjari…"</string>
     <string name="add" msgid="2894574044585549298">"Weka"</string>
     <string name="deselect" msgid="4297825044827769490">"Acha kuchagua"</string>
     <string name="deselected" msgid="8488133193326208475">"Umeacha kuchagua"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Picha zenye video"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Zima sauti ya video"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Rejesha sauti ya video"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Cheza video"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Sitisha video"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Cheza"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Sitisha"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Maudhui ya kwenye wingu sasa yanapatikana katika <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"haijachaguliwa"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Ungependa kuruhusu <xliff:g id="APP_NAME_0">^1</xliff:g> ibadilishe faili hii ya sauti?}other{Ungependa kuruhusu <xliff:g id="APP_NAME_1">^1</xliff:g> ibadilishe faili <xliff:g id="COUNT">^2</xliff:g> za sauti?}}"</string>

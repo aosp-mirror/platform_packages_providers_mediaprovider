@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Media"</string>
     <string name="storage_description" msgid="4081716890357580107">"Yerli yaddaş"</string>
     <string name="app_label" msgid="9035307001052716210">"Media Yaddaşı"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Foto seçici"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Media"</string>
     <string name="artist_label" msgid="8105600993099120273">"Sənətçi"</string>
     <string name="unknown" msgid="2059049215682829375">"Naməlum"</string>
     <string name="root_images" msgid="5861633549189045666">"Təsvirlər"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Silin"</string>
     <string name="allow" msgid="8885707816848569619">"İcazə verin"</string>
     <string name="deny" msgid="6040983710442068936">"Rədd edin"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Gözdən keçirin…"</string>
     <string name="add" msgid="2894574044585549298">"Əlavə edin"</string>
     <string name="deselect" msgid="4297825044827769490">"Seçimi ləğv edin"</string>
     <string name="deselected" msgid="8488133193326208475">"Seçimi ləğv edilib"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Hərəkətli Foto"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Videonu səssiz edin"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Videonu səssiz rejimdən çıxarın"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Videonu oxudun"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Videonu durdurun"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Oxudun"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Durdurun"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Bulud mediası indi buradan əlçatandır: <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"seçilməyib"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu audio fayla dəyişiklik etmək icazəsi verilsin?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> audio fayla dəyişiklik etmək icazəsi verilsin?}}"</string>

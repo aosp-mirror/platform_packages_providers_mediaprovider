@@ -17,9 +17,10 @@
 package com.android.providers.media.photopicker;
 
 import static android.provider.CloudMediaProviderContract.EXTRA_AUTHORITY;
-import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB;
-import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
+import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
+import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_STATE_CALLBACK;
+import static android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER;
 
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -29,9 +30,11 @@ import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
+import android.os.IBinder;
 import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProvider;
+import android.provider.ICloudMediaSurfaceController;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
@@ -39,10 +42,11 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.LocalCallingIdentity;
 import com.android.providers.media.MediaProvider;
+import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.ui.remotepreview.RemotePreviewHandler;
-import com.android.providers.media.photopicker.ui.remotepreview.RemoteSurfaceController;
+
 
 import java.io.FileNotFoundException;
 
@@ -51,8 +55,6 @@ import java.io.FileNotFoundException;
  * database.
  */
 public class PhotoPickerProvider extends CloudMediaProvider {
-    private static final String TAG = "PhotoPickerProvider";
-
     private MediaProvider mMediaProvider;
     private ExternalDbFacade mDbFacade;
 
@@ -135,16 +137,26 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     @Nullable
     public CloudMediaSurfaceController onCreateCloudMediaSurfaceController(@NonNull Bundle config,
             CloudMediaSurfaceStateChangedCallback callback) {
-        if (RemotePreviewHandler.isRemotePreviewEnabled()) {
-            final String authority = config.getString(EXTRA_AUTHORITY,
-                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
-            final boolean enableLoop = config.getBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, false);
-            final boolean muteAudio = config.getBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED,
-                    false);
-            return new RemoteSurfaceController(getContext(), authority, enableLoop, muteAudio,
-                    callback);
+        if (!RemotePreviewHandler.isRemotePreviewEnabled()) {
+            return null;
         }
-        return null;
+
+        // The config has all parameters except the |callback|, so marshall that into the config
+        config.putBinder(EXTRA_SURFACE_STATE_CALLBACK, callback.getIBinder());
+        // Add the local provider authority so the RemoteVideoPreviewProvider knows who to forward
+        // URI requests to
+        config.putString(EXTRA_AUTHORITY, PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+
+        final Bundle bundle = getContext().getContentResolver().call(
+                PickerUriResolver.createSurfaceControllerUri(RemoteVideoPreviewProvider.AUTHORITY),
+                METHOD_CREATE_SURFACE_CONTROLLER, /* arg */ null, config);
+
+        final IBinder binder = bundle.getBinder(EXTRA_SURFACE_CONTROLLER);
+        if (binder == null) {
+            throw new IllegalStateException("Surface controller not created");
+        }
+        return new RemoteVideoPreviewProvider.SurfaceControllerProxy(
+                ICloudMediaSurfaceController.Stub.asInterface(binder));
     }
 
     private MediaProvider getMediaProvider() {

@@ -22,7 +22,6 @@ import android.content.res.AssetFileDescriptor;
 import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProviderContract;
 
 import com.bumptech.glide.Priority;
@@ -31,12 +30,13 @@ import com.bumptech.glide.load.data.DataFetcher;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
- * Custom {@link DataFetcher} to fetch a {@link ParcelFileDescriptor} for a thumbnail from a cloud
+ * Custom {@link DataFetcher} to fetch a {@link InputStream} for a thumbnail from a cloud
  * media provider.
  */
-public class PickerThumbnailFetcher implements DataFetcher<ParcelFileDescriptor> {
+public class PickerThumbnailFetcher implements DataFetcher<InputStream> {
 
     private final Context mContext;
     private final Uri mModel;
@@ -54,7 +54,7 @@ public class PickerThumbnailFetcher implements DataFetcher<ParcelFileDescriptor>
     }
 
     @Override
-    public void loadData(Priority priority, DataCallback<? super ParcelFileDescriptor> callback) {
+    public void loadData(Priority priority, DataCallback<? super InputStream> callback) {
         ContentResolver contentResolver = mContext.getContentResolver();
         final Bundle opts = new Bundle();
         opts.putParcelable(ContentResolver.EXTRA_SIZE, new Point(mWidth, mHeight));
@@ -71,7 +71,7 @@ public class PickerThumbnailFetcher implements DataFetcher<ParcelFileDescriptor>
                 callback.onLoadFailed(new FileNotFoundException(err));
                 return;
             }
-            callback.onDataReady(afd.getParcelFileDescriptor());
+            callback.onDataReady(afd.createInputStream());
         } catch (IOException e) {
             callback.onLoadFailed(e);
         }
@@ -89,8 +89,8 @@ public class PickerThumbnailFetcher implements DataFetcher<ParcelFileDescriptor>
     }
 
     @Override
-    public Class<ParcelFileDescriptor> getDataClass() {
-        return ParcelFileDescriptor.class;
+    public Class<InputStream> getDataClass() {
+        return InputStream.class;
     }
 
     @Override

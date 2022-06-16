@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Predstavnost"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokalna shramba"</string>
     <string name="app_label" msgid="9035307001052716210">"Shramba za predstavnost"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Izbirnik fotografij"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Predstavnost"</string>
     <string name="artist_label" msgid="8105600993099120273">"Izvajalec"</string>
     <string name="unknown" msgid="2059049215682829375">"Neznano"</string>
     <string name="root_images" msgid="5861633549189045666">"Slike"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Počisti"</string>
     <string name="allow" msgid="8885707816848569619">"Dovoli"</string>
     <string name="deny" msgid="6040983710442068936">"Zavrni"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Brskanje …"</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Počisti izbiro"</string>
     <string name="deselected" msgid="8488133193326208475">"Izbor je preklican"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Fotografija z videom"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Izklopi zvok videa"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Vklopi zvok videa"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Predvajanje videoposnetka"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Začasna zaustavitev videoposnetka"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Predvajaj"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Začasno zaustavi"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Predstavnost v oblaku je zdaj na voljo v aplikaciji <xliff:g id="PKG_NAME">%1$s</xliff:g>."</string>
     <string name="not_selected" msgid="2244008151669896758">"ni izbrano"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g>, da spremeni to zvočno datoteko?}one{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočno datoteko?}two{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočni datoteki?}few{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočne datoteke?}other{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočnih datotek?}}"</string>

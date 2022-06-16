@@ -30,9 +30,9 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static com.android.providers.media.photopicker.espresso.BottomSheetTestUtils.assertBottomSheetState;
 import static com.android.providers.media.photopicker.espresso.OrientationUtils.setLandscapeOrientation;
 import static com.android.providers.media.photopicker.espresso.OrientationUtils.setPortraitOrientation;
+import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 
-import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 import static com.google.common.truth.Truth.assertThat;
 
@@ -104,6 +104,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
                 // Verify no special format icon is previewed
                 onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
                 onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+                // Verify the overflow menu is not shown for PICK_IMAGES intent
+                assertOverflowMenuNotShown();
             }
             // Navigate back to Photo grid
             onView(withContentDescription("Navigate up")).perform(click());
@@ -142,6 +144,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
             // Verify no special format icon is previewed
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
             onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+            // Verify the overflow menu is not shown for PICK_IMAGES intent
+            assertOverflowMenuNotShown();
         }
     }
 

@@ -26,7 +26,6 @@ import android.util.Log;
 
 import com.android.providers.media.util.ForegroundThread;
 
-import java.io.File;
 import java.util.Optional;
 
 /**
@@ -65,13 +64,11 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
         prefs.edit().putInt(PREF_DB_VERSION, dbVersion).commit();
 
         try {
-            File dbDir = context.getDatabasePath("foo").getParentFile();
-            String[] files = dbDir.list();
+            String[] files = context.databaseList();
             if (files == null) return;
 
             MediaProvider mediaProvider = getMediaProvider(context);
-            for (int i = 0; i < files.length; i++) {
-                String file = files[i];
+            for (String file : files) {
                 Optional<DatabaseHelper> helper = mediaProvider.getDatabaseHelper(file);
                 if (helper.isPresent()) {
                     long startTime = System.currentTimeMillis();

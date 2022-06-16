@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Mediji"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokalna pohrana"</string>
     <string name="app_label" msgid="9035307001052716210">"Medijska pohrana"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Izbornik fotografija"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Medij"</string>
     <string name="artist_label" msgid="8105600993099120273">"Umjetnik"</string>
     <string name="unknown" msgid="2059049215682829375">"Nepoznato"</string>
     <string name="root_images" msgid="5861633549189045666">"Slike"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Obriši"</string>
     <string name="allow" msgid="8885707816848569619">"Dozvoli"</string>
     <string name="deny" msgid="6040983710442068936">"Odbij"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Pregledajte…"</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Poništi odabir"</string>
     <string name="deselected" msgid="8488133193326208475">"Odabir poništen"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Fotografija s videom"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Isključivanje zvuka videozapisa"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Uključivanje zvuka videozapisa"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Reproduciranje videozapisa"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Pauziranje videozapisa"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Pokrenite"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Pauzirajte"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Medijski sadržaj u oblaku je sada dostupan od usluge <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nije odabrano"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izmijeni ovaj audio fajl?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajl?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajla?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajlova?}}"</string>

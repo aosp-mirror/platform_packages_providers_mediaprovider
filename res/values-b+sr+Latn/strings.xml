@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Mediji"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokalni memorijski prostor"</string>
     <string name="app_label" msgid="9035307001052716210">"Memorijski prostor za medije"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Birač slika"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Mediji"</string>
     <string name="artist_label" msgid="8105600993099120273">"Izvođač"</string>
     <string name="unknown" msgid="2059049215682829375">"Nepoznato"</string>
     <string name="root_images" msgid="5861633549189045666">"Slike"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Obriši"</string>
     <string name="allow" msgid="8885707816848569619">"Dozvoli"</string>
     <string name="deny" msgid="6040983710442068936">"Odbij"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Pregledaj…"</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Opozovi izbor"</string>
     <string name="deselected" msgid="8488133193326208475">"Opozvan je izbor"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Slika u pokretu"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Isključi zvuk videa"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Uključi zvuk videa"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Pusti video"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Pauziraj video"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Pusti"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Pauziraj"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"<xliff:g id="PKG_NAME">%1$s</xliff:g> sada nudi medijski sadržaj u klaudu"</string>
     <string name="not_selected" msgid="2244008151669896758">"nije izabrano"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Želite li da dozvolite da <xliff:g id="APP_NAME_0">^1</xliff:g> izmeni ovaj audio fajl?}one{Želite li da dozvolite da <xliff:g id="APP_NAME_1">^1</xliff:g> izmeni <xliff:g id="COUNT">^2</xliff:g> audio fajl?}few{Želite li da dozvolite da <xliff:g id="APP_NAME_1">^1</xliff:g> izmeni <xliff:g id="COUNT">^2</xliff:g> audio fajla?}other{Želite li da dozvolite da <xliff:g id="APP_NAME_1">^1</xliff:g> izmeni <xliff:g id="COUNT">^2</xliff:g> audio fajlova?}}"</string>

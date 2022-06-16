@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Media"</string>
     <string name="storage_description" msgid="4081716890357580107">"Plaaslike berging"</string>
     <string name="app_label" msgid="9035307001052716210">"Mediaberging"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Fotokieser"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Media"</string>
     <string name="artist_label" msgid="8105600993099120273">"Kunstenaar"</string>
     <string name="unknown" msgid="2059049215682829375">"Onbekend"</string>
     <string name="root_images" msgid="5861633549189045666">"Prente"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Vee uit"</string>
     <string name="allow" msgid="8885707816848569619">"Laat toe"</string>
     <string name="deny" msgid="6040983710442068936">"Weier"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Blaai …"</string>
     <string name="add" msgid="2894574044585549298">"Voeg by"</string>
     <string name="deselect" msgid="4297825044827769490">"Ontkies"</string>
     <string name="deselected" msgid="8488133193326208475">"Ontkies"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Bewegingfoto"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Demp video"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Ontdemp video"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Speel video"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Onderbreek video"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Speel"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Onderbreek"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Wolkmedia is nou deur <xliff:g id="PKG_NAME">%1$s</xliff:g> beskikbaar"</string>
     <string name="not_selected" msgid="2244008151669896758">"nie gekies nie"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie oudiolêer te wysig?}other{Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> oudiolêers te wysig?}}"</string>

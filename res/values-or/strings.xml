@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"ମିଡିଆ"</string>
     <string name="storage_description" msgid="4081716890357580107">"ଲୋକାଲ୍‍ ଷ୍ଟୋରେଜ୍‍"</string>
     <string name="app_label" msgid="9035307001052716210">"ମିଡିଆ ଷ୍ଟୋରେଜ୍"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"ଫଟୋ ପିକର"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"ମିଡିଆ"</string>
     <string name="artist_label" msgid="8105600993099120273">"କଳାକାର"</string>
     <string name="unknown" msgid="2059049215682829375">"ଅଜଣା"</string>
     <string name="root_images" msgid="5861633549189045666">"ଇମେଜ୍‌"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"ଖାଲି କରନ୍ତୁ"</string>
     <string name="allow" msgid="8885707816848569619">"ଅନୁମତି ଦିଅନ୍ତୁ"</string>
     <string name="deny" msgid="6040983710442068936">"ଅଗ୍ରାହ୍ୟ କରନ୍ତୁ"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"ବ୍ରାଉଜ କରନ୍ତୁ…"</string>
     <string name="add" msgid="2894574044585549298">"ଯୋଗ କରନ୍ତୁ"</string>
     <string name="deselect" msgid="4297825044827769490">"ଅଚୟନ କରନ୍ତୁ"</string>
     <string name="deselected" msgid="8488133193326208475">"ଅଚୟନ କରାଯାଇଛି"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"ମୋସନ ଫଟୋ"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ଭିଡିଓକୁ ମ୍ୟୁଟ କରନ୍ତୁ"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"ଭିଡିଓକୁ ଅନମ୍ୟୁଟ କରନ୍ତୁ"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"ଭିଡିଓ ଚଲାନ୍ତୁ"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"ଭିଡିଓକୁ ବିରତ କରନ୍ତୁ"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"ପ୍ଲେ କରନ୍ତୁ"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"ବିରତ କରନ୍ତୁ"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ବର୍ତ୍ତମାନ <xliff:g id="PKG_NAME">%1$s</xliff:g>ରୁ କ୍ଲାଉଡ ମିଡିଆ ଉପଲବ୍ଧ ଅଛି"</string>
     <string name="not_selected" msgid="2244008151669896758">"ଚୟନ କରାଯାଇନାହିଁ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ଏହି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}other{<xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}}"</string>

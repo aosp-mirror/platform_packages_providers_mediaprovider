@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Мултимедия"</string>
     <string name="storage_description" msgid="4081716890357580107">"Локално хранилище"</string>
     <string name="app_label" msgid="9035307001052716210">"Мултимедийно хранилище"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Инструмент за избор на снимки"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Мултимедия"</string>
     <string name="artist_label" msgid="8105600993099120273">"Изпълнител"</string>
     <string name="unknown" msgid="2059049215682829375">"Неизвестно"</string>
     <string name="root_images" msgid="5861633549189045666">"Изображения"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Изчистване"</string>
     <string name="allow" msgid="8885707816848569619">"Разрешаване"</string>
     <string name="deny" msgid="6040983710442068936">"Отказ"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Преглед…"</string>
     <string name="add" msgid="2894574044585549298">"Добавяне"</string>
     <string name="deselect" msgid="4297825044827769490">"Премахване на избора"</string>
     <string name="deselected" msgid="8488133193326208475">"Неизбрано"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Снимка с движение"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Спиране на звука на видеоклипа"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Включване на звука на видеоклипа отново"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Пускане на видеоклипа"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Поставяне на видеоклипа на пауза"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Пускане"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Пауза"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Вече е налице мултимедия в облака от <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не е избрано"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Да се разреши ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този аудиофайл?}other{Да се разреши ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> аудиофайла?}}"</string>

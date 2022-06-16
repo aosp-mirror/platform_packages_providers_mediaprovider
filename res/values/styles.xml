@@ -67,6 +67,7 @@
 
     <style name="MaterialAlertDialogTitleStyle"
            parent="@style/MaterialAlertDialog.MaterialComponents.Title.Text.CenterStacked">
+        <item name="android:textColor">?attr/pickerProfileDialogTitleColor</item>
         <item name="android:textAppearance">@style/PickerProfileDialogTitle</item>
     </style>
 
@@ -74,6 +75,7 @@
            parent="@style/MaterialAlertDialog.MaterialComponents.Body.Text">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">?attr/pickerProfileDialogBodyColor</item>
         <item name="android:textAppearance">@style/PickerProfileDialogBody</item>
     </style>
 

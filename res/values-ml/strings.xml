@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"മീഡിയ"</string>
     <string name="storage_description" msgid="4081716890357580107">"ലോക്കൽ സ്റ്റോറേജ്"</string>
     <string name="app_label" msgid="9035307001052716210">"മീഡിയ സ്റ്റോറേജ്"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"ഫോട്ടോ പിക്കർ"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"മീഡിയ"</string>
     <string name="artist_label" msgid="8105600993099120273">"ആർട്ടിസ്‌റ്റ്"</string>
     <string name="unknown" msgid="2059049215682829375">"അജ്ഞാതം"</string>
     <string name="root_images" msgid="5861633549189045666">"ചിത്രങ്ങൾ"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"മായ്ക്കുക"</string>
     <string name="allow" msgid="8885707816848569619">"അനുവദിക്കൂ"</string>
     <string name="deny" msgid="6040983710442068936">"നിരസിക്കുക"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"ബ്രൗസ് ചെയ്യുക…"</string>
     <string name="add" msgid="2894574044585549298">"ചേർക്കുക"</string>
     <string name="deselect" msgid="4297825044827769490">"തിരഞ്ഞെടുത്തത് മാറ്റുക"</string>
     <string name="deselected" msgid="8488133193326208475">"തിരഞ്ഞെടുത്തത് മാറ്റി"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"ചലിക്കുന്ന ഫോട്ടോ"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"വീഡിയോ മ്യൂട്ട് ചെയ്യുന്നു"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"വീഡിയോ അൺമ്യൂട്ട് ചെയ്യുന്നു"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"വീഡിയോ പ്ലേ ചെയ്യുക"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"വീഡിയോ താൽക്കാലികമായി നിർത്തുക"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"പ്ലേ ചെയ്യുക"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"താൽക്കാലികമായി നിർത്തുക"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ഇപ്പോൾ <xliff:g id="PKG_NAME">%1$s</xliff:g> എന്നതിൽ നിന്ന് ക്ലൗഡ് മീഡിയ ലഭ്യമാണ്"</string>
     <string name="not_selected" msgid="2244008151669896758">"തിരഞ്ഞെടുത്തിട്ടില്ല"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ഈ ഓഡിയോ ഫയൽ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}other{<xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}}"</string>

@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"মিডিয়া"</string>
     <string name="storage_description" msgid="4081716890357580107">"স্থানীয় ষ্ট’ৰেজ"</string>
     <string name="app_label" msgid="9035307001052716210">"মিডিয়া ষ্ট’ৰেজ"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"ফট’ বাছনিকৰ্তা"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"মিডিয়া"</string>
     <string name="artist_label" msgid="8105600993099120273">"শিল্পী"</string>
     <string name="unknown" msgid="2059049215682829375">"অজ্ঞাত"</string>
     <string name="root_images" msgid="5861633549189045666">"প্ৰতিচ্ছবি"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"মচক"</string>
     <string name="allow" msgid="8885707816848569619">"অনুমতি দিয়ক"</string>
     <string name="deny" msgid="6040983710442068936">"অস্বীকাৰ কৰক"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"ব্ৰাউজ কৰক…"</string>
     <string name="add" msgid="2894574044585549298">"যোগ দিয়ক"</string>
     <string name="deselect" msgid="4297825044827769490">"বাছনিৰ পৰা আঁতৰাওক"</string>
     <string name="deselected" msgid="8488133193326208475">"বাছনিৰ পৰা আঁতৰোৱা হ’ল"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"গতিশীল ফট’"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ভিডিঅ’ মিউট কৰক"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"ভিডিঅ’ আনমিউট কৰক"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"ভিডিঅ’ প্লে’ কৰক"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"ভিডিঅ’ পজ কৰক"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"প্লে’ কৰক"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"পজ কৰক"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"এতিয়া <xliff:g id="PKG_NAME">%1$s</xliff:g>ৰ পৰা ক্লাউড মিডিয়া উপলব্ধ"</string>
     <string name="not_selected" msgid="2244008151669896758">"বাছনি কৰা হোৱা নাই"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ক এই অডিঅ’ ফাইলটো সংশোধন কৰিবলৈ অনুমতি দিবনে?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰিবলৈ অনুমতি দিবনে?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰিবলৈ অনুমতি দিবনে?}}"</string>

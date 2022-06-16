@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"মিডিয়া"</string>
     <string name="storage_description" msgid="4081716890357580107">"স্থানীয় স্টোরেজ"</string>
     <string name="app_label" msgid="9035307001052716210">"মিডিয়া স্টোরেজ"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"ফটো চয়নকারি"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"মিডিয়া"</string>
     <string name="artist_label" msgid="8105600993099120273">"শিল্পী"</string>
     <string name="unknown" msgid="2059049215682829375">"অজানা"</string>
     <string name="root_images" msgid="5861633549189045666">"ছবি"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"সরান"</string>
     <string name="allow" msgid="8885707816848569619">"অনুমতি দিন"</string>
     <string name="deny" msgid="6040983710442068936">"বাতিল করুন"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"ব্রাউজ করুন…"</string>
     <string name="add" msgid="2894574044585549298">"যোগ করুন"</string>
     <string name="deselect" msgid="4297825044827769490">"টিক চিহ্নটি সরিয়ে দিন"</string>
     <string name="deselected" msgid="8488133193326208475">"টিকচিহ্ন সরিয়ে দিন"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"মোশন ফটো"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ভিডিও মিউট করুন"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"ভিডিও আনমিউট করুন"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"ভিডিও চালান"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"ভিডিও পজ করুন"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"চালান"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"পজ করুন"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ক্লাউড মিডিয়া এখন <xliff:g id="PKG_NAME">%1$s</xliff:g> থেকে উপলভ্য"</string>
     <string name="not_selected" msgid="2244008151669896758">"বেছে নেওয়া হয়নি"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>-কে এই অডিও ফাইল পরিবর্তন করার অনুমতি দিতে চান?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>-কে <xliff:g id="COUNT">^2</xliff:g>টি অডিও ফাইল পরিবর্তন করার অনুমতি দিতে চান?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>-কে <xliff:g id="COUNT">^2</xliff:g>টি অডিও ফাইল পরিবর্তন করার অনুমতি দিতে চান?}}"</string>

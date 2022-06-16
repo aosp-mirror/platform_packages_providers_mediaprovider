@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Margmiðlun"</string>
     <string name="storage_description" msgid="4081716890357580107">"Staðbundin vistun"</string>
     <string name="app_label" msgid="9035307001052716210">"Efnisgeymsla"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Myndaval"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Efni"</string>
     <string name="artist_label" msgid="8105600993099120273">"Flytjandi"</string>
     <string name="unknown" msgid="2059049215682829375">"Óþekkt"</string>
     <string name="root_images" msgid="5861633549189045666">"Myndir"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Hreinsa"</string>
     <string name="allow" msgid="8885707816848569619">"Leyfa"</string>
     <string name="deny" msgid="6040983710442068936">"Hafna"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Skoða…"</string>
     <string name="add" msgid="2894574044585549298">"Bæta við"</string>
     <string name="deselect" msgid="4297825044827769490">"Afvelja"</string>
     <string name="deselected" msgid="8488133193326208475">"Afvalið"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Lifandi mynd"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Þagga myndskeið"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Hætta að þagga myndskeið"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Spila myndskeið"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Gera hlé á spilun"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Spila"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Gera hlé"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Skýjaefni er nú í boði frá <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"ekki valið"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Leyfa <xliff:g id="APP_NAME_0">^1</xliff:g> að breyta þessari hljóðskrá?}one{Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> hljóðskrá?}other{Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> hljóðskrám?}}"</string>

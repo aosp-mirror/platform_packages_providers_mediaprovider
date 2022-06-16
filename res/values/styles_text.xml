@@ -54,13 +54,11 @@
     <style name="PickerProfileDialogTitle"
            parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
         <item name="android:textAllCaps">false</item>
-        <item name="android:textColor">?attr/pickerProfileDialogTitleColor</item>
         <item name="android:textSize">@dimen/picker_profile_dialog_title_text_size</item>
     </style>
 
     <style name="PickerProfileDialogBody" parent="@android:style/TextAppearance.Material.Body2">
         <item name="android:textAllCaps">false</item>
-        <item name="android:textColor">?attr/pickerProfileDialogBodyColor</item>
     </style>
 
 </resources>

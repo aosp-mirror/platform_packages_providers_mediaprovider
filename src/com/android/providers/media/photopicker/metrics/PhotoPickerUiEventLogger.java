@@ -27,7 +27,11 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "Photo picker opened in personal profile")
         PHOTO_PICKER_OPEN_PERSONAL_PROFILE(942),
         @UiEvent(doc = "Photo picker opened in work profile")
-        PHOTO_PICKER_OPEN_WORK_PROFILE(943);
+        PHOTO_PICKER_OPEN_WORK_PROFILE(943),
+        @UiEvent(doc = "Photo picker opened via GET_CONTENT intent")
+        PHOTO_PICKER_OPEN_GET_CONTENT(1080),
+        @UiEvent(doc = "DocumentsUi opened by clicking on Browse in Photo picker")
+        PHOTO_PICKER_BROWSE_DOCUMENTSUI(1085);
 
         private final int mId;
 
@@ -47,20 +51,42 @@ public class PhotoPickerUiEventLogger {
         logger = new MPUiEventLoggerImpl();
     }
 
-    public void logPickerOpenPersonal(InstanceId instanceId,
+    public void logPickerOpenPersonal(InstanceId instanceId, int callingUid,
             String callingPackage) {
         logger.logWithInstanceId(
                 PhotoPickerEvent.PHOTO_PICKER_OPEN_PERSONAL_PROFILE,
-                0,
+                callingUid,
                 callingPackage,
                 instanceId);
     }
 
-    public void logPickerOpenWork(InstanceId instanceId,
+    public void logPickerOpenWork(InstanceId instanceId, int callingUid,
             String callingPackage) {
         logger.logWithInstanceId(
                 PhotoPickerEvent.PHOTO_PICKER_OPEN_WORK_PROFILE,
-                0,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    public void logPickerOpenViaGetContent(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_OPEN_GET_CONTENT,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that user has clicked on "Browse..." in Photo picker overflow menu.
+     * This UI click even opens DocumentsUi.
+     */
+    public void logBrowseToDocumentsUi(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_BROWSE_DOCUMENTSUI,
+                callingUid,
                 callingPackage,
                 instanceId);
     }

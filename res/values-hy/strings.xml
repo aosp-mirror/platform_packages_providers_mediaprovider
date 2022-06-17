@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Մեդիա"</string>
     <string name="storage_description" msgid="4081716890357580107">"Սարքի հիշողություն"</string>
     <string name="app_label" msgid="9035307001052716210">"Մեդիա կրիչ"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Լուսանկարի ընտրիչ"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Մեդիա"</string>
     <string name="artist_label" msgid="8105600993099120273">"Կատարող"</string>
     <string name="unknown" msgid="2059049215682829375">"Անհայտ"</string>
     <string name="root_images" msgid="5861633549189045666">"Պատկերներ"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Ջնջել"</string>
     <string name="allow" msgid="8885707816848569619">"Թույլատրել"</string>
     <string name="deny" msgid="6040983710442068936">"Մերժել"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Դիտել…"</string>
     <string name="add" msgid="2894574044585549298">"Ավելացնել"</string>
     <string name="deselect" msgid="4297825044827769490">"Ապընտրել"</string>
     <string name="deselected" msgid="8488133193326208475">"Ապընտրված"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Շարժվող լուսանկար"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Անջատել տեսանյութի ձայնը"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Միացնել տեսանյութի ձայնը"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Նվագարկել տեսանյութը"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Դադարեցնել տեսանյութի նվագարկումը"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Նվագարկել"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Դադարեցնել"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Ամպային մեդիա բովանդակությունն այժմ հասանելի է <xliff:g id="PKG_NAME">%1$s</xliff:g> հավելվածից"</string>
     <string name="not_selected" msgid="2244008151669896758">"ընտրված չէ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Թույլատրե՞լ <xliff:g id="APP_NAME_0">^1</xliff:g> հավելվածին վերականգնել այս աուդիո ֆայլն աղբարկղից}one{Թույլատրե՞լ <xliff:g id="APP_NAME_1">^1</xliff:g> հավելվածին վերականգնել <xliff:g id="COUNT">^2</xliff:g> աուդիո ֆայլ աղբարկղից}other{Թույլատրե՞լ <xliff:g id="APP_NAME_1">^1</xliff:g> հավելվածին վերականգնել <xliff:g id="COUNT">^2</xliff:g> աուդիո ֆայլ աղբարկղից}}"</string>

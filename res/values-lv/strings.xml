@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Multivide"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokālā krātuve"</string>
     <string name="app_label" msgid="9035307001052716210">"Multivides krātuve"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Fotoattēlu paņēmējs"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Multivide"</string>
     <string name="artist_label" msgid="8105600993099120273">"Izpildītājs"</string>
     <string name="unknown" msgid="2059049215682829375">"Nezināms"</string>
     <string name="root_images" msgid="5861633549189045666">"Attēli"</string>
@@ -38,6 +38,7 @@
     <string name="clear" msgid="5524638938415865915">"Notīrīt"</string>
     <string name="allow" msgid="8885707816848569619">"Atļaut"</string>
     <string name="deny" msgid="6040983710442068936">"Neatļaut"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Pārlūkot…"</string>
     <string name="add" msgid="2894574044585549298">"Pievienot"</string>
     <string name="deselect" msgid="4297825044827769490">"Noņemt atlasi"</string>
     <string name="deselected" msgid="8488133193326208475">"Atlase noņemta"</string>
@@ -75,8 +76,8 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Kustības fotoattēls"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Izslēgt video skaņu"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Ieslēgt video skaņu"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Atskaņot videoklipu"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Apturēt videoklipa atskaņošanu"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Atskaņot"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Apturēt"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Tagad mākoņa multivides saturs ir pieejams, izmantojot lietotni <xliff:g id="PKG_NAME">%1$s</xliff:g>."</string>
     <string name="not_selected" msgid="2244008151669896758">"nav atlasīts"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vai atļaut lietotnei <xliff:g id="APP_NAME_0">^1</xliff:g> pārveidot šo audio failu?}zero{Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārveidot <xliff:g id="COUNT">^2</xliff:g> audio failus?}one{Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārveidot <xliff:g id="COUNT">^2</xliff:g> audio failu?}other{Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārveidot <xliff:g id="COUNT">^2</xliff:g> audio failus?}}"</string>

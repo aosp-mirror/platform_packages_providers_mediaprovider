@@ -23,9 +23,9 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
-import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
 
@@ -84,6 +84,9 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
         assertItemContentInAlbumList(/* position */ 1, R.string.picker_category_camera);
         // Third album is Downloads
         assertItemContentInAlbumList(/* position */ 2, R.string.picker_category_downloads);
+
+        // Verify the overflow menu is not shown for PICK_IMAGES intent
+        assertOverflowMenuNotShown();
 
         // TODO(b/200513628): Check the bitmap of the album covers
     }

@@ -17,9 +17,10 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.net.Uri;
-import android.util.Log;
 import android.view.View;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.ImageButton;
@@ -66,6 +67,11 @@ class ExoPlayerWrapper {
                     BUFFER_FOR_PLAYBACK_MS,
                     BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS).build();
     private static final long PLAYER_CONTROL_ON_PLAY_TIMEOUT_MS = 1000;
+    private static final float VOLUME_LEVEL_MUTE = 0.0f;
+    private static final AudioAttributes sAudioAttributes = new AudioAttributes.Builder()
+            .setContentType(AudioAttributes.USAGE_MEDIA)
+            .setUsage(AudioAttributes.CONTENT_TYPE_MOVIE)
+            .build();
 
     private final Context mContext;
     private final MuteStatus mMuteStatus;
@@ -73,6 +79,7 @@ class ExoPlayerWrapper {
     private boolean mIsPlayerReleased = true;
     private boolean mShouldShowControlsForNext = true;
     private boolean mIsAccessibilityEnabled = false;
+    private AudioFocusRequest mAudioFocusRequest = null;
 
     public ExoPlayerWrapper(Context context, MuteStatus muteStatus) {
         mContext = context;
@@ -130,7 +137,9 @@ class ExoPlayerWrapper {
                 new DefaultTrackSelector(mContext),
                 sLoadControl,
                 DefaultBandwidthMeter.getSingletonInstance(mContext),
-                new DefaultAnalyticsCollector(Clock.DEFAULT)).build();
+                new DefaultAnalyticsCollector(Clock.DEFAULT))
+                .setHandleAudioBecomingNoisy(true)
+                .build();
     }
 
     private void setupPlayerLayout(StyledPlayerView styledPlayerView, ImageView imageView) {
@@ -199,30 +208,51 @@ class ExoPlayerWrapper {
 
         // Step3: Set-up mute button
         final ImageButton muteButton = styledPlayerView.findViewById(R.id.preview_mute);
-        final boolean isVolumeMuted = mMuteStatus.isVolumeMuted();
-        if (isVolumeMuted) {
-            // If the previous volume was muted, set the volume status to mute.
-            mExoPlayer.setVolume(0f);
-        }
-        updateMuteButtonState(muteButton, isVolumeMuted);
+        handleAudioFocusAndInitVolumeState(muteButton);
 
         // Add click listeners for mute button
         muteButton.setOnClickListener(v -> {
-            if (mMuteStatus.isVolumeMuted()) {
-                AudioManager audioManager = mContext.getSystemService(AudioManager.class);
-                if (audioManager == null) {
-                    Log.e(TAG, "Couldn't find AudioManager while trying to set volume,"
-                            + " unable to set volume");
-                    return;
-                }
-                mExoPlayer.setVolume(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
-                mMuteStatus.setVolumeMuted(false);
-            } else {
-                mExoPlayer.setVolume(0f);
-                mMuteStatus.setVolumeMuted(true);
-            }
-            updateMuteButtonState(muteButton, mMuteStatus.isVolumeMuted());
+            mMuteStatus.setVolumeMuted(!mMuteStatus.isVolumeMuted());
+            handleAudioFocusAndInitVolumeState(muteButton);
         });
+
+        // Request or abandon audio focus on player state change.
+        mExoPlayer.addListener(new Player.Listener() {
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                if (isPlaying) {
+                    handleAudioFocusAndInitVolumeState(muteButton);
+                } else {
+                    abandonAudioFocusIfAny();
+                }
+            }
+        });
+    }
+
+    /**
+     * Requests AudioFocus if current state of the volume state is volume on. Sets the volume of
+     * the playback if the AudioFocus request is granted.
+     * Also, updates the mute button based on the state of the muteStatus.
+     */
+    private void handleAudioFocusAndInitVolumeState(ImageButton muteButton) {
+        if (mMuteStatus.isVolumeMuted()) {
+            mExoPlayer.setVolume(VOLUME_LEVEL_MUTE);
+            abandonAudioFocusIfAny();
+        } else if (requestAudioFocus() == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            mExoPlayer.setVolume(getAudioManager().getStreamVolume(AudioManager.STREAM_MUSIC));
+        }
+
+        updateMuteButtonState(muteButton, mMuteStatus.isVolumeMuted());
+    }
+
+    /**
+     * Abandons the AudioFocus request so that the previous focus owner can resume their playback
+     */
+    private void abandonAudioFocusIfAny() {
+        if (mAudioFocusRequest == null) return;
+
+        getAudioManager().abandonAudioFocusRequest(mAudioFocusRequest);
+        mAudioFocusRequest = null;
     }
 
     private void updateControllerForAccessibilty(boolean isEnabled,
@@ -252,12 +282,39 @@ class ExoPlayerWrapper {
                 isVolumeMuted ? R.drawable.ic_volume_off : R.drawable.ic_volume_up);
     }
 
+    private AudioManager getAudioManager() {
+        return mContext.getSystemService(AudioManager.class);
+    }
+
+    private int requestAudioFocus() {
+        // Always request new AudioFocus
+        abandonAudioFocusIfAny();
+
+        mAudioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                .setAudioAttributes(sAudioAttributes)
+                .setWillPauseWhenDucked(true)
+                .setAcceptsDelayedFocusGain(true)
+                .setOnAudioFocusChangeListener(focusChange -> {
+                    if (focusChange == AudioManager.AUDIOFOCUS_LOSS
+                            || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
+                            || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                        mExoPlayer.setPlayWhenReady(false);
+                    }
+                }).build();
+
+        // We don't need to reset mAudioFocusRequest to null on failure of requestAudioFocus. This
+        // is because we always reset the AudioFocus before requesting, reset mechanism will also
+        // try to abandon AudioFocus if there is any.
+        return getAudioManager().requestAudioFocus(mAudioFocusRequest);
+    }
+
     private void releaseIfNecessary() {
         // Release the player only when it's not already released. ExoPlayer doesn't crash if we try
         // to release already released player, but ExoPlayer#release() may not be a no-op, hence we
         // call release() only when it's not already released.
         if (!mIsPlayerReleased) {
             mExoPlayer.release();
+            abandonAudioFocusIfAny();
             mIsPlayerReleased = true;
         }
     }

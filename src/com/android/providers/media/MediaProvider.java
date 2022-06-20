@@ -1312,7 +1312,8 @@ public class MediaProvider extends ContentProvider {
         cleanMediaFilesForRemovedUser(signal);
 
         // Populate _SPECIAL_FORMAT column for files which have column value as NULL
-        detectSpecialFormat(signal);
+        // TODO(b/236620024): Do not update generation_modified for special_format value update
+        // detectSpecialFormat(signal);
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,

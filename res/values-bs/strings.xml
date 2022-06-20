@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Mediji"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokalna pohrana"</string>
     <string name="app_label" msgid="9035307001052716210">"Medijska pohrana"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Izbornik fotografija"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Medij"</string>
     <string name="artist_label" msgid="8105600993099120273">"Umjetnik"</string>
     <string name="unknown" msgid="2059049215682829375">"Nepoznato"</string>
     <string name="root_images" msgid="5861633549189045666">"Slike"</string>
@@ -78,7 +78,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Uključivanje zvuka videozapisa"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Pokrenite"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pauzirajte"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Medijski sadržaj u oblaku sada je dostupan iz aplikacije <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Medijski sadržaj u oblaku je sada dostupan od usluge <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nije odabrano"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izmijeni ovaj audio fajl?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajl?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajla?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajlova?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Mijenjanje audio fajla…}one{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…}few{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajla…}other{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audio fajlova…}}"</string>

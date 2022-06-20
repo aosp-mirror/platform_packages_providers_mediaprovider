@@ -16,21 +16,23 @@
 
 package com.android.providers.media.photopicker.data.glide;
 
+import static com.android.providers.media.photopicker.ui.ImageLoader.THUMBNAIL_REQUEST;
+
 import android.content.Context;
 import android.content.UriMatcher;
 import android.net.Uri;
-import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProviderContract;
 
 import com.bumptech.glide.load.Options;
 import com.bumptech.glide.load.model.ModelLoader;
-import com.bumptech.glide.load.resource.bitmap.VideoDecoder;
 import com.bumptech.glide.signature.ObjectKey;
+
+import java.io.InputStream;
 
 /**
  * Custom {@link ModelLoader} to load thumbnails from cloud media provider.
  */
-public final class PickerModelLoader implements ModelLoader<Uri, ParcelFileDescriptor> {
+public final class PickerModelLoader implements ModelLoader<Uri, InputStream> {
     private final Context mContext;
 
     PickerModelLoader(Context context) {
@@ -38,13 +40,11 @@ public final class PickerModelLoader implements ModelLoader<Uri, ParcelFileDescr
     }
 
     @Override
-    public LoadData<ParcelFileDescriptor> buildLoadData(Uri model, int width, int height,
+    public LoadData<InputStream> buildLoadData(Uri model, int width, int height,
             Options options) {
-        final Long specifiedFrame = options.get(VideoDecoder.TARGET_FRAME);
-        final boolean defaultFrame = specifiedFrame == null
-                || specifiedFrame == VideoDecoder.DEFAULT_FRAME;
+        final boolean isThumbRequest = Boolean.TRUE.equals(options.get(THUMBNAIL_REQUEST));
         return new LoadData<>(new ObjectKey(model),
-                new PickerThumbnailFetcher(mContext, model, width, height, defaultFrame));
+                new PickerThumbnailFetcher(mContext, model, width, height, isThumbRequest));
     }
 
     @Override

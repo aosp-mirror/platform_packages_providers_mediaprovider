@@ -20,18 +20,20 @@ import android.content.Context;
 import android.graphics.ImageDecoder;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.RequestOptions;
-import com.bumptech.glide.signature.ObjectKey;
-
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
+
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.Option;
+import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.signature.ObjectKey;
 
 /**
  * A class to assist with loading and managing the Images (i.e. thumbnails and preview) associated
@@ -39,6 +41,8 @@ import com.android.providers.media.photopicker.data.model.Item;
  */
 public class ImageLoader {
 
+    public static final Option<Boolean> THUMBNAIL_REQUEST =
+            Option.memory(CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB, false);
     private static final String TAG = "ImageLoader";
     private final Context mContext;
 
@@ -59,7 +63,7 @@ public class ImageLoader {
         Glide.with(mContext)
                 .asBitmap()
                 .load(category.getCoverUri())
-                .thumbnail()
+                .apply(RequestOptions.option(THUMBNAIL_REQUEST, true))
                 .into(imageView);
     }
 
@@ -78,7 +82,7 @@ public class ImageLoader {
                 .asBitmap()
                 .load(uri)
                 .signature(getGlideSignature(item, /* prefix */ ""))
-                .thumbnail()
+                .apply(RequestOptions.option(THUMBNAIL_REQUEST, true))
                 .into(imageView);
     }
 
@@ -91,6 +95,7 @@ public class ImageLoader {
     public void loadImagePreview(@NonNull Item item, @NonNull ImageView imageView)  {
         if (item.isGif()) {
             Glide.with(mContext)
+                    .asGif()
                     .load(item.getContentUri())
                     .signature(getGlideSignature(item, /* prefix */ ""))
                     .into(imageView);

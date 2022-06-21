@@ -848,15 +848,16 @@ public class MediaProvider extends ContentProvider {
 
         Optional<Long> nextRowIdBackupOptional = helper.getNextRowId();
         if (!nextRowIdBackupOptional.isPresent()) {
-            throw new RuntimeException(String.format("Cannot find next row id xattr for %s.",
-                    helper.getDatabaseName()));
+            throw new RuntimeException(
+                    String.format(Locale.ROOT, "Cannot find next row id xattr for %s.",
+                            helper.getDatabaseName()));
         }
 
         if (id >= nextRowIdBackupOptional.get()) {
             helper.backupNextRowId(id);
         } else {
-            Log.v(TAG, String.format("Inserted id:%d less than next row id backup:%d.", id,
-                    nextRowIdBackupOptional.get()));
+            Log.v(TAG, String.format(Locale.ROOT, "Inserted id:%d less than next row id backup:%d.",
+                    id, nextRowIdBackupOptional.get()));
         }
     }
 

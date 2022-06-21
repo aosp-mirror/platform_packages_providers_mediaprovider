@@ -238,6 +238,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.browse) {
+            mPickerViewModel.logBrowseToDocumentsUi(Binder.getCallingUid(), getCallingPackage());
             launchDocumentsUiAndFinishPicker();
         }
         return super.onOptionsItemSelected(item);

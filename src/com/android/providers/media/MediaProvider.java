@@ -852,15 +852,16 @@ public class MediaProvider extends ContentProvider {
 
         Optional<Long> nextRowIdBackupOptional = helper.getNextRowId();
         if (!nextRowIdBackupOptional.isPresent()) {
-            throw new RuntimeException(String.format("Cannot find next row id xattr for %s.",
-                    helper.getDatabaseName()));
+            throw new RuntimeException(
+                    String.format(Locale.ROOT, "Cannot find next row id xattr for %s.",
+                            helper.getDatabaseName()));
         }
 
         if (id >= nextRowIdBackupOptional.get()) {
             helper.backupNextRowId(id);
         } else {
-            Log.v(TAG, String.format("Inserted id:%d less than next row id backup:%d.", id,
-                    nextRowIdBackupOptional.get()));
+            Log.v(TAG, String.format(Locale.ROOT, "Inserted id:%d less than next row id backup:%d.",
+                    id, nextRowIdBackupOptional.get()));
         }
     }
 
@@ -1312,7 +1313,8 @@ public class MediaProvider extends ContentProvider {
         cleanMediaFilesForRemovedUser(signal);
 
         // Populate _SPECIAL_FORMAT column for files which have column value as NULL
-        detectSpecialFormat(signal);
+        // TODO(b/236620024): Do not update generation_modified for special_format value update
+        // detectSpecialFormat(signal);
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
@@ -7817,8 +7819,6 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isPickerUri(Uri uri) {
-        // TODO(b/188394433): move this method to PickerResolver in the spirit of not
-        // adding picker logic to MediaProvider
         final int match = matchUri(uri, /* allowHidden */ isCallingPackageAllowedHidden());
         return match == PICKER_ID;
     }

@@ -139,7 +139,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         try {
             mPickerViewModel.parseValuesFromIntent(intent);
         } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Finished activity due to an exception while parsing extras", e);
+            Log.e(TAG, "Finish activity due to an exception while parsing extras", e);
             setCancelledResultAndFinishSelf();
         }
 

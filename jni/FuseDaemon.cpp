@@ -595,7 +595,8 @@ static std::unique_ptr<mediaprovider::fuse::FileLookupResult> validate_node_path
     return file_lookup_result;
 }
 
-static node* make_node_entry(fuse_req_t req, node* parent, const string& name, const string& path,
+static node* make_node_entry(fuse_req_t req, node* parent, const string& name,
+                             const string& parent_path, const string& path,
                              struct fuse_entry_param* e, int* error_code, const FuseOp op) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
@@ -689,7 +690,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     // introduce a performance regression.
     // Currently FUSE BPF is limited to the Android/data and Android/obb
     // directories.
-    if (!fuse->bpf || !is_bpf_backing_path(path)) {
+    if (!fuse->bpf || !is_bpf_backing_path(parent_path)) {
         e->entry_timeout = get_entry_timeout(path, should_invalidate, fuse);
         e->attr_timeout = std::numeric_limits<double>::max();
     }
@@ -875,7 +876,7 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
         }
     }
 
-    auto node = make_node_entry(req, parent_node, name, child_path, e, error_code, op);
+    auto node = make_node_entry(req, parent_node, name, parent_path, child_path, e, error_code, op);
 
     if (fuse->bpf && op == FuseOp::lookup) fuse_bpf_install(fuse, e, child_path, *backing_fd);
 
@@ -1113,7 +1114,8 @@ static void pf_mknod(fuse_req_t req,
 
     int error_code = 0;
     struct fuse_entry_param e;
-    if (make_node_entry(req, parent_node, name, child_path, &e, &error_code, FuseOp::mknod)) {
+    if (make_node_entry(req, parent_node, name, parent_path, child_path, &e, &error_code,
+                        FuseOp::mknod)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
@@ -1157,7 +1159,8 @@ static void pf_mkdir(fuse_req_t req,
 
     int error_code = 0;
     struct fuse_entry_param e;
-    if (make_node_entry(req, parent_node, name, child_path, &e, &error_code, FuseOp::mkdir)) {
+    if (make_node_entry(req, parent_node, name, parent_path, child_path, &e, &error_code,
+                        FuseOp::mkdir)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
@@ -2061,8 +2064,8 @@ static void pf_create(fuse_req_t req,
 
     int error_code = 0;
     struct fuse_entry_param e;
-    node* node =
-            make_node_entry(req, parent_node, name, child_path, &e, &error_code, FuseOp::create);
+    node* node = make_node_entry(req, parent_node, name, parent_path, child_path, &e, &error_code,
+                                 FuseOp::create);
     TRACE_NODE(node, req);
     if (!node) {
         CHECK(error_code != 0);

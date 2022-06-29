@@ -239,6 +239,11 @@ public final class MediaStore {
     /** {@hide} */
     public static final String EXTRA_IS_SYSTEM_GALLERY_RESPONSE = "is_system_gallery_response";
 
+    /** {@hide} */
+    public static final String USES_FUSE_PASSTHROUGH = "uses_fuse_passthrough";
+    /** {@hide} */
+    public static final String USES_FUSE_PASSTHROUGH_RESULT = "uses_fuse_passthrough_result";
+
     /**
      * This is for internal use by the media scanner only.
      * Name of the (optional) Uri parameter that determines whether to skip deleting

@@ -42,7 +42,7 @@
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"తాత్కాలిక యాప్ ఫైళ్లను క్లియర్ చేస్తోంది…"</string>
     <string name="clear" msgid="5524638938415865915">"క్లియర్ చేయండి"</string>
     <string name="allow" msgid="8885707816848569619">"అనుమతించండి"</string>
-    <string name="deny" msgid="6040983710442068936">"నిరాకరించు"</string>
+    <string name="deny" msgid="6040983710442068936">"నిరాకరించండి"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
       <item quantity="one">ఈ ఆడియో ఫైల్‌ను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
@@ -177,6 +177,6 @@
     <string name="transcode_processing_success" msgid="447288876429730122">"మీడియా ప్రాసెసింగ్ విజయవంతమైంది"</string>
     <string name="transcode_processing_started" msgid="7789086308155361523">"మీడియా ప్రాసెసింగ్ ప్రారంభమైంది"</string>
     <string name="transcode_processing" msgid="6753136468864077258">"మీడియాను ప్రాసెస్ చేస్తోంది…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"రద్దు చేయి"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"రద్దు చేయండి"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"వేచి ఉండు"</string>
 </resources>

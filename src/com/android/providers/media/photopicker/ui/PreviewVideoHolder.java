@@ -17,35 +17,82 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.model.Item;
+
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
 
 /**
  * ViewHolder of a video item within the {@link ViewPager2}
  */
 public class PreviewVideoHolder extends BaseViewHolder {
 
-    private SurfaceView mSurfaceView;
+    private final ImageLoader mImageLoader;
+    private final ImageView mImageView;
+    private final SurfaceView mSurfaceView;
+    private final AspectRatioFrameLayout mPlayerFrame;
+    private final View mPlayerContainer;
+    private final View mPlayerControlsRoot;
+    private final ImageButton mPlayPauseButton;
+    private final ImageButton mMuteButton;
 
-    public PreviewVideoHolder(Context context, ViewGroup parent, boolean enabledCloudMediaPreview) {
-        super(context, parent, enabledCloudMediaPreview ? R.layout.item_cloud_video_preview
-                : R.layout.item_video_preview);
-        if (enabledCloudMediaPreview) {
-            mSurfaceView = itemView.findViewById(R.id.preview_player_view);
-        }
+    PreviewVideoHolder(Context context, ViewGroup parent, ImageLoader imageLoader) {
+        super(context, parent, R.layout.item_video_preview);
+
+        mImageLoader = imageLoader;
+        mImageView = itemView.findViewById(R.id.preview_video_image);
+        mSurfaceView = itemView.findViewById(R.id.preview_player_view);
+        mPlayerFrame = itemView.findViewById(R.id.preview_player_frame);
+        mPlayerContainer = itemView.findViewById(R.id.preview_player_container);
+        mPlayerControlsRoot = itemView.findViewById(R.id.preview_player_controls);
+        mPlayPauseButton = itemView.findViewById(R.id.exo_play_pause);
+        mMuteButton = itemView.findViewById(R.id.preview_mute);
     }
 
     @Override
     public void bind() {
         // Video playback needs granular page state events and hence video playback is initiated by
-        // ViewPagerWrapper and handled by PlaybackHandler#handleVideoPlayback
+        // ViewPagerWrapper and handled by PlaybackHandler#handleVideoPlayback.
+        // Here, we set the ImageView with thumbnail from the video, to improve the
+        // user experience while video player is not yet initialized or being prepared.
+        final Item item = (Item) itemView.getTag();
+        mImageLoader.loadImageFromVideoForPreview(item, mImageView);
     }
 
-    public SurfaceView getSurfaceView() {
-        return mSurfaceView;
+    public ImageView getThumbnailView() {
+        return mImageView;
+    }
+
+    public SurfaceHolder getSurfaceHolder() {
+        return mSurfaceView.getHolder();
+    }
+
+    public AspectRatioFrameLayout getPlayerFrame() {
+        return mPlayerFrame;
+    }
+
+    public View getPlayerContainer() {
+        return mPlayerContainer;
+    }
+
+    public View getPlayerControlsRoot() {
+        return mPlayerControlsRoot;
+    }
+
+    public ImageButton getPlayPauseButton() {
+        return mPlayPauseButton;
+    }
+
+    public ImageButton getMuteButton() {
+        return mMuteButton;
     }
 }

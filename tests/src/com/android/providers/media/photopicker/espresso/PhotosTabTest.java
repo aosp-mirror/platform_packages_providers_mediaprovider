@@ -27,6 +27,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotDisplayed;
@@ -41,7 +42,6 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,7 +58,6 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
             = new ActivityScenarioRule<>(PhotoPickerBaseTest.getSingleSelectionIntent());
 
     @Test
-    @Ignore("Enable after b/218806007 is fixed")
     public void testPhotoGridLayout_photoGrid() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -75,7 +74,6 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    @Ignore("Enable after b/218806007 is fixed")
     public void testPhotoGridLayout_image() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -91,7 +89,6 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    @Ignore("Enable after b/218806007 is fixed")
     public void testPhotoGridLayout_video() {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
@@ -131,6 +128,9 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         // Verify that tab tabs are not shown on the toolbar
         onView(withId(TAB_LAYOUT_ID)).check(matches(not(isDisplayed())));
 
+        // Verify the overflow menu is not shown for PICK_IMAGES intent
+        assertOverflowMenuNotShown();
+
         // Verify that privacy text is not shown
         onView(withId(PRIVACY_TEXT_ID)).check(matches(not(isDisplayed())));
 
@@ -148,8 +148,8 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         // Verify that first item is TODAY
         onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
                 .atPositionOnView(0, dateHeaderTitleId))
-                .check(matches(
-                        withText(DateTimeUtils.getDateTimeString(System.currentTimeMillis()))));
+                .check(matches(withText(
+                        DateTimeUtils.getDateHeaderString(System.currentTimeMillis()))));
 
         final int photoItemPosition = 1;
         // Verify first item is image and has no other icons other than thumbnail

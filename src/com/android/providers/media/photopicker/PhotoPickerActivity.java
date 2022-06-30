@@ -16,14 +16,18 @@
 
 package com.android.providers.media.photopicker;
 
+import static android.content.Intent.ACTION_GET_CONTENT;
+
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -31,17 +35,19 @@ import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
-import android.os.SystemProperties;
 import android.os.UserHandle;
-import android.provider.DeviceConfig;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewOutlineProvider;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityManager;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
@@ -51,13 +57,13 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.TabContainerFragment;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
+import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -74,6 +80,8 @@ import java.util.List;
 public class PhotoPickerActivity extends AppCompatActivity {
     private static final String TAG =  "PhotoPickerActivity";
     private static final float BOTTOM_SHEET_PEEK_HEIGHT_PERCENTAGE = 0.60f;
+    private static final float HIDE_PROFILE_BUTTON_THRESHOLD = -0.5f;
+    private static final String LOGGER_INSTANCE_ID_ARG = "loggerInstanceIdArg";
 
     private PickerViewModel mPickerViewModel;
     private Selection mSelection;
@@ -95,19 +103,21 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private int mToolBarIconColor;
 
     private int mToolbarHeight = 0;
+    private boolean mIsAccessibilityEnabled;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // This is required as GET_CONTENT with type "*/*" is also received by PhotoPicker due
+        // to higher priority than DocumentsUi. "*/*" mime type filter is caught as it is a superset
+        // of "image/*" and "video/*".
+        rerouteGetContentRequestIfRequired();
+
         // We use the device default theme as the base theme. Apply the material them for the
         // material components. We use force "false" here, only values that are not already defined
         // in the base theme will be copied.
         getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
 
         super.onCreate(savedInstanceState);
-
-        if (!isPhotoPickerEnabled()) {
-            setCancelledResultAndFinishSelf();
-        }
 
         setContentView(R.layout.activity_photo_picker);
 
@@ -126,10 +136,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mPickerViewModel = createViewModel();
         mSelection = mPickerViewModel.getSelection();
 
+        final Intent intent = getIntent();
         try {
-            mPickerViewModel.parseValuesFromIntent(getIntent());
+            mPickerViewModel.parseValuesFromIntent(intent);
         } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Finished activity due to an exception while parsing extras", e);
+            Log.e(TAG, "Finish activity due to an exception while parsing extras", e);
             setCancelledResultAndFinishSelf();
         }
 
@@ -139,8 +150,18 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mProfileButton = findViewById(R.id.profile_button);
 
         mTabLayout = findViewById(R.id.tab_layout);
+
+        AccessibilityManager accessibilityManager = getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
+        accessibilityManager.addAccessibilityStateChangeListener(
+                enabled -> mIsAccessibilityEnabled = enabled);
+
         initBottomSheetBehavior();
         restoreState(savedInstanceState);
+
+        String intentAction = intent != null ? intent.getAction() : null;
+        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
+        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
@@ -154,44 +175,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         super.onDestroy();
         // This is required to unregister any broadcast receivers.
         mCrossProfileListeners.onDestroy();
-    }
-
-    /**
-     * TODO(b/205291616) Remove this before launch. This is a temporary method to hide the API
-     * until we are ready to launch it.
-     */
-    @VisibleForTesting
-    public boolean isPhotoPickerEnabled() {
-        // Always enabled on T+
-        if (SdkLevel.isAtLeastT()) {
-            return true;
-        }
-
-        // If the system property is enabled, then picker is enabled
-        boolean isSysPropertyEnabled =
-                SystemProperties.getBoolean(
-                        "persist.sys.storage_picker_enabled" /* key */,
-                        false /* def */);
-        if (isSysPropertyEnabled) {
-            return true;
-        }
-
-        // If build is < S, then picker is disabled since we cannot check device config
-        if (!SdkLevel.isAtLeastS()) {
-            // We cannot read device config on R
-            return false;
-        }
-
-        // If the device config is enabled, then picker is enabled
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getBoolean(
-                    DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                    "picker_intent_enabled",
-                    false /* defaultValue */ );
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
     }
 
     /**
@@ -241,11 +224,85 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void onSaveInstanceState(Bundle state) {
         super.onSaveInstanceState(state);
         saveBottomSheetState();
+        state.putParcelable(LOGGER_INSTANCE_ID_ARG, mPickerViewModel.getInstanceId());
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(@NonNull Menu menu) {
+        if (ACTION_GET_CONTENT.equals(getIntent().getAction())) {
+            getMenuInflater().inflate(R.menu.picker_overflow_menu, menu);
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.browse) {
+            mPickerViewModel.logBrowseToDocumentsUi(Binder.getCallingUid(), getCallingPackage());
+            launchDocumentsUiAndFinishPicker();
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void rerouteGetContentRequestIfRequired() {
+        final Intent intent = getIntent();
+        if (!ACTION_GET_CONTENT.equals(intent.getAction())) {
+            return;
+        }
+
+        // TODO(b/232775643): Workaround to support PhotoPicker invoked from DocumentsUi.
+        // GET_CONTENT for all (media and non-media) files opens DocumentsUi, but it still shows
+        // "Photo Picker app option. When the user clicks on "Photo Picker", the same intent which
+        // includes filters to show non-media files as well is forwarded to PhotoPicker.
+        // Make sure Photo Picker is opened when the intent is explicitly forwarded by documentsUi
+        if (isIntentReferredByDocumentsUi(getReferrer())) {
+            Log.i(TAG, "Open PhotoPicker when a forwarded ACTION_GET_CONTENT intent is received");
+            return;
+        }
+
+        if (MimeFilterUtils.requiresUnsupportedFilters(intent)) {
+            launchDocumentsUiAndFinishPicker();
+        }
+    }
+
+    private boolean isIntentReferredByDocumentsUi(Uri referrerAppUri) {
+        ComponentName documentsUiComponentName = getDocumentsUiComponentName(this);
+        String documentsUiPackageName = documentsUiComponentName != null
+                ? documentsUiComponentName.getPackageName() : null;
+        return referrerAppUri != null && referrerAppUri.getHost().equals(documentsUiPackageName);
+    }
+
+    private void launchDocumentsUiAndFinishPicker() {
+        Log.i(TAG, "Launch DocumentsUI and finish picker");
+
+        startActivityAsUser(getDocumentsUiForwardingIntent(this, getIntent()),
+                UserId.CURRENT_USER.getUserHandle());
+        finish();
+    }
+
+    @VisibleForTesting
+    static Intent getDocumentsUiForwardingIntent(Context context, Intent intent) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+        intent.addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP);
+        intent.setComponent(getDocumentsUiComponentName(context));
+        return intent;
+    }
+
+    private static ComponentName getDocumentsUiComponentName(Context context) {
+        final PackageManager pm = context.getPackageManager();
+        // DocumentsUI is the default handler for ACTION_OPEN_DOCUMENT
+        final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        return intent.resolveActivity(pm);
     }
 
     private void restoreState(Bundle savedInstanceState) {
         if (savedInstanceState != null) {
             restoreBottomSheetState();
+            mPickerViewModel.setInstanceId(
+                    savedInstanceState.getParcelable(LOGGER_INSTANCE_ID_ARG));
         } else {
             setupInitialLaunchState();
         }
@@ -272,6 +329,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private BottomSheetCallback createBottomSheetCallBack() {
         return new BottomSheetCallback() {
+            private boolean mIsHiddenDueToBottomSheetClosing = false;
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
@@ -282,6 +340,25 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                // slideOffset = -1 is when bottomsheet is completely hidden
+                // slideOffset = 0 is when bottomsheet is in collapsed mode
+                // slideOffset = 1 is when bottomsheet is in expanded mode
+                // We hide the Profile button if the bottomsheet is 50% in between collapsed state
+                // and hidden state.
+                if (slideOffset < HIDE_PROFILE_BUTTON_THRESHOLD &&
+                        mProfileButton.getVisibility() == View.VISIBLE) {
+                    mProfileButton.setVisibility(View.GONE);
+                    mIsHiddenDueToBottomSheetClosing = true;
+                    return;
+                }
+
+                // We need to handle this state if the user is swiping till the bottom of the
+                // screen but then swipes up bottom sheet suddenly
+                if (slideOffset > HIDE_PROFILE_BUTTON_THRESHOLD &&
+                        mIsHiddenDueToBottomSheetClosing) {
+                    mProfileButton.setVisibility(View.VISIBLE);
+                    mIsHiddenDueToBottomSheetClosing = false;
+                }
             }
         };
     }
@@ -300,7 +377,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void initStateForBottomSheet() {
-        if (!mSelection.canSelectMultiple() && !isOrientationLandscape()) {
+        if (!mIsAccessibilityEnabled && !mSelection.canSelectMultiple()
+                && !isOrientationLandscape()) {
             final int peekHeight = getBottomSheetPeekHeight(this);
             mBottomSheetBehavior.setPeekHeight(peekHeight);
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
@@ -420,6 +498,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
             icon.setTint(isPreview ? Color.WHITE : mToolBarIconColor);
         }
         getSupportActionBar().setHomeAsUpIndicator(icon);
+        getSupportActionBar().setHomeActionContentDescription(
+                shouldShowTabLayout ? android.R.string.cancel
+                        : R.string.abc_action_bar_up_description);
+        if (mToolbar.getOverflowIcon() != null) {
+            mToolbar.getOverflowIcon().setTint(isPreview ? Color.WHITE : mToolBarIconColor);
+        }
     }
 
     /**

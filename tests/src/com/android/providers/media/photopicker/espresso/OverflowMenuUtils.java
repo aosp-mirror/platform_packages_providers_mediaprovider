@@ -14,14 +14,20 @@
  * limitations under the License.
  */
 
-package android.provider;
+package com.android.providers.media.photopicker.espresso;
 
-import android.os.Bundle;
+import static androidx.test.espresso.Espresso.openActionBarOverflowOrOptionsMenu;
 
-/**
- * Interface through which Photo Picker receives playback events from the CloudMediaProviders
- * @hide
- */
-interface ICloudSurfaceEventCallback {
-    void onPlaybackEvent(int surfaceId, int eventType, in Bundle eventInfo);
+import static org.junit.Assert.fail;
+
+public class OverflowMenuUtils {
+
+    public static void assertOverflowMenuNotShown() {
+        try {
+            openActionBarOverflowOrOptionsMenu(PhotoPickerBaseTest.getIsolatedContext());
+            fail("Overflow menu is only visible with GET_CONTENT intent");
+        } catch (Exception e) {
+            // This is normal as we don't have overflow menu.
+        }
+    }
 }

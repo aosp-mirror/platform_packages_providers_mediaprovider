@@ -16,7 +16,6 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
 import android.content.res.AssetFileDescriptor;
@@ -37,7 +36,7 @@ import java.io.FileNotFoundException;
  * {@link MediaGenerator}
  */
 public class LocalProvider extends CloudMediaProvider {
-    private static final String AUTHORITY = "com.android.providers.media.photopicker.tests.local";
+    public static final String AUTHORITY = "com.android.providers.media.photopicker.tests.local";
 
     private final MediaGenerator mMediaGenerator =
             PickerProviderMediaGenerator.getMediaGenerator(AUTHORITY);
@@ -53,7 +52,7 @@ public class LocalProvider extends CloudMediaProvider {
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
         return mMediaGenerator.getMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
-                queryExtras.getMimeType(), queryExtras.getSizeBytes());
+                queryExtras.getMimeTypes(), queryExtras.getSizeBytes());
     }
 
     @Override
@@ -69,7 +68,7 @@ public class LocalProvider extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        return mMediaGenerator.getAlbums(queryExtras.getMimeType(), queryExtras.getSizeBytes(),
+        return mMediaGenerator.getAlbums(queryExtras.getMimeTypes(), queryExtras.getSizeBytes(),
                 /* isLocal */ true);
     }
 

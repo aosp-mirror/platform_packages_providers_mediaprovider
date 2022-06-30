@@ -22,6 +22,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.GuardedBy;
+import com.android.providers.media.FdAccessResult;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.util.FileUtils;
 
@@ -167,6 +168,21 @@ public final class FuseDaemon extends Thread {
     }
 
     /**
+     * Checks if the FuseDaemon uses the FUSE passthrough feature.
+     *
+     * @return {@code true} if the FuseDaemon uses FUSE passthrough, {@code false} otherwise
+     */
+    public boolean usesFusePassthrough() {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                Log.i(TAG, "usesFusePassthrough failed, FUSE daemon unavailable");
+                return false;
+            }
+            return native_uses_fuse_passthrough(mPtr);
+        }
+    }
+
+    /**
      * Invalidates FUSE VFS dentry cache for {@code path}
      */
     public void invalidateFuseDentryCache(String path) {
@@ -179,13 +195,13 @@ public final class FuseDaemon extends Thread {
         }
     }
 
-    public String getOriginalMediaFormatFilePath(ParcelFileDescriptor fileDescriptor)
+    public FdAccessResult checkFdAccess(ParcelFileDescriptor fileDescriptor, int uid)
             throws IOException {
         synchronized (mLock) {
             if (mPtr == 0) {
                 throw new IOException("FUSE daemon unavailable");
             }
-            return native_get_original_media_format_file_path(mPtr, fileDescriptor.getFd());
+            return native_check_fd_access(mPtr, fileDescriptor.getFd(), uid);
         }
     }
 
@@ -199,9 +215,10 @@ public final class FuseDaemon extends Thread {
     private native void native_delete(long daemon);
     private native boolean native_should_open_with_fuse(long daemon, String path, boolean readLock,
             int fd);
+    private native boolean native_uses_fuse_passthrough(long daemon);
     private native void native_invalidate_fuse_dentry_cache(long daemon, String path);
     private native boolean native_is_started(long daemon);
-    private native String native_get_original_media_format_file_path(long daemon, int fd);
+    private native FdAccessResult native_check_fd_access(long daemon, int fd, int uid);
     private native void native_initialize_device_id(long daemon, String path);
     public static native boolean native_is_fuse_thread();
 }

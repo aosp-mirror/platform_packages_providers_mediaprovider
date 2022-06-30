@@ -23,8 +23,46 @@ android_test_helper_app {
 }
 
 android_test_helper_app {
+    name: "MediaProviderTestAppForPermissionActivity33",
+    manifest: "test_app/TestAppForPermissionActivity33.xml",
+    srcs: [
+        "test_app/src/**/*.java",
+        "src/com/android/providers/media/util/TestUtils.java",
+    ],
+    static_libs: [
+        "cts-install-lib",
+    ],
+    sdk_version: "test_current",
+    target_sdk_version: "33",
+    min_sdk_version: "30",
+    test_suites: [
+        "general-tests",
+        "mts-mediaprovider",
+    ],
+}
+
+android_test_helper_app {
     name: "MediaProviderTestAppWithStoragePerms",
     manifest: "test_app/TestAppWithStoragePerms.xml",
+    srcs: [
+        "test_app/src/**/*.java",
+        "src/com/android/providers/media/util/TestUtils.java",
+    ],
+    static_libs: [
+        "cts-install-lib",
+    ],
+    sdk_version: "test_current",
+    target_sdk_version: "30",
+    min_sdk_version: "30",
+    test_suites: [
+        "general-tests",
+        "mts-mediaprovider",
+    ],
+}
+
+android_test_helper_app {
+    name: "MediaProviderTestAppWithMediaPerms",
+    manifest: "test_app/TestAppWithMediaPerms.xml",
     srcs: [
         "test_app/src/**/*.java",
         "src/com/android/providers/media/util/TestUtils.java",
@@ -136,7 +174,7 @@ android_test {
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
-        "exoplayer2.15.1"
+        "exoplayer-mediaprovider-ui",
     ],
 
     certificate: "media",
@@ -152,8 +190,10 @@ android_test {
 
     java_resources: [
         ":MediaProviderTestAppWithStoragePerms",
+        ":MediaProviderTestAppWithMediaPerms",
         ":MediaProviderTestAppWithoutPerms",
         ":MediaProviderTestAppForPermissionActivity",
+        ":MediaProviderTestAppForPermissionActivity33",
         ":LegacyMediaProviderTestApp",
     ],
 

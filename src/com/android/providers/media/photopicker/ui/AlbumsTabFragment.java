@@ -38,18 +38,16 @@ public class AlbumsTabFragment extends TabFragment {
 
     private static final int MINIMUM_SPAN_COUNT = 2;
 
-    private int mBottomBarGap;
-
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-        mBottomBarGap = getResources().getDimensionPixelSize(R.dimen.picker_album_bottom_bar_gap);
+        // Set the pane title for A11y.
+        view.setAccessibilityPaneTitle(getString(R.string.picker_albums));
 
         setEmptyMessage(R.string.picker_albums_empty_message);
 
         final AlbumsTabAdapter adapter = new AlbumsTabAdapter(mImageLoader, this::onItemClick,
-                mPickerViewModel.hasMimeTypeFilter());
+                mPickerViewModel.hasMimeTypeFilters());
         mPickerViewModel.getCategories().observe(this, categoryList -> {
             adapter.updateCategoryList(categoryList);
             // Handle emptyView's visibility
@@ -79,11 +77,6 @@ public class AlbumsTabFragment extends TabFragment {
     private void onItemClick(@NonNull View view) {
         final Category category = (Category) view.getTag();
         PhotosTabFragment.show(getActivity().getSupportFragmentManager(), category);
-    }
-
-    @Override
-    protected int getBottomGapForRecyclerView(int bottomBarSize) {
-        return bottomBarSize + mBottomBarGap;
     }
 
     /**

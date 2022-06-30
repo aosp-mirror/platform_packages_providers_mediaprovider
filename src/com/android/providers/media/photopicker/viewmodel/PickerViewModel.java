@@ -16,8 +16,7 @@
 
 package com.android.providers.media.photopicker.viewmodel;
 
-import static com.android.providers.media.util.MimeUtils.isImageMimeType;
-import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
+import static android.content.Intent.ACTION_GET_CONTENT;
 
 import android.app.Application;
 import android.content.Context;
@@ -27,21 +26,23 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.android.internal.logging.InstanceId;
+import com.android.internal.logging.InstanceIdSequence;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Category.CategoryType;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
+import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.util.ForegroundThread;
 
 import java.util.ArrayList;
@@ -54,6 +55,8 @@ public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
 
     private static final int RECENT_MINIMUM_COUNT = 12;
+
+    private static final int INSTANCE_ID_MAX = 1 << 15;
 
     private final Selection mSelection;
     private final MuteStatus mMuteStatus;
@@ -70,8 +73,13 @@ public class PickerViewModel extends AndroidViewModel {
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
 
-    private String mMimeTypeFilter = null;
+    private InstanceId mInstanceId;
+    private PhotoPickerUiEventLogger mLogger;
+
+    private String[] mMimeTypeFilters = null;
     private int mBottomSheetState;
+
+    private Category mCurrentCategory;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -80,6 +88,8 @@ public class PickerViewModel extends AndroidViewModel {
         mSelection = new Selection();
         mUserIdManager = UserIdManager.create(context);
         mMuteStatus = new MuteStatus();
+        mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
+        mLogger = new PhotoPickerUiEventLogger();
     }
 
     @VisibleForTesting
@@ -137,11 +147,11 @@ public class PickerViewModel extends AndroidViewModel {
         return mItemList;
     }
 
-    private List<Item> loadItems(@Nullable @CategoryType String category, UserId userId) {
+    private List<Item> loadItems(Category category, UserId userId) {
         final List<Item> items = new ArrayList<>();
 
         try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
-                /* limit */ -1, mMimeTypeFilter, userId)) {
+                /* limit */ -1, mMimeTypeFilters, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any items for " + category
                         + ", either cursor is null or cursor count is zero");
@@ -151,7 +161,7 @@ public class PickerViewModel extends AndroidViewModel {
             // We only add the RECENT header on the PhotosTabFragment with CATEGORY_DEFAULT. In this
             // case, we call this method {loadItems} with null category. When the category is not
             // empty, we don't show the RECENT header.
-            final boolean showRecent = TextUtils.isEmpty(category);
+            final boolean showRecent = category.isDefault();
 
             int recentSize = 0;
             long currentDateTaken = 0;
@@ -181,19 +191,15 @@ public class PickerViewModel extends AndroidViewModel {
             }
         }
 
-        if (TextUtils.isEmpty(category)) {
-            Log.d(TAG, "Loaded " + items.size() + " items for user " + userId.toString());
-        } else {
-            Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
-                    + userId.toString());
-        }
+        Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
+                + userId.toString());
         return items;
     }
 
     private void loadItemsAsync() {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mItemList.postValue(loadItems(/* category= */ null, userId));
+                    mItemList.postValue(loadItems(Category.DEFAULT, userId));
         });
     }
 
@@ -210,30 +216,44 @@ public class PickerViewModel extends AndroidViewModel {
     /**
      * Get the list of all photos and videos with the specific {@code category} on the device.
      *
+     * In our use case, we only keep the list of current category {@link #mCurrentCategory} in
+     * {@link #mCategoryItemList}. If the {@code category} and {@link #mCurrentCategory} are
+     * different, we will create the new LiveData to {@link #mCategoryItemList}.
+     *
      * @param category the category we want to be queried
      * @return the list of all photos and videos with the specific {@code category}
      *         {@link #mCategoryItemList}
      */
-    public LiveData<List<Item>> getCategoryItems(@NonNull @CategoryType String category) {
-        updateCategoryItems(category);
+    public LiveData<List<Item>> getCategoryItems(@NonNull Category category) {
+        if (mCategoryItemList == null || !TextUtils.equals(mCurrentCategory.getId(),
+                category.getId())) {
+            mCategoryItemList = new MutableLiveData<>();
+            mCurrentCategory = category;
+        }
+        updateCategoryItems();
         return mCategoryItemList;
     }
 
-    private void loadCategoryItemsAsync(@NonNull @CategoryType String category) {
+    private void loadCategoryItemsAsync() {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mCategoryItemList.postValue(loadItems(category, userId));
+            mCategoryItemList.postValue(loadItems(mCurrentCategory, userId));
         });
     }
 
     /**
-     * Update the item List with the {@code category} {@link #mCategoryItemList}
+     * Update the item List with the {@link #mCurrentCategory} {@link #mCategoryItemList}
+     *
+     * @throws IllegalStateException category and category items is not initiated before calling
+     *     this method
      */
-    public void updateCategoryItems(@NonNull @CategoryType String category) {
-        if (mCategoryItemList == null) {
-            mCategoryItemList = new MutableLiveData<>();
+    @VisibleForTesting
+    public void updateCategoryItems() {
+        if (mCategoryItemList == null || mCurrentCategory == null) {
+            throw new IllegalStateException("mCurrentCategory and mCategoryItemList are not"
+                    + " initiated. Please call getCategoryItems before calling this method");
         }
-        loadCategoryItemsAsync(category);
+        loadCategoryItemsAsync();
     }
 
     /**
@@ -248,7 +268,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
-        try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId)) {
+        try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilters, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
                         + " cursor count is zero");
@@ -284,10 +304,10 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Return whether the {@link #mMimeTypeFilter} is {@code null} or not
+     * Return whether the {@link #mMimeTypeFilters} is {@code null} or not
      */
-    public boolean hasMimeTypeFilter() {
-        return !TextUtils.isEmpty(mMimeTypeFilter);
+    public boolean hasMimeTypeFilters() {
+        return mMimeTypeFilters != null && mMimeTypeFilters.length > 0;
     }
 
     /**
@@ -296,16 +316,9 @@ public class PickerViewModel extends AndroidViewModel {
     public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
         mUserIdManager.setIntentAndCheckRestrictions(intent);
 
-        final String mimeType = intent.getType();
-        if (isMimeTypeMedia(mimeType)) {
-            mMimeTypeFilter = mimeType;
-        }
+        mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
 
         mSelection.parseSelectionValuesFromIntent(intent);
-    }
-
-    private static boolean isMimeTypeMedia(@Nullable String mimeType) {
-        return isImageMimeType(mimeType) || isVideoMimeType(mimeType);
     }
 
     /**
@@ -320,5 +333,35 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public int getBottomSheetState() {
         return mBottomSheetState;
+    }
+
+    public void logPickerOpened(int callingUid, String callingPackage, String intentAction) {
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerOpenWork(mInstanceId, callingUid, callingPackage);
+        } else {
+            mLogger.logPickerOpenPersonal(mInstanceId, callingUid, callingPackage);
+        }
+
+        // TODO(b/235326735): Optimise logging multiple times on picker opened
+        // TODO(b/235326736): Check if we should add a metric for PICK_IMAGES intent to simplify
+        // metrics reading
+        if (ACTION_GET_CONTENT.equals(intentAction)) {
+            mLogger.logPickerOpenViaGetContent(mInstanceId, callingUid, callingPackage);
+        }
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked Browse to open DocumentsUi
+     */
+    public void logBrowseToDocumentsUi(int callingUid, String callingPackage) {
+        mLogger.logBrowseToDocumentsUi(mInstanceId, callingUid, callingPackage);
+    }
+
+    public InstanceId getInstanceId() {
+        return mInstanceId;
+    }
+
+    public void setInstanceId(InstanceId parcelable) {
+        mInstanceId = parcelable;
     }
 }

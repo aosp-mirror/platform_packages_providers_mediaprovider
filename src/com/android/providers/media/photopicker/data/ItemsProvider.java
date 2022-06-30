@@ -28,7 +28,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.os.UserHandle;
-import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
@@ -36,8 +35,6 @@ import android.util.Log;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Category.CategoryColumns;
-import com.android.providers.media.photopicker.data.model.Item.ItemColumns;
 import com.android.providers.media.photopicker.data.model.UserId;
 
 /**
@@ -55,14 +52,13 @@ public class ItemsProvider {
 
     /**
      * Returns a {@link Cursor} to all images/videos based on the param passed for
-     * {@code categoryType}, {@code offset}, {@code limit}, {@code mimeType} and {@code userId}.
+     * {@code categoryType}, {@code offset}, {@code limit}, {@code mimeTypes} and {@code userId}.
      *
      * <p>
      * By default the returned {@link Cursor} sorts by latest date taken.
      *
-     * @param category the category of items to return, {@link Category.CategoryType} are supported.
-     *                 {@code null} defaults to {@link Category#CATEGORY_DEFAULT} which returns
-     *                 items from all categories.
+     * @param category the category of items to return. May be cloud, local or merged albums like
+     * favorites or videos.
      * @param offset the offset after which to return items.
      * @param limit the limit of number of items to return.
      * @param mimeType the mime type of item. {@code null} returns all images/videos that are
@@ -73,24 +69,16 @@ public class ItemsProvider {
      * @return {@link Cursor} to images/videos on external storage that are scanned by
      * {@link MediaStore}. The returned cursor is filtered based on params passed, it {@code null}
      * if there are no such images/videos. The Cursor for each item contains {@link ItemColumns}
-     *
-     * @throws IllegalArgumentException thrown if unsupported values for {@code category} is passed.
-     *
      */
     @Nullable
-    public Cursor getItems(@Nullable @Category.CategoryType String category, int offset,
-            int limit, @Nullable String mimeType, @Nullable UserId userId) throws
+    public Cursor getItems(Category category, int offset,
+            int limit, @Nullable String[] mimeTypes, @Nullable UserId userId) throws
             IllegalArgumentException {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
-        // Validate incoming params
-        if (category != null && !Category.isValidCategory(category)) {
-            throw new IllegalArgumentException("ItemsProvider does not support the given "
-                    + "category: " + category);
-        }
 
-        return queryMedia(limit, mimeType, category, userId);
+        return queryMedia(limit, mimeTypes, category, userId);
     }
 
     /**
@@ -114,16 +102,16 @@ public class ItemsProvider {
      *                        in the category,
      */
     @Nullable
-    public Cursor getCategories(@Nullable String mimeType, @Nullable UserId userId) {
+    public Cursor getCategories(@Nullable String[] mimeTypes, @Nullable UserId userId) {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
 
-        return queryAlbums(mimeType, userId);
+        return queryAlbums(mimeTypes, userId);
     }
 
-    private Cursor queryMedia(int limit, @Nullable String mimeType,
-            @NonNull String category, @NonNull UserId userId)
+    private Cursor queryMedia(int limit, String[] mimeTypes,
+            @NonNull Category category, @NonNull UserId userId)
             throws IllegalStateException {
         final Bundle extras = new Bundle();
         try (ContentProviderClient client = userId.getContentResolver(mContext)
@@ -134,13 +122,11 @@ public class ItemsProvider {
                 return null;
             }
             extras.putInt(MediaStore.QUERY_ARG_LIMIT, limit);
-            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
-            if (category != null) {
-                extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category);
-                extras.putString(MediaStore.QUERY_ARG_ALBUM_TYPE,
-                        Category.CATEGORY_FAVORITES.equals(category)
-                        ? AlbumColumns.TYPE_FAVORITES : AlbumColumns.TYPE_LOCAL);
+            if (mimeTypes != null) {
+                extras.putStringArray(MediaStore.QUERY_ARG_MIME_TYPE, mimeTypes);
             }
+            extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category.getId());
+            extras.putString(MediaStore.QUERY_ARG_ALBUM_AUTHORITY, category.getAuthority());
 
             final Uri uri = PickerUriResolver.PICKER_INTERNAL_URI.buildUpon()
                     .appendPath(PickerUriResolver.MEDIA_PATH).build();
@@ -155,7 +141,7 @@ public class ItemsProvider {
     }
 
     @Nullable
-    private Cursor queryAlbums(@Nullable String mimeType, @NonNull UserId userId) {
+    private Cursor queryAlbums(@Nullable String[] mimeTypes, @NonNull UserId userId) {
         final Bundle extras = new Bundle();
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
@@ -164,7 +150,9 @@ public class ItemsProvider {
                         + MediaStore.AUTHORITY);
                 return null;
             }
-            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+            if (mimeTypes != null) {
+                extras.putStringArray(MediaStore.QUERY_ARG_MIME_TYPE, mimeTypes);
+            }
 
             final Uri uri = PickerUriResolver.PICKER_INTERNAL_URI.buildUpon()
                     .appendPath(PickerUriResolver.ALBUM_PATH).build();
@@ -179,15 +167,8 @@ public class ItemsProvider {
     }
 
     public static Uri getItemsUri(String id, String authority, UserId userId) {
-        final Uri uri;
-        if (authority == null) {
-            uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
-                    Long.parseLong(id));
-        } else {
-            // We only have authority after querying the picker db
-            uri = PickerUriResolver.getMediaUri(authority).buildUpon()
-                    .appendPath(id).build();
-        }
+        final Uri uri = PickerUriResolver.getMediaUri(authority).buildUpon()
+                .appendPath(id).build();
 
         if (userId.equals(UserId.CURRENT_USER)) {
             return uri;

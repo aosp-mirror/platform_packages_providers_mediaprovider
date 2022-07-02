@@ -35,6 +35,7 @@ import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
+import static android.provider.MediaStore.MEDIA_IGNORE_FILENAME;
 import static android.provider.MediaStore.MY_UID;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
@@ -6677,6 +6678,7 @@ public class MediaProvider extends ContentProvider {
                 final File[] files = thumbDir.listFiles();
                 for (File thumbFile : (files != null) ? files : new File[0]) {
                     if (Objects.equals(thumbFile.getName(), FILE_DATABASE_UUID)) continue;
+                    if (Objects.equals(thumbFile.getName(), MEDIA_IGNORE_FILENAME)) continue;
                     final String name = FileUtils.extractFileName(thumbFile.getName());
                     try {
                         final long id = Long.parseLong(name);

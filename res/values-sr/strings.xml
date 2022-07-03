@@ -77,6 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Укључи звук видеа"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Пусти видео"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Паузирај видео"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"<xliff:g id="PKG_NAME">%1$s</xliff:g> сада нуди медијски садржај у клауду"</string>
     <string name="not_selected" msgid="2244008151669896758">"није изабрано"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Желите ли да дозволите да <xliff:g id="APP_NAME_0">^1</xliff:g> измени овај аудио фајл?}one{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> аудио фајл?}few{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> аудио фајла?}other{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> аудио фајлова?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Мења се аудио фајл…}one{Мења се <xliff:g id="COUNT">^1</xliff:g> аудио фајл…}few{Мењају се <xliff:g id="COUNT">^1</xliff:g> аудио фајла…}other{Мења се <xliff:g id="COUNT">^1</xliff:g> аудио фајлова…}}"</string>

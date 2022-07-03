@@ -24,7 +24,7 @@
     <string name="unknown" msgid="2059049215682829375">"ಅಪರಿಚಿತ"</string>
     <string name="root_images" msgid="5861633549189045666">"ಚಿತ್ರಗಳು"</string>
     <string name="root_videos" msgid="8792703517064649453">"ವೀಡಿಯೊಗಳು"</string>
-    <string name="root_audio" msgid="3505830755201326018">"ಆಡಿಯೊ"</string>
+    <string name="root_audio" msgid="3505830755201326018">"ಆಡಿಯೋ"</string>
     <string name="root_documents" msgid="3829103301363849237">"ಡಾಕ್ಯುಮೆಂಟ್‌ಗಳು"</string>
     <string name="permission_required" msgid="1460820436132943754">"ಈ ಐಟಂ ಅನ್ನು ಮಾರ್ಪಡಿಸಲು ಅಥವಾ ಅಳಿಸಲು ಅನುಮತಿಯ ಅಗತ್ಯವಿದೆ."</string>
     <string name="permission_required_action" msgid="706370952366113539">"ಮುಂದುವರಿಸಿ"</string>
@@ -53,7 +53,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"ಪೂರ್ವವೀಕ್ಷಣೆ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ಕೆಲಸಕ್ಕೆ ಬದಲಿಸಿ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ವೈಯಕ್ತಿಕಕ್ಕೆ ಬದಲಿಸಿ"</string>
-    <string name="picker_profile_admin_title" msgid="4172022376418293777">"ನಿಮ್ಮ ನಿರ್ವಾಹಕರಿಂದ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"ನಿಮ್ಮ ನಿರ್ವಾಹಕರು ನಿರ್ಬಂಧಿಸಿದ್ದಾರೆ"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ವೈಯಕ್ತಿಕ ಆ್ಯಪ್ ಮೂಲಕ ಅಧಿಕೃತ ಡೇಟಾವನ್ನು ಪ್ರವೇಶಿಸಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್ ಮೂಲಕ ಅಧಿಕೃತ ಡೇಟಾವನ್ನು ಪ್ರವೇಶಿಸಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳನ್ನು ವಿರಾಮಗೊಳಿಸಲಾಗಿದೆ"</string>
@@ -77,6 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"ವೀಡಿಯೊ ಅನ್‍ಮ್ಯೂಟ್ ಮಾಡಿ"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"ವೀಡಿಯೊವನ್ನು ಪ್ಲೇ ಮಾಡಿ"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"ವೀಡಿಯೊವನ್ನು ವಿರಾಮಗೊಳಿಸಿ"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"ಕ್ಲೌಡ್ ಮಾಧ್ಯಮವು ಈಗ <xliff:g id="PKG_NAME">%1$s</xliff:g> ನಿಂದ ಲಭ್ಯವಿದೆ"</string>
     <string name="not_selected" msgid="2244008151669896758">"ಆಯ್ಕೆಮಾಡಲಾಗಿಲ್ಲ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ಈ ಆಡಿಯೋ ಫೈಲ್ ಅನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_0">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}one{ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}other{ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ಆಡಿಯೋ ಫೈಲ್ ಅನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}one{<xliff:g id="COUNT">^1</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}other{<xliff:g id="COUNT">^1</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}}"</string>

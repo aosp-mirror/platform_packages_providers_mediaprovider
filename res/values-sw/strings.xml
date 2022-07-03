@@ -77,6 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Rejesha sauti ya video"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Cheza video"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Sitisha video"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Maudhui ya kwenye wingu sasa yanapatikana katika <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"haijachaguliwa"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Ungependa kuruhusu <xliff:g id="APP_NAME_0">^1</xliff:g> ibadilishe faili hii ya sauti?}other{Ungependa kuruhusu <xliff:g id="APP_NAME_1">^1</xliff:g> ibadilishe faili <xliff:g id="COUNT">^2</xliff:g> za sauti?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Inarekebisha faili ya sauti…}other{Inarekebisha faili <xliff:g id="COUNT">^1</xliff:g> za sauti…}}"</string>

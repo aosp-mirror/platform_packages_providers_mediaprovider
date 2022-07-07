@@ -35,6 +35,7 @@ import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
+import static android.provider.MediaStore.MEDIA_IGNORE_FILENAME;
 import static android.provider.MediaStore.MY_UID;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
@@ -121,6 +122,7 @@ import android.compat.annotation.EnabledAfter;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipDescription;
+import android.content.ComponentName;
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
@@ -225,6 +227,7 @@ import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.metrics.PulledMetrics;
+import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.PickerDataLayer;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
@@ -341,6 +344,8 @@ public class MediaProvider extends ContentProvider {
 
     private static final String DIRECTORY_MEDIA = "media";
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
+
+    private static final String TAKE_OVER_GET_CONTENT = "take_over_get_content";
 
     /**
      * Hard-coded filename where the current value of
@@ -848,15 +853,16 @@ public class MediaProvider extends ContentProvider {
 
         Optional<Long> nextRowIdBackupOptional = helper.getNextRowId();
         if (!nextRowIdBackupOptional.isPresent()) {
-            throw new RuntimeException(String.format("Cannot find next row id xattr for %s.",
-                    helper.getDatabaseName()));
+            throw new RuntimeException(
+                    String.format(Locale.ROOT, "Cannot find next row id xattr for %s.",
+                            helper.getDatabaseName()));
         }
 
         if (id >= nextRowIdBackupOptional.get()) {
             helper.backupNextRowId(id);
         } else {
-            Log.v(TAG, String.format("Inserted id:%d less than next row id backup:%d.", id,
-                    nextRowIdBackupOptional.get()));
+            Log.v(TAG, String.format(Locale.ROOT, "Inserted id:%d less than next row id backup:%d.",
+                    id, nextRowIdBackupOptional.get()));
         }
     }
 
@@ -1180,8 +1186,27 @@ public class MediaProvider extends ContentProvider {
             mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
 
+        checkDeviceConfigAndUpdateGetContentAlias();
+
         PulledMetrics.initialize(context);
         return true;
+    }
+
+    @VisibleForTesting
+    protected void checkDeviceConfigAndUpdateGetContentAlias() {
+        final String photoPickerGetContentActivity =
+                PhotoPickerActivity.class.getPackage().getName() + ".PhotoPickerGetContentActivity";
+        final ComponentName componentName = new ComponentName(getContext().getPackageName(),
+                photoPickerGetContentActivity);
+
+        final int expectedState = getBooleanDeviceConfig(TAKE_OVER_GET_CONTENT, false)
+                ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+
+        Log.i(TAG, "Change component enabled state to " + expectedState
+                + " for PhotoPickerGetContentActivity. ");
+        getContext().getPackageManager().setComponentEnabledSetting(componentName, expectedState,
+                PackageManager.DONT_KILL_APP);
     }
 
     Optional<DatabaseHelper> getDatabaseHelper(String dbName) {
@@ -1289,7 +1314,8 @@ public class MediaProvider extends ContentProvider {
         cleanMediaFilesForRemovedUser(signal);
 
         // Populate _SPECIAL_FORMAT column for files which have column value as NULL
-        detectSpecialFormat(signal);
+        // TODO(b/236620024): Do not update generation_modified for special_format value update
+        // detectSpecialFormat(signal);
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
@@ -6652,6 +6678,7 @@ public class MediaProvider extends ContentProvider {
                 final File[] files = thumbDir.listFiles();
                 for (File thumbFile : (files != null) ? files : new File[0]) {
                     if (Objects.equals(thumbFile.getName(), FILE_DATABASE_UUID)) continue;
+                    if (Objects.equals(thumbFile.getName(), MEDIA_IGNORE_FILENAME)) continue;
                     final String name = FileUtils.extractFileName(thumbFile.getName());
                     try {
                         final long id = Long.parseLong(name);
@@ -7794,8 +7821,6 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isPickerUri(Uri uri) {
-        // TODO(b/188394433): move this method to PickerResolver in the spirit of not
-        // adding picker logic to MediaProvider
         final int match = matchUri(uri, /* allowHidden */ isCallingPackageAllowedHidden());
         return match == PICKER_ID;
     }
@@ -8407,7 +8432,7 @@ public class MediaProvider extends ContentProvider {
 
     private void deleteIfAllowed(Uri uri, Bundle extras, String path) {
         try {
-            final File file = new File(path);
+            final File file = new File(path).getCanonicalFile();
             checkAccess(uri, extras, file, true);
             deleteAndInvalidate(file);
         } catch (Exception e) {

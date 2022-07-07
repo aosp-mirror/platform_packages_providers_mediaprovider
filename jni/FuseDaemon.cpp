@@ -878,7 +878,18 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
 
     auto node = make_node_entry(req, parent_node, name, parent_path, child_path, e, error_code, op);
 
-    if (fuse->bpf && op == FuseOp::lookup) fuse_bpf_install(fuse, e, child_path, *backing_fd);
+    if (fuse->bpf) {
+        if (op == FuseOp::lookup) {
+            // Only direct lookup calls support setting backing_fd and bpf program
+            fuse_bpf_install(fuse, e, child_path, *backing_fd);
+        } else if (is_bpf_backing_path(child_path) && op == FuseOp::readdir) {
+            // Fuse-bpf driver implementation doesn’t support providing backing_fd
+            // and bpf program as a part of readdirplus lookup. So we make sure
+            // here we're not making any lookups on backed files because we want
+            // to receive separate lookup calls for them later to set backing_fd and bpf.
+            e->ino = 0;
+        }
+    }
 
     return node;
 }

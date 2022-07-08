@@ -761,4 +761,38 @@ public class FileUtilsTest {
             assertTrue("Unexpected actual file " + actualFile, expectedSet.contains(actualFile));
         }
     }
+
+    @Test
+    public void testComputeDataFromValuesForValidPath_success() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.RELATIVE_PATH, "Android/media/com.example");
+        values.put(MediaColumns.DISPLAY_NAME, "./../../abc.txt");
+
+        FileUtils.computeDataFromValues(values, new File("/storage/emulated/0"), false);
+
+        assertThat(values.getAsString(MediaColumns.DATA)).isEqualTo(
+                "/storage/emulated/0/Android/abc.txt");
+    }
+
+    @Test
+    public void testComputeDataFromValuesForInvalidPath_throwsIllegalArgumentException() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.RELATIVE_PATH, "\0");
+        values.put(MediaColumns.DISPLAY_NAME, "./../../abc.txt");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> FileUtils.computeDataFromValues(values, new File("/storage/emulated/0"),
+                        false));
+    }
+
+    private static <T extends Exception> void assertThrows(Class<T> clazz, Runnable r) {
+        try {
+            r.run();
+            fail("Expected " + clazz + " to be thrown");
+        } catch (Exception e) {
+            if (!clazz.isAssignableFrom(e.getClass())) {
+                throw e;
+            }
+        }
+    }
 }

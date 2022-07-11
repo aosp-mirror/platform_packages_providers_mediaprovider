@@ -121,6 +121,7 @@ public class IdleServiceTest {
         final File b = touch(buildPath(dir, DIRECTORY_MOVIES, ".thumbnails", "7654321.jpg"));
         final File c = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", id + ".jpg"));
         final File d = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", "random.bin"));
+        final File e = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", ".nomedia"));
 
         // Idle maintenance pass should clean up unknown files
         MediaStore.runIdleMaintenance(resolver);
@@ -128,6 +129,7 @@ public class IdleServiceTest {
         assertFalse(exists(b));
         assertTrue(exists(c));
         assertFalse(exists(d));
+        assertTrue(exists(e));
 
         // And change the UUID, which emulates ejecting and mounting a different
         // storage device; all thumbnails should then be invalidated
@@ -136,12 +138,13 @@ public class IdleServiceTest {
         delete(uuidFile);
         touch(uuidFile);
 
-        // Idle maintenance pass should clean up all files
+        // Idle maintenance pass should clean up all files except .nomedia file
         MediaStore.runIdleMaintenance(resolver);
         assertFalse(exists(a));
         assertFalse(exists(b));
         assertFalse(exists(c));
         assertFalse(exists(d));
+        assertTrue(exists(e));
     }
 
     /**

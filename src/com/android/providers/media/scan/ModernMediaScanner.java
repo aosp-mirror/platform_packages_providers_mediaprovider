@@ -1510,9 +1510,13 @@ public class ModernMediaScanner implements MediaScanner {
     @VisibleForTesting
     static @NonNull Optional<Integer> parseOptionalOrientation(int orientation) {
         switch (orientation) {
+            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
             case ExifInterface.ORIENTATION_NORMAL: return Optional.of(0);
+            case ExifInterface.ORIENTATION_TRANSPOSE:
             case ExifInterface.ORIENTATION_ROTATE_90: return Optional.of(90);
+            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
             case ExifInterface.ORIENTATION_ROTATE_180: return Optional.of(180);
+            case ExifInterface.ORIENTATION_TRANSVERSE:
             case ExifInterface.ORIENTATION_ROTATE_270: return Optional.of(270);
             default: return Optional.empty();
         }

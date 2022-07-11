@@ -35,6 +35,7 @@ import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.UserHandle;
@@ -139,7 +140,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         try {
             mPickerViewModel.parseValuesFromIntent(intent);
         } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Finished activity due to an exception while parsing extras", e);
+            Log.e(TAG, "Finish activity due to an exception while parsing extras", e);
             setCancelledResultAndFinishSelf();
         }
 
@@ -254,8 +255,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // GET_CONTENT for all (media and non-media) files opens DocumentsUi, but it still shows
         // "Photo Picker app option. When the user clicks on "Photo Picker", the same intent which
         // includes filters to show non-media files as well is forwarded to PhotoPicker.
-        // Make sure Photo Picker is opened when the intent is explicitly forwarded.
-        if (isIntentForwarded(intent)) {
+        // Make sure Photo Picker is opened when the intent is explicitly forwarded by documentsUi
+        if (isIntentReferredByDocumentsUi(getReferrer())) {
             Log.i(TAG, "Open PhotoPicker when a forwarded ACTION_GET_CONTENT intent is received");
             return;
         }
@@ -265,8 +266,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
         }
     }
 
-    private static boolean isIntentForwarded(Intent intent) {
-        return (intent.getFlags() & Intent.FLAG_ACTIVITY_FORWARD_RESULT) > 0;
+    private boolean isIntentReferredByDocumentsUi(Uri referrerAppUri) {
+        ComponentName documentsUiComponentName = getDocumentsUiComponentName(this);
+        String documentsUiPackageName = documentsUiComponentName != null
+                ? documentsUiComponentName.getPackageName() : null;
+        return referrerAppUri != null && referrerAppUri.getHost().equals(documentsUiPackageName);
     }
 
     private void launchDocumentsUiAndFinishPicker() {

@@ -41,13 +41,10 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private List<Item> mItemList = new ArrayList<>();
     private final ImageLoader mImageLoader;
     private final RemotePreviewHandler mRemotePreviewHandler;
-    private final PlaybackHandler mPlaybackHandler;
-    private final boolean mIsRemotePreviewEnabled = RemotePreviewHandler.isRemotePreviewEnabled();
 
     PreviewAdapter(Context context, MuteStatus muteStatus) {
         mImageLoader = new ImageLoader(context);
         mRemotePreviewHandler = new RemotePreviewHandler(context, muteStatus);
-        mPlaybackHandler = new PlaybackHandler(context, muteStatus);
     }
 
     @NonNull
@@ -55,10 +52,8 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     public BaseViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
         if (viewType == ITEM_TYPE_IMAGE) {
             return new PreviewImageHolder(viewGroup.getContext(), viewGroup, mImageLoader);
-        } else {
-            return new PreviewVideoHolder(viewGroup.getContext(), viewGroup, mImageLoader,
-                    mIsRemotePreviewEnabled);
         }
+        return new PreviewVideoHolder(viewGroup.getContext(), viewGroup, mImageLoader);
     }
 
     @Override
@@ -76,17 +71,8 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
         final Item item = (Item) holder.itemView.getTag();
         if (item.isVideo()) {
-            // TODO(b/222506900): Refactor thumbnail show / hide logic to be handled from a single
-            // place. Currently, we show the thumbnail here and hide it when playback starts in
-            // PlaybackHandler/RemotePreviewHandler.
             PreviewVideoHolder videoHolder = (PreviewVideoHolder) holder;
-
-            if (mIsRemotePreviewEnabled) {
-                mRemotePreviewHandler.onViewAttachedToWindow(videoHolder, item);
-                return;
-            }
-
-            mPlaybackHandler.onViewAttachedToWindow(holder.itemView);
+            mRemotePreviewHandler.onViewAttachedToWindow(videoHolder, item);
         }
     }
 
@@ -106,28 +92,16 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     }
 
     void onHandlePageSelected(View itemView) {
-        if (mIsRemotePreviewEnabled) {
-            final Item item = (Item) itemView.getTag();
-            mRemotePreviewHandler.onHandlePageSelected(item);
-            return;
-        }
-
-        mPlaybackHandler.handleVideoPlayback(itemView);
+        final Item item = (Item) itemView.getTag();
+        mRemotePreviewHandler.onHandlePageSelected(item);
     }
 
     void onStop() {
-        if (mIsRemotePreviewEnabled) {
-            mRemotePreviewHandler.onStop();
-            return;
-        }
-
-        mPlaybackHandler.releaseResources();
+        mRemotePreviewHandler.onStop();
     }
 
     void onDestroy() {
-        if (mIsRemotePreviewEnabled) {
-            mRemotePreviewHandler.onDestroy();
-        }
+        mRemotePreviewHandler.onDestroy();
     }
 
     Item getItem(int position) {

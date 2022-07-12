@@ -81,7 +81,9 @@ public class ExternalDbFacadeTest {
     private static final long GENERATION_MODIFIED5 = 5;
     private static final long SIZE = 8000;
     private static final String IMAGE_MIME_TYPE = "image/jpeg";
+    private static final String[] IMAGE_MIME_TYPES_QUERY = new String[]{"image/jpeg"};
     private static final String VIDEO_MIME_TYPE = "video/mp4";
+    private static final String[] VIDEO_MIME_TYPES_QUERY = new String[]{"video/mp4"};
     private static final long DURATION_MS = 5;
     private static final int IS_FAVORITE = 0;
 
@@ -542,12 +544,12 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            /* albumId */ null, VIDEO_MIME_TYPE)) {
+                            /* albumId */ null, VIDEO_MIME_TYPES_QUERY)) {
                 assertThat(cursor.getCount()).isEqualTo(0);
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            /* albumId */ null, IMAGE_MIME_TYPE)) {
+                            /* albumId */ null, IMAGE_MIME_TYPES_QUERY)) {
                 assertThat(cursor.getCount()).isEqualTo(1);
 
                 cursor.moveToFirst();
@@ -616,17 +618,17 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            ALBUM_ID_SCREENSHOTS, IMAGE_MIME_TYPE)) {
+                            ALBUM_ID_SCREENSHOTS, IMAGE_MIME_TYPES_QUERY)) {
                 assertThat(cursor.getCount()).isEqualTo(0);
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            ALBUM_ID_CAMERA, VIDEO_MIME_TYPE)) {
+                            ALBUM_ID_CAMERA, VIDEO_MIME_TYPES_QUERY)) {
                 assertThat(cursor.getCount()).isEqualTo(0);
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                            ALBUM_ID_CAMERA, IMAGE_MIME_TYPE)) {
+                            ALBUM_ID_CAMERA, IMAGE_MIME_TYPES_QUERY)) {
                 assertThat(cursor.getCount()).isEqualTo(1);
 
                 cursor.moveToFirst();
@@ -762,7 +764,7 @@ public class ExternalDbFacadeTest {
             cv1.put(MediaColumns.RELATIVE_PATH, ExternalDbFacade.RELATIVE_PATH_CAMERA);
             helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv1));
 
-            // Insert video in camera ablum
+            // Insert video in camera album
             ContentValues cv2 = getContentValues(DATE_TAKEN_MS5, GENERATION_MODIFIED5);
             cv2.put(FileColumns.MIME_TYPE, VIDEO_MIME_TYPE);
             cv2.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_VIDEO);
@@ -772,7 +774,7 @@ public class ExternalDbFacadeTest {
                 assertThat(cursor.getCount()).isEqualTo(2);
             }
 
-            try (Cursor cursor = facade.queryAlbums(IMAGE_MIME_TYPE)) {
+            try (Cursor cursor = facade.queryAlbums(IMAGE_MIME_TYPES_QUERY)) {
                 assertThat(cursor.getCount()).isEqualTo(1);
 
                 // We verify the order of the albums only the image in camera is shown

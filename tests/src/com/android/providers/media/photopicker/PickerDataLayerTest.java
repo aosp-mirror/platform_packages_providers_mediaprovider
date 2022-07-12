@@ -559,7 +559,9 @@ public class PickerDataLayerTest {
     private static Bundle buildQueryArgs(String mimeType, long sizeBytes) {
         final Bundle queryArgs = new Bundle();
 
-        queryArgs.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+        if (mimeType != null) {
+            queryArgs.putStringArray(MediaStore.QUERY_ARG_MIME_TYPE, new String[]{mimeType});
+        }
         queryArgs.putLong(MediaStore.QUERY_ARG_SIZE_BYTES, sizeBytes);
 
         return queryArgs;

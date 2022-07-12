@@ -1052,8 +1052,10 @@ public class PickerSyncControllerTest {
 
         when(mockContext.getResources()).thenReturn(mockResources);
         when(mockContext.getPackageManager()).thenReturn(mContext.getPackageManager());
-        when(mockContext.getSystemService(StorageManager.class))
-                .thenReturn(mContext.getSystemService(StorageManager.class));
+        when(mockContext.getSystemServiceName(StorageManager.class)).thenReturn(
+                mContext.getSystemServiceName(StorageManager.class));
+        when(mockContext.getSystemService(StorageManager.class)).thenReturn(
+                mContext.getSystemService(StorageManager.class));
         when(mockContext.getSharedPreferences(anyString(), anyInt())).thenAnswer(i -> {
             return mContext.getSharedPreferences((String)i.getArgument(0), (int)i.getArgument(1));
         });

@@ -545,12 +545,12 @@ public class PickerDbFacade {
         private final long mId;
         private final String mAlbumId;
         private final long mSizeBytes;
-        private final String mMimeType;
+        private final String[] mMimeTypes;
         private final boolean mIsFavorite;
         private final boolean mIsVideo;
 
         private QueryFilter(int limit, long dateTakenBeforeMs, long dateTakenAfterMs, long id,
-                String albumId, long sizeBytes, String mimeType, boolean isFavorite,
+                String albumId, long sizeBytes, String[] mimeTypes, boolean isFavorite,
                 boolean isVideo) {
             this.mLimit = limit;
             this.mDateTakenBeforeMs = dateTakenBeforeMs;
@@ -558,7 +558,7 @@ public class PickerDbFacade {
             this.mId = id;
             this.mAlbumId = albumId;
             this.mSizeBytes = sizeBytes;
-            this.mMimeType = mimeType;
+            this.mMimeTypes = mimeTypes;
             this.mIsFavorite = isFavorite;
             this.mIsVideo = isVideo;
         }
@@ -568,6 +568,7 @@ public class PickerDbFacade {
     public static class QueryFilterBuilder {
         public static final long LONG_DEFAULT = -1;
         public static final String STRING_DEFAULT = null;
+        public static final String[] STRING_ARRAY_DEFAULT = null;
         public static final boolean BOOLEAN_DEFAULT = false;
 
         public static final int LIMIT_DEFAULT = 1000;
@@ -578,7 +579,7 @@ public class PickerDbFacade {
         private long id = LONG_DEFAULT;
         private String albumId = STRING_DEFAULT;
         private long sizeBytes = LONG_DEFAULT;
-        private String mimeType = STRING_DEFAULT;
+        private String[] mimeTypes = STRING_ARRAY_DEFAULT;
         private boolean isFavorite = BOOLEAN_DEFAULT;
         private boolean mIsVideo = BOOLEAN_DEFAULT;
 
@@ -622,8 +623,8 @@ public class PickerDbFacade {
             return this;
         }
 
-        public QueryFilterBuilder setMimeType(String mimeType) {
-            this.mimeType = mimeType;
+        public QueryFilterBuilder setMimeTypes(String[] mimeTypes) {
+            this.mimeTypes = mimeTypes;
             return this;
         }
 
@@ -649,7 +650,7 @@ public class PickerDbFacade {
 
         public QueryFilter build() {
             return new QueryFilter(limit, dateTakenBeforeMs, dateTakenAfterMs, id, albumId,
-                    sizeBytes, mimeType, isFavorite, mIsVideo);
+                    sizeBytes, mimeTypes, isFavorite, mIsVideo);
         }
     }
 
@@ -737,10 +738,7 @@ public class PickerDbFacade {
                 qb.appendWhereStandalone(WHERE_MIME_TYPE);
                 selectionArgs.add("video/%");
             }
-            if (query.mMimeType != null) {
-                qb.appendWhereStandalone(WHERE_MIME_TYPE);
-                selectionArgs.add(query.mMimeType.replace('*', '%'));
-            }
+            addMimeTypesToQueryBuilderAndSelectionArgs(qb, selectionArgs, query.mMimeTypes);
 
             Cursor cursor = qb.query(mDatabase, PROJECTION_ALBUM_DB, /* selection */ null,
                     selectionArgs.toArray(new String[0]), /* groupBy */ null, /* having */ null,
@@ -1004,10 +1002,8 @@ public class PickerDbFacade {
             selectArgs.add(String.valueOf(query.mSizeBytes));
         }
 
-        if (query.mMimeType != null) {
-            qb.appendWhereStandalone(WHERE_MIME_TYPE);
-            selectArgs.add(replaceMatchAnyChar(query.mMimeType));
-        }
+        addMimeTypesToQueryBuilderAndSelectionArgs(qb, selectArgs, query.mMimeTypes);
+
         if (query.mIsVideo) {
             qb.appendWhereStandalone(WHERE_MIME_TYPE);
             selectArgs.add(VIDEO_MIME_TYPES);
@@ -1023,6 +1019,27 @@ public class PickerDbFacade {
         }
 
         return selectArgs.toArray(new String[selectArgs.size()]);
+    }
+
+    static void addMimeTypesToQueryBuilderAndSelectionArgs(SQLiteQueryBuilder qb,
+            List<String> selectionArgs, String[] mimeTypes) {
+        if (mimeTypes == null) {
+            return;
+        }
+
+        mimeTypes = replaceMatchAnyChar(mimeTypes);
+        ArrayList<String> whereMimeTypes = new ArrayList<>();
+        for (String mimeType : mimeTypes) {
+            if (!TextUtils.isEmpty(mimeType)) {
+                whereMimeTypes.add(WHERE_MIME_TYPE);
+                selectionArgs.add(mimeType);
+            }
+        }
+
+        if (whereMimeTypes.isEmpty()) {
+            return;
+        }
+        qb.appendWhereStandalone(TextUtils.join(" OR ", whereMimeTypes));
     }
 
     private static SQLiteQueryBuilder createMediaQueryBuilder() {

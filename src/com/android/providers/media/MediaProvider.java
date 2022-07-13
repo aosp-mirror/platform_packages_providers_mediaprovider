@@ -35,6 +35,7 @@ import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
+import static android.provider.MediaStore.MEDIA_IGNORE_FILENAME;
 import static android.provider.MediaStore.MY_UID;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
@@ -1313,7 +1314,8 @@ public class MediaProvider extends ContentProvider {
         cleanMediaFilesForRemovedUser(signal);
 
         // Populate _SPECIAL_FORMAT column for files which have column value as NULL
-        detectSpecialFormat(signal);
+        // TODO(b/236620024): Do not update generation_modified for special_format value update
+        // detectSpecialFormat(signal);
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
@@ -3128,27 +3130,31 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
-            // TODO(b/177049768): We shouldn't use getExternalStorageDirectory for these checks.
-            final File directoryAndroid = new File(Environment.getExternalStorageDirectory(),
-                    DIRECTORY_ANDROID_LOWER_CASE);
+            final File directoryAndroid = new File(
+                    extractVolumePath(oldPath).toLowerCase(Locale.ROOT),
+                    DIRECTORY_ANDROID_LOWER_CASE
+            );
             final File directoryAndroidMedia = new File(directoryAndroid, DIRECTORY_MEDIA);
+            String newPathLowerCase = newPath.toLowerCase(Locale.ROOT);
             if (directoryAndroidMedia.getAbsolutePath().equalsIgnoreCase(oldPath)) {
                 // Don't allow renaming 'Android/media' directory.
                 // Android/[data|obb] are bind mounted and these paths don't go through FUSE.
                 Log.e(TAG, errorMessage +  oldPath + " is a default folder in app external "
                         + "directory. Renaming a default folder is not allowed.");
                 return OsConstants.EPERM;
-            } else if (FileUtils.contains(directoryAndroid, new File(newPath))) {
-                if (newRelativePath.length == 1) {
-                    // New path is Android/*. Path is directly under Android. Don't allow moving
-                    // files and directories to Android/.
+            } else if (FileUtils.contains(directoryAndroid, new File(newPathLowerCase))) {
+                if (newRelativePath.length <= 2) {
+                    // Path is directly under Android, Android/media, Android/data, Android/obb or
+                    // some other directory under Android. Don't allow moving files and directories
+                    // in these paths. Files and directories are only allowed to move to path
+                    // Android/media/<app_specific_directory>/*
                     Log.e(TAG, errorMessage +  newPath + " is in app external directory. "
                             + "Renaming a file/directory to app external directory is not "
                             + "allowed.");
                     return OsConstants.EPERM;
-                } else if(!FileUtils.contains(directoryAndroidMedia, new File(newPath))) {
-                    // New path is  Android/*/*. Don't allow moving of files or directories
-                    // to app external directory other than media directory.
+                } else if (!FileUtils.contains(directoryAndroidMedia, new File(newPathLowerCase))) {
+                    // New path is not in Android/media/*. Don't allow moving of files or
+                    // directories to app external directory other than media directory.
                     Log.e(TAG, errorMessage +  newPath + " is not in external media directory."
                             + "File/directory can only be renamed to a path in external media "
                             + "directory. Renaming file/directory to path in other external "
@@ -6676,6 +6682,7 @@ public class MediaProvider extends ContentProvider {
                 final File[] files = thumbDir.listFiles();
                 for (File thumbFile : (files != null) ? files : new File[0]) {
                     if (Objects.equals(thumbFile.getName(), FILE_DATABASE_UUID)) continue;
+                    if (Objects.equals(thumbFile.getName(), MEDIA_IGNORE_FILENAME)) continue;
                     final String name = FileUtils.extractFileName(thumbFile.getName());
                     try {
                         final long id = Long.parseLong(name);
@@ -7818,8 +7825,6 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isPickerUri(Uri uri) {
-        // TODO(b/188394433): move this method to PickerResolver in the spirit of not
-        // adding picker logic to MediaProvider
         final int match = matchUri(uri, /* allowHidden */ isCallingPackageAllowedHidden());
         return match == PICKER_ID;
     }
@@ -8431,7 +8436,7 @@ public class MediaProvider extends ContentProvider {
 
     private void deleteIfAllowed(Uri uri, Bundle extras, String path) {
         try {
-            final File file = new File(path);
+            final File file = new File(path).getCanonicalFile();
             checkAccess(uri, extras, file, true);
             deleteAndInvalidate(file);
         } catch (Exception e) {

@@ -117,6 +117,6 @@
     <string name="transcode_processing_success" msgid="447288876429730122">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ସଫଳ ହୋଇଛି"</string>
     <string name="transcode_processing_started" msgid="7789086308155361523">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ଆରମ୍ଭ କରାଯାଇଛି"</string>
     <string name="transcode_processing" msgid="6753136468864077258">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ କରାଯାଉଛି…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"ବାତିଲ୍ କରନ୍ତୁ"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"ବାତିଲ କରନ୍ତୁ"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"ଅପେକ୍ଷା କରନ୍ତୁ"</string>
 </resources>

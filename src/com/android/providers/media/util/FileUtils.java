@@ -887,10 +887,11 @@ public class FileUtils {
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)(/?.*)?");
 
     /**
-     * Regex that matches Android/obb or Android/data path.
+     * Regex that matches exactly Android/obb or Android/data or Android/obb/ or Android/data/
+     * suffix absolute file path.
      */
     private static final Pattern PATTERN_DATA_OR_OBB_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)(?:/.*)?$");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/?$");
 
      /**
      * Regex that matches paths in all well-known package-specific relative directory

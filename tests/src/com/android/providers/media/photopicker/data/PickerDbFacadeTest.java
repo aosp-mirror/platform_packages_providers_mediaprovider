@@ -23,6 +23,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -1011,6 +1012,68 @@ public class PickerDbFacadeTest {
         try (PickerDbFacade.DbWriteOperation operation =
                      mFacade.beginRemoveMediaOperation(CLOUD_PROVIDER)) {
             assertThrows(Exception.class, () -> operation.execute(null /* cursor */));
+        }
+    }
+
+    @Test
+    public void testUpdateMediaSuccess() throws Exception {
+        Cursor localCursor = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginAddMediaOperation(LOCAL_PROVIDER)) {
+            operation.execute(localCursor);
+            operation.setSuccess();
+        }
+
+        try (PickerDbFacade.UpdateMediaOperation operation =
+                     mFacade.beginUpdateMediaOperation(LOCAL_PROVIDER)) {
+            ContentValues values = new ContentValues();
+            values.put(PickerDbFacade.KEY_STANDARD_MIME_TYPE_EXTENSION,
+                    MediaColumns.STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP);
+            assertThat(operation.execute(LOCAL_ID, values)).isTrue();
+            operation.setSuccess();
+        }
+
+        try (Cursor cursor = queryMediaAll()) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+
+            // Assert that STANDARD_MIME_TYPE_EXTENSION has been updated
+            cursor.moveToFirst();
+            assertThat(cursor.getInt(cursor.getColumnIndex(
+                    MediaColumns.STANDARD_MIME_TYPE_EXTENSION)))
+                    .isEqualTo(MediaColumns.STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP);
+        }
+    }
+
+    @Test
+    public void testUpdateMediaFailure() throws Exception {
+        Cursor localCursor = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginAddMediaOperation(LOCAL_PROVIDER)) {
+            operation.execute(localCursor);
+            operation.setSuccess();
+        }
+
+        try (PickerDbFacade.UpdateMediaOperation operation =
+                     mFacade.beginUpdateMediaOperation(LOCAL_PROVIDER)) {
+            ContentValues values = new ContentValues();
+            values.put(PickerDbFacade.KEY_STANDARD_MIME_TYPE_EXTENSION,
+                    MediaColumns.STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP);
+            assertThat(operation.execute(CLOUD_ID, values)).isFalse();
+            operation.setSuccess();
+        }
+
+        try (Cursor cursor = queryMediaAll()) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+
+            // Assert that STANDARD_MIME_TYPE_EXTENSION is same as before
+            cursor.moveToFirst();
+            assertThat(cursor.getInt(cursor.getColumnIndex(
+                    MediaColumns.STANDARD_MIME_TYPE_EXTENSION)))
+                    .isEqualTo(STANDARD_MIME_TYPE_EXTENSION);
         }
     }
 

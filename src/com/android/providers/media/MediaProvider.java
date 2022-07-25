@@ -44,7 +44,6 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
-import static android.provider.MediaStore.VOLUME_EXTERNAL;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
@@ -1313,9 +1312,9 @@ public class MediaProvider extends ContentProvider {
         // Cleaning media files for users that have been removed
         cleanMediaFilesForRemovedUser(signal);
 
-        // Populate _SPECIAL_FORMAT column for files which have column value as NULL
-        // TODO(b/236620024): Do not update generation_modified for special_format value update
-        // detectSpecialFormat(signal);
+        // Calculate standard_mime_type_extension column for files which have SPECIAL_FORMAT column
+        // value as NULL, and update the same in the picker db
+        detectSpecialFormat(signal);
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
@@ -1428,9 +1427,14 @@ public class MediaProvider extends ContentProvider {
     private void updateSpecialFormatColumn(SQLiteDatabase db, @NonNull CancellationSignal signal) {
         // This is to ensure we only do a bounded iteration over the rows as updates can fail, and
         // we don't want to keep running the query/update indefinitely.
-        final int totalRowsToUpdate = getPendingSpecialFormatRowsCount(db,signal);
-        for (int i = 0 ; i < totalRowsToUpdate ; i += IDLE_MAINTENANCE_ROWS_LIMIT) {
-            updateSpecialFormatForLimitedRows(db, signal);
+        final int totalRowsToUpdate = getPendingSpecialFormatRowsCount(db, signal);
+        for (int i = 0; i < totalRowsToUpdate; i += IDLE_MAINTENANCE_ROWS_LIMIT) {
+            try (PickerDbFacade.UpdateMediaOperation operation =
+                         mPickerDbFacade.beginUpdateMediaOperation(
+                                 PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)) {
+                updateSpecialFormatForLimitedRows(db, signal, operation);
+                operation.setSuccess();
+            }
         }
     }
 
@@ -1444,14 +1448,12 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void updateSpecialFormatForLimitedRows(SQLiteDatabase db,
-            @NonNull CancellationSignal signal) {
-        final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE, FILES,
-                Files.getContentUri(VOLUME_EXTERNAL), Bundle.EMPTY, null);
+    private void updateSpecialFormatForLimitedRows(SQLiteDatabase externalDb,
+            @NonNull CancellationSignal signal, PickerDbFacade.UpdateMediaOperation operation) {
         // Accumulate all the new SPECIAL_FORMAT updates with their ids
         ArrayMap<Long, Integer> newSpecialFormatValues = new ArrayMap<>();
         final String limit = String.valueOf(IDLE_MAINTENANCE_ROWS_LIMIT);
-        try (Cursor c = queryForPendingSpecialFormatColumns(db, limit, signal)) {
+        try (Cursor c = queryForPendingSpecialFormatColumns(externalDb, limit, signal)) {
             while (c.moveToNext() && !signal.isCanceled()) {
                 final long id = c.getLong(0);
                 final String path = c.getString(1);
@@ -1459,25 +1461,35 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        // Now, update all the new SPECIAL_FORMAT values.
-        final ContentValues values = new ContentValues();
+        // Now, update all the new SPECIAL_FORMAT values in both external db and picker db.
+        final ContentValues pickerDbValues = new ContentValues();
+        final ContentValues externalDbValues = new ContentValues();
         int count = 0;
-        for (long id: newSpecialFormatValues.keySet()) {
+        for (long id : newSpecialFormatValues.keySet()) {
             if (signal.isCanceled()) {
                 return;
             }
 
-            values.clear();
-            values.put(_SPECIAL_FORMAT, newSpecialFormatValues.get(id));
-            final String selection = MediaColumns._ID + "=?";
-            final String[] selectionArgs = new String[]{String.valueOf(id)};
-            if (qbForUpdate.update(db, values, selection, selectionArgs) == 1) {
+            int specialFormat = newSpecialFormatValues.get(id);
+
+            pickerDbValues.clear();
+            pickerDbValues.put(PickerDbFacade.KEY_STANDARD_MIME_TYPE_EXTENSION, specialFormat);
+            boolean pickerDbWriteSuccess = operation.execute(String.valueOf(id), pickerDbValues);
+
+            externalDbValues.clear();
+            externalDbValues.put(_SPECIAL_FORMAT, specialFormat);
+            final String externalDbSelection = MediaColumns._ID + "=?";
+            final String[] externalDbSelectionArgs = new String[]{String.valueOf(id)};
+            boolean externalDbWriteSuccess =
+                    externalDb.update("files", externalDbValues, externalDbSelection,
+                            externalDbSelectionArgs)
+                            == 1;
+
+            if (pickerDbWriteSuccess && externalDbWriteSuccess) {
                 count++;
-            } else {
-                Log.e(TAG, "Unable to update _SPECIAL_FORMAT for id = " + id);
             }
         }
-        Log.d(TAG, "Updated _SPECIAL_FORMAT for " + count + " items");
+        Log.d(TAG, "Updated standard_mime_type_extension for " + count + " items");
     }
 
     private int getSpecialFormatValue(String path) {
@@ -3130,27 +3142,31 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
-            // TODO(b/177049768): We shouldn't use getExternalStorageDirectory for these checks.
-            final File directoryAndroid = new File(Environment.getExternalStorageDirectory(),
-                    DIRECTORY_ANDROID_LOWER_CASE);
+            final File directoryAndroid = new File(
+                    extractVolumePath(oldPath).toLowerCase(Locale.ROOT),
+                    DIRECTORY_ANDROID_LOWER_CASE
+            );
             final File directoryAndroidMedia = new File(directoryAndroid, DIRECTORY_MEDIA);
+            String newPathLowerCase = newPath.toLowerCase(Locale.ROOT);
             if (directoryAndroidMedia.getAbsolutePath().equalsIgnoreCase(oldPath)) {
                 // Don't allow renaming 'Android/media' directory.
                 // Android/[data|obb] are bind mounted and these paths don't go through FUSE.
                 Log.e(TAG, errorMessage +  oldPath + " is a default folder in app external "
                         + "directory. Renaming a default folder is not allowed.");
                 return OsConstants.EPERM;
-            } else if (FileUtils.contains(directoryAndroid, new File(newPath))) {
-                if (newRelativePath.length == 1) {
-                    // New path is Android/*. Path is directly under Android. Don't allow moving
-                    // files and directories to Android/.
+            } else if (FileUtils.contains(directoryAndroid, new File(newPathLowerCase))) {
+                if (newRelativePath.length <= 2) {
+                    // Path is directly under Android, Android/media, Android/data, Android/obb or
+                    // some other directory under Android. Don't allow moving files and directories
+                    // in these paths. Files and directories are only allowed to move to path
+                    // Android/media/<app_specific_directory>/*
                     Log.e(TAG, errorMessage +  newPath + " is in app external directory. "
                             + "Renaming a file/directory to app external directory is not "
                             + "allowed.");
                     return OsConstants.EPERM;
-                } else if(!FileUtils.contains(directoryAndroidMedia, new File(newPath))) {
-                    // New path is  Android/*/*. Don't allow moving of files or directories
-                    // to app external directory other than media directory.
+                } else if (!FileUtils.contains(directoryAndroidMedia, new File(newPathLowerCase))) {
+                    // New path is not in Android/media/*. Don't allow moving of files or
+                    // directories to app external directory other than media directory.
                     Log.e(TAG, errorMessage +  newPath + " is not in external media directory."
                             + "File/directory can only be renamed to a path in external media "
                             + "directory. Renaming file/directory to path in other external "

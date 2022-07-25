@@ -535,8 +535,14 @@ public class DatabaseUtils {
         return sb.toString();
     }
 
-    public static String replaceMatchAnyChar(@NonNull String arg) {
-        return arg.replace('*', '%');
+    public static String[] replaceMatchAnyChar(@NonNull String[] arg) {
+        String[] result = arg.clone();
+        for (int i = 0; i < arg.length; i++) {
+            if (result[i] != null) {
+                result[i] = result[i].replace('*', '%');
+            }
+        }
+        return result;
     }
 
     public static boolean parseBoolean(@Nullable Object value, boolean def) {

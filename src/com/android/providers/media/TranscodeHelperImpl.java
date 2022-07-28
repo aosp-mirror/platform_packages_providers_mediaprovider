@@ -57,9 +57,9 @@ import android.media.MediaCodec;
 import android.media.MediaFeature;
 import android.media.MediaFormat;
 import android.media.MediaTranscodingManager;
-import android.media.MediaTranscodingManager.VideoTranscodingRequest;
 import android.media.MediaTranscodingManager.TranscodingRequest.VideoFormatResolver;
 import android.media.MediaTranscodingManager.TranscodingSession;
+import android.media.MediaTranscodingManager.VideoTranscodingRequest;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -101,7 +101,6 @@ import com.android.providers.media.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -116,8 +115,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -1669,10 +1668,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         private static final int ALERT_DISMISS_DELAY_MS = 1000;
         private static final int SHOW_PROGRESS_THRESHOLD_TIME_MS = 1000;
         private static final String TRANSCODE_ALERT_CHANNEL_ID = "native_transcode_alert_channel";
-        private static final String TRANSCODE_ALERT_CHANNEL_NAME = "Native Transcode Alerts";
         private static final String TRANSCODE_PROGRESS_CHANNEL_ID =
                 "native_transcode_progress_channel";
-        private static final String TRANSCODE_PROGRESS_CHANNEL_NAME = "Native Transcode Progress";
 
         // Related to notification settings
         private static final String TRANSCODE_NOTIFICATION_SYS_PROP_KEY =
@@ -1794,7 +1791,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
 
         private static void createAlertNotificationChannel(Context context) {
             NotificationChannel channel = new NotificationChannel(TRANSCODE_ALERT_CHANNEL_ID,
-                    TRANSCODE_ALERT_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
+                    getString(context, R.string.transcode_alert_channel),
+                    NotificationManager.IMPORTANCE_HIGH);
             NotificationManager notificationManager = context.getSystemService(
                     NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
@@ -1802,7 +1800,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
 
         private static void createProgressNotificationChannel(Context context) {
             NotificationChannel channel = new NotificationChannel(TRANSCODE_PROGRESS_CHANNEL_ID,
-                    TRANSCODE_PROGRESS_CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW);
+                    getString(context, R.string.transcode_progress_channel),
+                    NotificationManager.IMPORTANCE_LOW);
             NotificationManager notificationManager = context.getSystemService(
                     NotificationManager.class);
             notificationManager.createNotificationChannel(channel);

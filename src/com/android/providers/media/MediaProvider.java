@@ -7381,14 +7381,14 @@ public class MediaProvider extends ContentProvider {
                                 helper.postBackground(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
                                     if (notifyTranscodeHelper) {
-                                        notifyTranscodeHelperOnUriPublished(updatedUri);
+                                        notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
                                 });
                             } else {
                                 helper.postBlocking(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
                                     if (notifyTranscodeHelper) {
-                                        notifyTranscodeHelperOnUriPublished(updatedUri);
+                                        notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
                                 });
                             }
@@ -7442,7 +7442,11 @@ public class MediaProvider extends ContentProvider {
         return isSrcUpdateAllowed && isDestUpdateAllowed;
     }
 
-    private void notifyTranscodeHelperOnUriPublished(Uri uri) {
+    private void notifyTranscodeHelperOnUriPublished(Uri uri, File file) {
+        if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
+            return;
+        }
+
         BackgroundThread.getExecutor().execute(() -> {
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try {
@@ -7455,6 +7459,10 @@ public class MediaProvider extends ContentProvider {
 
     private void notifyTranscodeHelperOnFileOpen(String path, String ioPath, int uid,
             int transformsReason) {
+        if (!mTranscodeHelper.supportsTranscode(path)) {
+            return;
+        }
+
         BackgroundThread.getExecutor().execute(() -> {
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try {

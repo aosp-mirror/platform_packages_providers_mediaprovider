@@ -120,4 +120,6 @@
     <string name="transcode_processing" msgid="6753136468864077258">"جارٍ معالجة الوسائط…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"إلغاء"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"الانتظار"</string>
+    <!-- no translation found for safety_protection_icon_label (6714354052747723623) -->
+    <skip />
 </resources>

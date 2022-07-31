@@ -3989,8 +3989,8 @@ public class MediaProvider extends ContentProvider {
                 // gallery is not allowed to create non-default top level directory.
                 final boolean createNonDefaultTopLevelDir = primary != null &&
                         !FileUtils.buildPath(volumePath, primary).exists();
-                validPath = !createNonDefaultTopLevelDir && canAccessMediaFile(
-                        res.getAbsolutePath(), /*excludeNonSystemGallery*/ true);
+                validPath = !createNonDefaultTopLevelDir && canSystemGalleryAccessTheFile(
+                        res.getAbsolutePath());
             }
 
             // Nothing left to check; caller can't use this path
@@ -7381,14 +7381,14 @@ public class MediaProvider extends ContentProvider {
                                 helper.postBackground(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
                                     if (notifyTranscodeHelper) {
-                                        notifyTranscodeHelperOnUriPublished(updatedUri);
+                                        notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
                                 });
                             } else {
                                 helper.postBlocking(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
                                     if (notifyTranscodeHelper) {
-                                        notifyTranscodeHelperOnUriPublished(updatedUri);
+                                        notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
                                 });
                             }
@@ -7416,9 +7416,8 @@ public class MediaProvider extends ContentProvider {
         }
 
         // 2. Check if the calling package is a special app which has global access
-        if (isCallingPackageManager() ||
-                (canAccessMediaFile(srcPath, /* excludeNonSystemGallery */ true) &&
-                        (canAccessMediaFile(destPath, /* excludeNonSystemGallery */ true)))) {
+        if (isCallingPackageManager() || (canSystemGalleryAccessTheFile(srcPath) &&
+            (canSystemGalleryAccessTheFile(destPath)))) {
             return true;
         }
 
@@ -7443,7 +7442,11 @@ public class MediaProvider extends ContentProvider {
         return isSrcUpdateAllowed && isDestUpdateAllowed;
     }
 
-    private void notifyTranscodeHelperOnUriPublished(Uri uri) {
+    private void notifyTranscodeHelperOnUriPublished(Uri uri, File file) {
+        if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
+            return;
+        }
+
         BackgroundThread.getExecutor().execute(() -> {
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try {
@@ -7456,6 +7459,10 @@ public class MediaProvider extends ContentProvider {
 
     private void notifyTranscodeHelperOnFileOpen(String path, String ioPath, int uid,
             int transformsReason) {
+        if (!mTranscodeHelper.supportsTranscode(path)) {
+            return;
+        }
+
         BackgroundThread.getExecutor().execute(() -> {
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try {
@@ -8495,9 +8502,6 @@ public class MediaProvider extends ContentProvider {
                 // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
                 // Tracking a longer term solution in b/168784136.
                 return true;
-            } else if (isCallingPackageRequestingLegacy()) {
-                // If requesting legacy, app should have W_E_S along with SystemGallery appops.
-                return false;
             } else if (!SdkLevel.isAtLeastS()) {
                 // We don't parse manifest flags for SdkLevel<=R yet. Hence, we don't bypass
                 // database updates for SystemGallery targeting R or above on R OS.
@@ -8514,18 +8518,16 @@ public class MediaProvider extends ContentProvider {
         return MimeUtils.resolveMediaType(mimeType);
     }
 
-    private boolean canAccessMediaFile(String filePath, boolean excludeNonSystemGallery) {
-        if (excludeNonSystemGallery && !isCallingPackageSystemGallery()) {
+    private boolean canSystemGalleryAccessTheFile(String filePath) {
+
+        if (!isCallingPackageSystemGallery()) {
             return false;
         }
-        switch (getFileMediaType(filePath)) {
-            case FileColumns.MEDIA_TYPE_IMAGE:
-                return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_IMAGES);
-            case FileColumns.MEDIA_TYPE_VIDEO:
-                return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_VIDEO);
-            default:
-                return false;
-        }
+
+        final int mediaType = getFileMediaType(filePath);
+
+        return mediaType ==  FileColumns.MEDIA_TYPE_IMAGE ||
+            mediaType ==  FileColumns.MEDIA_TYPE_VIDEO;
     }
 
     /**
@@ -8557,7 +8559,7 @@ public class MediaProvider extends ContentProvider {
 
         // Apps with write access to images and/or videos can bypass our restrictions if all of the
         // the files they're accessing are of the compatible media type.
-        if (canAccessMediaFile(filePath, /*excludeNonSystemGallery*/ false)) {
+        if (canSystemGalleryAccessTheFile(filePath)) {
             return true;
         }
 
@@ -10633,7 +10635,13 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isCallingPackageSystemGallery() {
-        return mCallingIdentity.get().hasPermission(PERMISSION_IS_SYSTEM_GALLERY);
+        if (mCallingIdentity.get().hasPermission(PERMISSION_IS_SYSTEM_GALLERY)) {
+            if (isCallingPackageRequestingLegacy()) {
+                return isCallingPackageLegacyWrite();
+            }
+            return true;
+        }
+        return false;
     }
 
     private int getCallingUidOrSelf() {

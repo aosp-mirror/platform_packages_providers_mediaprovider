@@ -627,6 +627,7 @@ public class MediaProvider extends ContentProvider {
                         if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
                             mUserCache.invalidateWorkProfileOwnerApps(pkg);
                             mPickerSyncController.notifyPackageRemoval(pkg);
+                            invalidateDentryForExternalStorage(pkg);
                         }
                     } else {
                         Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());
@@ -635,6 +636,18 @@ public class MediaProvider extends ContentProvider {
             }
         }
     };
+
+    private void invalidateDentryForExternalStorage(String packageName) {
+        for (MediaVolume vol : mVolumeCache.getExternalVolumes()) {
+            try {
+                invalidateFuseDentry(String.format(Locale.ROOT,
+                        "%s/Android/media/%s/", getVolumePath(vol.getName()).getAbsolutePath(),
+                        packageName));
+            } catch (FileNotFoundException e) {
+                Log.e(TAG, "External volume path not found for " + vol.getName(), e);
+            }
+        }
+    }
 
     private BroadcastReceiver mUserIntentReceiver = new BroadcastReceiver() {
         @Override

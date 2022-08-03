@@ -1529,7 +1529,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
                         + "||':'||old.is_trashed||':'||new.is_trashed"
                         + "||':'||old.is_pending||':'||new.is_pending"
-                        + "||':'||old.is_favorite||':'||new.is_favorite"
+                        + "||':'||ifnull(old.is_favorite,0)"
+                        + "||':'||ifnull(new.is_favorite,0)"
                         + "||':'||ifnull(old._special_format,0)"
                         + "||':'||ifnull(new._special_format,0)"
                         + "||':'||ifnull(old.owner_package_name,'null')"
@@ -1877,7 +1878,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_S = 1209;
     // Leave some gaps in database version tagging to allow S schema changes
     // to go independent of T schema changes.
-    static final int VERSION_T = 1307;
+    static final int VERSION_T = 1308;
     public static final int VERSION_LATEST = VERSION_T;
 
     /**
@@ -2073,6 +2074,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (fromVersion < 1307) {
                 // This is to ensure Animated Webp files are tagged
                 updateSpecialFormatToNotDetected(db);
+            }
+            if (fromVersion < 1308) {
+                // Empty version bump to ensure triggers are recreated
             }
 
             // If this is the legacy database, it's not worth recomputing data

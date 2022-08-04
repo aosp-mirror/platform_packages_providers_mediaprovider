@@ -420,8 +420,8 @@ public class FileUtils {
             // When file size exceeds MAX_READ_STRING_SIZE, file is either
             // corrupted or doesn't the contain expected data. Hence we return
             // Optional.empty() which will be interpreted as empty file.
-            Logging.logPersistent(String.format("Ignored reading %s, file size exceeds %d", file,
-                    MAX_READ_STRING_SIZE));
+            Logging.logPersistent(String.format(Locale.ROOT,
+                    "Ignored reading %s, file size exceeds %d", file, MAX_READ_STRING_SIZE));
         } catch (NoSuchFileException ignored) {
         }
         return Optional.empty();

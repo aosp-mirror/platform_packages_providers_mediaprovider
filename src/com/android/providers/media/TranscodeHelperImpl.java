@@ -1654,7 +1654,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
                 errorCode = mErrorCode;
             }
 
-            return String.format("<%s. Src: %s. Dst: %s. BlockedUids: %s. DurationMs: %sms"
+            return String.format(Locale.ROOT,
+                    "<%s. Src: %s. Dst: %s. BlockedUids: %s. DurationMs: %sms"
                     + ". Start: %s. Finish: %sms. HasAnr: %b. FailureReason: %d. ErrorCode: %d>",
                     session.toString(), mSrcPath, mDstPath, session.getClientUids(), durationMs,
                     startTime, finishTime, hasAnr, failureReason, errorCode);

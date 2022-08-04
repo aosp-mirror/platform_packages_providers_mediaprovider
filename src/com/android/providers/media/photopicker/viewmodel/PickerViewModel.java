@@ -357,6 +357,30 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger.logBrowseToDocumentsUi(mInstanceId, callingUid, callingPackage);
     }
 
+    /**
+     * Log metrics to notify that the user has confirmed selection
+     */
+    public void logPickerConfirm(int callingUid, String callingPackage, int countOfItemsConfirmed) {
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerConfirmWork(mInstanceId, callingUid, callingPackage,
+                    countOfItemsConfirmed);
+        } else {
+            mLogger.logPickerConfirmPersonal(mInstanceId, callingUid, callingPackage,
+                    countOfItemsConfirmed);
+        }
+    }
+
+    /**
+     * Log metrics to notify that the user has exited Picker without any selection
+     */
+    public void logPickerCancel(int callingUid, String callingPackage) {
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerCancelWork(mInstanceId, callingUid, callingPackage);
+        } else {
+            mLogger.logPickerCancelPersonal(mInstanceId, callingUid, callingPackage);
+        }
+    }
+
     public InstanceId getInstanceId() {
         return mInstanceId;
     }

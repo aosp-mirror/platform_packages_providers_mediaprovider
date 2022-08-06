@@ -16,6 +16,8 @@
 
 package com.android.providers.media.util;
 
+import java.util.Locale;
+
 public final class Preconditions {
 
     /**
@@ -49,11 +51,11 @@ public final class Preconditions {
             String valueName) {
         if (value < lower) {
             throw new IllegalArgumentException(
-                    String.format(
+                    String.format(Locale.ROOT,
                             "%s is out of range of [%d, %d] (too low)", valueName, lower, upper));
         } else if (value > upper) {
             throw new IllegalArgumentException(
-                    String.format(
+                    String.format(Locale.ROOT,
                             "%s is out of range of [%d, %d] (too high)", valueName, lower, upper));
         }
 

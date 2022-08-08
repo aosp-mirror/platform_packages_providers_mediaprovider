@@ -496,9 +496,8 @@ static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child
 }
 
 static double get_entry_timeout(const string& path, bool should_inval, struct fuse* fuse) {
-    string media_path = fuse->GetEffectiveRootPath() + "/Android/media";
     if (fuse->disable_dentry_cache || should_inval || is_package_owned_path(path, fuse->path) ||
-        android::base::StartsWithIgnoreCase(path, media_path) || fuse->ShouldNotCache(path)) {
+        fuse->ShouldNotCache(path)) {
         // We set dentry timeout to 0 for the following reasons:
         // 1. The dentry cache was completely disabled for the entire volume.
         // 2.1 Case-insensitive lookups need to invalidate other case-insensitive dentry matches
@@ -507,10 +506,7 @@ static double get_entry_timeout(const string& path, bool should_inval, struct fu
         // 3. With app data isolation enabled, app A should not guess existence of app B from the
         // Android/{data,obb}/<package> paths, hence we prevent the kernel from caching that
         // information.
-        // 4. Installd might delete Android/media/<package> dirs when app data is cleared.
-        // This can leave a stale entry in the kernel dcache, and break subsequent creation of the
-        // dir via FUSE.
-        // 5. The dentry cache was completely disabled for the given path.
+        // 4. The dentry cache was completely disabled for the given path.
         return 0;
     }
     return std::numeric_limits<double>::max();

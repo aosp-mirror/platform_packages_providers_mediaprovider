@@ -658,10 +658,30 @@ public class PickerSyncControllerTest {
     }
 
     @Test
-    public void testSelectDefaultCloudProivder_DefaultAuthoritySet() {
+    public void testSelectDefaultCloudProvider_defaultAuthoritySet() {
         PickerSyncController controller = createControllerWithDefaultProvider(
                 CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         assertThat(controller.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+    }
+
+    @Test
+    public void testSelectDefaultCloudProvider_userAwareAboutCloudMediaAppSettings() {
+        PickerSyncController controller = createControllerWithDefaultProvider(
+                CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        assertThat(controller.getDefaultCloudProviderInfo(null, false).isEmpty()).isFalse();
+        assertThat(controller.getDefaultCloudProviderInfo(null, true).isEmpty()).isTrue();
+    }
+
+    @Test
+    public void testNotifyUserCloudMediaAware() {
+        assertThat(mController.isUserAwareAboutCloudMediaAppSettings()).isFalse();
+
+        mController.notifyUserCloudMediaAware();
+
+        assertThat(mController.isUserAwareAboutCloudMediaAppSettings()).isTrue();
+
+        mController.clearUserAwareAboutCloudMediaAppSettingsFlag();
     }
 
     @Test

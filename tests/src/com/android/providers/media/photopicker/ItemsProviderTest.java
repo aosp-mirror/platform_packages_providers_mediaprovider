@@ -482,7 +482,7 @@ public class ItemsProviderTest {
         File videoFile = assertCreateNewVideo();
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "image/*", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{ "image/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
 
@@ -504,7 +504,7 @@ public class ItemsProviderTest {
         File imageFile = assertCreateNewImage();
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "image/png", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{"image/png"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
         } finally {
@@ -526,7 +526,7 @@ public class ItemsProviderTest {
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "image/*", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{"image/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
         } finally {
@@ -549,7 +549,7 @@ public class ItemsProviderTest {
         File videoFile = assertCreateNewVideo();
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "video/*", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{"video/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
 
@@ -571,7 +571,7 @@ public class ItemsProviderTest {
         File videoFile = assertCreateNewVideo();
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "video/mp4", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{"video/mp4"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
         } finally {
@@ -592,7 +592,7 @@ public class ItemsProviderTest {
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "video/*", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{"video/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
         } finally {

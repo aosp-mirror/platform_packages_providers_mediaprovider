@@ -57,24 +57,31 @@ public class MimeFilterUtils {
     /**
      * Extracts relevant mime type filter for the given intent
      */
-    public static String getMimeTypeFilter(Intent intent) {
+    public static String[] getMimeTypeFilters(Intent intent) throws IllegalArgumentException {
         // EXTRA_MIME_TYPES has higher priority over getType() filter.
         if (intent.hasExtra(Intent.EXTRA_MIME_TYPES)) {
             final String[] extraMimeTypes = intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES);
 
-            if (extraMimeTypes.length == 1) {
-                // We only support 1 mime type filter
-                // TODO(b/224756380): Add support for multiple mime type filters
-                return extraMimeTypes[0];
+            if (requiresUnsupportedFilters(extraMimeTypes)) {
+                if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
+                    // This is a special case in which PhotoPicker is explicitly opened from
+                    // DocumentsUI as it is seen as one of the options. In this show all images
+                    // and videos.
+                    // If this was not a special case, then the picker would close itself and
+                    // redirect the request to DocumentsUI before hitting this point.
+                    return null;
+                }
+
+                throw new IllegalArgumentException("Invalid EXTRA_MIME_TYPES value, only media "
+                        + "mime type filters are accepted");
             }
 
-            // Show all images/videos for multiple or empty mime type filters
-            return null;
+            return extraMimeTypes;
         }
 
         final String mimeType = intent.getType();
         if (MimeFilterUtils.isMimeTypeMedia(mimeType)) {
-            return mimeType;
+            return new String[] { mimeType };
         }
 
         return null;
@@ -86,13 +93,8 @@ public class MimeFilterUtils {
             return true;
         }
 
-        // TODO(b/224756380): Add support for multiple mime type filters
-        if (mimeTypeFilters.length > 1) {
-            return true;
-        }
-
         for (String mimeTypeFilter : mimeTypeFilters) {
-            if (!MimeFilterUtils.isMimeTypeMedia(mimeTypeFilter)) {
+            if (!isMimeTypeMedia(mimeTypeFilter)) {
                 return true;
             }
         }

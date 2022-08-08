@@ -121,6 +121,7 @@ public class IdleServiceTest {
         final File b = touch(buildPath(dir, DIRECTORY_MOVIES, ".thumbnails", "7654321.jpg"));
         final File c = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", id + ".jpg"));
         final File d = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", "random.bin"));
+        final File e = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", ".nomedia"));
 
         // Idle maintenance pass should clean up unknown files
         MediaStore.runIdleMaintenance(resolver);
@@ -128,6 +129,7 @@ public class IdleServiceTest {
         assertFalse(exists(b));
         assertTrue(exists(c));
         assertFalse(exists(d));
+        assertTrue(exists(e));
 
         // And change the UUID, which emulates ejecting and mounting a different
         // storage device; all thumbnails should then be invalidated
@@ -136,12 +138,13 @@ public class IdleServiceTest {
         delete(uuidFile);
         touch(uuidFile);
 
-        // Idle maintenance pass should clean up all files
+        // Idle maintenance pass should clean up all files except .nomedia file
         MediaStore.runIdleMaintenance(resolver);
         assertFalse(exists(a));
         assertFalse(exists(b));
         assertFalse(exists(c));
         assertFalse(exists(d));
+        assertTrue(exists(e));
     }
 
     /**
@@ -246,9 +249,8 @@ public class IdleServiceTest {
                 assertThat(cr.getCount()).isEqualTo(1);
                 assertThat(cr.moveToFirst()).isNotNull();
                 assertThat(cr.getInt(0)).isEqualTo(_SPECIAL_FORMAT_NONE);
-                // Make sure updating special format column updates GENERATION_MODIFIED;
-                // This is essential for picker db to know which rows were modified.
-                assertThat(cr.getInt(1)).isGreaterThan(initialGenerationModified);
+                // Make sure that updating special format column doesn't update GENERATION_MODIFIED
+                assertThat(cr.getInt(1)).isEqualTo(initialGenerationModified);
             }
         } finally {
             file.delete();

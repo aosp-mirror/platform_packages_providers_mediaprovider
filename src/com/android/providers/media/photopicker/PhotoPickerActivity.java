@@ -104,6 +104,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private int mToolbarHeight = 0;
     private boolean mIsAccessibilityEnabled;
+    private boolean mShouldLogCancelledResult = true;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -141,7 +142,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
             mPickerViewModel.parseValuesFromIntent(intent);
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Finish activity due to an exception while parsing extras", e);
-            setCancelledResultAndFinishSelf();
+            finishWithoutLoggingCancelledResult();
         }
 
         mDragBar = findViewById(R.id.drag_bar);
@@ -278,7 +279,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         startActivityAsUser(getDocumentsUiForwardingIntent(this, getIntent()),
                 UserId.CURRENT_USER.getUserHandle());
-        finish();
+        // RESULT_CANCELLED is not returned to the calling app as the DocumentsUi result will be
+        // returned. We don't have to log as this flow can be called in 2 cases:
+        // 1. GET_CONTENT had non-media filters, so the user or the app should be unaffected as they
+        // see that DocumentsUi was opened directly.
+        // 2. User clicked on "Browse.." button, in that case we already log that event separately.
+        finishWithoutLoggingCancelledResult();
     }
 
     @VisibleForTesting
@@ -426,12 +432,37 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void setResultAndFinishSelf() {
         setResult(Activity.RESULT_OK, getPickerResponseIntent(mSelection.canSelectMultiple(),
                 mSelection.getSelectedItems()));
+
+        logPickerSelectionConfirmed(mSelection.getSelectedItems().size());
+        finishWithoutLoggingCancelledResult();
+    }
+
+    /**
+     * This should be called if:
+     * * We are finishing Picker explicitly before the user has seen PhotoPicker UI due to known
+     *   checks/workflow.
+     * * We are not returning {@link Activity#RESULT_CANCELED}
+     */
+    private void finishWithoutLoggingCancelledResult() {
+        mShouldLogCancelledResult = false;
         finish();
     }
 
-    private void setCancelledResultAndFinishSelf() {
-        setResult(Activity.RESULT_CANCELED);
-        finish();
+    @Override
+    public void finish() {
+        if (mShouldLogCancelledResult) {
+            logPickerCancelled();
+        }
+        super.finish();
+    }
+
+    private void logPickerSelectionConfirmed(int countOfItemsConfirmed) {
+        mPickerViewModel.logPickerConfirm(Binder.getCallingUid(), getCallingPackage(),
+                countOfItemsConfirmed);
+    }
+
+    private void logPickerCancelled() {
+        mPickerViewModel.logPickerCancel(Binder.getCallingUid(), getCallingPackage());
     }
 
     /**

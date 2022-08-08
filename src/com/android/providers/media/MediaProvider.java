@@ -740,7 +740,7 @@ public class MediaProvider extends ContentProvider {
                     insertedRow.getId(), insertedRow.getMediaType(), insertedRow.isDownload());
             updateNextRowIdXattr(helper, insertedRow.getId());
             helper.postBackground(() -> {
-                if (helper.isExternal()) {
+                if (helper.isExternal() && !isFuseThread()) {
                     // Update the quota type on the filesystem
                     Uri fileUri = MediaStore.Files.getContentUri(insertedRow.getVolumeName(),
                             insertedRow.getId());

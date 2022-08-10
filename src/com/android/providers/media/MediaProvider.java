@@ -8345,10 +8345,9 @@ public class MediaProvider extends ContentProvider {
             requireOwnershipForItem(ownerPackageName, uri);
         }
 
-        final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
         // Figure out if we need to redact contents
-        final boolean redactionNeeded =
-                (redactedUri != null) || (!callerIsOwner && isRedactionNeeded(uri));
+        final boolean redactionNeeded = isRedactionNeededForOpenViaContentResolver(redactedUri,
+                ownerPackageName, file);
         final RedactionInfo redactionInfo;
         try {
             redactionInfo = redactionNeeded ? getRedactionRanges(file)
@@ -8466,6 +8465,27 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private boolean isRedactionNeededForOpenViaContentResolver(Uri redactedUri,
+            String ownerPackageName, File file) {
+        // Redacted Uris should always redact information
+        if (redactedUri != null) {
+            return true;
+        }
+
+        final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
+        if (callerIsOwner) {
+            return false;
+        }
+
+        // To be consistent with FUSE redaction checks we allow similar access for File Manager
+        // and System Gallery apps.
+        if (isCallingPackageManager() || canSystemGalleryAccessTheFile(file.getPath())) {
+            return false;
+        }
+
+        return isRedactionNeeded();
+    }
+
     private void deleteAndInvalidate(@NonNull Path path) {
         deleteAndInvalidate(path.toFile());
     }
@@ -8556,7 +8576,7 @@ public class MediaProvider extends ContentProvider {
      * Returns true if:
      * <ul>
      * <li>the calling identity is an app targeting Q or older versions AND is requesting legacy
-     * storage
+     * storage and has the corresponding legacy access (read/write) permissions
      * <li>the calling identity holds {@code MANAGE_EXTERNAL_STORAGE}
      * <li>the calling identity owns or has access to the filePath (eg /Android/data/com.foo)
      * <li>the calling identity has permission to write images and the given file is an image file

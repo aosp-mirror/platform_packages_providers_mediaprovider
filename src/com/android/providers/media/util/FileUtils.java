@@ -1607,7 +1607,7 @@ public class FileUtils {
         }
 
         // .nomedia is present which makes this directory as hidden directory
-        Logging.logPersistent("Observed non-standard " + nomedia);
+        Log.d(TAG, "Observed non-standard " + nomedia);
         return true;
     }
 

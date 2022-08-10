@@ -10759,6 +10759,37 @@ public class MediaProvider extends ContentProvider {
         mTranscodeHelper.dump(writer);
         writer.println();
 
+        dumpNoMedia(writer);
+        writer.println();
+
         Logging.dumpPersistent(writer);
+    }
+
+    private void dumpNoMedia(PrintWriter writer) {
+        final DatabaseHelper helper;
+        try {
+            helper = getDatabaseForUri(MediaStore.Files.EXTERNAL_CONTENT_URI);
+        } catch (VolumeNotFoundException e) {
+            Log.w(TAG, "Volume not found", e);
+            return;
+        }
+
+        writer.println(MediaStore.VOLUME_EXTERNAL + " nomedia files:");
+        final int noMediaDumpFrequency = 100;
+
+        try (Cursor cursor = helper.runWithoutTransaction(
+                db -> db.query("files", new String[]{FileColumns.DATA},
+                        FileColumns.DATA + " LIKE '%.nomedia'", null, null, null, null))) {
+            final int dataColumnIndex = cursor.getColumnIndex(FileColumns.DATA);
+            final StringBuilder nomediaPaths = new StringBuilder();
+            while (cursor.moveToNext()) {
+                nomediaPaths.append(cursor.getString(dataColumnIndex)).append("\n");
+                if (cursor.getPosition() % noMediaDumpFrequency == 0) {
+                    writer.print(nomediaPaths);
+                    nomediaPaths.setLength(0);
+                }
+            }
+            writer.println(nomediaPaths);
+        }
     }
 }

@@ -343,7 +343,12 @@ public class PickerDataLayerTest {
         try (Cursor cr = mDataLayer.fetchAlbums(defaultQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(4);
 
-            assertAlbumCursor(cr, ALBUM_ID_FAVORITES, LOCAL_PROVIDER_AUTHORITY);
+            // Most recent media item marked as favorite will be the cover of the Favorites album.
+            // In this scenario, Favorites album cover was generated with cloud authority, so the
+            // Favorites album authority should be cloud provider authority. Similarly, the most
+            // recent video was generated with local authority, so the Videos album authority should
+            // be local provider authority.
+            assertAlbumCursor(cr, ALBUM_ID_FAVORITES, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_VIDEOS, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
@@ -504,7 +509,10 @@ public class PickerDataLayerTest {
         try (Cursor cr = mDataLayer.fetchAlbums(mimeTypeAndSizeQueryArgs)) {
             assertWithMessage("Merged and Local album count").that(cr.getCount()).isEqualTo(3);
 
-            assertAlbumCursor(cr, ALBUM_ID_VIDEOS, LOCAL_PROVIDER_AUTHORITY);
+            // Most recent video will be the cover of the Videos album. In this scenario, Videos
+            // album cover was generated with cloud authority, so the Videos album authority should
+            // be cloud provider authority.
+            assertAlbumCursor(cr, ALBUM_ID_VIDEOS, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }

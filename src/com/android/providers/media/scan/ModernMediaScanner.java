@@ -92,7 +92,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.MediaVolume;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
@@ -119,7 +118,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -1210,22 +1208,6 @@ public class ModernMediaScanner implements MediaScanner {
         return op;
     }
 
-    private static ArrayMap<String, String> sAudioTypes = new ArrayMap<>();
-
-    static {
-        sAudioTypes.put(Environment.DIRECTORY_RINGTONES, AudioColumns.IS_RINGTONE);
-        sAudioTypes.put(Environment.DIRECTORY_NOTIFICATIONS, AudioColumns.IS_NOTIFICATION);
-        sAudioTypes.put(Environment.DIRECTORY_ALARMS, AudioColumns.IS_ALARM);
-        sAudioTypes.put(Environment.DIRECTORY_PODCASTS, AudioColumns.IS_PODCAST);
-        sAudioTypes.put(Environment.DIRECTORY_AUDIOBOOKS, AudioColumns.IS_AUDIOBOOK);
-        sAudioTypes.put(Environment.DIRECTORY_MUSIC, AudioColumns.IS_MUSIC);
-        if (SdkLevel.isAtLeastS()) {
-            sAudioTypes.put(Environment.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
-        } else {
-            sAudioTypes.put(FileUtils.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
-        }
-    }
-
     private static @NonNull ContentProviderOperation.Builder scanItemAudio(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, int mediaType,
             String volumeName) {
@@ -1236,17 +1218,7 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(MediaColumns.ALBUM, file.getParentFile().getName());
         op.withValue(AudioColumns.TRACK, null);
 
-        final String lowPath = file.getAbsolutePath().toLowerCase(Locale.ROOT);
-        boolean anyMatch = false;
-        for (int i = 0; i < sAudioTypes.size(); i++) {
-            final boolean match = lowPath
-                    .contains('/' + sAudioTypes.keyAt(i).toLowerCase(Locale.ROOT) + '/');
-            op.withValue(sAudioTypes.valueAt(i), match ? 1 : 0);
-            anyMatch |= match;
-        }
-        if (!anyMatch) {
-            op.withValue(AudioColumns.IS_MUSIC, 1);
-        }
+        FileUtils.computeAudioTypeValuesFromData(file.getAbsolutePath(), op::withValue);
 
         try (FileInputStream is = new FileInputStream(file)) {
             try (MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
@@ -1510,9 +1482,13 @@ public class ModernMediaScanner implements MediaScanner {
     @VisibleForTesting
     static @NonNull Optional<Integer> parseOptionalOrientation(int orientation) {
         switch (orientation) {
+            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
             case ExifInterface.ORIENTATION_NORMAL: return Optional.of(0);
+            case ExifInterface.ORIENTATION_TRANSPOSE:
             case ExifInterface.ORIENTATION_ROTATE_90: return Optional.of(90);
+            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
             case ExifInterface.ORIENTATION_ROTATE_180: return Optional.of(180);
+            case ExifInterface.ORIENTATION_TRANSVERSE:
             case ExifInterface.ORIENTATION_ROTATE_270: return Optional.of(270);
             default: return Optional.empty();
         }

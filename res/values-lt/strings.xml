@@ -120,4 +120,9 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Medija apdorojama…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Atšaukti"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Palaukti"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Apsauga"</string>
+    <!-- no translation found for transcode_alert_channel (997332371757680478) -->
+    <skip />
+    <!-- no translation found for transcode_progress_channel (6905136787933058387) -->
+    <skip />
 </resources>

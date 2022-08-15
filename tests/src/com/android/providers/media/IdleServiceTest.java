@@ -249,9 +249,8 @@ public class IdleServiceTest {
                 assertThat(cr.getCount()).isEqualTo(1);
                 assertThat(cr.moveToFirst()).isNotNull();
                 assertThat(cr.getInt(0)).isEqualTo(_SPECIAL_FORMAT_NONE);
-                // Make sure updating special format column updates GENERATION_MODIFIED;
-                // This is essential for picker db to know which rows were modified.
-                assertThat(cr.getInt(1)).isGreaterThan(initialGenerationModified);
+                // Make sure that updating special format column doesn't update GENERATION_MODIFIED
+                assertThat(cr.getInt(1)).isEqualTo(initialGenerationModified);
             }
         } finally {
             file.delete();

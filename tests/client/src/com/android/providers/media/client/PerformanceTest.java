@@ -18,7 +18,6 @@ package com.android.providers.media.client;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.ContentProviderOperation;
@@ -27,9 +26,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.ContentObserver;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Environment;
-import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
@@ -383,10 +380,10 @@ public class PerformanceTest {
                     selfChange, asSet(uris).toString(), flags));
 
             if (this.uriCount == 1) {
-                if (asSet(uris).size() == 1 && flags == this.flags) {
+                if (asSet(uris).size() == 1 && (flags & this.flags) == this.flags) {
                     latch.countDown();
                 }
-            } else if (flags == this.flags) {
+            } else if ((flags & this.flags) == this.flags) {
                 // NotifyChange for bulk operations will be sent in batches.
                 final int receivedCount = asSet(uris).size();
 

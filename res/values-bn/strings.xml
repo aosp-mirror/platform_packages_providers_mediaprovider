@@ -120,4 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"মিডিয়া ফাইল প্রসেস করা হচ্ছে…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"বাতিল করুন"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"অপেক্ষা করুন"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"নিরাপত্তার সুরক্ষা"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"নেটিভ ট্রান্সকোড অ্যালার্ট"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"নেটিভ ট্রান্সকোড প্রোগ্রেস"</string>
 </resources>

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!--
   ~ Copyright (C) 2022 The Android Open Source Project
   ~
@@ -13,9 +14,8 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<resources>
-    <!-- Override StyledPlayerView default control buttons -->
-    <drawable name="exo_styled_controls_play">@drawable/ic_preview_play</drawable>
-    <drawable name="exo_styled_controls_pause">@drawable/ic_preview_pause</drawable>
 
-</resources>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@android:color/white"/>
+    <foreground android:drawable="@mipmap/picker_app_icon_foreground"/>
+</adaptive-icon>

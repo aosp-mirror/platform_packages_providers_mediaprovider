@@ -915,6 +915,33 @@ static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
     if (backing_fd != -1) close(backing_fd);
 }
 
+static void pf_lookup_postfilter(fuse_req_t req, fuse_ino_t parent, uint32_t error_in,
+                                 const char* name, struct fuse_entry_out* feo,
+                                 struct fuse_entry_bpf_out* febo) {
+    struct fuse* fuse = get_fuse(req);
+
+    ATRACE_CALL();
+    node* parent_node = fuse->FromInode(parent);
+    if (!parent_node) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
+
+    TRACE_NODE(parent_node, req);
+    const string path = parent_node->BuildPath() + "/" + name;
+    if (!fuse->mp->isUidAllowedAccessToDataOrObbPath(req->ctx.uid, path)) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
+
+    struct {
+        struct fuse_entry_out feo;
+        struct fuse_entry_bpf_out febo;
+    } buf = {*feo, *febo};
+
+    fuse_reply_buf(req, (const char*)&buf, sizeof(buf));
+}
+
 static void do_forget(fuse_req_t req, struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
     node* node = fuse->FromInode(ino);
     TRACE_NODE(node, req);
@@ -1916,6 +1943,55 @@ static void pf_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     do_readdir_common(req, ino, size, off, fi, false);
 }
 
+static off_t round_up(off_t o, size_t s) {
+    return (o + s - 1) / s * s;
+}
+
+static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error_in, off_t off_in,
+                                  off_t off_out, size_t size_out, const void* dirents_in,
+                                  struct fuse_file_info* fi) {
+    struct fuse* fuse = get_fuse(req);
+    char buf[READDIR_BUF];
+    struct fuse_read_out* fro = (struct fuse_read_out*)(buf);
+    size_t used = sizeof(*fro);
+    char* dirents_out = (char*)(fro + 1);
+
+    ATRACE_CALL();
+    node* node = fuse->FromInode(ino);
+    if (!node) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
+
+    TRACE_NODE(node, req);
+    const string path = node->BuildPath();
+
+    *fro = (struct fuse_read_out){
+            .offset = (uint64_t)off_out,
+    };
+
+    for (off_t in = 0; in < size_out;) {
+        struct fuse_dirent* dirent_in = (struct fuse_dirent*)((char*)dirents_in + in);
+        struct fuse_dirent* dirent_out = (struct fuse_dirent*)((char*)dirents_out + fro->size);
+        struct stat stats;
+        int err;
+        std::string child_path = path + "/" + dirent_in->name;
+
+        in += sizeof(*dirent_in) + round_up(dirent_in->namelen, sizeof(uint64_t));
+        err = stat(child_path.c_str(), &stats);
+        if (err == 0 &&
+            ((stats.st_mode & 0001) || ((stats.st_mode & 0010) && req->ctx.gid == stats.st_gid) ||
+             ((stats.st_mode & 0100) && req->ctx.uid == stats.st_uid) ||
+             fuse->mp->isUidAllowedAccessToDataOrObbPath(req->ctx.uid, child_path))) {
+            *dirent_out = *dirent_in;
+            strcpy(dirent_out->name, dirent_in->name);
+            fro->size += sizeof(*dirent_out) + round_up(dirent_out->namelen, sizeof(uint64_t));
+        }
+    }
+    used += fro->size;
+    fuse_reply_buf(req, buf, used);
+}
+
 static void pf_readdirplus(fuse_req_t req,
                            fuse_ino_t ino,
                            size_t size,
@@ -2166,33 +2242,33 @@ static void pf_fallocate(fuse_req_t req, fuse_ino_t ino, int mode,
 */
 
 static struct fuse_lowlevel_ops ops{
-    .init = pf_init, .destroy = pf_destroy, .lookup = pf_lookup, .forget = pf_forget,
-    .getattr = pf_getattr, .setattr = pf_setattr, .canonical_path = pf_canonical_path,
-    .mknod = pf_mknod, .mkdir = pf_mkdir, .unlink = pf_unlink, .rmdir = pf_rmdir,
+    .init = pf_init, .destroy = pf_destroy, .lookup = pf_lookup,
+    .lookup_postfilter = pf_lookup_postfilter, .forget = pf_forget, .getattr = pf_getattr,
+    .setattr = pf_setattr, .canonical_path = pf_canonical_path, .mknod = pf_mknod,
+    .mkdir = pf_mkdir, .unlink = pf_unlink, .rmdir = pf_rmdir,
     /*.symlink = pf_symlink,*/
-    .rename = pf_rename,
+            .rename = pf_rename,
     /*.link = pf_link,*/
-    .open = pf_open, .read = pf_read,
+            .open = pf_open, .read = pf_read,
     /*.write = pf_write,*/
-    .flush = pf_flush,
-    .release = pf_release, .fsync = pf_fsync, .opendir = pf_opendir, .readdir = pf_readdir,
-    .releasedir = pf_releasedir, .fsyncdir = pf_fsyncdir, .statfs = pf_statfs,
+            .flush = pf_flush, .release = pf_release, .fsync = pf_fsync, .opendir = pf_opendir,
+    .readdir = pf_readdir, .readdirpostfilter = pf_readdir_postfilter, .releasedir = pf_releasedir,
+    .fsyncdir = pf_fsyncdir, .statfs = pf_statfs,
     /*.setxattr = pf_setxattr,
     .getxattr = pf_getxattr,
     .listxattr = pf_listxattr,
     .removexattr = pf_removexattr,*/
-    .access = pf_access, .create = pf_create,
+            .access = pf_access, .create = pf_create,
     /*.getlk = pf_getlk,
     .setlk = pf_setlk,
     .bmap = pf_bmap,
     .ioctl = pf_ioctl,
     .poll = pf_poll,*/
-    .write_buf = pf_write_buf,
+            .write_buf = pf_write_buf,
     /*.retrieve_reply = pf_retrieve_reply,*/
-    .forget_multi = pf_forget_multi,
+            .forget_multi = pf_forget_multi,
     /*.flock = pf_flock,*/
-    .fallocate = pf_fallocate,
-    .readdirplus = pf_readdirplus,
+            .fallocate = pf_fallocate, .readdirplus = pf_readdirplus,
     /*.copy_file_range = pf_copy_file_range,*/
 };
 

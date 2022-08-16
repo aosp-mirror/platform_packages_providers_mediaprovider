@@ -28,6 +28,11 @@ public final class FileLookupResult {
     public final boolean transformsSupported;
     public final String ioPath;
 
+    public FileLookupResult(int transforms, int uid, String ioPath) {
+        this (transforms, /* transformsReason */ 0, uid, /* transformsComplete */ true,
+                /* transformsSupported */ transforms == 0 ? false : true, ioPath);
+    }
+
     public FileLookupResult(int transforms, int transformsReason, int uid,
             boolean transformsComplete, boolean transformsSupported, String ioPath) {
         this.transforms = transforms;

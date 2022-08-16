@@ -76,7 +76,7 @@ public class Timer {
         Log.v(TAG, name + ": " + duration + "ms");
 
         final Bundle results = new Bundle();
-        results.putLong(name, duration);
+        results.putLong(name + " (ms)", duration);
         InstrumentationRegistry.getInstrumentation().sendStatus(0, results);
     }
 }

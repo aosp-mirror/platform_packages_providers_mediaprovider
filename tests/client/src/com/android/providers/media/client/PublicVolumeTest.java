@@ -16,10 +16,10 @@
 
 package com.android.providers.media.client;
 
-import static com.android.providers.media.client.PublicVolumeSetupHelper.createNewPublicVolume;
-import static com.android.providers.media.client.PublicVolumeSetupHelper.deletePublicVolumes;
-import static com.android.providers.media.client.PublicVolumeSetupHelper.mountPublicVolume;
-import static com.android.providers.media.client.PublicVolumeSetupHelper.unmountPublicVolume;
+import static com.android.providers.media.tests.utils.PublicVolumeSetupHelper.createNewPublicVolume;
+import static com.android.providers.media.tests.utils.PublicVolumeSetupHelper.deletePublicVolumes;
+import static com.android.providers.media.tests.utils.PublicVolumeSetupHelper.mountPublicVolume;
+import static com.android.providers.media.tests.utils.PublicVolumeSetupHelper.unmountPublicVolume;
 
 import static com.google.common.truth.Truth.assertThat;
 

@@ -34,6 +34,7 @@ cc_library_shared {
     ],
 
     header_libs: [
+        "bpf_syscall_wrappers",
         "libnativehelper_header_only",
     ],
 
@@ -63,6 +64,7 @@ cc_library_shared {
     tidy: true,
     tidy_checks: [
         "-google-runtime-int",
+        "-performance-no-int-to-ptr",
     ],
 
     sdk_version: "current",
@@ -99,6 +101,9 @@ cc_test {
     ],
 
     tidy: true,
+    tidy_checks: [
+        "-performance-no-int-to-ptr",
+    ],
 
     sdk_version: "current",
     stl: "c++_static",

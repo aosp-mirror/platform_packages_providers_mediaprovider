@@ -46,10 +46,12 @@ import static com.android.providers.media.util.FileUtils.extractRelativePath;
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
+import static com.android.providers.media.util.FileUtils.fromFuseFile;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
 import static com.android.providers.media.util.FileUtils.isDataOrObbRelativePath;
 import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
 import static com.android.providers.media.util.FileUtils.isObbOrChildRelativePath;
+import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.FileUtils.translateModeAccessToPosix;
 import static com.android.providers.media.util.FileUtils.translateModePfdToPosix;
 import static com.android.providers.media.util.FileUtils.translateModePosixToPfd;
@@ -75,7 +77,6 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.google.common.collect.Range;
-import com.google.common.truth.Truth;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -749,7 +750,7 @@ public class FileUtilsTest {
         FileUtils.computeDateExpires(values);
         final long target = (System.currentTimeMillis()
                 + FileUtils.DEFAULT_DURATION_PENDING) / 1_000;
-        Truth.assertThat(values.getAsLong(MediaColumns.DATE_EXPIRES))
+        assertThat(values.getAsLong(MediaColumns.DATE_EXPIRES))
                 .isIn(Range.closed(target - 5, target + 5));
     }
 
@@ -773,7 +774,7 @@ public class FileUtilsTest {
         FileUtils.computeDateExpires(values);
         final long target = (System.currentTimeMillis()
                 + FileUtils.DEFAULT_DURATION_TRASHED) / 1_000;
-        Truth.assertThat(values.getAsLong(MediaColumns.DATE_EXPIRES))
+        assertThat(values.getAsLong(MediaColumns.DATE_EXPIRES))
                 .isIn(Range.closed(target - 5, target + 5));
     }
 
@@ -804,7 +805,25 @@ public class FileUtilsTest {
         File nomedia = new File(dirInDownload, ".nomedia");
         assertTrue(nomedia.createNewFile());
 
-        assertEquals(dirInDownload, FileUtils.getTopLevelNoMedia(new File(dirInDownload, "foo")));
+        assertThat(FileUtils.getTopLevelNoMedia(dirInDownload))
+            .isEqualTo(dirInDownload);
+        assertThat(FileUtils.getTopLevelNoMedia(new File(dirInDownload, "foo")))
+            .isEqualTo(dirInDownload);
+    }
+
+    @Test
+    public void testGetTopLevelNoMedia_CurrentNestedDir() throws Exception {
+        File topDirInDownload = getNewDirInDownload("testGetTopLevelNoMedia_CurrentNestedDir");
+
+        File dirInTopDirInDownload = new File(topDirInDownload, "foo");
+        assertTrue(dirInTopDirInDownload.mkdirs());
+        File nomedia = new File(dirInTopDirInDownload, ".nomedia");
+        assertTrue(nomedia.createNewFile());
+
+        assertThat(FileUtils.getTopLevelNoMedia(dirInTopDirInDownload))
+            .isEqualTo(dirInTopDirInDownload);
+        assertThat(FileUtils.getTopLevelNoMedia(new File(dirInTopDirInDownload, "foo")))
+            .isEqualTo(dirInTopDirInDownload);
     }
 
     @Test
@@ -818,8 +837,10 @@ public class FileUtilsTest {
         File nomedia = new File(dirInTopDirInDownload, ".nomedia");
         assertTrue(nomedia.createNewFile());
 
-        assertEquals(topDirInDownload,
-                FileUtils.getTopLevelNoMedia(new File(dirInTopDirInDownload, "foo")));
+        assertThat(FileUtils.getTopLevelNoMedia(dirInTopDirInDownload))
+            .isEqualTo(topDirInDownload);
+        assertThat(FileUtils.getTopLevelNoMedia(new File(dirInTopDirInDownload, "foo")))
+            .isEqualTo(topDirInDownload);
     }
 
     @Test
@@ -830,20 +851,87 @@ public class FileUtilsTest {
 
         assertEquals(null,
                 FileUtils.getTopLevelNoMedia(new File(dirInTopDirInDownload, "foo")));
+        assertThat(FileUtils.getTopLevelNoMedia(dirInTopDirInDownload))
+            .isNull();
+        assertThat(FileUtils.getTopLevelNoMedia(new File(dirInTopDirInDownload, "foo")))
+            .isNull();
+    }
+
+    @Test
+    public void testShouldFileBeHidden() throws Exception {
+        File dir = getNewDirInDownload("testDirectory2");
+
+        // We don't create the files since shouldFileBeHidden needs to work even if the file has
+        // not been created yet.
+
+        File file = new File(dir, ".test-file");
+        assertThat(FileUtils.shouldFileBeHidden(file)).isTrue();
+
+        File hiddenFile = new File(dir, ".hidden-file");
+        assertThat(FileUtils.shouldFileBeHidden(hiddenFile)).isTrue();
+    }
+
+    @Test
+    public void testShouldFileBeHidden_hiddenParent() throws Exception {
+        File hiddenDirName = getNewDirInDownload(".testDirectory");
+
+        // We don't create the file since shouldFileBeHidden needs to work even if the file has
+        // not been created yet.
+
+        File fileInHiddenParent = new File(hiddenDirName, "testDirectory.txt");
+        assertThat(FileUtils.shouldFileBeHidden(fileInHiddenParent)).isTrue();
+    }
+
+    // Visibility of default dirs is tested in ModernMediaScannerTest#testVisibleDefaultFolders.
+    @Test
+    public void testShouldDirBeHidden() throws Exception {
+        final File root = new File("storage/emulated/0");
+        assertThat(FileUtils.shouldDirBeHidden(root)).isFalse();
+
+        // We don't create the dirs since shouldDirBeHidden needs to work even if the dir has
+        // not been created yet.
+
+        File visibleDir = new File(mTestDownloadDir, "testDirectory");
+        assertThat(FileUtils.shouldDirBeHidden(visibleDir)).isFalse();
+
+        File hiddenDir = new File(mTestDownloadDir, ".testDirectory");
+        assertThat(FileUtils.shouldDirBeHidden(hiddenDir)).isTrue();
+    }
+
+    @Test
+    public void testShouldDirBeHidden_hiddenParent() throws Exception {
+        File hiddenDirName = getNewDirInDownload(".testDirectory");
+
+        // We don't create the dirs since shouldDirBeHidden needs to work even if the dir has
+        // not been created yet.
+
+        File dirInHiddenParent = new File(hiddenDirName, "testDirectory");
+        assertThat(FileUtils.shouldDirBeHidden(dirInHiddenParent)).isTrue();
+    }
+
+    // Visibility of default dirs is tested in ModernMediaScannerTest#testVisibleDefaultFolders.
+    @Test
+    public void testIsDirectoryHidden() throws Exception {
+        File visibleDir = getNewDirInDownload("testDirectory");
+        assertThat(FileUtils.isDirectoryHidden(visibleDir)).isFalse();
+
+        File hiddenDirName = getNewDirInDownload(".testDirectory");
+        assertThat(FileUtils.isDirectoryHidden(hiddenDirName)).isTrue();
+
+        File hiddenDirNomedia = getNewDirInDownload("testDirectory2");
+        File nomedia = new File(hiddenDirNomedia, ".nomedia");
+        assertThat(nomedia.createNewFile()).isTrue();
+        assertThat(FileUtils.isDirectoryHidden(hiddenDirNomedia)).isTrue();
     }
 
     @Test
     public void testDirectoryDirty() throws Exception {
         File dirInDownload = getNewDirInDownload("testDirectoryDirty");
 
-        // All directories are considered dirty, unless hidden
-        assertTrue(FileUtils.isDirectoryDirty(dirInDownload));
+        // Directory without nomedia is not dirty
+        assertFalse(FileUtils.isDirectoryDirty(dirInDownload));
 
-        // Marking a directory as clean has no effect without a .nomedia file
-        FileUtils.setDirectoryDirty(dirInDownload, false);
-        assertTrue(FileUtils.isDirectoryDirty(dirInDownload));
-
-        // Creating an empty .nomedia file still keeps a directory dirty
+        // Creating an empty .nomedia file makes directory dirty
         File nomedia = new File(dirInDownload, ".nomedia");
         assertTrue(nomedia.createNewFile());
         assertTrue(FileUtils.isDirectoryDirty(dirInDownload));
@@ -858,18 +946,48 @@ public class FileUtilsTest {
     }
 
     @Test
+    public void testDirectoryDirty_noMediaDirectory() throws Exception {
+        File dirInDownload = getNewDirInDownload("testDirectoryDirty");
+
+        // Directory without nomedia is clean
+        assertFalse(FileUtils.isDirectoryDirty(dirInDownload));
+
+        // Creating a .nomedia directory makes directory dirty
+        File nomedia = new File(dirInDownload, ".nomedia");
+        assertTrue(nomedia.mkdir());
+        assertTrue(FileUtils.isDirectoryDirty(dirInDownload));
+
+        // Marking as clean with a .nomedia directory has no effect
+        FileUtils.setDirectoryDirty(dirInDownload, false);
+        assertTrue(FileUtils.isDirectoryDirty(dirInDownload));
+    }
+
+    @Test
+    public void testDirectoryDirty_nullDir() throws Exception {
+        assertThat(FileUtils.isDirectoryDirty(null)).isFalse();
+    }
+
+    @Test
     public void testExtractPathOwnerPackageName() {
         assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/data/foo"))
                 .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/android/data/foo"))
+                .isEqualTo("foo");
         assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/obb/foo"))
                 .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/android/obb/foo"))
+                .isEqualTo("foo");
         assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/media/foo"))
+                .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/emulated/0/android/media/foo"))
                 .isEqualTo("foo");
         assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/Android/data/foo"))
                 .isEqualTo("foo");
         assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/Android/obb/foo"))
                 .isEqualTo("foo");
         assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/Android/media/foo"))
+                .isEqualTo("foo");
+        assertThat(extractPathOwnerPackageName("/storage/ABCD-1234/android/media/foo"))
                 .isEqualTo("foo");
 
         assertThat(extractPathOwnerPackageName("/storage/emulated/0/Android/data")).isNull();
@@ -1001,18 +1119,85 @@ public class FileUtilsTest {
         final String result = FileUtils.extractDisplayName(data);
         // after adding the prefix .pending-timestamp or .trashed-timestamp,
         // the largest length of the file name is MAX_FILENAME_BYTES 255
-        Truth.assertThat(result.length()).isAtMost(MAX_FILENAME_BYTES);
-        Truth.assertThat(result).isNotEqualTo(originalName);
+        assertThat(result.length()).isAtMost(MAX_FILENAME_BYTES);
+        assertThat(result).isNotEqualTo(originalName);
     }
 
     @Test
     public void testIsExternalMediaDirectory() throws Exception {
         for (String prefix : new String[] {
-                "/storage/emulated/0/AppClone/",
-                "/storage/0000-0000/AppClone/"
+                "/storage/emulated/0/",
+                "/storage/0000-0000/",
         }) {
+            assertTrue(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", null));
+            assertTrue(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", ""));
+            assertTrue(isExternalMediaDirectory(prefix + "Android/mEdia/foo.jpg", ""));
+            assertFalse(isExternalMediaDirectory(prefix + "Android/data/foo.jpg", ""));
             assertTrue(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "AppClone"));
-            assertFalse(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "NotAppClone"));
+            assertTrue(isExternalMediaDirectory(prefix + "android/mEdia/foo.jpg", "AppClone"));
+            assertTrue(isExternalMediaDirectory(prefix + "AppClone/Android/media/foo.jpg", "AppClone"));
+            assertTrue(isExternalMediaDirectory(prefix + "AppClone/Android/mEdia/foo.jpg", "AppClone"));
+            assertTrue(isExternalMediaDirectory(prefix + "Appclone/Android/mEdia/foo.jpg", "AppClone"));
+            assertFalse(isExternalMediaDirectory(prefix + "AppClone/Android/media/foo.jpg", null));
+            assertFalse(isExternalMediaDirectory(prefix + "AppClone/Android/mEdia/foo.jpg", null));
+            assertFalse(isExternalMediaDirectory(prefix + "AppClone/Android/media/foo.jpg", ""));
+            assertFalse(isExternalMediaDirectory(prefix + "AppClone/Android/media/foo.jpg", "NotAppClone"));
         }
+    }
+
+    @Test
+    public void testToAndFromFuseFile() throws Exception {
+        final File fuseFilePrimary = new File("/mnt/user/0/emulated/0/foo");
+        final File fuseFileSecondary = new File("/mnt/user/0/0000-0000/foo");
+
+        final File lowerFsFilePrimary = new File("/storage/emulated/0/foo");
+        final File lowerFsFileSecondary = new File("/storage/0000-0000/foo");
+
+        final File unexpectedFile = new File("/mnt/pass_through/0/emulated/0/foo");
+
+        assertThat(fromFuseFile(fuseFilePrimary)).isEqualTo(lowerFsFilePrimary);
+        assertThat(fromFuseFile(fuseFileSecondary)).isEqualTo(lowerFsFileSecondary);
+        assertThat(fromFuseFile(lowerFsFilePrimary)).isEqualTo(lowerFsFilePrimary);
+
+        assertThat(toFuseFile(lowerFsFilePrimary)).isEqualTo(fuseFilePrimary);
+        assertThat(toFuseFile(lowerFsFileSecondary)).isEqualTo(fuseFileSecondary);
+        assertThat(toFuseFile(fuseFilePrimary)).isEqualTo(fuseFilePrimary);
+
+        assertThat(toFuseFile(unexpectedFile)).isEqualTo(unexpectedFile);
+        assertThat(fromFuseFile(unexpectedFile)).isEqualTo(unexpectedFile);
+    }
+
+    @Test
+    public void testComputeValuesFromData() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DATA, "/storage/emulated/0/Pictures/foo.jpg");
+
+        FileUtils.computeValuesFromData(values, false);
+
+        assertEquals("external_primary", values.getAsString(MediaColumns.VOLUME_NAME));
+        assertEquals("Pictures/", values.getAsString(MediaColumns.RELATIVE_PATH));
+        assertEquals(0, (int) values.getAsInteger(MediaColumns.IS_TRASHED));
+        assertTrue(values.containsKey(MediaColumns.DATE_EXPIRES));
+        assertNull(values.get(MediaColumns.DATE_EXPIRES));
+        assertEquals("foo.jpg", values.getAsString(MediaColumns.DISPLAY_NAME));
+        assertTrue(values.containsKey(MediaColumns.BUCKET_DISPLAY_NAME));
+        assertEquals("Pictures", values.get(MediaColumns.BUCKET_DISPLAY_NAME));
+    }
+
+    @Test
+    public void testComputeValuesFromData_withTopLevelFile() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DATA, "/storage/emulated/0/foo.jpg");
+
+        FileUtils.computeValuesFromData(values, false);
+
+        assertEquals("external_primary", values.getAsString(MediaColumns.VOLUME_NAME));
+        assertEquals("/", values.getAsString(MediaColumns.RELATIVE_PATH));
+        assertEquals(0, (int) values.getAsInteger(MediaColumns.IS_TRASHED));
+        assertTrue(values.containsKey(MediaColumns.DATE_EXPIRES));
+        assertNull(values.get(MediaColumns.DATE_EXPIRES));
+        assertEquals("foo.jpg", values.getAsString(MediaColumns.DISPLAY_NAME));
+        assertTrue(values.containsKey(MediaColumns.BUCKET_DISPLAY_NAME));
+        assertNull(values.get(MediaColumns.BUCKET_DISPLAY_NAME));
     }
 }

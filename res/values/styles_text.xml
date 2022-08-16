@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2021 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <style name="CacheClearingAlertDialogTitle"
+           parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="PermissionAlertDialogTitle"
+           parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
+    </style>
+
+    <style name="PickerToolbarTitleTextAppearance"
+           parent="@android:style/TextAppearance.DeviceDefault.Large">
+        <item name="android:textSize">@dimen/picker_toolbar_title_text_size</item>
+    </style>
+
+    <style name="PickerHeaderTextAppearance"
+           parent="@android:style/TextAppearance.DeviceDefault.Medium">
+        <item name="android:textColor">?attr/pickerTextColor</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="PickerTabTextAppearance"
+           parent="@android:style/TextAppearance.DeviceDefault.Widget.TabWidget">
+        <item name="android:textSize">@dimen/picker_tab_text_size</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="PickerButtonTextAppearance"
+           parent="@android:style/TextAppearance.DeviceDefault.Widget.Button"/>
+
+    <style name="PickerProfileDialogTitle"
+           parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">?attr/pickerProfileDialogTitleColor</item>
+        <item name="android:textSize">@dimen/picker_profile_dialog_title_text_size</item>
+    </style>
+
+    <style name="PickerProfileDialogBody" parent="@android:style/TextAppearance.Material.Body2">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">?attr/pickerProfileDialogBodyColor</item>
+    </style>
+
+</resources>

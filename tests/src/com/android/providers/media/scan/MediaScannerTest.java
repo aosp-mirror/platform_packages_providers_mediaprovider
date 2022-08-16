@@ -33,6 +33,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.SystemClock;
+import android.os.UserHandle;
 import android.provider.BaseColumns;
 import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.MediaStore;
@@ -45,9 +46,13 @@ import android.util.Log;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.DatabaseHelper;
 import com.android.providers.media.MediaDocumentsProvider;
 import com.android.providers.media.MediaProvider;
+import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.PhotoPickerProvider;
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.util.FileUtils;
 
 import org.junit.Before;
@@ -71,14 +76,22 @@ public class MediaScannerTest {
         private final MockContentResolver mResolver;
         private final MediaProvider mProvider;
         private final MediaDocumentsProvider mDocumentsProvider;
+        private final PhotoPickerProvider mPhotoPickerProvider;
+        private final UserHandle mUserHandle;
 
         public IsolatedContext(Context base, String tag, boolean asFuseThread) {
+            this(base, tag, asFuseThread, base.getUser());
+        }
+
+        public IsolatedContext(Context base, String tag, boolean asFuseThread,
+                UserHandle userHandle) {
             super(base);
             mDir = new File(base.getFilesDir(), tag);
             mDir.mkdirs();
             FileUtils.deleteContents(mDir);
 
             mResolver = new MockContentResolver(this);
+            mUserHandle = userHandle;
 
             final ProviderInfo info = base.getPackageManager()
                     .resolveContentProvider(MediaStore.AUTHORITY, 0);
@@ -104,8 +117,18 @@ public class MediaScannerTest {
                 }
 
                 @Override
+                public int getIntDeviceConfig(String namespace, String key, int defaultValue) {
+                    return 0;
+                }
+
+                @Override
                 public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
                     // Ignore
+                }
+
+                @Override
+                protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
+                    // Ignoring this as test app would not have access to update xattr.
                 }
             };
             mProvider.attachInfo(this, info);
@@ -124,6 +147,14 @@ public class MediaScannerTest {
                 }
             });
 
+            final ProviderInfo photoPickerProviderInfo = base.getPackageManager()
+                    .resolveContentProvider(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                            0);
+            mPhotoPickerProvider = new PhotoPickerProvider();
+            mPhotoPickerProvider.attachInfo(this, photoPickerProviderInfo);
+            mResolver.addProvider(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                    mPhotoPickerProvider);
+
             MediaStore.waitForIdle(mResolver);
         }
 
@@ -135,6 +166,15 @@ public class MediaScannerTest {
         @Override
         public ContentResolver getContentResolver() {
             return mResolver;
+        }
+
+        @Override
+        public UserHandle getUser() {
+            return mUserHandle;
+        }
+
+        public void setPickerUriResolver(PickerUriResolver resolver) {
+            mProvider.setUriResolver(resolver);
         }
     }
 

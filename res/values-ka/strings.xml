@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"მედია"</string>
     <string name="storage_description" msgid="4081716890357580107">"ადგილობრივი მეხსიერება"</string>
     <string name="app_label" msgid="9035307001052716210">"მედიის საცავი"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"ფოტოების ამომრჩევი"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"მედია"</string>
     <string name="artist_label" msgid="8105600993099120273">"შემსრულებელი"</string>
     <string name="unknown" msgid="2059049215682829375">"უცნობი"</string>
     <string name="root_images" msgid="5861633549189045666">"სურათები"</string>
@@ -78,8 +78,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"ვიდეოს დადუმების მოხსნა"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"დაკვრა"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"პაუზა"</string>
-    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
-    <skip />
+    <string name="picker_cloud_sync" msgid="997251377538536319">"ღრუბლოვანი მედია უკვე ხელმისაწვდომია <xliff:g id="PKG_NAME">%1$s</xliff:g>-ისგან"</string>
     <string name="not_selected" msgid="2244008151669896758">"არ არის არჩეული"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{აძლევთ უფლებას <xliff:g id="APP_NAME_0">^1</xliff:g>-ს, შეცვალოს ეს აუდიოფაილი?}other{აძლევთ უფლებას <xliff:g id="APP_NAME_1">^1</xliff:g>-ს, შეცვალოს <xliff:g id="COUNT">^2</xliff:g> აუდიოფაილი?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{მიმდინარეობს აუდიოფაილის მოდიფიკაცია…}other{მიმდინარეობს <xliff:g id="COUNT">^1</xliff:g> აუდიოფაილის მოდიფიკაცია…}}"</string>
@@ -121,4 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"მედია მუშავდება…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"გაუქმება"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"მოცდა"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"უსაფრთხოების დაცვა"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"ტრანსკოდირების ადგილობრივი გაფრთხილება"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"ტრანსკოდირების ადგილობრივი პროგრესი"</string>
 </resources>

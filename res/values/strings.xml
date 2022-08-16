@@ -25,7 +25,7 @@
     <string name="app_label">Media Storage</string>
 
     <!-- Label to show to user for Photo picker. -->
-    <string name="picker_app_label">Photo picker</string>
+    <string name="picker_app_label">Media</string>
 
     <!-- Description line for music artists in the search/suggestion results -->
     <string name="artist_label">Artist</string>
@@ -406,4 +406,13 @@
 
     <!-- Transcode intermediate ANR dialog wait button. -->
     <string name="transcode_wait">Wait</string>
+
+    <!-- Safety Protection shield icon. -->
+    <string name="safety_protection_icon_label">Safety protection</string>
+
+    <!-- Transcode alert channel name. -->
+    <string name="transcode_alert_channel">Native Transcode Alerts</string>
+
+    <!-- Transcode progress channel name. -->
+    <string name="transcode_progress_channel">Native Transcode Progress</string>
 </resources>

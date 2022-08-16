@@ -27,7 +27,19 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "Photo picker opened in personal profile")
         PHOTO_PICKER_OPEN_PERSONAL_PROFILE(942),
         @UiEvent(doc = "Photo picker opened in work profile")
-        PHOTO_PICKER_OPEN_WORK_PROFILE(943);
+        PHOTO_PICKER_OPEN_WORK_PROFILE(943),
+        @UiEvent(doc = "Photo picker opened via GET_CONTENT intent")
+        PHOTO_PICKER_OPEN_GET_CONTENT(1080),
+        @UiEvent(doc = "DocumentsUi opened by clicking on Browse in Photo picker")
+        PHOTO_PICKER_BROWSE_DOCUMENTSUI(1085),
+        @UiEvent(doc = "Photo picker cancelled in work profile")
+        PHOTO_PICKER_CANCEL_WORK_PROFILE(1125),
+        @UiEvent(doc = "Photo picker cancelled in personal profile")
+        PHOTO_PICKER_CANCEL_PERSONAL_PROFILE(1126),
+        @UiEvent(doc = "Confirmed selection in Photo picker in work profile")
+        PHOTO_PICKER_CONFIRM_WORK_PROFILE(1127),
+        @UiEvent(doc = "Confirmed selection in Photo picker in personal profile")
+        PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE(1128);
 
         private final int mId;
 
@@ -47,20 +59,94 @@ public class PhotoPickerUiEventLogger {
         logger = new MPUiEventLoggerImpl();
     }
 
-    public void logPickerOpenPersonal(InstanceId instanceId,
+    public void logPickerOpenPersonal(InstanceId instanceId, int callingUid,
             String callingPackage) {
         logger.logWithInstanceId(
                 PhotoPickerEvent.PHOTO_PICKER_OPEN_PERSONAL_PROFILE,
-                0,
+                callingUid,
                 callingPackage,
                 instanceId);
     }
 
-    public void logPickerOpenWork(InstanceId instanceId,
+    public void logPickerOpenWork(InstanceId instanceId, int callingUid,
             String callingPackage) {
         logger.logWithInstanceId(
                 PhotoPickerEvent.PHOTO_PICKER_OPEN_WORK_PROFILE,
-                0,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    public void logPickerOpenViaGetContent(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_OPEN_GET_CONTENT,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that user has clicked on "Browse..." in Photo picker overflow menu.
+     * This UI click even opens DocumentsUi.
+     */
+    public void logBrowseToDocumentsUi(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_BROWSE_DOCUMENTSUI,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that user has confirmed selection in personal profile
+     */
+    public void logPickerConfirmPersonal(InstanceId instanceId, int callingUid,
+            String callingPackage, int countOfItemsConfirmed) {
+        logger.logWithInstanceIdAndPosition(
+                PhotoPickerEvent.PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE,
+                callingUid,
+                callingPackage,
+                instanceId,
+                countOfItemsConfirmed);
+    }
+
+    /**
+     * Log metrics to notify that user has confirmed selection in work profile
+     */
+    public void logPickerConfirmWork(InstanceId instanceId, int callingUid,
+            String callingPackage, int countOfItemsConfirmed) {
+        logger.logWithInstanceIdAndPosition(
+                PhotoPickerEvent.PHOTO_PICKER_CONFIRM_WORK_PROFILE,
+                callingUid,
+                callingPackage,
+                instanceId,
+                countOfItemsConfirmed);
+    }
+
+    /**
+     * Log metrics to notify that user has cancelled picker (without any selection) in personal
+     * profile
+     */
+    public void logPickerCancelPersonal(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_CANCEL_PERSONAL_PROFILE,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that user has cancelled picker (without any selection) in work
+     * profile
+     */
+    public void logPickerCancelWork(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_CANCEL_WORK_PROFILE,
+                callingUid,
                 callingPackage,
                 instanceId);
     }

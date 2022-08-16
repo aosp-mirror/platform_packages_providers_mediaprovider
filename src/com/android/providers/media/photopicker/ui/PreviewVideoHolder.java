@@ -45,25 +45,17 @@ public class PreviewVideoHolder extends BaseViewHolder {
     private final ImageButton mPlayPauseButton;
     private final ImageButton mMuteButton;
 
-    PreviewVideoHolder(Context context, ViewGroup parent, ImageLoader imageLoader,
-            boolean enabledCloudMediaPreview) {
-        super(context, parent, enabledCloudMediaPreview ? R.layout.item_cloud_video_preview
-                : R.layout.item_video_preview);
+    PreviewVideoHolder(Context context, ViewGroup parent, ImageLoader imageLoader) {
+        super(context, parent, R.layout.item_video_preview);
 
         mImageLoader = imageLoader;
         mImageView = itemView.findViewById(R.id.preview_video_image);
-        mSurfaceView = enabledCloudMediaPreview ? itemView.findViewById(R.id.preview_player_view)
-                : null;
-        mPlayerFrame = enabledCloudMediaPreview ?
-                itemView.findViewById(R.id.preview_player_frame) : null;
-        mPlayerContainer = enabledCloudMediaPreview ?
-                itemView.findViewById(R.id.preview_player_container) : null;
-        mPlayerControlsRoot = enabledCloudMediaPreview ? itemView.findViewById(
-                R.id.preview_player_controls) : null;
-        mPlayPauseButton = enabledCloudMediaPreview ? itemView.findViewById(
-                R.id.exo_play_pause) : null;
-        mMuteButton = enabledCloudMediaPreview ? itemView.findViewById(
-                R.id.preview_mute) : null;
+        mSurfaceView = itemView.findViewById(R.id.preview_player_view);
+        mPlayerFrame = itemView.findViewById(R.id.preview_player_frame);
+        mPlayerContainer = itemView.findViewById(R.id.preview_player_container);
+        mPlayerControlsRoot = itemView.findViewById(R.id.preview_player_controls);
+        mPlayPauseButton = itemView.findViewById(R.id.exo_play_pause);
+        mMuteButton = itemView.findViewById(R.id.preview_mute);
     }
 
     @Override

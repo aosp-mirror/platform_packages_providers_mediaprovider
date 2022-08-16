@@ -393,6 +393,25 @@ public class MediaProviderTest {
                         + " allowed directories are [Download, Documents]");
     }
 
+    @Test
+    public void testUpdationWithInvalidFilePath_throwsIllegalArgumentException() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download");
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, "test.txt");
+        Uri uri = sIsolatedResolver.insert(
+                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                values);
+
+        final ContentValues newValues = new ContentValues();
+        newValues.put(MediaStore.MediaColumns.DATA, "/storage/emulated/0/../../../data/media/");
+        IllegalArgumentException illegalArgumentException = Assert.assertThrows(
+                IllegalArgumentException.class,
+                () -> sIsolatedResolver.update(uri, newValues, null));
+
+        assertThat(illegalArgumentException).hasMessageThat().contains(
+                "Requested path /data/media doesn't appear under [/storage/emulated/0]");
+    }
+
     /**
      * We already have solid coverage of this logic in
      * {@code CtsProviderTestCases}, but the coverage system currently doesn't
@@ -659,6 +678,11 @@ public class MediaProviderTest {
             @Override
             public int getCallingPackageTargetSdkVersion() {
                 return Build.VERSION_CODES.Q;
+            }
+
+            @Override
+            protected void checkDeviceConfigAndUpdateGetContentAlias() {
+                // Ignore this as test app cannot read device config
             }
         };
 
@@ -1086,6 +1110,11 @@ public class MediaProviderTest {
             @Override
             public int getCallingPackageTargetSdkVersion() {
                 return Build.VERSION_CODES.CUR_DEVELOPMENT;
+            }
+
+            @Override
+            protected void checkDeviceConfigAndUpdateGetContentAlias() {
+                // Ignore this as test app cannot read device config
             }
         };
         final ProviderInfo info = sIsolatedContext.getPackageManager()
@@ -1594,9 +1623,8 @@ public class MediaProviderTest {
         Bundle opts = new Bundle();
         opts.putString(MediaStore.EXTRA_MODE, "w");
 
-        try {
-            AssetFileDescriptor afd = sContext.getContentResolver().openTypedAssetFile(mediaUri,
-                    "*/*", opts, null);
+        try (AssetFileDescriptor afd = sContext.getContentResolver().openTypedAssetFile(mediaUri,
+                    "*/*", opts, null)) {
             String rawText = "Hello";
             Os.write(afd.getFileDescriptor(), rawText.getBytes(StandardCharsets.UTF_8),
                     0, rawText.length());

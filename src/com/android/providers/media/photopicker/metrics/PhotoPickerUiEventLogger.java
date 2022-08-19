@@ -39,7 +39,9 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "Confirmed selection in Photo picker in work profile")
         PHOTO_PICKER_CONFIRM_WORK_PROFILE(1127),
         @UiEvent(doc = "Confirmed selection in Photo picker in personal profile")
-        PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE(1128);
+        PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE(1128),
+        @UiEvent(doc = "User changed the active Photo picker cloud provider")
+        PHOTO_PICKER_CLOUD_PROVIDER_CHANGED(1135);
 
         private final int mId;
 
@@ -149,5 +151,15 @@ public class PhotoPickerUiEventLogger {
                 callingUid,
                 callingPackage,
                 instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has changed the active cloud provider
+     * @param cloudProviderUid     new active cloud provider uid
+     * @param cloudProviderPackage new active cloud provider package name
+     */
+    public void logPickerCloudProviderChanged(int cloudProviderUid, String cloudProviderPackage) {
+        logger.log(PhotoPickerEvent.PHOTO_PICKER_CLOUD_PROVIDER_CHANGED, cloudProviderUid,
+                cloudProviderPackage);
     }
 }

@@ -77,10 +77,8 @@ public class CloudProviderQueryExtras {
         final long generation = LONG_DEFAULT;
         final int limit = bundle.getInt(MediaStore.QUERY_ARG_LIMIT, LIMIT_DEFAULT);
 
-        final boolean isFavorite = localProvider.equals(albumAuthority)
-                && AlbumColumns.ALBUM_ID_FAVORITES.equals(albumId);
-        final boolean isVideo = localProvider.equals(albumAuthority)
-                && AlbumColumns.ALBUM_ID_VIDEOS.equals(albumId);
+        final boolean isFavorite = AlbumColumns.ALBUM_ID_FAVORITES.equals(albumId);
+        final boolean isVideo = AlbumColumns.ALBUM_ID_VIDEOS.equals(albumId);
 
         return new CloudProviderQueryExtras(albumId, albumAuthority, mimeTypes, sizeBytes,
                 generation, limit, isFavorite, isVideo);

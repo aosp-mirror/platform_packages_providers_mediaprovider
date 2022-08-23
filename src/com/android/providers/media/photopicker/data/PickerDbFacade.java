@@ -37,8 +37,6 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
-import android.os.SystemProperties;
-import android.provider.DeviceConfig;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -115,7 +113,6 @@ public class PickerDbFacade {
     public static final String KEY_DURATION_MS = "duration_ms";
     @VisibleForTesting
     public static final String KEY_MIME_TYPE = "mime_type";
-    @VisibleForTesting
     public static final String KEY_STANDARD_MIME_TYPE_EXTENSION = "standard_mime_type_extension";
     @VisibleForTesting
     public static final String KEY_IS_FAVORITE = "is_favorite";
@@ -144,14 +141,6 @@ public class PickerDbFacade {
             String.format("%s < ? OR (%s = ? AND %s < ?)",
                     KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
     private static final String WHERE_ALBUM_ID = KEY_ALBUM_ID  + " = ?";
-
-    private static final String[] PROJECTION_ALBUM_DB = new String[] {
-        "COUNT(" + KEY_ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
-        "MAX(" + KEY_DATE_TAKEN_MS + ") AS "
-        + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
-        String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
-                KEY_LOCAL_ID, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID)
-    };
 
     // Matches all media including cloud+local, cloud-only and local-only
     private static final SQLiteQueryBuilder QB_MATCH_ALL = createMediaQueryBuilder();
@@ -240,6 +229,10 @@ public class PickerDbFacade {
      * Returns {@link DbWriteOperation} to clear album media for a given albumId from the picker
      * db.
      *
+     * <p>The {@link DbWriteOperation} clears local or cloud album based on {@code authority} and
+     * {@code albumId}. If {@code albumId} is null, it clears all local or cloud albums based on
+     * {@code authority}.
+     *
      * @param authority to determine whether local or cloud media should be cleared
      */
     public DbWriteOperation beginResetAlbumMediaOperation(String authority, String albumId) {
@@ -247,37 +240,38 @@ public class PickerDbFacade {
     }
 
     /**
+     * Returns {@link UpdateMediaOperation} to update media belonging to {@code authority} in the
+     * picker db.
+     *
+     * @param authority to determine whether local or cloud media should be updated
+     */
+    public UpdateMediaOperation beginUpdateMediaOperation(String authority) {
+        return new UpdateMediaOperation(mDatabase, isLocal(authority));
+    }
+
+    /**
      * Represents an atomic write operation to the picker database.
      *
      * <p>This class is not thread-safe and is meant to be used within a single thread only.
      */
-    public static abstract class DbWriteOperation implements AutoCloseable {
+    public abstract static class DbWriteOperation implements AutoCloseable {
 
         private final SQLiteDatabase mDatabase;
         private final boolean mIsLocal;
-        private final String mAlbumId;
 
         private boolean mIsSuccess = false;
 
-        // Needed for Album Media Write operations.
         private DbWriteOperation(SQLiteDatabase database, boolean isLocal) {
-            this(database, isLocal, "");
-        }
-
-        // Needed for Album Media Write operations.
-        private DbWriteOperation(SQLiteDatabase database, boolean isLocal, String albumId) {
             mDatabase = database;
             mIsLocal = isLocal;
-            mAlbumId = albumId;
             mDatabase.beginTransaction();
         }
 
-        /*
-         * Execute the write operation.
+        /**
+         * Execute a write operation.
          *
          * @param cursor containing items to add/remove
-         * @return {@link WriteResult} indicating success/failure and the number of {@code cursor}
-         *          items that were inserted/updated/deleted in the picker db
+         * @return number of {@code cursor} items that were inserted/updated/deleted in the db
          * @throws {@link IllegalStateException} if no DB transaction is active
          */
         public int execute(@Nullable Cursor cursor) {
@@ -315,21 +309,17 @@ public class PickerDbFacade {
             return mIsLocal;
         }
 
-        String albumId() {
-            return mAlbumId;
-        }
-
         int updateMedia(SQLiteQueryBuilder qb, ContentValues values,
                 String[] selectionArgs) {
             try {
                 if (qb.update(mDatabase, values, /* selection */ null, selectionArgs) > 0) {
                     return SUCCESS;
                 } else {
-                    Log.d(TAG, "Failed to update picker db media. ContentValues: " + values);
+                    Log.v(TAG, "Failed to update picker db media. ContentValues: " + values);
                     return FAIL;
                 }
             } catch (SQLiteConstraintException e) {
-                Log.d(TAG, "Failed to update picker db media. ContentValues: " + values, e);
+                Log.v(TAG, "Failed to update picker db media. ContentValues: " + values, e);
                 return RETRY;
             }
         }
@@ -345,6 +335,41 @@ public class PickerDbFacade {
             }
 
             return null;
+        }
+    }
+
+    /**
+     * Represents an atomic media update operation to the picker database.
+     *
+     * <p>This class is not thread-safe and is meant to be used within a single thread only.
+     */
+    public static final class UpdateMediaOperation extends DbWriteOperation {
+
+        private UpdateMediaOperation(SQLiteDatabase database, boolean isLocal) {
+            super(database, isLocal);
+        }
+
+        /**
+         * Execute a media update operation.
+         *
+         * @param id id of the media to be updated
+         * @param contentValues key-value pairs indicating fields to be updated for the media
+         * @return boolean indicating success/failure of the update
+         * @throws {@link IllegalStateException} if no DB transaction is active
+         */
+        public boolean execute(String id, ContentValues contentValues) {
+            final SQLiteDatabase database = getDatabase();
+            if (!database.inTransaction()) {
+                throw new IllegalStateException("No ongoing DB transaction.");
+            }
+
+            final SQLiteQueryBuilder qb = isLocal() ? QB_MATCH_LOCAL_ONLY : QB_MATCH_CLOUD;
+            return qb.update(database, contentValues, /* selection */ null, new String[] {id}) > 0;
+        }
+
+        @Override
+        int executeInternal(@Nullable Cursor cursor) {
+            throw new UnsupportedOperationException("Cursor updates are not supported.");
         }
     }
 
@@ -394,11 +419,11 @@ public class PickerDbFacade {
                 if (QB_MATCH_ALL.insert(getDatabase(), values) > 0) {
                     return SUCCESS;
                 } else {
-                    Log.d(TAG, "Failed to insert picker db media. ContentValues: " + values);
+                    Log.v(TAG, "Failed to insert picker db media. ContentValues: " + values);
                     return FAIL;
                 }
             } catch (SQLiteConstraintException e) {
-                Log.d(TAG, "Failed to insert picker db media. ContentValues: " + values, e);
+                Log.v(TAG, "Failed to insert picker db media. ContentValues: " + values, e);
                 return RETRY;
             }
         }
@@ -408,7 +433,7 @@ public class PickerDbFacade {
             int res = insertMedia(values);
             if (res == RETRY) {
                 // Attempt equivalent of CONFLICT_REPLACE resolution
-                Log.d(TAG, "Retrying failed insert as update. ContentValues: " + values);
+                Log.v(TAG, "Retrying failed insert as update. ContentValues: " + values);
                 res = updateMedia(qb, values, selectionArgs);
             }
 
@@ -545,12 +570,12 @@ public class PickerDbFacade {
         private final long mId;
         private final String mAlbumId;
         private final long mSizeBytes;
-        private final String mMimeType;
+        private final String[] mMimeTypes;
         private final boolean mIsFavorite;
         private final boolean mIsVideo;
 
         private QueryFilter(int limit, long dateTakenBeforeMs, long dateTakenAfterMs, long id,
-                String albumId, long sizeBytes, String mimeType, boolean isFavorite,
+                String albumId, long sizeBytes, String[] mimeTypes, boolean isFavorite,
                 boolean isVideo) {
             this.mLimit = limit;
             this.mDateTakenBeforeMs = dateTakenBeforeMs;
@@ -558,7 +583,7 @@ public class PickerDbFacade {
             this.mId = id;
             this.mAlbumId = albumId;
             this.mSizeBytes = sizeBytes;
-            this.mMimeType = mimeType;
+            this.mMimeTypes = mimeTypes;
             this.mIsFavorite = isFavorite;
             this.mIsVideo = isVideo;
         }
@@ -568,6 +593,7 @@ public class PickerDbFacade {
     public static class QueryFilterBuilder {
         public static final long LONG_DEFAULT = -1;
         public static final String STRING_DEFAULT = null;
+        public static final String[] STRING_ARRAY_DEFAULT = null;
         public static final boolean BOOLEAN_DEFAULT = false;
 
         public static final int LIMIT_DEFAULT = 1000;
@@ -578,7 +604,7 @@ public class PickerDbFacade {
         private long id = LONG_DEFAULT;
         private String albumId = STRING_DEFAULT;
         private long sizeBytes = LONG_DEFAULT;
-        private String mimeType = STRING_DEFAULT;
+        private String[] mimeTypes = STRING_ARRAY_DEFAULT;
         private boolean isFavorite = BOOLEAN_DEFAULT;
         private boolean mIsVideo = BOOLEAN_DEFAULT;
 
@@ -622,8 +648,8 @@ public class PickerDbFacade {
             return this;
         }
 
-        public QueryFilterBuilder setMimeType(String mimeType) {
-            this.mimeType = mimeType;
+        public QueryFilterBuilder setMimeTypes(String[] mimeTypes) {
+            this.mimeTypes = mimeTypes;
             return this;
         }
 
@@ -649,7 +675,7 @@ public class PickerDbFacade {
 
         public QueryFilter build() {
             return new QueryFilter(limit, dateTakenBeforeMs, dateTakenAfterMs, id, albumId,
-                    sizeBytes, mimeType, isFavorite, mIsVideo);
+                    sizeBytes, mimeTypes, isFavorite, mIsVideo);
         }
     }
 
@@ -737,12 +763,9 @@ public class PickerDbFacade {
                 qb.appendWhereStandalone(WHERE_MIME_TYPE);
                 selectionArgs.add("video/%");
             }
-            if (query.mMimeType != null) {
-                qb.appendWhereStandalone(WHERE_MIME_TYPE);
-                selectionArgs.add(query.mMimeType.replace('*', '%'));
-            }
+            addMimeTypesToQueryBuilderAndSelectionArgs(qb, selectionArgs, query.mMimeTypes);
 
-            Cursor cursor = qb.query(mDatabase, PROJECTION_ALBUM_DB, /* selection */ null,
+            Cursor cursor = qb.query(mDatabase, getAlbumProjection(), /* selection */ null,
                     selectionArgs.toArray(new String[0]), /* groupBy */ null, /* having */ null,
                     /* orderBy */ null, /* limit */ null);
 
@@ -761,11 +784,25 @@ public class PickerDbFacade {
                     /* displayName */ albumId,
                     getCursorString(cursor, AlbumColumns.MEDIA_COVER_ID),
                     String.valueOf(count),
-                    mLocalProvider,
+                    getCursorString(cursor, AlbumColumns.AUTHORITY),
             };
             c.addRow(projectionValue);
         }
         return c;
+    }
+
+    private String[] getAlbumProjection() {
+        return new String[] {
+                "COUNT(" + KEY_ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
+                "MAX(" + KEY_DATE_TAKEN_MS + ") AS "
+                        + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
+                String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
+                        KEY_LOCAL_ID, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
+                // Note that we prefer local provider over cloud provider if a media item is present
+                // locally and on cloud.
+                String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END AS %s",
+                        KEY_LOCAL_ID, mCloudProvider, mLocalProvider, AlbumColumns.AUTHORITY)
+        };
     }
 
     private boolean isLocal(String authority) {
@@ -908,7 +945,7 @@ public class PickerDbFacade {
     private static ContentValues cursorToContentValue(Cursor cursor, boolean isLocal,
             String albumId) {
         final ContentValues values = new ContentValues();
-        if(TextUtils.isEmpty(albumId)) {
+        if (TextUtils.isEmpty(albumId)) {
             values.put(KEY_IS_VISIBLE, 1);
         }
         else {
@@ -957,7 +994,7 @@ public class PickerDbFacade {
                     values.put(KEY_DURATION_MS, cursor.getLong(index));
                     break;
                 case CloudMediaProviderContract.MediaColumns.IS_FAVORITE:
-                    if(TextUtils.isEmpty(albumId)) {
+                    if (TextUtils.isEmpty(albumId)) {
                         values.put(KEY_IS_FAVORITE, cursor.getInt(index));
                     }
                     break;
@@ -1004,10 +1041,8 @@ public class PickerDbFacade {
             selectArgs.add(String.valueOf(query.mSizeBytes));
         }
 
-        if (query.mMimeType != null) {
-            qb.appendWhereStandalone(WHERE_MIME_TYPE);
-            selectArgs.add(replaceMatchAnyChar(query.mMimeType));
-        }
+        addMimeTypesToQueryBuilderAndSelectionArgs(qb, selectArgs, query.mMimeTypes);
+
         if (query.mIsVideo) {
             qb.appendWhereStandalone(WHERE_MIME_TYPE);
             selectArgs.add(VIDEO_MIME_TYPES);
@@ -1023,6 +1058,27 @@ public class PickerDbFacade {
         }
 
         return selectArgs.toArray(new String[selectArgs.size()]);
+    }
+
+    static void addMimeTypesToQueryBuilderAndSelectionArgs(SQLiteQueryBuilder qb,
+            List<String> selectionArgs, String[] mimeTypes) {
+        if (mimeTypes == null) {
+            return;
+        }
+
+        mimeTypes = replaceMatchAnyChar(mimeTypes);
+        ArrayList<String> whereMimeTypes = new ArrayList<>();
+        for (String mimeType : mimeTypes) {
+            if (!TextUtils.isEmpty(mimeType)) {
+                whereMimeTypes.add(WHERE_MIME_TYPE);
+                selectionArgs.add(mimeType);
+            }
+        }
+
+        if (whereMimeTypes.isEmpty()) {
+            return;
+        }
+        qb.appendWhereStandalone(TextUtils.join(" OR ", whereMimeTypes));
     }
 
     private static SQLiteQueryBuilder createMediaQueryBuilder() {
@@ -1087,25 +1143,35 @@ public class PickerDbFacade {
         return qb;
     }
 
-    private static final class ResetAlbumOperation extends DbWriteOperation {
-        /**
-         * Resets the given cloud or local album_media identified by {@code isLocal} and
-         * {@code albumId}. If {@code albumId} is null, resets all the respective cloud or
-         * local albums.
-         */
+    private abstract static class AlbumWriteOperation extends DbWriteOperation {
+
+        private final String mAlbumId;
+
+        private AlbumWriteOperation(SQLiteDatabase database, boolean isLocal, String albumId) {
+            super(database, isLocal);
+            mAlbumId = albumId;
+        }
+
+        String getAlbumId() {
+            return mAlbumId;
+        }
+    }
+
+    private static final class ResetAlbumOperation extends AlbumWriteOperation {
+
         private ResetAlbumOperation(SQLiteDatabase database, boolean isLocal, String albumId) {
             super(database, isLocal, albumId);
         }
 
         @Override
         int executeInternal(@Nullable Cursor unused) {
-            final String albumId = albumId();
+            final String albumId = getAlbumId();
             final boolean isLocal = isLocal();
 
             final SQLiteQueryBuilder qb = createAlbumMediaQueryBuilder(isLocal);
 
             String[] selectionArgs = null;
-            if(!TextUtils.isEmpty(albumId)) {
+            if (!TextUtils.isEmpty(albumId)) {
                 qb.appendWhereStandalone(WHERE_ALBUM_ID);
                 selectionArgs = new String[]{albumId};
             }
@@ -1115,10 +1181,12 @@ public class PickerDbFacade {
         }
     }
 
-    private static final class AddAlbumMediaOperation extends DbWriteOperation {
+    private static final class AddAlbumMediaOperation extends AlbumWriteOperation {
+
         private AddAlbumMediaOperation(SQLiteDatabase database, boolean isLocal, String albumId) {
             super(database, isLocal, albumId);
-            if(TextUtils.isEmpty(albumId)) {
+
+            if (TextUtils.isEmpty(albumId)) {
                 throw new IllegalArgumentException("Missing albumId.");
             }
         }
@@ -1126,7 +1194,7 @@ public class PickerDbFacade {
         @Override
         int executeInternal(@Nullable Cursor cursor) {
             final boolean isLocal = isLocal();
-            final String albumId = albumId();
+            final String albumId = getAlbumId();
             final SQLiteQueryBuilder qb = createAlbumMediaQueryBuilder(isLocal);
             int counter = 0;
 
@@ -1136,10 +1204,10 @@ public class PickerDbFacade {
                     if (qb.insert(getDatabase(), values) > 0) {
                         counter++;
                     } else {
-                        Log.d(TAG, "Failed to insert album_media. ContentValues: " + values);
+                        Log.v(TAG, "Failed to insert album_media. ContentValues: " + values);
                     }
                 } catch (SQLiteConstraintException e) {
-                    Log.d(TAG, "Failed to insert album_media. ContentValues: " + values, e);
+                    Log.v(TAG, "Failed to insert album_media. ContentValues: " + values, e);
                 }
             }
 

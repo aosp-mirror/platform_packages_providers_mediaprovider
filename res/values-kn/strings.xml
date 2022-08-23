@@ -120,4 +120,9 @@
     <string name="transcode_processing" msgid="6753136468864077258">"ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿರುವ ಮಾಧ್ಯಮ…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"ರದ್ದುಮಾಡಿ"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"ನಿರೀಕ್ಷಿಸಿ"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"ಭದ್ರತಾ ರಕ್ಷಣೆ"</string>
+    <!-- no translation found for transcode_alert_channel (997332371757680478) -->
+    <skip />
+    <!-- no translation found for transcode_progress_channel (6905136787933058387) -->
+    <skip />
 </resources>

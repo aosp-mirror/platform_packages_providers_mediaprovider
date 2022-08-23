@@ -109,6 +109,7 @@ public class PickerDataLayer {
         final List<Cursor> cursors = new ArrayList<>();
         final Bundle cursorExtra = new Bundle();
         cursorExtra.putString(MediaStore.EXTRA_CLOUD_PROVIDER, cloudProvider);
+        cursorExtra.putString(MediaStore.EXTRA_LOCAL_PROVIDER, mLocalProvider);
 
         // Favorites and Videos are merged albums.
         final Cursor mergedAlbums = mDbFacade.getMergedAlbums(queryExtras.toQueryFilter());

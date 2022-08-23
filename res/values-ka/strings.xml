@@ -120,4 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"მედია მუშავდება…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"გაუქმება"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"მოცდა"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"უსაფრთხოების დაცვა"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"ტრანსკოდირების ადგილობრივი გაფრთხილება"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"ტრანსკოდირების ადგილობრივი პროგრესი"</string>
 </resources>

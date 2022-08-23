@@ -120,4 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"मीडियावर प्रक्रिया सुरू आहे…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"रद्द करा"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"प्रतीक्षा करा"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"सुरक्षितता संरक्षण"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"मूळ ट्रान्सकोड सूचना"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"मूळ ट्रान्सकोड प्रगती"</string>
 </resources>

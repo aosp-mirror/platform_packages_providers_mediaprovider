@@ -55,6 +55,7 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.StringUtils;
 
@@ -113,6 +114,8 @@ public class PickerSyncController {
     private final Runnable mSyncAllMediaCallback;
     private final Set<String> mAllowedCloudProviders;
 
+    private final PhotoPickerUiEventLogger mLogger;
+
     @GuardedBy("mLock")
     private CloudProviderInfo mCloudProviderInfo;
 
@@ -127,6 +130,7 @@ public class PickerSyncController {
         mLocalProvider = localProvider;
         mSyncDelayMs = syncDelayMs;
         mSyncAllMediaCallback = this::syncAllMedia;
+        mLogger = new PhotoPickerUiEventLogger();
 
         final String cachedAuthority = mUserPrefs.getString(
                 PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, null);
@@ -271,6 +275,9 @@ public class PickerSyncController {
                 // reset on the facade
                 mDbFacade.setCloudProvider(null);
 
+                // TODO(b/242897322): Log from PickerViewModel using its InstanceId when relevant
+                mLogger.logPickerCloudProviderChanged(newProviderInfo.uid,
+                        newProviderInfo.packageName);
                 Log.i(TAG, "Cloud provider changed successfully. Old: "
                         + oldAuthority + ". New: " + newProviderInfo.authority);
             }

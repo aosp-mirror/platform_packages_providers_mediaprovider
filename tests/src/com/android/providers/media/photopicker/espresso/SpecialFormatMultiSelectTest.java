@@ -25,7 +25,6 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
-
 import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
@@ -51,8 +50,8 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Verify imageView is displayed for gif preview
             onView(withId(PREVIEW_GIF_ID)).check(matches(isDisplayed()));
             onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
@@ -67,8 +66,8 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Verify imageView is displayed for animated webp preview
             onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
 
@@ -90,8 +89,8 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, NON_ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Verify imageView is displayed for non-animated webp preview
             onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
 
@@ -113,8 +112,8 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Verify imageView is displayed for motion photo preview
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(matches(isDisplayed()));
             onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
@@ -138,8 +137,8 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Preview Order
             // 1 - Gif
             // 2 - Animated Webp

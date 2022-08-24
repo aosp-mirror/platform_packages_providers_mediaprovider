@@ -45,15 +45,16 @@ import static org.hamcrest.Matchers.not;
 
 import android.app.Activity;
 
+import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.espresso.action.ViewActions;
-import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -62,9 +63,19 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
 
     private static final int TAB_VIEW_PAGER_ID = R.id.picker_tab_viewpager;
 
-    @Rule
-    public ActivityScenarioRule<PhotoPickerTestActivity> mRule
-            = new ActivityScenarioRule<>(PhotoPickerBaseTest.getMultiSelectionIntent());
+    private ActivityScenario<PhotoPickerTestActivity> mScenario;
+
+    @Before
+    public void launchActivity() {
+        mScenario =
+                ActivityScenario.launchActivityForResult(
+                        PhotoPickerBaseTest.getMultiSelectionIntent());
+    }
+
+    @After
+    public void closeActivity() {
+        mScenario.close();
+    }
 
     @Test
     public void testMultiSelectDoesNotShowProfileButton() {
@@ -247,8 +258,8 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
     public void testMultiSelectTabSwiping() throws Exception {
         onView(withId(TAB_LAYOUT_ID)).check(matches(isDisplayed()));
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, TAB_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mScenario, TAB_VIEW_PAGER_ID)) {
             // Swipe left, we should see albums tab
             swipeLeftAndWait(TAB_VIEW_PAGER_ID);
 
@@ -279,20 +290,20 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
     @Ignore("Enable after b/222013536 is fixed")
     public void testMultiSelectScrollDownToClose() {
         final BottomSheetIdlingResource bottomSheetIdlingResource =
-                BottomSheetIdlingResource.register(mRule);
+                BottomSheetIdlingResource.register(mScenario);
 
         try {
             bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
             onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
             onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            mRule.getScenario().onActivity(activity -> {
+            mScenario.onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_EXPANDED);
             });
 
             // Shows dragBar and privacy text after we are back to Photos tab
             onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
             onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            mRule.getScenario().onActivity(activity -> {
+            mScenario.onActivity(activity -> {
                 assertBottomSheetState(activity, STATE_EXPANDED);
             });
 
@@ -303,7 +314,7 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
             IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
         }
 
-        assertThat(mRule.getScenario().getResult().getResultCode()).isEqualTo(
+        assertThat(mScenario.getResult().getResultCode()).isEqualTo(
                 Activity.RESULT_CANCELED);
     }
 

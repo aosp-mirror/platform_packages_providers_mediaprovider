@@ -839,6 +839,7 @@ public class MediaProvider extends ContentProvider {
                     Trace.endSection();
                 }
 
+                deleteFromDbBackup(deletedRow);
                 switch (deletedRow.getMediaType()) {
                     case FileColumns.MEDIA_TYPE_PLAYLIST:
                     case FileColumns.MEDIA_TYPE_AUDIO:
@@ -862,6 +863,25 @@ public class MediaProvider extends ContentProvider {
             });
         }
     };
+
+    /**
+     * Deletes backed up data(needed for recovery) from external storage.
+     */
+    private void deleteFromDbBackup(FileRow deletedRow) {
+        if (!isStableUrisEnabled(deletedRow.getVolumeName())) {
+            return;
+        }
+
+        String deletedFilePath = deletedRow.getPath();
+        // For all internal file paths, redirect to external primary fuse daemon.
+        String fuseDaemonFilePath = deletedFilePath.startsWith("/storage") ? deletedFilePath
+                : "/storage/emulated/" + UserHandle.myUserId();
+        try {
+            getFuseDaemonForFile(new File(fuseDaemonFilePath)).deleteDbBackup(deletedFilePath);
+        } catch (IOException e) {
+            Log.w(TAG, "Failure in deleting backup data for key: " + deletedFilePath, e);
+        }
+    }
 
     protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
         if (!helper.isNextRowIdBackupEnabled()) {
@@ -10304,6 +10324,20 @@ public class MediaProvider extends ContentProvider {
         } catch (IOException e) {
             Log.w(TAG, "Failure in setting up backup and recovery for volume: " + volume.getName(),
                     e);
+        }
+    }
+
+    /**
+     * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
+     */
+    private boolean isStableUrisEnabled(String volumeName) {
+
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL:
+                return getBooleanDeviceConfig(FLAG_STABLISE_VOLUME_INTERNAL, /* defaultValue= */
+                        false);
+            default:
+                return false;
         }
     }
 

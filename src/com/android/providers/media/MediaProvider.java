@@ -345,6 +345,7 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
 
     private static final String TAKE_OVER_GET_CONTENT = "take_over_get_content";
+    private static final String FLAG_STABLISE_VOLUME_INTERNAL = "stablise_volume_internal";
 
     /**
      * Hard-coded filename where the current value of
@@ -422,6 +423,9 @@ public class MediaProvider extends ContentProvider {
     }
 
     private static final int sUserId = UserHandle.myUserId();
+
+    private static final String sRecoveryDirectoryPath =
+            "/storage/emulated/" + UserHandle.myUserId() + "/.transforms/recovery";
 
     /**
      * Please use {@link getDownloadsProviderAuthority()} instead of using this directly.
@@ -10289,6 +10293,7 @@ public class MediaProvider extends ContentProvider {
             mAttachedVolumes.add(volume);
         }
 
+        setupVolumeDbBackupAndRecovery(volume);
         final ContentResolver resolver = getContext().getContentResolver();
         final Uri uri = getBaseContentUri(volumeName);
         // TODO(b/182396009) we probably also want to notify clone profile (and vice versa)
@@ -10313,6 +10318,26 @@ public class MediaProvider extends ContentProvider {
             });
         }
         return uri;
+    }
+
+    private void setupVolumeDbBackupAndRecovery(MediaVolume volume) {
+        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volume.getName())) {
+            // Leveldb setup for internal volume is done during leveldb setup for primary external.
+            return;
+        }
+        if (!getBooleanDeviceConfig(FLAG_STABLISE_VOLUME_INTERNAL, /* defaultValue */true)) {
+            return;
+        }
+
+        try {
+            if (!new File(sRecoveryDirectoryPath).exists()) {
+                new File(sRecoveryDirectoryPath).mkdirs();
+            }
+            getFuseDaemonForFile(volume.getPath()).setupVolumeDbBackup();
+        } catch (IOException e) {
+            Log.w(TAG, "Failure in setting up backup and recovery for volume: " + volume.getName(),
+                    e);
+        }
     }
 
     private void detachVolume(Uri uri) {

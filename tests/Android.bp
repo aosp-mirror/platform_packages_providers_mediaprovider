@@ -158,7 +158,7 @@ android_test {
         "androidx.core_core",
         "androidx.test.rules",
         "guava",
-        "mockito-target-extended-minus-junit4",
+        "mockito-target",
         "modules-utils-build",
         "truth-prebuilt",
         "com.google.android.material_material",
@@ -175,12 +175,6 @@ android_test {
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
         "exoplayer-mediaprovider-ui",
-    ],
-
-    // these are needed for Extended Mockito
-    jni_libs: [
-        "libdexmakerjvmtiagent",
-        "libstaticjvmtiagent",
     ],
 
     certificate: "media",

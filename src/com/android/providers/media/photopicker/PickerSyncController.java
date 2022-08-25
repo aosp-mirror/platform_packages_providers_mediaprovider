@@ -55,6 +55,7 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.StringUtils;
 
@@ -77,8 +78,10 @@ public class PickerSyncController {
     public static final String ALLOWED_CLOUD_PROVIDERS_KEY = "allowed_cloud_providers";
 
     private static final String PREFS_KEY_CLOUD_PROVIDER_AUTHORITY = "cloud_provider_authority";
-    private static final String PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION =
+    private static final String PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION =
             "cloud_provider_pending_notification";
+    private static final String PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE =
+            "user_aware_about_cloud_media_app_settings";
     private static final String PREFS_KEY_CLOUD_PREFIX = "cloud_provider:";
     private static final String PREFS_KEY_LOCAL_PREFIX = "local_provider:";
 
@@ -111,6 +114,8 @@ public class PickerSyncController {
     private final Runnable mSyncAllMediaCallback;
     private final Set<String> mAllowedCloudProviders;
 
+    private final PhotoPickerUiEventLogger mLogger;
+
     @GuardedBy("mLock")
     private CloudProviderInfo mCloudProviderInfo;
 
@@ -125,13 +130,15 @@ public class PickerSyncController {
         mLocalProvider = localProvider;
         mSyncDelayMs = syncDelayMs;
         mSyncAllMediaCallback = this::syncAllMedia;
+        mLogger = new PhotoPickerUiEventLogger();
 
         final String cachedAuthority = mUserPrefs.getString(
                 PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, null);
 
         mAllowedCloudProviders = parseAllowedCloudProviders(allowedCloudProviders);
 
-        final CloudProviderInfo defaultInfo = getDefaultCloudProviderInfo(cachedAuthority);
+        final CloudProviderInfo defaultInfo = getDefaultCloudProviderInfo(cachedAuthority,
+                isUserAwareAboutCloudMediaAppSettings());
 
         if (Objects.equals(defaultInfo.authority, cachedAuthority)) {
             // Just set it without persisting since it's not changing and persisting would
@@ -268,6 +275,9 @@ public class PickerSyncController {
                 // reset on the facade
                 mDbFacade.setCloudProvider(null);
 
+                // TODO(b/242897322): Log from PickerViewModel using its InstanceId when relevant
+                mLogger.logPickerCloudProviderChanged(newProviderInfo.uid,
+                        newProviderInfo.packageName);
                 Log.i(TAG, "Cloud provider changed successfully. Old: "
                         + oldAuthority + ". New: " + newProviderInfo.authority);
             }
@@ -386,7 +396,7 @@ public class PickerSyncController {
         }
 
         final boolean hasPendingNotification = mUserPrefs.getBoolean(
-                PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, false);
+                PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, /* defaultValue */ false);
 
         if (!hasPendingNotification || (packageName == null)) {
             Log.d(TAG, "No pending UI notification");
@@ -413,8 +423,30 @@ public class PickerSyncController {
         });
 
         // Clear the notification
+        updateBooleanUserPref(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, false);
+    }
+
+    /**
+     * Notifies about cloud media app banner displayed in picker UI
+     */
+    @VisibleForTesting
+    void notifyUserCloudMediaAware() {
+        updateBooleanUserPref(PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE, true);
+    }
+
+    private void updateBooleanUserPref(String key, boolean value) {
         final SharedPreferences.Editor editor = mUserPrefs.edit();
-        editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, false);
+        editor.putBoolean(key, value);
+        editor.apply();
+    }
+
+    /**
+     * Clears the flag - user aware about cloud media app settings
+     */
+    @VisibleForTesting
+    void clearUserAwareAboutCloudMediaAppSettingsFlag() {
+        final SharedPreferences.Editor editor = mUserPrefs.edit();
+        editor.remove(PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE);
         editor.apply();
     }
 
@@ -563,10 +595,10 @@ public class PickerSyncController {
 
         if (info.isEmpty()) {
             editor.remove(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY);
-            editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, false);
+            editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, false);
         } else {
             editor.putString(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, authority);
-            editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATTION, true);
+            editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, true);
         }
 
         editor.apply();
@@ -724,7 +756,18 @@ public class PickerSyncController {
                 + totalRowcount + ". Cursor count: " + cursorCount);
     }
 
-    private CloudProviderInfo getDefaultCloudProviderInfo(String cachedProvider) {
+    /**
+     * Get the default {@link CloudProviderInfo} at {@link PickerSyncController} construction
+     */
+    @VisibleForTesting
+    CloudProviderInfo getDefaultCloudProviderInfo(String cachedProvider,
+            boolean isUserAwareAboutCloudMediaAppSettings) {
+        if (cachedProvider == null && isUserAwareAboutCloudMediaAppSettings) {
+            Log.i(TAG, "Skipping default cloud provider selection since the user has made an "
+                    + "explicit empty choice");
+            return CloudProviderInfo.EMPTY;
+        }
+
         final List<CloudProviderInfo> infos =
                 getSupportedCloudProviders(/* ignoreAllowList */ false);
 
@@ -740,7 +783,7 @@ public class PickerSyncController {
 
             if (cachedProvider != null) {
                 for (CloudProviderInfo info : infos) {
-                    if (info.authority.equals(defaultCloudProviderAuthority)) {
+                    if (info.authority.equals(cachedProvider)) {
                         return info;
                     }
                 }
@@ -757,6 +800,17 @@ public class PickerSyncController {
 
         // No default set or default not installed
         return CloudProviderInfo.EMPTY;
+    }
+
+    /**
+     * @return the value of the user pref
+     * {@link PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE} with the default value as
+     * {@code false}
+     */
+    @VisibleForTesting
+    boolean isUserAwareAboutCloudMediaAppSettings() {
+        return mUserPrefs.getBoolean(PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE,
+                /* defaultValue */ false);
     }
 
     private Set<String> parseAllowedCloudProviders(String config) {

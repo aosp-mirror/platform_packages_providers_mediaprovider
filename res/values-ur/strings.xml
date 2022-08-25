@@ -120,4 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"میڈیا پر کارروائی ہو رہی ہے…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"منسوخ کریں"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"انتظار کریں"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"سیفٹی پروٹیکشن"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"مقامی ٹرانسکوڈ کے الرٹس"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"مقامی ٹرانسکوڈ کی پیشرفت"</string>
 </resources>

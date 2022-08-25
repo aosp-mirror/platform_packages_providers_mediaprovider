@@ -31,7 +31,17 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "Photo picker opened via GET_CONTENT intent")
         PHOTO_PICKER_OPEN_GET_CONTENT(1080),
         @UiEvent(doc = "DocumentsUi opened by clicking on Browse in Photo picker")
-        PHOTO_PICKER_BROWSE_DOCUMENTSUI(1085);
+        PHOTO_PICKER_BROWSE_DOCUMENTSUI(1085),
+        @UiEvent(doc = "Photo picker cancelled in work profile")
+        PHOTO_PICKER_CANCEL_WORK_PROFILE(1125),
+        @UiEvent(doc = "Photo picker cancelled in personal profile")
+        PHOTO_PICKER_CANCEL_PERSONAL_PROFILE(1126),
+        @UiEvent(doc = "Confirmed selection in Photo picker in work profile")
+        PHOTO_PICKER_CONFIRM_WORK_PROFILE(1127),
+        @UiEvent(doc = "Confirmed selection in Photo picker in personal profile")
+        PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE(1128),
+        @UiEvent(doc = "User changed the active Photo picker cloud provider")
+        PHOTO_PICKER_CLOUD_PROVIDER_CHANGED(1135);
 
         private final int mId;
 
@@ -89,5 +99,67 @@ public class PhotoPickerUiEventLogger {
                 callingUid,
                 callingPackage,
                 instanceId);
+    }
+
+    /**
+     * Log metrics to notify that user has confirmed selection in personal profile
+     */
+    public void logPickerConfirmPersonal(InstanceId instanceId, int callingUid,
+            String callingPackage, int countOfItemsConfirmed) {
+        logger.logWithInstanceIdAndPosition(
+                PhotoPickerEvent.PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE,
+                callingUid,
+                callingPackage,
+                instanceId,
+                countOfItemsConfirmed);
+    }
+
+    /**
+     * Log metrics to notify that user has confirmed selection in work profile
+     */
+    public void logPickerConfirmWork(InstanceId instanceId, int callingUid,
+            String callingPackage, int countOfItemsConfirmed) {
+        logger.logWithInstanceIdAndPosition(
+                PhotoPickerEvent.PHOTO_PICKER_CONFIRM_WORK_PROFILE,
+                callingUid,
+                callingPackage,
+                instanceId,
+                countOfItemsConfirmed);
+    }
+
+    /**
+     * Log metrics to notify that user has cancelled picker (without any selection) in personal
+     * profile
+     */
+    public void logPickerCancelPersonal(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_CANCEL_PERSONAL_PROFILE,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that user has cancelled picker (without any selection) in work
+     * profile
+     */
+    public void logPickerCancelWork(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_CANCEL_WORK_PROFILE,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has changed the active cloud provider
+     * @param cloudProviderUid     new active cloud provider uid
+     * @param cloudProviderPackage new active cloud provider package name
+     */
+    public void logPickerCloudProviderChanged(int cloudProviderUid, String cloudProviderPackage) {
+        logger.log(PhotoPickerEvent.PHOTO_PICKER_CLOUD_PROVIDER_CHANGED, cloudProviderUid,
+                cloudProviderPackage);
     }
 }

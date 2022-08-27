@@ -753,7 +753,7 @@ public class MediaProvider extends ContentProvider {
                     insertedRow.getId(), insertedRow.getMediaType(), insertedRow.isDownload());
             updateNextRowIdXattr(helper, insertedRow.getId());
             helper.postBackground(() -> {
-                if (helper.isExternal()) {
+                if (helper.isExternal() && !isFuseThread()) {
                     // Update the quota type on the filesystem
                     Uri fileUri = MediaStore.Files.getContentUri(insertedRow.getVolumeName(),
                             insertedRow.getId());
@@ -2002,6 +2002,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    /** TODO(b/242153950) :Add negative tests for permission check of file lookup of synthetic
+     * paths. */
     private FileLookupResult handlePickerFileLookup(int userId, int uid, @NonNull String path) {
         final File file = new File(path);
         final List<String> syntheticRelativePathSegments =
@@ -2046,7 +2048,8 @@ public class MediaProvider extends ContentProvider {
                 // .../picker/<user-id>/<authority>/media/<media-id.extension>
                 final String fileUserId = syntheticRelativePathSegments.get(1);
                 final String authority = syntheticRelativePathSegments.get(2);
-                result = preparePickerMediaIdPathSegment(file, authority, lastSegment, fileUserId);
+                result = preparePickerMediaIdPathSegment(file, authority, lastSegment, fileUserId,
+                        uid);
                 break;
         }
 
@@ -2119,14 +2122,13 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean preparePickerMediaIdPathSegment(File file, String authority, String fileName,
-            String userId) {
+            String userId, int uid) {
         final String mediaId = extractFileName(fileName);
         final String[] projection = new String[] { MediaStore.PickerMediaColumns.SIZE };
 
         final Uri uri = Uri.parse("content://media/picker/" + userId + "/" + authority + "/media/"
                 + mediaId);
-        try (Cursor cursor =  mPickerUriResolver.query(uri, projection, /* callingUid */0,
-                android.os.Process.myUid())) {
+        try (Cursor cursor = mPickerUriResolver.query(uri, projection, /* callingPid */0, uid)) {
             if (cursor != null && cursor.moveToFirst()) {
                 final int sizeBytesIdx = cursor.getColumnIndex(MediaStore.PickerMediaColumns.SIZE);
 
@@ -10753,6 +10755,37 @@ public class MediaProvider extends ContentProvider {
         mTranscodeHelper.dump(writer);
         writer.println();
 
+        dumpNoMedia(writer);
+        writer.println();
+
         Logging.dumpPersistent(writer);
+    }
+
+    private void dumpNoMedia(PrintWriter writer) {
+        final DatabaseHelper helper;
+        try {
+            helper = getDatabaseForUri(MediaStore.Files.EXTERNAL_CONTENT_URI);
+        } catch (VolumeNotFoundException e) {
+            Log.w(TAG, "Volume not found", e);
+            return;
+        }
+
+        writer.println(MediaStore.VOLUME_EXTERNAL + " nomedia files:");
+        final int noMediaDumpFrequency = 100;
+
+        try (Cursor cursor = helper.runWithoutTransaction(
+                db -> db.query("files", new String[]{FileColumns.DATA},
+                        FileColumns.DATA + " LIKE '%.nomedia'", null, null, null, null))) {
+            final int dataColumnIndex = cursor.getColumnIndex(FileColumns.DATA);
+            final StringBuilder nomediaPaths = new StringBuilder();
+            while (cursor.moveToNext()) {
+                nomediaPaths.append(cursor.getString(dataColumnIndex)).append("\n");
+                if (cursor.getPosition() % noMediaDumpFrequency == 0) {
+                    writer.print(nomediaPaths);
+                    nomediaPaths.setLength(0);
+                }
+            }
+            writer.println(nomediaPaths);
+        }
     }
 }

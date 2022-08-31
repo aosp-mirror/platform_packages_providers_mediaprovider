@@ -30,6 +30,20 @@ public class PhotoPickerUiEventLogger {
         PHOTO_PICKER_OPEN_WORK_PROFILE(943),
         @UiEvent(doc = "Photo picker opened via GET_CONTENT intent")
         PHOTO_PICKER_OPEN_GET_CONTENT(1080),
+        @UiEvent(doc = "Photo picker opened in half screen")
+        PHOTO_PICKER_OPEN_HALF_SCREEN(1166),
+        @UiEvent(doc = "Photo picker opened in full screen")
+        PHOTO_PICKER_OPEN_FULL_SCREEN(1167),
+        @UiEvent(doc = "Photo picker opened in single select mode")
+        PHOTO_PICKER_OPEN_SINGLE_SELECT(1168),
+        @UiEvent(doc = "Photo picker opened in multi select mode")
+        PHOTO_PICKER_OPEN_MULTI_SELECT(1169),
+        @UiEvent(doc = "Photo picker opened with the filter to show all images")
+        PHOTO_PICKER_FILTER_ALL_IMAGES(1170),
+        @UiEvent(doc = "Photo picker opened with the filter to show all videos")
+        PHOTO_PICKER_FILTER_ALL_VIDEOS(1171),
+        @UiEvent(doc = "Photo picker opened with some other specific filter")
+        PHOTO_PICKER_FILTER_OTHER(1172),
         @UiEvent(doc = "DocumentsUi opened by clicking on Browse in Photo picker")
         PHOTO_PICKER_BROWSE_DOCUMENTSUI(1085),
         @UiEvent(doc = "Photo picker cancelled in work profile")
@@ -83,6 +97,112 @@ public class PhotoPickerUiEventLogger {
             String callingPackage) {
         logger.logWithInstanceId(
                 PhotoPickerEvent.PHOTO_PICKER_OPEN_GET_CONTENT,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the picker has opened in half screen
+     * @param instanceId     an identifier for the current picker session
+     * @param callingUid     the uid of the app initiating the picker launch
+     * @param callingPackage the package name of the app initiating the picker launch
+     */
+    public void logPickerOpenInHalfScreen(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_OPEN_HALF_SCREEN,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the picker has opened in full screen
+     * @param instanceId     an identifier for the current picker session
+     * @param callingUid     the uid of the app initiating the picker launch
+     * @param callingPackage the package name of the app initiating the picker launch
+     */
+    public void logPickerOpenInFullScreen(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_OPEN_FULL_SCREEN,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the picker has opened in single select mode
+     * @param instanceId     an identifier for the current picker session
+     * @param callingUid     the uid of the app initiating the picker launch
+     * @param callingPackage the package name of the app initiating the picker launch
+     */
+    public void logPickerOpenInSingleSelect(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_OPEN_SINGLE_SELECT,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the picker has opened in multi select mode
+     * @param instanceId     an identifier for the current picker session
+     * @param callingUid     the uid of the app initiating the picker launch
+     * @param callingPackage the package name of the app initiating the picker launch
+     */
+    public void logPickerOpenInMultiSelect(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_OPEN_MULTI_SELECT,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the picker has opened with the filter to show all images
+     * @param instanceId     an identifier for the current picker session
+     * @param callingUid     the uid of the app initiating the picker launch
+     * @param callingPackage the package name of the app initiating the picker launch
+     */
+    public void logPickerOpenWithFilterAllImages(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_FILTER_ALL_IMAGES,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the picker has opened with the filter to show all videos
+     * @param instanceId     an identifier for the current picker session
+     * @param callingUid     the uid of the app initiating the picker launch
+     * @param callingPackage the package name of the app initiating the picker launch
+     */
+    public void logPickerOpenWithFilterAllVideos(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_FILTER_ALL_VIDEOS,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the picker has opened with a specific filter, other than the ones
+     * tracked explicitly
+     * @param instanceId     an identifier for the current picker session
+     * @param callingUid     the uid of the app initiating the picker launch
+     * @param callingPackage the package name of the app initiating the picker launch
+     */
+    public void logPickerOpenWithAnyOtherFilter(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_FILTER_OTHER,
                 callingUid,
                 callingPackage,
                 instanceId);

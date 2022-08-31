@@ -2108,19 +2108,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
-    private void downgradeDatabase(SQLiteDatabase db, int fromVersion, int toVersion) {
-        final long startTime = SystemClock.elapsedRealtime();
-
-        // The best we can do is wipe and start over
-        createLatestSchema(db);
-
-        final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
-        if (mSchemaListener != null) {
-            mSchemaListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
-                    getItemCount(db), elapsedMillis, getOrCreateUuid(db));
-        }
-    }
-
     private static final String XATTR_UUID = "user.uuid";
 
     /**

@@ -229,6 +229,18 @@ public final class FuseDaemon extends Thread {
         }
     }
 
+    /**
+     * Backs up given key-value pair in external storage.
+     */
+    public void backupVolumeDbData(String key, String value) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_backup_volume_db_data(mPtr, key, value);
+        }
+    }
+
     private native long native_new(MediaProvider mediaProvider);
 
     // Takes ownership of the passed in file descriptor!
@@ -246,5 +258,6 @@ public final class FuseDaemon extends Thread {
     private native void native_initialize_device_id(long daemon, String path);
     private native void native_setup_volume_db_backup(long daemon);
     private native void native_delete_db_backup(long daemon, String key);
+    private native void native_backup_volume_db_data(long daemon, String key, String value);
     public static native boolean native_is_fuse_thread();
 }

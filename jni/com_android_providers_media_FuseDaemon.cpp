@@ -195,6 +195,19 @@ void com_android_providers_media_FuseDaemon_delete_db_backup(JNIEnv* env, jobjec
     daemon->DeleteFromLevelDb(utf_chars_path.c_str());
 }
 
+void com_android_providers_media_FuseDaemon_backup_volume_db_data(JNIEnv* env, jobject self,
+                                                                  jlong java_daemon,
+                                                                  jstring java_path, jstring value) {
+    fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
+    ScopedUtfChars utf_chars_path(env, java_path);
+    ScopedUtfChars utf_chars_value(env, value);
+    if (!utf_chars_path.c_str()) {
+        LOG(WARNING) << "Couldn't initialise FUSE device id";
+        return;
+    }
+    daemon->InsertInLevelDb(utf_chars_path.c_str(), utf_chars_value.c_str());
+}
+
 bool com_android_providers_media_FuseDaemon_is_fuse_thread(JNIEnv* env, jclass clazz) {
     return pthread_getspecific(fuse::MediaProviderWrapper::gJniEnvKey) != nullptr;
 }
@@ -224,7 +237,9 @@ const JNINativeMethod methods[] = {
         {"native_setup_volume_db_backup", "(J)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_setup_volume_db_backup)},
         {"native_delete_db_backup", "(JLjava/lang/String;)V",
-         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete_db_backup)}};
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete_db_backup)},
+        {"native_backup_volume_db_data", "(JLjava/lang/String;Ljava/lang/String;)V",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_backup_volume_db_data)}};
 }  // namespace
 
 void register_android_providers_media_FuseDaemon(JavaVM* vm, JNIEnv* env) {

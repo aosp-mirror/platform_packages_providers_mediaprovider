@@ -234,6 +234,8 @@ public final class MediaStore {
     public static final String EXTRA_RESULT = "result";
     /** {@hide} */
     public static final String EXTRA_FILE_DESCRIPTOR = "file_descriptor";
+    /** {@hide} */
+    public static final String EXTRA_LOCAL_PROVIDER = "local_provider";
 
     /** {@hide} */
     public static final String IS_SYSTEM_GALLERY_CALL = "is_system_gallery";

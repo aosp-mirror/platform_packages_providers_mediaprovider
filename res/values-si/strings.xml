@@ -120,6 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"මාධ්‍යය සකසමින්…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"අවලංගු කරන්න"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"රැඳී සිටින්න"</string>
-    <!-- no translation found for safety_protection_icon_label (6714354052747723623) -->
-    <skip />
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"සුරක්ෂිතතා ආරක්ෂණය"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"සහජ ට්‍රාන්ස්කෝඩ් ඇඟවීම්"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"සහජ ට්‍රාන්ස්කෝඩ් ප්‍රගතිය"</string>
 </resources>

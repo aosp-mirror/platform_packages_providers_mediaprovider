@@ -120,6 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"মিডিয়াৰ প্ৰক্ৰিয়াকৰণ কৰি থকা হৈছে…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"বাতিল কৰক"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"অপেক্ষা কৰক"</string>
-    <!-- no translation found for safety_protection_icon_label (6714354052747723623) -->
-    <skip />
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"সুৰক্ষিত নিৰাপত্তা"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"স্থানীয় ট্ৰেন্সক’ড সতৰ্কবাৰ্তা"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"স্থানীয় ট্ৰেন্সক’ড অগ্ৰগতি"</string>
 </resources>

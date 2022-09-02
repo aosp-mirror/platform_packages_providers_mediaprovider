@@ -35,18 +35,84 @@
         <item name="android:alertDialogTheme">@style/AlertDialogTheme</item>
     </style>
 
-    <style name="CacheClearingAlertDialogTitle"
-           parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:gravity">center</item>
-        <item name="android:textColor">?android:attr/textColorPrimary</item>
-        <item name="android:textSize">16sp</item>
-        <item name="android:textStyle">bold</item>
+    <style name="MaterialBorderlessButtonStyle"
+           parent="@style/Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textAppearance">@style/PickerButtonTextAppearance</item>
     </style>
 
-    <style name="PermissionAlertDialogTitle"
-           parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
-        <item name="android:textColor">?android:attr/textColorPrimary</item>
+    <style name="MaterialButtonStyle"
+           parent="@style/Widget.MaterialComponents.Button.UnelevatedButton">
+        <item name="android:textAppearance">@style/PickerButtonTextAppearance</item>
     </style>
+
+    <style name="ProfileDialogTheme"
+           parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog.Centered">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance</item>
+        <item name="android:backgroundDimAmount">@dimen/picker_profile_dialog_scrim</item>
+        <item name="android:background">?attr/pickerProfileDialogBackgroundColor</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/MaterialAlertDialogTitleStyle</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/MaterialAlertDialogBodyStyle</item>
+        <item name="materialAlertDialogTitleIconStyle">@style/MaterialAlertDialogIconStyle</item>
+        <item name="buttonBarPositiveButtonStyle">@style/PositiveButtonStyle</item>
+    </style>
+
+    <style name="ShapeAppearance">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/picker_profile_dialog_radius</item>
+    </style>
+
+    <style name="PositiveButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">?attr/pickerProfileDialogButtonAndIconColor</item>
+    </style>
+
+    <style name="MaterialAlertDialogTitleStyle"
+           parent="@style/MaterialAlertDialog.MaterialComponents.Title.Text.CenterStacked">
+        <item name="android:textAppearance">@style/PickerProfileDialogTitle</item>
+    </style>
+
+    <style name="MaterialAlertDialogBodyStyle"
+           parent="@style/MaterialAlertDialog.MaterialComponents.Body.Text">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAppearance">@style/PickerProfileDialogBody</item>
+    </style>
+
+    <style name="MaterialAlertDialogIconStyle"
+           parent="@style/MaterialAlertDialog.MaterialComponents.Title.Icon.CenterStacked">
+        <item name="android:tint">?attr/pickerProfileDialogButtonAndIconColor</item>
+        <item name="android:importantForAccessibility">no</item>
+        <item name="android:layout_width">@dimen/picker_profile_dialog_icon_width</item>
+        <item name="android:layout_height">@dimen/picker_profile_dialog_icon_height</item>
+    </style>
+
+    <style name="PickerDefaultTheme" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <!-- System | Widget section -->
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:navigationBarColor">@color/picker_background_color</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
+        <item name="pickerDragBarColor">#DADCE0</item>
+        <item name="pickerHighlightColor">?android:attr/colorAccent</item>
+        <item name="pickerHighlightTextColor">@android:color/white</item>
+        <item name="pickerProfileButtonColor">#E8F0FE</item>
+        <item name="pickerDisabledProfileButtonColor">@android:color/white</item>
+        <item name="pickerProfileButtonTextColor">#0B57D0</item>
+        <item name="pickerDisabledProfileButtonTextColor">#42757575</item>
+        <item name="pickerSelectedTabBackgroundColor">#E8F0FE</item>
+        <item name="pickerSelectedTabTextColor">#185ABC</item>
+        <item name="pickerTabBackgroundColor">@color/picker_background_color</item>
+        <item name="pickerTextColor">?android:attr/textColorPrimary</item>
+        <item name="pickerSelectedColor">?android:attr/colorAccent</item>
+        <item name="pickerProfileDialogButtonAndIconColor">#1A73E8</item>
+        <item name="pickerProfileDialogTitleColor">#202124</item>
+        <item name="pickerProfileDialogBodyColor">#5F6368</item>
+        <item name="pickerProfileDialogBackgroundColor">@android:color/white</item>
+    </style>
+
 </resources>

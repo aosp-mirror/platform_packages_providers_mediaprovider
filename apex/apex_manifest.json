@@ -1,4 +1,7 @@
 {
   "name": "com.android.mediaprovider",
-  "version": 319999910
+
+  // Placeholder module version to be replaced during build.
+  // Do not change!
+  "version": 0
 }

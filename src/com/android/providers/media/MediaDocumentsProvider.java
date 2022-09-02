@@ -202,7 +202,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
      * When underlying provider is ready, we kick off a notification of roots
      * changed so they can be refreshed.
      */
-    static void onMediaStoreReady(Context context, String volumeName) {
+    static void onMediaStoreReady(Context context) {
         sMediaStoreReady = true;
         notifyRootsChanged(context);
     }
@@ -1044,24 +1044,21 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final Uri target = getUriForDocumentId(docId);
         final int callingUid = Binder.getCallingUid();
 
-        if (!"r".equals(mode)) {
-            throw new IllegalArgumentException("Media is read-only");
-        }
-
         // Delegate to real provider
         final long token = Binder.clearCallingIdentity();
         try {
-            return openFileForRead(target, callingUid);
-        } finally {
+            return openFile(target, callingUid, mode);
+        }
+        finally {
             Binder.restoreCallingIdentity(token);
         }
     }
 
-    public ParcelFileDescriptor openFileForRead(final Uri target, final int callingUid)
+    public ParcelFileDescriptor openFile(final Uri target, final int callingUid, String mode)
             throws FileNotFoundException {
         final Bundle opts = new Bundle();
         opts.putInt(MediaStore.EXTRA_MEDIA_CAPABILITIES_UID, callingUid);
-
+        opts.putString(MediaStore.EXTRA_MODE, mode);
         AssetFileDescriptor afd =
                 getContext().getContentResolver().openTypedAssetFileDescriptor(target, "*/*",
                         opts);

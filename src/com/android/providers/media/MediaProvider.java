@@ -9630,7 +9630,16 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * @return true iff the caller has installer privileges which gives write access to obb dirs.
+     *
+     * @deprecated This method should only be called for Android R. For Android S+, please use
+     * {@link StorageManager#getExternalStorageMountMode} to check if the caller has
+     * {@link StorageManager#MOUNT_MODE_EXTERNAL_INSTALLER} access.
+     *
+     * Note: WRITE_EXTERNAL_STORAGE permission should ideally not be requested by non-legacy apps.
+     * But to be consistent with {@link StorageManager} check for Installer apps access for primary
+     * volumes in Android R, we do not add non-legacy apps check here as well.
      */
+    @Deprecated
     private boolean isCallingIdentityAllowedInstallerAccess() {
         final boolean hasWrite = mCallingIdentity.get().
                 hasPermission(PERMISSION_WRITE_EXTERNAL_STORAGE);
@@ -10755,37 +10764,6 @@ public class MediaProvider extends ContentProvider {
         mTranscodeHelper.dump(writer);
         writer.println();
 
-        dumpNoMedia(writer);
-        writer.println();
-
         Logging.dumpPersistent(writer);
-    }
-
-    private void dumpNoMedia(PrintWriter writer) {
-        final DatabaseHelper helper;
-        try {
-            helper = getDatabaseForUri(MediaStore.Files.EXTERNAL_CONTENT_URI);
-        } catch (VolumeNotFoundException e) {
-            Log.w(TAG, "Volume not found", e);
-            return;
-        }
-
-        writer.println(MediaStore.VOLUME_EXTERNAL + " nomedia files:");
-        final int noMediaDumpFrequency = 100;
-
-        try (Cursor cursor = helper.runWithoutTransaction(
-                db -> db.query("files", new String[]{FileColumns.DATA},
-                        FileColumns.DATA + " LIKE '%.nomedia'", null, null, null, null))) {
-            final int dataColumnIndex = cursor.getColumnIndex(FileColumns.DATA);
-            final StringBuilder nomediaPaths = new StringBuilder();
-            while (cursor.moveToNext()) {
-                nomediaPaths.append(cursor.getString(dataColumnIndex)).append("\n");
-                if (cursor.getPosition() % noMediaDumpFrequency == 0) {
-                    writer.print(nomediaPaths);
-                    nomediaPaths.setLength(0);
-                }
-            }
-            writer.println(nomediaPaths);
-        }
     }
 }

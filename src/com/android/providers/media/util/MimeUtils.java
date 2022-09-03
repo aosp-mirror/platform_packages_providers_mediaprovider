@@ -26,9 +26,10 @@ import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.util.Locale;
-import java.util.Objects;
 
 public class MimeUtils {
+    private static final String ALL_IMAGES_MIME_TYPE = "image/*";
+    private static final String ALL_VIDEOS_MIME_TYPE = "video/*";
 
     /**
      * Resolve the MIME type of the given file, returning
@@ -105,9 +106,29 @@ public class MimeUtils {
         return StringUtils.startsWithIgnoreCase(mimeType, "video/");
     }
 
+    /**
+     * Check whether a mime type is all videos
+     * @param mimeType the mime type {@link String} to be checked
+     * @return {@code true} if the given mime type is {@link ALL_VIDEOS_MIME_TYPE},
+     * {@code false} otherwise
+     */
+    public static boolean isAllVideosMimeType(@Nullable String mimeType) {
+        return ALL_VIDEOS_MIME_TYPE.equalsIgnoreCase(mimeType);
+    }
+
     public static boolean isImageMimeType(@Nullable String mimeType) {
         if (mimeType == null) return false;
         return StringUtils.startsWithIgnoreCase(mimeType, "image/");
+    }
+
+    /**
+     * Check whether a mime type is all images
+     * @param mimeType the mime type {@link String} to be checked
+     * @return {@code true} if the given mime type is {@link ALL_IMAGES_MIME_TYPE},
+     * {@code false} otherwise
+     */
+    public static boolean isAllImagesMimeType(@Nullable String mimeType) {
+        return ALL_IMAGES_MIME_TYPE.equalsIgnoreCase(mimeType);
     }
 
     public static boolean isImageOrVideoMediaType(int mediaType) {

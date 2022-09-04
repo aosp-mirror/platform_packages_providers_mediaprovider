@@ -18,6 +18,9 @@ package com.android.providers.media.photopicker.viewmodel;
 
 import static android.content.Intent.ACTION_GET_CONTENT;
 
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
+
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
@@ -44,6 +47,7 @@ import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.util.ForegroundThread;
+import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -310,6 +314,16 @@ public class PickerViewModel extends AndroidViewModel {
         return mMimeTypeFilters != null && mMimeTypeFilters.length > 0;
     }
 
+    private boolean isAllImagesFilter() {
+        return mMimeTypeFilters != null && mMimeTypeFilters.length == 1
+                && MimeUtils.isAllImagesMimeType(mMimeTypeFilters[0]);
+    }
+
+    private boolean isAllVideosFilter() {
+        return mMimeTypeFilters != null && mMimeTypeFilters.length == 1
+                && MimeUtils.isAllVideosMimeType(mMimeTypeFilters[0]);
+    }
+
     /**
      * Parse values from {@code intent} and set corresponding fields
      */
@@ -348,6 +362,26 @@ public class PickerViewModel extends AndroidViewModel {
         if (ACTION_GET_CONTENT.equals(intentAction)) {
             mLogger.logPickerOpenViaGetContent(mInstanceId, callingUid, callingPackage);
         }
+
+        if (mBottomSheetState == STATE_COLLAPSED) {
+            mLogger.logPickerOpenInHalfScreen(mInstanceId, callingUid, callingPackage);
+        } else if (mBottomSheetState == STATE_EXPANDED) {
+            mLogger.logPickerOpenInFullScreen(mInstanceId, callingUid, callingPackage);
+        }
+
+        if (mSelection != null && mSelection.canSelectMultiple()) {
+            mLogger.logPickerOpenInMultiSelect(mInstanceId, callingUid, callingPackage);
+        } else {
+            mLogger.logPickerOpenInSingleSelect(mInstanceId, callingUid, callingPackage);
+        }
+
+        if (isAllImagesFilter()) {
+            mLogger.logPickerOpenWithFilterAllImages(mInstanceId, callingUid, callingPackage);
+        } else if (isAllVideosFilter()) {
+            mLogger.logPickerOpenWithFilterAllVideos(mInstanceId, callingUid, callingPackage);
+        } else if (hasMimeTypeFilters()) {
+            mLogger.logPickerOpenWithAnyOtherFilter(mInstanceId, callingUid, callingPackage);
+        }
     }
 
     /**
@@ -355,6 +389,30 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void logBrowseToDocumentsUi(int callingUid, String callingPackage) {
         mLogger.logBrowseToDocumentsUi(mInstanceId, callingUid, callingPackage);
+    }
+
+    /**
+     * Log metrics to notify that the user has confirmed selection
+     */
+    public void logPickerConfirm(int callingUid, String callingPackage, int countOfItemsConfirmed) {
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerConfirmWork(mInstanceId, callingUid, callingPackage,
+                    countOfItemsConfirmed);
+        } else {
+            mLogger.logPickerConfirmPersonal(mInstanceId, callingUid, callingPackage,
+                    countOfItemsConfirmed);
+        }
+    }
+
+    /**
+     * Log metrics to notify that the user has exited Picker without any selection
+     */
+    public void logPickerCancel(int callingUid, String callingPackage) {
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerCancelWork(mInstanceId, callingUid, callingPackage);
+        } else {
+            mLogger.logPickerCancelPersonal(mInstanceId, callingUid, callingPackage);
+        }
     }
 
     public InstanceId getInstanceId() {

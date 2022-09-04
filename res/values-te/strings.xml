@@ -120,6 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"మీడియాను ప్రాసెస్ చేస్తోంది…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"రద్దు చేయండి"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"వేచి ఉండు"</string>
-    <!-- no translation found for safety_protection_icon_label (6714354052747723623) -->
-    <skip />
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"భద్రత రక్షణ"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"స్థానిక ట్రాన్స్‌కోడ్ అలర్ట్‌లు"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"స్థానిక ట్రాన్స్‌కోడ్ ప్రోగ్రెస్"</string>
 </resources>

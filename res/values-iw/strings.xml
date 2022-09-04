@@ -120,6 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"המדיה בעיבוד…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"ביטול"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"המתנה"</string>
-    <!-- no translation found for safety_protection_icon_label (6714354052747723623) -->
-    <skip />
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"הגנה על בטיחות"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"התראות של המרת קידוד מקורית"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"התקדמות של המרת קידוד מקורית"</string>
 </resources>

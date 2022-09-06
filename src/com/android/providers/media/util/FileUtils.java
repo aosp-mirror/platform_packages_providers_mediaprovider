@@ -49,8 +49,8 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
-import android.os.UserHandle;
 import android.os.SystemProperties;
+import android.os.UserHandle;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
@@ -1370,9 +1370,18 @@ public class FileUtils {
             resolvedDisplayName = displayName;
         }
 
-        final File filePath = buildPath(volumePath,
-                values.getAsString(MediaColumns.RELATIVE_PATH), resolvedDisplayName);
-        values.put(MediaColumns.DATA, filePath.getAbsolutePath());
+        String relativePath = values.getAsString(MediaColumns.RELATIVE_PATH);
+        if (relativePath == null) {
+          relativePath = "";
+        }
+        try {
+            final File filePath = buildPath(volumePath, relativePath, resolvedDisplayName);
+            values.put(MediaColumns.DATA, filePath.getCanonicalPath());
+        } catch (IOException e) {
+            throw new IllegalArgumentException(
+                    String.format("Failure in conversion to canonical file path. Failure path: %s.",
+                            relativePath.concat(resolvedDisplayName)), e);
+        }
     }
 
     public static void sanitizeValues(@NonNull ContentValues values,

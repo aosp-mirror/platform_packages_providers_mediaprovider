@@ -254,6 +254,10 @@ public final class MediaStore {
     /** {@hide} */
     public static final String SYNC_PROVIDERS_CALL = "sync_providers";
     /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_CALL = "get_cloud_provider";
+    /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_RESULT = "get_cloud_provider_result";
+    /** {@hide} */
     public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";
     /** {@hide} */
     public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
@@ -4736,5 +4740,17 @@ public final class MediaStore {
 
         final Bundle out = resolver.call(AUTHORITY, method, callingAuthority, /* extras */ null);
         return out.getBoolean(EXTRA_CLOUD_PROVIDER_RESULT);
+    }
+
+    /** {@hide} */
+    public static String getCurrentCloudProvider(@NonNull Context context) {
+        final ContentResolver resolver = context.getContentResolver();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle out = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
+                    /* extras */ null);
+            return out.getString(GET_CLOUD_PROVIDER_RESULT);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
     }
 }

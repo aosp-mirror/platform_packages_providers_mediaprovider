@@ -39,7 +39,9 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "Confirmed selection in Photo picker in work profile")
         PHOTO_PICKER_CONFIRM_WORK_PROFILE(1127),
         @UiEvent(doc = "Confirmed selection in Photo picker in personal profile")
-        PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE(1128);
+        PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE(1128),
+        @UiEvent(doc = "Photo picker opened with an active cloud provider")
+        PHOTO_PICKER_CLOUD_PROVIDER_ACTIVE(1198);
 
         private final int mId;
 
@@ -148,6 +150,21 @@ public class PhotoPickerUiEventLogger {
                 PhotoPickerEvent.PHOTO_PICKER_CANCEL_WORK_PROFILE,
                 callingUid,
                 callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the picker has opened with an active cloud provider
+     * @param instanceId           an identifier for the current picker session
+     * @param cloudProviderUid     the uid of the cloud provider app
+     * @param cloudProviderPackage the package name of the cloud provider app
+     */
+    public void logPickerOpenWithActiveCloudProvider(InstanceId instanceId, int cloudProviderUid,
+            String cloudProviderPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_CLOUD_PROVIDER_ACTIVE,
+                cloudProviderUid,
+                cloudProviderPackage,
                 instanceId);
     }
 }

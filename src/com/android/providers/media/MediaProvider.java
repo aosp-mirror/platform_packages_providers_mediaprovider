@@ -236,6 +236,7 @@ import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
+import com.android.providers.media.util.DeviceConfigUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.IsoInterface;
@@ -9819,71 +9820,25 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getBoolean(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
-                    defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
+        return DeviceConfigUtils.getBooleanDeviceConfig(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                key, defaultValue);
     }
 
     @VisibleForTesting
     public int getIntDeviceConfig(String key, int defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getInt(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
-                    defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
+        return DeviceConfigUtils.getIntDeviceConfig(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
+                defaultValue);
     }
 
     @VisibleForTesting
     public int getIntDeviceConfig(String namespace, String key, int defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getInt(namespace, key, defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
+        return DeviceConfigUtils.getIntDeviceConfig(namespace, key, defaultValue);
     }
 
     @VisibleForTesting
     public String getStringDeviceConfig(String key, String defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getString(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
-                    defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
-    }
-
-    private static <T> boolean canReadDeviceConfig(String key, T defaultValue) {
-        if (SdkLevel.isAtLeastS()) {
-            return true;
-        }
-
-        Log.w(TAG, "Cannot read device config before Android S. Returning defaultValue: "
-                + defaultValue + " for key: " + key);
-        return false;
+        return DeviceConfigUtils.getStringDeviceConfig(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                key, defaultValue);
     }
 
     @VisibleForTesting

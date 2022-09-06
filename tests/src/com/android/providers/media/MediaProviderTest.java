@@ -72,6 +72,7 @@ import com.android.providers.media.util.FileUtilsTest;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -371,6 +372,42 @@ public class MediaProviderTest {
             assertThat(result.length()).isAtMost(FileUtilsTest.MAX_FILENAME_BYTES);
             assertNotEquals(originalName, result);
         }
+    }
+
+    @Test
+    public void testInsertionWithInvalidFilePath_throwsIllegalArgumentException() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Android/media/com.example");
+        values.put(MediaStore.Images.Media.DISPLAY_NAME,
+                "./../../../../../../../../../../../data/media/test.txt");
+
+        IllegalArgumentException illegalArgumentException = Assert.assertThrows(
+                IllegalArgumentException.class, () -> sIsolatedResolver.insert(
+                        MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                        values));
+
+        assertThat(illegalArgumentException).hasMessageThat().contains(
+                "Primary directory Android not allowed for content://media/external_primary/file;"
+                        + " allowed directories are [Download, Documents]");
+    }
+
+    @Test
+    public void testUpdationWithInvalidFilePath_throwsIllegalArgumentException() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download");
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, "test.txt");
+        Uri uri = sIsolatedResolver.insert(
+                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                values);
+
+        final ContentValues newValues = new ContentValues();
+        newValues.put(MediaStore.MediaColumns.DATA, "/storage/emulated/0/../../../data/media/");
+        IllegalArgumentException illegalArgumentException = Assert.assertThrows(
+                IllegalArgumentException.class,
+                () -> sIsolatedResolver.update(uri, newValues, null));
+
+        assertThat(illegalArgumentException).hasMessageThat().contains(
+                "Requested path /data/media doesn't appear under [/storage/emulated/0]");
     }
 
     /**

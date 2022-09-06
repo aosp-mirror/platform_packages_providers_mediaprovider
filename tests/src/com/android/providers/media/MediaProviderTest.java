@@ -313,6 +313,36 @@ public class MediaProviderTest {
                 android.os.Process.myUid(), Intent.FLAG_GRANT_READ_URI_PERMISSION));
     }
 
+    @Test
+    public void testInsertionWithInvalidFilePath_throwsIllegalArgumentException() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Android/media/com.example");
+        values.put(MediaStore.Images.Media.DISPLAY_NAME,
+                "./../../../../../../../../../../../data/media/test.txt");
+
+        assertThrows(
+                IllegalArgumentException.class, () -> sIsolatedResolver.insert(
+                        MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                        values));
+    }
+
+    @Test
+    public void testUpdationWithInvalidFilePath_throwsIllegalArgumentException() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download");
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, "test.txt");
+        Uri uri = sIsolatedResolver.insert(
+                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                values);
+
+        final ContentValues newValues = new ContentValues();
+        newValues.put(MediaStore.MediaColumns.DATA, "/storage/emulated/0/../../../data/media/");
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> sIsolatedResolver.update(uri, newValues, null));
+    }
+
     /**
      * We already have solid coverage of this logic in
      * {@code CtsProviderTestCases}, but the coverage system currently doesn't

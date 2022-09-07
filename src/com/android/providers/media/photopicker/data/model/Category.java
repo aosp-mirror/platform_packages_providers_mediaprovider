@@ -17,44 +17,36 @@
 package com.android.providers.media.photopicker.data.model;
 
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
-import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
-import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
+
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorInt;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 
-import android.annotation.StringDef;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
-import android.provider.MediaStore.Files.FileColumns;
 import android.text.TextUtils;
-import android.util.ArrayMap;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 
 /**
  * Defines each category (which is group of items) for the photo picker.
  */
 public class Category {
+    public static final String TAG = "PhotoPicker";
     public static final Category DEFAULT = new Category();
 
     private final String mId;
@@ -147,14 +139,20 @@ public class Category {
      * Create a {@link Category} from the {@code cursor}.
      */
     public static Category fromCursor(@NonNull Cursor cursor, @NonNull UserId userId) {
-        final boolean isLocal;
         String authority = getCursorString(cursor, AlbumColumns.AUTHORITY);
-        if (authority != null) {
-            isLocal = true;
-        } else {
-            isLocal = false;
-            authority = cursor.getExtras().getString(MediaStore.EXTRA_CLOUD_PROVIDER);
+        if (authority == null) {
+            // Authority will be null for cloud albums in cursor.
+            String cloudProvider = cursor.getExtras().getString(MediaStore.EXTRA_CLOUD_PROVIDER);
+            if (cloudProvider == null) {
+                // If cloud provider is null, cloud albums will not show up properly.
+                Log.e(TAG, "Cloud provider is set by the user but not passed in album media cursor"
+                        + " extras.");
+            } else {
+                authority = cloudProvider;
+            }
         }
+        final boolean isLocal = authority != null
+                && authority.equals(cursor.getExtras().getString(MediaStore.EXTRA_LOCAL_PROVIDER));
         final Uri coverUri = ItemsProvider.getItemsUri(
                 getCursorString(cursor, AlbumColumns.MEDIA_COVER_ID), authority, userId);
 

@@ -63,6 +63,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -1199,5 +1200,28 @@ public class FileUtilsTest {
         assertEquals("foo.jpg", values.getAsString(MediaColumns.DISPLAY_NAME));
         assertTrue(values.containsKey(MediaColumns.BUCKET_DISPLAY_NAME));
         assertNull(values.get(MediaColumns.BUCKET_DISPLAY_NAME));
+    }
+
+    @Test
+    public void testComputeDataFromValuesForValidPath_success() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.RELATIVE_PATH, "Android/media/com.example");
+        values.put(MediaColumns.DISPLAY_NAME, "./../../abc.txt");
+
+        FileUtils.computeDataFromValues(values, new File("/storage/emulated/0"), false);
+
+        assertThat(values.getAsString(MediaColumns.DATA)).isEqualTo(
+                "/storage/emulated/0/Android/abc.txt");
+    }
+
+    @Test
+    public void testComputeDataFromValuesForInvalidPath_throwsIllegalArgumentException() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.RELATIVE_PATH, "\0");
+        values.put(MediaColumns.DISPLAY_NAME, "./../../abc.txt");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> FileUtils.computeDataFromValues(values, new File("/storage/emulated/0"),
+                        false));
     }
 }

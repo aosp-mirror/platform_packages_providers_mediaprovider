@@ -18,7 +18,6 @@ package com.android.providers.media.photopicker.data;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LIMIT_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_ARRAY_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
 import android.os.Bundle;
@@ -32,7 +31,7 @@ import android.provider.MediaStore;
 public class CloudProviderQueryExtras {
     private final String mAlbumId;
     private final String mAlbumAuthority;
-    private final String[] mMimeTypes;
+    private final String mMimeType;
     private final long mSizeBytes;
     private final long mGeneration;
     private final int mLimit;
@@ -42,7 +41,7 @@ public class CloudProviderQueryExtras {
     private CloudProviderQueryExtras() {
         mAlbumId = STRING_DEFAULT;
         mAlbumAuthority = STRING_DEFAULT;
-        mMimeTypes = STRING_ARRAY_DEFAULT;
+        mMimeType = STRING_DEFAULT;
         mSizeBytes = LONG_DEFAULT;
         mGeneration = LONG_DEFAULT;
         mLimit = LIMIT_DEFAULT;
@@ -50,11 +49,11 @@ public class CloudProviderQueryExtras {
         mIsVideo = BOOLEAN_DEFAULT;
     }
 
-    private CloudProviderQueryExtras(String albumId, String albumAuthority, String[] mimeTypes,
+    private CloudProviderQueryExtras (String albumId, String albumAuthority, String mimeType,
             long sizeBytes, long generation, int limit, boolean isFavorite, boolean isVideo) {
         mAlbumId = albumId;
         mAlbumAuthority = albumAuthority;
-        mMimeTypes = mimeTypes;
+        mMimeType = mimeType;
         mSizeBytes = sizeBytes;
         mGeneration = generation;
         mLimit = limit;
@@ -71,7 +70,7 @@ public class CloudProviderQueryExtras {
         final String albumId = bundle.getString(MediaStore.QUERY_ARG_ALBUM_ID, STRING_DEFAULT);
         final String albumAuthority = bundle.getString(MediaStore.QUERY_ARG_ALBUM_AUTHORITY,
                 STRING_DEFAULT);
-        final String[] mimeTypes = bundle.getStringArray(MediaStore.QUERY_ARG_MIME_TYPE);
+        final String mimeType = bundle.getString(MediaStore.QUERY_ARG_MIME_TYPE, STRING_DEFAULT);
 
         final long sizeBytes = bundle.getLong(MediaStore.QUERY_ARG_SIZE_BYTES, LONG_DEFAULT);
         final long generation = LONG_DEFAULT;
@@ -82,7 +81,7 @@ public class CloudProviderQueryExtras {
         final boolean isVideo = localProvider.equals(albumAuthority)
                 && AlbumColumns.ALBUM_ID_VIDEOS.equals(albumId);
 
-        return new CloudProviderQueryExtras(albumId, albumAuthority, mimeTypes, sizeBytes,
+        return new CloudProviderQueryExtras(albumId, albumAuthority, mimeType, sizeBytes,
                 generation, limit, isFavorite, isVideo);
     }
 
@@ -94,8 +93,8 @@ public class CloudProviderQueryExtras {
         final String albumId = bundle.getString(CloudMediaProviderContract.EXTRA_ALBUM_ID,
                 STRING_DEFAULT);
         final String albumAuthority = STRING_DEFAULT;
-        final String[] mimeTypes = bundle.getStringArray(
-                CloudMediaProviderContract.EXTRA_MIME_TYPE);
+        final String mimeType = bundle.getString(CloudMediaProviderContract.EXTRA_MIME_TYPE,
+                STRING_DEFAULT);
         final long sizeBytes = bundle.getLong(CloudMediaProviderContract.EXTRA_SIZE_LIMIT_BYTES,
                 LONG_DEFAULT);
         final long generation = bundle.getLong(CloudMediaProviderContract.EXTRA_SYNC_GENERATION,
@@ -105,14 +104,14 @@ public class CloudProviderQueryExtras {
         final boolean isFavorite = BOOLEAN_DEFAULT;
         final boolean isVideo = BOOLEAN_DEFAULT;
 
-        return new CloudProviderQueryExtras(albumId, albumAuthority, mimeTypes, sizeBytes,
+        return new CloudProviderQueryExtras(albumId, albumAuthority, mimeType, sizeBytes,
                 generation, limit, isFavorite, isVideo);
     }
 
     public PickerDbFacade.QueryFilter toQueryFilter() {
         PickerDbFacade.QueryFilterBuilder qfb = new PickerDbFacade.QueryFilterBuilder(mLimit);
         qfb.setSizeBytes(mSizeBytes);
-        qfb.setMimeTypes(mMimeTypes);
+        qfb.setMimeType(mMimeType);
         qfb.setIsFavorite(mIsFavorite);
         qfb.setIsVideo(mIsVideo);
         qfb.setAlbumId(mAlbumId);
@@ -122,7 +121,7 @@ public class CloudProviderQueryExtras {
     public Bundle toCloudMediaBundle() {
         final Bundle extras = new Bundle();
         extras.putString(CloudMediaProviderContract.EXTRA_ALBUM_ID, mAlbumId);
-        extras.putStringArray(CloudMediaProviderContract.EXTRA_MIME_TYPE, mMimeTypes);
+        extras.putString(CloudMediaProviderContract.EXTRA_MIME_TYPE, mMimeType);
         extras.putLong(CloudMediaProviderContract.EXTRA_SIZE_LIMIT_BYTES, mSizeBytes);
 
         return extras;
@@ -136,8 +135,8 @@ public class CloudProviderQueryExtras {
         return mAlbumAuthority;
     }
 
-    public String[] getMimeTypes() {
-        return mMimeTypes;
+    public String getMimeType() {
+        return mMimeType;
     }
 
     public long getSizeBytes() {

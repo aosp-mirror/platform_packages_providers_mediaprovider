@@ -23,7 +23,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -50,9 +49,7 @@ public class PickerDbFacadeTest {
     private static final String CLOUD_ID = "asdfghjkl;";
     private static final String ALBUM_ID = "testAlbum";
     private static final String VIDEO_MIME_TYPE = "video/mp4";
-    private static final String[] VIDEO_MIME_TYPES_QUERY = new String[]{"video/mp4"};
     private static final String IMAGE_MIME_TYPE = "image/jpeg";
-    private static final String[] IMAGE_MIME_TYPES_QUERY = new String[]{"image/jpeg"};
     private static final int STANDARD_MIME_TYPE_EXTENSION =
             MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF;
 
@@ -612,7 +609,7 @@ public class PickerDbFacadeTest {
     }
 
     @Test
-    public void testQueryWithMimeTypesFilter() throws Exception {
+    public void testQueryWithMimeTypeFilter() throws Exception {
         Cursor cursor1 = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, "video/webm",
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
@@ -625,12 +622,12 @@ public class PickerDbFacadeTest {
 
         // Verify all
         PickerDbFacade.QueryFilterBuilder qfbAll = new PickerDbFacade.QueryFilterBuilder(1000);
-        qfbAll.setMimeTypes(new String[]{"*/*"});
+        qfbAll.setMimeType("*/*");
         try (Cursor cr = mFacade.queryMediaForUi(qfbAll.build())) {
             assertThat(cr.getCount()).isEqualTo(2);
         }
 
-        qfbAll.setMimeTypes(new String[]{"video/mp4"});
+        qfbAll.setMimeType("video/mp4");
         try (Cursor cr = mFacade.queryMediaForUi(qfbAll.build())) {
             assertThat(cr.getCount()).isEqualTo(1);
 
@@ -642,14 +639,14 @@ public class PickerDbFacadeTest {
         PickerDbFacade.QueryFilterBuilder qfbAfter = new PickerDbFacade.QueryFilterBuilder(1000);
         qfbAfter.setDateTakenAfterMs(DATE_TAKEN_MS - 1);
         qfbAfter.setId(0);
-        qfbAfter.setMimeTypes(new String[]{"video/*"});
+        qfbAfter.setMimeType("video/*");
         try (Cursor cr = mFacade.queryMediaForUi(qfbAfter.build())) {
             assertThat(cr.getCount()).isEqualTo(2);
         }
 
         qfbAfter.setDateTakenAfterMs(DATE_TAKEN_MS - 1);
         qfbAfter.setId(0);
-        qfbAfter.setMimeTypes(new String[]{"video/webm"});
+        qfbAfter.setMimeType("video/webm");
         try (Cursor cr = mFacade.queryMediaForUi(qfbAfter.build())) {
             assertThat(cr.getCount()).isEqualTo(1);
 
@@ -661,14 +658,14 @@ public class PickerDbFacadeTest {
         PickerDbFacade.QueryFilterBuilder qfbBefore = new PickerDbFacade.QueryFilterBuilder(1000);
         qfbBefore.setDateTakenBeforeMs(DATE_TAKEN_MS + 1);
         qfbBefore.setId(0);
-        qfbBefore.setMimeTypes(new String[]{"video/*"});
+        qfbBefore.setMimeType("video/*");
         try (Cursor cr = mFacade.queryMediaForUi(qfbBefore.build())) {
             assertThat(cr.getCount()).isEqualTo(2);
         }
 
         qfbBefore.setDateTakenBeforeMs(DATE_TAKEN_MS + 1);
         qfbBefore.setId(0);
-        qfbBefore.setMimeTypes(new String[]{"video/mp4"});
+        qfbBefore.setMimeType("video/mp4");
         try (Cursor cr = mFacade.queryMediaForUi(qfbBefore.build())) {
             assertThat(cr.getCount()).isEqualTo(1);
 
@@ -678,7 +675,7 @@ public class PickerDbFacadeTest {
     }
 
     @Test
-    public void testQueryWithSizeAndMimeTypesFilter() throws Exception {
+    public void testQueryWithSizeAndMimeTypeFilter() throws Exception {
         Cursor cursor1 = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, /* sizeBytes */ 2, "video/webm",
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
@@ -691,14 +688,14 @@ public class PickerDbFacadeTest {
 
         // mime_type and size filter matches all
         PickerDbFacade.QueryFilterBuilder qfbAll = new PickerDbFacade.QueryFilterBuilder(1000);
-        qfbAll.setMimeTypes(new String[]{"*/*"});
+        qfbAll.setMimeType("*/*");
         qfbAll.setSizeBytes(10);
         try (Cursor cr = mFacade.queryMediaForUi(qfbAll.build())) {
             assertThat(cr.getCount()).isEqualTo(2);
         }
 
         // mime_type and size filter matches none
-        qfbAll.setMimeTypes(new String[]{"video/webm"});
+        qfbAll.setMimeType("video/webm");
         qfbAll.setSizeBytes(1);
         try (Cursor cr = mFacade.queryMediaForUi(qfbAll.build())) {
             assertThat(cr.getCount()).isEqualTo(0);
@@ -885,7 +882,7 @@ public class PickerDbFacadeTest {
     }
 
     @Test
-    public void testGetFavoritesAlbumWithMimeTypesFilter() throws Exception {
+    public void testGetFavoritesAlbumWithMimeTypeFilter() throws Exception {
         Cursor localCursor1 = getMediaCursor(LOCAL_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
@@ -936,7 +933,7 @@ public class PickerDbFacadeTest {
                     /* count */ 2);
         }
 
-        qfb.setMimeTypes(IMAGE_MIME_TYPES_QUERY);
+        qfb.setMimeType(IMAGE_MIME_TYPE);
         try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
@@ -948,7 +945,7 @@ public class PickerDbFacadeTest {
                     /* count */ 1);
         }
 
-        qfb.setMimeTypes(VIDEO_MIME_TYPES_QUERY);
+        qfb.setMimeType(VIDEO_MIME_TYPE);
         try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
             assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
@@ -967,7 +964,7 @@ public class PickerDbFacadeTest {
                     /* count */ 2);
         }
 
-        qfb.setMimeTypes(new String[]{"foo"});
+        qfb.setMimeType("foo");
         try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
             assertThat(cr.getCount()).isEqualTo(0);
         }
@@ -1012,68 +1009,6 @@ public class PickerDbFacadeTest {
         try (PickerDbFacade.DbWriteOperation operation =
                      mFacade.beginRemoveMediaOperation(CLOUD_PROVIDER)) {
             assertThrows(Exception.class, () -> operation.execute(null /* cursor */));
-        }
-    }
-
-    @Test
-    public void testUpdateMediaSuccess() throws Exception {
-        Cursor localCursor = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
-                /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE,
-                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
-        try (PickerDbFacade.DbWriteOperation operation =
-                     mFacade.beginAddMediaOperation(LOCAL_PROVIDER)) {
-            operation.execute(localCursor);
-            operation.setSuccess();
-        }
-
-        try (PickerDbFacade.UpdateMediaOperation operation =
-                     mFacade.beginUpdateMediaOperation(LOCAL_PROVIDER)) {
-            ContentValues values = new ContentValues();
-            values.put(PickerDbFacade.KEY_STANDARD_MIME_TYPE_EXTENSION,
-                    MediaColumns.STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP);
-            assertThat(operation.execute(LOCAL_ID, values)).isTrue();
-            operation.setSuccess();
-        }
-
-        try (Cursor cursor = queryMediaAll()) {
-            assertThat(cursor.getCount()).isEqualTo(1);
-
-            // Assert that STANDARD_MIME_TYPE_EXTENSION has been updated
-            cursor.moveToFirst();
-            assertThat(cursor.getInt(cursor.getColumnIndex(
-                    MediaColumns.STANDARD_MIME_TYPE_EXTENSION)))
-                    .isEqualTo(MediaColumns.STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP);
-        }
-    }
-
-    @Test
-    public void testUpdateMediaFailure() throws Exception {
-        Cursor localCursor = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
-                /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE,
-                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
-        try (PickerDbFacade.DbWriteOperation operation =
-                     mFacade.beginAddMediaOperation(LOCAL_PROVIDER)) {
-            operation.execute(localCursor);
-            operation.setSuccess();
-        }
-
-        try (PickerDbFacade.UpdateMediaOperation operation =
-                     mFacade.beginUpdateMediaOperation(LOCAL_PROVIDER)) {
-            ContentValues values = new ContentValues();
-            values.put(PickerDbFacade.KEY_STANDARD_MIME_TYPE_EXTENSION,
-                    MediaColumns.STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP);
-            assertThat(operation.execute(CLOUD_ID, values)).isFalse();
-            operation.setSuccess();
-        }
-
-        try (Cursor cursor = queryMediaAll()) {
-            assertThat(cursor.getCount()).isEqualTo(1);
-
-            // Assert that STANDARD_MIME_TYPE_EXTENSION is same as before
-            cursor.moveToFirst();
-            assertThat(cursor.getInt(cursor.getColumnIndex(
-                    MediaColumns.STANDARD_MIME_TYPE_EXTENSION)))
-                    .isEqualTo(STANDARD_MIME_TYPE_EXTENSION);
         }
     }
 
@@ -1178,8 +1113,7 @@ public class PickerDbFacadeTest {
     }
 
     private static Cursor getAlbumMediaCursor(String id, long dateTakenMs, long generationModified,
-            String mediaStoreUri, long sizeBytes, String mimeType,
-            int standardMimeTypeExtension) {
+            String mediaStoreUri, long sizeBytes, String mimeType, int standardMimeTypeExtension) {
         String[] projectionKey = new String[] {
                 MediaColumns.ID,
                 MediaColumns.MEDIA_STORE_URI,

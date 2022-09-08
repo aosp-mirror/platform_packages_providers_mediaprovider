@@ -23,7 +23,6 @@ import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_ARRAY_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
 import android.content.ContentResolver;
@@ -35,6 +34,7 @@ import android.os.SystemClock;
 import android.provider.CloudMediaProvider;
 import android.provider.CloudMediaProviderContract;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.android.providers.media.photopicker.LocalProvider;
 
@@ -96,9 +96,8 @@ public class PickerProviderMediaGenerator {
         private Bundle mCursorExtra;
 
         // TODO(b/214592293): Add pagination support for testing purposes.
-        public Cursor getMedia(long generation, String albumId, String[] mimeTypes,
-                long sizeBytes) {
-            final Cursor cursor = getCursor(mMedia, generation, albumId, mimeTypes, sizeBytes,
+        public Cursor getMedia(long generation, String albumId, String mimeType, long sizeBytes) {
+            final Cursor cursor = getCursor(mMedia, generation, albumId, mimeType, sizeBytes,
                     /* isDeleted */ false);
 
             if (mCursorExtra != null) {
@@ -113,8 +112,8 @@ public class PickerProviderMediaGenerator {
             return cursor;
         }
 
-        public Cursor getAlbums(String[] mimeTypes, long sizeBytes, boolean isLocal) {
-            final Cursor cursor = getCursor(mAlbums, mimeTypes, sizeBytes, isLocal);
+        public Cursor getAlbums(String mimeType, long sizeBytes, boolean isLocal) {
+            final Cursor cursor = getCursor(mAlbums, mimeType, sizeBytes, isLocal);
 
             if (mCursorExtra != null) {
                 cursor.setExtras(mCursorExtra);
@@ -131,7 +130,7 @@ public class PickerProviderMediaGenerator {
         // TODO(b/214592293): Add pagination support for testing purposes.
         public Cursor getDeletedMedia(long generation) {
             final Cursor cursor = getCursor(mDeletedMedia, generation, /* albumId */ STRING_DEFAULT,
-                    STRING_ARRAY_DEFAULT, /* sizeBytes */ LONG_DEFAULT,
+                    /* mimeType */ STRING_DEFAULT, /* sizeBytes */ LONG_DEFAULT,
                     /* isDeleted */ true);
 
             if (mCursorExtra != null) {
@@ -261,7 +260,7 @@ public class PickerProviderMediaGenerator {
         }
 
         private static Cursor getCursor(List<TestMedia> mediaList, long generation,
-                String albumId, String[] mimeTypes, long sizeBytes, boolean isDeleted) {
+                String albumId, String mimeType, long sizeBytes, boolean isDeleted) {
             final MatrixCursor matrix;
             if (isDeleted) {
                 matrix = new MatrixCursor(DELETED_MEDIA_PROJECTION);
@@ -273,22 +272,22 @@ public class PickerProviderMediaGenerator {
 
             for (TestMedia media : mediaList) {
                 if (!TextUtils.isEmpty(albumId) && matchesFilter(media,
-                        albumId, mimeTypes, sizeBytes)) {
+                        albumId, mimeType, sizeBytes)) {
                     matrix.addRow(media.toAlbumMediaArray());
                 } else if (media.generation > generation
-                        && matchesFilter(media, albumId, mimeTypes, sizeBytes)) {
+                        && matchesFilter(media, albumId, mimeType, sizeBytes)) {
                     matrix.addRow(media.toArray(isDeleted));
                 }
             }
             return matrix;
         }
 
-        private static Cursor getCursor(List<TestAlbum> albumList, String[] mimeTypes,
-                long sizeBytes, boolean isLocal) {
+        private static Cursor getCursor(List<TestAlbum> albumList, String mimeType, long sizeBytes,
+                boolean isLocal) {
             final MatrixCursor matrix = new MatrixCursor(ALBUM_PROJECTION);
 
             for (TestAlbum album : albumList) {
-                final String[] res = album.toArray(mimeTypes, sizeBytes, isLocal);
+                final String[] res = album.toArray(mimeType, sizeBytes, isLocal);
                 if (res != null) {
                     matrix.addRow(res);
                 }
@@ -399,13 +398,13 @@ public class PickerProviderMediaGenerator {
             this.media = media;
         }
 
-        public String[] toArray(String[] mimeTypes, long sizeBytes, boolean isLocal) {
+        public String[] toArray(String mimeType, long sizeBytes, boolean isLocal) {
             long mediaCount = 0;
             String mediaCoverId = null;
             long dateTakenMs = 0;
 
             for (TestMedia m : media) {
-                if (matchesFilter(m, id, mimeTypes, sizeBytes)) {
+                if (matchesFilter(m, id, mimeType, sizeBytes)) {
                     if (mediaCount++ == 0) {
                         mediaCoverId = m.getId();
                         dateTakenMs = m.dateTakenMs;
@@ -443,26 +442,14 @@ public class PickerProviderMediaGenerator {
         }
     }
 
-    private static boolean matchesFilter(TestMedia media, String albumId, String[] mimeTypes,
+    private static boolean matchesFilter(TestMedia media, String albumId, String mimeType,
             long sizeBytes) {
         if (!Objects.equals(albumId, STRING_DEFAULT) && !Objects.equals(albumId, media.albumId)) {
             return false;
         }
-
-        if (mimeTypes != null) {
-            boolean matchesMimeType = false;
-            for (String m : mimeTypes) {
-                if (m != null && media.mimeType.startsWith(m)) {
-                    matchesMimeType = true;
-                    break;
-                }
-            }
-
-            if (!matchesMimeType) {
-                return false;
-            }
+        if (!Objects.equals(mimeType, STRING_DEFAULT) && !media.mimeType.startsWith(mimeType)) {
+            return false;
         }
-
         if (sizeBytes != LONG_DEFAULT && media.sizeBytes > sizeBytes) {
             return false;
         }

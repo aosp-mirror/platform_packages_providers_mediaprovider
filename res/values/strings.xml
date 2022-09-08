@@ -406,7 +406,4 @@
 
     <!-- Transcode intermediate ANR dialog wait button. -->
     <string name="transcode_wait">Wait</string>
-
-    <!-- Safety Protection shield icon. -->
-    <string name="safety_protection_icon_label">Safety protection</string>
 </resources>

@@ -47,7 +47,7 @@ public class AlbumsTabFragment extends TabFragment {
         setEmptyMessage(R.string.picker_albums_empty_message);
 
         final AlbumsTabAdapter adapter = new AlbumsTabAdapter(mImageLoader, this::onItemClick,
-                mPickerViewModel.hasMimeTypeFilters());
+                mPickerViewModel.hasMimeTypeFilter());
         mPickerViewModel.getCategories().observe(this, categoryList -> {
             adapter.updateCategoryList(categoryList);
             // Handle emptyView's visibility

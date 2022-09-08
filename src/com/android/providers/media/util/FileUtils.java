@@ -49,8 +49,8 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
-import android.os.SystemProperties;
 import android.os.UserHandle;
+import android.os.SystemProperties;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
@@ -1400,18 +1400,9 @@ public class FileUtils {
             resolvedDisplayName = displayName;
         }
 
-        String relativePath = values.getAsString(MediaColumns.RELATIVE_PATH);
-        if (relativePath == null) {
-          relativePath = "";
-        }
-        try {
-            final File filePath = buildPath(volumePath, relativePath, resolvedDisplayName);
-            values.put(MediaColumns.DATA, filePath.getCanonicalPath());
-        } catch (IOException e) {
-            throw new IllegalArgumentException(
-                    String.format("Failure in conversion to canonical file path. Failure path: %s.",
-                            relativePath.concat(resolvedDisplayName)), e);
-        }
+        final File filePath = buildPath(volumePath,
+                values.getAsString(MediaColumns.RELATIVE_PATH), resolvedDisplayName);
+        values.put(MediaColumns.DATA, filePath.getAbsolutePath());
     }
 
     public static void sanitizeValues(@NonNull ContentValues values,
@@ -1635,28 +1626,18 @@ public class FileUtils {
         Log.i(TAG, "Clearing cache for all apps");
         final File rootDataDir = buildPath(Environment.getExternalStorageDirectory(),
                 "Android", "data");
-        File[] appDataDirs = rootDataDir.listFiles();
-        if (appDataDirs == null) {
-            // Couldn't delete any app cache dirs because the call to list files in root data dir
-            // failed (b/234521806). It is not clear why this call would fail because root data
-            // dir path should be well-formed.
-            Log.e(TAG, String.format("Couldn't delete any app cache dirs in root data dir %s !",
-                    rootDataDir.getAbsolutePath()));
-            status = OsConstants.EIO;
-        } else {
-            for (File appDataDir : appDataDirs) {
-                try {
-                    final File appCacheDir = new File(appDataDir, "cache");
-                    if (appCacheDir.isDirectory()) {
-                        FileUtils.deleteContents(appCacheDir);
-                    }
-                } catch (Exception e) {
-                    // We want to avoid crashing MediaProvider at all costs, so we handle all
-                    // "generic" exceptions here, and just report to the caller that an IO exception
-                    // has occurred. We still try to clear the rest of the directories.
-                    Log.e(TAG, "Couldn't delete all app cache dirs!", e);
-                    status = OsConstants.EIO;
+        for (File appDataDir : rootDataDir.listFiles()) {
+            try {
+                final File appCacheDir = new File(appDataDir, "cache");
+                if (appCacheDir.isDirectory()) {
+                    FileUtils.deleteContents(appCacheDir);
                 }
+            } catch (Exception e) {
+                // We want to avoid crashing MediaProvider at all costs, so we handle all "generic"
+                // exceptions here, and just report to the caller that an IO exception has occurred.
+                // We still try to clear the rest of the directories.
+                Log.e(TAG, "Couldn't delete all app cache dirs!", e);
+                status = OsConstants.EIO;
             }
         }
         return status;

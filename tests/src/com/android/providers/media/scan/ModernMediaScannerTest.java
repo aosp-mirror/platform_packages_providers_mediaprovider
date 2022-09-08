@@ -198,14 +198,8 @@ public class ModernMediaScannerTest {
         assertEquals(270,
                 (int) parseOptionalOrientation(ExifInterface.ORIENTATION_ROTATE_270).get());
 
-        assertEquals(0,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_FLIP_HORIZONTAL).get());
-        assertEquals(90,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_TRANSPOSE).get());
-        assertEquals(180,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_FLIP_VERTICAL).get());
-        assertEquals(270,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_TRANSVERSE).get());
+        // We can't represent this as an orientation
+        assertFalse(parseOptionalOrientation(ExifInterface.ORIENTATION_TRANSPOSE).isPresent());
     }
 
     @Test

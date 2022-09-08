@@ -21,7 +21,6 @@ import static android.provider.CloudMediaProviderContract.MediaColumns;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,7 +30,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
-import android.provider.MediaStore;
+import android.provider.CloudMediaProviderContract;
 import android.text.format.DateUtils;
 
 import androidx.annotation.NonNull;
@@ -326,7 +325,7 @@ public class PickerViewModelTest {
 
         @Override
         public Cursor getItems(Category category, int offset,
-                int limit, @Nullable String[] mimeType, @Nullable UserId userId) throws
+                int limit, @Nullable String mimeType, @Nullable UserId userId) throws
                 IllegalArgumentException, IllegalStateException {
             final MatrixCursor c = new MatrixCursor(MediaColumns.ALL_PROJECTION);
 
@@ -350,7 +349,7 @@ public class PickerViewModelTest {
         }
 
         @Nullable
-        public Cursor getCategories(@Nullable String[] mimeType, @Nullable UserId userId) {
+        public Cursor getCategories(@Nullable String mimeType, @Nullable UserId userId) {
             if (mCategoriesCursor != null) {
                 return mCategoriesCursor;
             }
@@ -369,75 +368,31 @@ public class PickerViewModelTest {
     }
 
     @Test
-    public void testParseValuesFromPickImagesIntent_noMimeType_defaultFalse() {
-        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+    public void testParseValuesFromIntent_noMimeType_defaultFalse() {
+        final Intent intent = new Intent();
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
-        assertThat(mPickerViewModel.hasMimeTypeFilters()).isFalse();
-    }
-
-    @Test
-    public void testParseValuesFromGetContentIntent_noMimeType_defaultFalse() {
-        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-        intent.setType("*/*");
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.hasMimeTypeFilters()).isFalse();
+        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
     }
 
     @Test
     public void testParseValuesFromIntent_validMimeType() {
-        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        final Intent intent = new Intent();
         intent.setType("image/png");
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
-        assertThat(mPickerViewModel.hasMimeTypeFilters()).isTrue();
+        assertThat(mPickerViewModel.hasMimeTypeFilter()).isTrue();
     }
 
     @Test
-    public void testParseValuesFromPickImagesIntent_validExtraMimeType() {
-        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/gif", "video/*"});
+    public void testParseValuesFromIntent_ignoreInvalidMimeType() {
+        final Intent intent = new Intent();
+        intent.setType("audio/*");
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
-        assertThat(mPickerViewModel.hasMimeTypeFilters()).isTrue();
-    }
-
-    @Test
-    public void testParseValuesFromPickImagesIntent_invalidExtraMimeType() {
-        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"audio/*", "video/*"});
-
-        try {
-            mPickerViewModel.parseValuesFromIntent(intent);
-            fail("Photo Picker does not support non-media mime type filters");
-        } catch (IllegalArgumentException expected) {
-            // Expected
-        }
-    }
-
-    @Test
-    public void testParseValuesFromGetContentIntent_validExtraMimeType() {
-        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/gif", "video/*"});
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        assertThat(mPickerViewModel.hasMimeTypeFilters()).isTrue();
-    }
-
-    @Test
-    public void testParseValuesFromGetContentIntent_invalidExtraMimeType() {
-        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"audio/*", "video/*"});
-
-        mPickerViewModel.parseValuesFromIntent(intent);
-
-        // non-media filters for GET_CONTENT show all images and videos
-        assertThat(mPickerViewModel.hasMimeTypeFilters()).isFalse();
+        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
     }
 }

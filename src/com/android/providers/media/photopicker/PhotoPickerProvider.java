@@ -72,7 +72,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
         return mDbFacade.queryMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
-                queryExtras.getMimeTypes());
+                queryExtras.getMimeType());
     }
 
     @Override
@@ -88,7 +88,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        return mDbFacade.queryAlbums(queryExtras.getMimeTypes());
+        return mDbFacade.queryAlbums(queryExtras.getMimeType());
     }
 
     @Override

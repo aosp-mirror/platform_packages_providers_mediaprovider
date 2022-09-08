@@ -40,11 +40,7 @@ android_app_certificate {
 
 sdk {
     name: "mediaprovider-module-sdk",
-    apexes: [
-        // Adds exportable dependencies of the APEX to the sdk,
-        // e.g. *classpath_fragments.
-        "com.android.mediaprovider",
-    ],
+    bootclasspath_fragments: ["com.android.mediaprovider-bootclasspath-fragment"],
 }
 
 // Encapsulate the contributions made by the com.android.mediaprovider to the bootclasspath.

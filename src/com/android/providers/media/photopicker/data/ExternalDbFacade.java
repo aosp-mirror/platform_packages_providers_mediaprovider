@@ -27,10 +27,10 @@ import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.addMimeTypesToQueryBuilderAndSelectionArgs;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
+import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -272,7 +272,7 @@ public class ExternalDbFacade {
      * Returns all items from the files table where {@link MediaColumns#GENERATION_MODIFIED}
      * is greater than {@code generation}.
      */
-    public Cursor queryMedia(long generation, String albumId, String[] mimeTypes) {
+    public Cursor queryMedia(long generation, String albumId, String mimeType) {
         final List<String> selectionArgs = new ArrayList<>();
         final String orderBy = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS + " DESC";
 
@@ -281,7 +281,7 @@ public class ExternalDbFacade {
                 qb.appendWhereStandalone(WHERE_GREATER_GENERATION);
                 selectionArgs.add(String.valueOf(generation));
 
-                selectionArgs.addAll(appendWhere(qb, albumId, mimeTypes));
+                selectionArgs.addAll(appendWhere(qb, albumId, mimeType));
 
                 return qb.query(db, PROJECTION_MEDIA_COLUMNS, /* select */ null,
                         selectionArgs.toArray(new String[selectionArgs.size()]), /* groupBy */ null,
@@ -374,14 +374,14 @@ public class ExternalDbFacade {
      * Categories are determined with the {@link #LOCAL_ALBUM_IDS}.
      * If there are no media items under an albumId, the album is skipped from the results.
      */
-    public Cursor queryAlbums(String[] mimeTypes) {
+    public Cursor queryAlbums(String mimeType) {
         final MatrixCursor c = new MatrixCursor(AlbumColumns.ALL_PROJECTION);
 
         for (String albumId: LOCAL_ALBUM_IDS) {
             Cursor cursor = mDatabaseHelper.runWithTransaction(db -> {
                 final SQLiteQueryBuilder qb = createMediaQueryBuilder();
                 final List<String> selectionArgs = new ArrayList<>();
-                selectionArgs.addAll(appendWhere(qb, albumId, mimeTypes));
+                selectionArgs.addAll(appendWhere(qb, albumId, mimeType));
 
                 return qb.query(db, PROJECTION_ALBUM_DB, /* selection */ null,
                         selectionArgs.toArray(new String[selectionArgs.size()]), /* groupBy */ null,
@@ -419,10 +419,13 @@ public class ExternalDbFacade {
     }
 
     private static List<String> appendWhere(SQLiteQueryBuilder qb, String albumId,
-            String[] mimeTypes) {
+            String mimeType) {
         final List<String> selectionArgs = new ArrayList<>();
 
-        addMimeTypesToQueryBuilderAndSelectionArgs(qb, selectionArgs, mimeTypes);
+        if (mimeType != null) {
+            qb.appendWhereStandalone(WHERE_MIME_TYPE);
+            selectionArgs.add(replaceMatchAnyChar(mimeType));
+        }
 
         if (albumId == null) {
             return selectionArgs;

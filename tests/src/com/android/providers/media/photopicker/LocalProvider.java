@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker;
 
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
 import android.content.res.AssetFileDescriptor;
@@ -52,7 +53,7 @@ public class LocalProvider extends CloudMediaProvider {
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
         return mMediaGenerator.getMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
-                queryExtras.getMimeTypes(), queryExtras.getSizeBytes());
+                queryExtras.getMimeType(), queryExtras.getSizeBytes());
     }
 
     @Override
@@ -68,7 +69,7 @@ public class LocalProvider extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        return mMediaGenerator.getAlbums(queryExtras.getMimeTypes(), queryExtras.getSizeBytes(),
+        return mMediaGenerator.getAlbums(queryExtras.getMimeType(), queryExtras.getSizeBytes(),
                 /* isLocal */ true);
     }
 

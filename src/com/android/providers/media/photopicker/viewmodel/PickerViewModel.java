@@ -76,7 +76,7 @@ public class PickerViewModel extends AndroidViewModel {
     private InstanceId mInstanceId;
     private PhotoPickerUiEventLogger mLogger;
 
-    private String[] mMimeTypeFilters = null;
+    private String mMimeTypeFilter = null;
     private int mBottomSheetState;
 
     private Category mCurrentCategory;
@@ -151,7 +151,7 @@ public class PickerViewModel extends AndroidViewModel {
         final List<Item> items = new ArrayList<>();
 
         try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
-                /* limit */ -1, mMimeTypeFilters, userId)) {
+                /* limit */ -1, mMimeTypeFilter, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any items for " + category
                         + ", either cursor is null or cursor count is zero");
@@ -268,7 +268,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
-        try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilters, userId)) {
+        try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
                         + " cursor count is zero");
@@ -304,10 +304,10 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Return whether the {@link #mMimeTypeFilters} is {@code null} or not
+     * Return whether the {@link #mMimeTypeFilter} is {@code null} or not
      */
-    public boolean hasMimeTypeFilters() {
-        return mMimeTypeFilters != null && mMimeTypeFilters.length > 0;
+    public boolean hasMimeTypeFilter() {
+        return !TextUtils.isEmpty(mMimeTypeFilter);
     }
 
     /**
@@ -316,7 +316,7 @@ public class PickerViewModel extends AndroidViewModel {
     public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
         mUserIdManager.setIntentAndCheckRestrictions(intent);
 
-        mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
+        mMimeTypeFilter = MimeFilterUtils.getMimeTypeFilter(intent);
 
         mSelection.parseSelectionValuesFromIntent(intent);
     }

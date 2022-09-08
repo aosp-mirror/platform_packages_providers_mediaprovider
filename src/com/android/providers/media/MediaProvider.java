@@ -679,10 +679,11 @@ public class MediaProvider extends ContentProvider {
     private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
         synchronized (mCachedCallingIdentityForFuse) {
             try {
-                Log.i(TAG, "Invalidating LocalCallingIdentity cache for package " + packageName
-                        + ". Reason: " + reason);
-                mCachedCallingIdentityForFuse.remove(
-                        getContext().getPackageManager().getPackageUid(packageName, 0));
+                int packageUid = getContext().getPackageManager().getPackageUid(packageName, 0);
+                if (mCachedCallingIdentityForFuse.contains(packageUid)) {
+                    mCachedCallingIdentityForFuse.get(packageUid).dump(reason);
+                    mCachedCallingIdentityForFuse.remove(packageUid);
+                }
             } catch (NameNotFoundException ignored) {
             }
         }
@@ -9418,9 +9419,11 @@ public class MediaProvider extends ContentProvider {
         }) == 1;
     }
 
-    private static int deleteFileUnchecked(@NonNull String path) {
+    private int deleteFileUnchecked(@NonNull String path,
+            LocalCallingIdentity localCallingIdentity) {
         final File toDelete = new File(path);
         if (toDelete.delete()) {
+            localCallingIdentity.incrementDeletedFileCountBypassingDatabase();
             return 0;
         } else {
             return OsConstants.ENOENT;
@@ -9446,8 +9449,8 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public int deleteFileForFuse(@NonNull String path, int uid) throws IOException {
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        final LocalCallingIdentity localCallingIdentity = getCachedCallingIdentityForFuse(uid);
+        final LocalCallingIdentity token = clearLocalCallingIdentity(localCallingIdentity);
         PulledMetrics.logFileAccessViaFuse(getCallingUidOrSelf(), path);
 
         try {
@@ -9457,7 +9460,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (shouldBypassDatabaseAndSetDirtyForFuse(uid, path)) {
-                return deleteFileUnchecked(path);
+                return deleteFileUnchecked(path, localCallingIdentity);
             }
 
             final boolean shouldBypass = shouldBypassFuseRestrictions(/*forWrite*/ true, path);
@@ -9474,7 +9477,7 @@ public class MediaProvider extends ContentProvider {
 
             if (delete(contentUri, where, whereArgs) == 0) {
                 if (shouldBypass) {
-                    return deleteFileUnchecked(path);
+                    return deleteFileUnchecked(path, localCallingIdentity);
                 }
                 return OsConstants.ENOENT;
             } else {
@@ -10719,6 +10722,19 @@ public class MediaProvider extends ContentProvider {
         mTranscodeHelper.dump(writer);
         writer.println();
 
+        dumpAccessLogs(writer);
+        writer.println();
+
         Logging.dumpPersistent(writer);
+    }
+
+    private void dumpAccessLogs(PrintWriter writer) {
+        synchronized (mCachedCallingIdentityForFuse) {
+            for (int key = 0; key <= mCachedCallingIdentityForFuse.size(); key++) {
+                if (mCachedCallingIdentityForFuse.contains(key)) {
+                    mCachedCallingIdentityForFuse.get(key).dump(writer);
+                }
+            }
+        }
     }
 }

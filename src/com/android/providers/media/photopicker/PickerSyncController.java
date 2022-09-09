@@ -29,13 +29,10 @@ import static com.android.providers.media.PickerUriResolver.getMediaUri;
 
 import android.annotation.IntDef;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.pm.ProviderInfo;
-import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -56,8 +53,10 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
+import com.android.providers.media.photopicker.util.CloudProviderUtils;
 import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.StringUtils;
 
@@ -103,18 +102,18 @@ public class PickerSyncController {
     @Retention(RetentionPolicy.SOURCE)
     private @interface SyncType {}
 
-    private final Object mLock = new Object();
-    private final PickerDbFacade mDbFacade;
     private final Context mContext;
+    private final ConfigStore mConfigStore;
+    private final PickerDbFacade mDbFacade;
     private final SharedPreferences mSyncPrefs;
     private final SharedPreferences mUserPrefs;
     private final String mLocalProvider;
     private final long mSyncDelayMs;
     private final Runnable mSyncAllMediaCallback;
-    private final List<String> mAllowlistedCloudProviders;
 
     private final PhotoPickerUiEventLogger mLogger;
 
+    private final Object mLock = new Object();
     @GuardedBy("mLock")
     private CloudProviderInfo mCloudProviderInfo;
 
@@ -127,6 +126,7 @@ public class PickerSyncController {
     public PickerSyncController(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
             @NonNull ConfigStore configStore, @NonNull String localProvider) {
         mContext = context;
+        mConfigStore = configStore;
         mSyncPrefs = mContext.getSharedPreferences(PICKER_SYNC_PREFS_FILE_NAME,
                 Context.MODE_PRIVATE);
         mUserPrefs = mContext.getSharedPreferences(PICKER_USER_PREFS_FILE_NAME,
@@ -138,9 +138,6 @@ public class PickerSyncController {
 
         final String cachedAuthority = mUserPrefs.getString(
                 PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, null);
-
-        mAllowlistedCloudProviders = configStore.getAllowlistedCloudProviders();
-        Log.d(TAG, "Allowlisted CloudMediaProviders: " + mAllowlistedCloudProviders);
 
         mSyncDelayMs = configStore.getPickerSyncDelayMs();
 
@@ -206,11 +203,17 @@ public class PickerSyncController {
         resetCachedMediaCollectionInfo(authority);
     }
 
-    /**
-     * Returns the supported cloud {@link CloudMediaProvider} infos.
-     */
-    public CloudProviderInfo getCloudProviderInfo(String authority) {
-        for (CloudProviderInfo info : getSupportedCloudProviders(/* ignoreAllowList */ false)) {
+    @NonNull
+    private CloudProviderInfo getCloudProviderInfo(String authority, boolean ignoreAllowlist) {
+        if (authority == null) {
+            return CloudProviderInfo.EMPTY;
+        }
+
+        final List<CloudProviderInfo> availableProviders = ignoreAllowlist
+                ? CloudProviderUtils.getAllAvailableCloudProviders(mContext, mConfigStore)
+                : CloudProviderUtils.getAvailableCloudProviders(mContext, mConfigStore);
+
+        for (CloudProviderInfo info : availableProviders) {
             if (info.authority.equals(authority)) {
                 return info;
             }
@@ -220,34 +223,11 @@ public class PickerSyncController {
     }
 
     /**
-     * Returns the supported cloud {@link CloudMediaProvider} authorities.
+     * @return list of available <b>and</b> allowlisted {@link CloudMediaProvider}-s.
      */
     @VisibleForTesting
-    List<CloudProviderInfo> getSupportedCloudProviders() {
-        return getSupportedCloudProviders(/* ignoreAllowList */ false);
-    }
-
-    private List<CloudProviderInfo> getSupportedCloudProviders(boolean ignoreAllowList) {
-        final List<CloudProviderInfo> result = new ArrayList<>();
-
-        final PackageManager pm = mContext.getPackageManager();
-        final Intent intent = new Intent(CloudMediaProviderContract.PROVIDER_INTERFACE);
-        final List<ResolveInfo> providers = pm.queryIntentContentProviders(intent, /* flags */ 0);
-
-        for (ResolveInfo info : providers) {
-            ProviderInfo providerInfo = info.providerInfo;
-            if (providerInfo.authority != null
-                    && CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION.equals(
-                            providerInfo.readPermission)
-                    && (ignoreAllowList
-                            || mAllowlistedCloudProviders.contains(providerInfo.authority))) {
-                result.add(new CloudProviderInfo(providerInfo.authority,
-                                providerInfo.applicationInfo.packageName,
-                                providerInfo.applicationInfo.uid));
-            }
-        }
-
-        return result;
+    List<CloudProviderInfo> getAvailableCloudProviders() {
+        return CloudProviderUtils.getAvailableCloudProviders(mContext, mConfigStore);
     }
 
     /**
@@ -262,6 +242,18 @@ public class PickerSyncController {
      * otherwise
      */
     public boolean setCloudProvider(String authority) {
+        return setCloudProviderInternal(authority, /* ignoreAllowlist */ false);
+    }
+
+    /**
+     * Set cloud provider ignoring allowlist.
+     */
+    @VisibleForTesting
+    public void forceSetCloudProvider(String authority) {
+        setCloudProviderInternal(authority, /* ignoreAllowlist */ true);
+    }
+
+    private boolean setCloudProviderInternal(String authority, boolean ignoreAllowList) {
         synchronized (mLock) {
             if (Objects.equals(mCloudProviderInfo.authority, authority)) {
                 Log.w(TAG, "Cloud provider already set: " + authority);
@@ -269,7 +261,7 @@ public class PickerSyncController {
             }
         }
 
-        final CloudProviderInfo newProviderInfo = getCloudProviderInfo(authority);
+        final CloudProviderInfo newProviderInfo = getCloudProviderInfo(authority, ignoreAllowList);
         if (authority == null || !newProviderInfo.isEmpty()) {
             synchronized (mLock) {
                 final String oldAuthority = mCloudProviderInfo.authority;
@@ -294,20 +286,6 @@ public class PickerSyncController {
 
         Log.w(TAG, "Cloud provider not supported: " + authority);
         return false;
-    }
-
-    /**
-     * Set cloud provider and update allowed cloud providers
-     */
-    @VisibleForTesting
-    public void forceSetCloudProvider(String authority) {
-        if (authority == null) {
-            mAllowlistedCloudProviders.clear();
-        } else {
-            mAllowlistedCloudProviders.add(authority);
-        }
-
-        setCloudProvider(authority);
     }
 
     public String getCloudProvider() {
@@ -357,8 +335,8 @@ public class PickerSyncController {
         // TODO(b/232738117): Enforce allow list here. This works around some CTS failure late in
         // Android T. The current implementation is fine since cloud providers is only supported
         // for app developers testing.
-        final List<CloudProviderInfo> infos = getSupportedCloudProviders(
-                /* ignoreAllowList */ true);
+        final List<CloudProviderInfo> infos =
+                CloudProviderUtils.getAllAvailableCloudProviders(mContext, mConfigStore);
         for (CloudProviderInfo info : infos) {
             if (info.uid == uid && info.authority.equals(authority)) {
                 return true;
@@ -775,8 +753,7 @@ public class PickerSyncController {
             return CloudProviderInfo.EMPTY;
         }
 
-        final List<CloudProviderInfo> infos =
-                getSupportedCloudProviders(/* ignoreAllowList */ false);
+        final List<CloudProviderInfo> infos = getAvailableCloudProviders();
 
         if (infos.size() == 1) {
             Log.i(TAG, "Only 1 cloud provider found, hence "
@@ -854,54 +831,6 @@ public class PickerSyncController {
         }
 
         return pageToken;
-    }
-
-    @VisibleForTesting
-    static class CloudProviderInfo {
-        static final CloudProviderInfo EMPTY = new CloudProviderInfo();
-        private final String authority;
-        private final String packageName;
-        private final int uid;
-
-        private CloudProviderInfo() {
-            this.authority = null;
-            this.packageName = null;
-            this.uid = -1;
-        }
-
-        CloudProviderInfo(String authority, String packageName, int uid) {
-            Objects.requireNonNull(authority);
-            Objects.requireNonNull(packageName);
-
-            this.authority = authority;
-            this.packageName = packageName;
-            this.uid = uid;
-        }
-
-        boolean isEmpty() {
-            return equals(EMPTY);
-        }
-
-        boolean matches(String packageName) {
-            return !isEmpty() && this.packageName.equals(packageName);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (obj == null || getClass() != obj.getClass()) return false;
-
-            CloudProviderInfo that = (CloudProviderInfo) obj;
-
-            return Objects.equals(authority, that.authority) &&
-                    Objects.equals(packageName, that.packageName) &&
-                    Objects.equals(uid, that.uid);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(authority, packageName, uid);
-        }
     }
 
     private static class SyncRequestParams {

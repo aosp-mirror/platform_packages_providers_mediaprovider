@@ -17,7 +17,6 @@
 package com.android.providers.media.photopicker;
 
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
-import static com.android.providers.media.photopicker.PickerSyncController.CloudProviderInfo;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -42,6 +41,7 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.R;
 import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 
@@ -596,7 +596,7 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testGetSupportedCloudProviders() {
-        List<CloudProviderInfo> providers = mController.getSupportedCloudProviders();
+        List<CloudProviderInfo> providers = mController.getAvailableCloudProviders();
 
         CloudProviderInfo primaryInfo = new CloudProviderInfo(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
                 PACKAGE_NAME,
@@ -619,14 +619,14 @@ public class PickerSyncControllerTest {
         mConfigStore.setAllowedCloudProviders(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         PickerSyncController controller = new PickerSyncController(
                 mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
-        List<CloudProviderInfo> providers = controller.getSupportedCloudProviders();
+        List<CloudProviderInfo> providers = controller.getAvailableCloudProviders();
         assertThat(providers).containsExactly(primaryInfo);
 
         mConfigStore.setAllowedCloudProviders(
                 CLOUD_PRIMARY_PROVIDER_AUTHORITY, CLOUD_SECONDARY_PROVIDER_AUTHORITY);
         controller = new PickerSyncController(
                 mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
-        providers = controller.getSupportedCloudProviders();
+        providers = controller.getAvailableCloudProviders();
         assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
 
         mConfigStore.setAllowedCloudProviders(
@@ -635,7 +635,7 @@ public class PickerSyncControllerTest {
                 CLOUD_PRIMARY_PROVIDER_AUTHORITY + "invalid");
         controller = new PickerSyncController(
                 mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
-        providers = controller.getSupportedCloudProviders();
+        providers = controller.getAvailableCloudProviders();
         assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
     }
 

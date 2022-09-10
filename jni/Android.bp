@@ -41,6 +41,7 @@ cc_library_shared {
     export_include_dirs: ["include"],
 
     shared_libs: [
+        "leveldb",
         "liblog",
         "libfuse",
         "libandroid"

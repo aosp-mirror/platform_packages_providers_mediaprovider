@@ -21,6 +21,7 @@ import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
+import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkAppOpRequestInstallPackagesForSharedUid;
 import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStorageGranted;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMtp;
@@ -56,14 +57,17 @@ import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.util.ArrayMap;
+import android.util.Log;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.UserCache;
 
+import java.io.PrintWriter;
 import java.util.Locale;
 
 public class LocalCallingIdentity {
@@ -75,6 +79,9 @@ public class LocalCallingIdentity {
     // Info used for logging permission checks
     private final @Nullable String attributionTag;
     private final Object lock = new Object();
+
+    @GuardedBy("lock")
+    private int mDeletedFileCountBypassingDatabase = 0;
 
     private LocalCallingIdentity(Context context, int pid, int uid, UserHandle user,
             String packageNameUnchecked, @Nullable String attributionTag) {
@@ -553,6 +560,18 @@ public class LocalCallingIdentity {
         }
     }
 
+    protected void incrementDeletedFileCountBypassingDatabase() {
+        synchronized (lock) {
+            mDeletedFileCountBypassingDatabase++;
+        }
+    }
+
+    protected int getDeletedFileCountBypassingDatabase() {
+        synchronized (lock) {
+            return mDeletedFileCountBypassingDatabase;
+        }
+    }
+
     private volatile int applicationMediaCapabilitiesSupportedFlags = -1;
     private volatile int applicationMediaCapabilitiesUnsupportedFlags = -1;
 
@@ -567,5 +586,29 @@ public class LocalCallingIdentity {
     public void setApplicationMediaCapabilitiesFlags(int supportedFlags, int unsupportedFlags) {
         applicationMediaCapabilitiesSupportedFlags = supportedFlags;
         applicationMediaCapabilitiesUnsupportedFlags = unsupportedFlags;
+    }
+
+    protected void dump(PrintWriter writer) {
+        if (getDeletedFileCountBypassingDatabase() <= 0) {
+            return;
+        }
+
+        writer.println(getDeletedFileCountLogMessage(uid, getPackageName(),
+                getDeletedFileCountBypassingDatabase()));
+    }
+
+    protected void dump(String reason) {
+        Log.i(TAG, "Invalidating LocalCallingIdentity cache for package " + packageName
+                + ". Reason: " + reason);
+        if (this.getDeletedFileCountBypassingDatabase() > 0) {
+            Logging.logPersistent(getDeletedFileCountLogMessage(uid, getPackageName(),
+                    getDeletedFileCountBypassingDatabase()));
+        }
+    }
+
+    private static String getDeletedFileCountLogMessage(int uid, String packageName,
+            int deletedFilesCountBypassingDatabase) {
+        return "uid=" + uid + " packageName=" + packageName + " deletedFilesCountBypassingDatabase="
+                + deletedFilesCountBypassingDatabase;
     }
 }

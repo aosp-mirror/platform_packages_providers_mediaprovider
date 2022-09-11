@@ -2450,5 +2450,15 @@ void FuseDaemon::SetupLevelDbInstance() {
     }
 }
 
+void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
+    if (!android::base::StartsWith(key, "/storage")) {
+        leveldb::Status status;
+        status = fuse->internal_level_db->Delete(leveldb::WriteOptions(), key);
+        if (!status.ok()) {
+            LOG(INFO) << "Failure in leveldb delete for key: " << key;
+        }
+    }
+}
+
 } //namespace fuse
 }  // namespace mediaprovider

@@ -10323,7 +10323,7 @@ public class MediaProvider extends ContentProvider {
             // Leveldb setup for internal volume is done during leveldb setup for primary external.
             return;
         }
-        if (!getBooleanDeviceConfig(FLAG_STABLISE_VOLUME_INTERNAL, /* defaultValue */true)) {
+        if (!getBooleanDeviceConfig(FLAG_STABLISE_VOLUME_INTERNAL, /* defaultValue */false)) {
             return;
         }
 

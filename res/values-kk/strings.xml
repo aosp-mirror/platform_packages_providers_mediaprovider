@@ -50,7 +50,7 @@
     <string name="picker_view_selected" msgid="2266031384396143883">"Таңдалғанды көру"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Фотосуреттер"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Aльбомдар"</string>
-    <string name="picker_preview" msgid="6257414886055861039">"Алдын ала қарау"</string>
+    <string name="picker_preview" msgid="6257414886055861039">"Алдын ала көру"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Жұмыс профиліне ауысу"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Жеке профильге ауысу"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Әкімшіңіз бөгеген"</string>

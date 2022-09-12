@@ -49,12 +49,12 @@
     <permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
                 android:protectionLevel="signature" />
 
-    <!-- We use Photo Picker app icon for this package. It is necessary for Photo Picker GET_CONTENT
-         take over. Some apps query packages that can handle GET_CONTENT and want to display the
-         icon and label of the package to the user. -->
+    <!-- We use Photo Picker app icon and label for this package. It is necessary for Photo Picker
+         GET_CONTENT take over. Some apps query packages that can handle GET_CONTENT and want to
+         display the icon and label of the package to the user. -->
     <application
             android:name="com.android.providers.media.MediaApplication"
-            android:label="@string/app_label"
+            android:label="@string/picker_app_label"
             android:icon="@mipmap/picker_app_icon"
             android:allowBackup="false"
             android:supportsRtl="true"

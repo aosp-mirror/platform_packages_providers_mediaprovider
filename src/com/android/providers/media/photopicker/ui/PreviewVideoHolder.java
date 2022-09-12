@@ -30,6 +30,7 @@ import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
 
 /**
  * ViewHolder of a video item within the {@link ViewPager2}
@@ -44,6 +45,7 @@ public class PreviewVideoHolder extends BaseViewHolder {
     private final View mPlayerControlsRoot;
     private final ImageButton mPlayPauseButton;
     private final ImageButton mMuteButton;
+    private final CircularProgressIndicator mCircularProgressIndicator;
 
     PreviewVideoHolder(Context context, ViewGroup parent, ImageLoader imageLoader) {
         super(context, parent, R.layout.item_video_preview);
@@ -56,6 +58,8 @@ public class PreviewVideoHolder extends BaseViewHolder {
         mPlayerControlsRoot = itemView.findViewById(R.id.preview_player_controls);
         mPlayPauseButton = itemView.findViewById(R.id.exo_play_pause);
         mMuteButton = itemView.findViewById(R.id.preview_mute);
+        mCircularProgressIndicator = itemView.findViewById(R.id.preview_progress_indicator);
+
     }
 
     @Override
@@ -94,5 +98,9 @@ public class PreviewVideoHolder extends BaseViewHolder {
 
     public ImageButton getMuteButton() {
         return mMuteButton;
+    }
+
+    public CircularProgressIndicator getCircularProgressIndicator() {
+        return mCircularProgressIndicator;
     }
 }

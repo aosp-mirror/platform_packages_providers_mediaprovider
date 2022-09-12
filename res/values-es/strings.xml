@@ -120,4 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Procesando elementos multimedia…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Cancelar"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Espera"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Protección de seguridad"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Alertas de transcodificación nativa"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Progreso de transcodificación nativa"</string>
 </resources>

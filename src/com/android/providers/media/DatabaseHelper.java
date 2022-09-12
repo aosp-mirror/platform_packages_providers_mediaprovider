@@ -853,17 +853,21 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      */
     public void notifyChange(@NonNull Uri uri, int flags) {
         if (LOGV) Log.v(TAG, "Notifying " + uri);
+
+        // Also sync change to the network.
+        final int notifyFlags = flags | ContentResolver.NOTIFY_SYNC_TO_NETWORK;
+
         final TransactionState state = mTransactionState.get();
         if (state != null) {
-            ArraySet<Uri> set = state.notifyChanges.get(flags);
+            ArraySet<Uri> set = state.notifyChanges.get(notifyFlags);
             if (set == null) {
                 set = new ArraySet<>();
-                state.notifyChanges.put(flags, set);
+                state.notifyChanges.put(notifyFlags, set);
             }
             set.add(uri);
         } else {
             ForegroundThread.getExecutor().execute(() -> {
-                notifySingleChangeInternal(uri, flags);
+                notifySingleChangeInternal(uri, notifyFlags);
             });
         }
     }
@@ -1529,7 +1533,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
                         + "||':'||old.is_trashed||':'||new.is_trashed"
                         + "||':'||old.is_pending||':'||new.is_pending"
-                        + "||':'||old.is_favorite||':'||new.is_favorite"
+                        + "||':'||ifnull(old.is_favorite,0)"
+                        + "||':'||ifnull(new.is_favorite,0)"
                         + "||':'||ifnull(old._special_format,0)"
                         + "||':'||ifnull(new._special_format,0)"
                         + "||':'||ifnull(old.owner_package_name,'null')"
@@ -1877,7 +1882,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_S = 1209;
     // Leave some gaps in database version tagging to allow S schema changes
     // to go independent of T schema changes.
-    static final int VERSION_T = 1307;
+    static final int VERSION_T = 1308;
     public static final int VERSION_LATEST = VERSION_T;
 
     /**
@@ -2074,6 +2079,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // This is to ensure Animated Webp files are tagged
                 updateSpecialFormatToNotDetected(db);
             }
+            if (fromVersion < 1308) {
+                // Empty version bump to ensure triggers are recreated
+            }
 
             // If this is the legacy database, it's not worth recomputing data
             // values locally, since they'll be recomputed after the migration
@@ -2092,19 +2100,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         createLatestTriggers(db);
 
         getOrCreateUuid(db);
-
-        final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
-        if (mSchemaListener != null) {
-            mSchemaListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
-                    getItemCount(db), elapsedMillis, getOrCreateUuid(db));
-        }
-    }
-
-    private void downgradeDatabase(SQLiteDatabase db, int fromVersion, int toVersion) {
-        final long startTime = SystemClock.elapsedRealtime();
-
-        // The best we can do is wipe and start over
-        createLatestSchema(db);
 
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
         if (mSchemaListener != null) {

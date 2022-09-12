@@ -120,4 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"મીડિયા પર પ્રક્રિયા થઈ રહી છે…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"રદ કરો"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"રાહ જુઓ"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"સલામતી સંરક્ષણ"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Native Transcode Alerts"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Native Transcode Progress"</string>
 </resources>

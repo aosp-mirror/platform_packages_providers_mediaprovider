@@ -120,4 +120,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"மீடியாவைச் செயலாக்குகிறது…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"ரத்துசெய்"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"காத்திருங்கள்"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"பாதுகாப்பு வளையம்"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"நேட்டிவ் குறிமாற்ற விழிப்பூட்டல்கள்"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"நேட்டிவ் குறிமாற்றச் செயல்நிலை"</string>
 </resources>

@@ -72,6 +72,16 @@ class FuseDaemon final {
      */
     void InitializeDeviceId(const std::string& path);
 
+    /**
+     * Setup leveldb instance and connect for backing up volume's database data.
+     */
+    void SetupLevelDbInstance();
+
+    /**
+     * Deletes entry for given key from leveldb.
+     */
+    void DeleteFromLevelDb(const std::string& key);
+
   private:
     FuseDaemon(const FuseDaemon&) = delete;
     void operator=(const FuseDaemon&) = delete;

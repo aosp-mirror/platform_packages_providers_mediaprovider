@@ -236,6 +236,7 @@ import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
+import com.android.providers.media.util.DeviceConfigUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.IsoInterface;
@@ -345,6 +346,7 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
 
     private static final String TAKE_OVER_GET_CONTENT = "take_over_get_content";
+    private static final String FLAG_STABLISE_VOLUME_INTERNAL = "stablise_volume_internal";
 
     /**
      * Hard-coded filename where the current value of
@@ -422,6 +424,9 @@ public class MediaProvider extends ContentProvider {
     }
 
     private static final int sUserId = UserHandle.myUserId();
+
+    private static final String sRecoveryDirectoryPath =
+            "/storage/emulated/" + UserHandle.myUserId() + "/.transforms/recovery";
 
     /**
      * Please use {@link getDownloadsProviderAuthority()} instead of using this directly.
@@ -678,10 +683,11 @@ public class MediaProvider extends ContentProvider {
     private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
         synchronized (mCachedCallingIdentityForFuse) {
             try {
-                Log.i(TAG, "Invalidating LocalCallingIdentity cache for package " + packageName
-                        + ". Reason: " + reason);
-                mCachedCallingIdentityForFuse.remove(
-                        getContext().getPackageManager().getPackageUid(packageName, 0));
+                int packageUid = getContext().getPackageManager().getPackageUid(packageName, 0);
+                if (mCachedCallingIdentityForFuse.contains(packageUid)) {
+                    mCachedCallingIdentityForFuse.get(packageUid).dump(reason);
+                    mCachedCallingIdentityForFuse.remove(packageUid);
+                }
             } catch (NameNotFoundException ignored) {
             }
         }
@@ -833,6 +839,7 @@ public class MediaProvider extends ContentProvider {
                     Trace.endSection();
                 }
 
+                deleteFromDbBackup(deletedRow);
                 switch (deletedRow.getMediaType()) {
                     case FileColumns.MEDIA_TYPE_PLAYLIST:
                     case FileColumns.MEDIA_TYPE_AUDIO:
@@ -856,6 +863,25 @@ public class MediaProvider extends ContentProvider {
             });
         }
     };
+
+    /**
+     * Deletes backed up data(needed for recovery) from external storage.
+     */
+    private void deleteFromDbBackup(FileRow deletedRow) {
+        if (!isStableUrisEnabled(deletedRow.getVolumeName())) {
+            return;
+        }
+
+        String deletedFilePath = deletedRow.getPath();
+        // For all internal file paths, redirect to external primary fuse daemon.
+        String fuseDaemonFilePath = deletedFilePath.startsWith("/storage") ? deletedFilePath
+                : "/storage/emulated/" + UserHandle.myUserId();
+        try {
+            getFuseDaemonForFile(new File(fuseDaemonFilePath)).deleteDbBackup(deletedFilePath);
+        } catch (IOException e) {
+            Log.w(TAG, "Failure in deleting backup data for key: " + deletedFilePath, e);
+        }
+    }
 
     protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
         if (!helper.isNextRowIdBackupEnabled()) {
@@ -9417,9 +9443,11 @@ public class MediaProvider extends ContentProvider {
         }) == 1;
     }
 
-    private static int deleteFileUnchecked(@NonNull String path) {
+    private int deleteFileUnchecked(@NonNull String path,
+            LocalCallingIdentity localCallingIdentity) {
         final File toDelete = new File(path);
         if (toDelete.delete()) {
+            localCallingIdentity.incrementDeletedFileCountBypassingDatabase();
             return 0;
         } else {
             return OsConstants.ENOENT;
@@ -9445,8 +9473,8 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public int deleteFileForFuse(@NonNull String path, int uid) throws IOException {
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        final LocalCallingIdentity localCallingIdentity = getCachedCallingIdentityForFuse(uid);
+        final LocalCallingIdentity token = clearLocalCallingIdentity(localCallingIdentity);
         PulledMetrics.logFileAccessViaFuse(getCallingUidOrSelf(), path);
 
         try {
@@ -9456,7 +9484,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (shouldBypassDatabaseAndSetDirtyForFuse(uid, path)) {
-                return deleteFileUnchecked(path);
+                return deleteFileUnchecked(path, localCallingIdentity);
             }
 
             final boolean shouldBypass = shouldBypassFuseRestrictions(/*forWrite*/ true, path);
@@ -9473,7 +9501,7 @@ public class MediaProvider extends ContentProvider {
 
             if (delete(contentUri, where, whereArgs) == 0) {
                 if (shouldBypass) {
-                    return deleteFileUnchecked(path);
+                    return deleteFileUnchecked(path, localCallingIdentity);
                 }
                 return OsConstants.ENOENT;
             } else {
@@ -9630,7 +9658,16 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * @return true iff the caller has installer privileges which gives write access to obb dirs.
+     *
+     * @deprecated This method should only be called for Android R. For Android S+, please use
+     * {@link StorageManager#getExternalStorageMountMode} to check if the caller has
+     * {@link StorageManager#MOUNT_MODE_EXTERNAL_INSTALLER} access.
+     *
+     * Note: WRITE_EXTERNAL_STORAGE permission should ideally not be requested by non-legacy apps.
+     * But to be consistent with {@link StorageManager} check for Installer apps access for primary
+     * volumes in Android R, we do not add non-legacy apps check here as well.
      */
+    @Deprecated
     private boolean isCallingIdentityAllowedInstallerAccess() {
         final boolean hasWrite = mCallingIdentity.get().
                 hasPermission(PERMISSION_WRITE_EXTERNAL_STORAGE);
@@ -9819,71 +9856,25 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getBoolean(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
-                    defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
+        return DeviceConfigUtils.getBooleanDeviceConfig(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                key, defaultValue);
     }
 
     @VisibleForTesting
     public int getIntDeviceConfig(String key, int defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getInt(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
-                    defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
+        return DeviceConfigUtils.getIntDeviceConfig(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
+                defaultValue);
     }
 
     @VisibleForTesting
     public int getIntDeviceConfig(String namespace, String key, int defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getInt(namespace, key, defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
+        return DeviceConfigUtils.getIntDeviceConfig(namespace, key, defaultValue);
     }
 
     @VisibleForTesting
     public String getStringDeviceConfig(String key, String defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getString(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
-                    defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
-    }
-
-    private static <T> boolean canReadDeviceConfig(String key, T defaultValue) {
-        if (SdkLevel.isAtLeastS()) {
-            return true;
-        }
-
-        Log.w(TAG, "Cannot read device config before Android S. Returning defaultValue: "
-                + defaultValue + " for key: " + key);
-        return false;
+        return DeviceConfigUtils.getStringDeviceConfig(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                key, defaultValue);
     }
 
     @VisibleForTesting
@@ -10289,6 +10280,7 @@ public class MediaProvider extends ContentProvider {
             mAttachedVolumes.add(volume);
         }
 
+        setupVolumeDbBackupAndRecovery(volume);
         final ContentResolver resolver = getContext().getContentResolver();
         final Uri uri = getBaseContentUri(volumeName);
         // TODO(b/182396009) we probably also want to notify clone profile (and vice versa)
@@ -10313,6 +10305,40 @@ public class MediaProvider extends ContentProvider {
             });
         }
         return uri;
+    }
+
+    private void setupVolumeDbBackupAndRecovery(MediaVolume volume) {
+        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volume.getName())) {
+            // Leveldb setup for internal volume is done during leveldb setup for primary external.
+            return;
+        }
+        if (!getBooleanDeviceConfig(FLAG_STABLISE_VOLUME_INTERNAL, /* defaultValue */true)) {
+            return;
+        }
+
+        try {
+            if (!new File(sRecoveryDirectoryPath).exists()) {
+                new File(sRecoveryDirectoryPath).mkdirs();
+            }
+            getFuseDaemonForFile(volume.getPath()).setupVolumeDbBackup();
+        } catch (IOException e) {
+            Log.w(TAG, "Failure in setting up backup and recovery for volume: " + volume.getName(),
+                    e);
+        }
+    }
+
+    /**
+     * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
+     */
+    private boolean isStableUrisEnabled(String volumeName) {
+
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL:
+                return getBooleanDeviceConfig(FLAG_STABLISE_VOLUME_INTERNAL, /* defaultValue= */
+                        false);
+            default:
+                return false;
+        }
     }
 
     private void detachVolume(Uri uri) {
@@ -10755,6 +10781,19 @@ public class MediaProvider extends ContentProvider {
         mTranscodeHelper.dump(writer);
         writer.println();
 
+        dumpAccessLogs(writer);
+        writer.println();
+
         Logging.dumpPersistent(writer);
+    }
+
+    private void dumpAccessLogs(PrintWriter writer) {
+        synchronized (mCachedCallingIdentityForFuse) {
+            for (int key = 0; key <= mCachedCallingIdentityForFuse.size(); key++) {
+                if (mCachedCallingIdentityForFuse.contains(key)) {
+                    mCachedCallingIdentityForFuse.get(key).dump(writer);
+                }
+            }
+        }
     }
 }

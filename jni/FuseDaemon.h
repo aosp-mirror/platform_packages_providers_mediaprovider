@@ -77,6 +77,11 @@ class FuseDaemon final {
      */
     void SetupLevelDbInstance();
 
+    /**
+     * Deletes entry for given key from leveldb.
+     */
+    void DeleteFromLevelDb(const std::string& key);
+
   private:
     FuseDaemon(const FuseDaemon&) = delete;
     void operator=(const FuseDaemon&) = delete;

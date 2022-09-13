@@ -18,6 +18,8 @@ package com.android.providers.media.photopicker.ui.remotepreview;
 
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_BUFFERING;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_COMPLETED;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_ERROR_PERMANENT_FAILURE;
+import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_ERROR_RETRIABLE_FAILURE;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_MEDIA_SIZE_CHANGED;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_PAUSED;
 import static android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_READY;
@@ -28,6 +30,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Point;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
@@ -41,9 +44,14 @@ import android.view.accessibility.AccessibilityManager;
 import android.view.accessibility.AccessibilityManager.AccessibilityStateChangeListener;
 import android.widget.ImageButton;
 
+import androidx.appcompat.app.AlertDialog;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
+
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.ui.PreviewVideoHolder;
+
+import com.google.android.material.snackbar.Snackbar;
 
 /**
  * Handles preview of a given media on a {@link Surface}.
@@ -223,6 +231,7 @@ final class RemotePreviewSession {
 
     void setPlaybackState(@PlaybackState int playbackState, @Nullable Bundle playbackStateInfo) {
         mCurrentPlaybackState = playbackState;
+        mPreviewVideoHolder.getCircularProgressIndicator().setVisibility(View.GONE);
         switch (mCurrentPlaybackState) {
             case PLAYBACK_STATE_READY:
                 if (mIsPlaybackRequested) {
@@ -248,6 +257,15 @@ final class RemotePreviewSession {
             case PLAYBACK_STATE_PAUSED:
                 updatePlayPauseButtonState(false /* isPlaying */);
                 abandonAudioFocusIfAny();
+                return;
+            case PLAYBACK_STATE_ERROR_PERMANENT_FAILURE:
+                createPlayerErrorSnackbar().show();
+                return;
+            case PLAYBACK_STATE_ERROR_RETRIABLE_FAILURE:
+                createPlayerErrorAlertDialog().show();
+                return;
+            case PLAYBACK_STATE_BUFFERING:
+                mPreviewVideoHolder.getCircularProgressIndicator().setVisibility(View.VISIBLE);
                 return;
             default:
         }
@@ -357,6 +375,7 @@ final class RemotePreviewSession {
         mPreviewVideoHolder.getPlayerContainer().setVisibility(View.INVISIBLE);
         mPreviewVideoHolder.getThumbnailView().setVisibility(View.VISIBLE);
         mPreviewVideoHolder.getPlayerControlsRoot().setVisibility(View.GONE);
+        mPreviewVideoHolder.getCircularProgressIndicator().setVisibility(View.GONE);
 
         updatePlayPauseButtonState(false /* isPlaying */);
         mPreviewVideoHolder.getPlayPauseButton().setOnClickListener(mPlayPauseButtonClickListener);
@@ -488,5 +507,36 @@ final class RemotePreviewSession {
         int getHeight() {
             return mHeight;
         }
+    }
+
+    private AlertDialog createPlayerErrorAlertDialog() {
+        return new AlertDialog.Builder(
+                mPreviewVideoHolder.getPlayerContainer().getContext())
+                .setTitle(R.string.picker_error_dialog_title)
+                .setMessage(R.string.picker_error_dialog_body)
+                .setPositiveButton(R.string.picker_error_dialog_positive_action,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                playMedia();
+                            }
+                        })
+                .setNegativeButton(android.R.string.cancel, null)
+                .create();
+    }
+
+    private Snackbar createPlayerErrorSnackbar() {
+        View snackbarView = mPreviewVideoHolder.getPlayerContainer();
+        Snackbar snackbar = Snackbar.make(snackbarView, R.string.picker_error_snackbar,
+                Snackbar.LENGTH_LONG);
+        CoordinatorLayout.LayoutParams params =
+                (CoordinatorLayout.LayoutParams) snackbar.getView().getLayoutParams();
+        final int margin_bottom = snackbarView.getContext().getResources()
+                .getDimensionPixelSize(R.dimen.preview_snackbar_margin_bottom);
+        final int margin_horizontal = snackbarView.getContext().getResources()
+                .getDimensionPixelSize(R.dimen.preview_snackbar_margin_horizontal);
+        params.setMargins(margin_horizontal, 0, margin_horizontal, margin_bottom);
+        snackbar.getView().setLayoutParams(params);
+        return snackbar;
     }
 }

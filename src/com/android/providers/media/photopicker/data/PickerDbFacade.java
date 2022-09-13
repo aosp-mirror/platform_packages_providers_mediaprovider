@@ -142,14 +142,6 @@ public class PickerDbFacade {
                     KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
     private static final String WHERE_ALBUM_ID = KEY_ALBUM_ID  + " = ?";
 
-    private static final String[] PROJECTION_ALBUM_DB = new String[] {
-        "COUNT(" + KEY_ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
-        "MAX(" + KEY_DATE_TAKEN_MS + ") AS "
-        + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
-        String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
-                KEY_LOCAL_ID, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID)
-    };
-
     // Matches all media including cloud+local, cloud-only and local-only
     private static final SQLiteQueryBuilder QB_MATCH_ALL = createMediaQueryBuilder();
     // Matches media with id
@@ -773,7 +765,7 @@ public class PickerDbFacade {
             }
             addMimeTypesToQueryBuilderAndSelectionArgs(qb, selectionArgs, query.mMimeTypes);
 
-            Cursor cursor = qb.query(mDatabase, PROJECTION_ALBUM_DB, /* selection */ null,
+            Cursor cursor = qb.query(mDatabase, getAlbumProjection(), /* selection */ null,
                     selectionArgs.toArray(new String[0]), /* groupBy */ null, /* having */ null,
                     /* orderBy */ null, /* limit */ null);
 
@@ -792,11 +784,25 @@ public class PickerDbFacade {
                     /* displayName */ albumId,
                     getCursorString(cursor, AlbumColumns.MEDIA_COVER_ID),
                     String.valueOf(count),
-                    mLocalProvider,
+                    getCursorString(cursor, AlbumColumns.AUTHORITY),
             };
             c.addRow(projectionValue);
         }
         return c;
+    }
+
+    private String[] getAlbumProjection() {
+        return new String[] {
+                "COUNT(" + KEY_ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
+                "MAX(" + KEY_DATE_TAKEN_MS + ") AS "
+                        + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
+                String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
+                        KEY_LOCAL_ID, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
+                // Note that we prefer local provider over cloud provider if a media item is present
+                // locally and on cloud.
+                String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END AS %s",
+                        KEY_LOCAL_ID, mCloudProvider, mLocalProvider, AlbumColumns.AUTHORITY)
+        };
     }
 
     private boolean isLocal(String authority) {

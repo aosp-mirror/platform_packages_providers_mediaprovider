@@ -85,6 +85,9 @@
     <dimen name="preview_mute_button_size">48dp</dimen>
     <dimen name="preview_mute_marginEnd">4dp</dimen>
     <dimen name="preview_mute_marginBottom">56dp</dimen>
+    <dimen name="preview_progress_indicator_size">44dp</dimen>
+    <dimen name="preview_snackbar_margin_bottom">68dp</dimen>
+    <dimen name="preview_snackbar_margin_horizontal">6dp</dimen>
 
     <!-- PhotoPicker Preview text -->
     <dimen name="preview_special_format_text_size">12sp</dimen>

@@ -383,7 +383,7 @@ public class PerformanceTest {
                     selfChange, asSet(uris).toString(), flags));
 
             if (this.uriCount == 1) {
-                if (asSet(uris).size() == 1 && flags == this.flags) {
+                if (asSet(uris).size() == 1 && (flags & this.flags) == this.flags) {
                     latch.countDown();
                 }
             } else if (flags == this.flags) {

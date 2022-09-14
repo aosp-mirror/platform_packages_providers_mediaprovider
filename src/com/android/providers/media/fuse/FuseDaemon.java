@@ -205,6 +205,30 @@ public final class FuseDaemon extends Thread {
         }
     }
 
+    /**
+     * Sets up volume's database backup to external storage to recover during a rollback.
+     */
+    public void setupVolumeDbBackup() throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_setup_volume_db_backup(mPtr);
+        }
+    }
+
+    /**
+     * Deletes entry for given key from external storage.
+     */
+    public void deleteDbBackup(String key) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_delete_db_backup(mPtr, key);
+        }
+    }
+
     private native long native_new(MediaProvider mediaProvider);
 
     // Takes ownership of the passed in file descriptor!
@@ -220,5 +244,7 @@ public final class FuseDaemon extends Thread {
     private native boolean native_is_started(long daemon);
     private native FdAccessResult native_check_fd_access(long daemon, int fd, int uid);
     private native void native_initialize_device_id(long daemon, String path);
+    private native void native_setup_volume_db_backup(long daemon);
+    private native void native_delete_db_backup(long daemon, String key);
     public static native boolean native_is_fuse_thread();
 }

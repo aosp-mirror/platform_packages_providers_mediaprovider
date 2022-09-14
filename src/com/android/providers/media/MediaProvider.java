@@ -6442,6 +6442,17 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
+            case MediaStore.GET_CLOUD_PROVIDER_CALL: {
+                // TODO(b/245746037): replace UID check with Permission(MANAGE_CLOUD_MEDIA_PROVIDER)
+                if (Binder.getCallingUid() != MY_UID) {
+                    throw new SecurityException("Get cloud provider not allowed. Calling UID:"
+                            + Binder.getCallingUid() + ", MP UID:" + MY_UID);
+                }
+                final Bundle bundle = new Bundle();
+                bundle.putString(MediaStore.GET_CLOUD_PROVIDER_RESULT,
+                        mPickerSyncController.getCloudProvider());
+                return bundle;
+            }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 // TODO(b/190713331): Remove after initial development
                 final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);

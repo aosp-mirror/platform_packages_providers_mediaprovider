@@ -351,18 +351,20 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_INSERT", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":", 5);
+                final String[] split = arg.split(":", 6);
                 final String volumeName = split[0];
                 final long id = Long.parseLong(split[1]);
                 final int mediaType = Integer.parseInt(split[2]);
                 final boolean isDownload = Integer.parseInt(split[3]) != 0;
                 final boolean isPending = Integer.parseInt(split[4]) != 0;
+                final String path = split[5];
 
                 FileRow insertedRow = FileRow.newBuilder(id)
                         .setVolumeName(volumeName)
                         .setMediaType(mediaType)
                         .setIsDownload(isDownload)
                         .setIsPending(isPending)
+                        .setPath(path)
                         .build();
                 Trace.beginSection("_INSERT");
                 try {
@@ -1527,7 +1529,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         final String insertArg =
                 "new.volume_name||':'||new._id||':'||new.media_type||':'||new.is_download"
-                + "||':'||new.is_pending";
+                + "||':'||new.is_pending||':'||new._data";
         final String updateArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
@@ -1880,10 +1882,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_Q = 1023;
     static final int VERSION_R = 1115;
     static final int VERSION_S = 1209;
-    // Leave some gaps in database version tagging to allow S schema changes
-    // to go independent of T schema changes.
     static final int VERSION_T = 1308;
-    public static final int VERSION_LATEST = VERSION_T;
+    // Leave some gaps in database version tagging to allow T schema changes
+    // to go independent of U schema changes.
+    static final int VERSION_U = 1400;
+    public static final int VERSION_LATEST = VERSION_U;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -2080,6 +2083,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 updateSpecialFormatToNotDetected(db);
             }
             if (fromVersion < 1308) {
+                // Empty version bump to ensure triggers are recreated
+            }
+            if (fromVersion < 1400) {
                 // Empty version bump to ensure triggers are recreated
             }
 

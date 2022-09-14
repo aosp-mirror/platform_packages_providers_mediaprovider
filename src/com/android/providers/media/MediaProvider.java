@@ -759,6 +759,8 @@ public class MediaProvider extends ContentProvider {
                     insertedRow.getId(), insertedRow.getMediaType(), insertedRow.isDownload());
             updateNextRowIdXattr(helper, insertedRow.getId());
             helper.postBackground(() -> {
+                backupVolumeDbData(helper, insertedRow.getVolumeName(), insertedRow.getPath(),
+                        insertedRow);
                 if (helper.isExternal() && !isFuseThread()) {
                     // Update the quota type on the filesystem
                     Uri fileUri = MediaStore.Files.getContentUri(insertedRow.getVolumeName(),
@@ -863,6 +865,31 @@ public class MediaProvider extends ContentProvider {
             });
         }
     };
+
+    /**
+     * Backs up DB data in external storage to recover in case of DB rollback.
+     */
+    private void backupVolumeDbData(DatabaseHelper databaseHelper, String volumeName,
+            String insertedFilePath, FileRow insertedRow) {
+        if (!isStableUrisEnabled(volumeName)) {
+            return;
+        }
+
+        if (databaseHelper.isDatabaseRecovering()) {
+            return;
+        }
+
+        // For all internal file paths, redirect to external primary fuse daemon.
+        String fuseDaemonFilePath = insertedFilePath.startsWith("/storage") ? insertedFilePath
+                : "/storage/emulated/" + UserHandle.myUserId();
+        try {
+            // TODO(b/239414235): Replace value with container class.
+            getFuseDaemonForFile(new File(fuseDaemonFilePath)).backupVolumeDbData(insertedFilePath,
+                    insertedRow.toString());
+        } catch (IOException e) {
+            Log.w(TAG, "Failure in backing up data to external storage", e);
+        }
+    }
 
     /**
      * Deletes backed up data(needed for recovery) from external storage.
@@ -6431,6 +6458,17 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
+            case MediaStore.GET_CLOUD_PROVIDER_CALL: {
+                // TODO(b/245746037): replace UID check with Permission(MANAGE_CLOUD_MEDIA_PROVIDER)
+                if (Binder.getCallingUid() != MY_UID) {
+                    throw new SecurityException("Get cloud provider not allowed. Calling UID:"
+                            + Binder.getCallingUid() + ", MP UID:" + MY_UID);
+                }
+                final Bundle bundle = new Bundle();
+                bundle.putString(MediaStore.GET_CLOUD_PROVIDER_RESULT,
+                        mPickerSyncController.getCloudProvider());
+                return bundle;
+            }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 // TODO(b/190713331): Remove after initial development
                 final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);

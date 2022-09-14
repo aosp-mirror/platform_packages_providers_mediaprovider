@@ -1230,6 +1230,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         checkDeviceConfigAndUpdateGetContentAlias();
+        addOnPropertiesChangedListener(properties -> checkDeviceConfigAndUpdateGetContentAlias());
 
         PulledMetrics.initialize(context);
         return true;
@@ -9917,6 +9918,8 @@ public class MediaProvider extends ContentProvider {
             return;
         }
 
+        // TODO(b/246590468): Follow best naming practices for namespaces of device config flags
+        // that make changes to this package independent of reboot
         DeviceConfig.addOnPropertiesChangedListener(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 BackgroundThread.getExecutor(), listener);
     }

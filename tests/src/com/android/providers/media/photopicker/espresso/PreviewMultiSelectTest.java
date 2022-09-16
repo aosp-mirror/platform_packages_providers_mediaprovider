@@ -82,8 +82,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // No dragBar in preview
             onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
 
@@ -119,8 +119,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             final String addButtonString =
                     getTargetContext().getResources().getString(R.string.add);
             final int previewAddButtonId = R.id.preview_add_button;
@@ -177,8 +177,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Preview Order
             // 1 - Image
             // 2 - Image
@@ -261,8 +261,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             assertMultiSelectPreviewCommonLayoutDisplayed();
             // Verify ImageView is displayed
             onView(withId(PREVIEW_IMAGE_VIEW_ID)).check(matches(isCompletelyDisplayed()));
@@ -287,8 +287,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Preview second image item using preview on long press
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Verify that we have one item as selected item and 1 item as item for preview, and
             // verify they are not the same.
             mRule.getScenario().onActivity(activity -> {
@@ -307,8 +307,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Navigate to preview by clicking "View Selected" button.
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             assertMultiSelectPreviewCommonLayoutDisplayed();
 
             // Verify that "View Selected" shows the video item, not the image item that was
@@ -353,8 +353,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
         final int previewSelectedButtonId = R.id.preview_selected_check_button;
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Deselect the image item
             onView(withId(previewSelectedButtonId)).perform(click());
 
@@ -374,8 +374,8 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Go back to preview and deselect another item
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Deselect the second image item
             onView(withId(previewSelectedButtonId)).perform(click());
         }

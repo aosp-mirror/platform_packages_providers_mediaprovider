@@ -92,6 +92,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
@@ -213,6 +214,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     /** Stores cached value of next row id of the database which optimises new id inserts. */
     private AtomicLong mNextRowIdBackup = new AtomicLong(INVALID_ROW_ID);
+
+    /** Indicates whether the database is recovering from a rollback or not. */
+    private AtomicBoolean mIsRecovering =  new AtomicBoolean(false);
 
     public interface OnSchemaChangeListener {
         void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
@@ -2395,5 +2399,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public static int getNextRowIdBackupFrequency() {
         return SystemProperties.getInt("persist.sys.fuse.backup.nextrowid_backup_frequency",
                 1000);
+    }
+
+    boolean isDatabaseRecovering() {
+        return mIsRecovering.get();
     }
 }

@@ -2460,5 +2460,17 @@ void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
     }
 }
 
+void FuseDaemon::InsertInLevelDb(const std::string& key, const std::string& value) {
+    if (!android::base::StartsWith(key, "/storage")) {
+        leveldb::Status status;
+        status = fuse->internal_level_db->Put(leveldb::WriteOptions(), key, value);
+        if (!status.ok()) {
+            LOG(WARNING) << "Failure in leveldb insert for key: " << key << status.ToString();
+        } else {
+            LOG(INFO) << "Insert successful for key:" << key;
+        }
+    }
+}
+
 } //namespace fuse
 }  // namespace mediaprovider

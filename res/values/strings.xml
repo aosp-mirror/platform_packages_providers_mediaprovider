@@ -21,10 +21,11 @@
     <!-- Label to show client applications a short description of storage location -->
     <string name="storage_description">Local storage</string>
 
-    <!-- Label to show to user for this package. -->
+    <!-- TODO(b/246345209): This string is unused. Update app_label string to "Media" -->
+    <!-- and delete picker_app_label  -->
     <string name="app_label">Media Storage</string>
 
-    <!-- Label to show to user for Photo picker. -->
+    <!-- Label to show to user for this package and for Photo picker. -->
     <string name="picker_app_label">Media</string>
 
     <!-- Description line for music artists in the search/suggestion results -->
@@ -198,6 +199,18 @@
 
     <!-- Content description for a button that pauses the current video. [CHAR LIMIT=50] -->
     <string name="picker_pause_video">Pause</string>
+
+    <!-- Permanent error notification text displayed on a Snackbar to notify the user -->
+    <string name="picker_error_snackbar">Can\'t play video</string>
+
+    <!-- Retriable error dialog title -->
+    <string name="picker_error_dialog_title">Trouble playing video</string>
+
+    <!-- Retriable error dialog body -->
+    <string name="picker_error_dialog_body">Check your internet connection and try again</string>
+
+    <!-- Retriable error dialog positive action button text -->
+    <string name="picker_error_dialog_positive_action">Retry</string>
 
     <!-- Toast notifying user that cloud media content is now available from an app on their device. [CHAR LIMIT=NONE] -->
     <string name="picker_cloud_sync">Cloud media now available from <xliff:g id="pkg_name" example="Gmail">%1$s</xliff:g></string>

@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Увімкнути звук у відео"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Відтворити"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Призупинити"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Не вдається відтворити відео"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Проблема з відтворенням відео"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Перевірте інтернет-з’єднання й повторіть спробу"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Повторити"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Тепер медіаконтент із хмари доступний у додатку <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не вибрано"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Дозволити додатку <xliff:g id="APP_NAME_0">^1</xliff:g> змінити цей аудіофайл?}one{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайл?}few{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайли?}many{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайлів?}other{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайлу?}}"</string>

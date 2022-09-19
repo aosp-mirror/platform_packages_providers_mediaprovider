@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Susa ukuthula kuvidiyo"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Dlala"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Misa"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Ayikwazi ukudlala ividiyo"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Inkinga yokudlala ividiyo"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Hlola ukuxhuma kwakho kwe-inthanethi uphinde uzame futhi"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Zama futhi"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Imidiya ye-cloud manje iyatholakala kusuka ku-<xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"akukhethiwe"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vumela i-<xliff:g id="APP_NAME_0">^1</xliff:g> ukuguqula leli fayela lomsindo?}one{Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amafayela omsindo angu-<xliff:g id="COUNT">^2</xliff:g>?}other{Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amafayela omsindo angu-<xliff:g id="COUNT">^2</xliff:g>?}}"</string>

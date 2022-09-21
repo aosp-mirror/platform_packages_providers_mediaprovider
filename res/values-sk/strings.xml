@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Zapnúť zvuk videa"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Prehrať"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pozastaviť"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Video sa nedá prehrať"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Ťažkosti s prehrávaním videa"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Skontrolujte internetové pripojenie a skúste to znova"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Skúsiť znova"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Cloudové médiá sú teraz k dispozícii z aplikácie <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nevybrané"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Chcete povoliť aplikácii <xliff:g id="APP_NAME_0">^1</xliff:g> upraviť tento zvukový súbor?}few{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> zvukové súbory?}many{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> audio files?}other{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> zvukových súborov?}}"</string>

@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Vklopi zvok videa"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Predvajaj"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Začasno zaustavi"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Videoposnetka ni mogoče predvajati."</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Težave pri predvajanju videoposnetka"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Preverite internetno povezavo in poskusite znova."</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Poskusi znova"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Predstavnost v oblaku je zdaj na voljo v aplikaciji <xliff:g id="PKG_NAME">%1$s</xliff:g>."</string>
     <string name="not_selected" msgid="2244008151669896758">"ni izbrano"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g>, da spremeni to zvočno datoteko?}one{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočno datoteko?}two{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočni datoteki?}few{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočne datoteke?}other{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočnih datotek?}}"</string>

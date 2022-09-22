@@ -156,7 +156,8 @@ public class PhotoPickerBaseTest {
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS,
-                        Manifest.permission.READ_DEVICE_CONFIG);
+                        Manifest.permission.READ_DEVICE_CONFIG,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
         sIsolatedContext = new IsolatedContext(getTargetContext(), "modern",
                 /* asFuseThread */ false);

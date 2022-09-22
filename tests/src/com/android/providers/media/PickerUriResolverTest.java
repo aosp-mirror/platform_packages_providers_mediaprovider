@@ -111,7 +111,8 @@ public class PickerUriResolverTest {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(android.Manifest.permission.LOG_COMPAT_CHANGE,
                         android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
-                        Manifest.permission.INTERACT_ACROSS_USERS);
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
         sCurrentContext = mock(Context.class);
         when(sCurrentContext.getUser()).thenReturn(UserHandle.of(UserHandle.myUserId()));
 

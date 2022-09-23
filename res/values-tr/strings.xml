@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Medya"</string>
     <string name="storage_description" msgid="4081716890357580107">"Yerel depolama"</string>
     <string name="app_label" msgid="9035307001052716210">"Medya Deposu"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Fotoğraf seçici"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Medya"</string>
     <string name="artist_label" msgid="8105600993099120273">"Sanatçı"</string>
     <string name="unknown" msgid="2059049215682829375">"Bilinmiyor"</string>
     <string name="root_images" msgid="5861633549189045666">"Resimler"</string>
@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Videonun sesini aç"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Oynat"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Duraklat"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Video oynatılamıyor"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Video oynatılırken sorun oluştu"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"İnternet bağlantınızı kontrol edip tekrar deneyin"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Tekrar dene"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Bulut üzerinde saklanan medya dosyaları artık <xliff:g id="PKG_NAME">%1$s</xliff:g> uygulamasından kullanılabilir"</string>
     <string name="not_selected" msgid="2244008151669896758">"seçili değil"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> uygulamasının bu ses dosyasını değiştirmesine izin verilsin mi?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> uygulamasının <xliff:g id="COUNT">^2</xliff:g> ses dosyasını değiştirmesine izin verilsin mi?}}"</string>
@@ -120,4 +124,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Medya işleniyor…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"İptal"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Bekle"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Güvenlik koruması"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Yerel Kod Dönüştürme Uyarıları"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Yerel Kod Dönüştürme İlerleme Durumu"</string>
 </resources>

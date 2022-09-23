@@ -49,9 +49,13 @@
     <permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
                 android:protectionLevel="signature" />
 
+    <!-- We use Photo Picker app icon and label for this package. It is necessary for Photo Picker
+         GET_CONTENT take over. Some apps query packages that can handle GET_CONTENT and want to
+         display the icon and label of the package to the user. -->
     <application
             android:name="com.android.providers.media.MediaApplication"
-            android:label="@string/app_label"
+            android:label="@string/picker_app_label"
+            android:icon="@mipmap/picker_app_icon"
             android:allowBackup="false"
             android:supportsRtl="true"
             android:forceQueryable="true"
@@ -79,6 +83,12 @@
         <provider
             android:name="com.android.providers.media.photopicker.PhotoPickerProvider"
             android:authorities="com.android.providers.media.photopicker"
+            android:exported="false" />
+
+        <provider
+            android:name="com.android.providers.media.photopicker.RemoteVideoPreviewProvider"
+            android:process=":PhotoPicker"
+            android:authorities="com.android.providers.media.remote_video_preview"
             android:exported="false" />
 
         <!-- Handles database upgrades after OTAs, then disables itself -->
@@ -160,7 +170,6 @@
                 android:name="com.android.providers.media.photopicker.PhotoPickerActivity"
                 android:process=":PhotoPicker"
                 android:label="@string/picker_app_label"
-                android:icon="@mipmap/picker_app_icon"
                 android:theme="@style/PickerDefaultTheme"
                 android:exported="true"
                 android:excludeFromRecents="true"

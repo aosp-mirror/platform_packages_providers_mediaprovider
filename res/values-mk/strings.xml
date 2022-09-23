@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Аудио-визуелни содржини"</string>
     <string name="storage_description" msgid="4081716890357580107">"Локална меморија"</string>
     <string name="app_label" msgid="9035307001052716210">"Капацитет за аудиовизуелни содржини"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Избирач на фотографии"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Аудиовизуелни содржини"</string>
     <string name="artist_label" msgid="8105600993099120273">"Изведувач"</string>
     <string name="unknown" msgid="2059049215682829375">"Непознат"</string>
     <string name="root_images" msgid="5861633549189045666">"Слики"</string>
@@ -78,8 +78,11 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Вклучете звук на видео"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Пушти"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Пауза"</string>
-    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
-    <skip />
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Не може да пушти видеото"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Проблем со пуштањето видео"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Проверете ја интернет-врската и обидете се повторно"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Повторно"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Аудиовизуелните содржини во облак сега се достапни од <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не е избрано"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Да се дозволи <xliff:g id="APP_NAME_0">^1</xliff:g> да ја измени аудиодатотекава?}one{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотека?}other{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотеки?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Се изменува аудиодатотеката…}one{Се изменуваат <xliff:g id="COUNT">^1</xliff:g> аудиодатотека…}other{Се изменуваат <xliff:g id="COUNT">^1</xliff:g> аудиодатотеки…}}"</string>
@@ -121,4 +124,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Се транскодира…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Откажи"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Почекајте"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Безбедносна заштита"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Предупредувања за матичното транскодирање"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Напредок на матичното транскодирање"</string>
 </resources>

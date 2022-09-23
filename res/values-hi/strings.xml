@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"मीडिया"</string>
     <string name="storage_description" msgid="4081716890357580107">"स्थानीय जगह"</string>
     <string name="app_label" msgid="9035307001052716210">"मीडिया मेमोरी"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"फ़ोटो पिकर"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"मीडिया"</string>
     <string name="artist_label" msgid="8105600993099120273">"कलाकार"</string>
     <string name="unknown" msgid="2059049215682829375">"अज्ञात"</string>
     <string name="root_images" msgid="5861633549189045666">"इमेज"</string>
@@ -57,7 +57,7 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"आपके एडमिन ने रोक लगाई है"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ऑफ़िस के काम से जुड़े डेटा को निजी ऐप्लिकेशन से ऐक्सेस करने की अनुमति नहीं है"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"निजी डेटा को ऑफ़िस के काम से जुड़े ऐप्लिकेशन से ऐक्सेस करने की अनुमति नहीं है"</string>
-    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ऑफ़िस के काम से जुड़े ऐप्लिकेशन रोक दिए गए हैं"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"वर्क ऐप्लिकेशन रोक दिए गए हैं"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"वर्क फ़ोटो देखने के लिए, ऑफ़िस के काम से जुड़े ऐप्लिकेशन चालू करें और दोबारा कोशिश करें"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"इस ऐप्लिकेशन के पास आपकी उन फ़ोटो का ही ऐक्सेस होता है जिन्हें आपने चुना हो"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> आइटम}one{<xliff:g id="COUNT_1">^1</xliff:g> आइटम}other{<xliff:g id="COUNT_1">^1</xliff:g> आइटम}}"</string>
@@ -78,8 +78,11 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"वीडियो अनम्यूट करें"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"चलाएं"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"रोकें"</string>
-    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
-    <skip />
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"वीडियो नहीं चलाया जा सकता"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"वीडियो चलाने में समस्या हो रही है"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"अपने इंटरनेट कनेक्शन की जांच करें और फिर से कोशिश करें"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"फिर से कोशिश करें"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"क्लाउड मीडिया अब <xliff:g id="PKG_NAME">%1$s</xliff:g> पर उपलब्ध है"</string>
     <string name="not_selected" msgid="2244008151669896758">"नहीं चुना गया"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{क्या <xliff:g id="APP_NAME_0">^1</xliff:g> को इस ऑडियो फ़ाइल में बदलाव करने की अनुमति देनी है?}one{क्या <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइल में बदलाव करने की अनुमति देनी है?}other{क्या <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलों में बदलाव करने की अनुमति देनी है?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ऑडियो फ़ाइल में बदलाव किया जा रहा है…}one{<xliff:g id="COUNT">^1</xliff:g> ऑडियो फ़ाइल में बदलाव किया जा रहा है…}other{<xliff:g id="COUNT">^1</xliff:g> ऑडियो फ़ाइलों में बदलाव किया जा रहा है…}}"</string>
@@ -121,4 +124,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"मीडिया को प्रोसेस किया जा रहा है…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"अभी नहीं"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"इंतज़ार करें"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"सुरक्षा के लिए बचाव"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"नेटिव ट्रांसकोड सूचना"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"नेटिव ट्रांसकोड स्थिति"</string>
 </resources>

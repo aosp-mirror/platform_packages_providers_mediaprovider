@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"ਮੀਡੀਆ"</string>
     <string name="storage_description" msgid="4081716890357580107">"ਸਥਾਨਕ ਸਟੋਰੇਜ"</string>
     <string name="app_label" msgid="9035307001052716210">"ਮੀਡੀਆ ਸਟੋਰੇਜ"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"ਫ਼ੋਟੋ ਚੋਣਕਾਰ"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"ਮੀਡੀਆ"</string>
     <string name="artist_label" msgid="8105600993099120273">"ਕਲਾਕਾਰ"</string>
     <string name="unknown" msgid="2059049215682829375">"ਅਗਿਆਤ"</string>
     <string name="root_images" msgid="5861633549189045666">"ਚਿੱਤਰ"</string>
@@ -78,8 +78,11 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"ਵੀਡੀਓ ਅਣਮਿਊਟ ਕਰੋ"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"ਚਲਾਓ"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"ਰੋਕੋ"</string>
-    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
-    <skip />
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"ਵੀਡੀਓ ਚਲਾਇਆ ਨਹੀਂ ਜਾ ਸਕਦਾ"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"ਵੀਡੀਓ ਚਲਾਉਣ ਵਿੱਚ ਸਮੱਸਿਆ ਆ ਰਹੀ ਹੈ"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"ਆਪਣੇ ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ ਦੀ ਜਾਂਚ ਕਰ ਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ਮੁੜ-ਕੋਸ਼ਿਸ਼ ਕਰੋ"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"ਕਲਾਊਡ ਮੀਡੀਆ ਹੁਣ <xliff:g id="PKG_NAME">%1$s</xliff:g> ਤੋਂ ਉਪਲਬਧ ਹੈ"</string>
     <string name="not_selected" msgid="2244008151669896758">"ਚੁਣਿਆ ਨਹੀਂ ਗਿਆ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਆਡੀਓ ਫ਼ਾਈਲ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲਾਂ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ਆਡੀਓ ਫ਼ਾਈਲ ਸੋਧੀ ਜਾ ਰਹੀ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲ ਸੋਧੀ ਜਾ ਰਹੀ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲਾਂ ਸੋਧੀਆਂ ਜਾ ਰਹੀਆਂ ਹਨ…}}"</string>
@@ -121,4 +124,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"ਮੀਡੀਆ \'ਤੇ ਪ੍ਰਕਿਰਿਆ ਕੀਤੀ ਜਾ ਰਹੀ ਹੈ…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"ਰੱਦ ਕਰੋ"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"ਉਡੀਕ ਕਰੋ"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"ਸੁਰੱਖਿਆ ਬਚਾਅ"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"ਨੇਟਿਵ ਟ੍ਰਾਂਸਕੋਡ ਸੁਚੇਤਨਾਵਾਂ"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"ਨੇਟਿਵ ਟ੍ਰਾਂਸਕੋਡ ਪ੍ਰਗਤੀ"</string>
 </resources>

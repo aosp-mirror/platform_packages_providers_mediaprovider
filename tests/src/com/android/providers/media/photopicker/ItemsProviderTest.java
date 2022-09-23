@@ -16,12 +16,12 @@
 
 package com.android.providers.media.photopicker;
 
-import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
-import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
-import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
+import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS;
-import static android.provider.CloudMediaProviderContract.AlbumColumns;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.VOLUME_EXTERNAL;
 
@@ -41,16 +41,12 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
-import android.provider.DeviceConfig;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 
-import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.ItemsProvider;
-import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
@@ -486,7 +482,7 @@ public class ItemsProviderTest {
         File videoFile = assertCreateNewVideo();
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "image/*", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{ "image/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
 
@@ -508,7 +504,7 @@ public class ItemsProviderTest {
         File imageFile = assertCreateNewImage();
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "image/png", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{"image/png"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
         } finally {
@@ -530,7 +526,7 @@ public class ItemsProviderTest {
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "image/*", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{"image/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
         } finally {
@@ -553,7 +549,7 @@ public class ItemsProviderTest {
         File videoFile = assertCreateNewVideo();
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "video/*", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{"video/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
 
@@ -575,7 +571,7 @@ public class ItemsProviderTest {
         File videoFile = assertCreateNewVideo();
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "video/mp4", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{"video/mp4"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
         } finally {
@@ -596,7 +592,7 @@ public class ItemsProviderTest {
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
             final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "video/*", /* userId */ null);
+                    /* limit */ -1, /* mimeType */ new String[]{"video/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
         } finally {
@@ -634,11 +630,13 @@ public class ItemsProviderTest {
     }
 
     private void assertCategoryUriIsValid(Uri uri) throws Exception {
-        final AssetFileDescriptor fd1 = mIsolatedResolver.openTypedAssetFile(uri, "image/*", null,
-                null);
-        assertThat(fd1).isNotNull();
-        final ParcelFileDescriptor fd2 = mIsolatedResolver.openFileDescriptor(uri, "r");
-        assertThat(fd2).isNotNull();
+        try (AssetFileDescriptor fd1 = mIsolatedResolver.openTypedAssetFile(uri, "image/*",
+                null, null)) {
+            assertThat(fd1).isNotNull();
+        }
+        try (ParcelFileDescriptor fd2 = mIsolatedResolver.openFileDescriptor(uri, "r")) {
+            assertThat(fd2).isNotNull();
+        }
     }
 
     private void assertCategoriesNoMatch(String expectedCategoryName) {

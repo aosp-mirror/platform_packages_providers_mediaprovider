@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Médiá"</string>
     <string name="storage_description" msgid="4081716890357580107">"Miestne úložisko"</string>
     <string name="app_label" msgid="9035307001052716210">"Úložisko médií"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Výber fotiek"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Médiá"</string>
     <string name="artist_label" msgid="8105600993099120273">"Interpret"</string>
     <string name="unknown" msgid="2059049215682829375">"Neznáme"</string>
     <string name="root_images" msgid="5861633549189045666">"Obrázky"</string>
@@ -78,8 +78,11 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Zapnúť zvuk videa"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Prehrať"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pozastaviť"</string>
-    <!-- no translation found for picker_cloud_sync (997251377538536319) -->
-    <skip />
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Video sa nedá prehrať"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Ťažkosti s prehrávaním videa"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Skontrolujte internetové pripojenie a skúste to znova"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Skúsiť znova"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Cloudové médiá sú teraz k dispozícii z aplikácie <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nevybrané"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Chcete povoliť aplikácii <xliff:g id="APP_NAME_0">^1</xliff:g> upraviť tento zvukový súbor?}few{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> zvukové súbory?}many{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> audio files?}other{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> zvukových súborov?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Upravuje sa zvukový súbor…}few{Upravujú sa <xliff:g id="COUNT">^1</xliff:g> zvukové súbory…}many{Modifying <xliff:g id="COUNT">^1</xliff:g> audio files…}other{Upravuje sa <xliff:g id="COUNT">^1</xliff:g> zvukových súborov…}}"</string>
@@ -121,4 +124,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Spracúvajú sa médiá…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Zrušiť"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Počkať"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Bezpečnosť"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Upozornenia natívneho prekódovania"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Postup natívneho prekódovania"</string>
 </resources>

@@ -59,6 +59,7 @@ import static com.android.providers.media.util.FileUtils.translateModePosixToStr
 import static com.android.providers.media.util.FileUtils.translateModeStringToPosix;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -71,6 +72,7 @@ import android.content.ContentValues;
 import android.os.Environment;
 import android.os.SystemProperties;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
 
@@ -90,7 +92,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -1022,11 +1026,16 @@ public class FileUtilsTest {
         assertThat(isDataOrObbPath("/storage/emulated/0/Android/obb")).isTrue();
         assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/data")).isTrue();
         assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/obb")).isTrue();
-        assertThat(isDataOrObbPath("/storage/emulated/0/Android/data/foo")).isTrue();
-        assertThat(isDataOrObbPath("/storage/emulated/0/Android/obb/foo")).isTrue();
-        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/data/foo")).isTrue();
-        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/obb/foo")).isTrue();
 
+        assertThat(isDataOrObbPath("/storage/emulated/0/Android/data/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated/0/Android/obb/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/data/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/obb/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated/10/Android/obb/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated//Android/obb/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated//Android/obb")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated/0//Android/obb")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated/0//Android/obb/foo")).isFalse();
         assertThat(isDataOrObbPath("/storage/emulated/0/Android/")).isFalse();
         assertThat(isDataOrObbPath("/storage/emulated/0/Android/media/")).isFalse();
         assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/media/")).isFalse();
@@ -1225,4 +1234,63 @@ public class FileUtilsTest {
                         false));
     }
 
+    @Test
+    public void testComputeAudioTypeValuesFromData() {
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Ringtones/a.mp3",
+                AudioColumns.IS_RINGTONE);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Notifications/a.mp3",
+                AudioColumns.IS_NOTIFICATION);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Alarms/a.mp3",
+                AudioColumns.IS_ALARM);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Podcasts/a.mp3",
+                AudioColumns.IS_PODCAST);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Audiobooks/a.mp3",
+                AudioColumns.IS_AUDIOBOOK);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Recordings/a.mp3",
+                AudioColumns.IS_RECORDING);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Music/a.mp3",
+                AudioColumns.IS_MUSIC);
+
+        // Categorized as music if it doesn't match any other category
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/a/a.mp3", AudioColumns.IS_MUSIC);
+
+        // All matches are case-insensitive
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/ringtones/a.mp3",
+                AudioColumns.IS_RINGTONE);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/a/ringtones/a.mp3",
+                AudioColumns.IS_RINGTONE);
+    }
+
+    @Test
+    public void testComputeAudioTypeValuesFromData_multiple() {
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Ringtones/Recordings/a.mp3",
+                Arrays.asList(AudioColumns.IS_RINGTONE, AudioColumns.IS_RECORDING));
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Alarms/Notifications/a.mp3",
+                Arrays.asList(AudioColumns.IS_ALARM, AudioColumns.IS_NOTIFICATION));
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Audiobooks/Podcasts/a.mp3",
+                Arrays.asList(AudioColumns.IS_AUDIOBOOK, AudioColumns.IS_PODCAST));
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Audiobooks/Ringtones/a.mp3",
+                Arrays.asList(AudioColumns.IS_AUDIOBOOK, AudioColumns.IS_RINGTONE));
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Music/Ringtones/a.mp3",
+                Arrays.asList(AudioColumns.IS_MUSIC, AudioColumns.IS_RINGTONE));
+    }
+
+    private void testComputeAudioTypeValuesFromData(String path, String expectedColumn) {
+        testComputeAudioTypeValuesFromData(path, Collections.singletonList(expectedColumn));
+    }
+
+    private void testComputeAudioTypeValuesFromData(String path, List<String> expectedColumns) {
+        final ContentValues values = new ContentValues();
+        FileUtils.computeAudioTypeValuesFromData(path, values::put);
+
+        for (String column : FileUtils.sAudioTypes.values()) {
+            if (expectedColumns.contains(column)) {
+                assertWithMessage("Expected " + column + " to be set for " + path)
+                        .that(values.get(column)).isEqualTo(1);
+            } else {
+                assertWithMessage("Expected " + column + " to be unset for " + path)
+                        .that(values.get(column)).isEqualTo(0);
+            }
+        }
+    }
 }

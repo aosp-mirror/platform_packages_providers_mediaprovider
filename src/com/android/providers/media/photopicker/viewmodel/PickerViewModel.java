@@ -16,10 +16,17 @@
 
 package com.android.providers.media.photopicker.viewmodel;
 
+import static android.content.Intent.ACTION_GET_CONTENT;
+import static android.provider.MediaStore.getCurrentCloudProvider;
+
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
+
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.os.Binder;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -31,6 +38,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
@@ -42,6 +50,7 @@ import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.util.ForegroundThread;
+import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +83,7 @@ public class PickerViewModel extends AndroidViewModel {
     private InstanceId mInstanceId;
     private PhotoPickerUiEventLogger mLogger;
 
-    private String mMimeTypeFilter = null;
+    private String[] mMimeTypeFilters = null;
     private int mBottomSheetState;
 
     private Category mCurrentCategory;
@@ -149,7 +158,7 @@ public class PickerViewModel extends AndroidViewModel {
         final List<Item> items = new ArrayList<>();
 
         try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
-                /* limit */ -1, mMimeTypeFilter, userId)) {
+                /* limit */ -1, mMimeTypeFilters, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any items for " + category
                         + ", either cursor is null or cursor count is zero");
@@ -266,7 +275,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
-        try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId)) {
+        try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilters, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
                         + " cursor count is zero");
@@ -302,10 +311,20 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Return whether the {@link #mMimeTypeFilter} is {@code null} or not
+     * Return whether the {@link #mMimeTypeFilters} is {@code null} or not
      */
-    public boolean hasMimeTypeFilter() {
-        return !TextUtils.isEmpty(mMimeTypeFilter);
+    public boolean hasMimeTypeFilters() {
+        return mMimeTypeFilters != null && mMimeTypeFilters.length > 0;
+    }
+
+    private boolean isAllImagesFilter() {
+        return mMimeTypeFilters != null && mMimeTypeFilters.length == 1
+                && MimeUtils.isAllImagesMimeType(mMimeTypeFilters[0]);
+    }
+
+    private boolean isAllVideosFilter() {
+        return mMimeTypeFilters != null && mMimeTypeFilters.length == 1
+                && MimeUtils.isAllVideosMimeType(mMimeTypeFilters[0]);
     }
 
     /**
@@ -314,7 +333,7 @@ public class PickerViewModel extends AndroidViewModel {
     public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
         mUserIdManager.setIntentAndCheckRestrictions(intent);
 
-        mMimeTypeFilter = MimeFilterUtils.getMimeTypeFilter(intent);
+        mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
 
         mSelection.parseSelectionValuesFromIntent(intent);
     }
@@ -333,11 +352,101 @@ public class PickerViewModel extends AndroidViewModel {
         return mBottomSheetState;
     }
 
-    public void logPickerOpened(String callingPackage) {
+    /**
+     * Log picker opened metrics
+     */
+    public void logPickerOpened(@NonNull Context context, int callingUid, String callingPackage,
+            String intentAction) {
         if (getUserIdManager().isManagedUserSelected()) {
-            mLogger.logPickerOpenWork(mInstanceId, callingPackage);
+            mLogger.logPickerOpenWork(mInstanceId, callingUid, callingPackage);
         } else {
-            mLogger.logPickerOpenPersonal(mInstanceId, callingPackage);
+            mLogger.logPickerOpenPersonal(mInstanceId, callingUid, callingPackage);
+        }
+
+        // TODO(b/235326735): Optimise logging multiple times on picker opened
+        // TODO(b/235326736): Check if we should add a metric for PICK_IMAGES intent to simplify
+        // metrics reading
+        if (ACTION_GET_CONTENT.equals(intentAction)) {
+            mLogger.logPickerOpenViaGetContent(mInstanceId, callingUid, callingPackage);
+        }
+
+        if (mBottomSheetState == STATE_COLLAPSED) {
+            mLogger.logPickerOpenInHalfScreen(mInstanceId, callingUid, callingPackage);
+        } else if (mBottomSheetState == STATE_EXPANDED) {
+            mLogger.logPickerOpenInFullScreen(mInstanceId, callingUid, callingPackage);
+        }
+
+        if (mSelection != null && mSelection.canSelectMultiple()) {
+            mLogger.logPickerOpenInMultiSelect(mInstanceId, callingUid, callingPackage);
+        } else {
+            mLogger.logPickerOpenInSingleSelect(mInstanceId, callingUid, callingPackage);
+        }
+
+        if (isAllImagesFilter()) {
+            mLogger.logPickerOpenWithFilterAllImages(mInstanceId, callingUid, callingPackage);
+        } else if (isAllVideosFilter()) {
+            mLogger.logPickerOpenWithFilterAllVideos(mInstanceId, callingUid, callingPackage);
+        } else if (hasMimeTypeFilters()) {
+            mLogger.logPickerOpenWithAnyOtherFilter(mInstanceId, callingUid, callingPackage);
+        }
+
+        logPickerOpenedWithCloudProvider(context);
+    }
+
+    // TODO(b/245745412): Fix log params (uid & package name)
+    // TODO(b/245745424): Solve for active cloud provider without a logged in account
+    private void logPickerOpenedWithCloudProvider(@NonNull Context context) {
+        BackgroundThread.getExecutor().execute(() -> {
+            final String providerAuthority;
+            // TODO(b/245746037): Remove try-catch.
+            //  Under the hood MediaStore.getCurrentCloudProvider() makes an IPC call to the primary
+            //  MediaProvider process, where we currently perform a UID check (making sure that
+            //  the call both sender and receiver belong to the same UID).
+            //  This setup works for our "regular" PhotoPickerActivity (running in :PhotoPicker
+            //  process), but does not work for our test applications (installed to a different
+            //  UID), that provide a mock PhotoPickerActivity which will also run this code.
+            //  SOLUTION: replace the UID check on the receiving end (in MediaProvider) with a
+            //  check for MANAGE_CLOUD_MEDIA_PROVIDER permission.
+            try {
+                providerAuthority = getCurrentCloudProvider(context);
+            } catch (RuntimeException e) {
+                Log.w(TAG, "Could not retrieve the current cloud provider", e);
+                return;
+            }
+
+            mLogger.logPickerOpenWithActiveCloudProvider(
+                    mInstanceId, /* cloudProviderUid */ -1, providerAuthority);
+        });
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked Browse to open DocumentsUi
+     */
+    public void logBrowseToDocumentsUi(int callingUid, String callingPackage) {
+        mLogger.logBrowseToDocumentsUi(mInstanceId, callingUid, callingPackage);
+    }
+
+    /**
+     * Log metrics to notify that the user has confirmed selection
+     */
+    public void logPickerConfirm(int callingUid, String callingPackage, int countOfItemsConfirmed) {
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerConfirmWork(mInstanceId, callingUid, callingPackage,
+                    countOfItemsConfirmed);
+        } else {
+            mLogger.logPickerConfirmPersonal(mInstanceId, callingUid, callingPackage,
+                    countOfItemsConfirmed);
+        }
+    }
+
+    /**
+     * Log metrics to notify that the user has exited Picker without any selection
+     */
+    public void logPickerCancel(int callingUid, String callingPackage) {
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerCancelWork(mInstanceId, callingUid, callingPackage);
+        } else {
+            mLogger.logPickerCancelPersonal(mInstanceId, callingUid, callingPackage);
         }
     }
 

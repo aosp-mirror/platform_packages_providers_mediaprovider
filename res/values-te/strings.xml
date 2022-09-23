@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"మీడియా"</string>
     <string name="storage_description" msgid="4081716890357580107">"స్థానిక నిల్వ"</string>
     <string name="app_label" msgid="9035307001052716210">"మీడియా నిల్వ"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"ఫోటో పికర్"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"మీడియా"</string>
     <string name="artist_label" msgid="8105600993099120273">"కళాకారుడు"</string>
     <string name="unknown" msgid="2059049215682829375">"తెలియదు"</string>
     <string name="root_images" msgid="5861633549189045666">"ఇమేజ్‌లు"</string>
@@ -37,7 +37,7 @@
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"తాత్కాలిక యాప్ ఫైళ్లను క్లియర్ చేస్తోంది…"</string>
     <string name="clear" msgid="5524638938415865915">"క్లియర్ చేయండి"</string>
     <string name="allow" msgid="8885707816848569619">"అనుమతించండి"</string>
-    <string name="deny" msgid="6040983710442068936">"నిరాకరించు"</string>
+    <string name="deny" msgid="6040983710442068936">"నిరాకరించండి"</string>
     <string name="picker_browse" msgid="5554477454636075934">"బ్రౌజ్ చేయండి…"</string>
     <string name="add" msgid="2894574044585549298">"జోడించు"</string>
     <string name="deselect" msgid="4297825044827769490">"ఎంపికను తొలగించండి"</string>
@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"వీడియోను అన్‌మ్యూట్ చేయండి"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"ప్లే చేయండి"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"పాజ్ చేయండి"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"వీడియోను ప్లే చేయడం సాధ్యం కాదు"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"వీడియోను ప్లే చేయడంలో సమస్య ఏర్పడింది"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"మీ ఇంటర్నెట్ కనెక్షన్‌ను చెక్ చేసి, మళ్ళీ ట్రై చేయండి"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"మళ్లీ ట్రై చేయండి"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"క్లౌడ్ మీడియా ఇప్పుడు <xliff:g id="PKG_NAME">%1$s</xliff:g> నుండి అందుబాటులో ఉంది"</string>
     <string name="not_selected" msgid="2244008151669896758">"ఎంచుకోబడలేదు"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ఈ ఆడియో ఫైల్‌ను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>‌ను అనుమతించాలా?}other{<xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>‌ను అనుమతించాలా?}}"</string>
@@ -120,4 +124,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"మీడియాను ప్రాసెస్ చేస్తోంది…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"రద్దు చేయండి"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"వేచి ఉండు"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"భద్రత రక్షణ"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"స్థానిక ట్రాన్స్‌కోడ్ అలర్ట్‌లు"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"స్థానిక ట్రాన్స్‌కోడ్ ప్రోగ్రెస్"</string>
 </resources>

@@ -658,10 +658,30 @@ public class PickerSyncControllerTest {
     }
 
     @Test
-    public void testSelectDefaultCloudProivder_DefaultAuthoritySet() {
+    public void testSelectDefaultCloudProvider_defaultAuthoritySet() {
         PickerSyncController controller = createControllerWithDefaultProvider(
                 CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         assertThat(controller.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+    }
+
+    @Test
+    public void testSelectDefaultCloudProvider_userAwareAboutCloudMediaAppSettings() {
+        PickerSyncController controller = createControllerWithDefaultProvider(
+                CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        assertThat(controller.getDefaultCloudProviderInfo(null, false).isEmpty()).isFalse();
+        assertThat(controller.getDefaultCloudProviderInfo(null, true).isEmpty()).isTrue();
+    }
+
+    @Test
+    public void testNotifyUserCloudMediaAware() {
+        assertThat(mController.isUserAwareAboutCloudMediaAppSettings()).isFalse();
+
+        mController.notifyUserCloudMediaAware();
+
+        assertThat(mController.isUserAwareAboutCloudMediaAppSettings()).isTrue();
+
+        mController.clearUserAwareAboutCloudMediaAppSettingsFlag();
     }
 
     @Test
@@ -1052,8 +1072,10 @@ public class PickerSyncControllerTest {
 
         when(mockContext.getResources()).thenReturn(mockResources);
         when(mockContext.getPackageManager()).thenReturn(mContext.getPackageManager());
-        when(mockContext.getSystemService(StorageManager.class))
-                .thenReturn(mContext.getSystemService(StorageManager.class));
+        when(mockContext.getSystemServiceName(StorageManager.class)).thenReturn(
+                mContext.getSystemServiceName(StorageManager.class));
+        when(mockContext.getSystemService(StorageManager.class)).thenReturn(
+                mContext.getSystemService(StorageManager.class));
         when(mockContext.getSharedPreferences(anyString(), anyInt())).thenAnswer(i -> {
             return mContext.getSharedPreferences((String)i.getArgument(0), (int)i.getArgument(1));
         });

@@ -26,8 +26,8 @@
     <string name="root_videos" msgid="8792703517064649453">"Videoclipuri"</string>
     <string name="root_audio" msgid="3505830755201326018">"Conținut audio"</string>
     <string name="root_documents" msgid="3829103301363849237">"Documente"</string>
-    <string name="permission_required" msgid="1460820436132943754">"Este necesară permisiunea ca să modificați sau să ștergeți acest element."</string>
-    <string name="permission_required_action" msgid="706370952366113539">"Continuați"</string>
+    <string name="permission_required" msgid="1460820436132943754">"Este necesară permisiunea ca să modifici sau să ștergi acest element."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"Continuă"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Permite"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Refuz"</string>
     <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{+ <xliff:g id="COUNT_0">^1</xliff:g>}few{+ <xliff:g id="COUNT_1">^1</xliff:g>}other{+ <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
@@ -73,10 +73,10 @@
     <string name="picker_photo" msgid="1739342083494962153">"Fotografie"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Fotografie animată"</string>
-    <string name="picker_mute_video" msgid="2496585809229800096">"Dezactivați sunetul videoclipului"</string>
-    <string name="picker_unmute_video" msgid="6611741290641963568">"Activați sunetul videoclipului"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Redați videoclipul"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Întrerupeți videoclipul"</string>
+    <string name="picker_mute_video" msgid="2496585809229800096">"Dezactivează sunetul videoclipului"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Activează sunetul videoclipului"</string>
+    <string name="picker_play_video" msgid="5158816108935317185">"Redă videoclipul"</string>
+    <string name="picker_pause_video" msgid="7239492902901477371">"Întrerupe videoclipul"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Conținutul media în cloud este acum disponibil din <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"neselectat"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Permiți ca <xliff:g id="APP_NAME_0">^1</xliff:g> să modifice acest fișier audio?}few{Permiți ca <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> fișiere audio?}other{Permiți ca <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> de fișiere audio?}}"</string>

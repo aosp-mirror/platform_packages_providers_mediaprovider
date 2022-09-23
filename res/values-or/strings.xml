@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"ଭିଡିଓକୁ ଅନମ୍ୟୁଟ କରନ୍ତୁ"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"ପ୍ଲେ କରନ୍ତୁ"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"ବିରତ କରନ୍ତୁ"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"ଭିଡିଓ ପ୍ଲେ କରାଯାଇପାରିବ ନାହିଁ"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"ଭିଡିଓ ପ୍ଲେ କରିବାରେ ସମସ୍ୟା"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"ଆପଣଙ୍କ ଇଣ୍ଟରନେଟ କନେକ୍ସନ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ବର୍ତ୍ତମାନ <xliff:g id="PKG_NAME">%1$s</xliff:g>ରୁ କ୍ଲାଉଡ ମିଡିଆ ଉପଲବ୍ଧ ଅଛି"</string>
     <string name="not_selected" msgid="2244008151669896758">"ଚୟନ କରାଯାଇନାହିଁ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ଏହି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}other{<xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}}"</string>
@@ -118,6 +122,9 @@
     <string name="transcode_processing_success" msgid="447288876429730122">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ସଫଳ ହୋଇଛି"</string>
     <string name="transcode_processing_started" msgid="7789086308155361523">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ଆରମ୍ଭ କରାଯାଇଛି"</string>
     <string name="transcode_processing" msgid="6753136468864077258">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ କରାଯାଉଛି…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"ବାତିଲ୍ କରନ୍ତୁ"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"ବାତିଲ କରନ୍ତୁ"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"ଅପେକ୍ଷା କରନ୍ତୁ"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"ସୁରକ୍ଷିତ ସୁରକ୍ଷା"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"ନେଟିଭ ଟ୍ରାନ୍ସକୋଡ ଆଲର୍ଟ"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"ନେଟିଭ ଟ୍ରାନ୍ସକୋଡ ପ୍ରୋଗ୍ରେସ"</string>
 </resources>

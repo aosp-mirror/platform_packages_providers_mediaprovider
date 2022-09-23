@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Uključivanje zvuka videozapisa"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Pokrenite"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pauzirajte"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Nije moguće reproducirati videozapis"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Poteškoće prilikom reprodukcije videozapisa"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Provjerite internetsku vezu i pokušajte ponovo"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Pokušaj ponovo"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Medijski sadržaj u oblaku je sada dostupan od usluge <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nije odabrano"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Dozvoliti da <xliff:g id="APP_NAME_0">^1</xliff:g> izmijeni ovaj audio fajl?}one{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajl?}few{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajla?}other{Dozvoliti da <xliff:g id="APP_NAME_1">^1</xliff:g> izmijeni <xliff:g id="COUNT">^2</xliff:g> audio fajlova?}}"</string>
@@ -120,4 +124,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Obrada medijskih fajlova…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Otkaži"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Sačekaj"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Zaštita sigurnosti"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Obavještenja o izvornom konvertiranju"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Napredak izvornog konvertiranja"</string>
 </resources>

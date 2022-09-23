@@ -92,6 +92,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
@@ -213,6 +214,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     /** Stores cached value of next row id of the database which optimises new id inserts. */
     private AtomicLong mNextRowIdBackup = new AtomicLong(INVALID_ROW_ID);
+
+    /** Indicates whether the database is recovering from a rollback or not. */
+    private AtomicBoolean mIsRecovering =  new AtomicBoolean(false);
 
     public interface OnSchemaChangeListener {
         void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
@@ -351,18 +355,20 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_INSERT", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":", 5);
+                final String[] split = arg.split(":", 6);
                 final String volumeName = split[0];
                 final long id = Long.parseLong(split[1]);
                 final int mediaType = Integer.parseInt(split[2]);
                 final boolean isDownload = Integer.parseInt(split[3]) != 0;
                 final boolean isPending = Integer.parseInt(split[4]) != 0;
+                final String path = split[5];
 
                 FileRow insertedRow = FileRow.newBuilder(id)
                         .setVolumeName(volumeName)
                         .setMediaType(mediaType)
                         .setIsDownload(isDownload)
                         .setIsPending(isPending)
+                        .setPath(path)
                         .build();
                 Trace.beginSection("_INSERT");
                 try {
@@ -853,17 +859,21 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      */
     public void notifyChange(@NonNull Uri uri, int flags) {
         if (LOGV) Log.v(TAG, "Notifying " + uri);
+
+        // Also sync change to the network.
+        final int notifyFlags = flags | ContentResolver.NOTIFY_SYNC_TO_NETWORK;
+
         final TransactionState state = mTransactionState.get();
         if (state != null) {
-            ArraySet<Uri> set = state.notifyChanges.get(flags);
+            ArraySet<Uri> set = state.notifyChanges.get(notifyFlags);
             if (set == null) {
                 set = new ArraySet<>();
-                state.notifyChanges.put(flags, set);
+                state.notifyChanges.put(notifyFlags, set);
             }
             set.add(uri);
         } else {
             ForegroundThread.getExecutor().execute(() -> {
-                notifySingleChangeInternal(uri, flags);
+                notifySingleChangeInternal(uri, notifyFlags);
             });
         }
     }
@@ -1523,13 +1533,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         final String insertArg =
                 "new.volume_name||':'||new._id||':'||new.media_type||':'||new.is_download"
-                + "||':'||new.is_pending";
+                + "||':'||new.is_pending||':'||new._data";
         final String updateArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
                         + "||':'||old.is_trashed||':'||new.is_trashed"
                         + "||':'||old.is_pending||':'||new.is_pending"
-                        + "||':'||old.is_favorite||':'||new.is_favorite"
+                        + "||':'||ifnull(old.is_favorite,0)"
+                        + "||':'||ifnull(new.is_favorite,0)"
                         + "||':'||ifnull(old._special_format,0)"
                         + "||':'||ifnull(new._special_format,0)"
                         + "||':'||ifnull(old.owner_package_name,'null')"
@@ -1875,10 +1886,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_Q = 1023;
     static final int VERSION_R = 1115;
     static final int VERSION_S = 1209;
-    // Leave some gaps in database version tagging to allow S schema changes
-    // to go independent of T schema changes.
-    static final int VERSION_T = 1307;
-    public static final int VERSION_LATEST = VERSION_T;
+    static final int VERSION_T = 1308;
+    // Leave some gaps in database version tagging to allow T schema changes
+    // to go independent of U schema changes.
+    static final int VERSION_U = 1400;
+    public static final int VERSION_LATEST = VERSION_U;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -2074,6 +2086,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // This is to ensure Animated Webp files are tagged
                 updateSpecialFormatToNotDetected(db);
             }
+            if (fromVersion < 1308) {
+                // Empty version bump to ensure triggers are recreated
+            }
+            if (fromVersion < 1400) {
+                // Empty version bump to ensure triggers are recreated
+            }
 
             // If this is the legacy database, it's not worth recomputing data
             // values locally, since they'll be recomputed after the migration
@@ -2092,19 +2110,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         createLatestTriggers(db);
 
         getOrCreateUuid(db);
-
-        final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
-        if (mSchemaListener != null) {
-            mSchemaListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
-                    getItemCount(db), elapsedMillis, getOrCreateUuid(db));
-        }
-    }
-
-    private void downgradeDatabase(SQLiteDatabase db, int fromVersion, int toVersion) {
-        final long startTime = SystemClock.elapsedRealtime();
-
-        // The best we can do is wipe and start over
-        createLatestSchema(db);
 
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
         if (mSchemaListener != null) {
@@ -2394,5 +2399,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public static int getNextRowIdBackupFrequency() {
         return SystemProperties.getInt("persist.sys.fuse.backup.nextrowid_backup_frequency",
                 1000);
+    }
+
+    boolean isDatabaseRecovering() {
+        return mIsRecovering.get();
     }
 }

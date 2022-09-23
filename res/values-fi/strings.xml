@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Poista videon mykistys"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Toista"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Keskeytä"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Videota ei voi toistaa"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Videon toisto ei onnistu"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Tarkista internetyhteytesi ja yritä uudelleen"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Yritä uudelleen"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Pilvimediaa nyt saatavilla täältä: <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"ei valittu"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Saako <xliff:g id="APP_NAME_0">^1</xliff:g> muokata tätä audiotiedostoa?}other{Saako <xliff:g id="APP_NAME_1">^1</xliff:g> muokata <xliff:g id="COUNT">^2</xliff:g> audiotiedostoa?}}"</string>
@@ -120,4 +124,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Käsitellään mediasisältöä…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Peru"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Odota"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Turvallisuuden varmistaminen"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Natiivin transkoodin ilmoitukset"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Natiivin transkoodin edistyminen"</string>
 </resources>

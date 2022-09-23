@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Slå på ljudet för videon"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Spela upp"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pausa"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Det går inte att spela upp videon"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Det gick inte att spela upp videon"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Kontrollera internetanslutningen och försök igen"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Försök igen"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Molnmedia är nu tillgänglig från <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"inte valt"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vill du tillåta att <xliff:g id="APP_NAME_0">^1</xliff:g> ändrar den här ljudfilen?}other{Vill du tillåta att <xliff:g id="APP_NAME_1">^1</xliff:g> ändrar <xliff:g id="COUNT">^2</xliff:g> ljudfiler?}}"</string>
@@ -120,4 +124,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Bearbetar media …"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Avbryt"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Vänta"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Säkerhet"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Omkodningsvarningar för Native"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Omkodningsförlopp för Native"</string>
 </resources>

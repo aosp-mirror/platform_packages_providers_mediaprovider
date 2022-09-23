@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Wyłącz wyciszenie wideo"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Odtwórz"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Wstrzymaj"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Nie można odtworzyć filmu"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Wystąpiły problemy przy odtwarzaniu filmu"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Sprawdź połączenie z internetem i spróbuj ponownie"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Ponów"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Multimedia w chmurze są teraz dostępne z poziomu aplikacji <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nie wybrano"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Zezwolić aplikacji <xliff:g id="APP_NAME_0">^1</xliff:g> na zmodyfikowanie tego pliku audio?}few{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> plików audio?}many{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> plików audio?}other{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> pliku audio?}}"</string>
@@ -120,4 +124,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Przetwarzam multimedia…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Anuluj"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Czekaj"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Sprzęt zabezpieczający"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Alerty dotyczące transkodowania natywnego"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Postępy transkodowania natywnego"</string>
 </resources>

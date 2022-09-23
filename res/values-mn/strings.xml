@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Видеоны дууг нээх"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Тоглуулах"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Түр зогсоох"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Видеог тоглуулах боломжгүй"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Видеог тоглуулахад асуудал гарлаа"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Интернэт холболтоо шалгаад, дахин оролдоно уу"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Дахин оролдох"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Үүлэн медиаг одоо <xliff:g id="PKG_NAME">%1$s</xliff:g>-с авах боломжтой боллоо"</string>
     <string name="not_selected" msgid="2244008151669896758">"сонгоогүй"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>-д энэ аудио файлыг өөрчлөхийг зөвшөөрөх үү?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>-д <xliff:g id="COUNT">^2</xliff:g> аудио файлыг өөрчлөхийг зөвшөөрөх үү?}}"</string>
@@ -120,4 +124,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Медиаг боловсруулж байна…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Цуцлах"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Хүлээх"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Аюулгүй байдлын хамгаалалт"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Уугуул хөрвүүлгийн сэрэмжлүүлэг"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Уугуул хөрвүүлгийн явц"</string>
 </resources>

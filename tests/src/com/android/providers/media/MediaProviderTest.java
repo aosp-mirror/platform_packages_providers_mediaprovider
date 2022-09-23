@@ -115,7 +115,8 @@ public class MediaProviderTest {
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.READ_DEVICE_CONFIG,
-                        Manifest.permission.INTERACT_ACROSS_USERS);
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
         resetIsolatedContext();
     }
@@ -378,6 +379,9 @@ public class MediaProviderTest {
 
     @Test
     public void testInsertionWithInvalidFilePath_throwsIllegalArgumentException() {
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
+                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
         final ContentValues values = new ContentValues();
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Android/media/com.example");
         values.put(MediaStore.Images.Media.DISPLAY_NAME,

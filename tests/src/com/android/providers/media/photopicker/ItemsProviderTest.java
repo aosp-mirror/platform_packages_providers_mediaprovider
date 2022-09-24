@@ -83,7 +83,8 @@ public class ItemsProviderTest {
         uiAutomation.adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.READ_DEVICE_CONFIG,
-                        Manifest.permission.INTERACT_ACROSS_USERS);
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
         // Remove sync delay to avoid flaky tests
         final String setSyncDelayCommand =

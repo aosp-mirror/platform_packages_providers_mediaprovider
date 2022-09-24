@@ -117,7 +117,8 @@ public class ModernMediaScannerTest {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
-                        Manifest.permission.INTERACT_ACROSS_USERS);
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
         mDir = new File(context.getExternalMediaDirs()[0], "test_" + System.nanoTime());
         mDir.mkdirs();

@@ -81,7 +81,8 @@ public class IdleServiceTest {
                         android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         android.Manifest.permission.READ_DEVICE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS,
-                        android.Manifest.permission.DUMP);
+                        android.Manifest.permission.DUMP,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
         mDir = new File(context.getExternalMediaDirs()[0], "test_" + System.nanoTime());
         mDir.mkdirs();

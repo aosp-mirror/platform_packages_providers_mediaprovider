@@ -22,7 +22,6 @@ import static com.android.providers.media.scan.MediaScannerTest.stage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 import android.Manifest;
 import android.content.ContentResolver;
@@ -30,7 +29,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
 import android.provider.DocumentsContract.Document;
 import android.provider.DocumentsContract.Root;
@@ -67,7 +65,8 @@ public class MediaDocumentsProviderTest {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
-                        Manifest.permission.INTERACT_ACROSS_USERS);
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
     }
 
     @After

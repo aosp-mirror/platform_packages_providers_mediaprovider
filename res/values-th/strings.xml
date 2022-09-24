@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"เปิดเสียงวิดีโอ"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"เปิด"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"หยุดชั่วคราว"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"เล่นวิดีโอไม่ได้"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"เกิดปัญหาขณะเล่นวิดีโอ"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองอีกครั้ง"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ลองใหม่"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ไฟล์สื่อจาก <xliff:g id="PKG_NAME">%1$s</xliff:g> ในระบบคลาวด์พร้อมให้ใช้งานแล้ว"</string>
     <string name="not_selected" msgid="2244008151669896758">"ไม่ได้เลือกไว้"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{อนุญาตให้ <xliff:g id="APP_NAME_0">^1</xliff:g> แก้ไขไฟล์เสียงนี้ไหม}other{อนุญาตให้ <xliff:g id="APP_NAME_1">^1</xliff:g> แก้ไขไฟล์เสียง <xliff:g id="COUNT">^2</xliff:g> ไฟล์ไหม}}"</string>

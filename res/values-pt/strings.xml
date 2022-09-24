@@ -78,6 +78,10 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Ativar o som do vídeo"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Iniciar"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pausar"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Não é possível iniciar o vídeo"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Ocorreu um problema ao iniciar o vídeo"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Confira sua conexão de Internet e tente de novo"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Tentar novamente"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Mídia em nuvem agora disponível no app <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"não selecionado"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Permitir que o app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique esse arquivo de áudio?}one{Permitir que o app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> arquivo de áudio?}many{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> audio files?}other{Permitir que o app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> arquivos de áudio?}}"</string>

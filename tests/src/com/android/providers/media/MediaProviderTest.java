@@ -395,6 +395,11 @@ public class MediaProviderTest {
         assertThat(illegalArgumentException).hasMessageThat().contains(
                 "Primary directory Android not allowed for content://media/external_primary/file;"
                         + " allowed directories are [Download, Documents]");
+        // Add Shell Permissions to restore to @BeforeClass state.
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(Manifest.permission.READ_DEVICE_CONFIG,
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
     }
 
     @Test

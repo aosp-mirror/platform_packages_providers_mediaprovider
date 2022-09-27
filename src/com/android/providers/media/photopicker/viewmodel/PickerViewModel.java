@@ -76,6 +76,8 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Item>> mCategoryItemList;
     // The list of categories.
     private MutableLiveData<List<Category>> mCategoryList;
+    // Boolean Banner visibility
+    private MutableLiveData<Boolean> mBannerVisibility;
 
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
@@ -167,6 +169,18 @@ public class PickerViewModel extends AndroidViewModel {
             updateItems();
         }
         return mItemList;
+    }
+
+    /**
+     * @return the live data of banner visibility boolean {@link #mBannerVisibility}.
+     */
+    @NonNull
+    public LiveData<Boolean> getBannerVisibilityLiveData() {
+        if (mBannerVisibility == null) {
+            // TODO(b/195009152): Update to hold and track the actual value.
+            mBannerVisibility = new MutableLiveData<>(false);
+        }
+        return mBannerVisibility;
     }
 
     private List<Item> loadItems(Category category, UserId userId) {

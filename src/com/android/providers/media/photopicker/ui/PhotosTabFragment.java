@@ -15,6 +15,8 @@
  */
 package com.android.providers.media.photopicker.ui;
 
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_SECTION;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
@@ -80,6 +82,7 @@ public class PhotosTabFragment extends TabFragment {
         if (mCategory.isDefault()) {
             // Set the pane title for A11y
             view.setAccessibilityPaneTitle(getString(R.string.picker_photos));
+            mPickerViewModel.getBannerVisibilityLiveData().observe(this, adapter::setShowBanner);
             mPickerViewModel.getItems().observe(this, itemList -> {
                 adapter.setMediaItems(itemList);
                 // Handle emptyView's visibility
@@ -98,10 +101,6 @@ public class PhotosTabFragment extends TabFragment {
             });
         }
 
-        final GridLayoutManager layoutManager = new GridLayoutManager(context, GRID_COLUMN_COUNT);
-        final GridLayoutManager.SpanSizeLookup lookup = adapter.createSpanSizeLookup(layoutManager);
-        layoutManager.setSpanSizeLookup(lookup);
-
         final PhotosTabItemDecoration itemDecoration = new PhotosTabItemDecoration(context);
 
         final int spacing = getResources().getDimensionPixelSize(R.dimen.picker_photo_item_spacing);
@@ -109,7 +108,7 @@ public class PhotosTabFragment extends TabFragment {
         mRecyclerView.setColumnWidth(photoSize + spacing);
         mRecyclerView.setMinimumSpanCount(MINIMUM_SPAN_COUNT);
 
-        mRecyclerView.setLayoutManager(layoutManager);
+        setLayoutManager(adapter);
         mRecyclerView.setAdapter(adapter);
         mRecyclerView.addItemDecoration(itemDecoration);
     }
@@ -225,5 +224,25 @@ public class PhotosTabFragment extends TabFragment {
      */
     public static Fragment get(FragmentManager fm) {
         return fm.findFragmentByTag(FRAGMENT_TAG);
+    }
+
+    private void setLayoutManager(@NonNull TabAdapter adapter) {
+        final GridLayoutManager layoutManager =
+                new GridLayoutManager(getContext(), GRID_COLUMN_COUNT);
+        final GridLayoutManager.SpanSizeLookup lookup = new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                final int itemViewType = adapter.getItemViewType(position);
+                // For the item view types ITEM_TYPE_BANNER and ITEM_TYPE_SECTION, it is full
+                // span, return the span count of the layoutManager.
+                if (itemViewType == ITEM_TYPE_BANNER || itemViewType == ITEM_TYPE_SECTION) {
+                    return layoutManager.getSpanCount();
+                } else {
+                    return 1;
+                }
+            }
+        };
+        layoutManager.setSpanSizeLookup(lookup);
+        mRecyclerView.setLayoutManager(layoutManager);
     }
 }

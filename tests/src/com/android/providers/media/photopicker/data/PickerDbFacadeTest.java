@@ -22,7 +22,6 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -755,9 +754,13 @@ public class PickerDbFacadeTest {
 
         try (Cursor cr = mFacade.queryMediaIdForApps(CLOUD_PROVIDER, CLOUD_ID,
                 invalidProjection)) {
-            fail("Invalid projection should throw IllegalArgumentException");
-        } catch (IllegalArgumentException expected) {
-            // expected
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            cr.moveToFirst();
+            assertThat(cr.getLong(cr.getColumnIndex(invalidColumn)))
+                    .isEqualTo(0);
+            assertThat(cr.getLong(cr.getColumnIndex(PickerMediaColumns.DATE_TAKEN)))
+                    .isEqualTo(DATE_TAKEN_MS);
         }
     }
 

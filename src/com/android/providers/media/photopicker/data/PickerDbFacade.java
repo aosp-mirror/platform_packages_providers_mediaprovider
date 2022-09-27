@@ -22,7 +22,6 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.PickerMediaColumns;
 
-import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
@@ -805,8 +804,7 @@ public class PickerDbFacade {
 
         synchronized (mLock) {
             if (authority.equals(mLocalProvider) || authority.equals(mCloudProvider)) {
-                return qb.query(mDatabase, getMediaStoreProjectionLocked(authority, mediaId,
-                                projection),
+                return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
                         /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
                         /* orderBy */ null, /* limitStr */ null);
             }
@@ -922,8 +920,7 @@ public class PickerDbFacade {
         };
     }
 
-    private String[] getMediaStoreProjectionLocked(String authority, String mediaId,
-            String[] columns) {
+    private String[] getMediaStoreProjectionLocked(String[] columns) {
         final String[] projection = new String[columns.length];
 
         for (int i = 0; i < projection.length; i++) {
@@ -963,12 +960,10 @@ public class PickerDbFacade {
                             getProjectionSimple(KEY_ORIENTATION, PickerMediaColumns.ORIENTATION);
                     break;
                 default:
-                    Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
-                    throw new IllegalArgumentException(
-                            "Unexpected picker URI projection. Uri:"
-                                    + uri
-                                    + ". Column: "
-                                    + columns[i]);
+                    projection[i] = getProjectionSimple("NULL", columns[i]);
+                    // Ignore unsupported columns; we do not throw error here to support
+                    // backward compatibility
+                    Log.w(TAG, "Unexpected Picker column: " + columns[i]);
             }
         }
 

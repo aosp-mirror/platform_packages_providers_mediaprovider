@@ -19,6 +19,7 @@ package com.android.providers.media;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
+import static androidx.test.InstrumentationRegistry.getContext;
 import static androidx.test.InstrumentationRegistry.getTargetContext;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -39,6 +40,7 @@ import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.os.Process;
 import android.os.UserHandle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.Column;
@@ -308,6 +310,23 @@ public class PickerUriResolverTest {
         testGetType(sTestPickerUri, "image/jpeg");
     }
 
+    @Test
+    public void testQueryUnknownColumn() throws Exception {
+        final int myUid = Process.myUid();
+        final int myPid = Process.myPid();
+        final String myPackageName = getContext().getPackageName();
+        final String[] invalidProjection = new String[] {"invalidColumn"};
+
+        updateReadUriPermissionForSelf(sTestPickerUri, /* grant */ true);
+        try (Cursor c = sTestPickerUriResolver.query(sTestPickerUri,
+                invalidProjection, myPid, myUid, myPackageName)) {
+            assertThat(c).isNotNull();
+            assertThat(c.moveToFirst()).isTrue();
+        } finally {
+            updateReadUriPermissionForSelf(sTestPickerUri, /* grant */ false);
+        }
+    }
+
     private static Context createOtherUserContext(int user) throws Exception {
         final UserHandle userHandle = UserHandle.of(user);
         // For unit testing: IsolatedContext is the context of another User: user.
@@ -339,6 +358,12 @@ public class PickerUriResolverTest {
     private void updateReadUriPermission(Uri uri, boolean grant) {
         final int permission = grant ? PERMISSION_GRANTED : PERMISSION_DENIED;
         when(sCurrentContext.checkUriPermission(uri, -1, -1,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION)).thenReturn(permission);
+    }
+
+    private void updateReadUriPermissionForSelf(Uri uri, boolean grant) {
+        final int permission = grant ? PERMISSION_GRANTED : PERMISSION_DENIED;
+        when(sCurrentContext.checkUriPermission(uri, Process.myPid() , Process.myUid(),
                 Intent.FLAG_GRANT_READ_URI_PERMISSION)).thenReturn(permission);
     }
 

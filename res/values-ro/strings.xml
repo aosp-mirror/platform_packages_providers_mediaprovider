@@ -39,7 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Permite"</string>
     <string name="deny" msgid="6040983710442068936">"Refuz"</string>
     <string name="add" msgid="2894574044585549298">"Adaugă"</string>
-    <string name="deselect" msgid="4297825044827769490">"Debifați"</string>
+    <string name="deselect" msgid="4297825044827769490">"Debifează"</string>
     <string name="deselected" msgid="8488133193326208475">"Deselectat"</string>
     <string name="select" msgid="2704765470563027689">"Selectează"</string>
     <string name="selected" msgid="9151797369975828124">"Selectat"</string>
@@ -51,14 +51,14 @@
     <string name="picker_photos" msgid="7415035516411087392">"Fotografii"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albume"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Previzualizare"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Comutați la serviciu"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Comutați la personal"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Comută la serviciu"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Comută la personal"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blocat de administrator"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Accesarea datelor de lucru dintr-o aplicație personală nu este permisă"</string>
-    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Accesarea datelor personale dintr-o aplicație pentru lucru nu este permisă"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Accesarea datelor cu caracter personal dintr-o aplicație pentru lucru nu este permisă"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Aplicațiile pentru lucru sunt întrerupte"</string>
-    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ca să deschideți fotografiile de lucru, porniți aplicațiile pentru lucru și încercați din nou"</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"Aplicația poate accesa doar fotografiile pe care le selectați"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ca să deschizi fotografiile de lucru, pornește aplicațiile pentru lucru și încearcă din nou"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Aplicația poate accesa doar fotografiile pe care le selectezi"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> element}few{<xliff:g id="COUNT_1">^1</xliff:g> elemente}other{<xliff:g id="COUNT_1">^1</xliff:g> de elemente}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Adaugă (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Cameră"</string>
@@ -118,5 +118,5 @@
     <string name="transcode_processing_started" msgid="7789086308155361523">"Procesarea conținutului media a început"</string>
     <string name="transcode_processing" msgid="6753136468864077258">"Se procesează conținutul media…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Anulează"</string>
-    <string name="transcode_wait" msgid="8909773149560697501">"Așteptați"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Așteaptă"</string>
 </resources>

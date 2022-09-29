@@ -84,30 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Повторить"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Медиаконтент из облака теперь доступен в приложении \"<xliff:g id="PKG_NAME">%1$s</xliff:g>\"."</string>
     <string name="not_selected" msgid="2244008151669896758">"не выбрано"</string>
-    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
-    <skip />
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Резервные копии фотографий добавлены"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Вы можете выбрать фотографии из аккаунта <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> приложения \"<xliff:g id="APP_NAME">%1$s</xliff:g>\"."</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g>: аккаунт обновлен"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Фотографии из аккаунта <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> теперь хранятся здесь."</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Выберите облачное приложение для мультимедиа"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Чтобы добавить сюда резервные копии фотографий, выберите в настройках облачное приложение для мультимедиа."</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"<xliff:g id="APP_NAME">%1$s</xliff:g>: выберите аккаунт"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Чтобы добавить сюда фотографии из приложения \"<xliff:g id="APP_NAME">%1$s</xliff:g>\", выберите аккаунт."</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Закрыть"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Выбрать приложение"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Выбрать аккаунт"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Сменить аккаунт"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Разрешить приложению \"<xliff:g id="APP_NAME_0">^1</xliff:g>\" изменить этот аудиофайл?}one{Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> аудиофайл?}few{Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> аудиофайла?}many{Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> аудиофайлов?}other{Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> аудиофайла?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Изменение аудиофайла…}one{Изменение <xliff:g id="COUNT">^1</xliff:g> аудиофайла…}few{Изменение <xliff:g id="COUNT">^1</xliff:g> аудиофайлов…}many{Изменение <xliff:g id="COUNT">^1</xliff:g> аудиофайлов…}other{Изменение <xliff:g id="COUNT">^1</xliff:g> аудиофайла…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Разрешить приложению \"<xliff:g id="APP_NAME_0">^1</xliff:g>\" изменить это видео?}one{Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> видео?}few{Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> видео?}many{Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> видео?}other{Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> видео?}}"</string>

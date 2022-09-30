@@ -172,15 +172,14 @@
                 android:label="@string/picker_app_label"
                 android:theme="@style/PickerDefaultTheme"
                 android:exported="true"
-                android:excludeFromRecents="true"
-                android:priority="100" >
-            <intent-filter>
+                android:excludeFromRecents="true" >
+            <intent-filter android:priority="100" >
                 <action android:name="android.provider.action.PICK_IMAGES" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
             </intent-filter>
-            <intent-filter>
+            <intent-filter android:priority="100" >
                 <action android:name="android.provider.action.PICK_IMAGES" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>

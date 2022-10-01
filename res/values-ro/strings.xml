@@ -26,8 +26,8 @@
     <string name="root_videos" msgid="8792703517064649453">"Videoclipuri"</string>
     <string name="root_audio" msgid="3505830755201326018">"Conținut audio"</string>
     <string name="root_documents" msgid="3829103301363849237">"Documente"</string>
-    <string name="permission_required" msgid="1460820436132943754">"Este necesară permisiunea ca să modificați sau să ștergeți acest element."</string>
-    <string name="permission_required_action" msgid="706370952366113539">"Continuați"</string>
+    <string name="permission_required" msgid="1460820436132943754">"Este necesară permisiunea ca să modifici sau să ștergi acest element."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"Continuă"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Permite"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Refuz"</string>
     <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{+ <xliff:g id="COUNT_0">^1</xliff:g>}few{+ <xliff:g id="COUNT_1">^1</xliff:g>}other{+ <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
@@ -74,16 +74,40 @@
     <string name="picker_photo" msgid="1739342083494962153">"Fotografie"</string>
     <string name="picker_gif" msgid="8333318083107368726">"GIF"</string>
     <string name="picker_motion_photo" msgid="4385182195289546308">"Fotografie animată"</string>
-    <string name="picker_mute_video" msgid="2496585809229800096">"Dezactivați sunetul videoclipului"</string>
-    <string name="picker_unmute_video" msgid="6611741290641963568">"Activați sunetul videoclipului"</string>
-    <string name="picker_play_video" msgid="7106025944628666250">"Redați"</string>
-    <string name="picker_pause_video" msgid="1092718225234326702">"Întrerupeți"</string>
+    <string name="picker_mute_video" msgid="2496585809229800096">"Dezactivează sunetul videoclipului"</string>
+    <string name="picker_unmute_video" msgid="6611741290641963568">"Activează sunetul videoclipului"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Redă"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Întrerupe"</string>
     <string name="picker_error_snackbar" msgid="5970192792792369203">"Nu se poate reda videoclipul"</string>
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Probleme la redarea videoclipului"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Verifică-ți conexiunea la internet și încearcă din nou"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Încearcă din nou"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Conținutul media în cloud este acum disponibil din <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"neselectat"</string>
+    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Permiți ca <xliff:g id="APP_NAME_0">^1</xliff:g> să modifice acest fișier audio?}few{Permiți ca <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> fișiere audio?}other{Permiți ca <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> de fișiere audio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Se modifică fișierul audio…}few{Se modifică <xliff:g id="COUNT">^1</xliff:g> fișiere audio…}other{Se modifică <xliff:g id="COUNT">^1</xliff:g> de fișiere audio…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Permiți ca <xliff:g id="APP_NAME_0">^1</xliff:g> să modifice acest videoclip?}few{Permiți ca <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> videoclipuri?}other{Permiți ca <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> de videoclipuri?}}"</string>

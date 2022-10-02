@@ -84,30 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Пробај поново"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"<xliff:g id="PKG_NAME">%1$s</xliff:g> сада нуди медијски садржај у клауду"</string>
     <string name="not_selected" msgid="2244008151669896758">"није изабрано"</string>
-    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
-    <skip />
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Сада су уврштене резервне копије слика"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Можете да изаберете слике са налога <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> за <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Налог за <xliff:g id="APP_NAME">%1$s</xliff:g> је ажуриран"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Слике са <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> су сада уврштене овде"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Одаберите клауд медијску апликацију"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Да би се овде уврстиле резервне копије слика, одаберите клауд медијску апликацију у подешавањима"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Одаберите налог за <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Да би се овде уврстиле слике из апликације <xliff:g id="APP_NAME">%1$s</xliff:g>, одаберите налог у апликацији"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Одбаци"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Одабери апликацију"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Одабери налог"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Промени налог"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Желите ли да дозволите да <xliff:g id="APP_NAME_0">^1</xliff:g> измени овај аудио фајл?}one{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> аудио фајл?}few{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> аудио фајла?}other{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> аудио фајлова?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Мења се аудио фајл…}one{Мења се <xliff:g id="COUNT">^1</xliff:g> аудио фајл…}few{Мењају се <xliff:g id="COUNT">^1</xliff:g> аудио фајла…}other{Мења се <xliff:g id="COUNT">^1</xliff:g> аудио фајлова…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Желите ли да дозволите да <xliff:g id="APP_NAME_0">^1</xliff:g> измени овај видео?}one{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> видео?}few{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> видео снимка?}other{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> видео снимака?}}"</string>

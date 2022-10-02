@@ -84,30 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"යළි උත්සාහ කරන්න"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ක්ලවුඩ් මාධ්‍ය දැන් <xliff:g id="PKG_NAME">%1$s</xliff:g> වෙතින් ලබා ගත හැකිය"</string>
     <string name="not_selected" msgid="2244008151669896758">"තෝරා නොමැත"</string>
-    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
-    <skip />
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"උපස්ථ කළ ඡායාරූප දැන් ඇතුළත් කර ඇත"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ඔබට <xliff:g id="APP_NAME">%1$s</xliff:g> ගිණුමෙන් <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ඡායාරූප තෝරා ගත හැක"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> ගිණුම යාවත්කාලීන විය"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> වෙතින් ඡායාරූප දැන් මෙහි ඇතුළත් කර ඇත"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"ක්ලවුඩ් මාධ්‍ය යෙදුම තෝරා ගන්න"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"උපස්ථ කළ ඡායාරූප මෙහි ඇතුළත් කිරීමට, සැකසීම් තුළ ක්ලවුඩ් මාධ්‍ය යෙදුමක් තෝරා ගන්න"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"<xliff:g id="APP_NAME">%1$s</xliff:g> ගිණුම තෝරා ගන්න"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"<xliff:g id="APP_NAME">%1$s</xliff:g> වෙතින් ඡායාරූප මෙහි ඇතුළත් කිරීමට, යෙදුම තුළ ගිණුමක් තෝරා ගන්න"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"අස් කරන්න"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"යෙදුම තෝරා ගන්න"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ගිණුම තෝරා ගන්න"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ගිණුම වෙනස් කරන්න"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> හට මෙම ශ්‍රව්‍ය ගොනුව වෙනස් කිරීමට ඉඩ දෙන්නද?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> හට ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> හට ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ශ්‍රව්‍ය ගොනුව වෙනස් කරමින්…}one{ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^1</xliff:g>ක් වෙනස් කරමින්…}other{ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^1</xliff:g>ක් වෙනස් කරමින්…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> හට මෙම වීඩියෝව වෙනස් කිරීමට ඉඩ දෙන්නද?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> හට වීඩියෝ <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> හට වීඩියෝ <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}}"</string>

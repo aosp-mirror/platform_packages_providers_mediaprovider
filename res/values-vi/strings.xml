@@ -84,30 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Thử lại"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Hiện đã có phương tiện đám mây từ <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"chưa được chọn"</string>
-    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
-    <skip />
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Ảnh được sao lưu giờ đã xuất hiện"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Bạn có thể chọn ảnh của <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> trên <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Đã cập nhật tài khoản <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Ảnh của <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> giờ sẽ xuất hiện tại đây"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Chọn ứng dụng đa phương tiện trên đám mây"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Để ảnh đã sao lưu xuất hiện tại đây, hãy chọn một ứng dụng đa phương tiện trên đám mây trong phần Cài đặt"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Chọn tài khoản <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Để ảnh trên <xliff:g id="APP_NAME">%1$s</xliff:g> xuất hiện tại đây, hãy chọn một tài khoản trong ứng dụng"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Đóng"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Chọn ứng dụng"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Chọn tài khoản"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Thay đổi tài khoản"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> sửa đổi tệp âm thanh này?}other{Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> sửa đổi <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Đang sửa đổi tệp âm thanh…}other{Đang sửa đổi <xliff:g id="COUNT">^1</xliff:g> tệp âm thanh…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> sửa đổi video này?}other{Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> sửa đổi <xliff:g id="COUNT">^2</xliff:g> video?}}"</string>

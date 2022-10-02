@@ -38,9 +38,9 @@
     <string name="clear" msgid="5524638938415865915">"Șterge"</string>
     <string name="allow" msgid="8885707816848569619">"Permite"</string>
     <string name="deny" msgid="6040983710442068936">"Refuz"</string>
-    <string name="picker_browse" msgid="5554477454636075934">"Răsfoiți…"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Răsfoiește…"</string>
     <string name="add" msgid="2894574044585549298">"Adaugă"</string>
-    <string name="deselect" msgid="4297825044827769490">"Debifați"</string>
+    <string name="deselect" msgid="4297825044827769490">"Debifează"</string>
     <string name="deselected" msgid="8488133193326208475">"Deselectat"</string>
     <string name="select" msgid="2704765470563027689">"Selectează"</string>
     <string name="selected" msgid="9151797369975828124">"Selectat"</string>
@@ -52,14 +52,14 @@
     <string name="picker_photos" msgid="7415035516411087392">"Fotografii"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albume"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Previzualizare"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Comutați la serviciu"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Comutați la personal"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Comută la serviciu"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Comută la personal"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blocat de administrator"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Accesarea datelor de lucru dintr-o aplicație personală nu este permisă"</string>
-    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Accesarea datelor personale dintr-o aplicație pentru lucru nu este permisă"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Accesarea datelor cu caracter personal dintr-o aplicație pentru lucru nu este permisă"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Aplicațiile pentru lucru sunt întrerupte"</string>
-    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ca să deschideți fotografiile de lucru, porniți aplicațiile pentru lucru și încercați din nou"</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"Aplicația poate accesa doar fotografiile pe care le selectați"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ca să deschizi fotografiile de lucru, pornește aplicațiile pentru lucru și încearcă din nou"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Aplicația poate accesa doar fotografiile pe care le selectezi"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> element}few{<xliff:g id="COUNT_1">^1</xliff:g> elemente}other{<xliff:g id="COUNT_1">^1</xliff:g> de elemente}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Adaugă (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Cameră"</string>
@@ -84,30 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Încearcă din nou"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Conținutul media în cloud este acum disponibil din <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"neselectat"</string>
-    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
-    <skip />
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Fotografiile cu backup sunt incluse acum"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Poți selecta fotografii din contul <xliff:g id="APP_NAME">%1$s</xliff:g> <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Contul <xliff:g id="APP_NAME">%1$s</xliff:g> a fost actualizat"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Fotografiile de la <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> sunt acum incluse aici"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Alege o aplicație media în cloud"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Pentru a include fotografiile cu backup aici, alege o aplicație media în cloud din Setări"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Alege contul <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Pentru a include aici fotografii din <xliff:g id="APP_NAME">%1$s</xliff:g>, alege un cont din aplicație"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Închide"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Alege aplicația"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Alege un cont"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Schimbă contul"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Permiți ca <xliff:g id="APP_NAME_0">^1</xliff:g> să modifice acest fișier audio?}few{Permiți ca <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> fișiere audio?}other{Permiți ca <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> de fișiere audio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Se modifică fișierul audio…}few{Se modifică <xliff:g id="COUNT">^1</xliff:g> fișiere audio…}other{Se modifică <xliff:g id="COUNT">^1</xliff:g> de fișiere audio…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Permiți ca <xliff:g id="APP_NAME_0">^1</xliff:g> să modifice acest videoclip?}few{Permiți ca <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> videoclipuri?}other{Permiți ca <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> de videoclipuri?}}"</string>
@@ -147,7 +135,7 @@
     <string name="transcode_processing_started" msgid="7789086308155361523">"Procesarea conținutului media a început"</string>
     <string name="transcode_processing" msgid="6753136468864077258">"Se procesează conținutul media…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Anulează"</string>
-    <string name="transcode_wait" msgid="8909773149560697501">"Așteptați"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Așteaptă"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Protecția în caz de accidente"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Alerte privind transcodarea în codul nativ"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Progresul transcodării în codul nativ"</string>

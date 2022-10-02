@@ -84,6 +84,30 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"మళ్లీ ట్రై చేయండి"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"క్లౌడ్ మీడియా ఇప్పుడు <xliff:g id="PKG_NAME">%1$s</xliff:g> నుండి అందుబాటులో ఉంది"</string>
     <string name="not_selected" msgid="2244008151669896758">"ఎంచుకోబడలేదు"</string>
+    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ఈ ఆడియో ఫైల్‌ను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>‌ను అనుమతించాలా?}other{<xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>‌ను అనుమతించాలా?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ఆడియో ఫైల్‌ను సవరిస్తోంది…}other{<xliff:g id="COUNT">^1</xliff:g> ఆడియో ఫైళ్లను సవరిస్తోంది…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ఈ వీడియోను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>‌ను అనుమతించాలా?}other{<xliff:g id="COUNT">^2</xliff:g> వీడియోలను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>‌ను అనుమతించాలా?}}"</string>

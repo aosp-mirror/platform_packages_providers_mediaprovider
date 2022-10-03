@@ -20,6 +20,9 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
+import static android.provider.MediaStore.MediaColumns.HEIGHT;
+import static android.provider.MediaStore.MediaColumns.ORIENTATION;
+import static android.provider.MediaStore.MediaColumns.WIDTH;
 import static android.provider.MediaStore.PickerMediaColumns;
 
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
@@ -877,10 +880,18 @@ public class PickerDbFacade {
                     projection[i] = getProjectionSimple(KEY_DURATION_MS,
                             PickerMediaColumns.DURATION_MILLIS);
                     break;
+                // TODO(b/244722461): Add support for height/width/orientation columns
+                case HEIGHT:
+                case WIDTH:
+                case ORIENTATION:
+                    projection[i] = getProjectionSimple("NULL", columns[i]);
+                    Log.w(TAG, "Column: " + columns[i] + " is currently populated with NULL value, "
+                            + "it will be supported soon");
+                    break;
                 default:
                     Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
                     throw new IllegalArgumentException("Unexpected picker URI projection. Uri:"
-                            + uri + ". Column:" + columns[i]);
+                            + uri + ". Column: " + columns[i]);
             }
         }
 

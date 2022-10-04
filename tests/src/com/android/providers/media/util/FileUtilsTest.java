@@ -904,11 +904,16 @@ public class FileUtilsTest {
         assertThat(isDataOrObbPath("/storage/emulated/0/Android/obb")).isTrue();
         assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/data")).isTrue();
         assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/obb")).isTrue();
-        assertThat(isDataOrObbPath("/storage/emulated/0/Android/data/foo")).isTrue();
-        assertThat(isDataOrObbPath("/storage/emulated/0/Android/obb/foo")).isTrue();
-        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/data/foo")).isTrue();
-        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/obb/foo")).isTrue();
 
+        assertThat(isDataOrObbPath("/storage/emulated/0/Android/data/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated/0/Android/obb/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/data/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/obb/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated/10/Android/obb/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated//Android/obb/foo")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated//Android/obb")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated/0//Android/obb")).isFalse();
+        assertThat(isDataOrObbPath("/storage/emulated/0//Android/obb/foo")).isFalse();
         assertThat(isDataOrObbPath("/storage/emulated/0/Android/")).isFalse();
         assertThat(isDataOrObbPath("/storage/emulated/0/Android/media/")).isFalse();
         assertThat(isDataOrObbPath("/storage/ABCD-1234/Android/media/")).isFalse();

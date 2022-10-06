@@ -77,7 +77,6 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Activar son do vídeo"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Reproducir vídeo"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Pór vídeo en pausa"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Agora podes acceder desde <xliff:g id="PKG_NAME">%1$s</xliff:g> ao contido multimedia gardado na nube"</string>
     <string name="not_selected" msgid="2244008151669896758">"elemento non seleccionado"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Queres permitir que <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este ficheiro de audio?}other{Queres permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> ficheiros de audio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modificando 1 ficheiro de audio…}other{Modificando <xliff:g id="COUNT">^1</xliff:g> ficheiros de audio…}}"</string>

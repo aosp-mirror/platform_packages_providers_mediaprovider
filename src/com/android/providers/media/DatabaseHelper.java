@@ -154,7 +154,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      */
     private static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
 
-    private static final int LEVEL_DB_READ_LIMIT = 1000;
+    protected static final int LEVEL_DB_READ_LIMIT = 1000;
 
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";

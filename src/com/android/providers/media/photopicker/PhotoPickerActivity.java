@@ -112,7 +112,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // to higher priority than DocumentsUi. "*/*" mime type filter is caught as it is a superset
         // of "image/*" and "video/*".
         if (rerouteGetContentRequestIfRequired()) {
-            // This activity is finishing now: we should not run the setup below.
+            // This activity is finishing now: we should not run the setup below,
+            // BUT before we return we have to call super.onCreate() (otherwise we are we will get
+            // SuperNotCalledException: Activity did not call through to super.onCreate())
+            super.onCreate(savedInstanceState);
             return;
         }
 

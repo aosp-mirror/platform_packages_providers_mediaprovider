@@ -42,6 +42,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 
@@ -50,12 +51,16 @@ import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
+import com.google.common.io.ByteStreams;
+
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,7 +81,7 @@ public class ItemsProviderTest {
     private ItemsProvider mItemsProvider;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         final UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation()
                 .getUiAutomation();
 
@@ -89,7 +94,7 @@ public class ItemsProviderTest {
         // Remove sync delay to avoid flaky tests
         final String setSyncDelayCommand =
                 "device_config put storage pickerdb.default_sync_delay_ms 0";
-        uiAutomation.executeShellCommand(setSyncDelayCommand);
+        executeShellCommand(setSyncDelayCommand);
 
         final Context context = InstrumentationRegistry.getTargetContext();
         final Context isolatedContext
@@ -197,13 +202,28 @@ public class ItemsProviderTest {
         final File screenshotsDirInDownloadsDir = getScreenshotsDirFromDownloadsDir();
         File imageFileInScreenshotDirInDownloads =
                 assertCreateNewImage(screenshotsDirInDownloadsDir);
+
+        // Add a top level /Screenshots directory and add a test image inside of it.
+        createTestScreenshotImages();
+
+        // This file should not be included since it's not a valid screenshot directory, even though
+        // it looks like one.
+        final File myAlbumScreenshotsDir =
+                new File(getPicturesDir(), "MyAlbum" + Environment.DIRECTORY_SCREENSHOTS);
+        final File myAlbumScreenshotsImg = assertCreateNewImage(myAlbumScreenshotsDir);
+
         try {
-            assertGetCategoriesMatchMultiple(ALBUM_ID_SCREENSHOTS,
-                    ALBUM_ID_DOWNLOADS, /* numberOfItemsInScreenshots */ 2,
-                                             /* numberOfItemsInDownloads */ 1);
+            assertGetCategoriesMatchMultiple(
+                    ALBUM_ID_SCREENSHOTS,
+                    ALBUM_ID_DOWNLOADS,
+                    /* numberOfItemsInScreenshots */ 3,
+                    /* numberOfItemsInDownloads */ 1);
         } finally {
             imageFile.delete();
             imageFileInScreenshotDirInDownloads.delete();
+            myAlbumScreenshotsImg.delete();
+            myAlbumScreenshotsDir.delete();
+            deleteTopLevelScreenshotDir();
         }
     }
 
@@ -731,6 +751,37 @@ public class ItemsProviderTest {
         assertThat(count).isEqualTo(countOfVideos);
     }
 
+    private void createTestScreenshotImages() throws IOException {
+        // Top Level /Screenshots/ directory is not allowed by MediaProvider, so the directory
+        // and test files in it are created via shell commands.
+
+        final String createTopLevelScreenshotDirCommand =
+                "mkdir -p "
+                        + Environment.getExternalStorageDirectory().getPath()
+                        + "/"
+                        + Environment.DIRECTORY_SCREENSHOTS;
+        final String createTopLevelScreenshotImgCommand =
+                "touch " + getTopLevelScreenshotsDir().getPath() + "/" + IMAGE_FILE_NAME;
+        final String writeDataTopLevelScreenshotImgCommand =
+                "echo 1 > " + getTopLevelScreenshotsDir().getPath() + "/" + IMAGE_FILE_NAME;
+
+        executeShellCommand(createTopLevelScreenshotDirCommand);
+        executeShellCommand(createTopLevelScreenshotImgCommand);
+        // Writes 1 byte to the file.
+        executeShellCommand(writeDataTopLevelScreenshotImgCommand);
+
+        final File topLevelScreenshotsDirImage =
+                new File(getTopLevelScreenshotsDir(), IMAGE_FILE_NAME);
+
+        // Force the mock MediaProvider to scan.
+        final Uri uri = MediaStore.scanFile(mIsolatedResolver, topLevelScreenshotsDirImage);
+        assertWithMessage("Uri obtained by scanning file " + topLevelScreenshotsDirImage)
+                .that(uri)
+                .isNotNull();
+        // Wait for picker db sync
+        MediaStore.waitForIdle(mIsolatedResolver);
+    }
+
     private int getCountOfMediaStoreImages() {
         try (Cursor c = mIsolatedResolver.query(
                 MediaStore.Images.Media.getContentUri(VOLUME_EXTERNAL), null, null, null)) {
@@ -824,6 +875,11 @@ public class ItemsProviderTest {
         return new File(getPicturesDir(), Environment.DIRECTORY_SCREENSHOTS);
     }
 
+    private File getTopLevelScreenshotsDir() {
+        return new File(
+                Environment.getExternalStorageDirectory(), Environment.DIRECTORY_SCREENSHOTS);
+    }
+
     private File getScreenshotsDirFromDownloadsDir() {
         return new File(getDownloadsDir(), Environment.DIRECTORY_SCREENSHOTS);
     }
@@ -849,6 +905,33 @@ public class ItemsProviderTest {
                 (new File(c.getString(
                         c.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)))).delete();
             }
+        }
+    }
+
+    private void deleteTopLevelScreenshotDir() throws IOException {
+        final String removeTopLevelScreenshotDirCommand =
+                "rm -rf " + getTopLevelScreenshotsDir().getPath();
+        executeShellCommand(removeTopLevelScreenshotDirCommand);
+    }
+
+    /** Executes a shell command. */
+    private static String executeShellCommand(String command) throws IOException {
+        int attempt = 0;
+        while (attempt++ < 5) {
+            try {
+                return executeShellCommandInternal(command);
+            } catch (InterruptedIOException e) {
+                Log.v(TAG, "Trouble executing " + command + "; trying again", e);
+            }
+        }
+        throw new IOException("Failed to execute " + command);
+    }
+
+    private static String executeShellCommandInternal(String cmd) throws IOException {
+        UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        try (FileInputStream output = new FileInputStream(
+                uiAutomation.executeShellCommand(cmd).getFileDescriptor())) {
+            return new String(ByteStreams.toByteArray(output));
         }
     }
 }

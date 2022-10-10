@@ -78,8 +78,36 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Zapnout video"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Přehrát"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pozastavit"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Video není možné přehrát"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Při přehrávání videa došlo k potížím"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Zkontrolujte připojení k internetu a zkuste to znovu"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Zkusit znovu"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Cloudová média jsou teď k dispozici ze zdroje <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nevybráno"</string>
+    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit tento zvukový soubor?}few{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukové soubory?}many{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukového souboru?}other{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukových souborů?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Úprava zvukového souboru…}few{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…}many{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukového souboru…}other{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit toto video?}few{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?}many{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?}other{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videí?}}"</string>
@@ -121,8 +149,6 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Zrušit"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Počkat"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Bezpečnostní ochrana"</string>
-    <!-- no translation found for transcode_alert_channel (997332371757680478) -->
-    <skip />
-    <!-- no translation found for transcode_progress_channel (6905136787933058387) -->
-    <skip />
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Upozornění na nativní překódování"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Průběh nativního překódování"</string>
 </resources>

@@ -78,8 +78,36 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"동영상 음소거 해제"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"재생"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"일시중지"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"동영상을 재생할 수 없습니다."</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"동영상 재생 중 문제 발생"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"인터넷 연결 상태를 확인하고 다시 시도해 주세요."</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"다시 시도"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"이제 <xliff:g id="PKG_NAME">%1$s</xliff:g>에서 클라우드 미디어를 사용할 수 있습니다."</string>
     <string name="not_selected" msgid="2244008151669896758">"선택되지 않음"</string>
+    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 오디오 파일을 수정하도록 허용하시겠습니까?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>에서 오디오 파일 <xliff:g id="COUNT">^2</xliff:g>개를 수정하도록 허용하시겠습니까?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{오디오 파일 수정 중…}other{오디오 파일 <xliff:g id="COUNT">^1</xliff:g>개 수정 중…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 동영상을 수정하도록 허용하시겠습니까?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>에서 동영상 <xliff:g id="COUNT">^2</xliff:g>개를 수정하도록 허용하시겠습니까?}}"</string>
@@ -121,8 +149,6 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"취소"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"대기"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"안전 보안"</string>
-    <!-- no translation found for transcode_alert_channel (997332371757680478) -->
-    <skip />
-    <!-- no translation found for transcode_progress_channel (6905136787933058387) -->
-    <skip />
+    <string name="transcode_alert_channel" msgid="997332371757680478">"네이티브 트랜스코드 알림"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"네이티브 트랜스코드 진행 상황"</string>
 </resources>

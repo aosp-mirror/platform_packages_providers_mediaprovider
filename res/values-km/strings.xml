@@ -78,8 +78,36 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"បើក​សំឡេង​វីដេអូ"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"ចាក់"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"ផ្អាក"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"មិន​អាច​ចាក់​​វីដេអូ​បាន​ទេ"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"មានបញ្ហាក្នុងការចាក់វីដេអូ"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"ពិនិត្យ​ការតភ្ជាប់​អ៊ីនធឺណិត​របស់អ្នក រួចព្យាយាម​ម្ដង​ទៀត"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ព្យាយាមម្ដងទៀត"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ឥឡូវនេះមានមេឌៀក្នុងប្រព័ន្ធពពកពី <xliff:g id="PKG_NAME">%1$s</xliff:g> ហើយ"</string>
     <string name="not_selected" msgid="2244008151669896758">"មិនបានជ្រើសរើសទេ"</string>
+    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
+    <skip />
+    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> កែ​ឯកសារសំឡេង​នេះ​ឬ?}other{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> កែ​ឯកសារសំឡេង <xliff:g id="COUNT">^2</xliff:g> ឬ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{កំពុងកែ​ឯកសារសំឡេង…}other{កំពុងកែ​ឯកសារសំឡេង <xliff:g id="COUNT">^1</xliff:g>…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> កែ​វីដេអូ​នេះ​ឬ?}other{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> កែ​វីដេអូ <xliff:g id="COUNT">^2</xliff:g> ឬ?}}"</string>
@@ -121,8 +149,6 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"បោះបង់"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"រង់ចាំ"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"ការការពារសុវត្ថិភាព"</string>
-    <!-- no translation found for transcode_alert_channel (997332371757680478) -->
-    <skip />
-    <!-- no translation found for transcode_progress_channel (6905136787933058387) -->
-    <skip />
+    <string name="transcode_alert_channel" msgid="997332371757680478">"ការជូន​ដំណឹង​អំពី​ការបំប្លែង​កូដ​ដើម"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"ដំណើរ​វិវឌ្ឍ​នៃ​ការបំប្លែង​កូដ​ដើម"</string>
 </resources>

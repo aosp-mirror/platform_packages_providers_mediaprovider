@@ -17,11 +17,16 @@
 package com.android.providers.media.photopicker.viewmodel;
 
 import static android.content.Intent.ACTION_GET_CONTENT;
+import static android.provider.MediaStore.getCurrentCloudProvider;
+
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
+import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.os.Binder;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -33,6 +38,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
@@ -44,6 +50,7 @@ import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.util.ForegroundThread;
+import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -310,6 +317,16 @@ public class PickerViewModel extends AndroidViewModel {
         return mMimeTypeFilters != null && mMimeTypeFilters.length > 0;
     }
 
+    private boolean isAllImagesFilter() {
+        return mMimeTypeFilters != null && mMimeTypeFilters.length == 1
+                && MimeUtils.isAllImagesMimeType(mMimeTypeFilters[0]);
+    }
+
+    private boolean isAllVideosFilter() {
+        return mMimeTypeFilters != null && mMimeTypeFilters.length == 1
+                && MimeUtils.isAllVideosMimeType(mMimeTypeFilters[0]);
+    }
+
     /**
      * Parse values from {@code intent} and set corresponding fields
      */
@@ -335,7 +352,11 @@ public class PickerViewModel extends AndroidViewModel {
         return mBottomSheetState;
     }
 
-    public void logPickerOpened(int callingUid, String callingPackage, String intentAction) {
+    /**
+     * Log picker opened metrics
+     */
+    public void logPickerOpened(@NonNull Context context, int callingUid, String callingPackage,
+            String intentAction) {
         if (getUserIdManager().isManagedUserSelected()) {
             mLogger.logPickerOpenWork(mInstanceId, callingUid, callingPackage);
         } else {
@@ -348,6 +369,54 @@ public class PickerViewModel extends AndroidViewModel {
         if (ACTION_GET_CONTENT.equals(intentAction)) {
             mLogger.logPickerOpenViaGetContent(mInstanceId, callingUid, callingPackage);
         }
+
+        if (mBottomSheetState == STATE_COLLAPSED) {
+            mLogger.logPickerOpenInHalfScreen(mInstanceId, callingUid, callingPackage);
+        } else if (mBottomSheetState == STATE_EXPANDED) {
+            mLogger.logPickerOpenInFullScreen(mInstanceId, callingUid, callingPackage);
+        }
+
+        if (mSelection != null && mSelection.canSelectMultiple()) {
+            mLogger.logPickerOpenInMultiSelect(mInstanceId, callingUid, callingPackage);
+        } else {
+            mLogger.logPickerOpenInSingleSelect(mInstanceId, callingUid, callingPackage);
+        }
+
+        if (isAllImagesFilter()) {
+            mLogger.logPickerOpenWithFilterAllImages(mInstanceId, callingUid, callingPackage);
+        } else if (isAllVideosFilter()) {
+            mLogger.logPickerOpenWithFilterAllVideos(mInstanceId, callingUid, callingPackage);
+        } else if (hasMimeTypeFilters()) {
+            mLogger.logPickerOpenWithAnyOtherFilter(mInstanceId, callingUid, callingPackage);
+        }
+
+        logPickerOpenedWithCloudProvider(context);
+    }
+
+    // TODO(b/245745412): Fix log params (uid & package name)
+    // TODO(b/245745424): Solve for active cloud provider without a logged in account
+    private void logPickerOpenedWithCloudProvider(@NonNull Context context) {
+        BackgroundThread.getExecutor().execute(() -> {
+            final String providerAuthority;
+            // TODO(b/245746037): Remove try-catch.
+            //  Under the hood MediaStore.getCurrentCloudProvider() makes an IPC call to the primary
+            //  MediaProvider process, where we currently perform a UID check (making sure that
+            //  the call both sender and receiver belong to the same UID).
+            //  This setup works for our "regular" PhotoPickerActivity (running in :PhotoPicker
+            //  process), but does not work for our test applications (installed to a different
+            //  UID), that provide a mock PhotoPickerActivity which will also run this code.
+            //  SOLUTION: replace the UID check on the receiving end (in MediaProvider) with a
+            //  check for MANAGE_CLOUD_MEDIA_PROVIDER permission.
+            try {
+                providerAuthority = getCurrentCloudProvider(context);
+            } catch (RuntimeException e) {
+                Log.w(TAG, "Could not retrieve the current cloud provider", e);
+                return;
+            }
+
+            mLogger.logPickerOpenWithActiveCloudProvider(
+                    mInstanceId, /* cloudProviderUid */ -1, providerAuthority);
+        });
     }
 
     /**

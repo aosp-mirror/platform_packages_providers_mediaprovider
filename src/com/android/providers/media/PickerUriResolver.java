@@ -148,7 +148,7 @@ public class PickerUriResolver {
 
             return queryPickerUri(uri, projection);
         }
-        return resolver.query(uri, /* projection */ null, /* queryArgs */ null,
+        return resolver.query(uri, projection, /* queryArgs */ null,
                 /* cancellationSignal */ null);
     }
 

@@ -91,7 +91,7 @@
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Odaberite medijsku aplikaciju u oblaku"</string>
     <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Da ovdje uključite sigurnosne kopije fotografija, u postavkama odaberite medijsku aplikaciju u oblaku"</string>
     <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Odaberite račun u aplikaciji <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
-    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Da ovdje uključite fotografije iz aplikacije <xliff:g id="APP_NAME">%1$s</xliff:g> odaberite račun u toj aplikaciji"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Da ovdje uključite fotografije iz aplikacije <xliff:g id="APP_NAME">%1$s</xliff:g>, odaberite račun u toj aplikaciji"</string>
     <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Odbaci"</string>
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Odaberite aplikaciju"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Odaberite račun"</string>

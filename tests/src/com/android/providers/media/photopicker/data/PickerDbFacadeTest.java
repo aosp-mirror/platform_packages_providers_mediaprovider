@@ -22,6 +22,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -29,6 +30,7 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.CloudMediaProviderContract.MediaColumns;
+import android.provider.MediaStore;
 import android.provider.MediaStore.PickerMediaColumns;
 
 import androidx.test.InstrumentationRegistry;
@@ -707,17 +709,6 @@ public class PickerDbFacadeTest {
 
     @Test
     public void testQueryMediaId() throws Exception {
-        final String[] allProjection = new String[] {
-            PickerMediaColumns.DISPLAY_NAME,
-            PickerMediaColumns.DATA,
-            PickerMediaColumns.MIME_TYPE,
-            PickerMediaColumns.DATE_TAKEN,
-            PickerMediaColumns.SIZE,
-            PickerMediaColumns.DURATION_MILLIS
-        };
-
-        final String[] oneProjection = new String[] { PickerMediaColumns.DATE_TAKEN };
-
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, /* localId */ null, DATE_TAKEN_MS);
 
@@ -725,6 +716,15 @@ public class PickerDbFacadeTest {
         assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
 
         // Assert all projection columns
+        final String[] allProjection = new String[] {
+                PickerMediaColumns.DISPLAY_NAME,
+                PickerMediaColumns.DATA,
+                PickerMediaColumns.MIME_TYPE,
+                PickerMediaColumns.DATE_TAKEN,
+                PickerMediaColumns.SIZE,
+                PickerMediaColumns.DURATION_MILLIS
+        };
+
         try (Cursor cr = mFacade.queryMediaIdForApps(LOCAL_PROVIDER, LOCAL_ID,
                         allProjection)) {
             assertThat(cr.getCount()).isEqualTo(1);
@@ -734,6 +734,8 @@ public class PickerDbFacadeTest {
         }
 
         // Assert one projection column
+        final String[] oneProjection = new String[] { PickerMediaColumns.DATE_TAKEN };
+
         try (Cursor cr = mFacade.queryMediaIdForApps(CLOUD_PROVIDER, CLOUD_ID,
                         oneProjection)) {
             assertThat(cr.getCount()).isEqualTo(1);
@@ -741,6 +743,43 @@ public class PickerDbFacadeTest {
             cr.moveToFirst();
             assertThat(cr.getLong(cr.getColumnIndex(PickerMediaColumns.DATE_TAKEN)))
                     .isEqualTo(DATE_TAKEN_MS);
+        }
+
+        // Assert height/width/orientation projection column does not throw error
+        final String[] defaultColumnProjection = new String[] {
+                PickerMediaColumns.DATE_TAKEN,
+                MediaStore.MediaColumns.HEIGHT,
+                MediaStore.MediaColumns.WIDTH,
+                MediaStore.MediaColumns.ORIENTATION
+        };
+
+        try (Cursor cr = mFacade.queryMediaIdForApps(CLOUD_PROVIDER, CLOUD_ID,
+                defaultColumnProjection)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            cr.moveToFirst();
+            assertThat(cr.getInt(cr.getColumnIndex(MediaStore.MediaColumns.HEIGHT)))
+                    .isEqualTo(0);
+            assertThat(cr.getInt(cr.getColumnIndex(MediaStore.MediaColumns.WIDTH)))
+                    .isEqualTo(0);
+            assertThat(cr.getInt(cr.getColumnIndex(MediaStore.MediaColumns.ORIENTATION)))
+                    .isEqualTo(0);
+            assertThat(cr.getLong(cr.getColumnIndex(PickerMediaColumns.DATE_TAKEN)))
+                    .isEqualTo(DATE_TAKEN_MS);
+        }
+
+        // Assert invalid projection column
+        final String invalidColumn = "testInvalidColumn";
+        final String[] invalidProjection = new String[] {
+                PickerMediaColumns.DATE_TAKEN,
+                invalidColumn
+        };
+
+        try (Cursor cr = mFacade.queryMediaIdForApps(CLOUD_PROVIDER, CLOUD_ID,
+                invalidProjection)) {
+            fail("Invalid projection should throw IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {
+            // expected
         }
     }
 

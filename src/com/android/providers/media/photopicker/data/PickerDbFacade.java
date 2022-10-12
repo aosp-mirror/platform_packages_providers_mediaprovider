@@ -20,9 +20,6 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
-import static android.provider.MediaStore.MediaColumns.HEIGHT;
-import static android.provider.MediaStore.MediaColumns.ORIENTATION;
-import static android.provider.MediaStore.MediaColumns.WIDTH;
 import static android.provider.MediaStore.PickerMediaColumns;
 
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
@@ -121,6 +118,12 @@ public class PickerDbFacade {
     public static final String KEY_IS_FAVORITE = "is_favorite";
     @VisibleForTesting
     public static final String KEY_ALBUM_ID = "album_id";
+    @VisibleForTesting
+    public static final String KEY_HEIGHT = "height";
+    @VisibleForTesting
+    public static final String KEY_WIDTH = "width";
+    @VisibleForTesting
+    public static final String KEY_ORIENTATION = "orientation";
 
     @VisibleForTesting
     public static final String IMAGE_FILE_EXTENSION = ".jpg";
@@ -862,36 +865,43 @@ public class PickerDbFacade {
                     projection[i] = getProjectionDataLocked(PickerMediaColumns.DATA);
                     break;
                 case PickerMediaColumns.DISPLAY_NAME:
-                    projection[i] = getProjectionSimple(getDisplayNameSql(),
-                            PickerMediaColumns.DISPLAY_NAME);
+                    projection[i] =
+                            getProjectionSimple(
+                                    getDisplayNameSql(), PickerMediaColumns.DISPLAY_NAME);
                     break;
                 case PickerMediaColumns.MIME_TYPE:
-                    projection[i] = getProjectionSimple(KEY_MIME_TYPE,
-                            PickerMediaColumns.MIME_TYPE);
+                    projection[i] =
+                            getProjectionSimple(KEY_MIME_TYPE, PickerMediaColumns.MIME_TYPE);
                     break;
                 case PickerMediaColumns.DATE_TAKEN:
-                    projection[i] = getProjectionSimple(KEY_DATE_TAKEN_MS,
-                            PickerMediaColumns.DATE_TAKEN);
+                    projection[i] =
+                            getProjectionSimple(KEY_DATE_TAKEN_MS, PickerMediaColumns.DATE_TAKEN);
                     break;
                 case PickerMediaColumns.SIZE:
                     projection[i] = getProjectionSimple(KEY_SIZE_BYTES, PickerMediaColumns.SIZE);
                     break;
                 case PickerMediaColumns.DURATION_MILLIS:
-                    projection[i] = getProjectionSimple(KEY_DURATION_MS,
-                            PickerMediaColumns.DURATION_MILLIS);
+                    projection[i] =
+                            getProjectionSimple(
+                                    KEY_DURATION_MS, PickerMediaColumns.DURATION_MILLIS);
                     break;
-                // TODO(b/244722461): Add support for height/width/orientation columns
-                case HEIGHT:
-                case WIDTH:
-                case ORIENTATION:
-                    projection[i] = getProjectionSimple("NULL", columns[i]);
-                    Log.w(TAG, "Column: " + columns[i] + " is currently populated with NULL value, "
-                            + "it will be supported soon");
+                case PickerMediaColumns.HEIGHT:
+                    projection[i] = getProjectionSimple(KEY_HEIGHT, PickerMediaColumns.HEIGHT);
+                    break;
+                case PickerMediaColumns.WIDTH:
+                    projection[i] = getProjectionSimple(KEY_WIDTH, PickerMediaColumns.WIDTH);
+                    break;
+                case PickerMediaColumns.ORIENTATION:
+                    projection[i] =
+                            getProjectionSimple(KEY_ORIENTATION, PickerMediaColumns.ORIENTATION);
                     break;
                 default:
                     Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
-                    throw new IllegalArgumentException("Unexpected picker URI projection. Uri:"
-                            + uri + ". Column: " + columns[i]);
+                    throw new IllegalArgumentException(
+                            "Unexpected picker URI projection. Uri:"
+                                    + uri
+                                    + ". Column: "
+                                    + columns[i]);
             }
         }
 
@@ -1007,6 +1017,28 @@ public class PickerDbFacade {
                 case CloudMediaProviderContract.MediaColumns.IS_FAVORITE:
                     if (TextUtils.isEmpty(albumId)) {
                         values.put(KEY_IS_FAVORITE, cursor.getInt(index));
+                    }
+                    break;
+
+                    /* The below columns are only included if this is not the album_media table
+                     * (AlbumId is an empty string)
+                     *
+                     * The columns should be in the cursor either way, but we don't duplicate these
+                     * columns to album_media since they are not needed for the UI.
+                     */
+                case CloudMediaProviderContract.MediaColumns.WIDTH:
+                    if (TextUtils.isEmpty(albumId)) {
+                        values.put(KEY_WIDTH, cursor.getInt(index));
+                    }
+                    break;
+                case CloudMediaProviderContract.MediaColumns.HEIGHT:
+                    if (TextUtils.isEmpty(albumId)) {
+                        values.put(KEY_HEIGHT, cursor.getInt(index));
+                    }
+                    break;
+                case CloudMediaProviderContract.MediaColumns.ORIENTATION:
+                    if (TextUtils.isEmpty(albumId)) {
+                        values.put(KEY_ORIENTATION, cursor.getInt(index));
                     }
                     break;
                 default:

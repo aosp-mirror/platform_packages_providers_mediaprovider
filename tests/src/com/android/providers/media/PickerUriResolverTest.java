@@ -18,7 +18,6 @@ package com.android.providers.media;
 
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.provider.MediaStore.MediaColumns._ID;
 
 import static androidx.test.InstrumentationRegistry.getTargetContext;
 
@@ -366,11 +365,13 @@ public class PickerUriResolverTest {
 
     private void testQuery(Uri uri) throws Exception {
         Cursor result = sTestPickerUriResolver.query(uri,
-                /* projection */ new String[]{_ID}, /* callingPid */ -1, /* callingUid */ -1);
+                /* projection */ null, /* callingPid */ -1, /* callingUid */ -1,
+                /* callingPackageName= */ TAG);
         assertThat(result).isNotNull();
         assertThat(result.getCount()).isEqualTo(1);
         result.moveToFirst();
-        assertThat(result.getString(0)).isEqualTo(TEST_ID);
+        int idx = result.getColumnIndexOrThrow(CloudMediaProviderContract.MediaColumns.ID);
+        assertThat(result.getString(idx)).isEqualTo(TEST_ID);
     }
 
     private void testGetType(Uri uri, String expectedMimeType) throws Exception {
@@ -402,7 +403,7 @@ public class PickerUriResolverTest {
 
     private void testQueryInvalidUser(Uri uri) throws Exception {
         Cursor result = sTestPickerUriResolver.query(uri, /* projection */ null,
-                /* callingPid */ -1, /* callingUid */ -1);
+                /* callingPid */ -1, /* callingUid */ -1, /* callingPackageName= */ TAG);
         assertThat(result).isNotNull();
         assertThat(result.getCount()).isEqualTo(0);
     }
@@ -446,8 +447,8 @@ public class PickerUriResolverTest {
 
     private void testQuery_permissionDenied(Uri uri) throws Exception {
         try {
-            sTestPickerUriResolver.query(uri, /* projection */ null
-                    , /* callingPid */ -1, /* callingUid */ -1);
+            sTestPickerUriResolver.query(uri, /* projection */ null,
+                    /* callingPid */ -1, /* callingUid */ -1, /* callingPackageName= */ TAG);
             fail("query should fail if the caller does not have permission grant on"
                     + " the picker uri: " + uri);
         } catch (SecurityException expected) {

@@ -31,21 +31,19 @@ import java.util.Objects;
  * Warning: Do not change/modify existing field names as it will affect deserialization of existing
  * rows.
  */
-public class FileRow implements Serializable {
+public final class BackupIdRow implements Serializable {
 
     private long mId;
     private int mIsFavorite;
-    private Integer mIsDrm;
-    private long mGenerationModified;
+    private boolean mIsDirty;
 
     /**
-     * Builder class for {@link FileRow}
+     * Builder class for {@link BackupIdRow}
      */
     public static class Builder {
         private long mId;
         private int mIsFavorite = 0;
-        private long mGenerationModified;
-        private Integer mIsDrm = null;
+        private boolean mIsDirty;
 
         Builder(long id) {
             this.mId = id;
@@ -60,39 +58,30 @@ public class FileRow implements Serializable {
         }
 
         /**
-         * Sets the generationModified value
+         * Sets the isDirty value
          */
-        public Builder setGenerationModified(long generationModified) {
-            this.mGenerationModified = generationModified;
+        public Builder setIsDirty(boolean isDirty) {
+            this.mIsDirty = isDirty;
             return this;
         }
 
         /**
-         * Sets the isDrm value
+         * Builds {@link BackupIdRow} object with the given values set
          */
-        public Builder setIsDrm(int isDrm) {
-            this.mIsDrm = isDrm;
-            return this;
-        }
+        public BackupIdRow build() {
+            BackupIdRow backupIdRow = new BackupIdRow(this.mId);
+            backupIdRow.mIsFavorite = this.mIsFavorite;
+            backupIdRow.mIsDirty = this.mIsDirty;
 
-        /**
-         * Builds {@link FileRow} object with the given values set
-         */
-        public FileRow build() {
-            FileRow fileRow = new FileRow(this.mId);
-            fileRow.mIsFavorite = this.mIsFavorite;
-            fileRow.mIsDrm = this.mIsDrm;
-            fileRow.mGenerationModified = this.mGenerationModified;
-
-            return fileRow;
+            return backupIdRow;
         }
     }
 
     public static Builder newBuilder(long id) {
-        return new FileRow.Builder(id);
+        return new BackupIdRow.Builder(id);
     }
 
-    private FileRow(long id) {
+    private BackupIdRow(long id) {
         this.mId = id;
     }
 
@@ -104,22 +93,17 @@ public class FileRow implements Serializable {
         return mIsFavorite;
     }
 
-    public long getGenerationModified() {
-        return mGenerationModified;
-    }
-
-    public Integer getIsDrm() {
-        return mIsDrm;
+    public boolean getIsDirty() {
+        return mIsDirty;
     }
 
     /**
-     * Returns human-readable form of {@link FileRow} for easy debugging.
+     * Returns human-readable form of {@link BackupIdRow} for easy debugging.
      */
     public String toString() {
         return "id = " + getId()
                 + " is_favorite = " + getIsFavorite()
-                + " is_drm = " + getIsDrm()
-                + " generation_modified = " + mGenerationModified;
+                + " is_dirty = " + getIsDirty();
     }
 
     @Override
@@ -127,39 +111,38 @@ public class FileRow implements Serializable {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
 
-        FileRow that = (FileRow) obj;
+        BackupIdRow that = (BackupIdRow) obj;
 
         return Objects.equals(getId(), that.getId())
                 && Objects.equals(getIsFavorite(), that.getIsFavorite())
-                && Objects.equals(getGenerationModified(), that.getGenerationModified())
-                && Objects.equals(getIsDrm(), that.getIsDrm());
+                && Objects.equals(getIsDirty(), that.getIsDirty());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getIsFavorite(), getGenerationModified(), getIsDrm());
+        return Objects.hash(getId(), getIsFavorite(), getIsDirty());
     }
 
     /**
-     * Serializes the given {@link FileRow} object to a string
+     * Serializes the given {@link BackupIdRow} object to a string
      */
-    public static String serialize(FileRow fileRow) throws IOException {
+    public static String serialize(BackupIdRow backupIdRow) throws IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-        objectOutputStream.writeObject(fileRow);
+        objectOutputStream.writeObject(backupIdRow);
         objectOutputStream.close();
         return Base64.getEncoder().encodeToString(byteArrayOutputStream.toByteArray());
     }
 
     /**
-     * Deserializes the given string to {@link FileRow} object
+     * Deserializes the given string to {@link BackupIdRow} object
      */
-    public static FileRow deserialize(String s) throws IOException, ClassNotFoundException {
+    public static BackupIdRow deserialize(String s) throws IOException, ClassNotFoundException {
         byte[] bytes = Base64.getDecoder().decode(s);
         ObjectInputStream objectInputStream = new ObjectInputStream(
                 new ByteArrayInputStream(bytes));
-        FileRow fileRow  = (FileRow) objectInputStream.readObject();
+        BackupIdRow backupIdRow = (BackupIdRow) objectInputStream.readObject();
         objectInputStream.close();
-        return fileRow;
+        return backupIdRow;
     }
 }

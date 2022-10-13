@@ -17,9 +17,6 @@
 package com.android.providers.media;
 
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.provider.MediaStore.MediaColumns.HEIGHT;
-import static android.provider.MediaStore.MediaColumns.ORIENTATION;
-import static android.provider.MediaStore.MediaColumns.WIDTH;
 
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
@@ -312,9 +309,9 @@ public class PickerUriResolver {
                 case MediaStore.PickerMediaColumns.DATE_TAKEN:
                 case MediaStore.PickerMediaColumns.SIZE:
                 case MediaStore.PickerMediaColumns.DURATION_MILLIS:
-                case HEIGHT:
-                case WIDTH:
-                case ORIENTATION:
+                case MediaStore.PickerMediaColumns.HEIGHT:
+                case MediaStore.PickerMediaColumns.WIDTH:
+                case MediaStore.PickerMediaColumns.ORIENTATION:
                     break;
                 default:
                     final PhotoPickerUiEventLogger logger = new PhotoPickerUiEventLogger();

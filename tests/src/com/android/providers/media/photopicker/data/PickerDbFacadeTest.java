@@ -30,7 +30,6 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.CloudMediaProviderContract.MediaColumns;
-import android.provider.MediaStore;
 import android.provider.MediaStore.PickerMediaColumns;
 
 import androidx.test.InstrumentationRegistry;
@@ -48,6 +47,9 @@ public class PickerDbFacadeTest {
     private static final long DATE_TAKEN_MS = 1623852851911L;
     private static final long GENERATION_MODIFIED = 1L;
     private static final long DURATION_MS = 5;
+    private static final int HEIGHT = 720;
+    private static final int WIDTH = 1080;
+    private static final int ORIENTATION = 90;
     private static final String LOCAL_ID = "50";
     private static final String CLOUD_ID = "asdfghjkl;";
     private static final String ALBUM_ID = "testAlbum";
@@ -722,7 +724,10 @@ public class PickerDbFacadeTest {
                 PickerMediaColumns.MIME_TYPE,
                 PickerMediaColumns.DATE_TAKEN,
                 PickerMediaColumns.SIZE,
-                PickerMediaColumns.DURATION_MILLIS
+                PickerMediaColumns.DURATION_MILLIS,
+                PickerMediaColumns.HEIGHT,
+                PickerMediaColumns.WIDTH,
+                PickerMediaColumns.ORIENTATION
         };
 
         try (Cursor cr = mFacade.queryMediaIdForApps(LOCAL_PROVIDER, LOCAL_ID,
@@ -745,29 +750,6 @@ public class PickerDbFacadeTest {
                     .isEqualTo(DATE_TAKEN_MS);
         }
 
-        // Assert height/width/orientation projection column does not throw error
-        final String[] defaultColumnProjection = new String[] {
-                PickerMediaColumns.DATE_TAKEN,
-                MediaStore.MediaColumns.HEIGHT,
-                MediaStore.MediaColumns.WIDTH,
-                MediaStore.MediaColumns.ORIENTATION
-        };
-
-        try (Cursor cr = mFacade.queryMediaIdForApps(CLOUD_PROVIDER, CLOUD_ID,
-                defaultColumnProjection)) {
-            assertThat(cr.getCount()).isEqualTo(1);
-
-            cr.moveToFirst();
-            assertThat(cr.getInt(cr.getColumnIndex(MediaStore.MediaColumns.HEIGHT)))
-                    .isEqualTo(0);
-            assertThat(cr.getInt(cr.getColumnIndex(MediaStore.MediaColumns.WIDTH)))
-                    .isEqualTo(0);
-            assertThat(cr.getInt(cr.getColumnIndex(MediaStore.MediaColumns.ORIENTATION)))
-                    .isEqualTo(0);
-            assertThat(cr.getLong(cr.getColumnIndex(PickerMediaColumns.DATE_TAKEN)))
-                    .isEqualTo(DATE_TAKEN_MS);
-        }
-
         // Assert invalid projection column
         final String invalidColumn = "testInvalidColumn";
         final String[] invalidProjection = new String[] {
@@ -780,6 +762,98 @@ public class PickerDbFacadeTest {
             fail("Invalid projection should throw IllegalArgumentException");
         } catch (IllegalArgumentException expected) {
             // expected
+        }
+    }
+
+    /**
+     * Tests {@link PickerDbFacade#queryMediaForUi(PickerDbFacade.QueryFilter)}
+     * to ensure columns not required for the UI are not present.
+     */
+    @Test
+    public void testQueryMediaForUi() throws Exception {
+
+        Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
+        Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, /* localId */ null, DATE_TAKEN_MS);
+
+        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
+
+        PickerDbFacade.QueryFilterBuilder qfb =
+                new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
+        try (Cursor cr = mFacade.queryMediaForUi(qfb.build())) {
+
+            assertThat(cr.getCount()).isEqualTo(2);
+            cr.moveToFirst();
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.WIDTH));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.HEIGHT));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.ORIENTATION));
+
+            cr.moveToNext();
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.WIDTH));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.HEIGHT));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.ORIENTATION));
+        }
+    }
+
+    /**
+     * Tests {@link PickerDbFacade#queryAlbumMediaForUi(PickerDbFacade.QueryFilter, String)} to
+     * ensure columns not required for the UI are not present.
+     */
+    @Test
+    public void testQueryAlbumMediaForUi() throws Exception {
+
+        Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
+        Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, /* localId */ null, DATE_TAKEN_MS);
+
+        assertAddAlbumMediaOperation(LOCAL_PROVIDER, localCursor, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cloudCursor, 1, ALBUM_ID);
+
+        PickerDbFacade.QueryFilterBuilder localQfb =
+                new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
+        try (Cursor cr =
+                mFacade.queryAlbumMediaForUi(
+                        localQfb.setAlbumId(ALBUM_ID).build(), LOCAL_PROVIDER)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.WIDTH));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.HEIGHT));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.ORIENTATION));
+        }
+
+        PickerDbFacade.QueryFilterBuilder cloudQfb =
+                new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
+        try (Cursor cr =
+                mFacade.queryAlbumMediaForUi(
+                        cloudQfb.setAlbumId(ALBUM_ID).build(), CLOUD_PROVIDER)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.WIDTH));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.HEIGHT));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> cr.getColumnIndexOrThrow(MediaColumns.ORIENTATION));
         }
     }
 
@@ -1196,7 +1270,10 @@ public class PickerDbFacadeTest {
             MediaColumns.MIME_TYPE,
             MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
             MediaColumns.DURATION_MILLIS,
-            MediaColumns.IS_FAVORITE
+            MediaColumns.IS_FAVORITE,
+            MediaColumns.HEIGHT,
+            MediaColumns.WIDTH,
+            MediaColumns.ORIENTATION,
         };
 
         String[] projectionValue = new String[] {
@@ -1208,7 +1285,10 @@ public class PickerDbFacadeTest {
             mimeType,
             String.valueOf(standardMimeTypeExtension),
             String.valueOf(DURATION_MS),
-            String.valueOf(isFavorite ? 1 : 0)
+            String.valueOf(isFavorite ? 1 : 0),
+            String.valueOf(HEIGHT),
+            String.valueOf(WIDTH),
+            String.valueOf(ORIENTATION),
         };
 
         MatrixCursor c = new MatrixCursor(projectionKey);
@@ -1216,30 +1296,37 @@ public class PickerDbFacadeTest {
         return c;
     }
 
-    private static Cursor getAlbumMediaCursor(String id, long dateTakenMs, long generationModified,
-            String mediaStoreUri, long sizeBytes, String mimeType,
+    private static Cursor getAlbumMediaCursor(
+            String id,
+            long dateTakenMs,
+            long generationModified,
+            String mediaStoreUri,
+            long sizeBytes,
+            String mimeType,
             int standardMimeTypeExtension) {
-        String[] projectionKey = new String[] {
-                MediaColumns.ID,
-                MediaColumns.MEDIA_STORE_URI,
-                MediaColumns.DATE_TAKEN_MILLIS,
-                MediaColumns.SYNC_GENERATION,
-                MediaColumns.SIZE_BYTES,
-                MediaColumns.MIME_TYPE,
-                MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
-                MediaColumns.DURATION_MILLIS,
-        };
+        String[] projectionKey =
+                new String[] {
+                    MediaColumns.ID,
+                    MediaColumns.MEDIA_STORE_URI,
+                    MediaColumns.DATE_TAKEN_MILLIS,
+                    MediaColumns.SYNC_GENERATION,
+                    MediaColumns.SIZE_BYTES,
+                    MediaColumns.MIME_TYPE,
+                    MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
+                    MediaColumns.DURATION_MILLIS,
+                };
 
-        String[] projectionValue = new String[] {
-                id,
-                mediaStoreUri,
-                String.valueOf(dateTakenMs),
-                String.valueOf(generationModified),
-                String.valueOf(sizeBytes),
-                mimeType,
-                String.valueOf(standardMimeTypeExtension),
-                String.valueOf(DURATION_MS)
-        };
+        String[] projectionValue =
+                new String[] {
+                    id,
+                    mediaStoreUri,
+                    String.valueOf(dateTakenMs),
+                    String.valueOf(generationModified),
+                    String.valueOf(sizeBytes),
+                    mimeType,
+                    String.valueOf(standardMimeTypeExtension),
+                    String.valueOf(DURATION_MS),
+                };
 
         MatrixCursor c = new MatrixCursor(projectionKey);
         c.addRow(projectionValue);
@@ -1344,5 +1431,11 @@ public class PickerDbFacadeTest {
                 .isEqualTo(SIZE_BYTES);
         assertThat(cursor.getLong(cursor.getColumnIndex(PickerMediaColumns.DURATION_MILLIS)))
                 .isEqualTo(DURATION_MS);
+        assertThat(cursor.getInt(cursor.getColumnIndex(PickerMediaColumns.HEIGHT)))
+                .isEqualTo(HEIGHT);
+        assertThat(cursor.getInt(cursor.getColumnIndex(PickerMediaColumns.WIDTH)))
+                .isEqualTo(WIDTH);
+        assertThat(cursor.getInt(cursor.getColumnIndex(PickerMediaColumns.ORIENTATION)))
+                .isEqualTo(ORIENTATION);
     }
 }

@@ -24,34 +24,33 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
-public class FileRowTest {
+public class BackupIdRowTest {
 
     @Test
     public void testSimple() throws Exception {
-        FileRow row = FileRow.newBuilder(5)
-                .setGenerationModified(1234)
+        BackupIdRow row = BackupIdRow.newBuilder(5)
                 .build();
 
-        String s = FileRow.serialize(row);
+        String s = BackupIdRow.serialize(row);
 
-        assertThat(FileRow.deserialize(s)).isEqualTo(row);
+        assertThat(BackupIdRow.deserialize(s)).isEqualTo(row);
     }
 
     @Test
-    public void testNullFieldsSerialization() throws Exception {
-        FileRow row1 = FileRow.newBuilder(5)
-                .setGenerationModified(1234)
-                .setIsDrm(0)
+    public void testAllFields() throws Exception {
+        BackupIdRow row = BackupIdRow.newBuilder(5)
+                .setIsFavorite(/* isFavorite */ 1)
+                .setIsDirty(/* isDirty */ true)
+                .build();
+        String s = BackupIdRow.serialize(row);
+
+        assertThat(BackupIdRow.deserialize(s)).isEqualTo(row);
+
+        BackupIdRow row2 = BackupIdRow.newBuilder(5)
+                .setIsFavorite(/* isFavorite */ 1)
+                .setIsDirty(/* isDirty */ false)
                 .build();
 
-        FileRow row2 = FileRow.newBuilder(5)
-                .setGenerationModified(1234)
-                .build();
-
-        String s1 = FileRow.serialize(row1);
-        String s2 = FileRow.serialize(row2);
-
-        assertThat(s1).isNotEqualTo(s2);
-        assertThat(FileRow.deserialize(s1)).isNotEqualTo(FileRow.deserialize(s2));
+        assertThat(BackupIdRow.deserialize(s)).isNotEqualTo(row2);
     }
 }

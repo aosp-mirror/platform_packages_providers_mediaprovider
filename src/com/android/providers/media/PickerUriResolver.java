@@ -17,6 +17,7 @@
 package com.android.providers.media;
 
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 
@@ -32,8 +33,8 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
-import android.provider.MediaStore;
 import android.provider.CloudMediaProviderContract;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -41,6 +42,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -119,9 +121,11 @@ public class PickerUriResolver {
         return resolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal);
     }
 
-    public Cursor query(Uri uri, String[] projection, int callingPid, int callingUid) {
+    public Cursor query(Uri uri, String[] projection, int callingPid, int callingUid,
+            String callingPackageName) {
         checkUriPermission(uri, callingPid, callingUid);
         try {
+            checkProjectionColumns(uri, projection, callingUid, callingPackageName);
             return queryInternal(uri, projection);
         } catch (IllegalStateException e) {
             // This is to be consistent with MediaProvider, it returns an empty cursor if the row
@@ -148,7 +152,7 @@ public class PickerUriResolver {
 
             return queryPickerUri(uri, projection);
         }
-        return resolver.query(uri, /* projection */ null, /* queryArgs */ null,
+        return resolver.query(uri, projection, /* queryArgs */ null,
                 /* cancellationSignal */ null);
     }
 
@@ -288,6 +292,35 @@ public class PickerUriResolver {
         // If MPs user_id matches the URIs user_id, we can handle this URI in this MP user,
         // otherwise, we'd have to re-route to MP matching URI user_id
         return getUserId(uri) == mContext.getUser().getIdentifier();
+    }
+
+    private void checkProjectionColumns(Uri uri, String[] projection, int callingUid,
+            String callingPackageName) {
+        if (projection == null) {
+            return;
+        }
+
+        for (String column : projection) {
+            switch (column) {
+                // TODO (b/251427354): Create a list for all valid PickerMediaColumns
+                case MediaStore.PickerMediaColumns.DATA:
+                case MediaStore.PickerMediaColumns.DISPLAY_NAME:
+                case MediaStore.PickerMediaColumns.MIME_TYPE:
+                case MediaStore.PickerMediaColumns.DATE_TAKEN:
+                case MediaStore.PickerMediaColumns.SIZE:
+                case MediaStore.PickerMediaColumns.DURATION_MILLIS:
+                case MediaStore.PickerMediaColumns.HEIGHT:
+                case MediaStore.PickerMediaColumns.WIDTH:
+                case MediaStore.PickerMediaColumns.ORIENTATION:
+                    break;
+                default:
+                    final PhotoPickerUiEventLogger logger = new PhotoPickerUiEventLogger();
+                    logger.logPickerQueriedWithUnknownColumn(callingUid, callingPackageName);
+
+                    throw new IllegalArgumentException("Unexpected picker URI projection. Uri:"
+                            + uri + ". Column: " + column);
+            }
+        }
     }
 
     @VisibleForTesting

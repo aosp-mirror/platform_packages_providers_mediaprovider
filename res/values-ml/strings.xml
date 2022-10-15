@@ -84,30 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"വീണ്ടും ശ്രമിക്കുക"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ഇപ്പോൾ <xliff:g id="PKG_NAME">%1$s</xliff:g> എന്നതിൽ നിന്ന് ക്ലൗഡ് മീഡിയ ലഭ്യമാണ്"</string>
     <string name="not_selected" msgid="2244008151669896758">"തിരഞ്ഞെടുത്തിട്ടില്ല"</string>
-    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
-    <skip />
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ബാക്കപ്പ് ചെയ്ത ഫോട്ടോകൾ ഇപ്പോൾ ഉൾപ്പെടുത്തിയിരിക്കുന്നു"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"നിങ്ങൾക്ക് <xliff:g id="APP_NAME">%1$s</xliff:g> അക്കൗണ്ടിൽ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> നിന്ന് ഫോട്ടോകൾ തിരഞ്ഞെടുക്കാം"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> അക്കൗണ്ട് അപ്ഡേറ്റ് ചെയ്തു"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> എന്നതിൽ നിന്നുള്ള ഫോട്ടോകൾ ഇപ്പോൾ ഇവിടെ ഉൾപ്പെടുത്തിയിരിക്കുന്നു"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"ക്ലൗഡ് മീഡിയ ആപ്പ് തിരഞ്ഞെടുക്കുക"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"ബാക്കപ്പ് ചെയ്ത ഫോട്ടോകൾ ഇവിടെ ഉൾപ്പെടുത്താൻ, ക്രമീകരണത്തിൽ ഒരു ക്ലൗഡ് മീഡിയ ആപ്പ് തിരഞ്ഞെടുക്കുക"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"<xliff:g id="APP_NAME">%1$s</xliff:g> അക്കൗണ്ട് തിരഞ്ഞെടുക്കുക"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"<xliff:g id="APP_NAME">%1$s</xliff:g> ആപ്പിൽ നിന്നുള്ള ഫോട്ടോകൾ ഇവിടെ ഉൾപ്പെടുത്താൻ, ആപ്പിൽ ഒരു അക്കൗണ്ട് തിരഞ്ഞെടുക്കുക"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"ഡിസ്‌മിസ് ചെയ്യുക"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ആപ്പ് തിരഞ്ഞെടുക്കുക"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"അക്കൗണ്ട് തിരഞ്ഞെടുക്കുക"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"അക്കൗണ്ട് മാറ്റുക"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ഈ ഓഡിയോ ഫയൽ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}other{<xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ഓഡിയോ ഫയൽ പരിഷ്‌ക്കരിക്കുന്നു…}other{<xliff:g id="COUNT">^1</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്‌ക്കരിക്കുന്നു…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ഈ വീഡിയോ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}other{<xliff:g id="COUNT">^2</xliff:g> വീഡിയോകൾ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}}"</string>

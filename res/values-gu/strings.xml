@@ -84,30 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ફરી પ્રયાસ કરો"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ક્લાઉડ મીડિયા હવે <xliff:g id="PKG_NAME">%1$s</xliff:g>માંથી પણ ઉપલબ્ધ છે"</string>
     <string name="not_selected" msgid="2244008151669896758">"પસંદ નહીં કરેલી"</string>
-    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
-    <skip />
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"બૅકઅપ લીધેલા ફોટા હવે શામેલ કરવામાં આવ્યા છે"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"તમે <xliff:g id="APP_NAME">%1$s</xliff:g> એકાઉન્ટના <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> પરથી ફોટા પસંદ કરી શકો છો"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> એકાઉન્ટ અપડેટ કરવામાં આવ્યું"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g>ના ફોટા હવે અહીં શામેલ કરવામાં આવ્યા છે"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"ક્લાઉડ મીડિયા ઍપ પસંદ કરો"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"બૅકઅપ લીધેલા ફોટા અહીં શામેલ કરવા માટે, સેટિંગમાં જઈને કોઈ ક્લાઉડ મીડિયા ઍપ પસંદ કરો"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"<xliff:g id="APP_NAME">%1$s</xliff:g> એકાઉન્ટ પસંદ કરો"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"<xliff:g id="APP_NAME">%1$s</xliff:g>ના ફોટા અહીં શામેલ કરવા માટે, ઍપમાં કોઈ એકાઉન્ટ પસંદ કરો"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"છોડી દો"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ઍપ પસંદ કરો"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"એકાઉન્ટ પસંદ કરો"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"એકાઉન્ટ બદલો"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ને આ ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}one{<xliff:g id="COUNT">^1</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}other{<xliff:g id="COUNT">^1</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ને આ વીડિયોમાં ફેરફાર કરવાની મંજૂરી આપીએ?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોમાં ફેરફાર કરવાની મંજૂરી આપીએ?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોમાં ફેરફાર કરવાની મંજૂરી આપીએ?}}"</string>

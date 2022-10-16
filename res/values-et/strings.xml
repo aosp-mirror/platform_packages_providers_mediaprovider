@@ -84,30 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Proovi uuesti"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Pilvemeedia on nüüd rakenduse <xliff:g id="PKG_NAME">%1$s</xliff:g> kaudu saadaval"</string>
     <string name="not_selected" msgid="2244008151669896758">"pole valitud"</string>
-    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
-    <skip />
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Varundatud fotod on nüüd kaasatud"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Saate valida fotosid rakendusest <xliff:g id="APP_NAME">%1$s</xliff:g> konto <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> kaudu"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Rakenduse <xliff:g id="APP_NAME">%1$s</xliff:g> kontot värskendati"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Kasutaja <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> fotod on nüüd siia kaasatud"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Valige pilvemeediarakendus"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Selleks et siia varundatud fotod lisada, valige seadetes pilvemeediarakendus"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Valige rakenduses <xliff:g id="APP_NAME">%1$s</xliff:g> konto"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Selleks et siia rakendusest <xliff:g id="APP_NAME">%1$s</xliff:g> fotod lisada, valige rakenduses konto"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Loobu"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Valige rakendus"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Konto valimine"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Konto vahetamine"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda helifaili muuta?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> helifaili muuta?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Helifaili muutmine …}other{<xliff:g id="COUNT">^1</xliff:g> helifaili muutmine …}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda videot muuta?}other{Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> videot muuta?}}"</string>

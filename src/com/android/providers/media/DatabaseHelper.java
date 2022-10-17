@@ -506,33 +506,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     @Override
     public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
-        Log.w(TAG, String.format(Locale.ROOT,
-                "onDowngrade() for %s from %s to %s. Deleting database:%s in case of a "
-                        + "downgrade.", mName, oldV, newV, mName));
-        deleteDatabaseFiles();
-        throw new IllegalStateException(
-                String.format(Locale.ROOT, "Crashing MP process on database downgrade of %s.",
-                        mName));
-    }
-
-    private void deleteDatabaseFiles() {
-        File dbDir = mContext.getDatabasePath(mName).getParentFile();
-        File[] files = dbDir.listFiles();
-        if (files == null) {
-            Log.w(TAG, String.format(Locale.ROOT, "No database files found on path:%s.",
-                    dbDir.getAbsolutePath()));
-            return;
-        }
-
-        for (File file : files) {
-            if (file.getName().startsWith(mName)) {
-                file.delete();
-                Log.w(TAG, String.format(Locale.ROOT, "Database file:%s deleted.",
-                        file.getAbsolutePath()));
-            }
+        Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
+        mSchemaLock.writeLock().lock();
+        try {
+            downgradeDatabase(db, oldV, newV);
+        } finally {
+            mSchemaLock.writeLock().unlock();
         }
     }
-
 
     @Override
     public void onOpen(final SQLiteDatabase db) {
@@ -2110,6 +2091,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         createLatestTriggers(db);
 
         getOrCreateUuid(db);
+
+        final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
+        if (mSchemaListener != null) {
+            mSchemaListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
+                    getItemCount(db), elapsedMillis, getOrCreateUuid(db));
+        }
+    }
+
+    private void downgradeDatabase(SQLiteDatabase db, int fromVersion, int toVersion) {
+        final long startTime = SystemClock.elapsedRealtime();
+
+        // The best we can do is wipe and start over
+        createLatestSchema(db);
 
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
         if (mSchemaListener != null) {

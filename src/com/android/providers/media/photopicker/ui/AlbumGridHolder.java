@@ -16,50 +16,49 @@
 
 package com.android.providers.media.photopicker.ui;
 
-import android.content.Context;
-import android.icu.text.MessageFormat;
 import android.text.TextUtils;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.util.StringUtils;
 
 import java.text.NumberFormat;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 /**
- * ViewHolder of a album item within a RecyclerView.
+ * {@link RecyclerView.ViewHolder} of a {@link View} representing an album {@link Category}.
  */
-public class AlbumGridHolder extends BaseViewHolder {
+class AlbumGridHolder extends RecyclerView.ViewHolder {
 
     private final ImageLoader mImageLoader;
     private final ImageView mIconThumb;
     private final TextView mAlbumName;
     private final TextView mItemCount;
     private final boolean mHasMimeTypeFilter;
+    @NonNull
+    private final AlbumsTabAdapter.OnAlbumClickListener mOnAlbumClickListener;
 
-    public AlbumGridHolder(@NonNull Context context, @NonNull ViewGroup parent,
-            @NonNull ImageLoader imageLoader, boolean hasMimeTypeFilter) {
-        super(context, parent, R.layout.item_album_grid);
+    AlbumGridHolder(@NonNull View itemView, @NonNull ImageLoader imageLoader,
+            boolean hasMimeTypeFilter,
+            @NonNull AlbumsTabAdapter.OnAlbumClickListener onAlbumClickListener) {
+        super(itemView);
 
         mIconThumb = itemView.findViewById(R.id.icon_thumbnail);
         mAlbumName = itemView.findViewById(R.id.album_name);
         mItemCount = itemView.findViewById(R.id.item_count);
         mImageLoader = imageLoader;
         mHasMimeTypeFilter = hasMimeTypeFilter;
+        mOnAlbumClickListener = onAlbumClickListener;
     }
 
-    @Override
-    public void bind() {
-        final Category category = (Category) itemView.getTag();
+    void bind(@NonNull Category category) {
+        itemView.setOnClickListener(v -> mOnAlbumClickListener.onAlbumClick(category));
         mImageLoader.loadAlbumThumbnail(category, mIconThumb);
         mAlbumName.setText(category.getDisplayName(itemView.getContext()));
 

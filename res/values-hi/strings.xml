@@ -56,7 +56,7 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"आपके एडमिन ने रोक लगाई है"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ऑफ़िस के काम से जुड़े डेटा को निजी ऐप्लिकेशन से ऐक्सेस करने की अनुमति नहीं है"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"निजी डेटा को ऑफ़िस के काम से जुड़े ऐप्लिकेशन से ऐक्सेस करने की अनुमति नहीं है"</string>
-    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ऑफ़िस के काम से जुड़े ऐप्लिकेशन रोक दिए गए हैं"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"वर्क ऐप्लिकेशन रोक दिए गए हैं"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"वर्क फ़ोटो देखने के लिए, ऑफ़िस के काम से जुड़े ऐप्लिकेशन चालू करें और दोबारा कोशिश करें"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"इस ऐप्लिकेशन के पास आपकी उन फ़ोटो का ही ऐक्सेस होता है जिन्हें आपने चुना हो"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> आइटम}one{<xliff:g id="COUNT_1">^1</xliff:g> आइटम}other{<xliff:g id="COUNT_1">^1</xliff:g> आइटम}}"</string>

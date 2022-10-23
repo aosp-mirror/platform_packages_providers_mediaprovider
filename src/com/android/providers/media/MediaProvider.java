@@ -179,8 +179,6 @@ import android.preference.PreferenceManager;
 import android.provider.AsyncContentProvider;
 import android.provider.BaseColumns;
 import android.provider.Column;
-import android.provider.DeviceConfig;
-import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.DocumentsContract;
 import android.provider.ExportedSince;
 import android.provider.IAsyncContentProvider;
@@ -236,7 +234,6 @@ import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
-import com.android.providers.media.util.DeviceConfigUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.IsoInterface;
@@ -344,9 +341,6 @@ public class MediaProvider extends ContentProvider {
 
     private static final String DIRECTORY_MEDIA = "media";
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
-
-    private static final String TAKE_OVER_GET_CONTENT = "take_over_get_content";
-    private static final String FLAG_STABLISE_VOLUME_INTERNAL = "stablise_volume_internal";
 
     /**
      * Hard-coded filename where the current value of
@@ -1140,20 +1134,13 @@ public class MediaProvider extends ContentProvider {
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
         mPickerDbFacade = new PickerDbFacade(context);
 
-        final String localPickerProvider = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
-        final String allowedCloudProviders =
-                getStringDeviceConfig(PickerSyncController.ALLOWED_CLOUD_PROVIDERS_KEY,
-                        /* default */ "");
-        final int pickerSyncDelayMs = getIntDeviceConfig(PickerSyncController.SYNC_DELAY_MS,
-                /* default */ 5000);
-
-        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade,
-                localPickerProvider, allowedCloudProviders, pickerSyncDelayMs);
+        mConfigStore = createConfigStore();
+        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade, mConfigStore);
         mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade);
 
         if (SdkLevel.isAtLeastS()) {
-            mTranscodeHelper = new TranscodeHelperImpl(context, this);
+            mTranscodeHelper = new TranscodeHelperImpl(context, this, mConfigStore);
         } else {
             mTranscodeHelper = new TranscodeHelperNoOp();
         }
@@ -1251,21 +1238,22 @@ public class MediaProvider extends ContentProvider {
             mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
 
-        checkDeviceConfigAndUpdateGetContentAlias();
-        addOnPropertiesChangedListener(properties -> checkDeviceConfigAndUpdateGetContentAlias());
+        checkConfigAndUpdateGetContentAlias();
+        mConfigStore.addOnChangeListener(
+                BackgroundThread.getExecutor(), this::checkConfigAndUpdateGetContentAlias);
 
         PulledMetrics.initialize(context);
         return true;
     }
 
     @VisibleForTesting
-    protected void checkDeviceConfigAndUpdateGetContentAlias() {
+    protected void checkConfigAndUpdateGetContentAlias() {
         final String photoPickerGetContentActivity =
                 PhotoPickerActivity.class.getPackage().getName() + ".PhotoPickerGetContentActivity";
         final ComponentName componentName = new ComponentName(getContext().getPackageName(),
                 photoPickerGetContentActivity);
 
-        final int expectedState = getBooleanDeviceConfig(TAKE_OVER_GET_CONTENT, false)
+        final int expectedState = mConfigStore.isGetContentTakeOverEnabled()
                 ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
                 : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
 
@@ -9922,42 +9910,6 @@ public class MediaProvider extends ContentProvider {
         return FuseDaemon.native_is_fuse_thread();
     }
 
-    @VisibleForTesting
-    public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
-        return DeviceConfigUtils.getBooleanDeviceConfig(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                key, defaultValue);
-    }
-
-    @VisibleForTesting
-    public int getIntDeviceConfig(String key, int defaultValue) {
-        return DeviceConfigUtils.getIntDeviceConfig(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
-                defaultValue);
-    }
-
-    @VisibleForTesting
-    public int getIntDeviceConfig(String namespace, String key, int defaultValue) {
-        return DeviceConfigUtils.getIntDeviceConfig(namespace, key, defaultValue);
-    }
-
-    @VisibleForTesting
-    public String getStringDeviceConfig(String key, String defaultValue) {
-        return DeviceConfigUtils.getStringDeviceConfig(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                key, defaultValue);
-    }
-
-    @VisibleForTesting
-    public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
-        if (!SdkLevel.isAtLeastS()) {
-            Log.w(TAG, "Cannot add device config changed listener before Android S");
-            return;
-        }
-
-        // TODO(b/246590468): Follow best naming practices for namespaces of device config flags
-        // that make changes to this package independent of reboot
-        DeviceConfig.addOnPropertiesChangedListener(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                BackgroundThread.getExecutor(), listener);
-    }
-
     @Deprecated
     private boolean checkCallingPermissionAudio(boolean forWrite, String callingPackage) {
         if (forWrite) {
@@ -10382,7 +10334,7 @@ public class MediaProvider extends ContentProvider {
             // Leveldb setup for internal volume is done during leveldb setup for primary external.
             return;
         }
-        if (!getBooleanDeviceConfig(FLAG_STABLISE_VOLUME_INTERNAL, /* defaultValue */false)) {
+        if (!mConfigStore.isStableUrisForInternalVolumeEnabled()) {
             return;
         }
 
@@ -10401,11 +10353,9 @@ public class MediaProvider extends ContentProvider {
      * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
      */
     private boolean isStableUrisEnabled(String volumeName) {
-
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
-                return getBooleanDeviceConfig(FLAG_STABLISE_VOLUME_INTERNAL, /* defaultValue= */
-                        false);
+                return mConfigStore.isStableUrisForInternalVolumeEnabled();
             default:
                 return false;
         }
@@ -10473,6 +10423,7 @@ public class MediaProvider extends ContentProvider {
     private PickerDbFacade mPickerDbFacade;
     private ExternalDbFacade mExternalDbFacade;
     private PickerDataLayer mPickerDataLayer;
+    private ConfigStore mConfigStore;
     private PickerSyncController mPickerSyncController;
     private TranscodeHelper mTranscodeHelper;
 
@@ -10865,5 +10816,31 @@ public class MediaProvider extends ContentProvider {
                 }
             }
         }
+    }
+
+    /**
+     * Called once - from {@link #onCreate()}.
+     */
+    @NonNull
+    private ConfigStore createConfigStore() {
+        // Tests may want override provideConfigStore() in order to inject a mock object.
+        ConfigStore configStore = provideConfigStore();
+        if (configStore == null) {
+            // Tests did not provide an alternative implementation: create our regular "production"
+            // ConfigStore.
+            configStore = new ConfigStore.ConfigStoreImpl();
+        }
+        return configStore;
+    }
+
+    /**
+     * <b>FOT TESTING PURPOSES ONLY</b>
+     * <p>
+     * Allows injecting alternative {@link ConfigStore} implementation.
+     */
+    @VisibleForTesting
+    @Nullable
+    protected ConfigStore provideConfigStore() {
+        return null;
     }
 }

@@ -102,6 +102,15 @@ public class PhotoPickerBaseTest {
         sMultiSelectionIntent.putExtras(extras);
     }
 
+    private static final Intent sUserSelectImagesForAppIntent;
+    static {
+        sUserSelectImagesForAppIntent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+        sUserSelectImagesForAppIntent.addCategory(Intent.CATEGORY_FRAMEWORK_INSTRUMENTATION_TEST);
+        Bundle extras = new Bundle();
+        extras.putInt(Intent.EXTRA_UID, 1234);
+        sUserSelectImagesForAppIntent.putExtras(extras);
+    }
+
     private static final File IMAGE_1_FILE = new File(Environment.getExternalStorageDirectory(),
             Environment.DIRECTORY_DCIM + "/Camera"
                     + "/image_" + System.currentTimeMillis() + ".jpeg");
@@ -128,6 +137,10 @@ public class PhotoPickerBaseTest {
 
     public static Intent getMultiSelectionIntent() {
         return sMultiSelectionIntent;
+    }
+
+    public static Intent getUserSelectImagesForAppIntent() {
+        return sUserSelectImagesForAppIntent;
     }
 
     public static Intent getMultiSelectionIntent(int max) {

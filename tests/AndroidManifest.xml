@@ -40,6 +40,18 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.FRAMEWORK_INSTRUMENTATION_TEST" />
             </intent-filter>
+            <intent-filter>
+               <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.FRAMEWORK_INSTRUMENTATION_TEST" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.FRAMEWORK_INSTRUMENTATION_TEST" />
+            </intent-filter>
         </activity>
 
         <provider android:name="com.android.providers.media.photopicker.LocalProvider"

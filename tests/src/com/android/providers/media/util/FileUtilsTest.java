@@ -1212,6 +1212,29 @@ public class FileUtilsTest {
     }
 
     @Test
+    public void testComputeDataFromValuesForValidPath_success() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.RELATIVE_PATH, "Android/media/com.example");
+        values.put(MediaColumns.DISPLAY_NAME, "./../../abc.txt");
+
+        FileUtils.computeDataFromValues(values, new File("/storage/emulated/0"), false);
+
+        assertThat(values.getAsString(MediaColumns.DATA)).isEqualTo(
+                "/storage/emulated/0/Android/abc.txt");
+    }
+
+    @Test
+    public void testComputeDataFromValuesForInvalidPath_throwsIllegalArgumentException() {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.RELATIVE_PATH, "\0");
+        values.put(MediaColumns.DISPLAY_NAME, "./../../abc.txt");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> FileUtils.computeDataFromValues(values, new File("/storage/emulated/0"),
+                        false));
+    }
+
+    @Test
     public void testComputeAudioTypeValuesFromData() {
         testComputeAudioTypeValuesFromData("/storage/emulated/0/Ringtones/a.mp3",
                 AudioColumns.IS_RINGTONE);

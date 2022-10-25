@@ -22,6 +22,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
+
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
@@ -34,10 +35,11 @@ import com.android.providers.media.photopicker.PickerSyncController;
  */
 public class PickerDatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "PickerDatabaseHelper";
+
     @VisibleForTesting
     static final String PICKER_DATABASE_NAME = "picker.db";
 
-    private static final int VERSION_T = 7;
+    private static final int VERSION_T = 8;
     private static final int VERSION_LATEST = VERSION_T;
 
     final Context mContext;
@@ -117,6 +119,9 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "is_visible INTEGER CHECK(is_visible == 1),"
                 + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
                 + "sync_generation INTEGER NOT NULL CHECK(sync_generation >= 0),"
+                + "width INTEGER,"
+                + "height INTEGER,"
+                + "orientation INTEGER,"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "duration_ms INTEGER CHECK(duration_ms >= 0),"
                 + "mime_type TEXT NOT NULL,"

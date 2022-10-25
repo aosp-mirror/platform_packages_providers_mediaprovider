@@ -185,6 +185,14 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="com.android.providers.media.photopicker.PhotoPickerSettingsActivity"
+            android:theme="@style/PickerSettingsTheme"
+            android:process=":PhotoPicker"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:enabled="false" />
+
         <activity-alias
             android:name="com.android.providers.media.photopicker.PhotoPickerGetContentActivity"
             android:targetActivity="com.android.providers.media.photopicker.PhotoPickerActivity"

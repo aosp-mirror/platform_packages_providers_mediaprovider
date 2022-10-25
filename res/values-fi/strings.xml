@@ -78,8 +78,24 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Poista videon mykistys"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Toista"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Keskeytä"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Videota ei voi toistaa"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Videon toisto ei onnistu"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Tarkista internetyhteytesi ja yritä uudelleen"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Yritä uudelleen"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Pilvimediaa nyt saatavilla täältä: <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"ei valittu"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Varmuuskopioidut kuvat löytyvät nyt täältä"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Voit valita sovelluksen <xliff:g id="APP_NAME">%1$s</xliff:g> kuvat tililtä <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Tili päivitetty: <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Kuvat tililtä <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> löytyvät nyt täältä"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Valitse pilvimediasovellus"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Löydät varmuuskopioidut kuvat täältä, kun valitset pilvimediasovelluksen asetuksista"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Valitse tili: <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Löydät tilin <xliff:g id="APP_NAME">%1$s</xliff:g> kuvat täältä, kun valitset tilin sovelluksessa"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Ohita"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Valitse sovellus"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Valitse tili"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Vaihda tiliä"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Saako <xliff:g id="APP_NAME_0">^1</xliff:g> muokata tätä audiotiedostoa?}other{Saako <xliff:g id="APP_NAME_1">^1</xliff:g> muokata <xliff:g id="COUNT">^2</xliff:g> audiotiedostoa?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Muokataan audiotiedostoa…}other{Muokataan <xliff:g id="COUNT">^1</xliff:g> audiotiedostoa…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Saako <xliff:g id="APP_NAME_0">^1</xliff:g> muokata tätä videota?}other{Saako <xliff:g id="APP_NAME_1">^1</xliff:g> muokata <xliff:g id="COUNT">^2</xliff:g> videota?}}"</string>

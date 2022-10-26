@@ -42,9 +42,6 @@ import java.util.Objects;
  */
 public class CloudProviderUtils {
     private static final String TAG = "CloudProviderUtils";
-
-    public static final String ALLOWED_CLOUD_PROVIDERS_KEY = "allowed_cloud_providers";
-
     /**
      * @return list of available <b>and</b> allowlisted {@link CloudMediaProvider}-s.
      */

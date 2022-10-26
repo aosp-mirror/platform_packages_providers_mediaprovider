@@ -681,7 +681,7 @@ public class MediaProviderTest {
             }
 
             @Override
-            protected void checkDeviceConfigAndUpdateGetContentAlias() {
+            protected void checkConfigAndUpdateGetContentAlias() {
                 // Ignore this as test app cannot read device config
             }
         };
@@ -1113,7 +1113,7 @@ public class MediaProviderTest {
             }
 
             @Override
-            protected void checkDeviceConfigAndUpdateGetContentAlias() {
+            protected void checkConfigAndUpdateGetContentAlias() {
                 // Ignore this as test app cannot read device config
             }
         };

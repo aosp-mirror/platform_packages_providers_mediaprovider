@@ -35,7 +35,6 @@ import android.os.Environment;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.BaseColumns;
-import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.Settings;
@@ -46,11 +45,13 @@ import android.util.Log;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.ConfigStore;
 import com.android.providers.media.DatabaseHelper;
 import com.android.providers.media.MediaDocumentsProvider;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.R;
+import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.util.FileUtils;
@@ -85,6 +86,11 @@ public class MediaScannerTest {
 
         public IsolatedContext(Context base, String tag, boolean asFuseThread,
                 UserHandle userHandle) {
+            this(base, tag, asFuseThread, userHandle, new TestConfigStore());
+        }
+
+        public IsolatedContext(Context base, String tag, boolean asFuseThread,
+                UserHandle userHandle, ConfigStore configStore) {
             super(base);
             mDir = new File(base.getFilesDir(), tag);
             mDir.mkdirs();
@@ -102,28 +108,8 @@ public class MediaScannerTest {
                 }
 
                 @Override
-                public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
-                    return defaultValue;
-                }
-
-                @Override
-                public String getStringDeviceConfig(String key, String defaultValue) {
-                    return defaultValue;
-                }
-
-                @Override
-                public int getIntDeviceConfig(String key, int defaultValue) {
-                    return defaultValue;
-                }
-
-                @Override
-                public int getIntDeviceConfig(String namespace, String key, int defaultValue) {
-                    return 0;
-                }
-
-                @Override
-                public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
-                    // Ignore
+                protected ConfigStore provideConfigStore() {
+                    return configStore;
                 }
 
                 @Override
@@ -132,7 +118,7 @@ public class MediaScannerTest {
                 }
 
                 @Override
-                protected void checkDeviceConfigAndUpdateGetContentAlias() {
+                protected void checkConfigAndUpdateGetContentAlias() {
                     // Ignore this as test app cannot read device config
                 }
             };

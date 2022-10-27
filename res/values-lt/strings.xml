@@ -78,8 +78,24 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Įjungti vaizdo įrašo garsą"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Paleisti"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pristabdyti"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Negalima paleisti vaizdo įrašo"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Paleidžiant vaizdo įrašą kilo problema"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Patikrinkite interneto ryšį ir bandykite dar kartą"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Bandyti dar kartą"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Debesyje esanti medija dabar pasiekiama iš „<xliff:g id="PKG_NAME">%1$s</xliff:g>“"</string>
     <string name="not_selected" msgid="2244008151669896758">"nepasirinkta"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Dabar įtraukiamos atsarginės nuotraukų kopijos"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Galite pasirinkti nuotraukas iš „<xliff:g id="APP_NAME">%1$s</xliff:g>“ paskyros <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"„<xliff:g id="APP_NAME">%1$s</xliff:g>“ paskyra atnaujinta"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Dabar čia įtraukiamos nuotraukos iš <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Debesies medijos programos pasirinkimas"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Jei norite čia įtraukti atsarginių nuotraukų kopijų, pasirinkite debesies medijos programą skiltyje „Nustatymai“"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"„<xliff:g id="APP_NAME">%1$s</xliff:g>“ paskyros pasirinkimas"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Jei norite čia įtraukti nuotraukas iš „<xliff:g id="APP_NAME">%1$s</xliff:g>“, pasirinkite paskyrą programoje"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Atsisakyti"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Pasirinkti programą"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Pasirinkti paskyrą"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Pakeisti paskyrą"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Leisti programai „<xliff:g id="APP_NAME_0">^1</xliff:g>“ keisti šį garso failą?}one{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failą?}few{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failus?}many{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failo?}other{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failų?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Keičiamas garso failas…}one{Keičiamas <xliff:g id="COUNT">^1</xliff:g> garso failas…}few{Keičiami <xliff:g id="COUNT">^1</xliff:g> garso failai…}many{Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failo…}other{Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failų…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Leisti programai „<xliff:g id="APP_NAME_0">^1</xliff:g>“ keisti šį vaizdo įrašą?}one{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašą?}few{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašus?}many{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašo?}other{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašų?}}"</string>

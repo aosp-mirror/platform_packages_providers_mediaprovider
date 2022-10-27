@@ -63,6 +63,7 @@
 #define BPF_FD_JUST_USE_INT
 #include "BpfSyscallWrappers.h"
 #include "MediaProviderWrapper.h"
+#include "leveldb/db.h"
 #include "libfuse_jni/FuseUtils.h"
 #include "libfuse_jni/ReaddirHelper.h"
 #include "libfuse_jni/RedactionInfo.h"
@@ -395,6 +396,11 @@ struct fuse {
     std::atomic_uint dev;
     const std::vector<string> supported_transcoding_relative_paths;
     const std::vector<string> supported_uncached_relative_paths;
+
+    // LevelDb Connection
+    leveldb::DB* internal_level_db = nullptr;
+    leveldb::DB* external_level_db = nullptr;
+    std::mutex level_db_mutex;
 };
 
 struct OpenInfo {
@@ -2405,5 +2411,52 @@ void FuseDaemon::InitializeDeviceId(const std::string& path) {
 
     fuse->dev.store(stat.st_dev, std::memory_order_release);
 }
+
+void FuseDaemon::SetupLevelDbInstance() {
+    // Create leveldb setup for internal volume only for now if current volume is external primary.
+    if (android::base::StartsWith(fuse->root->GetIoPath(), PRIMARY_VOLUME_PREFIX)) {
+        fuse->level_db_mutex.lock();
+        if (fuse->internal_level_db != nullptr) {
+            LOG(DEBUG) << "Leveldb connection already exists for internal";
+            fuse->level_db_mutex.unlock();
+            return;
+        }
+
+        std::string leveldbPath =
+                "/storage/emulated/" + MY_USER_ID_STRING + "/.transforms/recovery/leveldb-internal";
+        leveldb::Options options;
+        options.create_if_missing = true;
+        leveldb::Status status = leveldb::DB::Open(options, leveldbPath, &fuse->internal_level_db);
+        if (status.ok()) {
+            LOG(INFO) << "Leveldb connection established for internal";
+        } else {
+            LOG(WARNING) << "Leveldb connection failed for internal " << status.ToString();
+        }
+        fuse->level_db_mutex.unlock();
+    }
+}
+
+void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
+    if (!android::base::StartsWith(key, "/storage")) {
+        leveldb::Status status;
+        status = fuse->internal_level_db->Delete(leveldb::WriteOptions(), key);
+        if (!status.ok()) {
+            LOG(INFO) << "Failure in leveldb delete for key: " << key;
+        }
+    }
+}
+
+void FuseDaemon::InsertInLevelDb(const std::string& key, const std::string& value) {
+    if (!android::base::StartsWith(key, "/storage")) {
+        leveldb::Status status;
+        status = fuse->internal_level_db->Put(leveldb::WriteOptions(), key, value);
+        if (!status.ok()) {
+            LOG(WARNING) << "Failure in leveldb insert for key: " << key << status.ToString();
+        } else {
+            LOG(INFO) << "Insert successful for key:" << key;
+        }
+    }
+}
+
 } //namespace fuse
 }  // namespace mediaprovider

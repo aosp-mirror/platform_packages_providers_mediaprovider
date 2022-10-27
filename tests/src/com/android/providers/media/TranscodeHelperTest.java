@@ -23,7 +23,6 @@ import android.media.MediaFormat;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Process;
-import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
@@ -43,30 +42,16 @@ public class TranscodeHelperTest {
     private static final String SOME_VALID_FILE_PATH =
             "/storage/emulated/0/" + Environment.DIRECTORY_DCIM + "/Camera/some_filename.mp4";
 
+    private final ConfigStore mConfigStore = new TestConfigStore();
     private final MediaProvider mDefaultMediaProvider = new MediaProvider() {
         @Override
-        public String getStringDeviceConfig(String key, String defaultValue) {
-            return defaultValue;
-        }
-
-        @Override
-        public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
-            return defaultValue;
-        }
-
-        @Override
-        public int getIntDeviceConfig(String key, int defaultValue) {
-            return defaultValue;
-        }
-
-        @Override
-        public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
-            // Ignore
+        protected ConfigStore provideConfigStore() {
+            return mConfigStore;
         }
     };
 
     private final TranscodeHelperImpl mUnderTest = new TranscodeHelperImpl(
-            InstrumentationRegistry.getTargetContext(), mDefaultMediaProvider);
+            InstrumentationRegistry.getTargetContext(), mDefaultMediaProvider, mConfigStore);
 
     @Test
     public void testSupportsValidTranscodePath() {

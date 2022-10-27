@@ -38,6 +38,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.util.Log;
 import android.view.Menu;
@@ -82,6 +83,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private static final float BOTTOM_SHEET_PEEK_HEIGHT_PERCENTAGE = 0.60f;
     private static final float HIDE_PROFILE_BUTTON_THRESHOLD = -0.5f;
     private static final String LOGGER_INSTANCE_ID_ARG = "loggerInstanceIdArg";
+    private static final String ENABLE_SETTINGS_SYS_PROP =
+            "debug.photopicker.enable_settings_screen";
 
     private PickerViewModel mPickerViewModel;
     private Selection mSelection;
@@ -162,13 +165,16 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         String intentAction = intent != null ? intent.getAction() : null;
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
-        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
+        mPickerViewModel.logPickerOpened(getApplicationContext(), Binder.getCallingUid(),
+                getCallingPackage(), intentAction);
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
         mFragmentContainerView = findViewById(R.id.fragment_container);
 
         mCrossProfileListeners = new CrossProfileListeners();
+
+        enableSettingsActivity();
     }
 
     @Override
@@ -230,20 +236,50 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(@NonNull Menu menu) {
-        if (ACTION_GET_CONTENT.equals(getIntent().getAction())) {
-            getMenuInflater().inflate(R.menu.picker_overflow_menu, menu);
-        }
-
+        getMenuInflater().inflate(R.menu.picker_overflow_menu, menu);
         return true;
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(@NonNull Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        // All logic to hide/show an item in the menu must be in this method
+        final MenuItem settingsMenuItem = menu.findItem(R.id.settings);
+
+        // TODO(b/195009187): Settings menu item is hidden by default till Settings page is
+        // completely developed.
+        settingsMenuItem.setVisible(isSettingsScreenEnabled());
+
+        // Browse menu item allows users to launch DocumentsUI. This item should only be shown if
+        // PhotoPicker was opened via {@link #ACTION_GET_CONTENT}.
+        menu.findItem(R.id.browse).setVisible(isGetContentAction());
+
+        return menu.hasVisibleItems();
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.browse) {
-            mPickerViewModel.logBrowseToDocumentsUi(Binder.getCallingUid(), getCallingPackage());
-            launchDocumentsUiAndFinishPicker();
+        switch (item.getItemId()) {
+            case R.id.browse:
+                mPickerViewModel.logBrowseToDocumentsUi(Binder.getCallingUid(),
+                        getCallingPackage());
+                launchDocumentsUiAndFinishPicker();
+                return true;
+            case R.id.settings:
+                final Intent intent = new Intent(this, PhotoPickerSettingsActivity.class);
+                startActivity(intent);
+                return true;
+            default:
+                // Continue to return the result of base class' onOptionsItemSelected(item)
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // TODO(b/195009187): Conditionally reset PhotoPicker when current profile's cloud
+        // provider has changed.
     }
 
     private void rerouteGetContentRequestIfRequired() {
@@ -465,6 +501,15 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mPickerViewModel.logPickerCancel(Binder.getCallingUid(), getCallingPackage());
     }
 
+    private void enableSettingsActivity() {
+        if (isSettingsScreenEnabled()) {
+            final ComponentName componentName = new ComponentName(this,
+                    PhotoPickerSettingsActivity.class);
+            getPackageManager().setComponentEnabledSetting(componentName,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+        }
+    }
+
     /**
      * Updates the common views such as Title, Toolbar, Navigation bar, status bar and bottom sheet
      * behavior
@@ -626,6 +671,32 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mPrivacyText.setVisibility(shouldShowPrivacyMessage ? View.VISIBLE : View.GONE);
     }
 
+    /**
+     * Reset to Photo Picker initial launch state (Photos grid tab) in personal profile mode.
+     * @param switchToPersonalProfile is true then set personal profile as current profile.
+     */
+    private void reset(boolean switchToPersonalProfile) {
+        mPickerViewModel.reset(switchToPersonalProfile);
+        setupInitialLaunchState();
+    }
+
+    /**
+     * Returns {@code true} if settings page is enabled.
+     */
+    private boolean isSettingsScreenEnabled() {
+        List<String> allowedCloudProviders = mPickerViewModel.getConfigStore()
+                .getAllowlistedCloudProviders();
+        return !allowedCloudProviders.isEmpty()
+                && SystemProperties.getBoolean(ENABLE_SETTINGS_SYS_PROP, false);
+    }
+
+    /**
+     * Returns {@code true} if intent action is ACTION_GET_CONTENT.
+     */
+    private boolean isGetContentAction() {
+        return ACTION_GET_CONTENT.equals(getIntent().getAction());
+    }
+
     private class CrossProfileListeners {
 
         private final List<String> MANAGED_PROFILE_FILTER_ACTIONS = Lists.newArrayList(
@@ -723,15 +794,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
             // We reset the state of the PhotoPicker as we do not want to make any
             // assumptions on the state of the PhotoPicker when it was in Work Profile mode.
-            resetToPersonalProfile();
-        }
-
-        /**
-         * Reset to Photo Picker initial launch state (Photos grid tab) in personal profile mode.
-         */
-        private void resetToPersonalProfile() {
-            mPickerViewModel.resetToPersonalProfile();
-            setupInitialLaunchState();
+            reset(/* switchToPersonalProfile */ true);
         }
     }
 }

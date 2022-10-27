@@ -40,6 +40,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
@@ -802,7 +803,9 @@ public class ExternalDbFacadeTest {
 
         // Insert in screenshots ablum
         ContentValues cv2 = getContentValues(DATE_TAKEN_MS2, GENERATION_MODIFIED2);
-        cv2.put(MediaColumns.RELATIVE_PATH, ExternalDbFacade.RELATIVE_PATH_SCREENSHOTS);
+        cv2.put(
+                MediaColumns.RELATIVE_PATH,
+                Environment.DIRECTORY_PICTURES + "/" + Environment.DIRECTORY_SCREENSHOTS + "/");
         helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv2));
 
         // Insert in download ablum

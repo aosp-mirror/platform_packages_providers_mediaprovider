@@ -349,7 +349,7 @@ public class ModernMediaScanner implements MediaScanner {
 
         public Scan(File root, int reason, @Nullable String ownerPackage)
                 throws FileNotFoundException {
-            Trace.beginSection("ctor");
+            Trace.beginSection("Scanner.ctor");
 
             mClient = mContext.getContentResolver()
                     .acquireContentProviderClient(MediaStore.AUTHORITY);
@@ -417,7 +417,7 @@ public class ModernMediaScanner implements MediaScanner {
                     shouldScanPathAndIsPathHidden(mSingleFile ? mRoot.getParentFile() : mRoot);
             if (isDirScannableAndHidden.first) {
                 // This directory is scannable.
-                Trace.beginSection("walkFileTree");
+                Trace.beginSection("Scanner.walkFileTree");
 
                 if (isDirScannableAndHidden.second) {
                     // This directory is hidden
@@ -491,7 +491,7 @@ public class ModernMediaScanner implements MediaScanner {
             // The query phase is split from the delete phase so that our query
             // remains stable if we need to paginate across multiple windows.
             mSignal.throwIfCanceled();
-            Trace.beginSection("reconcile");
+            Trace.beginSection("Scanner.reconcile");
 
             // Ignore abstract playlists which don't have files on disk
             final String formatClause = "ifnull(" + FileColumns.FORMAT + ","
@@ -546,7 +546,7 @@ public class ModernMediaScanner implements MediaScanner {
 
             // Third, clean all the unknown database entries found above
             mSignal.throwIfCanceled();
-            Trace.beginSection("clean");
+            Trace.beginSection("Scanner.clean");
             try {
                 for (int i = 0; i < mUnknownIds.size(); i++) {
                     final long id = mUnknownIds.get(i);
@@ -595,7 +595,7 @@ public class ModernMediaScanner implements MediaScanner {
          * and confuse each other.
          */
         private void acquireDirectoryLock(@NonNull Path dir) {
-            Trace.beginSection("acquireDirectoryLock");
+            Trace.beginSection("Scanner.acquireDirectoryLock");
             DirectoryLock lock;
             synchronized (mDirectoryLocks) {
                 lock = mDirectoryLocks.get(dir);
@@ -616,7 +616,7 @@ public class ModernMediaScanner implements MediaScanner {
          * structures if no other threads are waiting.
          */
         private void releaseDirectoryLock(@NonNull Path dir) {
-            Trace.beginSection("releaseDirectoryLock");
+            Trace.beginSection("Scanner.releaseDirectoryLock");
             DirectoryLock lock;
             synchronized (mDirectoryLocks) {
                 lock = mDirectoryLocks.get(dir);
@@ -718,7 +718,7 @@ public class ModernMediaScanner implements MediaScanner {
             int actualMediaType = mediaTypeFromMimeType(
                     realFile, actualMimeType, FileColumns.MEDIA_TYPE_NONE);
 
-            Trace.beginSection("checkChanged");
+            Trace.beginSection("Scanner.checkChanged");
 
             final Bundle queryArgs = new Bundle();
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
@@ -789,7 +789,7 @@ public class ModernMediaScanner implements MediaScanner {
             }
 
             final ContentProviderOperation.Builder op;
-            Trace.beginSection("scanItem");
+            Trace.beginSection("Scanner.scanItem");
             try {
                 op = scanItem(existingId, realFile, attrs, actualMimeType, actualMediaType,
                         mVolumeName);
@@ -910,7 +910,7 @@ public class ModernMediaScanner implements MediaScanner {
             // Bail early when nothing pending
             if (mPending.isEmpty()) return;
 
-            Trace.beginSection("applyPending");
+            Trace.beginSection("Scanner.applyPending");
             try {
                 ContentProviderResult[] results = mResolver.applyBatch(AUTHORITY, mPending);
                 for (int index = 0; index < results.length; index++) {
@@ -1626,7 +1626,7 @@ public class ModernMediaScanner implements MediaScanner {
      * path should be considered hidden.
      */
     static Pair<Boolean, Boolean> shouldScanPathAndIsPathHidden(@NonNull File dir) {
-        Trace.beginSection("shouldScanPathAndIsPathHiodden");
+        Trace.beginSection("Scanner.shouldScanPathAndIsPathHidden");
         try {
             boolean isPathHidden = false;
             while (dir != null) {

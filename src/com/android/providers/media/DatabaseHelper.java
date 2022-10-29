@@ -370,7 +370,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         .setIsPending(isPending)
                         .setPath(path)
                         .build();
-                Trace.beginSection("_INSERT");
+                Trace.beginSection(traceSectionName("_INSERT"));
                 try {
                     mFilesListener.onInsert(DatabaseHelper.this, insertedRow);
                 } finally {
@@ -424,7 +424,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         .setOwnerPackageName(newOwnerPackage)
                         .build();
 
-                Trace.beginSection("_UPDATE");
+                Trace.beginSection(traceSectionName("_UPDATE"));
                 try {
                     mFilesListener.onUpdate(DatabaseHelper.this, oldRow, newRow);
                 } finally {
@@ -451,7 +451,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         .setOwnerPackageName(ownerPackage)
                         .setPath(path)
                         .build();
-                Trace.beginSection("_DELETE");
+                Trace.beginSection(traceSectionName("_DELETE"));
                 try {
                     mFilesListener.onDelete(DatabaseHelper.this, deletedRow);
                 } finally {
@@ -462,7 +462,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         });
         db.setCustomScalarFunction("_GET_ID", (arg) -> {
             if (mIdGenerator != null && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                Trace.beginSection("_GET_ID");
+                Trace.beginSection(traceSectionName("_GET_ID"));
                 try {
                     return mIdGenerator.apply(arg);
                 } finally {
@@ -696,11 +696,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     public void beginTransaction() {
-        Trace.beginSection("transaction " + getDatabaseName());
-        Trace.beginSection("beginTransaction");
+        Trace.beginSection(traceSectionName("transaction"));
+        Trace.beginSection(traceSectionName("beginTransaction"));
         try {
             beginTransactionInternal();
         } finally {
+            // Only end the "beginTransaction" section. We'll end the "transaction" section in
+            // endTransaction().
             Trace.endSection();
         }
     }
@@ -729,11 +731,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     public void endTransaction() {
-        Trace.beginSection("endTransaction");
+        Trace.beginSection(traceSectionName("endTransaction"));
         try {
             endTransactionInternal();
         } finally {
             Trace.endSection();
+            // End "transaction" section, which we started in beginTransaction().
             Trace.endSection();
         }
     }
@@ -860,7 +863,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private void notifySingleChangeInternal(@NonNull Uri uri, int flags) {
-        Trace.beginSection("notifySingleChange");
+        Trace.beginSection(traceSectionName("notifySingleChange"));
         try {
             mContext.getContentResolver().notifyChange(uri, null, flags);
         } finally {
@@ -869,7 +872,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private void notifyChangeInternal(@NonNull Collection<Uri> uris, int flags) {
-        Trace.beginSection("notifyChange");
+        Trace.beginSection(traceSectionName("notifyChange"));
         try {
             for (List<Uri> partition : Iterables.partition(uris, NOTIFY_BATCH_SIZE)) {
                 mContext.getContentResolver().notifyChange(partition, null, flags);
@@ -2397,5 +2400,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     boolean isDatabaseRecovering() {
         return mIsRecovering.get();
+    }
+
+    private String traceSectionName(@NonNull String method) {
+        return "DH[" + getDatabaseName() + "]." + method;
     }
 }

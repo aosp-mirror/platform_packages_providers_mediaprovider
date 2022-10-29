@@ -37,6 +37,7 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
+import android.os.Trace;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -297,7 +298,14 @@ public class PickerDbFacade {
             if (!mDatabase.inTransaction()) {
                 throw new IllegalStateException("No ongoing DB transaction.");
             }
-            return executeInternal(cursor);
+            final String traceSectionName = getClass().getSimpleName()
+                    + ".execute[" + (mIsLocal ? "local" : "cloud") + ']';
+            Trace.beginSection(traceSectionName);
+            try {
+                return executeInternal(cursor);
+            } finally {
+                Trace.endSection();
+            }
         }
 
         public void setSuccess() {

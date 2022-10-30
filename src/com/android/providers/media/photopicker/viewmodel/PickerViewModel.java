@@ -26,7 +26,6 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.os.Binder;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -39,6 +38,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
 import com.android.modules.utils.BackgroundThread;
+import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
@@ -87,6 +87,7 @@ public class PickerViewModel extends AndroidViewModel {
     private int mBottomSheetState;
 
     private Category mCurrentCategory;
+    private ConfigStore mConfigStore;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -97,6 +98,7 @@ public class PickerViewModel extends AndroidViewModel {
         mMuteStatus = new MuteStatus();
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
+        mConfigStore = new ConfigStore.ConfigStoreImpl();
     }
 
     @VisibleForTesting
@@ -132,13 +134,16 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Reset to personal profile mode.
+     * Reset PickerViewModel.
+     * @param switchToPersonalProfile is true then set personal profile as current profile.
      */
-    public void resetToPersonalProfile() {
+    public void reset(boolean switchToPersonalProfile) {
         // 1. Clear Selected items
         mSelection.clearSelectedItems();
         // 2. Change profile to personal user
-        mUserIdManager.setPersonalAsCurrentUserProfile();
+        if (switchToPersonalProfile) {
+            mUserIdManager.setPersonalAsCurrentUserProfile();
+        }
         // 3. Update Item and Category lists
         updateItems();
         updateCategories();
@@ -456,5 +461,9 @@ public class PickerViewModel extends AndroidViewModel {
 
     public void setInstanceId(InstanceId parcelable) {
         mInstanceId = parcelable;
+    }
+
+    public ConfigStore getConfigStore() {
+        return mConfigStore;
     }
 }

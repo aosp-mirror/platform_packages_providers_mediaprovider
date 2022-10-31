@@ -24,8 +24,28 @@ import com.android.providers.media.util.Logging;
 import java.io.File;
 
 public class MediaApplication extends Application {
+    /**
+     * MediaProvider's code runs in two processes: primary and UI (PhotoPicker).
+     *
+     * The <b>primary</b> process hosts the {@link MediaProvider} itself, along with
+     * the {@link MediaService} and
+     * the {@link com.android.providers.media.fuse.ExternalStorageServiceImpl "Fuse" Service}.
+     * The name of the process matches the package name of the MediaProvider module.
+     *
+     * The <b>UI</b> (PhotoPicker) process hosts MediaProvider's UI components, namely
+     * the {@link com.android.providers.media.photopicker.PhotoPickerActivity} and
+     * the {@link com.android.providers.media.photopicker.PhotoPickerSettingsActivity}.
+     * The name of the process is the package name of the MediaProvider module suffixed with
+     * ":PhotoPicker".
+     */
+    private static final boolean sIsUiProcess;
     static {
-        System.loadLibrary("fuse_jni");
+        sIsUiProcess = getProcessName().endsWith(":PhotoPicker");
+
+        // Only need to load fuse lib in the primary process.
+        if (!sIsUiProcess) {
+            System.loadLibrary("fuse_jni");
+        }
     }
 
     @Override
@@ -34,5 +54,15 @@ public class MediaApplication extends Application {
 
         final File persistentDir = this.getDir("logs", Context.MODE_PRIVATE);
         Logging.initPersistent(persistentDir);
+    }
+
+    /** Check if this process is the primary MediaProvider's process. */
+    public static boolean isPrimaryProcess() {
+        return !sIsUiProcess;
+    }
+
+    /** Check if this process is the MediaProvider's UI (PhotoPicker) process. */
+    public static boolean isUiProcess() {
+        return sIsUiProcess;
     }
 }

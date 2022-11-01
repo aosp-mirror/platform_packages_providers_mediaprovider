@@ -78,8 +78,24 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Zapnúť zvuk videa"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Prehrať"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pozastaviť"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Video sa nedá prehrať"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Ťažkosti s prehrávaním videa"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Skontrolujte internetové pripojenie a skúste to znova"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Skúsiť znova"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Cloudové médiá sú teraz k dispozícii z aplikácie <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nevybrané"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Zálohované fotky sú teraz zahrnuté"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Môžete vybrať fotky z účtu <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> aplikácie <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Účet <xliff:g id="APP_NAME">%1$s</xliff:g> bol aktualizovaný"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Odteraz sú tu zahrnuté fotky z účtu <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Vyberte cloudovú aplikáciu s médiami"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Ak tu chcete zahrnúť zálohované fotky, vyberte v sekcii Nastavenia cloudovú aplikáciu s médiami"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Výber účtu <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Ak tu chcete zahrnúť fotky z aplikácie <xliff:g id="APP_NAME">%1$s</xliff:g>, vyberte v nej ľubovoľný účet"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Zavrieť"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Vybrať aplikáciu"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Vybrať účet"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Zmeniť účet"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Chcete povoliť aplikácii <xliff:g id="APP_NAME_0">^1</xliff:g> upraviť tento zvukový súbor?}few{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> zvukové súbory?}many{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> audio files?}other{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> zvukových súborov?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Upravuje sa zvukový súbor…}few{Upravujú sa <xliff:g id="COUNT">^1</xliff:g> zvukové súbory…}many{Modifying <xliff:g id="COUNT">^1</xliff:g> audio files…}other{Upravuje sa <xliff:g id="COUNT">^1</xliff:g> zvukových súborov…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Chcete povoliť aplikácii <xliff:g id="APP_NAME_0">^1</xliff:g> upraviť toto video?}few{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> videá?}many{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> videos?}other{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> videí?}}"</string>

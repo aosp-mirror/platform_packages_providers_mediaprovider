@@ -78,8 +78,24 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Geluid van video aanzetten"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Afspelen"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Onderbreken"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Video kan niet worden afgespeeld"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Probleem bij video afspelen"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Check de internetverbinding en probeer het opnieuw"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Opnieuw proberen"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Cloudmedia nu beschikbaar van <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"niet geselecteerd"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Nu ook met foto\'s waarvan een back-up is gemaakt"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Je kunt foto\'s selecteren uit het <xliff:g id="APP_NAME">%1$s</xliff:g>-account <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Account voor <xliff:g id="APP_NAME">%1$s</xliff:g> geüpdatet"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Je vindt hier nu foto\'s uit <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Kies een cloudmedia-app"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Als je hier foto\'s wilt toevoegen waarvan een back-up is gemaakt, kies je een cloudmedia-app in Instellingen"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Kies een <xliff:g id="APP_NAME">%1$s</xliff:g>-account"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Als je hier foto\'s van <xliff:g id="APP_NAME">%1$s</xliff:g> wilt toevoegen, kies je een account in de app"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Sluiten"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"App selecteren"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Account kiezen"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Account wijzigen"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> toestaan dit audiobestand aan te passen?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> toestaan <xliff:g id="COUNT">^2</xliff:g> audiobestanden aan te passen?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Audiobestand aanpassen…}other{<xliff:g id="COUNT">^1</xliff:g> audiobestanden aanpassen…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> toestaan deze video aan te passen?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> toestaan <xliff:g id="COUNT">^2</xliff:g> video\'s aan te passen?}}"</string>

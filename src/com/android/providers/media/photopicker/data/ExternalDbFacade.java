@@ -113,13 +113,21 @@ public class ExternalDbFacade {
             MediaColumns.GENERATION_MODIFIED + " > ?";
     private static final String WHERE_RELATIVE_PATH = MediaStore.MediaColumns.RELATIVE_PATH
             + " LIKE ?";
-    private static final String WHERE_MIME_TYPE = MediaStore.MediaColumns.MIME_TYPE
-            + " LIKE ?";
-    private static final String WHERE_VOLUME_IN_PREFIX = MediaStore.MediaColumns.VOLUME_NAME
-            + " IN %s";
 
-    public static final String RELATIVE_PATH_SCREENSHOTS =
-            "%/" + Environment.DIRECTORY_SCREENSHOTS + "/%";
+    /* Include any directory named exactly {@link Environment.DIRECTORY_SCREENSHOTS}
+     * and its child directories. */
+    private static final String WHERE_RELATIVE_PATH_IS_SCREENSHOT_DIR =
+            MediaStore.MediaColumns.RELATIVE_PATH
+                    + " LIKE '%/"
+                    + Environment.DIRECTORY_SCREENSHOTS
+                    + "/%' OR "
+                    + MediaStore.MediaColumns.RELATIVE_PATH
+                    + " LIKE '"
+                    + Environment.DIRECTORY_SCREENSHOTS
+                    + "/%'";
+
+    private static final String WHERE_VOLUME_IN_PREFIX =
+            MediaStore.MediaColumns.VOLUME_NAME + " IN %s";
 
     public static final String RELATIVE_PATH_CAMERA = Environment.DIRECTORY_DCIM + "/Camera/%";
 
@@ -434,8 +442,7 @@ public class ExternalDbFacade {
                 selectionArgs.add(RELATIVE_PATH_CAMERA);
                 break;
             case ALBUM_ID_SCREENSHOTS:
-                qb.appendWhereStandalone(WHERE_RELATIVE_PATH);
-                selectionArgs.add(RELATIVE_PATH_SCREENSHOTS);
+                qb.appendWhereStandalone(WHERE_RELATIVE_PATH_IS_SCREENSHOT_DIR);
                 break;
             case ALBUM_ID_DOWNLOADS:
                 qb.appendWhereStandalone(WHERE_IS_DOWNLOAD);

@@ -92,6 +92,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
@@ -213,6 +214,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     /** Stores cached value of next row id of the database which optimises new id inserts. */
     private AtomicLong mNextRowIdBackup = new AtomicLong(INVALID_ROW_ID);
+
+    /** Indicates whether the database is recovering from a rollback or not. */
+    private AtomicBoolean mIsRecovering =  new AtomicBoolean(false);
 
     public interface OnSchemaChangeListener {
         void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
@@ -351,20 +355,22 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_INSERT", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":", 5);
+                final String[] split = arg.split(":", 6);
                 final String volumeName = split[0];
                 final long id = Long.parseLong(split[1]);
                 final int mediaType = Integer.parseInt(split[2]);
                 final boolean isDownload = Integer.parseInt(split[3]) != 0;
                 final boolean isPending = Integer.parseInt(split[4]) != 0;
+                final String path = split[5];
 
                 FileRow insertedRow = FileRow.newBuilder(id)
                         .setVolumeName(volumeName)
                         .setMediaType(mediaType)
                         .setIsDownload(isDownload)
                         .setIsPending(isPending)
+                        .setPath(path)
                         .build();
-                Trace.beginSection("_INSERT");
+                Trace.beginSection(traceSectionName("_INSERT"));
                 try {
                     mFilesListener.onInsert(DatabaseHelper.this, insertedRow);
                 } finally {
@@ -418,7 +424,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         .setOwnerPackageName(newOwnerPackage)
                         .build();
 
-                Trace.beginSection("_UPDATE");
+                Trace.beginSection(traceSectionName("_UPDATE"));
                 try {
                     mFilesListener.onUpdate(DatabaseHelper.this, oldRow, newRow);
                 } finally {
@@ -445,7 +451,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         .setOwnerPackageName(ownerPackage)
                         .setPath(path)
                         .build();
-                Trace.beginSection("_DELETE");
+                Trace.beginSection(traceSectionName("_DELETE"));
                 try {
                     mFilesListener.onDelete(DatabaseHelper.this, deletedRow);
                 } finally {
@@ -456,7 +462,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         });
         db.setCustomScalarFunction("_GET_ID", (arg) -> {
             if (mIdGenerator != null && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                Trace.beginSection("_GET_ID");
+                Trace.beginSection(traceSectionName("_GET_ID"));
                 try {
                     return mIdGenerator.apply(arg);
                 } finally {
@@ -500,33 +506,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     @Override
     public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
-        Log.w(TAG, String.format(Locale.ROOT,
-                "onDowngrade() for %s from %s to %s. Deleting database:%s in case of a "
-                        + "downgrade.", mName, oldV, newV, mName));
-        deleteDatabaseFiles();
-        throw new IllegalStateException(
-                String.format(Locale.ROOT, "Crashing MP process on database downgrade of %s.",
-                        mName));
-    }
-
-    private void deleteDatabaseFiles() {
-        File dbDir = mContext.getDatabasePath(mName).getParentFile();
-        File[] files = dbDir.listFiles();
-        if (files == null) {
-            Log.w(TAG, String.format(Locale.ROOT, "No database files found on path:%s.",
-                    dbDir.getAbsolutePath()));
-            return;
-        }
-
-        for (File file : files) {
-            if (file.getName().startsWith(mName)) {
-                file.delete();
-                Log.w(TAG, String.format(Locale.ROOT, "Database file:%s deleted.",
-                        file.getAbsolutePath()));
-            }
+        Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
+        mSchemaLock.writeLock().lock();
+        try {
+            downgradeDatabase(db, oldV, newV);
+        } finally {
+            mSchemaLock.writeLock().unlock();
         }
     }
-
 
     @Override
     public void onOpen(final SQLiteDatabase db) {
@@ -709,11 +696,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     public void beginTransaction() {
-        Trace.beginSection("transaction " + getDatabaseName());
-        Trace.beginSection("beginTransaction");
+        Trace.beginSection(traceSectionName("transaction"));
+        Trace.beginSection(traceSectionName("beginTransaction"));
         try {
             beginTransactionInternal();
         } finally {
+            // Only end the "beginTransaction" section. We'll end the "transaction" section in
+            // endTransaction().
             Trace.endSection();
         }
     }
@@ -742,11 +731,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     public void endTransaction() {
-        Trace.beginSection("endTransaction");
+        Trace.beginSection(traceSectionName("endTransaction"));
         try {
             endTransactionInternal();
         } finally {
             Trace.endSection();
+            // End "transaction" section, which we started in beginTransaction().
             Trace.endSection();
         }
     }
@@ -873,7 +863,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private void notifySingleChangeInternal(@NonNull Uri uri, int flags) {
-        Trace.beginSection("notifySingleChange");
+        Trace.beginSection(traceSectionName("notifySingleChange"));
         try {
             mContext.getContentResolver().notifyChange(uri, null, flags);
         } finally {
@@ -882,7 +872,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private void notifyChangeInternal(@NonNull Collection<Uri> uris, int flags) {
-        Trace.beginSection("notifyChange");
+        Trace.beginSection(traceSectionName("notifyChange"));
         try {
             for (List<Uri> partition : Iterables.partition(uris, NOTIFY_BATCH_SIZE)) {
                 mContext.getContentResolver().notifyChange(partition, null, flags);
@@ -1527,7 +1517,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         final String insertArg =
                 "new.volume_name||':'||new._id||':'||new.media_type||':'||new.is_download"
-                + "||':'||new.is_pending";
+                + "||':'||new.is_pending||':'||new._data";
         final String updateArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
@@ -1880,10 +1870,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_Q = 1023;
     static final int VERSION_R = 1115;
     static final int VERSION_S = 1209;
-    // Leave some gaps in database version tagging to allow S schema changes
-    // to go independent of T schema changes.
     static final int VERSION_T = 1308;
-    public static final int VERSION_LATEST = VERSION_T;
+    // Leave some gaps in database version tagging to allow T schema changes
+    // to go independent of U schema changes.
+    static final int VERSION_U = 1400;
+    public static final int VERSION_LATEST = VERSION_U;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -2082,6 +2073,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (fromVersion < 1308) {
                 // Empty version bump to ensure triggers are recreated
             }
+            if (fromVersion < 1400) {
+                // Empty version bump to ensure triggers are recreated
+            }
 
             // If this is the legacy database, it's not worth recomputing data
             // values locally, since they'll be recomputed after the migration
@@ -2100,6 +2094,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         createLatestTriggers(db);
 
         getOrCreateUuid(db);
+
+        final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
+        if (mSchemaListener != null) {
+            mSchemaListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
+                    getItemCount(db), elapsedMillis, getOrCreateUuid(db));
+        }
+    }
+
+    private void downgradeDatabase(SQLiteDatabase db, int fromVersion, int toVersion) {
+        final long startTime = SystemClock.elapsedRealtime();
+
+        // The best we can do is wipe and start over
+        createLatestSchema(db);
 
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
         if (mSchemaListener != null) {
@@ -2389,5 +2396,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public static int getNextRowIdBackupFrequency() {
         return SystemProperties.getInt("persist.sys.fuse.backup.nextrowid_backup_frequency",
                 1000);
+    }
+
+    boolean isDatabaseRecovering() {
+        return mIsRecovering.get();
+    }
+
+    private String traceSectionName(@NonNull String method) {
+        return "DH[" + getDatabaseName() + "]." + method;
     }
 }

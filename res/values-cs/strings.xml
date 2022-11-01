@@ -84,6 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Zkusit znovu"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Cloudová média jsou teď k dispozici ze zdroje <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nevybráno"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Teď jsou zde zahrnuty zálohované fotky"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Můžete vybrat fotky z účtu <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> aplikace <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Účet <xliff:g id="APP_NAME">%1$s</xliff:g> byl aktualizován"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Teď jsou zde zahrnuty fotky z účtu <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Vyberte cloudovou mediální aplikaci"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Pokud sem chcete zahrnout zálohované fotky, v Nastavení vyberte cloudovou mediální aplikaci"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Vyberte účet <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Pokud sem chcete zahrnout fotky z aplikace <xliff:g id="APP_NAME">%1$s</xliff:g>, vyberte v aplikaci účet"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Zavřít"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Vybrat aplikaci"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Vybrat účet"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Změnit účet"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit tento zvukový soubor?}few{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukové soubory?}many{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukového souboru?}other{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukových souborů?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Úprava zvukového souboru…}few{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…}many{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukového souboru…}other{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit toto video?}few{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?}many{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?}other{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videí?}}"</string>

@@ -84,6 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"እንደገና ሞክር"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"የደመና ሚዲያ አሁን ከ<xliff:g id="PKG_NAME">%1$s</xliff:g> ይገኛል"</string>
     <string name="not_selected" msgid="2244008151669896758">"አልተመረጠም"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ምትኬ የተቀመጠላቸው ፎቶዎች አሁን ተካትተዋል"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ከ<xliff:g id="APP_NAME">%1$s</xliff:g> መለያ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ፎቶዎችን መምረጥ ይችላሉ"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> መለያ ተዘምኗል"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"አሁን ከ<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> የመጡ ፎቶዎች እዚህ ተካትተዋል"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"የደመና ሚዲያ መተግበሪያን ይምረጡ"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"ምትኬ የተቀመጠላቸው ፎቶዎችን እዚህ ለማካተት ቅንብሮች ውስጥ የደመና ሚዲያ መተግበሪያን ይምረጡ"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"የ<xliff:g id="APP_NAME">%1$s</xliff:g> መለያ ይምረጡ"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"ከ<xliff:g id="APP_NAME">%1$s</xliff:g> የመጡ ፎቶዎችን እዚህ ለማካተት በመተግበሪያው ውስጥ አንድ መለያ ይምረጡ"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"አሰናብት"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"መተግበሪያ ይምረጡ"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"መለያ ይምረጡ"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"መለያ ቀይር"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ይህን ኦዲዮ ፋይል እንዲቀይር ይፈቀድለት?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ኦዲዮ ፋይልን እንዲቀይር ይፈቀድለት?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ኦዲዮ ፋይሎችን እንዲቀይር ይፈቀድለት?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{የኦዲዮ ፋይልን በመቀየር ላይ…}one{<xliff:g id="COUNT">^1</xliff:g> የኦዲዮ ፋይልን በመቀየር ላይ…}other{<xliff:g id="COUNT">^1</xliff:g> የኦዲዮ ፋይሎችን በመቀየር ላይ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ይህን ቪዲዮ እንዲቀይር ይፈቀድለት?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ቪዲዮን እንዲቀይር ይፈቀድለት?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ቪዲዮዎችን እንዲቀይር ይፈቀድለት?}}"</string>

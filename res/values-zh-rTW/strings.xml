@@ -84,6 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"重試"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"現在可以透過「<xliff:g id="PKG_NAME">%1$s</xliff:g>」存取雲端媒體"</string>
     <string name="not_selected" msgid="2244008151669896758">"未選取"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"現在已納入備份相片"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"你可以從「<xliff:g id="APP_NAME">%1$s</xliff:g>」帳戶 <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> 選取相片"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"「<xliff:g id="APP_NAME">%1$s</xliff:g>」帳戶更新完成"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> 的相片現在也會納入到這裡"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"選擇雲端媒體應用程式"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"如要將備份相片納入到這裡，請在「設定」中選擇一項雲端媒體應用程式"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"選擇「<xliff:g id="APP_NAME">%1$s</xliff:g>」帳戶"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"如要將「<xliff:g id="APP_NAME">%1$s</xliff:g>」的相片納入到這裡，請在應用程式中選擇所需帳戶"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"關閉"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"選擇應用程式"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"選擇帳戶"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"變更帳戶"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{允許「<xliff:g id="APP_NAME_0">^1</xliff:g>」修改這個音訊檔案嗎？}other{允許「<xliff:g id="APP_NAME_1">^1</xliff:g>」修改這 <xliff:g id="COUNT">^2</xliff:g> 個音訊檔案嗎？}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{正在修改音訊檔案…}other{正在修改 <xliff:g id="COUNT">^1</xliff:g> 個音訊檔案…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{允許「<xliff:g id="APP_NAME_0">^1</xliff:g>」修改這部影片嗎？}other{允許「<xliff:g id="APP_NAME_1">^1</xliff:g>」修改這 <xliff:g id="COUNT">^2</xliff:g> 部影片嗎？}}"</string>

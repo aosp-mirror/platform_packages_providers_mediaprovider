@@ -84,6 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Tentar novamente"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Multimédia da nuvem já disponível da app <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"não selecionado"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"As fotos com cópia de segurança já estão incluídas"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Pode selecionar fotos da app <xliff:g id="APP_NAME">%1$s</xliff:g> da conta <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Conta da app <xliff:g id="APP_NAME">%1$s</xliff:g> atualizada"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"As fotos de <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> já estão incluídas aqui"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Escolha uma app de multimédia na nuvem"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Para incluir fotos com cópia de segurança aqui, escolha uma app de multimédia na nuvem nas Definições"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Escolha uma conta na app <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Para incluir fotos da app <xliff:g id="APP_NAME">%1$s</xliff:g> aqui, escolha uma conta na app"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Ignorar"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Escolher app"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Escolher conta"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Alterar conta"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este ficheiro de áudio?}many{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> audio files?}other{Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> ficheiros de áudio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{A modificar o ficheiro de áudio…}many{Modifying <xliff:g id="COUNT">^1</xliff:g> audio files…}other{A modificar <xliff:g id="COUNT">^1</xliff:g> ficheiro(s) de áudio…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este vídeo?}many{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> videos?}other{Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> vídeos?}}"</string>

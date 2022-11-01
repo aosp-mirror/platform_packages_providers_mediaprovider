@@ -84,6 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Herprobeer"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Wolkmedia is nou deur <xliff:g id="PKG_NAME">%1$s</xliff:g> beskikbaar"</string>
     <string name="not_selected" msgid="2244008151669896758">"nie gekies nie"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Gerugsteunde foto\'s word nou ingesluit"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Jy kan foto\'s van <xliff:g id="APP_NAME">%1$s</xliff:g>-rekening <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> af kies"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g>-rekening is opgedateer"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Foto\'s van <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> af word nou hier ingesluit"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Kies wolkmedia-app"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Kies ’n wolkmedia-app in Instellings om gerugsteunde foto\'s hier in te sluit"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Kies <xliff:g id="APP_NAME">%1$s</xliff:g>-rekening"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Kies ’n rekening in die app om foto\'s van <xliff:g id="APP_NAME">%1$s</xliff:g> af hier in te sluit"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Maak toe"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Kies app"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Kies rekening"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Verander rekening"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie oudiolêer te wysig?}other{Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> oudiolêers te wysig?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Wysig tans oudiolêer …}other{Wysig tans <xliff:g id="COUNT">^1</xliff:g> oudiolêers …}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie video te wysig?}other{Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> video\'s te wysig?}}"</string>

@@ -48,7 +48,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.VisibleForTesting;
 
 import java.util.Locale;
 import java.util.function.Consumer;
@@ -451,7 +450,7 @@ public class DatabaseUtils {
 
     public static long executeInsert(@NonNull SQLiteDatabase db, @NonNull String sql,
             @Nullable Object[] bindArgs) throws SQLException {
-        Trace.beginSection("executeInsert");
+        Trace.beginSection("DbUtils.executeInsert");
         try (SQLiteStatement st = db.compileStatement(sql)) {
             bindArgs(st, bindArgs);
             return st.executeInsert();
@@ -462,7 +461,7 @@ public class DatabaseUtils {
 
     public static int executeUpdateDelete(@NonNull SQLiteDatabase db, @NonNull String sql,
             @Nullable Object[] bindArgs) throws SQLException {
-        Trace.beginSection("executeUpdateDelete");
+        Trace.beginSection("DbUtils.executeUpdateDelete");
         try (SQLiteStatement st = db.compileStatement(sql)) {
             bindArgs(st, bindArgs);
             return st.executeUpdateDelete();

@@ -84,6 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"다시 시도"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"이제 <xliff:g id="PKG_NAME">%1$s</xliff:g>에서 클라우드 미디어를 사용할 수 있습니다."</string>
     <string name="not_selected" msgid="2244008151669896758">"선택되지 않음"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"이제 백업된 사진이 포함됨"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> 계정(<xliff:g id="USER_ACCOUNT">%2$s</xliff:g>)에서 사진을 선택할 수 있습니다."</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> 계정 업데이트됨"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"이제 <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>님의 사진이 여기에 포함되었습니다."</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"클라우드 미디어 앱 선택"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"백업된 사진을 여기에 포함하려면 설정에서 클라우드 미디어 앱을 선택하세요."</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"<xliff:g id="APP_NAME">%1$s</xliff:g> 계정 선택"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"<xliff:g id="APP_NAME">%1$s</xliff:g>의 사진을 여기에 포함하려면 앱에서 계정을 선택하세요."</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"닫기"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"앱 선택"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"계정 선택"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"계정 변경"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 오디오 파일을 수정하도록 허용하시겠습니까?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>에서 오디오 파일 <xliff:g id="COUNT">^2</xliff:g>개를 수정하도록 허용하시겠습니까?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{오디오 파일 수정 중…}other{오디오 파일 <xliff:g id="COUNT">^1</xliff:g>개 수정 중…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 동영상을 수정하도록 허용하시겠습니까?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>에서 동영상 <xliff:g id="COUNT">^2</xliff:g>개를 수정하도록 허용하시겠습니까?}}"</string>

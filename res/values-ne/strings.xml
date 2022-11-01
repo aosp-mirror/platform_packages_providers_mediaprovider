@@ -84,6 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"फेरि प्रयास गर्नुहोस्"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"क्लाउड मिडिया अब <xliff:g id="PKG_NAME">%1$s</xliff:g> मा उपलब्ध छ"</string>
     <string name="not_selected" msgid="2244008151669896758">"चयन गरिएको छैन"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"अब ब्याकअप गरिएका फोटोहरू समावेश गरिएका छन्"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"तपाईं <xliff:g id="APP_NAME">%1$s</xliff:g> मा <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> खाता प्रयोग गरी राखिएका फोटोहरू चयन गर्न सक्नुहुन्छ"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> खाता अपडेट गरियो"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"अब <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> का फोटोहरू यहाँ समावेश गरिएका छन्"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"क्लाउड मिडिया एप छनौट गर्नुहोस्"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"तपाईं ब्याकअप गरिएका फोटोहरू यहाँ समावेश गर्न चाहनुहुन्छ भने सेटिङमा गई कुनै क्लाउड मिडिया एप छनौट गर्नुहोस्"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"<xliff:g id="APP_NAME">%1$s</xliff:g> खाता छान्नुहोस्"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"तपाईं <xliff:g id="APP_NAME">%1$s</xliff:g> का फोटोहरू यहाँ समावेश गर्न चाहनुहुन्छ भने एपमा गई कुनै खाता छनौट गर्नुहोस्"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"खारेज गर्नुहोस्"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"एप छनौट गर्नुहोस्"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"खाता छनौट गर्नुहोस्"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"खाता बदल्नुहोस्"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो अडियो फाइल परिमार्जन गर्न दिने हो?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> लाई <xliff:g id="COUNT">^2</xliff:g> वटा अडियो फाइल परिमार्जन गर्न दिने हो?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{अडियो फाइल परिमार्जन गरिँदै छ…}other{<xliff:g id="COUNT">^1</xliff:g> वटा अडियो फाइल परिमार्जन गरिँदै छन्…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो भिडियो परिमार्जन गर्न दिने हो?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> लाई <xliff:g id="COUNT">^2</xliff:g> वटा भिडियो परिमार्जन गर्न दिने हो?}}"</string>

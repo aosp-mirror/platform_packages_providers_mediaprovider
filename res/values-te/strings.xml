@@ -84,6 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"మళ్లీ ట్రై చేయండి"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"క్లౌడ్ మీడియా ఇప్పుడు <xliff:g id="PKG_NAME">%1$s</xliff:g> నుండి అందుబాటులో ఉంది"</string>
     <string name="not_selected" msgid="2244008151669896758">"ఎంచుకోబడలేదు"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"బ్యాకప్ చేసిన ఫోటోలు ఇప్పుడు చేర్చబడ్డాయి"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"మీరు <xliff:g id="APP_NAME">%1$s</xliff:g> ఖాతా <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> నుండి ఫోటోలను ఎంచుకోవచ్చు"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> ఖాతా అప్‌డేట్ చేయబడింది"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> నుండి ఫోటోలు ఇప్పుడు ఇక్కడ చేర్చబడ్డాయి"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"క్లౌడ్ మీడియా యాప్‌ను ఎంచుకోండి"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"ఇక్కడ బ్యాకప్ చేసిన ఫోటోలను చేర్చడానికి, సెట్టింగ్‌లలో క్లౌడ్ మీడియా యాప్‌ను ఎంచుకోండి"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"<xliff:g id="APP_NAME">%1$s</xliff:g> ఖాతాను ఎంచుకోండి"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"ఇక్కడ <xliff:g id="APP_NAME">%1$s</xliff:g> నుండి ఫోటోలను చేర్చడానికి, యాప్‌లో ఖాతాను ఎంచుకోండి"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"విస్మరించండి"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"యాప్‌ను ఎంచుకోండి"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ఖాతాను ఎంచుకోండి"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ఖాతాను మార్చండి"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ఈ ఆడియో ఫైల్‌ను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>‌ను అనుమతించాలా?}other{<xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>‌ను అనుమతించాలా?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ఆడియో ఫైల్‌ను సవరిస్తోంది…}other{<xliff:g id="COUNT">^1</xliff:g> ఆడియో ఫైళ్లను సవరిస్తోంది…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ఈ వీడియోను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>‌ను అనుమతించాలా?}other{<xliff:g id="COUNT">^2</xliff:g> వీడియోలను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>‌ను అనుమతించాలా?}}"</string>

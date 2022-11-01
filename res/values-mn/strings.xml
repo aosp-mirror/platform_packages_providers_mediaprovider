@@ -84,6 +84,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Дахин оролдох"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Үүлэн медиаг одоо <xliff:g id="PKG_NAME">%1$s</xliff:g>-с авах боломжтой боллоо"</string>
     <string name="not_selected" msgid="2244008151669896758">"сонгоогүй"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Одоо хуулбарласан зургийг багтаасан"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Та <xliff:g id="APP_NAME">%1$s</xliff:g> <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> бүртгэлээс зураг сонгох боломжтой"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> бүртгэлийг шинэчилсэн"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g>-н зургийг одоо энд багтаасан"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Үүлэн медиа апп сонгоно уу"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Хуулбарласан зургийг энд багтаахын тулд Тохиргооноос үүлэн медиа апп сонгоно уу"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"<xliff:g id="APP_NAME">%1$s</xliff:g> бүртгэл сонгоно уу"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"<xliff:g id="APP_NAME">%1$s</xliff:g>-н зургийг энд багтаахын тулд аппаас бүртгэл сонгоно уу"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Хаах"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Апп сонгох"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Бүртгэл сонгох"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Бүртгэл өөрчлөх"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>-д энэ аудио файлыг өөрчлөхийг зөвшөөрөх үү?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>-д <xliff:g id="COUNT">^2</xliff:g> аудио файлыг өөрчлөхийг зөвшөөрөх үү?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Аудио файлыг өөрчилж байна…}other{<xliff:g id="COUNT">^1</xliff:g> аудио файлыг өөрчилж байна…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>-д энэ видеог өөрчлөхийг зөвшөөрөх үү?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>-д <xliff:g id="COUNT">^2</xliff:g> видеог өөрчлөхийг зөвшөөрөх үү?}}"</string>

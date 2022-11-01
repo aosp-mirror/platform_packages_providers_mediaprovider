@@ -688,7 +688,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private final void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType) {
-        Trace.beginSection("updateQuotaTypeForUri");
+        Trace.beginSection("MP.updateQuotaTypeForUri");
         File file;
         try {
             file = queryForDataFile(uri, null);
@@ -824,7 +824,7 @@ public class MediaProvider extends ContentProvider {
 
             helper.postBackground(() -> {
                 // Item no longer exists, so revoke all access to it
-                Trace.beginSection("revokeUriPermission");
+                Trace.beginSection("MP.revokeUriPermission");
                 try {
                     acceptWithExpansion((uri) -> {
                         getContext().revokeUriPermission(uri, ~0);
@@ -1013,7 +1013,7 @@ public class MediaProvider extends ContentProvider {
      * manually.
      */
     private void ensureDefaultFolders(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
-        if (volume.isExternallyManaged()) {
+        if (volume.shouldSkipDefaultDirCreation()) {
             // Default folders should not be automatically created inside volumes managed from
             // outside Android.
             return;
@@ -1053,7 +1053,7 @@ public class MediaProvider extends ContentProvider {
      * disk, then all thumbnails will be considered stable and will be deleted.
      */
     private void ensureThumbnailsValid(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
-        if (volume.isExternallyManaged()) {
+        if (volume.shouldSkipDefaultDirCreation()) {
             // Default folders and thumbnail directories should not be automatically created inside
             // volumes managed from outside Android, and there is no need to ensure the validity of
             // their thumbnails here.
@@ -3372,7 +3372,7 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor query(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal, boolean forSelf) {
-        Trace.beginSection("query");
+        Trace.beginSection("MP.query [" + uri + ']');
         try {
             return queryInternal(uri, projection, queryArgs, signal, forSelf);
         } catch (FallbackException e) {
@@ -3733,7 +3733,7 @@ public class MediaProvider extends ContentProvider {
     private void ensureFileColumns(int match, @NonNull Uri uri, @NonNull Bundle extras,
             @NonNull ContentValues values, boolean makeUnique, @Nullable String currentPath)
             throws VolumeArgumentException, VolumeNotFoundException {
-        Trace.beginSection("ensureFileColumns");
+        Trace.beginSection("MP.ensureFileColumns");
 
         Objects.requireNonNull(uri);
         Objects.requireNonNull(extras);
@@ -4272,7 +4272,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private int bulkInsertPlaylist(@NonNull Uri uri, @NonNull ContentValues[] values) {
-        Trace.beginSection("bulkInsertPlaylist");
+        Trace.beginSection("MP.bulkInsertPlaylist");
         try {
             try {
                 return addPlaylistMembers(uri, values);
@@ -4783,7 +4783,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public @Nullable Uri insert(@NonNull Uri uri, @Nullable ContentValues values,
             @Nullable Bundle extras) {
-        Trace.beginSection("insert");
+        Trace.beginSection("MP.insert [" + uri + ']');
         try {
             try {
                 return insertInternal(uri, values, extras);
@@ -5256,7 +5256,7 @@ public class MediaProvider extends ContentProvider {
      */
     private @NonNull SQLiteQueryBuilder getQueryBuilder(int type, int match,
             @NonNull Uri uri, @NonNull Bundle extras, @Nullable Consumer<String> honored) {
-        Trace.beginSection("getQueryBuilder");
+        Trace.beginSection("MP.getQueryBuilder");
         try {
             return getQueryBuilderInternal(type, match, uri, extras, honored);
         } finally {
@@ -5898,7 +5898,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int delete(@NonNull Uri uri, @Nullable Bundle extras) {
-        Trace.beginSection("delete");
+        Trace.beginSection("MP.delete [" + uri + ']');
         try {
             return deleteInternal(uri, extras);
         } catch (FallbackException e) {
@@ -6243,7 +6243,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
-        Trace.beginSection("call");
+        Trace.beginSection("MP.call [" + method + ']');
         try {
             return callInternal(method, arg, extras);
         } finally {
@@ -6941,7 +6941,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void invalidateThumbnails(Uri uri) {
-        Trace.beginSection("invalidateThumbnails");
+        Trace.beginSection("MP.invalidateThumbnails");
         try {
             invalidateThumbnailsInternal(uri);
         } finally {
@@ -6997,7 +6997,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(@NonNull Uri uri, @Nullable ContentValues values,
             @Nullable Bundle extras) {
-        Trace.beginSection("update");
+        Trace.beginSection("MP.update [" + uri + ']');
         try {
             return updateInternal(uri, values, extras);
         } catch (FallbackException e) {
@@ -7170,7 +7170,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (!isCallingPackageSelf()) {
-                Trace.beginSection("filter");
+                Trace.beginSection("MP.filter");
 
                 // We default to filtering mutable columns, except when we know
                 // the single item being updated is pending; when it's finally
@@ -7275,7 +7275,7 @@ public class MediaProvider extends ContentProvider {
                 && !initialValues.containsKey(MediaColumns.DATA)
                 && !isThumbnail
                 && allowMovement) {
-            Trace.beginSection("movement");
+            Trace.beginSection("MP.movement");
 
             // We only support movement under well-defined collections
             switch (match) {
@@ -7401,7 +7401,7 @@ public class MediaProvider extends ContentProvider {
         // it's applied, we need to snapshot affected IDs here
         final LongArray updatedIds = new LongArray();
         if (triggerInvalidate || triggerScan) {
-            Trace.beginSection("snapshot");
+            Trace.beginSection("MP.snapshot");
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try (Cursor c = qb.query(helper, new String[] { FileColumns._ID },
                     userWhere, userWhereArgs, null, null, null, null, null)) {
@@ -7468,7 +7468,7 @@ public class MediaProvider extends ContentProvider {
         // If the caller tried (and failed) to update metadata, the file on disk
         // might have changed, to scan it to collect the latest metadata.
         if (triggerInvalidate || triggerScan) {
-            Trace.beginSection("invalidate");
+            Trace.beginSection("MP.invalidate");
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try {
                 for (int i = 0; i < updatedIds.size(); i++) {
@@ -7641,7 +7641,7 @@ public class MediaProvider extends ContentProvider {
      * that the playlist entry is retained to avoid user data loss.
      */
     private void resolvePlaylistMembers(@NonNull Uri playlistUri) {
-        Trace.beginSection("resolvePlaylistMembers");
+        Trace.beginSection("MP.resolvePlaylistMembers");
         try {
             final DatabaseHelper helper;
             try {
@@ -8103,7 +8103,7 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        Trace.beginSection("ensureThumbnail");
+        Trace.beginSection("MP.ensureThumbnail");
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try {
             switch (match) {
@@ -8969,7 +8969,7 @@ public class MediaProvider extends ContentProvider {
         final LongArray res = new LongArray();
         final LongArray freeOffsets = new LongArray();
 
-        Trace.beginSection("getRedactionRanges");
+        Trace.beginSection("MP.getRedactionRanges");
         try {
             if (ExifInterface.isSupportedMimeType(mimeType)) {
                 final ExifInterface exif = new ExifInterface(fis.getFD());
@@ -9019,7 +9019,7 @@ public class MediaProvider extends ContentProvider {
 
     private FileAccessAttributes queryForFileAttributes(final String path)
             throws FileNotFoundException {
-        Trace.beginSection("queryFileAttr");
+        Trace.beginSection("MP.queryFileAttr");
         final Uri contentUri = FileUtils.getContentUriForPath(path);
         final String[] projection = new String[]{
                 MediaColumns._ID,
@@ -9950,7 +9950,7 @@ public class MediaProvider extends ContentProvider {
      */
     private void enforceCallingPermission(@NonNull Uri uri, @NonNull Bundle extras,
             boolean forWrite) {
-        Trace.beginSection("enforceCallingPermission");
+        Trace.beginSection("MP.enforceCallingPermission");
         try {
             enforceCallingPermissionInternal(uri, extras, forWrite);
         } finally {

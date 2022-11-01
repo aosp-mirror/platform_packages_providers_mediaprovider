@@ -10360,7 +10360,7 @@ public class MediaProvider extends ContentProvider {
     /**
      * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
      */
-    private boolean isStableUrisEnabled(String volumeName) {
+    protected boolean isStableUrisEnabled(String volumeName) {
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
                 return mConfigStore.isStableUrisForInternalVolumeEnabled();

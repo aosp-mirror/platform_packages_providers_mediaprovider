@@ -37,6 +37,7 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
+import android.os.Trace;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -147,19 +148,26 @@ public class PickerDbFacade {
                     KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
     private static final String WHERE_ALBUM_ID = KEY_ALBUM_ID  + " = ?";
 
-    // This where clause returns all rows for media items that are local only or local + cloud and
-    // are marked as favorite.
+    // This where clause returns all rows for media items that are either local-only or cloud+local
+    // and are marked as favorite.
+    //
+    // 'local_id' IN (SELECT 'local_id'
+    //      FROM 'media'
+    //      WHERE 'local_id' IS NOT NULL
+    //      GROUP BY 'local_id'
+    //      HAVING SUM('is_favorite') >= 1)
     private static final String WHERE_FAVORITE_LOCAL = String.format(
-                "%s IN (SELECT %s FROM %s WHERE %s IS NOT NULL GROUP BY %s HAVING SUM(%s) >= 1) ",
-            KEY_LOCAL_ID, KEY_LOCAL_ID, TABLE_MEDIA, KEY_LOCAL_ID, KEY_LOCAL_ID,
-            KEY_IS_FAVORITE);
-    // This where clause returns all rows for media items that are cloud only and are marked as
+            "%s IN (SELECT %s FROM %s WHERE %s IS NOT NULL GROUP BY %s HAVING SUM(%s) >= 1)",
+            KEY_LOCAL_ID, KEY_LOCAL_ID, TABLE_MEDIA, KEY_LOCAL_ID, KEY_LOCAL_ID, KEY_IS_FAVORITE);
+    // This where clause returns all rows for media items that are cloud-only and are marked as
     // favorite.
-    private static final String WHERE_FAVORITE_CLOUD_ONLY = String.format("%s IS NULL AND %s = 1",
-            KEY_LOCAL_ID, KEY_IS_FAVORITE);
+    //
+    // 'local_id' IS NULL AND 'is_favorite' = 1
+    private static final String WHERE_FAVORITE_CLOUD_ONLY = String.format(
+            "%s IS NULL AND %s = 1", KEY_LOCAL_ID, KEY_IS_FAVORITE);
     // This where clause returns all rows for media items that are marked as favorite.
-    private static final String WHERE_FAVORITE = String.format("( %s OR %s )", WHERE_FAVORITE_LOCAL,
-            WHERE_FAVORITE_CLOUD_ONLY);
+    private static final String WHERE_FAVORITE = String.format(
+            "( %s OR %s )", WHERE_FAVORITE_LOCAL, WHERE_FAVORITE_CLOUD_ONLY);
 
     // Matches all media including cloud+local, cloud-only and local-only
     private static final SQLiteQueryBuilder QB_MATCH_ALL = createMediaQueryBuilder();
@@ -297,7 +305,14 @@ public class PickerDbFacade {
             if (!mDatabase.inTransaction()) {
                 throw new IllegalStateException("No ongoing DB transaction.");
             }
-            return executeInternal(cursor);
+            final String traceSectionName = getClass().getSimpleName()
+                    + ".execute[" + (mIsLocal ? "local" : "cloud") + ']';
+            Trace.beginSection(traceSectionName);
+            try {
+                return executeInternal(cursor);
+            } finally {
+                Trace.endSection();
+            }
         }
 
         public void setSuccess() {

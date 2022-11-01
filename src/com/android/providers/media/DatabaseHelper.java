@@ -151,7 +151,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * For devices with adoptable storage support, opting for adoptable storage will not delete
      * /data/media/0 directory.
      */
-    public static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
+    private static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
 
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";
@@ -513,6 +513,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         } finally {
             mSchemaLock.writeLock().unlock();
         }
+        // In case of a bad MP release which decreases the DB version, we would end up downgrading
+        // database. We are explicitly setting a new session id on database to trigger recovery
+        // in onOpen() call.
+        setXattr(db.getPath(), getSessionIdXattrKeyForDatabase(), UUID.randomUUID().toString());
     }
 
     @Override
@@ -520,8 +524,66 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         Log.v(TAG, "onOpen() for " + mName);
         // Recovering before migration from legacy because recovery process will clear up data to
         // read from xattrs once ids are persisted in xattrs.
+        tryRecoverDatabase(db);
         tryRecoverRowIdSequence(db);
         tryMigrateFromLegacy(db);
+    }
+
+    private void tryRecoverDatabase(SQLiteDatabase db) {
+        MediaProvider mediaProvider;
+        try (ContentProviderClient cpc = mContext.getContentResolver()
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            mediaProvider = ((MediaProvider) cpc.getLocalContentProvider());
+        } catch (Exception e) {
+            throw new RuntimeException("Could not retrieve local content provider", e);
+        }
+        String volumeName =
+                isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
+        if (!isInternal() || !mediaProvider.isStableUrisEnabled(volumeName)) {
+            return;
+        }
+
+        synchronized (sRecoveryLock) {
+            // Read last used session id from /data/media/0.
+            Optional<String> lastUsedSessionIdFromExternalStoragePathXattr = getXattr(
+                    DATA_MEDIA_XATTR_DIRECTORY_PATH, getSessionIdXattrKeyForDatabase());
+            if (!lastUsedSessionIdFromExternalStoragePathXattr.isPresent()) {
+                // First time scenario will have no session id at /data/media/0.
+                updateSessionIdInDatabaseAndExternalStorage(db);
+                return;
+            }
+
+            // Check if session is same as last used.
+            if (isLastUsedDatabaseSession(db)) {
+                // Same session id present as xattr on DB and External Storage
+                updateSessionIdInDatabaseAndExternalStorage(db);
+                return;
+            }
+
+            // Delete old data and create new schema.
+            recreateLatestSchema(db);
+            // Recover data from backup
+            recoverData(db);
+            updateSessionIdInDatabaseAndExternalStorage(db);
+            Log.d(TAG, "Recovery completed for " + mName);
+        }
+    }
+
+    @GuardedBy("sRecoveryLock")
+    private void recreateLatestSchema(SQLiteDatabase db) {
+        mSchemaLock.writeLock().lock();
+        try {
+            createLatestSchema(db);
+        } finally {
+            mSchemaLock.writeLock().unlock();
+        }
+    }
+
+    @GuardedBy("sRecoveryLock")
+    private void recoverData(SQLiteDatabase db) {
+        mIsRecovering.set(true);
+        // TODO(b/245505908) : Add recovery code
+        mIsRecovering.set(false);
     }
 
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {
@@ -2319,7 +2381,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         mName));
     }
 
-    protected String getSessionIdXattrKeyForDatabase() {
+    private String getSessionIdXattrKeyForDatabase() {
         if (isInternal()) {
             return INTERNAL_DB_SESSION_ID_XATTR_KEY;
         } else if (isExternal()) {
@@ -2330,7 +2392,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         mName));
     }
 
-    protected static boolean setXattr(String path, String key, String value) {
+    private static boolean setXattr(String path, String key, String value) {
         try (ParcelFileDescriptor pfd = ParcelFileDescriptor.open(new File(path),
                 ParcelFileDescriptor.MODE_READ_ONLY)) {
             // Map id value to xattr key
@@ -2345,7 +2407,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
-    protected static Optional<String> getXattr(String path, String key) {
+    private static Optional<String> getXattr(String path, String key) {
         try {
             return Optional.of(Arrays.toString(Os.getxattr(path, key)));
         } catch (Exception e) {

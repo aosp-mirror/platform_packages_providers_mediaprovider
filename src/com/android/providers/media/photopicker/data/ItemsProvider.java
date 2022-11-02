@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static android.content.ContentResolver.QUERY_ARG_LIMIT;
 import static android.widget.Toast.LENGTH_LONG;
 
 import android.content.ContentProvider;
@@ -162,7 +163,7 @@ public class ItemsProvider {
                         + MediaStore.AUTHORITY);
                 return null;
             }
-            extras.putInt(MediaStore.QUERY_ARG_LIMIT, limit);
+            extras.putInt(QUERY_ARG_LIMIT, limit);
             if (mimeTypes != null) {
                 extras.putStringArray(MediaStore.QUERY_ARG_MIME_TYPE, mimeTypes);
             }

@@ -552,23 +552,36 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     getExternalStorageDbXattrPath(), getSessionIdXattrKeyForDatabase());
             if (!lastUsedSessionIdFromExternalStoragePathXattr.isPresent()) {
                 // First time scenario will have no session id at /data/media/0.
+                // Trigger database backup to external storage because
+                // StableUrisIdleMaintenanceService will be attempted to run only once in 7days.
+                // Any rollback before that will not recover DB rows.
+                BackgroundThread.getExecutor().execute(
+                        () -> mediaProvider.backupInternalDatabase(null));
+                // Set next row id in External Storage to handle rollback in future.
+                backupNextRowId(NEXT_ROW_ID_DEFAULT_BILLION_VALUE);
                 updateSessionIdInDatabaseAndExternalStorage(db);
                 return;
             }
 
+            Optional<Long> nextRowIdFromXattrOptional = getNextRowIdFromXattr();
             // Check if session is same as last used.
-            if (isLastUsedDatabaseSession(db)) {
+            if (isLastUsedDatabaseSession(db) && nextRowIdFromXattrOptional.isPresent()) {
                 // Same session id present as xattr on DB and External Storage
+                Log.i(TAG, String.format(Locale.ROOT,
+                        "No database change across sequential open calls for %s.", mName));
+                mNextRowIdBackup.set(nextRowIdFromXattrOptional.get());
                 updateSessionIdInDatabaseAndExternalStorage(db);
                 return;
             }
 
+            Log.w(TAG, String.format(Locale.ROOT, "%s database inconsistency identified.", mName));
             // Delete old data and create new schema.
             recreateLatestSchema(db);
             // Recover data from backup
             // Ensure we do not back up in case of recovery.
             mIsRecovering.set(true);
             recoverData(mediaProvider, db, volumeName);
+            updateNextRowIdInDatabaseAndExternalStorage(db);
             mIsRecovering.set(false);
             updateSessionIdInDatabaseAndExternalStorage(db);
             Log.d(TAG, "Recovery completed for " + mName);
@@ -659,6 +672,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {
+        if (isInternal()) {
+            // Database row id recovery for internal is handled in tryRecoverDatabase()
+            return;
+        }
+
         if (!isNextRowIdBackupEnabled()) {
             Log.d(TAG, "Skipping row id recovery as backup is not enabled.");
             return;
@@ -2436,8 +2454,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     Os.getxattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
                             getNextRowIdXattrKeyForDatabase()))));
         } catch (Exception e) {
-            Log.e(TAG, String.format(Locale.ROOT, "Xattr:%s not found on external storage.",
-                    getNextRowIdXattrKeyForDatabase()), e);
+            Log.e(TAG, String.format(Locale.ROOT, "Xattr:%s not found on external storage: %s",
+                    getNextRowIdXattrKeyForDatabase(), e));
             return Optional.empty();
         }
     }
@@ -2506,12 +2524,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             // Do not back up next row id if DB version is less than R. This is unlikely to hit
             // as we will backport row id backup changes till Android R.
             Log.v(TAG, "Skipping next row id backup for android versions less than R.");
-            return false;
-        }
-
-        if (isInternal()) {
-            // Skip id reuse fix for internal db as it can lead to ids starting from a billion
-            // and can cause aberrant behaviour in Ringtones Manager. Reference: b/229153534.
             return false;
         }
 

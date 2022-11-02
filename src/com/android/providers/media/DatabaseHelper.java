@@ -68,6 +68,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.playlist.Playlist;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
@@ -152,6 +153,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * /data/media/0 directory.
      */
     private static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
+
+    private static final int LEVEL_DB_READ_LIMIT = 1000;
 
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";
@@ -546,7 +549,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         synchronized (sRecoveryLock) {
             // Read last used session id from /data/media/0.
             Optional<String> lastUsedSessionIdFromExternalStoragePathXattr = getXattr(
-                    DATA_MEDIA_XATTR_DIRECTORY_PATH, getSessionIdXattrKeyForDatabase());
+                    getExternalStorageDbXattrPath(), getSessionIdXattrKeyForDatabase());
             if (!lastUsedSessionIdFromExternalStoragePathXattr.isPresent()) {
                 // First time scenario will have no session id at /data/media/0.
                 updateSessionIdInDatabaseAndExternalStorage(db);
@@ -563,10 +566,17 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             // Delete old data and create new schema.
             recreateLatestSchema(db);
             // Recover data from backup
-            recoverData(db);
+            // Ensure we do not back up in case of recovery.
+            mIsRecovering.set(true);
+            recoverData(mediaProvider, db, volumeName);
+            mIsRecovering.set(false);
             updateSessionIdInDatabaseAndExternalStorage(db);
             Log.d(TAG, "Recovery completed for " + mName);
         }
+    }
+
+    protected String getExternalStorageDbXattrPath() {
+        return DATA_MEDIA_XATTR_DIRECTORY_PATH;
     }
 
     @GuardedBy("sRecoveryLock")
@@ -580,10 +590,72 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     @GuardedBy("sRecoveryLock")
-    private void recoverData(SQLiteDatabase db) {
-        mIsRecovering.set(true);
-        // TODO(b/245505908) : Add recovery code
-        mIsRecovering.set(false);
+    private void recoverData(MediaProvider mediaProvider, SQLiteDatabase db, String volumeName) {
+        final long startTime = SystemClock.elapsedRealtime();
+        final Set<String> externalVolumeNames =
+                mediaProvider.getVolumeCache().getExternalVolumeNames();
+        int i = 0;
+        // Wait for external primary to be attached as we use same thread for internal volume.
+        // Maximum wait for 5s
+        while (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY) && i < 100) {
+            Log.d(TAG, "Waiting for external primary volume to be attached.");
+            // Poll after every 5 ms
+            SystemClock.sleep(5);
+            i++;
+        }
+        if (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            Log.e(TAG, "Could not recover data as external primary volume did not get attached.");
+            return;
+        }
+
+        long rowsRecovered = 0;
+        String[] backedUpFilePaths;
+        String lastReadValue = "";
+
+        while (true) {
+            backedUpFilePaths = mediaProvider.readBackedUpFilePaths(volumeName, lastReadValue,
+                    LEVEL_DB_READ_LIMIT);
+            if (backedUpFilePaths.length <= 0) {
+                break;
+            }
+
+            for (String filePath : backedUpFilePaths) {
+                Optional<BackupIdRow> fileRow = mediaProvider.readDataFromBackup(volumeName,
+                        filePath);
+                if (fileRow.isPresent() && !fileRow.get().getIsDirty()) {
+                    insertDataInDatabase(db, fileRow.get(), filePath, volumeName);
+                    rowsRecovered++;
+                }
+            }
+
+            // Read less rows than expected
+            if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
+                break;
+            }
+            lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
+        }
+        Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
+                volumeName));
+        Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms",
+                SystemClock.elapsedRealtime() - startTime));
+    }
+
+    private void insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
+            String volumeName) {
+        final ContentValues values = createValuesFromFileRow(row, filePath, volumeName);
+        if (db.insert("files", null, values) == -1) {
+            Log.e(TAG, "Failed to insert " + values + "; continuing");
+        }
+    }
+
+    private ContentValues createValuesFromFileRow(BackupIdRow row, String filePath,
+            String volumeName) {
+        ContentValues values = new ContentValues();
+        values.put(FileColumns._ID, row.getId());
+        values.put(FileColumns.IS_FAVORITE, row.getIsFavorite());
+        values.put(FileColumns.DATA, filePath);
+        values.put(FileColumns.VOLUME_NAME, volumeName);
+        return values;
     }
 
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {
@@ -619,7 +691,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         Optional<String> lastUsedSessionIdFromDatabasePathXattr = getXattr(db.getPath(),
                 getSessionIdXattrKeyForDatabase());
         Optional<String> lastUsedSessionIdFromExternalStoragePathXattr = getXattr(
-                DATA_MEDIA_XATTR_DIRECTORY_PATH, getSessionIdXattrKeyForDatabase());
+                getExternalStorageDbXattrPath(), getSessionIdXattrKeyForDatabase());
 
         return lastUsedSessionIdFromDatabasePathXattr.isPresent()
                 && lastUsedSessionIdFromExternalStoragePathXattr.isPresent()
@@ -631,11 +703,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private void updateSessionIdInDatabaseAndExternalStorage(SQLiteDatabase db) {
         final String uuid = UUID.randomUUID().toString();
         boolean setOnDatabase = setXattr(db.getPath(), getSessionIdXattrKeyForDatabase(), uuid);
-        boolean setOnExternalStorage = setXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
+        boolean setOnExternalStorage = setXattr(getExternalStorageDbXattrPath(),
                 getSessionIdXattrKeyForDatabase(), uuid);
         if (setOnDatabase && setOnExternalStorage) {
             Log.i(TAG, String.format(Locale.ROOT, "SessionId set to %s on paths %s and %s.", uuid,
-                    db.getPath(), DATA_MEDIA_XATTR_DIRECTORY_PATH));
+                    db.getPath(), getExternalStorageDbXattrPath()));
         }
     }
 

@@ -172,8 +172,7 @@ public class PickerViewModel extends AndroidViewModel {
     private List<Item> loadItems(Category category, UserId userId) {
         final List<Item> items = new ArrayList<>();
 
-        try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
-                /* limit */ -1, mMimeTypeFilters, userId)) {
+        try (Cursor cursor = fetchItems(category, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any items for " + category
                         + ", either cursor is null or cursor count is zero");
@@ -190,6 +189,16 @@ public class PickerViewModel extends AndroidViewModel {
         Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
                 + userId.toString());
         return items;
+    }
+
+    private Cursor fetchItems(Category category, UserId userId) {
+        if (isUserSelectForApp()) {
+            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+            // action for permission flow. We only show local items in this case.
+            return mItemsProvider.getLocalItems(category, /* limit */ -1, mMimeTypeFilters, userId);
+        } else {
+            return mItemsProvider.getAllItems(category, /* limit */ -1, mMimeTypeFilters, userId);
+        }
     }
 
     private void loadItemsAsync() {
@@ -264,7 +273,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
-        try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilters, userId)) {
+        try (Cursor cursor = fetchCategories(userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
                         + " cursor count is zero");
@@ -280,6 +289,16 @@ public class PickerViewModel extends AndroidViewModel {
                     "Loaded " + categoryList.size() + " categories for user " + userId.toString());
         }
         return categoryList;
+    }
+
+    private Cursor fetchCategories(UserId userId) {
+        if (isUserSelectForApp()) {
+            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+            // action for permission flow. We only show local items in this case.
+            return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId);
+        } else {
+            return mItemsProvider.getAllCategories(mMimeTypeFilters, userId);
+        }
     }
 
     private void loadCategoriesAsync() {

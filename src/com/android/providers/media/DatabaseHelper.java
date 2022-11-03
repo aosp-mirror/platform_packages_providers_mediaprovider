@@ -2512,7 +2512,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         if (isInternal()) {
             // Skip id reuse fix for internal db as it can lead to ids starting from a billion
             // and can cause aberrant behaviour in Ringtones Manager. Reference: b/229153534.
-            Log.v(TAG, "Skipping next row id backup for internal database.");
             return false;
         }
 

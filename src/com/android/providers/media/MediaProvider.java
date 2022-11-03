@@ -950,7 +950,6 @@ public class MediaProvider extends ContentProvider {
 
     protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
         if (!helper.isNextRowIdBackupEnabled()) {
-            Log.v(TAG, "Skipping next row id backup.");
             return;
         }
 
@@ -963,9 +962,6 @@ public class MediaProvider extends ContentProvider {
 
         if (id >= nextRowIdBackupOptional.get()) {
             helper.backupNextRowId(id);
-        } else {
-            Log.v(TAG, String.format(Locale.ROOT, "Inserted id:%d less than next row id backup:%d.",
-                    id, nextRowIdBackupOptional.get()));
         }
     }
 

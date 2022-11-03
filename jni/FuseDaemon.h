@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "MediaProviderWrapper.h"
 #include "jni.h"
@@ -71,6 +72,32 @@ class FuseDaemon final {
      * Initialize device id for the FUSE daemon with the FUSE device id of the given path.
      */
     void InitializeDeviceId(const std::string& path);
+
+    /**
+     * Setup leveldb instance and connect for backing up volume's database data.
+     */
+    void SetupLevelDbInstance();
+
+    /**
+     * Deletes entry for given key from leveldb.
+     */
+    void DeleteFromLevelDb(const std::string& key);
+
+    /**
+     * Inserts in leveldb instance of volume derived from path.
+     */
+    void InsertInLevelDb(const std::string& key, const std::string& value);
+
+    /**
+     * Reads file paths for given volume from leveldb for given range.
+     */
+    std::vector<std::string> ReadFilePathsFromLevelDb(const std::string& volume_name,
+                                                      const std::string& lastReadValue, int limit);
+
+    /**
+     * Reads backed up data from leveldb.
+     */
+    std::string ReadBackedUpDataFromLevelDb(const std::string& filePath);
 
   private:
     FuseDaemon(const FuseDaemon&) = delete;

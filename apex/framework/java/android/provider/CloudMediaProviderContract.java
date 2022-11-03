@@ -190,6 +190,24 @@ public final class CloudMediaProviderContract {
         public static final String IS_FAVORITE = "is_favorite";
 
         /**
+         * This column contains the width of the image or video.
+         */
+        public static final String WIDTH = "width";
+
+        /**
+         * This column contains the height of the image or video.
+         */
+        public static final String HEIGHT = "height";
+
+        /**
+         * This column contains the orientation, if available.
+         * <p>
+         * For consistency the indexed value is expressed in degrees, such as 0,
+         * 90, 180, or 270.
+         */
+        public static final String ORIENTATION = "orientation";
+
+        /**
          * Authority of the media item
          * <p>
          * Type: STRING

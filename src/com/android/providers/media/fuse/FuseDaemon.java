@@ -205,6 +205,67 @@ public final class FuseDaemon extends Thread {
         }
     }
 
+    /**
+     * Sets up volume's database backup to external storage to recover during a rollback.
+     */
+    public void setupVolumeDbBackup() throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_setup_volume_db_backup(mPtr);
+        }
+    }
+
+    /**
+     * Deletes entry for given key from external storage.
+     */
+    public void deleteDbBackup(String key) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_delete_db_backup(mPtr, key);
+        }
+    }
+
+    /**
+     * Backs up given key-value pair in external storage.
+     */
+    public void backupVolumeDbData(String key, String value) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_backup_volume_db_data(mPtr, key, value);
+        }
+    }
+
+    /**
+     * Reads backed up file paths for given volume from external storage.
+     */
+    public String[] readBackedUpFilePaths(String volumeName, String lastReadValue, int limit)
+            throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            return native_read_backed_up_file_paths(mPtr, volumeName, lastReadValue, limit);
+        }
+    }
+
+    /**
+     * Reads backed up data for given file from external storage.
+     */
+    public String readBackedUpData(String filePath) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            return native_read_backed_up_data(mPtr, filePath);
+        }
+    }
+
     private native long native_new(MediaProvider mediaProvider);
 
     // Takes ownership of the passed in file descriptor!
@@ -220,5 +281,12 @@ public final class FuseDaemon extends Thread {
     private native boolean native_is_started(long daemon);
     private native FdAccessResult native_check_fd_access(long daemon, int fd, int uid);
     private native void native_initialize_device_id(long daemon, String path);
+    private native void native_setup_volume_db_backup(long daemon);
+    private native void native_delete_db_backup(long daemon, String key);
+    private native void native_backup_volume_db_data(long daemon, String key, String value);
+
+    private native String[] native_read_backed_up_file_paths(long daemon, String volumeName,
+            String lastReadValue, int limit);
+    private native String native_read_backed_up_data(long daemon, String key);
     public static native boolean native_is_fuse_thread();
 }

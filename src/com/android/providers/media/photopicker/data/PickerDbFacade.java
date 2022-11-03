@@ -37,6 +37,7 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
+import android.os.Trace;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -118,6 +119,12 @@ public class PickerDbFacade {
     public static final String KEY_IS_FAVORITE = "is_favorite";
     @VisibleForTesting
     public static final String KEY_ALBUM_ID = "album_id";
+    @VisibleForTesting
+    public static final String KEY_HEIGHT = "height";
+    @VisibleForTesting
+    public static final String KEY_WIDTH = "width";
+    @VisibleForTesting
+    public static final String KEY_ORIENTATION = "orientation";
 
     @VisibleForTesting
     public static final String IMAGE_FILE_EXTENSION = ".jpg";
@@ -132,7 +139,6 @@ public class PickerDbFacade {
     private static final String WHERE_NOT_NULL_LOCAL_ID = KEY_LOCAL_ID + " IS NOT NULL";
     private static final String WHERE_IS_VISIBLE = KEY_IS_VISIBLE + " = 1";
     private static final String WHERE_MIME_TYPE = KEY_MIME_TYPE + " LIKE ? ";
-    private static final String WHERE_IS_FAVORITE = KEY_IS_FAVORITE + " = 1";
     private static final String WHERE_SIZE_BYTES = KEY_SIZE_BYTES + " <= ?";
     private static final String WHERE_DATE_TAKEN_MS_AFTER =
             String.format("%s > ? OR (%s = ? AND %s > ?)",
@@ -141,6 +147,27 @@ public class PickerDbFacade {
             String.format("%s < ? OR (%s = ? AND %s < ?)",
                     KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
     private static final String WHERE_ALBUM_ID = KEY_ALBUM_ID  + " = ?";
+
+    // This where clause returns all rows for media items that are either local-only or cloud+local
+    // and are marked as favorite.
+    //
+    // 'local_id' IN (SELECT 'local_id'
+    //      FROM 'media'
+    //      WHERE 'local_id' IS NOT NULL
+    //      GROUP BY 'local_id'
+    //      HAVING SUM('is_favorite') >= 1)
+    private static final String WHERE_FAVORITE_LOCAL = String.format(
+            "%s IN (SELECT %s FROM %s WHERE %s IS NOT NULL GROUP BY %s HAVING SUM(%s) >= 1)",
+            KEY_LOCAL_ID, KEY_LOCAL_ID, TABLE_MEDIA, KEY_LOCAL_ID, KEY_LOCAL_ID, KEY_IS_FAVORITE);
+    // This where clause returns all rows for media items that are cloud-only and are marked as
+    // favorite.
+    //
+    // 'local_id' IS NULL AND 'is_favorite' = 1
+    private static final String WHERE_FAVORITE_CLOUD_ONLY = String.format(
+            "%s IS NULL AND %s = 1", KEY_LOCAL_ID, KEY_IS_FAVORITE);
+    // This where clause returns all rows for media items that are marked as favorite.
+    private static final String WHERE_FAVORITE = String.format(
+            "( %s OR %s )", WHERE_FAVORITE_LOCAL, WHERE_FAVORITE_CLOUD_ONLY);
 
     // Matches all media including cloud+local, cloud-only and local-only
     private static final SQLiteQueryBuilder QB_MATCH_ALL = createMediaQueryBuilder();
@@ -278,7 +305,14 @@ public class PickerDbFacade {
             if (!mDatabase.inTransaction()) {
                 throw new IllegalStateException("No ongoing DB transaction.");
             }
-            return executeInternal(cursor);
+            final String traceSectionName = getClass().getSimpleName()
+                    + ".execute[" + (mIsLocal ? "local" : "cloud") + ']';
+            Trace.beginSection(traceSectionName);
+            try {
+                return executeInternal(cursor);
+            } finally {
+                Trace.endSection();
+            }
         }
 
         public void setSuccess() {
@@ -758,7 +792,7 @@ public class PickerDbFacade {
             List<String> selectionArgs = new ArrayList<>();
             final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
             if (albumId.equals(ALBUM_ID_FAVORITES)) {
-                qb.appendWhereStandalone(WHERE_IS_FAVORITE);
+                qb.appendWhereStandalone(WHERE_FAVORITE);
             } else if (albumId.equals(ALBUM_ID_VIDEOS)) {
                 qb.appendWhereStandalone(WHERE_MIME_TYPE);
                 selectionArgs.add("video/%");
@@ -859,28 +893,43 @@ public class PickerDbFacade {
                     projection[i] = getProjectionDataLocked(PickerMediaColumns.DATA);
                     break;
                 case PickerMediaColumns.DISPLAY_NAME:
-                    projection[i] = getProjectionSimple(getDisplayNameSql(),
-                            PickerMediaColumns.DISPLAY_NAME);
+                    projection[i] =
+                            getProjectionSimple(
+                                    getDisplayNameSql(), PickerMediaColumns.DISPLAY_NAME);
                     break;
                 case PickerMediaColumns.MIME_TYPE:
-                    projection[i] = getProjectionSimple(KEY_MIME_TYPE,
-                            PickerMediaColumns.MIME_TYPE);
+                    projection[i] =
+                            getProjectionSimple(KEY_MIME_TYPE, PickerMediaColumns.MIME_TYPE);
                     break;
                 case PickerMediaColumns.DATE_TAKEN:
-                    projection[i] = getProjectionSimple(KEY_DATE_TAKEN_MS,
-                            PickerMediaColumns.DATE_TAKEN);
+                    projection[i] =
+                            getProjectionSimple(KEY_DATE_TAKEN_MS, PickerMediaColumns.DATE_TAKEN);
                     break;
                 case PickerMediaColumns.SIZE:
                     projection[i] = getProjectionSimple(KEY_SIZE_BYTES, PickerMediaColumns.SIZE);
                     break;
                 case PickerMediaColumns.DURATION_MILLIS:
-                    projection[i] = getProjectionSimple(KEY_DURATION_MS,
-                            PickerMediaColumns.DURATION_MILLIS);
+                    projection[i] =
+                            getProjectionSimple(
+                                    KEY_DURATION_MS, PickerMediaColumns.DURATION_MILLIS);
+                    break;
+                case PickerMediaColumns.HEIGHT:
+                    projection[i] = getProjectionSimple(KEY_HEIGHT, PickerMediaColumns.HEIGHT);
+                    break;
+                case PickerMediaColumns.WIDTH:
+                    projection[i] = getProjectionSimple(KEY_WIDTH, PickerMediaColumns.WIDTH);
+                    break;
+                case PickerMediaColumns.ORIENTATION:
+                    projection[i] =
+                            getProjectionSimple(KEY_ORIENTATION, PickerMediaColumns.ORIENTATION);
                     break;
                 default:
                     Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
-                    throw new IllegalArgumentException("Unexpected picker URI projection. Uri:"
-                            + uri + ". Column:" + columns[i]);
+                    throw new IllegalArgumentException(
+                            "Unexpected picker URI projection. Uri:"
+                                    + uri
+                                    + ". Column: "
+                                    + columns[i]);
             }
         }
 
@@ -998,6 +1047,28 @@ public class PickerDbFacade {
                         values.put(KEY_IS_FAVORITE, cursor.getInt(index));
                     }
                     break;
+
+                    /* The below columns are only included if this is not the album_media table
+                     * (AlbumId is an empty string)
+                     *
+                     * The columns should be in the cursor either way, but we don't duplicate these
+                     * columns to album_media since they are not needed for the UI.
+                     */
+                case CloudMediaProviderContract.MediaColumns.WIDTH:
+                    if (TextUtils.isEmpty(albumId)) {
+                        values.put(KEY_WIDTH, cursor.getInt(index));
+                    }
+                    break;
+                case CloudMediaProviderContract.MediaColumns.HEIGHT:
+                    if (TextUtils.isEmpty(albumId)) {
+                        values.put(KEY_HEIGHT, cursor.getInt(index));
+                    }
+                    break;
+                case CloudMediaProviderContract.MediaColumns.ORIENTATION:
+                    if (TextUtils.isEmpty(albumId)) {
+                        values.put(KEY_ORIENTATION, cursor.getInt(index));
+                    }
+                    break;
                 default:
                     Log.w(TAG, "Unexpected cursor key: " + key);
             }
@@ -1047,7 +1118,7 @@ public class PickerDbFacade {
             qb.appendWhereStandalone(WHERE_MIME_TYPE);
             selectArgs.add(VIDEO_MIME_TYPES);
         } else if (query.mIsFavorite) {
-            qb.appendWhereStandalone(WHERE_IS_FAVORITE);
+            qb.appendWhereStandalone(WHERE_FAVORITE);
         } else if (!TextUtils.isEmpty(query.mAlbumId)) {
             qb.appendWhereStandalone(WHERE_ALBUM_ID);
             selectArgs.add(query.mAlbumId);

@@ -19,6 +19,7 @@ package com.android.providers.media;
 import static android.provider.DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT;
 
 import android.os.Binder;
+import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 
 import androidx.annotation.NonNull;
@@ -122,6 +123,10 @@ public interface ConfigStore {
         private static final String KEY_TRANSCODE_COMPAT_MANIFEST = "transcode_compat_manifest";
         private static final String KEY_TRANSCODE_COMPAT_STALE = "transcode_compat_stale";
 
+        private static final String SYSPROP_TRANSCODE_MAX_DURATION =
+            "persist.sys.fuse.transcode_max_file_duration_ms";
+        private static final int TRANSCODE_MAX_DURATION_INVALID = 0;
+
         private static final String KEY_PICKER_ALLOWED_CLOUD_PROVIDERS = "allowed_cloud_providers";
         private static final String KEY_PICKER_SYNC_DELAY = "default_sync_delay_ms";
 
@@ -163,6 +168,19 @@ public interface ConfigStore {
 
         @Override
         public int getTranscodeMaxDurationMs() {
+            // First check if OEMs overwrite default duration via system property.
+            int maxDurationMs = SystemProperties.getInt(
+                SYSPROP_TRANSCODE_MAX_DURATION, TRANSCODE_MAX_DURATION_INVALID);
+
+            // Give priority to OEM value if set. Only accept larger values, which can be desired
+            // for more performant devices. Lower values may result in unexpected behaviour
+            // (a value of 0 would mean transcoding is actually disabled) or break CTS tests (a
+            // value small enough to prevent transcoding the videos under test).
+            // Otherwise, fallback to device config / default values.
+            if (maxDurationMs != TRANSCODE_MAX_DURATION_INVALID
+                    && maxDurationMs > DEFAULT_TRANSCODE_MAX_DURATION) {
+                return maxDurationMs;
+            }
             return getIntDeviceConfig(KEY_TRANSCODE_MAX_DURATION, DEFAULT_TRANSCODE_MAX_DURATION);
         }
 

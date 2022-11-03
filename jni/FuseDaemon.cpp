@@ -2472,5 +2472,44 @@ void FuseDaemon::InsertInLevelDb(const std::string& key, const std::string& valu
     }
 }
 
+std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string& volume_name,
+                                                              const std::string& last_read_value,
+                                                              int limit) {
+    int counter = 0;
+    std::vector<std::string> file_paths;
+
+    if (android::base::EqualsIgnoreCase(volume_name, "internal")) {
+        leveldb::Iterator* it = fuse->internal_level_db->NewIterator(leveldb::ReadOptions());
+        if (android::base::EqualsIgnoreCase(last_read_value, "")) {
+            it->SeekToFirst();
+        } else {
+            // Start after last read value
+            leveldb::Slice slice = last_read_value;
+            it->Seek(slice);
+            it->Next();
+        }
+        for (; it->Valid() && counter < limit; it->Next()) {
+            file_paths.push_back(it->key().ToString());
+            counter++;
+        }
+    }
+
+    return file_paths;
+}
+
+std::string FuseDaemon::ReadBackedUpDataFromLevelDb(const std::string& filePath) {
+    std::string data = "";
+    if (!android::base::StartsWithIgnoreCase(filePath, "/storage")) {
+        leveldb::Status status =
+                fuse->internal_level_db->Get(leveldb::ReadOptions(), filePath, &data);
+        if (!status.ok()) {
+            LOG(WARNING) << "Failure in leveldb read for key: " << filePath << status.ToString();
+        } else {
+            LOG(DEBUG) << "Read successful for key: " << filePath;
+        }
+    }
+    return data;
+}
+
 } //namespace fuse
 }  // namespace mediaprovider

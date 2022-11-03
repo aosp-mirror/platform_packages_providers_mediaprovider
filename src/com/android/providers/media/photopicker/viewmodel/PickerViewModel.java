@@ -47,7 +47,6 @@ import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
-import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.MimeUtils;
@@ -170,36 +169,10 @@ public class PickerViewModel extends AndroidViewModel {
                 return items;
             }
 
-            // We only add the RECENT header on the PhotosTabFragment with CATEGORY_DEFAULT. In this
-            // case, we call this method {loadItems} with null category. When the category is not
-            // empty, we don't show the RECENT header.
-            final boolean showRecent = category.isDefault();
-
-            int recentSize = 0;
-            long currentDateTaken = 0;
-
-            if (showRecent) {
-                // add Recent date header
-                items.add(Item.createDateItem(0));
-            }
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
-                // here again.
-                final Item item = Item.fromCursor(cursor, userId);
-                final long dateTaken = item.getDateTaken();
-                // the minimum count of items in recent is not reached
-                if (showRecent && recentSize < RECENT_MINIMUM_COUNT) {
-                    recentSize++;
-                    currentDateTaken = dateTaken;
-                }
-
-                // The date taken of these two images are not on the
-                // same day, add the new date header.
-                if (!DateTimeUtils.isSameDate(currentDateTaken, dateTaken)) {
-                    items.add(Item.createDateItem(dateTaken));
-                    currentDateTaken = dateTaken;
-                }
-                items.add(item);
+                //  here again.
+                items.add(Item.fromCursor(cursor, userId));
             }
         }
 

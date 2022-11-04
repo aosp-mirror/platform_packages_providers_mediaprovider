@@ -232,6 +232,7 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -470,8 +471,13 @@ public class MediaProvider extends ContentProvider {
         List<UserHandle> users = mUserCache.getUsersCached();
         ArrayList<File> allowedPaths = new ArrayList<>();
         for (UserHandle user : users) {
-            Collection<File> volumeScanPaths = mVolumeCache.getVolumeScanPaths(volumeName, user);
-            allowedPaths.addAll(volumeScanPaths);
+            try {
+                Collection<File> volumeScanPaths = mVolumeCache.getVolumeScanPaths(volumeName,
+                        user);
+                allowedPaths.addAll(volumeScanPaths);
+            } catch (FileNotFoundException e) {
+                Log.e(TAG, volumeName + " has no associated path for user: " + user);
+            }
         }
 
         return allowedPaths;
@@ -874,15 +880,21 @@ public class MediaProvider extends ContentProvider {
         }
 
         // For all internal file paths, redirect to external primary fuse daemon.
-        String fuseDaemonFilePath = insertedFilePath.startsWith("/storage") ? insertedFilePath
+        final String fuseDaemonFilePath = insertedFilePath.startsWith("/storage") ? insertedFilePath
                 : "/storage/emulated/" + UserHandle.myUserId();
         try {
-            // TODO(b/239414235): Replace value with container class.
-            getFuseDaemonForFile(new File(fuseDaemonFilePath)).backupVolumeDbData(insertedFilePath,
-                    insertedRow.toString());
+            final BackupIdRow value = createBackupIdRow(insertedRow);
+            getFuseDaemonForPath(fuseDaemonFilePath).backupVolumeDbData(insertedFilePath,
+                    BackupIdRow.serialize(value));
         } catch (IOException e) {
-            Log.w(TAG, "Failure in backing up data to external storage", e);
+            Log.e(TAG, "Failure in backing up data to external storage", e);
         }
+    }
+
+    private BackupIdRow createBackupIdRow(FileRow insertedRow) {
+        BackupIdRow.Builder builder = BackupIdRow.newBuilder(insertedRow.getId());
+        builder.setIsFavorite(insertedRow.isFavorite() ? 1 : 0);
+        return builder.build();
     }
 
     /**
@@ -898,9 +910,41 @@ public class MediaProvider extends ContentProvider {
         String fuseDaemonFilePath = deletedFilePath.startsWith("/storage") ? deletedFilePath
                 : "/storage/emulated/" + UserHandle.myUserId();
         try {
-            getFuseDaemonForFile(new File(fuseDaemonFilePath)).deleteDbBackup(deletedFilePath);
+            getFuseDaemonForPath(fuseDaemonFilePath).deleteDbBackup(deletedFilePath);
         } catch (IOException e) {
             Log.w(TAG, "Failure in deleting backup data for key: " + deletedFilePath, e);
+        }
+    }
+
+
+    protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue, int limit) {
+        if (!isStableUrisEnabled(volumeName)) {
+            return new String[0];
+        }
+
+        final String fuseDaemonFilePath = "/storage/emulated/" + UserHandle.myUserId();
+        try {
+            return getFuseDaemonForPath(fuseDaemonFilePath).readBackedUpFilePaths(volumeName,
+                    lastReadValue, limit);
+        } catch (IOException e) {
+            Log.e(TAG, "Failure in reading backed up file paths for volume: " + volumeName, e);
+            return new String[0];
+        }
+    }
+
+    protected Optional<BackupIdRow> readDataFromBackup(String volumeName, String filePath) {
+        if (!isStableUrisEnabled(volumeName)) {
+            return Optional.empty();
+        }
+
+        final String fuseDaemonFilePath = filePath.startsWith("/storage") ? filePath
+                : "/storage/emulated/" + UserHandle.myUserId();
+        try {
+            final String data = getFuseDaemonForPath(fuseDaemonFilePath).readBackedUpData(filePath);
+            return Optional.of(BackupIdRow.deserialize(data));
+        } catch (Exception e) {
+            Log.e(TAG, "Failure in getting backed up data for filePath: " + filePath, e);
+            return Optional.empty();
         }
     }
 
@@ -1013,7 +1057,7 @@ public class MediaProvider extends ContentProvider {
      * manually.
      */
     private void ensureDefaultFolders(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
-        if (volume.isExternallyManaged()) {
+        if (volume.shouldSkipDefaultDirCreation()) {
             // Default folders should not be automatically created inside volumes managed from
             // outside Android.
             return;
@@ -1053,7 +1097,7 @@ public class MediaProvider extends ContentProvider {
      * disk, then all thumbnails will be considered stable and will be deleted.
      */
     private void ensureThumbnailsValid(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
-        if (volume.isExternallyManaged()) {
+        if (volume.shouldSkipDefaultDirCreation()) {
             // Default folders and thumbnail directories should not be automatically created inside
             // volumes managed from outside Android, and there is no need to ensure the validity of
             // their thumbnails here.
@@ -8349,6 +8393,11 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private @NonNull FuseDaemon getFuseDaemonForPath(@NonNull String path)
+            throws FileNotFoundException {
+        return getFuseDaemonForFile(new File(path));
+    }
+
     private void invalidateFuseDentry(@NonNull File file) {
         invalidateFuseDentry(file.getAbsolutePath());
     }
@@ -10352,7 +10401,7 @@ public class MediaProvider extends ContentProvider {
     /**
      * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
      */
-    private boolean isStableUrisEnabled(String volumeName) {
+    protected boolean isStableUrisEnabled(String volumeName) {
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
                 return mConfigStore.isStableUrisForInternalVolumeEnabled();
@@ -10842,5 +10891,9 @@ public class MediaProvider extends ContentProvider {
     @Nullable
     protected ConfigStore provideConfigStore() {
         return null;
+    }
+
+    protected VolumeCache getVolumeCache() {
+        return mVolumeCache;
     }
 }

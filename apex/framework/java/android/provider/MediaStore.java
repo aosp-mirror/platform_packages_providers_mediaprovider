@@ -254,6 +254,10 @@ public final class MediaStore {
     /** {@hide} */
     public static final String SYNC_PROVIDERS_CALL = "sync_providers";
     /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_CALL = "get_cloud_provider";
+    /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_RESULT = "get_cloud_provider_result";
+    /** {@hide} */
     public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";
     /** {@hide} */
     public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
@@ -1430,6 +1434,8 @@ public final class MediaStore {
          * {@link MediaMetadataRetriever#METADATA_KEY_VIDEO_WIDTH},
          * {@link MediaMetadataRetriever#METADATA_KEY_IMAGE_WIDTH} or
          * {@link ExifInterface#TAG_IMAGE_WIDTH} extracted from this media item.
+         * <p>
+         * Type: INTEGER
          */
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String WIDTH = "width";
@@ -1440,6 +1446,8 @@ public final class MediaStore {
          * {@link MediaMetadataRetriever#METADATA_KEY_IMAGE_HEIGHT} or
          * {@link ExifInterface#TAG_IMAGE_LENGTH} extracted from this media
          * item.
+         * <p>
+         * Type: INTEGER
          */
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String HEIGHT = "height";
@@ -1576,6 +1584,8 @@ public final class MediaStore {
          * <p>
          * For consistency the indexed value is expressed in degrees, such as 0,
          * 90, 180, or 270.
+         * <p>
+         * Type: INTEGER
          */
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String ORIENTATION = "orientation";
@@ -1874,6 +1884,30 @@ public final class MediaStore {
         @DurationMillisLong
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String DURATION_MILLIS = MediaColumns.DURATION;
+
+        /**
+         * This is identical to {@link MediaColumns#WIDTH}.
+         *
+         * @see MediaColumns#WIDTH
+         */
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String WIDTH = "width";
+
+        /**
+         * This is identical to {@link MediaColumns#HEIGHT}.
+         *
+         * @see MediaColumns#HEIGHT
+         */
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String HEIGHT = "height";
+
+        /**
+         * This is identical to {@link MediaColumns#ORIENTATION}.
+         *
+         * @see MediaColumns#ORIENTATION
+         */
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String ORIENTATION = "orientation";
     }
 
     /**
@@ -4736,5 +4770,17 @@ public final class MediaStore {
 
         final Bundle out = resolver.call(AUTHORITY, method, callingAuthority, /* extras */ null);
         return out.getBoolean(EXTRA_CLOUD_PROVIDER_RESULT);
+    }
+
+    /** {@hide} */
+    public static String getCurrentCloudProvider(@NonNull Context context) {
+        final ContentResolver resolver = context.getContentResolver();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle out = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
+                    /* extras */ null);
+            return out.getString(GET_CLOUD_PROVIDER_RESULT);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
     }
 }

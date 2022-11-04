@@ -36,11 +36,10 @@ import com.android.providers.media.photopicker.PickerSyncController;
 public class PickerDatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "PickerDatabaseHelper";
 
-    @VisibleForTesting
-    static final String PICKER_DATABASE_NAME = "picker.db";
+    public static final String PICKER_DATABASE_NAME = "picker.db";
 
     private static final int VERSION_T = 8;
-    private static final int VERSION_LATEST = VERSION_T;
+    public static final int VERSION_LATEST = VERSION_T;
 
     final Context mContext;
     final String mName;

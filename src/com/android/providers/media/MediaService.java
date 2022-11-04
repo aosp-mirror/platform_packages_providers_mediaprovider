@@ -64,7 +64,7 @@ public class MediaService extends JobIntentService {
 
     @Override
     protected void onHandleWork(Intent intent) {
-        Trace.beginSection(intent.getAction());
+        Trace.beginSection("MediaService.handle[" + intent.getAction() + ']');
         if (Log.isLoggable(TAG, Log.INFO)) {
             Log.i(TAG, "Begin " + intent);
         }

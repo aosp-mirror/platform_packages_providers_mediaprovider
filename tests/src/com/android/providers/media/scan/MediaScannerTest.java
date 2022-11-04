@@ -54,6 +54,7 @@ import com.android.providers.media.R;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.FileUtils;
 
 import org.junit.Before;
@@ -67,6 +68,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
 public class MediaScannerTest {
@@ -79,6 +83,7 @@ public class MediaScannerTest {
         private final MediaDocumentsProvider mDocumentsProvider;
         private final PhotoPickerProvider mPhotoPickerProvider;
         private final UserHandle mUserHandle;
+        private Map<String, BackupIdRow> mBackedUpData = new HashMap<>();
 
         public IsolatedContext(Context base, String tag, boolean asFuseThread) {
             this(base, tag, asFuseThread, base.getUser());
@@ -120,6 +125,27 @@ public class MediaScannerTest {
                 @Override
                 protected void checkConfigAndUpdateGetContentAlias() {
                     // Ignore this as test app cannot read device config
+                }
+
+                @Override
+                protected boolean isStableUrisEnabled(String volumeName) {
+                    if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
+                        return true;
+                    }
+                    return false;
+                }
+
+                @Override
+                protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue,
+                        int limit) {
+                    Object[] backedUpValues =  mBackedUpData.keySet().toArray();
+                    return Arrays.copyOf(backedUpValues, backedUpValues.length, String[].class);
+                }
+
+                @Override
+                protected Optional<BackupIdRow> readDataFromBackup(String volumeName,
+                        String filePath) {
+                    return Optional.ofNullable(mBackedUpData.get(filePath));
                 }
             };
             mProvider.attachInfo(this, info);
@@ -166,6 +192,10 @@ public class MediaScannerTest {
 
         public void setPickerUriResolver(PickerUriResolver resolver) {
             mProvider.setUriResolver(resolver);
+        }
+
+        public void setBackedUpData(Map<String, BackupIdRow> backedUpData) {
+            this.mBackedUpData = backedUpData;
         }
     }
 

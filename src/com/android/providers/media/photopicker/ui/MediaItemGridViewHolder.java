@@ -16,22 +16,25 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
+
 import android.content.Context;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Item;
 
 /**
- * ViewHolder of a photo item within a RecyclerView.
+ * {@link RecyclerView.ViewHolder} of a {@link View} representing a (media) {@link Item} (a photo or
+ * a video).
  */
-public class PhotoGridHolder extends BaseViewHolder {
-
+class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
     private final ImageLoader mImageLoader;
     private final ImageView mIconThumb;
     private final ImageView mIconGif;
@@ -41,10 +44,9 @@ public class PhotoGridHolder extends BaseViewHolder {
     private final View mOverlayGradient;
     private final boolean mCanSelectMultiple;
 
-    public PhotoGridHolder(@NonNull Context context, @NonNull ViewGroup parent,
-            @NonNull ImageLoader imageLoader, boolean canSelectMultiple) {
-        super(context, parent, R.layout.item_photo_grid);
-
+    MediaItemGridViewHolder(@NonNull View itemView, @NonNull ImageLoader imageLoader,
+            boolean canSelectMultiple) {
+        super(itemView);
         mIconThumb = itemView.findViewById(R.id.icon_thumbnail);
         mIconGif = itemView.findViewById(R.id.icon_gif);
         mIconMotionPhoto = itemView.findViewById(R.id.icon_motion_photo);
@@ -52,39 +54,52 @@ public class PhotoGridHolder extends BaseViewHolder {
         mVideoDuration = mVideoBadgeContainer.findViewById(R.id.video_duration);
         mOverlayGradient = itemView.findViewById(R.id.overlay_gradient);
         mImageLoader = imageLoader;
-        final ImageView iconCheck = itemView.findViewById(R.id.icon_check);
         mCanSelectMultiple = canSelectMultiple;
-        if (mCanSelectMultiple) {
-            iconCheck.setVisibility(View.VISIBLE);
-        } else {
-            iconCheck.setVisibility(View.GONE);
-        }
+
+        itemView.findViewById(R.id.icon_check).setVisibility(mCanSelectMultiple ? VISIBLE : GONE);
     }
 
-    @Override
-    public void bind() {
-        final Item item = (Item) itemView.getTag();
+    public void bind(@NonNull Item item, boolean isSelected) {
         mImageLoader.loadPhotoThumbnail(item, mIconThumb);
 
-        mIconGif.setVisibility(item.isGifOrAnimatedWebp() ? View.VISIBLE : View.GONE);
-        mIconMotionPhoto.setVisibility(item.isMotionPhoto() ? View.VISIBLE : View.GONE);
+        mIconGif.setVisibility(item.isGifOrAnimatedWebp() ? VISIBLE : GONE);
+        mIconMotionPhoto.setVisibility(item.isMotionPhoto() ? VISIBLE : GONE);
 
         if (item.isVideo()) {
-            mVideoBadgeContainer.setVisibility(View.VISIBLE);
+            mVideoBadgeContainer.setVisibility(VISIBLE);
             mVideoDuration.setText(item.getDurationText());
         } else {
-            mVideoBadgeContainer.setVisibility(View.GONE);
+            mVideoBadgeContainer.setVisibility(GONE);
         }
 
         if (showShowOverlayGradient(item)) {
-            mOverlayGradient.setVisibility(View.VISIBLE);
+            mOverlayGradient.setVisibility(VISIBLE);
         } else {
-            mOverlayGradient.setVisibility(View.GONE);
+            mOverlayGradient.setVisibility(GONE);
+        }
+
+        final Context context = getContext();
+        itemView.setContentDescription(item.getContentDescription(context));
+
+        if (mCanSelectMultiple) {
+            itemView.setSelected(isSelected);
+            // There is an issue b/223695510 about not selected in Accessibility mode. It only
+            // says selected state, but it doesn't say not selected state. Add the not selected
+            // only to avoid that it says selected twice.
+            itemView.setStateDescription(
+                    isSelected ? null : context.getString(R.string.not_selected));
         }
     }
 
+    @NonNull
+    private Context getContext() {
+        return itemView.getContext();
+    }
+
     private boolean showShowOverlayGradient(@NonNull Item item) {
-        return mCanSelectMultiple || item.isGifOrAnimatedWebp() || item.isVideo() ||
-                item.isMotionPhoto();
+        return mCanSelectMultiple
+                || item.isGifOrAnimatedWebp()
+                || item.isVideo()
+                || item.isMotionPhoto();
     }
 }

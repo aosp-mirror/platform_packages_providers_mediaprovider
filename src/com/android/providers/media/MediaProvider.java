@@ -179,8 +179,6 @@ import android.preference.PreferenceManager;
 import android.provider.AsyncContentProvider;
 import android.provider.BaseColumns;
 import android.provider.Column;
-import android.provider.DeviceConfig;
-import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.DocumentsContract;
 import android.provider.ExportedSince;
 import android.provider.IAsyncContentProvider;
@@ -234,6 +232,7 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -344,8 +343,6 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_MEDIA = "media";
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
 
-    private static final String TAKE_OVER_GET_CONTENT = "take_over_get_content";
-
     /**
      * Hard-coded filename where the current value of
      * {@link DatabaseHelper#getOrCreateUuid} is persisted on a physical SD card
@@ -423,6 +420,9 @@ public class MediaProvider extends ContentProvider {
 
     private static final int sUserId = UserHandle.myUserId();
 
+    private static final String sRecoveryDirectoryPath =
+            "/storage/emulated/" + UserHandle.myUserId() + "/.transforms/recovery";
+
     /**
      * Please use {@link getDownloadsProviderAuthority()} instead of using this directly.
      */
@@ -471,8 +471,13 @@ public class MediaProvider extends ContentProvider {
         List<UserHandle> users = mUserCache.getUsersCached();
         ArrayList<File> allowedPaths = new ArrayList<>();
         for (UserHandle user : users) {
-            Collection<File> volumeScanPaths = mVolumeCache.getVolumeScanPaths(volumeName, user);
-            allowedPaths.addAll(volumeScanPaths);
+            try {
+                Collection<File> volumeScanPaths = mVolumeCache.getVolumeScanPaths(volumeName,
+                        user);
+                allowedPaths.addAll(volumeScanPaths);
+            } catch (FileNotFoundException e) {
+                Log.e(TAG, volumeName + " has no associated path for user: " + user);
+            }
         }
 
         return allowedPaths;
@@ -678,17 +683,18 @@ public class MediaProvider extends ContentProvider {
     private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
         synchronized (mCachedCallingIdentityForFuse) {
             try {
-                Log.i(TAG, "Invalidating LocalCallingIdentity cache for package " + packageName
-                        + ". Reason: " + reason);
-                mCachedCallingIdentityForFuse.remove(
-                        getContext().getPackageManager().getPackageUid(packageName, 0));
+                int packageUid = getContext().getPackageManager().getPackageUid(packageName, 0);
+                if (mCachedCallingIdentityForFuse.contains(packageUid)) {
+                    mCachedCallingIdentityForFuse.get(packageUid).dump(reason);
+                    mCachedCallingIdentityForFuse.remove(packageUid);
+                }
             } catch (NameNotFoundException ignored) {
             }
         }
     }
 
     private final void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType) {
-        Trace.beginSection("updateQuotaTypeForUri");
+        Trace.beginSection("MP.updateQuotaTypeForUri");
         File file;
         try {
             file = queryForDataFile(uri, null);
@@ -753,6 +759,8 @@ public class MediaProvider extends ContentProvider {
                     insertedRow.getId(), insertedRow.getMediaType(), insertedRow.isDownload());
             updateNextRowIdXattr(helper, insertedRow.getId());
             helper.postBackground(() -> {
+                backupVolumeDbData(helper, insertedRow.getVolumeName(), insertedRow.getPath(),
+                        insertedRow);
                 if (helper.isExternal() && !isFuseThread()) {
                     // Update the quota type on the filesystem
                     Uri fileUri = MediaStore.Files.getContentUri(insertedRow.getVolumeName(),
@@ -822,7 +830,7 @@ public class MediaProvider extends ContentProvider {
 
             helper.postBackground(() -> {
                 // Item no longer exists, so revoke all access to it
-                Trace.beginSection("revokeUriPermission");
+                Trace.beginSection("MP.revokeUriPermission");
                 try {
                     acceptWithExpansion((uri) -> {
                         getContext().revokeUriPermission(uri, ~0);
@@ -833,6 +841,7 @@ public class MediaProvider extends ContentProvider {
                     Trace.endSection();
                 }
 
+                deleteFromDbBackup(deletedRow);
                 switch (deletedRow.getMediaType()) {
                     case FileColumns.MEDIA_TYPE_PLAYLIST:
                     case FileColumns.MEDIA_TYPE_AUDIO:
@@ -857,9 +866,90 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
+    /**
+     * Backs up DB data in external storage to recover in case of DB rollback.
+     */
+    private void backupVolumeDbData(DatabaseHelper databaseHelper, String volumeName,
+            String insertedFilePath, FileRow insertedRow) {
+        if (!isStableUrisEnabled(volumeName)) {
+            return;
+        }
+
+        if (databaseHelper.isDatabaseRecovering()) {
+            return;
+        }
+
+        // For all internal file paths, redirect to external primary fuse daemon.
+        final String fuseDaemonFilePath = insertedFilePath.startsWith("/storage") ? insertedFilePath
+                : "/storage/emulated/" + UserHandle.myUserId();
+        try {
+            final BackupIdRow value = createBackupIdRow(insertedRow);
+            getFuseDaemonForPath(fuseDaemonFilePath).backupVolumeDbData(insertedFilePath,
+                    BackupIdRow.serialize(value));
+        } catch (IOException e) {
+            Log.e(TAG, "Failure in backing up data to external storage", e);
+        }
+    }
+
+    private BackupIdRow createBackupIdRow(FileRow insertedRow) {
+        BackupIdRow.Builder builder = BackupIdRow.newBuilder(insertedRow.getId());
+        builder.setIsFavorite(insertedRow.isFavorite() ? 1 : 0);
+        return builder.build();
+    }
+
+    /**
+     * Deletes backed up data(needed for recovery) from external storage.
+     */
+    private void deleteFromDbBackup(FileRow deletedRow) {
+        if (!isStableUrisEnabled(deletedRow.getVolumeName())) {
+            return;
+        }
+
+        String deletedFilePath = deletedRow.getPath();
+        // For all internal file paths, redirect to external primary fuse daemon.
+        String fuseDaemonFilePath = deletedFilePath.startsWith("/storage") ? deletedFilePath
+                : "/storage/emulated/" + UserHandle.myUserId();
+        try {
+            getFuseDaemonForPath(fuseDaemonFilePath).deleteDbBackup(deletedFilePath);
+        } catch (IOException e) {
+            Log.w(TAG, "Failure in deleting backup data for key: " + deletedFilePath, e);
+        }
+    }
+
+
+    protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue, int limit) {
+        if (!isStableUrisEnabled(volumeName)) {
+            return new String[0];
+        }
+
+        final String fuseDaemonFilePath = "/storage/emulated/" + UserHandle.myUserId();
+        try {
+            return getFuseDaemonForPath(fuseDaemonFilePath).readBackedUpFilePaths(volumeName,
+                    lastReadValue, limit);
+        } catch (IOException e) {
+            Log.e(TAG, "Failure in reading backed up file paths for volume: " + volumeName, e);
+            return new String[0];
+        }
+    }
+
+    protected Optional<BackupIdRow> readDataFromBackup(String volumeName, String filePath) {
+        if (!isStableUrisEnabled(volumeName)) {
+            return Optional.empty();
+        }
+
+        final String fuseDaemonFilePath = filePath.startsWith("/storage") ? filePath
+                : "/storage/emulated/" + UserHandle.myUserId();
+        try {
+            final String data = getFuseDaemonForPath(fuseDaemonFilePath).readBackedUpData(filePath);
+            return Optional.of(BackupIdRow.deserialize(data));
+        } catch (Exception e) {
+            Log.e(TAG, "Failure in getting backed up data for filePath: " + filePath, e);
+            return Optional.empty();
+        }
+    }
+
     protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
         if (!helper.isNextRowIdBackupEnabled()) {
-            Log.v(TAG, "Skipping next row id backup.");
             return;
         }
 
@@ -872,9 +962,6 @@ public class MediaProvider extends ContentProvider {
 
         if (id >= nextRowIdBackupOptional.get()) {
             helper.backupNextRowId(id);
-        } else {
-            Log.v(TAG, String.format(Locale.ROOT, "Inserted id:%d less than next row id backup:%d.",
-                    id, nextRowIdBackupOptional.get()));
         }
     }
 
@@ -966,7 +1053,7 @@ public class MediaProvider extends ContentProvider {
      * manually.
      */
     private void ensureDefaultFolders(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
-        if (volume.isExternallyManaged()) {
+        if (volume.shouldSkipDefaultDirCreation()) {
             // Default folders should not be automatically created inside volumes managed from
             // outside Android.
             return;
@@ -1006,7 +1093,7 @@ public class MediaProvider extends ContentProvider {
      * disk, then all thumbnails will be considered stable and will be deleted.
      */
     private void ensureThumbnailsValid(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
-        if (volume.isExternallyManaged()) {
+        if (volume.shouldSkipDefaultDirCreation()) {
             // Default folders and thumbnail directories should not be automatically created inside
             // volumes managed from outside Android, and there is no need to ensure the validity of
             // their thumbnails here.
@@ -1087,20 +1174,13 @@ public class MediaProvider extends ContentProvider {
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
         mPickerDbFacade = new PickerDbFacade(context);
 
-        final String localPickerProvider = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
-        final String allowedCloudProviders =
-                getStringDeviceConfig(PickerSyncController.ALLOWED_CLOUD_PROVIDERS_KEY,
-                        /* default */ "");
-        final int pickerSyncDelayMs = getIntDeviceConfig(PickerSyncController.SYNC_DELAY_MS,
-                /* default */ 5000);
-
-        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade,
-                localPickerProvider, allowedCloudProviders, pickerSyncDelayMs);
+        mConfigStore = createConfigStore();
+        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade, mConfigStore);
         mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade);
 
         if (SdkLevel.isAtLeastS()) {
-            mTranscodeHelper = new TranscodeHelperImpl(context, this);
+            mTranscodeHelper = new TranscodeHelperImpl(context, this, mConfigStore);
         } else {
             mTranscodeHelper = new TranscodeHelperNoOp();
         }
@@ -1198,20 +1278,22 @@ public class MediaProvider extends ContentProvider {
             mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
 
-        checkDeviceConfigAndUpdateGetContentAlias();
+        checkConfigAndUpdateGetContentAlias();
+        mConfigStore.addOnChangeListener(
+                BackgroundThread.getExecutor(), this::checkConfigAndUpdateGetContentAlias);
 
         PulledMetrics.initialize(context);
         return true;
     }
 
     @VisibleForTesting
-    protected void checkDeviceConfigAndUpdateGetContentAlias() {
+    protected void checkConfigAndUpdateGetContentAlias() {
         final String photoPickerGetContentActivity =
                 PhotoPickerActivity.class.getPackage().getName() + ".PhotoPickerGetContentActivity";
         final ComponentName componentName = new ComponentName(getContext().getPackageName(),
                 photoPickerGetContentActivity);
 
-        final int expectedState = getBooleanDeviceConfig(TAKE_OVER_GET_CONTENT, false)
+        final int expectedState = mConfigStore.isGetContentTakeOverEnabled()
                 ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
                 : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
 
@@ -2128,7 +2210,8 @@ public class MediaProvider extends ContentProvider {
 
         final Uri uri = Uri.parse("content://media/picker/" + userId + "/" + authority + "/media/"
                 + mediaId);
-        try (Cursor cursor = mPickerUriResolver.query(uri, projection, /* callingPid */0, uid)) {
+        try (Cursor cursor = mPickerUriResolver.query(uri, projection, /* callingPid */0, uid,
+                mCallingIdentity.get().getPackageName())) {
             if (cursor != null && cursor.moveToFirst()) {
                 final int sizeBytesIdx = cursor.getColumnIndex(MediaStore.PickerMediaColumns.SIZE);
 
@@ -2536,12 +2619,20 @@ public class MediaProvider extends ContentProvider {
 
             // Get relative path for the contents of given directory.
             String relativePath = extractRelativePathWithDisplayName(path);
-
             if (relativePath == null) {
                 // Path is /storage/emulated/, if relativePath is null, MediaProvider doesn't
                 // have any details about the given directory. Use lower file system to obtain
                 // files and directories in the given directory.
                 return new String[] {"/"};
+            }
+
+            // Getting UserId from the directory path, as clone user shares the MediaProvider
+            // of user 0.
+            int userIdFromPath = FileUtils.extractUserId(path);
+            // In some cases, like querying public volumes, userId is not available in path. We
+            // take userId from the user running MediaProvider process (sUserId).
+            if (userIdFromPath == -1) {
+                userIdFromPath = sUserId;
             }
 
             // For all other paths, get file names from media provider database.
@@ -2553,8 +2644,9 @@ public class MediaProvider extends ContentProvider {
 
             Bundle queryArgs = new Bundle();
             queryArgs.putString(QUERY_ARG_SQL_SELECTION, MediaColumns.RELATIVE_PATH +
-                    " =? and mime_type not like 'null'");
-            queryArgs.putStringArray(QUERY_ARG_SQL_SELECTION_ARGS, new String[] {relativePath});
+                    " =? and " + FileColumns._USER_ID + " =? and mime_type not like 'null'");
+            queryArgs.putStringArray(QUERY_ARG_SQL_SELECTION_ARGS, new String[] {relativePath,
+                    String.valueOf(userIdFromPath)});
             // Get database entries for files from MediaProvider database with
             // MediaColumns.RELATIVE_PATH as the given path.
             try (final Cursor cursor = query(FileUtils.getContentUriForPath(path), projection,
@@ -3320,7 +3412,7 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor query(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal, boolean forSelf) {
-        Trace.beginSection("query");
+        Trace.beginSection("MP.query [" + uri + ']');
         try {
             return queryInternal(uri, projection, queryArgs, signal, forSelf);
         } catch (FallbackException e) {
@@ -3334,7 +3426,7 @@ public class MediaProvider extends ContentProvider {
             CancellationSignal signal, boolean forSelf) throws FallbackException {
         if (isPickerUri(uri)) {
             return mPickerUriResolver.query(uri, projection, mCallingIdentity.get().pid,
-                    mCallingIdentity.get().uid);
+                    mCallingIdentity.get().uid, mCallingIdentity.get().getPackageName());
         }
 
         final String volumeName = getVolumeName(uri);
@@ -3396,6 +3488,11 @@ public class MediaProvider extends ContentProvider {
         final DatabaseHelper helper = getDatabaseForUri(uri);
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, queryArgs,
                 honoredArgs::add);
+
+        // Allowing hidden column _user_id for this query to support Cloned Profile use case.
+        if (isFuseThread() && table == FILES) {
+            qb.allowColumn(FileColumns._USER_ID);
+        }
 
         if (targetSdkVersion < Build.VERSION_CODES.R) {
             // Some apps are abusing "ORDER BY" clauses to inject "LIMIT"
@@ -3676,7 +3773,7 @@ public class MediaProvider extends ContentProvider {
     private void ensureFileColumns(int match, @NonNull Uri uri, @NonNull Bundle extras,
             @NonNull ContentValues values, boolean makeUnique, @Nullable String currentPath)
             throws VolumeArgumentException, VolumeNotFoundException {
-        Trace.beginSection("ensureFileColumns");
+        Trace.beginSection("MP.ensureFileColumns");
 
         Objects.requireNonNull(uri);
         Objects.requireNonNull(extras);
@@ -4215,7 +4312,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private int bulkInsertPlaylist(@NonNull Uri uri, @NonNull ContentValues[] values) {
-        Trace.beginSection("bulkInsertPlaylist");
+        Trace.beginSection("MP.bulkInsertPlaylist");
         try {
             try {
                 return addPlaylistMembers(uri, values);
@@ -4244,6 +4341,20 @@ public class MediaProvider extends ContentProvider {
         values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
         values.put(FileColumns.DISPLAY_NAME, extractDisplayName(path));
         values.put(FileColumns.IS_DOWNLOAD, isDownload(path) ? 1 : 0);
+
+        // Getting UserId from the directory path, as clone user shares the MediaProvider
+        // of user 0.
+        int userIdFromPath = FileUtils.extractUserId(path);
+        // In some cases, like querying public volumes, userId is not available in path. We
+        // take userId from the user running MediaProvider process (sUserId).
+        if (userIdFromPath != -1) {
+            if (isAppCloneUserForFuse(userIdFromPath)) {
+                values.put(FileColumns._USER_ID, userIdFromPath);
+            } else {
+                values.put(FileColumns._USER_ID, sUserId);
+            }
+        }
+
         File file = new File(path);
         if (file.exists()) {
             values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
@@ -4712,7 +4823,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public @Nullable Uri insert(@NonNull Uri uri, @Nullable ContentValues values,
             @Nullable Bundle extras) {
-        Trace.beginSection("insert");
+        Trace.beginSection("MP.insert [" + uri + ']');
         try {
             try {
                 return insertInternal(uri, values, extras);
@@ -5185,7 +5296,7 @@ public class MediaProvider extends ContentProvider {
      */
     private @NonNull SQLiteQueryBuilder getQueryBuilder(int type, int match,
             @NonNull Uri uri, @NonNull Bundle extras, @Nullable Consumer<String> honored) {
-        Trace.beginSection("getQueryBuilder");
+        Trace.beginSection("MP.getQueryBuilder");
         try {
             return getQueryBuilderInternal(type, match, uri, extras, honored);
         } finally {
@@ -5827,7 +5938,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int delete(@NonNull Uri uri, @Nullable Bundle extras) {
-        Trace.beginSection("delete");
+        Trace.beginSection("MP.delete [" + uri + ']');
         try {
             return deleteInternal(uri, extras);
         } catch (FallbackException e) {
@@ -6172,7 +6283,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
-        Trace.beginSection("call");
+        Trace.beginSection("MP.call [" + method + ']');
         try {
             return callInternal(method, arg, extras);
         } finally {
@@ -6405,6 +6516,17 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
+            case MediaStore.GET_CLOUD_PROVIDER_CALL: {
+                // TODO(b/245746037): replace UID check with Permission(MANAGE_CLOUD_MEDIA_PROVIDER)
+                if (Binder.getCallingUid() != MY_UID) {
+                    throw new SecurityException("Get cloud provider not allowed. Calling UID:"
+                            + Binder.getCallingUid() + ", MP UID:" + MY_UID);
+                }
+                final Bundle bundle = new Bundle();
+                bundle.putString(MediaStore.GET_CLOUD_PROVIDER_RESULT,
+                        mPickerSyncController.getCloudProvider());
+                return bundle;
+            }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 // TODO(b/190713331): Remove after initial development
                 final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);
@@ -6859,7 +6981,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void invalidateThumbnails(Uri uri) {
-        Trace.beginSection("invalidateThumbnails");
+        Trace.beginSection("MP.invalidateThumbnails");
         try {
             invalidateThumbnailsInternal(uri);
         } finally {
@@ -6915,7 +7037,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(@NonNull Uri uri, @Nullable ContentValues values,
             @Nullable Bundle extras) {
-        Trace.beginSection("update");
+        Trace.beginSection("MP.update [" + uri + ']');
         try {
             return updateInternal(uri, values, extras);
         } catch (FallbackException e) {
@@ -7088,7 +7210,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (!isCallingPackageSelf()) {
-                Trace.beginSection("filter");
+                Trace.beginSection("MP.filter");
 
                 // We default to filtering mutable columns, except when we know
                 // the single item being updated is pending; when it's finally
@@ -7193,7 +7315,7 @@ public class MediaProvider extends ContentProvider {
                 && !initialValues.containsKey(MediaColumns.DATA)
                 && !isThumbnail
                 && allowMovement) {
-            Trace.beginSection("movement");
+            Trace.beginSection("MP.movement");
 
             // We only support movement under well-defined collections
             switch (match) {
@@ -7319,7 +7441,7 @@ public class MediaProvider extends ContentProvider {
         // it's applied, we need to snapshot affected IDs here
         final LongArray updatedIds = new LongArray();
         if (triggerInvalidate || triggerScan) {
-            Trace.beginSection("snapshot");
+            Trace.beginSection("MP.snapshot");
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try (Cursor c = qb.query(helper, new String[] { FileColumns._ID },
                     userWhere, userWhereArgs, null, null, null, null, null)) {
@@ -7386,7 +7508,7 @@ public class MediaProvider extends ContentProvider {
         // If the caller tried (and failed) to update metadata, the file on disk
         // might have changed, to scan it to collect the latest metadata.
         if (triggerInvalidate || triggerScan) {
-            Trace.beginSection("invalidate");
+            Trace.beginSection("MP.invalidate");
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try {
                 for (int i = 0; i < updatedIds.size(); i++) {
@@ -7559,7 +7681,7 @@ public class MediaProvider extends ContentProvider {
      * that the playlist entry is retained to avoid user data loss.
      */
     private void resolvePlaylistMembers(@NonNull Uri playlistUri) {
-        Trace.beginSection("resolvePlaylistMembers");
+        Trace.beginSection("MP.resolvePlaylistMembers");
         try {
             final DatabaseHelper helper;
             try {
@@ -7937,6 +8059,45 @@ public class MediaProvider extends ContentProvider {
                             .withAppendedId(Images.Media.getContentUri(volumeName), imageId);
                     return ensureThumbnail(targetUri, signal);
                 }
+                case CLI: {
+                    // Command Line Interface "file" - content://media/cli - may be opened only by
+                    // Shell (or Root).
+                    if (!isCallingPackageShell()) {
+                        throw new SecurityException("Only shell (or root) is allowed to open "
+                                + "MediaProvider's CLI file (" + uri + ')');
+                    }
+
+                    // We expect the uri's query to hold a single parameter - "cmd" - which contains
+                    // the command name followed by the arguments (if any), all joined with '+'
+                    // symbols:
+                    // ?cmd=command[+arg1+[arg2+[arg3...]]]
+                    //
+                    // For example:
+                    // (1) ?cmd=version
+                    // (2) ?cmd=set-cloud-provider=com.my.cloud.provider.authority
+                    //
+                    // We retrieve the command name and the argument (if any) with
+                    // uri.getQueryParameter("cmd") call, which will replace all '+' delimiters with
+                    // spaces.
+
+                    final String[] cmdAndArgs = uri.getQueryParameter("cmd").split("\\s+");
+                    Log.d(TAG, "MediaProvider CLI command: " + Arrays.toString(cmdAndArgs));
+                    try {
+                        // Create a UNIX pipe.
+                        final ParcelFileDescriptor[] pipe = ParcelFileDescriptor.createPipe();
+                        // Pass the write end - pipe[1] - to our shell command.
+                        final var cmd = new MediaProviderShellCommand(getContext(),
+                                mConfigStore,
+                                mPickerSyncController,
+                                /* out */ pipe[1]);
+                        cmd.exec(cmdAndArgs);
+                        // Return the read end - pipe[0] - to the caller.
+                        return pipe[0];
+                    } catch (IOException e) {
+                        Log.e(TAG, "Could not create a pipe", e);
+                        return null;
+                    }
+                }
             }
         } finally {
             // We have to log separately here because openFileAndEnforcePathPermissionsHelper calls
@@ -8021,7 +8182,7 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        Trace.beginSection("ensureThumbnail");
+        Trace.beginSection("MP.ensureThumbnail");
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try {
             switch (match) {
@@ -8265,6 +8426,11 @@ public class MediaProvider extends ContentProvider {
         } else {
             return daemon;
         }
+    }
+
+    private @NonNull FuseDaemon getFuseDaemonForPath(@NonNull String path)
+            throws FileNotFoundException {
+        return getFuseDaemonForFile(new File(path));
     }
 
     private void invalidateFuseDentry(@NonNull File file) {
@@ -8887,7 +9053,7 @@ public class MediaProvider extends ContentProvider {
         final LongArray res = new LongArray();
         final LongArray freeOffsets = new LongArray();
 
-        Trace.beginSection("getRedactionRanges");
+        Trace.beginSection("MP.getRedactionRanges");
         try {
             if (ExifInterface.isSupportedMimeType(mimeType)) {
                 final ExifInterface exif = new ExifInterface(fis.getFD());
@@ -8937,7 +9103,7 @@ public class MediaProvider extends ContentProvider {
 
     private FileAccessAttributes queryForFileAttributes(final String path)
             throws FileNotFoundException {
-        Trace.beginSection("queryFileAttr");
+        Trace.beginSection("MP.queryFileAttr");
         final Uri contentUri = FileUtils.getContentUriForPath(path);
         final String[] projection = new String[]{
                 MediaColumns._ID,
@@ -9417,9 +9583,11 @@ public class MediaProvider extends ContentProvider {
         }) == 1;
     }
 
-    private static int deleteFileUnchecked(@NonNull String path) {
+    private int deleteFileUnchecked(@NonNull String path,
+            LocalCallingIdentity localCallingIdentity) {
         final File toDelete = new File(path);
         if (toDelete.delete()) {
+            localCallingIdentity.incrementDeletedFileCountBypassingDatabase();
             return 0;
         } else {
             return OsConstants.ENOENT;
@@ -9445,8 +9613,8 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public int deleteFileForFuse(@NonNull String path, int uid) throws IOException {
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        final LocalCallingIdentity localCallingIdentity = getCachedCallingIdentityForFuse(uid);
+        final LocalCallingIdentity token = clearLocalCallingIdentity(localCallingIdentity);
         PulledMetrics.logFileAccessViaFuse(getCallingUidOrSelf(), path);
 
         try {
@@ -9456,7 +9624,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (shouldBypassDatabaseAndSetDirtyForFuse(uid, path)) {
-                return deleteFileUnchecked(path);
+                return deleteFileUnchecked(path, localCallingIdentity);
             }
 
             final boolean shouldBypass = shouldBypassFuseRestrictions(/*forWrite*/ true, path);
@@ -9473,7 +9641,7 @@ public class MediaProvider extends ContentProvider {
 
             if (delete(contentUri, where, whereArgs) == 0) {
                 if (shouldBypass) {
-                    return deleteFileUnchecked(path);
+                    return deleteFileUnchecked(path, localCallingIdentity);
                 }
                 return OsConstants.ENOENT;
             } else {
@@ -9826,86 +9994,6 @@ public class MediaProvider extends ContentProvider {
         return FuseDaemon.native_is_fuse_thread();
     }
 
-    @VisibleForTesting
-    public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getBoolean(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
-                    defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
-    }
-
-    @VisibleForTesting
-    public int getIntDeviceConfig(String key, int defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getInt(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
-                    defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
-    }
-
-    @VisibleForTesting
-    public int getIntDeviceConfig(String namespace, String key, int defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getInt(namespace, key, defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
-    }
-
-    @VisibleForTesting
-    public String getStringDeviceConfig(String key, String defaultValue) {
-        if (!canReadDeviceConfig(key, defaultValue)) {
-            return defaultValue;
-        }
-
-        final long token = Binder.clearCallingIdentity();
-        try {
-            return DeviceConfig.getString(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
-                    defaultValue);
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
-    }
-
-    private static <T> boolean canReadDeviceConfig(String key, T defaultValue) {
-        if (SdkLevel.isAtLeastS()) {
-            return true;
-        }
-
-        Log.w(TAG, "Cannot read device config before Android S. Returning defaultValue: "
-                + defaultValue + " for key: " + key);
-        return false;
-    }
-
-    @VisibleForTesting
-    public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
-        if (!SdkLevel.isAtLeastS()) {
-            Log.w(TAG, "Cannot add device config changed listener before Android S");
-            return;
-        }
-
-        DeviceConfig.addOnPropertiesChangedListener(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                BackgroundThread.getExecutor(), listener);
-    }
-
     @Deprecated
     private boolean checkCallingPermissionAudio(boolean forWrite, String callingPackage) {
         if (forWrite) {
@@ -9946,7 +10034,7 @@ public class MediaProvider extends ContentProvider {
      */
     private void enforceCallingPermission(@NonNull Uri uri, @NonNull Bundle extras,
             boolean forWrite) {
-        Trace.beginSection("enforceCallingPermission");
+        Trace.beginSection("MP.enforceCallingPermission");
         try {
             enforceCallingPermissionInternal(uri, extras, forWrite);
         } finally {
@@ -10298,6 +10386,7 @@ public class MediaProvider extends ContentProvider {
             mAttachedVolumes.add(volume);
         }
 
+        setupVolumeDbBackupAndRecovery(volume);
         final ContentResolver resolver = getContext().getContentResolver();
         final Uri uri = getBaseContentUri(volumeName);
         // TODO(b/182396009) we probably also want to notify clone profile (and vice versa)
@@ -10322,6 +10411,38 @@ public class MediaProvider extends ContentProvider {
             });
         }
         return uri;
+    }
+
+    private void setupVolumeDbBackupAndRecovery(MediaVolume volume) {
+        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volume.getName())) {
+            // Leveldb setup for internal volume is done during leveldb setup for primary external.
+            return;
+        }
+        if (!mConfigStore.isStableUrisForInternalVolumeEnabled()) {
+            return;
+        }
+
+        try {
+            if (!new File(sRecoveryDirectoryPath).exists()) {
+                new File(sRecoveryDirectoryPath).mkdirs();
+            }
+            getFuseDaemonForFile(volume.getPath()).setupVolumeDbBackup();
+        } catch (IOException e) {
+            Log.w(TAG, "Failure in setting up backup and recovery for volume: " + volume.getName(),
+                    e);
+        }
+    }
+
+    /**
+     * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
+     */
+    protected boolean isStableUrisEnabled(String volumeName) {
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL:
+                return mConfigStore.isStableUrisForInternalVolumeEnabled();
+            default:
+                return false;
+        }
     }
 
     private void detachVolume(Uri uri) {
@@ -10386,6 +10507,7 @@ public class MediaProvider extends ContentProvider {
     private PickerDbFacade mPickerDbFacade;
     private ExternalDbFacade mExternalDbFacade;
     private PickerDataLayer mPickerDataLayer;
+    private ConfigStore mConfigStore;
     private PickerSyncController mPickerSyncController;
     private TranscodeHelper mTranscodeHelper;
 
@@ -10451,6 +10573,9 @@ public class MediaProvider extends ContentProvider {
     static final int PICKER_INTERNAL_ALBUMS = 903;
     static final int PICKER_UNRELIABLE_VOLUME = 904;
 
+    // MediaProvider Command Line Interface
+    static final int CLI = 100_000;
+
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
             Arrays.asList(AUDIO_MEDIA_ID, IMAGES_MEDIA_ID, VIDEO_MEDIA_ID, FILES_ID, DOWNLOADS_ID));
 
@@ -10505,6 +10630,9 @@ public class MediaProvider extends ContentProvider {
             mPublic.addURI(auth, "picker/#/*/media/*", PICKER_ID);
             // content://media/picker/unreliable/<media_id>
             mPublic.addURI(auth, "picker/unreliable/#", PICKER_UNRELIABLE_VOLUME);
+
+            mPublic.addURI(auth, "cli", CLI);
+
             mPublic.addURI(auth, "*/images/media", IMAGES_MEDIA);
             mPublic.addURI(auth, "*/images/media/#", IMAGES_MEDIA_ID);
             mPublic.addURI(auth, "*/images/media/#/thumbnail", IMAGES_MEDIA_ID_THUMBNAIL);
@@ -10764,6 +10892,49 @@ public class MediaProvider extends ContentProvider {
         mTranscodeHelper.dump(writer);
         writer.println();
 
+        dumpAccessLogs(writer);
+        writer.println();
+
         Logging.dumpPersistent(writer);
+    }
+
+    private void dumpAccessLogs(PrintWriter writer) {
+        synchronized (mCachedCallingIdentityForFuse) {
+            for (int key = 0; key <= mCachedCallingIdentityForFuse.size(); key++) {
+                if (mCachedCallingIdentityForFuse.contains(key)) {
+                    mCachedCallingIdentityForFuse.get(key).dump(writer);
+                }
+            }
+        }
+    }
+
+    /**
+     * Called once - from {@link #onCreate()}.
+     */
+    @NonNull
+    private ConfigStore createConfigStore() {
+        // Tests may want override provideConfigStore() in order to inject a mock object.
+        ConfigStore configStore = provideConfigStore();
+        if (configStore == null) {
+            // Tests did not provide an alternative implementation: create our regular "production"
+            // ConfigStore.
+            configStore = new ConfigStore.ConfigStoreImpl();
+        }
+        return configStore;
+    }
+
+    /**
+     * <b>FOT TESTING PURPOSES ONLY</b>
+     * <p>
+     * Allows injecting alternative {@link ConfigStore} implementation.
+     */
+    @VisibleForTesting
+    @Nullable
+    protected ConfigStore provideConfigStore() {
+        return null;
+    }
+
+    protected VolumeCache getVolumeCache() {
+        return mVolumeCache;
     }
 }

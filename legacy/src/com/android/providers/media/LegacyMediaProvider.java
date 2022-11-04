@@ -16,8 +16,8 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
-import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
+import static com.android.providers.media.LegacyDatabaseHelper.EXTERNAL_DATABASE_NAME;
+import static com.android.providers.media.LegacyDatabaseHelper.INTERNAL_DATABASE_NAME;
 
 import android.content.ContentProvider;
 import android.content.ContentProviderOperation;
@@ -52,8 +52,8 @@ import java.util.Set;
  * {@link android.provider.MediaStore.Files} data.
  */
 public class LegacyMediaProvider extends ContentProvider {
-    private DatabaseHelper mInternalDatabase;
-    private DatabaseHelper mExternalDatabase;
+    private LegacyDatabaseHelper mInternalDatabase;
+    private LegacyDatabaseHelper mExternalDatabase;
 
     public static final String START_LEGACY_MIGRATION_CALL = "start_legacy_migration";
     public static final String FINISH_LEGACY_MIGRATION_CALL = "finish_legacy_migration";
@@ -79,15 +79,13 @@ public class LegacyMediaProvider extends ContentProvider {
         final File persistentDir = context.getDir("logs", Context.MODE_PRIVATE);
         Logging.initPersistent(persistentDir);
 
-        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false, true, null,
-                null, null, null, null, null, false);
-        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, true, null,
-                null, null, null, null, null, false);
+        mInternalDatabase = new LegacyDatabaseHelper(context, INTERNAL_DATABASE_NAME, true);
+        mExternalDatabase = new LegacyDatabaseHelper(context, EXTERNAL_DATABASE_NAME, true);
 
         return true;
     }
 
-    private @NonNull DatabaseHelper getDatabaseForUri(Uri uri) {
+    private @NonNull LegacyDatabaseHelper getDatabaseForUri(Uri uri) {
         final String volumeName = MediaStore.getVolumeName(uri);
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
@@ -101,7 +99,7 @@ public class LegacyMediaProvider extends ContentProvider {
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
         final String appendedSelection = getAppendedSelection(selection, uri);
-        final DatabaseHelper helper = getDatabaseForUri(uri);
+        final LegacyDatabaseHelper helper = getDatabaseForUri(uri);
         return helper.runWithoutTransaction((db) -> {
             return db.query(getTableName(uri), projection, appendedSelection, selectionArgs,
                     null, null, sortOrder);
@@ -117,10 +115,10 @@ public class LegacyMediaProvider extends ContentProvider {
     public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
                 throws OperationApplicationException {
         // Open transactions on databases for requested volumes
-        final Set<DatabaseHelper> transactions = new ArraySet<>();
+        final Set<LegacyDatabaseHelper> transactions = new ArraySet<>();
         try {
             for (ContentProviderOperation op : operations) {
-                final DatabaseHelper helper = getDatabaseForUri(op.getUri());
+                final LegacyDatabaseHelper helper = getDatabaseForUri(op.getUri());
                 if (!transactions.contains(helper)) {
                     helper.beginTransaction();
                     transactions.add(helper);
@@ -128,12 +126,12 @@ public class LegacyMediaProvider extends ContentProvider {
             }
 
             final ContentProviderResult[] result = super.applyBatch(operations);
-            for (DatabaseHelper helper : transactions) {
+            for (LegacyDatabaseHelper helper : transactions) {
                 helper.setTransactionSuccessful();
             }
             return result;
         } finally {
-            for (DatabaseHelper helper : transactions) {
+            for (LegacyDatabaseHelper helper : transactions) {
                 helper.endTransaction();
             }
         }
@@ -151,7 +149,7 @@ public class LegacyMediaProvider extends ContentProvider {
             }
         }
 
-        final DatabaseHelper helper = getDatabaseForUri(uri);
+        final LegacyDatabaseHelper helper = getDatabaseForUri(uri);
         final long id = helper.runWithTransaction((db) -> {
             return db.insert(getTableName(uri), null, values);
         });

@@ -40,6 +40,7 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
+import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 
@@ -119,10 +120,14 @@ public class PickerDataLayerTest {
 
         mDbHelper = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
-        final String allowedCloudProviders = CLOUD_PRIMARY_PROVIDER_AUTHORITY + ","
-                + CLOUD_SECONDARY_PROVIDER_AUTHORITY;
-        mController = new PickerSyncController(mContext, mFacade, LOCAL_PROVIDER_AUTHORITY,
-                allowedCloudProviders, /* syncDelay */ 0);
+
+        final TestConfigStore configStore = new TestConfigStore();
+        configStore.setAllowedCloudProviders(
+                CLOUD_PRIMARY_PROVIDER_AUTHORITY, CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        configStore.setPickerSyncDelayMs(0);
+
+        mController = new PickerSyncController(
+                mContext, mFacade, configStore, LOCAL_PROVIDER_AUTHORITY);
         mDataLayer = new PickerDataLayer(mContext, mFacade, mController);
 
         // Set cloud provider to null to discard

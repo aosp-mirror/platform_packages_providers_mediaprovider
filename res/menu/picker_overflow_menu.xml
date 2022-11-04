@@ -21,4 +21,8 @@
         android:id="@+id/browse"
         android:title="@string/picker_browse"
         app:showAsAction="never"/>
+    <item
+        android:id="@+id/settings"
+        android:title="@string/picker_settings"
+        app:showAsAction="never"/>
 </menu>

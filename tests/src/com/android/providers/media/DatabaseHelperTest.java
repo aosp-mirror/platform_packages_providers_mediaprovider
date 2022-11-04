@@ -25,11 +25,11 @@ import static com.android.providers.media.DatabaseHelper.TEST_UPGRADE_DB;
 import static com.android.providers.media.DatabaseHelper.makePristineSchema;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
@@ -52,6 +52,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -59,6 +60,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
@@ -274,12 +277,88 @@ public class DatabaseHelperTest {
             }
         }
 
-        // Downgrade will delete the database file and crash the process
+        // Downgrade will wipe data, but at least we don't crash
         try (DatabaseHelper helper = after.getConstructor(Context.class, String.class)
                 .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
-            assertThrows(RuntimeException.class, helper::getWritableDatabaseForTest);
-            assertThat(sIsolatedContext.getDatabasePath(TEST_DOWNGRADE_DB).exists()).isFalse();
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            try (Cursor c = db.query("files", null, null, null, null, null, null, null)) {
+                assertEquals(0, c.getCount());
+            }
         }
+    }
+
+    @Test
+    public void testUtoTDowngradeWithStableUrisEnabledRecoversData() throws Exception {
+        assertDowngradeWithStableUrisEnabledRecoversData(DatabaseHelperU.class,
+                DatabaseHelperT.class);
+    }
+
+    private void assertDowngradeWithStableUrisEnabledRecoversData(
+            Class<? extends DatabaseHelper> before,
+            Class<? extends DatabaseHelper> after) throws Exception {
+        Map<String, BackupIdRow> backedUpData = new HashMap<>();
+        backedUpData.put("/product/media/audio/alarms/a.ogg", BackupIdRow.newBuilder(1).setIsDirty(
+                false).build());
+        backedUpData.put("/product/media/audio/alarms/b.ogg",
+                BackupIdRow.newBuilder(2).setIsDirty(false).build());
+        backedUpData.put("/product/media/audio/alarms/c.ogg", BackupIdRow.newBuilder(3).setIsDirty(
+                false).build());
+        backedUpData.put("/product/media/audio/alarms/d.ogg", BackupIdRow.newBuilder(4).setIsDirty(
+                false).build());
+        backedUpData.put("/product/media/audio/alarms/e.ogg", BackupIdRow.newBuilder(5).setIsDirty(
+                true).build());
+        sIsolatedContext = new IsolatedContext(
+                InstrumentationRegistry.getTargetContext(), TAG, /*asFuseThread*/ false);
+        ((IsolatedContext) sIsolatedContext).setBackedUpData(backedUpData);
+        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        Map<String, Long> pathToIdMap = new HashMap<>();
+
+        try (DatabaseHelper helper = before.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, "internal.db")) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            assertThat(sIsolatedContext.getDatabasePath("internal.db").exists()).isTrue();
+
+            // Insert 5 files
+            pathToIdMap.put("/product/media/audio/alarms/a.ogg",
+                    insertInInternal(db, "/product/media/audio/alarms/a.ogg", "a.ogg"));
+            pathToIdMap.put("/product/media/audio/alarms/b.ogg",
+                    insertInInternal(db, "/product/media/audio/alarms/b.ogg", "b.ogg"));
+            pathToIdMap.put("/product/media/audio/alarms/c.ogg",
+                    insertInInternal(db, "/product/media/audio/alarms/c.ogg", "c.ogg"));
+            pathToIdMap.put("/product/media/audio/alarms/d.ogg",
+                    insertInInternal(db, "/product/media/audio/alarms/d.ogg", "d.ogg"));
+            pathToIdMap.put("/product/media/audio/alarms/e.ogg",
+                    insertInInternal(db, "/product/media/audio/alarms/e.ogg", "e.ogg"));
+
+            try (Cursor c = db.query("files", null, null, null, null, null, null, null)) {
+                assertEquals(5, c.getCount());
+            }
+        }
+
+        // Downgrade will wipe data, and recover non-dirty rows from backup
+        try (DatabaseHelper helper = after.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, "internal.db")) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            assertThat(sIsolatedContext.getDatabasePath("internal.db").exists()).isTrue();
+            try (Cursor c = db.query("files", new String[]{FileColumns._ID, FileColumns.DATA}, null,
+                    null, null, null, null, null)) {
+                assertEquals(4, c.getCount());
+                while (c.moveToNext()) {
+                    assertThat(c.getLong(0)).isEqualTo(pathToIdMap.get(c.getString(1)));
+                }
+            }
+        }
+    }
+
+    private long insertInInternal(SQLiteDatabase db, String path, String displayName) {
+        final ContentValues values = new ContentValues();
+        values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
+        values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
+        values.put(FileColumns.DISPLAY_NAME, displayName);
+        values.put(FileColumns.VOLUME_NAME, "internal");
+        long id = db.insert("files", FileColumns.DATA, values);
+        assertFalse(id == -1);
+        return id;
     }
 
     @Test
@@ -544,6 +623,52 @@ public class DatabaseHelperTest {
         }
     }
 
+    /**
+     * Test that database downgrade changed the UUID saved in database file.
+     */
+    @Test
+    public void testDowngradeChangesUUID() throws Exception {
+        Class<? extends DatabaseHelper> dbVersionHigher = DatabaseHelperT.class;
+        Class<? extends DatabaseHelper> dbVersionLower = DatabaseHelperS.class;
+        String originalUUID;
+        int originalVersion;
+        // Create the database with database version = dbVersionLower
+        try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            originalUUID = DatabaseHelper.getOrCreateUuid(db);
+            originalVersion = db.getVersion();
+            // Verify that original version of the database is dbVersionLower.
+            assertWithMessage("Current database version")
+                    .that(db.getVersion()).isEqualTo(DatabaseHelper.VERSION_S);
+        }
+        // Upgrade the database by changing the version to dbVersionHigher
+        try (DatabaseHelper helper = dbVersionHigher.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            // Verify that upgrade resulted in database version change.
+            assertWithMessage("Current database version after upgrade")
+                    .that(db.getVersion()).isNotEqualTo(originalVersion);
+            // Verify that upgrade resulted in database version same as latest version.
+            assertWithMessage("Current database version after upgrade")
+                    .that(db.getVersion()).isEqualTo(DatabaseHelper.VERSION_T);
+            // Verify that upgrade didn't change UUID
+            assertWithMessage("Current database UUID after upgrade")
+                    .that(DatabaseHelper.getOrCreateUuid(db)).isEqualTo(originalUUID);
+        }
+        // Downgrade the database by changing the version to dbVersionLower
+        try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            // Verify that downgraded version is same as original database version before upgrade
+            assertWithMessage("Current database version after downgrade")
+                    .that(db.getVersion()).isEqualTo(originalVersion);
+            // Verify that downgrade changed UUID
+            assertWithMessage("Current database UUID after downgrade")
+                    .that(DatabaseHelper.getOrCreateUuid(db)).isNotEqualTo(originalUUID);
+        }
+    }
+
     private static String normalize(String sql) {
         return sql != null ? sql.replace(", ", ",") : null;
     }
@@ -631,12 +756,22 @@ public class DatabaseHelperTest {
         public void onCreate(SQLiteDatabase db) {
             createTSchema(db, false);
         }
+
+        @Override
+        protected String getExternalStorageDbXattrPath() {
+            return mContext.getFilesDir().getPath();
+        }
     }
 
     private static class DatabaseHelperU extends DatabaseHelper {
         public DatabaseHelperU(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_U, false, false, Column.class,
                     ExportedSince.class, null, null, MediaProvider.MIGRATION_LISTENER, null, false);
+        }
+
+        @Override
+        protected String getExternalStorageDbXattrPath() {
+            return mContext.getFilesDir().getPath();
         }
     }
 

@@ -232,6 +232,7 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -470,8 +471,13 @@ public class MediaProvider extends ContentProvider {
         List<UserHandle> users = mUserCache.getUsersCached();
         ArrayList<File> allowedPaths = new ArrayList<>();
         for (UserHandle user : users) {
-            Collection<File> volumeScanPaths = mVolumeCache.getVolumeScanPaths(volumeName, user);
-            allowedPaths.addAll(volumeScanPaths);
+            try {
+                Collection<File> volumeScanPaths = mVolumeCache.getVolumeScanPaths(volumeName,
+                        user);
+                allowedPaths.addAll(volumeScanPaths);
+            } catch (FileNotFoundException e) {
+                Log.e(TAG, volumeName + " has no associated path for user: " + user);
+            }
         }
 
         return allowedPaths;
@@ -874,15 +880,21 @@ public class MediaProvider extends ContentProvider {
         }
 
         // For all internal file paths, redirect to external primary fuse daemon.
-        String fuseDaemonFilePath = insertedFilePath.startsWith("/storage") ? insertedFilePath
+        final String fuseDaemonFilePath = insertedFilePath.startsWith("/storage") ? insertedFilePath
                 : "/storage/emulated/" + UserHandle.myUserId();
         try {
-            // TODO(b/239414235): Replace value with container class.
-            getFuseDaemonForFile(new File(fuseDaemonFilePath)).backupVolumeDbData(insertedFilePath,
-                    insertedRow.toString());
+            final BackupIdRow value = createBackupIdRow(insertedRow);
+            getFuseDaemonForPath(fuseDaemonFilePath).backupVolumeDbData(insertedFilePath,
+                    BackupIdRow.serialize(value));
         } catch (IOException e) {
-            Log.w(TAG, "Failure in backing up data to external storage", e);
+            Log.e(TAG, "Failure in backing up data to external storage", e);
         }
+    }
+
+    private BackupIdRow createBackupIdRow(FileRow insertedRow) {
+        BackupIdRow.Builder builder = BackupIdRow.newBuilder(insertedRow.getId());
+        builder.setIsFavorite(insertedRow.isFavorite() ? 1 : 0);
+        return builder.build();
     }
 
     /**
@@ -898,15 +910,46 @@ public class MediaProvider extends ContentProvider {
         String fuseDaemonFilePath = deletedFilePath.startsWith("/storage") ? deletedFilePath
                 : "/storage/emulated/" + UserHandle.myUserId();
         try {
-            getFuseDaemonForFile(new File(fuseDaemonFilePath)).deleteDbBackup(deletedFilePath);
+            getFuseDaemonForPath(fuseDaemonFilePath).deleteDbBackup(deletedFilePath);
         } catch (IOException e) {
             Log.w(TAG, "Failure in deleting backup data for key: " + deletedFilePath, e);
         }
     }
 
+
+    protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue, int limit) {
+        if (!isStableUrisEnabled(volumeName)) {
+            return new String[0];
+        }
+
+        final String fuseDaemonFilePath = "/storage/emulated/" + UserHandle.myUserId();
+        try {
+            return getFuseDaemonForPath(fuseDaemonFilePath).readBackedUpFilePaths(volumeName,
+                    lastReadValue, limit);
+        } catch (IOException e) {
+            Log.e(TAG, "Failure in reading backed up file paths for volume: " + volumeName, e);
+            return new String[0];
+        }
+    }
+
+    protected Optional<BackupIdRow> readDataFromBackup(String volumeName, String filePath) {
+        if (!isStableUrisEnabled(volumeName)) {
+            return Optional.empty();
+        }
+
+        final String fuseDaemonFilePath = filePath.startsWith("/storage") ? filePath
+                : "/storage/emulated/" + UserHandle.myUserId();
+        try {
+            final String data = getFuseDaemonForPath(fuseDaemonFilePath).readBackedUpData(filePath);
+            return Optional.of(BackupIdRow.deserialize(data));
+        } catch (Exception e) {
+            Log.e(TAG, "Failure in getting backed up data for filePath: " + filePath, e);
+            return Optional.empty();
+        }
+    }
+
     protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
         if (!helper.isNextRowIdBackupEnabled()) {
-            Log.v(TAG, "Skipping next row id backup.");
             return;
         }
 
@@ -919,9 +962,6 @@ public class MediaProvider extends ContentProvider {
 
         if (id >= nextRowIdBackupOptional.get()) {
             helper.backupNextRowId(id);
-        } else {
-            Log.v(TAG, String.format(Locale.ROOT, "Inserted id:%d less than next row id backup:%d.",
-                    id, nextRowIdBackupOptional.get()));
         }
     }
 
@@ -8019,6 +8059,45 @@ public class MediaProvider extends ContentProvider {
                             .withAppendedId(Images.Media.getContentUri(volumeName), imageId);
                     return ensureThumbnail(targetUri, signal);
                 }
+                case CLI: {
+                    // Command Line Interface "file" - content://media/cli - may be opened only by
+                    // Shell (or Root).
+                    if (!isCallingPackageShell()) {
+                        throw new SecurityException("Only shell (or root) is allowed to open "
+                                + "MediaProvider's CLI file (" + uri + ')');
+                    }
+
+                    // We expect the uri's query to hold a single parameter - "cmd" - which contains
+                    // the command name followed by the arguments (if any), all joined with '+'
+                    // symbols:
+                    // ?cmd=command[+arg1+[arg2+[arg3...]]]
+                    //
+                    // For example:
+                    // (1) ?cmd=version
+                    // (2) ?cmd=set-cloud-provider=com.my.cloud.provider.authority
+                    //
+                    // We retrieve the command name and the argument (if any) with
+                    // uri.getQueryParameter("cmd") call, which will replace all '+' delimiters with
+                    // spaces.
+
+                    final String[] cmdAndArgs = uri.getQueryParameter("cmd").split("\\s+");
+                    Log.d(TAG, "MediaProvider CLI command: " + Arrays.toString(cmdAndArgs));
+                    try {
+                        // Create a UNIX pipe.
+                        final ParcelFileDescriptor[] pipe = ParcelFileDescriptor.createPipe();
+                        // Pass the write end - pipe[1] - to our shell command.
+                        final var cmd = new MediaProviderShellCommand(getContext(),
+                                mConfigStore,
+                                mPickerSyncController,
+                                /* out */ pipe[1]);
+                        cmd.exec(cmdAndArgs);
+                        // Return the read end - pipe[0] - to the caller.
+                        return pipe[0];
+                    } catch (IOException e) {
+                        Log.e(TAG, "Could not create a pipe", e);
+                        return null;
+                    }
+                }
             }
         } finally {
             // We have to log separately here because openFileAndEnforcePathPermissionsHelper calls
@@ -8347,6 +8426,11 @@ public class MediaProvider extends ContentProvider {
         } else {
             return daemon;
         }
+    }
+
+    private @NonNull FuseDaemon getFuseDaemonForPath(@NonNull String path)
+            throws FileNotFoundException {
+        return getFuseDaemonForFile(new File(path));
     }
 
     private void invalidateFuseDentry(@NonNull File file) {
@@ -10352,7 +10436,7 @@ public class MediaProvider extends ContentProvider {
     /**
      * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
      */
-    private boolean isStableUrisEnabled(String volumeName) {
+    protected boolean isStableUrisEnabled(String volumeName) {
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
                 return mConfigStore.isStableUrisForInternalVolumeEnabled();
@@ -10489,6 +10573,9 @@ public class MediaProvider extends ContentProvider {
     static final int PICKER_INTERNAL_ALBUMS = 903;
     static final int PICKER_UNRELIABLE_VOLUME = 904;
 
+    // MediaProvider Command Line Interface
+    static final int CLI = 100_000;
+
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
             Arrays.asList(AUDIO_MEDIA_ID, IMAGES_MEDIA_ID, VIDEO_MEDIA_ID, FILES_ID, DOWNLOADS_ID));
 
@@ -10543,6 +10630,9 @@ public class MediaProvider extends ContentProvider {
             mPublic.addURI(auth, "picker/#/*/media/*", PICKER_ID);
             // content://media/picker/unreliable/<media_id>
             mPublic.addURI(auth, "picker/unreliable/#", PICKER_UNRELIABLE_VOLUME);
+
+            mPublic.addURI(auth, "cli", CLI);
+
             mPublic.addURI(auth, "*/images/media", IMAGES_MEDIA);
             mPublic.addURI(auth, "*/images/media/#", IMAGES_MEDIA_ID);
             mPublic.addURI(auth, "*/images/media/#/thumbnail", IMAGES_MEDIA_ID_THUMBNAIL);
@@ -10842,5 +10932,9 @@ public class MediaProvider extends ContentProvider {
     @Nullable
     protected ConfigStore provideConfigStore() {
         return null;
+    }
+
+    protected VolumeCache getVolumeCache() {
+        return mVolumeCache;
     }
 }

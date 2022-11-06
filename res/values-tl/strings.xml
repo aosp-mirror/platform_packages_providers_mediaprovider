@@ -39,6 +39,16 @@
     <string name="allow" msgid="8885707816848569619">"Payagan"</string>
     <string name="deny" msgid="6040983710442068936">"Tanggihan"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Mag-browse…"</string>
+    <!-- no translation found for picker_settings (7388913035769329672) -->
+    <skip />
+    <!-- no translation found for picker_settings_title (5647700706470673258) -->
+    <skip />
+    <!-- no translation found for picker_settings_description (7486394662725656081) -->
+    <skip />
+    <!-- no translation found for picker_settings_selection_message (245453573086488596) -->
+    <skip />
+    <!-- no translation found for picker_settings_no_provider (2582311853680058223) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"Magdagdag"</string>
     <string name="deselect" msgid="4297825044827769490">"I-deselect"</string>
     <string name="deselected" msgid="8488133193326208475">"Na-deselect"</string>
@@ -84,30 +94,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Subukan ulit"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Available na ang cloud media sa <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"hindi pinili"</string>
-    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
-    <skip />
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Kasama na ngayon ang mga na-back up na larawan"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Puwede kang pumili ng mga larawan mula sa <xliff:g id="APP_NAME">%1$s</xliff:g> account na <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Na-update ang <xliff:g id="APP_NAME">%1$s</xliff:g> account"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Kasama na rito ang mga larawan mula sa <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Pumili ng cloud media app"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Para isama rito ang mga na-back up na larawan, pumili ng cloud media app sa Mga Setting"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Pumili ng <xliff:g id="APP_NAME">%1$s</xliff:g> account"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Para isama rito ang mga larawan mula sa <xliff:g id="APP_NAME">%1$s</xliff:g>, pumili ng account sa app"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"I-dismiss"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Pumili ng app"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Pumili ng account"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Magpalit ng account"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Payagan ang <xliff:g id="APP_NAME_0">^1</xliff:g> na baguhin ang audio file na ito?}one{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> audio file?}other{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> na audio file?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Binabago ang audio file…}one{Nagbabago ng <xliff:g id="COUNT">^1</xliff:g> audio file…}other{Nagbabago ng <xliff:g id="COUNT">^1</xliff:g> na audio file…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Payagan ang <xliff:g id="APP_NAME_0">^1</xliff:g> na baguhin ang video na ito?}one{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> video?}other{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> na video?}}"</string>

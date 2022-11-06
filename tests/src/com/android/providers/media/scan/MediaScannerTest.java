@@ -35,7 +35,6 @@ import android.os.Environment;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.BaseColumns;
-import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.Settings;
@@ -46,13 +45,16 @@ import android.util.Log;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.ConfigStore;
 import com.android.providers.media.DatabaseHelper;
 import com.android.providers.media.MediaDocumentsProvider;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.R;
+import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.FileUtils;
 
 import org.junit.Before;
@@ -66,6 +68,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
 public class MediaScannerTest {
@@ -78,6 +83,7 @@ public class MediaScannerTest {
         private final MediaDocumentsProvider mDocumentsProvider;
         private final PhotoPickerProvider mPhotoPickerProvider;
         private final UserHandle mUserHandle;
+        private Map<String, BackupIdRow> mBackedUpData = new HashMap<>();
 
         public IsolatedContext(Context base, String tag, boolean asFuseThread) {
             this(base, tag, asFuseThread, base.getUser());
@@ -85,6 +91,11 @@ public class MediaScannerTest {
 
         public IsolatedContext(Context base, String tag, boolean asFuseThread,
                 UserHandle userHandle) {
+            this(base, tag, asFuseThread, userHandle, new TestConfigStore());
+        }
+
+        public IsolatedContext(Context base, String tag, boolean asFuseThread,
+                UserHandle userHandle, ConfigStore configStore) {
             super(base);
             mDir = new File(base.getFilesDir(), tag);
             mDir.mkdirs();
@@ -102,28 +113,8 @@ public class MediaScannerTest {
                 }
 
                 @Override
-                public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
-                    return defaultValue;
-                }
-
-                @Override
-                public String getStringDeviceConfig(String key, String defaultValue) {
-                    return defaultValue;
-                }
-
-                @Override
-                public int getIntDeviceConfig(String key, int defaultValue) {
-                    return defaultValue;
-                }
-
-                @Override
-                public int getIntDeviceConfig(String namespace, String key, int defaultValue) {
-                    return 0;
-                }
-
-                @Override
-                public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
-                    // Ignore
+                protected ConfigStore provideConfigStore() {
+                    return configStore;
                 }
 
                 @Override
@@ -132,8 +123,29 @@ public class MediaScannerTest {
                 }
 
                 @Override
-                protected void checkDeviceConfigAndUpdateGetContentAlias() {
+                protected void checkConfigAndUpdateGetContentAlias() {
                     // Ignore this as test app cannot read device config
+                }
+
+                @Override
+                protected boolean isStableUrisEnabled(String volumeName) {
+                    if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
+                        return true;
+                    }
+                    return false;
+                }
+
+                @Override
+                protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue,
+                        int limit) {
+                    Object[] backedUpValues =  mBackedUpData.keySet().toArray();
+                    return Arrays.copyOf(backedUpValues, backedUpValues.length, String[].class);
+                }
+
+                @Override
+                protected Optional<BackupIdRow> readDataFromBackup(String volumeName,
+                        String filePath) {
+                    return Optional.ofNullable(mBackedUpData.get(filePath));
                 }
             };
             mProvider.attachInfo(this, info);
@@ -180,6 +192,10 @@ public class MediaScannerTest {
 
         public void setPickerUriResolver(PickerUriResolver resolver) {
             mProvider.setUriResolver(resolver);
+        }
+
+        public void setBackedUpData(Map<String, BackupIdRow> backedUpData) {
+            this.mBackedUpData = backedUpData;
         }
     }
 

@@ -34,6 +34,7 @@ import androidx.annotation.NonNull;
 
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.UserCache;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -191,9 +192,13 @@ public class VolumeCache {
                 final Uri uri = MediaStore.Files.getContentUri(volumeName);
                 final StorageVolume storageVolume = sm.getStorageVolume(uri);
                 MediaVolume volume = MediaVolume.fromStorageVolume(storageVolume);
-                mExternalVolumes.add(volume);
-                mCachedVolumeScanPaths.put(volume, FileUtils.getVolumeScanPaths(userContext,
+                if (volume.getPath() != null) {
+                    mExternalVolumes.add(volume);
+                    mCachedVolumeScanPaths.put(volume, FileUtils.getVolumeScanPaths(userContext,
                             volume.getName()));
+                } else {
+                    Log.w(TAG, "Volume:" + volumeName + " has NULL path.");
+                }
             } catch (IllegalStateException | FileNotFoundException e) {
                 Log.wtf(TAG, "Failed to update volume " + volumeName, e);
             }

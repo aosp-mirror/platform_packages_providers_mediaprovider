@@ -39,6 +39,16 @@
     <string name="allow" msgid="8885707816848569619">"Ruhusu"</string>
     <string name="deny" msgid="6040983710442068936">"Kataa"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Vinjari…"</string>
+    <!-- no translation found for picker_settings (7388913035769329672) -->
+    <skip />
+    <!-- no translation found for picker_settings_title (5647700706470673258) -->
+    <skip />
+    <!-- no translation found for picker_settings_description (7486394662725656081) -->
+    <skip />
+    <!-- no translation found for picker_settings_selection_message (245453573086488596) -->
+    <skip />
+    <!-- no translation found for picker_settings_no_provider (2582311853680058223) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"Weka"</string>
     <string name="deselect" msgid="4297825044827769490">"Acha kuchagua"</string>
     <string name="deselected" msgid="8488133193326208475">"Umeacha kuchagua"</string>
@@ -84,30 +94,18 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Jaribu tena"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Maudhui ya kwenye wingu sasa yanapatikana katika <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"haijachaguliwa"</string>
-    <!-- no translation found for picker_banner_cloud_first_time_available_title (5912973744275711595) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_first_time_available_desc (5570916598348187607) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_title (4825058474378077327) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_account_changed_desc (3433218869899792497) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_title (3165966147547974251) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_desc (2359212653555524926) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_title (5010901185639577685) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_desc (8868134443673142712) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_dismiss_button (2935903078288463882) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_app_button (934085679890435479) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_choose_account_button (7979484877116991631) -->
-    <skip />
-    <!-- no translation found for picker_banner_cloud_change_account_button (8361239765828471146) -->
-    <skip />
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Picha zilizohifadhiwa nakala zimejumuishwa sasa"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Unaweza kuchagua picha zilizotoka kwenye akaunti ya <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> katika programu ya <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Umesasisha akaunti ya <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Picha zilizopo kwenye akaunti ya <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> sasa zimejumuishwa hapa"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Chagua programu ya maudhui ya wingu"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Ili ujumuishe picha zilizohifadhiwa nakala hapa, chagua programu ya maudhui ya wingu kwenye Mipangilio"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Chagua akaunti ya <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Ili ujumuishe picha zilizotoka <xliff:g id="APP_NAME">%1$s</xliff:g> hapa, chagua akaunti kwenye programu"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Ondoa"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Chagua programu"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Chagua akaunti"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Badilisha akaunti"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Ungependa kuruhusu <xliff:g id="APP_NAME_0">^1</xliff:g> ibadilishe faili hii ya sauti?}other{Ungependa kuruhusu <xliff:g id="APP_NAME_1">^1</xliff:g> ibadilishe faili <xliff:g id="COUNT">^2</xliff:g> za sauti?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Inarekebisha faili ya sauti…}other{Inarekebisha faili <xliff:g id="COUNT">^1</xliff:g> za sauti…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Ungependa kuruhusu <xliff:g id="APP_NAME_0">^1</xliff:g> ibadilishe video hii?}other{Ungependa kuruhusu <xliff:g id="APP_NAME_1">^1</xliff:g> ibadilishe video <xliff:g id="COUNT">^2</xliff:g>?}}"</string>

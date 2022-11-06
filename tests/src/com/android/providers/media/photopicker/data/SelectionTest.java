@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.photopicker.data.model.ModelTestUtils.generateJpegItem;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.fail;
@@ -30,7 +32,6 @@ import android.text.format.DateUtils;
 import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.photopicker.data.model.Item;
-import com.android.providers.media.photopicker.data.model.ItemTest;
 import com.android.providers.media.photopicker.viewmodel.InstantTaskExecutorRule;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
@@ -138,8 +139,8 @@ public class SelectionTest {
         final String id3 = "3";
         final Item item3 = generateFakeImageItem(id3);
         final String id4 = "4";
-        final Item item4SameDateTakenAsItem3 = ItemTest.generateItem(id4, "image/jpeg",
-                item3.getDateTaken(), /* generationModified= */ 1L, /* duration */ 1000);
+        final Item item4SameDateTakenAsItem3 =
+                generateJpegItem(id4, item3.getDateTaken(), /* generationModified */ 1L);
 
         mSelection.addSelectedItem(item1);
         mSelection.addSelectedItem(item2);
@@ -290,7 +291,6 @@ public class SelectionTest {
         final long dateTakenMs = System.currentTimeMillis() + Long.parseLong(id)
                 * DateUtils.DAY_IN_MILLIS;
 
-        return ItemTest.generateItem(id, "image/jpeg", dateTakenMs,
-                /* generationModified= */ 1L, /* duration= */ 1000L);
+        return generateJpegItem(id, dateTakenMs, /* generationModified */ 1L);
     }
 }

@@ -68,6 +68,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.playlist.Playlist;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
@@ -151,7 +152,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * For devices with adoptable storage support, opting for adoptable storage will not delete
      * /data/media/0 directory.
      */
-    public static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
+    private static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
+
+    private static final int LEVEL_DB_READ_LIMIT = 1000;
 
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";
@@ -370,7 +373,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         .setIsPending(isPending)
                         .setPath(path)
                         .build();
-                Trace.beginSection("_INSERT");
+                Trace.beginSection(traceSectionName("_INSERT"));
                 try {
                     mFilesListener.onInsert(DatabaseHelper.this, insertedRow);
                 } finally {
@@ -424,7 +427,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         .setOwnerPackageName(newOwnerPackage)
                         .build();
 
-                Trace.beginSection("_UPDATE");
+                Trace.beginSection(traceSectionName("_UPDATE"));
                 try {
                     mFilesListener.onUpdate(DatabaseHelper.this, oldRow, newRow);
                 } finally {
@@ -451,7 +454,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         .setOwnerPackageName(ownerPackage)
                         .setPath(path)
                         .build();
-                Trace.beginSection("_DELETE");
+                Trace.beginSection(traceSectionName("_DELETE"));
                 try {
                     mFilesListener.onDelete(DatabaseHelper.this, deletedRow);
                 } finally {
@@ -462,7 +465,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         });
         db.setCustomScalarFunction("_GET_ID", (arg) -> {
             if (mIdGenerator != null && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                Trace.beginSection("_GET_ID");
+                Trace.beginSection(traceSectionName("_GET_ID"));
                 try {
                     return mIdGenerator.apply(arg);
                 } finally {
@@ -506,41 +509,153 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     @Override
     public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
-        Log.w(TAG, String.format(Locale.ROOT,
-                "onDowngrade() for %s from %s to %s. Deleting database:%s in case of a "
-                        + "downgrade.", mName, oldV, newV, mName));
-        deleteDatabaseFiles();
-        throw new IllegalStateException(
-                String.format(Locale.ROOT, "Crashing MP process on database downgrade of %s.",
-                        mName));
-    }
-
-    private void deleteDatabaseFiles() {
-        File dbDir = mContext.getDatabasePath(mName).getParentFile();
-        File[] files = dbDir.listFiles();
-        if (files == null) {
-            Log.w(TAG, String.format(Locale.ROOT, "No database files found on path:%s.",
-                    dbDir.getAbsolutePath()));
-            return;
+        Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
+        mSchemaLock.writeLock().lock();
+        try {
+            downgradeDatabase(db, oldV, newV);
+        } finally {
+            mSchemaLock.writeLock().unlock();
         }
-
-        for (File file : files) {
-            if (file.getName().startsWith(mName)) {
-                file.delete();
-                Log.w(TAG, String.format(Locale.ROOT, "Database file:%s deleted.",
-                        file.getAbsolutePath()));
-            }
-        }
+        // In case of a bad MP release which decreases the DB version, we would end up downgrading
+        // database. We are explicitly setting a new session id on database to trigger recovery
+        // in onOpen() call.
+        setXattr(db.getPath(), getSessionIdXattrKeyForDatabase(), UUID.randomUUID().toString());
     }
-
 
     @Override
     public void onOpen(final SQLiteDatabase db) {
         Log.v(TAG, "onOpen() for " + mName);
         // Recovering before migration from legacy because recovery process will clear up data to
         // read from xattrs once ids are persisted in xattrs.
+        tryRecoverDatabase(db);
         tryRecoverRowIdSequence(db);
         tryMigrateFromLegacy(db);
+    }
+
+    private void tryRecoverDatabase(SQLiteDatabase db) {
+        MediaProvider mediaProvider;
+        try (ContentProviderClient cpc = mContext.getContentResolver()
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            mediaProvider = ((MediaProvider) cpc.getLocalContentProvider());
+        } catch (Exception e) {
+            throw new RuntimeException("Could not retrieve local content provider", e);
+        }
+        String volumeName =
+                isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
+        if (!isInternal() || !mediaProvider.isStableUrisEnabled(volumeName)) {
+            return;
+        }
+
+        synchronized (sRecoveryLock) {
+            // Read last used session id from /data/media/0.
+            Optional<String> lastUsedSessionIdFromExternalStoragePathXattr = getXattr(
+                    getExternalStorageDbXattrPath(), getSessionIdXattrKeyForDatabase());
+            if (!lastUsedSessionIdFromExternalStoragePathXattr.isPresent()) {
+                // First time scenario will have no session id at /data/media/0.
+                updateSessionIdInDatabaseAndExternalStorage(db);
+                return;
+            }
+
+            // Check if session is same as last used.
+            if (isLastUsedDatabaseSession(db)) {
+                // Same session id present as xattr on DB and External Storage
+                updateSessionIdInDatabaseAndExternalStorage(db);
+                return;
+            }
+
+            // Delete old data and create new schema.
+            recreateLatestSchema(db);
+            // Recover data from backup
+            // Ensure we do not back up in case of recovery.
+            mIsRecovering.set(true);
+            recoverData(mediaProvider, db, volumeName);
+            mIsRecovering.set(false);
+            updateSessionIdInDatabaseAndExternalStorage(db);
+            Log.d(TAG, "Recovery completed for " + mName);
+        }
+    }
+
+    protected String getExternalStorageDbXattrPath() {
+        return DATA_MEDIA_XATTR_DIRECTORY_PATH;
+    }
+
+    @GuardedBy("sRecoveryLock")
+    private void recreateLatestSchema(SQLiteDatabase db) {
+        mSchemaLock.writeLock().lock();
+        try {
+            createLatestSchema(db);
+        } finally {
+            mSchemaLock.writeLock().unlock();
+        }
+    }
+
+    @GuardedBy("sRecoveryLock")
+    private void recoverData(MediaProvider mediaProvider, SQLiteDatabase db, String volumeName) {
+        final long startTime = SystemClock.elapsedRealtime();
+        final Set<String> externalVolumeNames =
+                mediaProvider.getVolumeCache().getExternalVolumeNames();
+        int i = 0;
+        // Wait for external primary to be attached as we use same thread for internal volume.
+        // Maximum wait for 5s
+        while (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY) && i < 100) {
+            Log.d(TAG, "Waiting for external primary volume to be attached.");
+            // Poll after every 5 ms
+            SystemClock.sleep(5);
+            i++;
+        }
+        if (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            Log.e(TAG, "Could not recover data as external primary volume did not get attached.");
+            return;
+        }
+
+        long rowsRecovered = 0;
+        String[] backedUpFilePaths;
+        String lastReadValue = "";
+
+        while (true) {
+            backedUpFilePaths = mediaProvider.readBackedUpFilePaths(volumeName, lastReadValue,
+                    LEVEL_DB_READ_LIMIT);
+            if (backedUpFilePaths.length <= 0) {
+                break;
+            }
+
+            for (String filePath : backedUpFilePaths) {
+                Optional<BackupIdRow> fileRow = mediaProvider.readDataFromBackup(volumeName,
+                        filePath);
+                if (fileRow.isPresent() && !fileRow.get().getIsDirty()) {
+                    insertDataInDatabase(db, fileRow.get(), filePath, volumeName);
+                    rowsRecovered++;
+                }
+            }
+
+            // Read less rows than expected
+            if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
+                break;
+            }
+            lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
+        }
+        Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
+                volumeName));
+        Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms",
+                SystemClock.elapsedRealtime() - startTime));
+    }
+
+    private void insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
+            String volumeName) {
+        final ContentValues values = createValuesFromFileRow(row, filePath, volumeName);
+        if (db.insert("files", null, values) == -1) {
+            Log.e(TAG, "Failed to insert " + values + "; continuing");
+        }
+    }
+
+    private ContentValues createValuesFromFileRow(BackupIdRow row, String filePath,
+            String volumeName) {
+        ContentValues values = new ContentValues();
+        values.put(FileColumns._ID, row.getId());
+        values.put(FileColumns.IS_FAVORITE, row.getIsFavorite());
+        values.put(FileColumns.DATA, filePath);
+        values.put(FileColumns.VOLUME_NAME, volumeName);
+        return values;
     }
 
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {
@@ -576,7 +691,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         Optional<String> lastUsedSessionIdFromDatabasePathXattr = getXattr(db.getPath(),
                 getSessionIdXattrKeyForDatabase());
         Optional<String> lastUsedSessionIdFromExternalStoragePathXattr = getXattr(
-                DATA_MEDIA_XATTR_DIRECTORY_PATH, getSessionIdXattrKeyForDatabase());
+                getExternalStorageDbXattrPath(), getSessionIdXattrKeyForDatabase());
 
         return lastUsedSessionIdFromDatabasePathXattr.isPresent()
                 && lastUsedSessionIdFromExternalStoragePathXattr.isPresent()
@@ -588,11 +703,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private void updateSessionIdInDatabaseAndExternalStorage(SQLiteDatabase db) {
         final String uuid = UUID.randomUUID().toString();
         boolean setOnDatabase = setXattr(db.getPath(), getSessionIdXattrKeyForDatabase(), uuid);
-        boolean setOnExternalStorage = setXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
+        boolean setOnExternalStorage = setXattr(getExternalStorageDbXattrPath(),
                 getSessionIdXattrKeyForDatabase(), uuid);
         if (setOnDatabase && setOnExternalStorage) {
             Log.i(TAG, String.format(Locale.ROOT, "SessionId set to %s on paths %s and %s.", uuid,
-                    db.getPath(), DATA_MEDIA_XATTR_DIRECTORY_PATH));
+                    db.getPath(), getExternalStorageDbXattrPath()));
         }
     }
 
@@ -715,11 +830,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     public void beginTransaction() {
-        Trace.beginSection("transaction " + getDatabaseName());
-        Trace.beginSection("beginTransaction");
+        Trace.beginSection(traceSectionName("transaction"));
+        Trace.beginSection(traceSectionName("beginTransaction"));
         try {
             beginTransactionInternal();
         } finally {
+            // Only end the "beginTransaction" section. We'll end the "transaction" section in
+            // endTransaction().
             Trace.endSection();
         }
     }
@@ -748,11 +865,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     public void endTransaction() {
-        Trace.beginSection("endTransaction");
+        Trace.beginSection(traceSectionName("endTransaction"));
         try {
             endTransactionInternal();
         } finally {
             Trace.endSection();
+            // End "transaction" section, which we started in beginTransaction().
             Trace.endSection();
         }
     }
@@ -879,7 +997,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private void notifySingleChangeInternal(@NonNull Uri uri, int flags) {
-        Trace.beginSection("notifySingleChange");
+        Trace.beginSection(traceSectionName("notifySingleChange"));
         try {
             mContext.getContentResolver().notifyChange(uri, null, flags);
         } finally {
@@ -888,7 +1006,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private void notifyChangeInternal(@NonNull Collection<Uri> uris, int flags) {
-        Trace.beginSection("notifyChange");
+        Trace.beginSection(traceSectionName("notifyChange"));
         try {
             for (List<Uri> partition : Iterables.partition(uris, NOTIFY_BATCH_SIZE)) {
                 mContext.getContentResolver().notifyChange(partition, null, flags);
@@ -2335,7 +2453,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         mName));
     }
 
-    protected String getSessionIdXattrKeyForDatabase() {
+    private String getSessionIdXattrKeyForDatabase() {
         if (isInternal()) {
             return INTERNAL_DB_SESSION_ID_XATTR_KEY;
         } else if (isExternal()) {
@@ -2346,7 +2464,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         mName));
     }
 
-    protected static boolean setXattr(String path, String key, String value) {
+    private static boolean setXattr(String path, String key, String value) {
         try (ParcelFileDescriptor pfd = ParcelFileDescriptor.open(new File(path),
                 ParcelFileDescriptor.MODE_READ_ONLY)) {
             // Map id value to xattr key
@@ -2361,7 +2479,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
-    protected static Optional<String> getXattr(String path, String key) {
+    private static Optional<String> getXattr(String path, String key) {
         try {
             return Optional.of(Arrays.toString(Os.getxattr(path, key)));
         } catch (Exception e) {
@@ -2394,7 +2512,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         if (isInternal()) {
             // Skip id reuse fix for internal db as it can lead to ids starting from a billion
             // and can cause aberrant behaviour in Ringtones Manager. Reference: b/229153534.
-            Log.v(TAG, "Skipping next row id backup for internal database.");
             return false;
         }
 
@@ -2416,5 +2533,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     boolean isDatabaseRecovering() {
         return mIsRecovering.get();
+    }
+
+    private String traceSectionName(@NonNull String method) {
+        return "DH[" + getDatabaseName() + "]." + method;
     }
 }

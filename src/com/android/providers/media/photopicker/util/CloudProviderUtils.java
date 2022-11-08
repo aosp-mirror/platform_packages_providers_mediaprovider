@@ -22,6 +22,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ResolveInfo;
+import android.os.Process;
+import android.os.UserHandle;
 import android.provider.CloudMediaProvider;
 import android.provider.CloudMediaProviderContract;
 import android.util.Log;
@@ -43,25 +45,49 @@ import java.util.Objects;
 public class CloudProviderUtils {
     private static final String TAG = "CloudProviderUtils";
     /**
-     * @return list of available <b>and</b> allowlisted {@link CloudMediaProvider}-s.
+     * @return list of available <b>and</b> allowlisted {@link CloudMediaProvider}-s for the current
+     * user.
      */
     public static List<CloudProviderInfo> getAvailableCloudProviders(
             @NonNull Context context, @NonNull ConfigStore configStore) {
+        return getAvailableCloudProviders(
+                context, configStore, Process.myUserHandle());
+    }
+
+    /**
+     * @return list of available <b>and</b> allowlisted {@link CloudMediaProvider}-s for the given
+     * userId.
+     */
+    public static List<CloudProviderInfo> getAvailableCloudProviders(
+            @NonNull Context context, @NonNull ConfigStore configStore,
+            @NonNull UserHandle userHandle) {
         return getAvailableCloudProvidersInternal(
-                context, configStore, /* ignoreAllowList */ false);
+                context, configStore, /* ignoreAllowList */ false, userHandle);
     }
 
     /**
      * @return list of <b>all</b> available {@link CloudMediaProvider}-s (<b>ignoring</b> the
-     *         allowlist).
+     *         allowlist) for the current user.
      */
     public static List<CloudProviderInfo> getAllAvailableCloudProviders(
             @NonNull Context context, @NonNull ConfigStore configStore) {
-        return getAvailableCloudProvidersInternal(context, configStore, /* ignoreAllowList */ true);
+        return getAllAvailableCloudProviders(context, configStore, Process.myUserHandle());
+    }
+
+    /**
+     * @return list of <b>all</b> available {@link CloudMediaProvider}-s (<b>ignoring</b> the
+     *         allowlist) for the given userId.
+     */
+    public static List<CloudProviderInfo> getAllAvailableCloudProviders(
+            @NonNull Context context, @NonNull ConfigStore configStore,
+            @NonNull UserHandle userHandle) {
+        return getAvailableCloudProvidersInternal(context, configStore, /* ignoreAllowList */ true,
+                userHandle);
     }
 
     private static List<CloudProviderInfo> getAvailableCloudProvidersInternal(
-            @NonNull Context context, @NonNull ConfigStore configStore, boolean ignoreAllowlist) {
+            @NonNull Context context, @NonNull ConfigStore configStore, boolean ignoreAllowlist,
+            @NonNull UserHandle userHandle) {
         Objects.requireNonNull(context);
 
         final List<CloudProviderInfo> providers = new ArrayList<>();
@@ -72,8 +98,8 @@ public class CloudProviderUtils {
                 ignoreAllowlist ? null : configStore.getAllowlistedCloudProviders();
 
         final Intent intent = new Intent(CloudMediaProviderContract.PROVIDER_INTERFACE);
-        final List<ResolveInfo> allAvailableProviders = context.getPackageManager()
-                .queryIntentContentProviders(intent, /* flags */ 0);
+        final List<ResolveInfo> allAvailableProviders = getAllCloudProvidersForUser(context,
+                intent, userHandle);
 
         for (ResolveInfo info : allAvailableProviders) {
             final ProviderInfo providerInfo = info.providerInfo;
@@ -103,5 +129,15 @@ public class CloudProviderUtils {
         Log.d(TAG, (ignoreAllowlist ? "All (ignoring allowlist)" : "")
                 + "Available CloudMediaProvider-s: " + providers);
         return providers;
+    }
+
+    /**
+     * Returns a list of all available providers with the given intent for a userId. If userId is
+     * null, results are returned for the current user.
+     */
+    private static List<ResolveInfo> getAllCloudProvidersForUser(@NonNull Context context,
+            @NonNull Intent intent, @NonNull UserHandle userHandle) {
+        return context.getPackageManager()
+                .queryIntentContentProvidersAsUser(intent, 0, userHandle);
     }
 }

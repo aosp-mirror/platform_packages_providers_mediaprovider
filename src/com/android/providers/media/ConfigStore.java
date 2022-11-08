@@ -23,6 +23,7 @@ import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.util.Supplier;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -115,7 +116,9 @@ public interface ConfigStore {
      */
     class ConfigStoreImpl implements ConfigStore {
         private static final String KEY_TAKE_OVER_GET_CONTENT = "take_over_get_content";
-        private static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
+
+        @VisibleForTesting
+        public static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
 
         private static final String KEY_TRANSCODE_ENABLED = "transcode_enabled";
         private static final String KEY_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = "transcode_default";

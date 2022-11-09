@@ -39,16 +39,11 @@
     <string name="allow" msgid="8885707816848569619">"Leisti"</string>
     <string name="deny" msgid="6040983710442068936">"Atmesti"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Naršyti…"</string>
-    <!-- no translation found for picker_settings (7388913035769329672) -->
-    <skip />
-    <!-- no translation found for picker_settings_title (5647700706470673258) -->
-    <skip />
-    <!-- no translation found for picker_settings_description (7486394662725656081) -->
-    <skip />
-    <!-- no translation found for picker_settings_selection_message (245453573086488596) -->
-    <skip />
-    <!-- no translation found for picker_settings_no_provider (2582311853680058223) -->
-    <skip />
+    <string name="picker_settings" msgid="7388913035769329672">"Nustatymai"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Medijos debesyje programa"</string>
+    <string name="picker_settings_description" msgid="7486394662725656081">"Naudodami „Android Photopicker“ bendrinkite nuotraukas ir vaizdo įrašus, kurių atsargines kopijas kuriate kitose paslaugose"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Pasiekti mediją debesyje iš"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nėra"</string>
     <string name="add" msgid="2894574044585549298">"Pridėti"</string>
     <string name="deselect" msgid="4297825044827769490">"Panaikinti pasirinkimą"</string>
     <string name="deselected" msgid="8488133193326208475">"Pasirinkimas panaikintas"</string>

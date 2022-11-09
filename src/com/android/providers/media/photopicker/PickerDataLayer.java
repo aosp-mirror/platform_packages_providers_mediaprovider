@@ -47,6 +47,7 @@ import java.util.List;
  */
 public class PickerDataLayer {
     private static final String TAG = "PickerDataLayer";
+    private static final boolean DEBUG = false;
 
     private final Context mContext;
     private final PickerDbFacade mDbFacade;
@@ -62,6 +63,10 @@ public class PickerDataLayer {
     }
 
     public Cursor fetchMedia(Bundle queryArgs) {
+        if (DEBUG) {
+            Log.d(TAG, "fetchMedia() [" + Thread.currentThread() + "] args=" + queryArgs);
+        }
+
         final CloudProviderQueryExtras queryExtras
                 = CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs, mLocalProvider);
         final String authority = queryExtras.getAlbumAuthority();
@@ -114,6 +119,10 @@ public class PickerDataLayer {
     }
 
     public Cursor fetchAlbums(Bundle queryArgs) {
+        if (DEBUG) {
+            Log.d(TAG, "fetchAlbums() [" + Thread.currentThread() + "] args=" + queryArgs);
+        }
+
         Trace.beginSection(traceSectionName("fetchAlbums"));
         try {
             return fetchAlbumsInternal(queryArgs);
@@ -162,6 +171,10 @@ public class PickerDataLayer {
 
     @Nullable
     public AccountInfo fetchCloudAccountInfo() {
+        if (DEBUG) {
+            Log.d(TAG, "fetchCloudAccountInfo() [" + Thread.currentThread() + "]");
+        }
+
         final String cloudProvider = mDbFacade.getCloudProvider();
         if (cloudProvider == null) {
             return null;
@@ -179,7 +192,7 @@ public class PickerDataLayer {
     }
 
     @Nullable
-    public AccountInfo fetchCloudAccountInfoInternal(@NonNull String cloudProvider) {
+    private AccountInfo fetchCloudAccountInfoInternal(@NonNull String cloudProvider) {
         final Bundle accountBundle = mContext.getContentResolver()
                 .call(getMediaCollectionInfoUri(cloudProvider), METHOD_GET_MEDIA_COLLECTION_INFO,
                         /* arg */ null, /* extras */ null);

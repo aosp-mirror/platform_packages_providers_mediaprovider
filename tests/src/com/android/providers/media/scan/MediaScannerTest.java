@@ -123,7 +123,7 @@ public class MediaScannerTest {
                 }
 
                 @Override
-                protected void checkConfigAndUpdateGetContentAlias() {
+                protected void storageNativeBootPropertyChangeListener() {
                     // Ignore this as test app cannot read device config
                 }
 

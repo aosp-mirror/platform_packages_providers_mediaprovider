@@ -99,6 +99,11 @@ class FuseDaemon final {
      */
     std::string ReadBackedUpDataFromLevelDb(const std::string& filePath);
 
+    /*
+     * Returns true if level db setup exists for internal.
+     */
+    bool CheckLevelDbConnectionForInternal();
+
   private:
     FuseDaemon(const FuseDaemon&) = delete;
     void operator=(const FuseDaemon&) = delete;

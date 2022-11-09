@@ -39,16 +39,11 @@
     <string name="allow" msgid="8885707816848569619">"Payagan"</string>
     <string name="deny" msgid="6040983710442068936">"Tanggihan"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Mag-browse…"</string>
-    <!-- no translation found for picker_settings (7388913035769329672) -->
-    <skip />
-    <!-- no translation found for picker_settings_title (5647700706470673258) -->
-    <skip />
-    <!-- no translation found for picker_settings_description (7486394662725656081) -->
-    <skip />
-    <!-- no translation found for picker_settings_selection_message (245453573086488596) -->
-    <skip />
-    <!-- no translation found for picker_settings_no_provider (2582311853680058223) -->
-    <skip />
+    <string name="picker_settings" msgid="7388913035769329672">"Mga Setting"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Cloud media app"</string>
+    <string name="picker_settings_description" msgid="7486394662725656081">"Magbahagi ng mga larawan at video na na-back up mo mula sa iba pang serbisyo sa Android Photopicker"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"I-access ang cloud media sa"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Wala"</string>
     <string name="add" msgid="2894574044585549298">"Magdagdag"</string>
     <string name="deselect" msgid="4297825044827769490">"I-deselect"</string>
     <string name="deselected" msgid="8488133193326208475">"Na-deselect"</string>

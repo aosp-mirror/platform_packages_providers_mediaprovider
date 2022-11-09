@@ -328,6 +328,30 @@ public class PickerDataLayerTest {
     }
 
     @Test
+    public void testFetchMediaLocalOnly() {
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+
+        Bundle queryArgs = buildDefaultQueryArgs();
+        // Verify that we only see local content
+        try (Cursor cr = mDataLayer.fetchLocalMedia(queryArgs)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        // Verify that we see cloud content
+        try (Cursor cr = mDataLayer.fetchAllMedia(queryArgs)) {
+            assertThat(cr.getCount()).isEqualTo(2);
+
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
     public void testFetchAlbumMedia() {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -526,6 +550,62 @@ public class PickerDataLayerTest {
             assertWithMessage("Cloud album count").that(cr.getCount()).isEqualTo(1);
 
             assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
+    public void testFetchAlbumMediaLocalOnly() {
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Create a cloud album and add one cloud only item
+        mCloudPrimaryMediaGenerator.createAlbum(ALBUM_ID_1);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1, ALBUM_ID_1, VIDEO_MIME_TYPE,
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
+
+        // Add one local only and one cloud only item and mark them favorite
+        addMedia(mLocalMediaGenerator, LOCAL_ONLY_1, /* albumId */ null, VIDEO_MIME_TYPE,
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ true);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2, /* albumdId */ null, IMAGE_MIME_TYPE,
+                MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ true);
+
+        // Album Info:
+        // Album_ID_1 - Cloud Album - 1 Video File
+        // Videos     - Merged Album - 2 Video Files (1 local + 1 cloud)
+        // Favorites  - Merged Album - 2 files (1 local + 1 cloud)
+
+        final Bundle defaultQueryArgs = buildDefaultQueryArgs();
+        // Verify that we see both local and cloud albums
+        try (Cursor cr = mDataLayer.fetchAllAlbums(defaultQueryArgs)) {
+            assertThat(cr.getCount()).isEqualTo(3);
+        }
+
+        // Verify that we only see local albums with isLocalOnly=true
+        try (Cursor cr = mDataLayer.fetchLocalAlbums(defaultQueryArgs)) {
+            assertThat(cr.getCount()).isEqualTo(2);
+
+            cr.moveToNext();
+            assertThat(cr.getString(cr.getColumnIndex(AlbumColumns.ID)))
+                    .isEqualTo(ALBUM_ID_FAVORITES);
+            cr.moveToNext();
+            assertThat(cr.getString(cr.getColumnIndex(AlbumColumns.ID)))
+                    .isEqualTo(ALBUM_ID_VIDEOS);
+        }
+
+        final Bundle favoriteAlbumQueryArgs = buildQueryArgs(ALBUM_ID_FAVORITES,
+                LOCAL_PROVIDER_AUTHORITY, MIME_TYPE_DEFAULT, SIZE_BYTES_DEFAULT);
+
+        try (Cursor cr = mDataLayer.fetchLocalMedia(favoriteAlbumQueryArgs)) {
+            assertWithMessage("Favorite album count").that(cr.getCount()).isEqualTo(1);
+
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        // Verify that we get cloud content in Album Media when queried with localOnly=false
+        try (Cursor cr = mDataLayer.fetchAllMedia(favoriteAlbumQueryArgs)) {
+            assertWithMessage("Favorite album count").that(cr.getCount()).isEqualTo(2);
+
+            assertCursor(cr, CLOUD_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
         }
     }
 

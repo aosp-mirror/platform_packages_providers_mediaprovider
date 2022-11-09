@@ -25,6 +25,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.VOLUME_EXTERNAL;
 
+import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.util.MimeUtils.isImageMimeType;
 import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
 
@@ -39,14 +40,19 @@ import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
 
+import com.android.providers.media.PickerProviderMediaGenerator;
+import com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
+import com.android.providers.media.cloudproviders.CloudProviderPrimary;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.UserId;
@@ -65,6 +71,7 @@ import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class ItemsProviderTest {
 
@@ -79,6 +86,7 @@ public class ItemsProviderTest {
     private static final String IMAGE_FILE_NAME = TAG + "_file_" + NONCE + ".jpg";
     private static final String HIDDEN_DIR_NAME = TAG + "_hidden_dir_" + NONCE;
 
+    private Context mIsolatedContext;
     private ContentResolver mIsolatedResolver;
     private ItemsProvider mItemsProvider;
 
@@ -98,10 +106,10 @@ public class ItemsProviderTest {
         executeShellCommand(setSyncDelayCommand);
 
         final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext
+        mIsolatedContext
                 = new IsolatedContext(context, "databases", /*asFuseThread*/ false);
-        mIsolatedResolver = isolatedContext.getContentResolver();
-        mItemsProvider = new ItemsProvider(isolatedContext);
+        mIsolatedResolver = mIsolatedContext.getContentResolver();
+        mItemsProvider = new ItemsProvider(mIsolatedContext);
 
         // Wait for MediaStore to be Idle to reduce flakes caused by database updates
         MediaStore.waitForIdle(mIsolatedResolver);
@@ -612,6 +620,160 @@ public class ItemsProviderTest {
         }
     }
 
+    /**
+     * Tests {@link ItemsProvider#getLocalItems(Category, int, String[], UserId)} to returns only
+     * local content.
+     */
+    @Test
+    public void testGetLocalItems_withCloud() throws Exception {
+        File videoFile = assertCreateNewVideo();
+        try {
+            // Init cloud provider and add one item
+            setupCloudProvider((cloudMediaGenerator) -> {
+                cloudMediaGenerator.addMedia(null, "cloud_id1");
+            });
+
+            // Verify that getLocalItems includes only local contents
+            try (Cursor c = mItemsProvider.getLocalItems(Category.DEFAULT, -1, new String[]{},
+                    UserId.CURRENT_USER)) {
+                assertThat(c.getCount()).isEqualTo(1);
+
+                assertThat(c.moveToFirst()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
+            }
+
+            // Verify that getAllItems includes cloud items
+            try (Cursor c = mItemsProvider.getAllItems(Category.DEFAULT, -1, new String[]{},
+                    UserId.CURRENT_USER)) {
+                assertThat(c.getCount()).isEqualTo(2);
+
+                // Verify that the first item is cloud item
+                assertThat(c.moveToFirst()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(CloudProviderPrimary.AUTHORITY);
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.ID))).isEqualTo(
+                        "cloud_id1");
+
+                // Verify that the second item is local item
+                assertThat(c.moveToNext()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
+            }
+        } finally {
+            videoFile.delete();
+            setCloudProvider(null);
+        }
+    }
+
+    @Test
+    public void testGetLocalItems_mergedAlbum_withCloud() throws Exception {
+        File videoFile = assertCreateNewVideo();
+        Category videoAlbum = new Category(CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
+                LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 10, true);
+        try {
+            // Init cloud provider and add one item
+            setupCloudProvider((cloudMediaGenerator) -> {
+                cloudMediaGenerator.addMedia(null, "cloud_id1", null, "video/mp4", 0, 1024, false);
+            });
+
+            // Verify that getLocalItems for merged album "Video" includes only local contents
+            try (Cursor c = mItemsProvider.getLocalItems(videoAlbum, -1, new String[]{},
+                    UserId.CURRENT_USER)) {
+                assertThat(c.getCount()).isEqualTo(1);
+                assertThat(c.moveToFirst()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
+            }
+
+            // Verify that getAllItems for merged album "Video" also includes cloud contents
+            try (Cursor c = mItemsProvider.getAllItems(videoAlbum, -1, new String[]{},
+                    UserId.CURRENT_USER)) {
+                assertThat(c.getCount()).isEqualTo(2);
+                // Verify that the first item is cloud item
+                assertThat(c.moveToFirst()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(CloudProviderPrimary.AUTHORITY);
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.ID)))
+                        .isEqualTo("cloud_id1");
+
+                // Verify that the second item is local item
+                assertThat(c.moveToNext()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
+            }
+        } finally {
+            videoFile.delete();
+            setCloudProvider(null);
+        }
+    }
+
+    @Test
+    public void testGetLocalCategories_withCloud() throws Exception {
+        File videoFile = assertCreateNewVideo(getMoviesDir());
+        File screenshotFile = assertCreateNewImage(getScreenshotsDir());
+        final String cloudAlbum = "testAlbum";
+
+        try {
+            // Init cloud provider with 2 items and one cloud album
+            setupCloudProvider((cloudMediaGenerator) -> {
+                cloudMediaGenerator.addMedia(null, "cloud_id1", null, "video/mp4", 0, 1024, false);
+                cloudMediaGenerator.addMedia(null, "cloud_id2", cloudAlbum, "image/jpeg", 0, 1024,
+                        false);
+                cloudMediaGenerator.createAlbum(cloudAlbum);
+            });
+
+            // Verify that getLocalCategories only returns local albums
+            try (Cursor c = mItemsProvider.getLocalCategories(/* mimeType */ null,
+                    /* userId */ null)) {
+                assertGetCategoriesMatchMultiple(c, Arrays.asList(
+                        Pair.create(ALBUM_ID_VIDEOS, 1),
+                        Pair.create(ALBUM_ID_SCREENSHOTS, 1)
+                ));
+            }
+
+
+            // Verify that getAllCategories returns local + cloud albums
+            try (Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null,
+                    /* userId */ null)) {
+                assertGetCategoriesMatchMultiple(c, Arrays.asList(
+                        Pair.create(ALBUM_ID_VIDEOS, 2),
+                        Pair.create(ALBUM_ID_SCREENSHOTS, 1),
+                        Pair.create(cloudAlbum, 1)
+                ));
+            }
+        } finally {
+            videoFile.delete();
+            screenshotFile.delete();
+            setCloudProvider(null);
+        }
+    }
+
+    private void setupCloudProvider(Consumer<MediaGenerator> initMedia) {
+        MediaGenerator cloudPrimaryMediaGenerator =
+                PickerProviderMediaGenerator.getMediaGenerator(CloudProviderPrimary.AUTHORITY);
+        cloudPrimaryMediaGenerator.resetAll();
+        cloudPrimaryMediaGenerator.setMediaCollectionId("COLLECTION_1");
+        initMedia.accept(cloudPrimaryMediaGenerator);
+
+        // Set the newly initialized cloud provider.
+        setCloudProvider(CloudProviderPrimary.AUTHORITY);
+
+        mIsolatedResolver.call(MediaStore.AUTHORITY, MediaStore.SYNC_PROVIDERS_CALL, null,
+                Bundle.EMPTY);
+    }
+
+    private void setCloudProvider(String authority) {
+        Bundle in = new Bundle();
+        in.putString(MediaStore.EXTRA_CLOUD_PROVIDER, authority);
+        mIsolatedResolver.call(MediaStore.AUTHORITY, MediaStore.SET_CLOUD_PROVIDER_CALL, null, in);
+        if (authority != null) {
+            assertWithMessage("Expected " + authority + " to be current cloud provider.")
+                    .that(MediaStore.isCurrentCloudMediaProviderAuthority(mIsolatedResolver,
+                            authority)).isTrue();
+        }
+    }
+
     private void assertGetCategoriesMatchSingle(String expectedCategoryName,
             int expectedNumberOfItems) throws Exception {
         if (expectedNumberOfItems == 0) {
@@ -632,7 +794,7 @@ public class ItemsProviderTest {
         final String categoryName = c.getString(nameColumnIndex);
         final int numOfItems = c.getInt(numOfItemsColumnIndex);
         final Uri coverUri = ItemsProvider.getItemsUri(c.getString(coverIdIndex),
-                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, UserId.CURRENT_USER);
+                LOCAL_PICKER_PROVIDER_AUTHORITY, UserId.CURRENT_USER);
 
         assertThat(categoryName).isEqualTo(expectedCategoryName);
         assertThat(numOfItems).isEqualTo(expectedNumberOfItems);

@@ -72,6 +72,8 @@ import android.util.Size;
 
 import androidx.annotation.RequiresApi;
 
+import com.android.internal.annotations.VisibleForTesting;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -270,6 +272,28 @@ public final class MediaStore {
     public static final String USES_FUSE_PASSTHROUGH = "uses_fuse_passthrough";
     /** {@hide} */
     public static final String USES_FUSE_PASSTHROUGH_RESULT = "uses_fuse_passthrough_result";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String RUN_IDLE_MAINTENANCE_FOR_STABLE_URIS =
+            "idle_maintenance_for_stable_uris";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String READ_BACKED_UP_FILE_PATHS = "read_backed_up_file_paths";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String DELETE_BACKED_UP_FILE_PATHS = "delete_backed_up_file_paths";
 
     /** {@hide} */
     public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
@@ -4662,6 +4686,36 @@ public final class MediaStore {
     /** {@hide} */
     public static void runIdleMaintenance(@NonNull ContentResolver resolver) {
         resolver.call(AUTHORITY, RUN_IDLE_MAINTENANCE_CALL, null, null);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static void runIdleMaintenanceForStableUris(@NonNull ContentResolver resolver) {
+        resolver.call(AUTHORITY, RUN_IDLE_MAINTENANCE_FOR_STABLE_URIS, null, null);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String[] readBackedUpFilePaths(@NonNull ContentResolver resolver,
+            String volumeName) {
+        Bundle bundle = resolver.call(AUTHORITY, READ_BACKED_UP_FILE_PATHS, volumeName, null);
+        return bundle.getStringArray(READ_BACKED_UP_FILE_PATHS);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static void deleteBackedUpFilePaths(@NonNull ContentResolver resolver,
+            String volumeName) {
+        resolver.call(AUTHORITY, DELETE_BACKED_UP_FILE_PATHS, volumeName, null);
     }
 
     /**

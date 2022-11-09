@@ -690,7 +690,7 @@ public class MediaProviderTest {
             }
 
             @Override
-            protected void checkConfigAndUpdateGetContentAlias() {
+            protected void storageNativeBootPropertyChangeListener() {
                 // Ignore this as test app cannot read device config
             }
         };
@@ -1122,7 +1122,7 @@ public class MediaProviderTest {
             }
 
             @Override
-            protected void checkConfigAndUpdateGetContentAlias() {
+            protected void storageNativeBootPropertyChangeListener() {
                 // Ignore this as test app cannot read device config
             }
         };

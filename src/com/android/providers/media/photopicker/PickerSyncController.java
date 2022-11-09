@@ -415,6 +415,7 @@ public class PickerSyncController {
         }
     }
 
+    // TODO(b/257887919): Build proper UI and remove this.
     /**
      * Notifies about picker UI launched
      */

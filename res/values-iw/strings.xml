@@ -39,6 +39,11 @@
     <string name="allow" msgid="8885707816848569619">"אישור"</string>
     <string name="deny" msgid="6040983710442068936">"דחייה"</string>
     <string name="picker_browse" msgid="5554477454636075934">"עיון…"</string>
+    <string name="picker_settings" msgid="7388913035769329672">"הגדרות"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"אפליקציית מדיה בענן"</string>
+    <string name="picker_settings_description" msgid="7486394662725656081">"‏אפשר לשתף תמונות וסרטונים שגיבית משירותים אחרים בכלי לבחירת תמונות ב-Android"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"גישה למדיה בענן מתוך"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"ללא"</string>
     <string name="add" msgid="2894574044585549298">"הוספה"</string>
     <string name="deselect" msgid="4297825044827769490">"ביטול הבחירה"</string>
     <string name="deselected" msgid="8488133193326208475">"הבחירה בוטלה"</string>
@@ -78,8 +83,24 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"ביטול ההשתקה של הסרטון"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"הפעלה"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"השהיה"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"לא ניתן להפעיל את הסרטון"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"בעיות בהפעלת הסרטון"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"מומלץ לבדוק את החיבור לאינטרנט ולנסות שוב"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ניסיון נוסף"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"מדיה בענן מתוך <xliff:g id="PKG_NAME">%1$s</xliff:g> זמינה עכשיו"</string>
     <string name="not_selected" msgid="2244008151669896758">"לא נבחר"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"התמונות שעברו גיבוי נכללות עכשיו"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ניתן לבחור תמונות מחשבון <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> באפליקציה <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"החשבון באפליקציה <xliff:g id="APP_NAME">%1$s</xliff:g> עודכן"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"תמונות מהחשבון <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> נכללות כאן עכשיו"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"בחירת אפליקציית מדיה בענן"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"כדי לכלול כאן תמונות שעברו גיבוי, יש להיכנס ל\'הגדרות\' ולבחור אפליקציית מדיה בענן"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"בחירת חשבון באפליקציה <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"כדי לכלול כאן תמונות מהאפליקציה <xliff:g id="APP_NAME">%1$s</xliff:g>, יש לבחור חשבון באפליקציה"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"סגירה"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"בחירת אפליקציה"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"בחירת חשבון"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"החלפת חשבון"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את קובץ האודיו הזה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{מתבצע שינוי בקובץ האודיו…}two{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}many{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}other{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את הסרטון הזה?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?}many{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?}}"</string>

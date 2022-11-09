@@ -54,8 +54,12 @@ public class PhotoPickerUiEventLogger {
         PHOTO_PICKER_CONFIRM_WORK_PROFILE(1127),
         @UiEvent(doc = "Confirmed selection in Photo picker in personal profile")
         PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE(1128),
+        @UiEvent(doc = "Photo picker opened with an active cloud provider")
+        PHOTO_PICKER_CLOUD_PROVIDER_ACTIVE(1198),
         @UiEvent(doc = "User changed the active Photo picker cloud provider")
-        PHOTO_PICKER_CLOUD_PROVIDER_CHANGED(1135);
+        PHOTO_PICKER_CLOUD_PROVIDER_CHANGED(1135),
+        @UiEvent(doc = "Photo Picker uri is queried with an unknown column")
+        PHOTO_PICKER_QUERY_UNKNOWN_COLUMN(1227);
 
         private final int mId;
 
@@ -274,6 +278,21 @@ public class PhotoPickerUiEventLogger {
     }
 
     /**
+     * Log metrics to notify that the picker has opened with an active cloud provider
+     * @param instanceId           an identifier for the current picker session
+     * @param cloudProviderUid     the uid of the cloud provider app
+     * @param cloudProviderPackage the package name of the cloud provider app
+     */
+    public void logPickerOpenWithActiveCloudProvider(InstanceId instanceId, int cloudProviderUid,
+            String cloudProviderPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_CLOUD_PROVIDER_ACTIVE,
+                cloudProviderUid,
+                cloudProviderPackage,
+                instanceId);
+    }
+
+    /**
      * Log metrics to notify that the user has changed the active cloud provider
      * @param cloudProviderUid     new active cloud provider uid
      * @param cloudProviderPackage new active cloud provider package name
@@ -281,5 +300,19 @@ public class PhotoPickerUiEventLogger {
     public void logPickerCloudProviderChanged(int cloudProviderUid, String cloudProviderPackage) {
         logger.log(PhotoPickerEvent.PHOTO_PICKER_CLOUD_PROVIDER_CHANGED, cloudProviderUid,
                 cloudProviderPackage);
+    }
+
+    /**
+     * Log metrics to notify that a picker uri was queried for an unknown column (that is not
+     * supported yet)
+     * @param callingUid     the uid of the app initiating the picker query
+     * @param callingPackage the package name of the app initiating the picker query
+     *
+     * TODO(b/251425380): Move non-UI events out of PhotoPickerUiEventLogger
+     */
+    public void logPickerQueriedWithUnknownColumn(int callingUid, String callingPackage) {
+        logger.log(PhotoPickerEvent.PHOTO_PICKER_QUERY_UNKNOWN_COLUMN,
+                callingUid,
+                callingPackage);
     }
 }

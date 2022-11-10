@@ -44,11 +44,13 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
+import static android.provider.MediaStore.READ_BACKED_UP_FILE_PATHS;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
+import static com.android.providers.media.DatabaseHelper.LEVEL_DB_READ_LIMIT;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_ACCESS_MTP;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_INSTALL_PACKAGES;
@@ -106,6 +108,7 @@ import static com.android.providers.media.util.SyntheticPathUtils.isPickerPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isRedactedPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isSyntheticPath;
 
+import android.Manifest;
 import android.annotation.IntDef;
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -792,6 +795,9 @@ public class MediaProvider extends ContentProvider {
             acceptWithExpansion(helper::notifyUpdate, oldRow.getVolumeName(), oldRow.getId(),
                     oldRow.getMediaType(), isDownload);
             updateNextRowIdXattr(helper, newRow.getId());
+            if (backedUpValuesChanged(helper, oldRow, newRow)) {
+                markBackupAsDirty(helper, oldRow);
+            }
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
@@ -866,6 +872,44 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
+    private boolean backedUpValuesChanged(DatabaseHelper helper, FileRow oldRow, FileRow newRow) {
+        if (helper.isInternal()) {
+            return backedUpValuesChangedForInternal(oldRow, newRow);
+        }
+
+        return false;
+    }
+
+    private boolean backedUpValuesChangedForInternal(FileRow oldRow, FileRow newRow) {
+        if (oldRow.getId() == newRow.getId() && oldRow.isFavorite() == newRow.isFavorite()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void markBackupAsDirty(DatabaseHelper databaseHelper, FileRow updatedRow) {
+        if (!isStableUrisEnabled(updatedRow.getVolumeName())) {
+            return;
+        }
+
+        if (databaseHelper.isDatabaseRecovering()) {
+            return;
+        }
+
+        final String updatedFilePath = updatedRow.getPath();
+        // For all internal file paths, redirect to external primary fuse daemon.
+        final String fuseDaemonFilePath = getFuseDaemonFilePath(updatedFilePath);
+        try {
+            getFuseDaemonForPath(fuseDaemonFilePath).backupVolumeDbData(updatedFilePath,
+                    BackupIdRow.serialize(BackupIdRow.newBuilder(updatedRow.getId()).setIsDirty(
+                            true).build()));
+        } catch (IOException e) {
+            Log.e(TAG, "Failure in marking data as dirty to external storage for path:"
+                    + updatedFilePath, e);
+        }
+    }
+
     /**
      * Backs up DB data in external storage to recover in case of DB rollback.
      */
@@ -880,8 +924,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // For all internal file paths, redirect to external primary fuse daemon.
-        final String fuseDaemonFilePath = insertedFilePath.startsWith("/storage") ? insertedFilePath
-                : "/storage/emulated/" + UserHandle.myUserId();
+        final String fuseDaemonFilePath = getFuseDaemonFilePath(insertedFilePath);
         try {
             final BackupIdRow value = createBackupIdRow(insertedRow);
             getFuseDaemonForPath(fuseDaemonFilePath).backupVolumeDbData(insertedFilePath,
@@ -889,6 +932,11 @@ public class MediaProvider extends ContentProvider {
         } catch (IOException e) {
             Log.e(TAG, "Failure in backing up data to external storage", e);
         }
+    }
+
+    private String getFuseDaemonFilePath(String filePath) {
+        return filePath.startsWith("/storage") ? filePath
+                : "/storage/emulated/" + UserHandle.myUserId();
     }
 
     private BackupIdRow createBackupIdRow(FileRow insertedRow) {
@@ -907,8 +955,7 @@ public class MediaProvider extends ContentProvider {
 
         String deletedFilePath = deletedRow.getPath();
         // For all internal file paths, redirect to external primary fuse daemon.
-        String fuseDaemonFilePath = deletedFilePath.startsWith("/storage") ? deletedFilePath
-                : "/storage/emulated/" + UserHandle.myUserId();
+        String fuseDaemonFilePath = getFuseDaemonFilePath(deletedFilePath);
         try {
             getFuseDaemonForPath(fuseDaemonFilePath).deleteDbBackup(deletedFilePath);
         } catch (IOException e) {
@@ -937,8 +984,7 @@ public class MediaProvider extends ContentProvider {
             return Optional.empty();
         }
 
-        final String fuseDaemonFilePath = filePath.startsWith("/storage") ? filePath
-                : "/storage/emulated/" + UserHandle.myUserId();
+        final String fuseDaemonFilePath = getFuseDaemonFilePath(filePath);
         try {
             final String data = getFuseDaemonForPath(fuseDaemonFilePath).readBackedUpData(filePath);
             return Optional.of(BackupIdRow.deserialize(data));
@@ -949,8 +995,12 @@ public class MediaProvider extends ContentProvider {
     }
 
     protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
+        if (helper.isInternal()) {
+            updateNextRowIdForInternal(helper, id);
+            return;
+        }
+
         if (!helper.isNextRowIdBackupEnabled()) {
-            Log.v(TAG, "Skipping next row id backup.");
             return;
         }
 
@@ -963,9 +1013,20 @@ public class MediaProvider extends ContentProvider {
 
         if (id >= nextRowIdBackupOptional.get()) {
             helper.backupNextRowId(id);
-        } else {
-            Log.v(TAG, String.format(Locale.ROOT, "Inserted id:%d less than next row id backup:%d.",
-                    id, nextRowIdBackupOptional.get()));
+        }
+    }
+
+    private void updateNextRowIdForInternal(DatabaseHelper helper, long id) {
+        if (!isStableUrisEnabled(MediaStore.VOLUME_INTERNAL)) {
+            return;
+        }
+        Optional<Long> nextRowIdBackupOptional = helper.getNextRowId();
+        if (!nextRowIdBackupOptional.isPresent()) {
+            return;
+        }
+
+        if (id >= nextRowIdBackupOptional.get()) {
+            helper.backupNextRowId(id);
         }
     }
 
@@ -1282,16 +1343,16 @@ public class MediaProvider extends ContentProvider {
             mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
 
-        checkConfigAndUpdateGetContentAlias();
+        storageNativeBootPropertyChangeListener();
         mConfigStore.addOnChangeListener(
-                BackgroundThread.getExecutor(), this::checkConfigAndUpdateGetContentAlias);
+                BackgroundThread.getExecutor(), this::storageNativeBootPropertyChangeListener);
 
         PulledMetrics.initialize(context);
         return true;
     }
 
     @VisibleForTesting
-    protected void checkConfigAndUpdateGetContentAlias() {
+    protected void storageNativeBootPropertyChangeListener() {
         final String photoPickerGetContentActivity =
                 PhotoPickerActivity.class.getPackage().getName() + ".PhotoPickerGetContentActivity";
         final ComponentName componentName = new ComponentName(getContext().getPackageName(),
@@ -1305,6 +1366,15 @@ public class MediaProvider extends ContentProvider {
                 + " for PhotoPickerGetContentActivity. ");
         getContext().getPackageManager().setComponentEnabledSetting(componentName, expectedState,
                 PackageManager.DONT_KILL_APP);
+
+        if (mConfigStore.isStableUrisForInternalVolumeEnabled()
+                && mVolumeCache.getExternalVolumeNames().contains(
+                MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            Log.i(TAG,
+                    "On device config change, found stable uri support enabled. Attempting backup"
+                            + " and recovery setup.");
+            setupVolumeDbBackupForInternalIfMissing();
+        }
     }
 
     Optional<DatabaseHelper> getDatabaseHelper(String dbName) {
@@ -1418,6 +1488,55 @@ public class MediaProvider extends ContentProvider {
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
                 durationMillis, staleThumbnails, deletedExpiredMedia);
+    }
+
+    /**
+     * Backs up databases to external storage to ensure stable URIs.
+     */
+    public void backupDatabases(CancellationSignal signal) {
+        Log.i(TAG, "Triggering database backup");
+        backupInternalDatabase(signal);
+    }
+
+    protected void backupInternalDatabase(CancellationSignal signal) {
+        if (!isStableUrisEnabled(MediaStore.VOLUME_INTERNAL)
+                || mInternalDatabase.isDatabaseRecovering()) {
+            return;
+        }
+        setupVolumeDbBackupForInternalIfMissing();
+        FuseDaemon fuseDaemon;
+        try {
+            fuseDaemon = getFuseDaemonForPath("/storage/emulated/" + UserHandle.myUserId());
+        } catch (FileNotFoundException e) {
+            Log.e(TAG,
+                    "Fuse Daemon not found for primary external storage, skipping backing up of "
+                            + "internal database.",
+                    e);
+            return;
+        }
+
+        mInternalDatabase.runWithTransaction((db) -> {
+            try (Cursor c = db.query(true, "files",
+                    new String[]{FileColumns._ID, FileColumns.DATA, FileColumns.IS_FAVORITE},
+                    null, null, null, null, null,
+                    null, signal)) {
+                while (c.moveToNext()) {
+                    final long id = c.getLong(0);
+                    final String data = c.getString(1);
+                    final int isFavorite = c.getInt(2);
+                    BackupIdRow.Builder builder = BackupIdRow.newBuilder(id);
+                    builder.setIsFavorite(isFavorite);
+                    builder.setIsDirty(false);
+                    fuseDaemon.backupVolumeDbData(data, BackupIdRow.serialize(builder.build()));
+                }
+                Log.d(TAG,
+                        "Backed up data of internal database to external storage on idle "
+                                + "maintenance.");
+            } catch (Exception e) {
+                Log.e(TAG, "Failure in backing up internal database to external storage.", e);
+            }
+            return null;
+        });
     }
 
     /**
@@ -6586,8 +6705,55 @@ public class MediaProvider extends ContentProvider {
                 bundle.putBoolean(MediaStore.USES_FUSE_PASSTHROUGH_RESULT, isEnabled);
                 return bundle;
             }
+            case MediaStore.RUN_IDLE_MAINTENANCE_FOR_STABLE_URIS: {
+                getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
+                        "Permission missing to call RUN_IDLE_MAINTENANCE_FOR_STABLE_URIS by "
+                                + "uid:" + Binder.getCallingUid());
+                backupDatabases(null);
+                return new Bundle();
+            }
+            case MediaStore.READ_BACKED_UP_FILE_PATHS: {
+                getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
+                        "Permission missing to call READ_BACKED_UP_FILE_PATHS by "
+                                + "uid:" + Binder.getCallingUid());
+                List<String> cumulatedValues = new ArrayList<String>();
+                String[] backedUpFilePaths;
+                String lastReadValue = "";
+                while (true) {
+                    backedUpFilePaths = readBackedUpFilePaths(arg, lastReadValue,
+                            LEVEL_DB_READ_LIMIT);
+                    if (backedUpFilePaths.length <= 0) {
+                        break;
+                    }
+                    cumulatedValues.addAll(Arrays.asList(backedUpFilePaths));
+                    if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
+                        break;
+                    }
+                    lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
+                }
+
+                Bundle bundle = new Bundle();
+                Object[] values =  cumulatedValues.toArray();
+                String[] resultArray =  Arrays.copyOf(values, values.length, String[].class);
+                bundle.putStringArray(READ_BACKED_UP_FILE_PATHS, resultArray);
+                return bundle;
+            }
+            case MediaStore.DELETE_BACKED_UP_FILE_PATHS:
+                getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
+                        "Permission missing to call DELETE_BACKED_UP_FILE_PATHS by "
+                                + "uid:" + Binder.getCallingUid());
+                deleteBackupForVolume(arg);
+                return new Bundle();
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
+        }
+    }
+
+    private void deleteBackupForVolume(String volumeName) {
+        File dbFilePath = new File(
+                String.format(Locale.ROOT, "%s/%s.db", sRecoveryDirectoryPath, volumeName));
+        if (dbFilePath.exists()) {
+            dbFilePath.delete();
         }
     }
 
@@ -8062,6 +8228,45 @@ public class MediaProvider extends ContentProvider {
                     final Uri targetUri = ContentUris
                             .withAppendedId(Images.Media.getContentUri(volumeName), imageId);
                     return ensureThumbnail(targetUri, signal);
+                }
+                case CLI: {
+                    // Command Line Interface "file" - content://media/cli - may be opened only by
+                    // Shell (or Root).
+                    if (!isCallingPackageShell()) {
+                        throw new SecurityException("Only shell (or root) is allowed to open "
+                                + "MediaProvider's CLI file (" + uri + ')');
+                    }
+
+                    // We expect the uri's query to hold a single parameter - "cmd" - which contains
+                    // the command name followed by the arguments (if any), all joined with '+'
+                    // symbols:
+                    // ?cmd=command[+arg1+[arg2+[arg3...]]]
+                    //
+                    // For example:
+                    // (1) ?cmd=version
+                    // (2) ?cmd=set-cloud-provider=com.my.cloud.provider.authority
+                    //
+                    // We retrieve the command name and the argument (if any) with
+                    // uri.getQueryParameter("cmd") call, which will replace all '+' delimiters with
+                    // spaces.
+
+                    final String[] cmdAndArgs = uri.getQueryParameter("cmd").split("\\s+");
+                    Log.d(TAG, "MediaProvider CLI command: " + Arrays.toString(cmdAndArgs));
+                    try {
+                        // Create a UNIX pipe.
+                        final ParcelFileDescriptor[] pipe = ParcelFileDescriptor.createPipe();
+                        // Pass the write end - pipe[1] - to our shell command.
+                        final var cmd = new MediaProviderShellCommand(getContext(),
+                                mConfigStore,
+                                mPickerSyncController,
+                                /* out */ pipe[1]);
+                        cmd.exec(cmdAndArgs);
+                        // Return the read end - pipe[0] - to the caller.
+                        return pipe[0];
+                    } catch (IOException e) {
+                        Log.e(TAG, "Could not create a pipe", e);
+                        return null;
+                    }
                 }
             }
         } finally {
@@ -10378,12 +10583,23 @@ public class MediaProvider extends ContentProvider {
         return uri;
     }
 
+    /**
+     * On device boot, leveldb setup is done as part of attachVolume call for primary external.
+     * Also, on device config flag change, we check if flag is enabled, if yes, we proceed to
+     * setup(no-op if connection already exists). So, we setup backup and recovery for internal
+     * volume on Media mount signal of EXTERNAL_PRIMARY.
+     */
     private void setupVolumeDbBackupAndRecovery(MediaVolume volume) {
-        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volume.getName())) {
-            // Leveldb setup for internal volume is done during leveldb setup for primary external.
+        // We are setting up leveldb instance only for internal volume as of now. Since internal
+        // volume does not have any fuse daemon thread, leveldb instance is created by fuse
+        // daemon thread of EXTERNAL_PRIMARY.
+        if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volume.getName())) {
+            // Set backup only for external primary for now.
             return;
         }
-        if (!mConfigStore.isStableUrisForInternalVolumeEnabled()) {
+        // Do not create leveldb instance if stable uris is not enabled for internal volume.
+        if (!isStableUrisEnabled(MediaStore.VOLUME_INTERNAL)) {
+            // Return if we are not supporting backup for internal volume
             return;
         }
 
@@ -10393,8 +10609,20 @@ public class MediaProvider extends ContentProvider {
             }
             getFuseDaemonForFile(volume.getPath()).setupVolumeDbBackup();
         } catch (IOException e) {
-            Log.w(TAG, "Failure in setting up backup and recovery for volume: " + volume.getName(),
+            Log.e(TAG, "Failure in setting up backup and recovery for volume: " + volume.getName(),
                     e);
+        }
+    }
+
+    private void setupVolumeDbBackupForInternalIfMissing() {
+        try {
+            if (!new File(sRecoveryDirectoryPath).exists()) {
+                new File(sRecoveryDirectoryPath).mkdirs();
+            }
+            final String fuseDaemonFilePath = "/storage/emulated/" + UserHandle.myUserId();
+            getFuseDaemonForPath(fuseDaemonFilePath).setupVolumeDbBackup();
+        } catch (IOException e) {
+            Log.e(TAG, "Failure in setting up backup and recovery for internal database.", e);
         }
     }
 
@@ -10538,6 +10766,9 @@ public class MediaProvider extends ContentProvider {
     static final int PICKER_INTERNAL_ALBUMS = 903;
     static final int PICKER_UNRELIABLE_VOLUME = 904;
 
+    // MediaProvider Command Line Interface
+    static final int CLI = 100_000;
+
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
             Arrays.asList(AUDIO_MEDIA_ID, IMAGES_MEDIA_ID, VIDEO_MEDIA_ID, FILES_ID, DOWNLOADS_ID));
 
@@ -10592,6 +10823,9 @@ public class MediaProvider extends ContentProvider {
             mPublic.addURI(auth, "picker/#/*/media/*", PICKER_ID);
             // content://media/picker/unreliable/<media_id>
             mPublic.addURI(auth, "picker/unreliable/#", PICKER_UNRELIABLE_VOLUME);
+
+            mPublic.addURI(auth, "cli", CLI);
+
             mPublic.addURI(auth, "*/images/media", IMAGES_MEDIA);
             mPublic.addURI(auth, "*/images/media/#", IMAGES_MEDIA_ID);
             mPublic.addURI(auth, "*/images/media/#/thumbnail", IMAGES_MEDIA_ID_THUMBNAIL);

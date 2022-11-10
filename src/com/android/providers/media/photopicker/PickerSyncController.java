@@ -49,6 +49,7 @@ import android.widget.Toast;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.BackgroundThread;
@@ -207,9 +208,25 @@ public class PickerSyncController {
         }
     }
 
+    /**
+     * Resets media library previously synced from the current {@link CloudMediaProvider} as well
+     * as the {@link #mLocalProvider local provider}.
+     */
+    public void resetAllMedia() {
+        resetAllMedia(mLocalProvider, /* isLocal */ true);
+        synchronized (mLock) {
+            resetAllMedia(mCloudProviderInfo.authority, /* isLocal */ false);
+        }
+    }
+
     private void resetAllMedia(String authority, boolean isLocal) {
-        executeSyncReset(authority, isLocal);
-        resetCachedMediaCollectionInfo(authority, isLocal);
+        Trace.beginSection(traceSectionName("resetAllMedia", isLocal));
+        try {
+            executeSyncReset(authority, isLocal);
+            resetCachedMediaCollectionInfo(authority, isLocal);
+        } finally {
+            Trace.endSection();
+        }
     }
 
     @NonNull
@@ -248,9 +265,9 @@ public class PickerSyncController {
      * background after switching providers.
      *
      * @return {@code true} if the provider was successfully enabled or cleared, {@code false}
-     * otherwise
+     *         otherwise.
      */
-    public boolean setCloudProvider(String authority) {
+    public boolean setCloudProvider(@Nullable String authority) {
         Trace.beginSection(traceSectionName("setCloudProvider"));
         try {
             return setCloudProviderInternal(authority, /* ignoreAllowlist */ false);
@@ -261,18 +278,20 @@ public class PickerSyncController {
 
     /**
      * Set cloud provider ignoring allowlist.
+     *
+     * @return {@code true} if the provider was successfully enabled or cleared, {@code false}
+     *         otherwise.
      */
-    @VisibleForTesting
-    public void forceSetCloudProvider(String authority) {
+    public boolean forceSetCloudProvider(@Nullable String authority) {
         Trace.beginSection(traceSectionName("forceSetCloudProvider"));
         try {
-            setCloudProviderInternal(authority, /* ignoreAllowlist */ true);
+            return setCloudProviderInternal(authority, /* ignoreAllowlist */ true);
         } finally {
             Trace.endSection();
         }
     }
 
-    private boolean setCloudProviderInternal(String authority, boolean ignoreAllowList) {
+    private boolean setCloudProviderInternal(@Nullable String authority, boolean ignoreAllowList) {
         synchronized (mLock) {
             if (Objects.equals(mCloudProviderInfo.authority, authority)) {
                 Log.w(TAG, "Cloud provider already set: " + authority);
@@ -307,12 +326,34 @@ public class PickerSyncController {
         return false;
     }
 
+    /**
+     * @return {@link CloudProviderInfo} for the current {@link CloudMediaProvider} or
+     *         {@link CloudProviderInfo#EMPTY} if the {@link CloudMediaProvider} integration is not
+     *         enabled.
+     */
+    @NonNull
+    public CloudProviderInfo getCurrentCloudProviderInfo() {
+        synchronized (mLock) {
+            return mCloudProviderInfo;
+        }
+    }
+
+    /**
+     * @return {@link android.content.pm.ProviderInfo#authority authority} of the current
+     *         {@link CloudMediaProvider} or {@code null} if the {@link CloudMediaProvider}
+     *         integration is not enabled.
+     */
+    @Nullable
     public String getCloudProvider() {
         synchronized (mLock) {
             return mCloudProviderInfo.authority;
         }
     }
 
+    /**
+     * @return {@link android.content.pm.ProviderInfo#authority authority} of the local provider.
+     */
+    @NonNull
     public String getLocalProvider() {
         return mLocalProvider;
     }

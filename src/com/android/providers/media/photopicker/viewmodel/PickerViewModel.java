@@ -26,6 +26,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -78,6 +79,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
+    private boolean mIsUserSelectForApp;
 
     private InstanceId mInstanceId;
     private PhotoPickerUiEventLogger mLogger;
@@ -98,6 +100,7 @@ public class PickerViewModel extends AndroidViewModel {
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
         mConfigStore = new ConfigStore.ConfigStoreImpl();
+        mIsUserSelectForApp = false;
     }
 
     @VisibleForTesting
@@ -130,6 +133,14 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public MuteStatus getMuteStatus() {
         return mMuteStatus;
+    }
+
+    /**
+     * @return {@code mIsUserSelectForApp} if the picker is currently being used
+     * for the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP} action.
+     */
+    public boolean isUserSelectForApp() {
+        return mIsUserSelectForApp;
     }
 
     /**
@@ -314,6 +325,19 @@ public class PickerViewModel extends AndroidViewModel {
         mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
 
         mSelection.parseSelectionValuesFromIntent(intent);
+
+        mIsUserSelectForApp =
+                intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+
+        // Ensure that if Photopicker is being used for permissions the target app UID is present
+        // in the extras.
+        if (mIsUserSelectForApp
+                && (intent.getExtras() == null
+                        || !intent.getExtras()
+                                .containsKey(Intent.EXTRA_UID))) {
+            throw new IllegalArgumentException(
+                    "EXTRA_UID is required for" + " ACTION_USER_SELECT_IMAGES_FOR_APP");
+        }
     }
 
     /**

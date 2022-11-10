@@ -31,9 +31,9 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -275,9 +275,11 @@ public abstract class TabFragment extends Fragment {
     }
 
     private boolean shouldShowProfileButton() {
-        return mUserIdManager.isMultiUserProfiles() && !mHideProfileButton &&
-                (!mSelection.canSelectMultiple() ||
-                        mSelection.getSelectedItemCount().getValue() == 0);
+        return mUserIdManager.isMultiUserProfiles()
+                && !mHideProfileButton
+                && !mPickerViewModel.isUserSelectForApp()
+                && (!mSelection.canSelectMultiple()
+                        || mSelection.getSelectedItemCount().getValue() == 0);
     }
 
     private void onClickProfileButton() {
@@ -398,9 +400,20 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setVisibility(shouldShowEmptyView ? View.GONE : View.VISIBLE);
     }
 
-    private static String generateAddButtonString(Context context, int size) {
+    /**
+     * Generates the Button Label for the {@link TabFragment#mAddButton}.
+     *
+     * @param context The current application context.
+     * @param size The current size of the selection.
+     * @return Localized, formatted string.
+     */
+    private String generateAddButtonString(Context context, int size) {
         final String sizeString = NumberFormat.getInstance(Locale.getDefault()).format(size);
-        final String template = context.getString(R.string.picker_add_button_multi_select);
+        final String template =
+                mPickerViewModel.isUserSelectForApp()
+                        ? context.getString(R.string.picker_add_button_multi_select_permissions)
+                        : context.getString(R.string.picker_add_button_multi_select);
+
         return TextUtils.expandTemplate(template, sizeString).toString();
     }
 }

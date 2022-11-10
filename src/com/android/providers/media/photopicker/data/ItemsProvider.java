@@ -27,6 +27,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.os.Trace;
 import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -37,12 +38,14 @@ import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.UserId;
 
+import java.util.Arrays;
+
 /**
  * Provides image and video items from {@link MediaStore} collection to the Photo Picker.
  */
 public class ItemsProvider {
-
     private static final String TAG = ItemsProvider.class.getSimpleName();
+    private static final boolean DEBUG = false;
 
     private final Context mContext;
 
@@ -74,11 +77,20 @@ public class ItemsProvider {
     public Cursor getItems(Category category, int offset,
             int limit, @Nullable String[] mimeTypes, @Nullable UserId userId) throws
             IllegalArgumentException {
-        if (userId == null) {
-            userId = UserId.CURRENT_USER;
+        Trace.beginSection("ItemsProvider.getItems");
+        try {
+            if (DEBUG) {
+                Log.d(TAG, "getItems() [" + Thread.currentThread() + "] userId=" + userId
+                        + " cat=" + category + " mimeTypes=" + Arrays.toString(mimeTypes)
+                        + " offset=" + offset + " limit=" + limit);
+            }
+            if (userId == null) {
+                userId = UserId.CURRENT_USER;
+            }
+            return queryMedia(limit, mimeTypes, category, userId);
+        } finally {
+            Trace.endSection();
         }
-
-        return queryMedia(limit, mimeTypes, category, userId);
     }
 
     /**
@@ -103,16 +115,32 @@ public class ItemsProvider {
      */
     @Nullable
     public Cursor getCategories(@Nullable String[] mimeTypes, @Nullable UserId userId) {
-        if (userId == null) {
-            userId = UserId.CURRENT_USER;
+        Trace.beginSection("ItemsProvider.getCategories");
+        try {
+            if (DEBUG) {
+                Log.d(TAG, "getCategories() [" + Thread.currentThread() + "] userId=" + userId
+                        + " mimeTypes=" + Arrays.toString(mimeTypes));
+            }
+            if (userId == null) {
+                userId = UserId.CURRENT_USER;
+            }
+            return queryAlbums(mimeTypes, userId);
+        } finally {
+            Trace.endSection();
         }
-
-        return queryAlbums(mimeTypes, userId);
     }
 
     private Cursor queryMedia(int limit, String[] mimeTypes,
             @NonNull Category category, @NonNull UserId userId)
             throws IllegalStateException {
+        Trace.beginSection("ItemsProvider.queryMedia");
+        if (DEBUG) {
+            Log.d(TAG, "queryMedia() [" + Thread.currentThread() + "] userId=" + userId
+                    + " cat=" + category + " mimeTypes=" + Arrays.toString(mimeTypes)
+                    + " limit=" + limit,
+                    /* log stacktrace */ new Throwable());
+        }
+
         final Bundle extras = new Bundle();
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
@@ -137,11 +165,20 @@ public class ItemsProvider {
             Log.e(TAG, "Failed to query merged media with extras: "
                     + extras + ". userId = " + userId, ignored);
             return null;
+        } finally {
+            Trace.endSection();
         }
     }
 
     @Nullable
     private Cursor queryAlbums(@Nullable String[] mimeTypes, @NonNull UserId userId) {
+        Trace.beginSection("ItemsProvider.queryAlbums");
+        if (DEBUG) {
+            Log.d(TAG, "queryAlbums() [" + Thread.currentThread() + "] userId=" + userId
+                    + " mimeTypes=" + Arrays.toString(mimeTypes),
+                    /* log stacktrace */ new Throwable());
+        }
+
         final Bundle extras = new Bundle();
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
@@ -163,6 +200,8 @@ public class ItemsProvider {
             Log.w(TAG, "Failed to query merged albums with extras: "
                     + extras + ". userId = " + userId, ignored);
             return null;
+        } finally {
+            Trace.endSection();
         }
     }
 

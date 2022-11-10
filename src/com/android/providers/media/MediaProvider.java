@@ -795,6 +795,9 @@ public class MediaProvider extends ContentProvider {
             acceptWithExpansion(helper::notifyUpdate, oldRow.getVolumeName(), oldRow.getId(),
                     oldRow.getMediaType(), isDownload);
             updateNextRowIdXattr(helper, newRow.getId());
+            if (backedUpValuesChanged(helper, oldRow, newRow)) {
+                markBackupAsDirty(helper, oldRow);
+            }
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
@@ -869,6 +872,44 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
+    private boolean backedUpValuesChanged(DatabaseHelper helper, FileRow oldRow, FileRow newRow) {
+        if (helper.isInternal()) {
+            return backedUpValuesChangedForInternal(oldRow, newRow);
+        }
+
+        return false;
+    }
+
+    private boolean backedUpValuesChangedForInternal(FileRow oldRow, FileRow newRow) {
+        if (oldRow.getId() == newRow.getId() && oldRow.isFavorite() == newRow.isFavorite()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void markBackupAsDirty(DatabaseHelper databaseHelper, FileRow updatedRow) {
+        if (!isStableUrisEnabled(updatedRow.getVolumeName())) {
+            return;
+        }
+
+        if (databaseHelper.isDatabaseRecovering()) {
+            return;
+        }
+
+        final String updatedFilePath = updatedRow.getPath();
+        // For all internal file paths, redirect to external primary fuse daemon.
+        final String fuseDaemonFilePath = getFuseDaemonFilePath(updatedFilePath);
+        try {
+            getFuseDaemonForPath(fuseDaemonFilePath).backupVolumeDbData(updatedFilePath,
+                    BackupIdRow.serialize(BackupIdRow.newBuilder(updatedRow.getId()).setIsDirty(
+                            true).build()));
+        } catch (IOException e) {
+            Log.e(TAG, "Failure in marking data as dirty to external storage for path:"
+                    + updatedFilePath, e);
+        }
+    }
+
     /**
      * Backs up DB data in external storage to recover in case of DB rollback.
      */
@@ -883,8 +924,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // For all internal file paths, redirect to external primary fuse daemon.
-        final String fuseDaemonFilePath = insertedFilePath.startsWith("/storage") ? insertedFilePath
-                : "/storage/emulated/" + UserHandle.myUserId();
+        final String fuseDaemonFilePath = getFuseDaemonFilePath(insertedFilePath);
         try {
             final BackupIdRow value = createBackupIdRow(insertedRow);
             getFuseDaemonForPath(fuseDaemonFilePath).backupVolumeDbData(insertedFilePath,
@@ -892,6 +932,11 @@ public class MediaProvider extends ContentProvider {
         } catch (IOException e) {
             Log.e(TAG, "Failure in backing up data to external storage", e);
         }
+    }
+
+    private String getFuseDaemonFilePath(String filePath) {
+        return filePath.startsWith("/storage") ? filePath
+                : "/storage/emulated/" + UserHandle.myUserId();
     }
 
     private BackupIdRow createBackupIdRow(FileRow insertedRow) {
@@ -910,8 +955,7 @@ public class MediaProvider extends ContentProvider {
 
         String deletedFilePath = deletedRow.getPath();
         // For all internal file paths, redirect to external primary fuse daemon.
-        String fuseDaemonFilePath = deletedFilePath.startsWith("/storage") ? deletedFilePath
-                : "/storage/emulated/" + UserHandle.myUserId();
+        String fuseDaemonFilePath = getFuseDaemonFilePath(deletedFilePath);
         try {
             getFuseDaemonForPath(fuseDaemonFilePath).deleteDbBackup(deletedFilePath);
         } catch (IOException e) {
@@ -940,8 +984,7 @@ public class MediaProvider extends ContentProvider {
             return Optional.empty();
         }
 
-        final String fuseDaemonFilePath = filePath.startsWith("/storage") ? filePath
-                : "/storage/emulated/" + UserHandle.myUserId();
+        final String fuseDaemonFilePath = getFuseDaemonFilePath(filePath);
         try {
             final String data = getFuseDaemonForPath(fuseDaemonFilePath).readBackedUpData(filePath);
             return Optional.of(BackupIdRow.deserialize(data));
@@ -952,6 +995,11 @@ public class MediaProvider extends ContentProvider {
     }
 
     protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
+        if (helper.isInternal()) {
+            updateNextRowIdForInternal(helper, id);
+            return;
+        }
+
         if (!helper.isNextRowIdBackupEnabled()) {
             return;
         }
@@ -961,6 +1009,20 @@ public class MediaProvider extends ContentProvider {
             throw new RuntimeException(
                     String.format(Locale.ROOT, "Cannot find next row id xattr for %s.",
                             helper.getDatabaseName()));
+        }
+
+        if (id >= nextRowIdBackupOptional.get()) {
+            helper.backupNextRowId(id);
+        }
+    }
+
+    private void updateNextRowIdForInternal(DatabaseHelper helper, long id) {
+        if (!isStableUrisEnabled(MediaStore.VOLUME_INTERNAL)) {
+            return;
+        }
+        Optional<Long> nextRowIdBackupOptional = helper.getNextRowId();
+        if (!nextRowIdBackupOptional.isPresent()) {
+            return;
         }
 
         if (id >= nextRowIdBackupOptional.get()) {
@@ -1436,7 +1498,7 @@ public class MediaProvider extends ContentProvider {
         backupInternalDatabase(signal);
     }
 
-    private void backupInternalDatabase(CancellationSignal signal) {
+    protected void backupInternalDatabase(CancellationSignal signal) {
         if (!isStableUrisEnabled(MediaStore.VOLUME_INTERNAL)
                 || mInternalDatabase.isDatabaseRecovering()) {
             return;
@@ -10527,14 +10589,20 @@ public class MediaProvider extends ContentProvider {
     /**
      * On device boot, leveldb setup is done as part of attachVolume call for primary external.
      * Also, on device config flag change, we check if flag is enabled, if yes, we proceed to
-     * setup(no-op if connection already exists).
+     * setup(no-op if connection already exists). So, we setup backup and recovery for internal
+     * volume on Media mount signal of EXTERNAL_PRIMARY.
      */
     private void setupVolumeDbBackupAndRecovery(MediaVolume volume) {
-        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volume.getName())) {
-            // Leveldb setup for internal volume is done during leveldb setup for primary external.
+        // We are setting up leveldb instance only for internal volume as of now. Since internal
+        // volume does not have any fuse daemon thread, leveldb instance is created by fuse
+        // daemon thread of EXTERNAL_PRIMARY.
+        if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volume.getName())) {
+            // Set backup only for external primary for now.
             return;
         }
-        if (!mConfigStore.isStableUrisForInternalVolumeEnabled()) {
+        // Do not create leveldb instance if stable uris is not enabled for internal volume.
+        if (!isStableUrisEnabled(MediaStore.VOLUME_INTERNAL)) {
+            // Return if we are not supporting backup for internal volume
             return;
         }
 

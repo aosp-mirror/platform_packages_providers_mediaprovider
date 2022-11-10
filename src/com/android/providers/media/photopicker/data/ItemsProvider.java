@@ -16,8 +16,8 @@
 
 package com.android.providers.media.photopicker.data;
 
-import android.annotation.NonNull;
-import android.annotation.Nullable;
+import static android.widget.Toast.LENGTH_LONG;
+
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -26,15 +26,23 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.os.RemoteException;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.UserId;
 
@@ -51,6 +59,7 @@ public class ItemsProvider {
 
     public ItemsProvider(Context context) {
         mContext = context;
+        ensureNotificationHandler(context);
     }
 
     /**
@@ -78,6 +87,7 @@ public class ItemsProvider {
             int limit, @Nullable String[] mimeTypes, @Nullable UserId userId) throws
             IllegalArgumentException {
         Trace.beginSection("ItemsProvider.getItems");
+        sNotificationHandler.onLoadingStarted();
         try {
             if (DEBUG) {
                 Log.d(TAG, "getItems() [" + Thread.currentThread() + "] userId=" + userId
@@ -89,6 +99,7 @@ public class ItemsProvider {
             }
             return queryMedia(limit, mimeTypes, category, userId);
         } finally {
+            sNotificationHandler.onLoadingFinished();
             Trace.endSection();
         }
     }
@@ -116,6 +127,7 @@ public class ItemsProvider {
     @Nullable
     public Cursor getCategories(@Nullable String[] mimeTypes, @Nullable UserId userId) {
         Trace.beginSection("ItemsProvider.getCategories");
+        sNotificationHandler.onLoadingStarted();
         try {
             if (DEBUG) {
                 Log.d(TAG, "getCategories() [" + Thread.currentThread() + "] userId=" + userId
@@ -126,6 +138,7 @@ public class ItemsProvider {
             }
             return queryAlbums(mimeTypes, userId);
         } finally {
+            sNotificationHandler.onLoadingFinished();
             Trace.endSection();
         }
     }
@@ -254,5 +267,95 @@ public class ItemsProvider {
     private static boolean uriHasUserId(Uri uri) {
         if (uri == null) return false;
         return !TextUtils.isEmpty(uri.getUserInfo());
+    }
+
+    // TODO(b/257887919): Build proper UI and remove all this monstrosity below!
+    private static volatile @Nullable NotificationHandler sNotificationHandler;
+
+    private static void ensureNotificationHandler(@NonNull Context context) {
+        if (sNotificationHandler == null) {
+            synchronized (PickerSyncController.class) {
+                if (sNotificationHandler == null) {
+                    sNotificationHandler = new NotificationHandler(context);
+                }
+            }
+        }
+    }
+
+    private static class NotificationHandler extends Handler {
+        static final int MESSAGE_CODE_STARTED_LOADING = 1;
+        static final int MESSAGE_CODE_TICK = 2;
+        static final int MESSAGE_CODE_FINISHED_LOADING = 3;
+
+        static final int FIRST_TICK_DELAY = 1_000; // 1 second
+        static final int TICK_DELAY = 30_000; // 30 seconds
+
+        final Context mContext;
+
+        NotificationHandler(@NonNull Context context) {
+            // It will be running on the UI thread.
+            super(Looper.getMainLooper());
+            mContext = context.getApplicationContext();
+        }
+
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            switch (msg.what) {
+                case MESSAGE_CODE_STARTED_LOADING:
+                    if (hasMessages(MESSAGE_CODE_TICK)) {
+                        // Already have scheduled ticks - do nothing.
+                        return;
+                    }
+                    // Wait 1 sec before actually showing the first notification (so that we don't
+                    // annoy users with our Toasts if the loading actually takes less than 1 sec).
+                    sendTickMessageDelayed(/* seqNum */ 1, FIRST_TICK_DELAY);
+                    break;
+
+                case MESSAGE_CODE_TICK:
+                    final int seqNum = msg.arg1;
+
+                    // These Strings are intentionally hardcoded here instead of being added to
+                    // the res/values/strings.xml.
+                    // They are to be used in droidfood only, not to be translated, and must be
+                    // removed very soon!
+                    final String text;
+                    if (seqNum == 1) {
+                        text = "Syncing your cloud media library...";
+                    } else {
+                        text = "Still syncing your cloud media library...";
+                    }
+                    Toast.makeText(mContext, "[Dogfood: known issue] " + text, LENGTH_LONG).show();
+
+                    // Do not show more than 10 of these.
+                    if (seqNum < 10) {
+                        // Show next tick in 30 seconds.
+                        sendTickMessageDelayed(/* seqNum */ seqNum + 1, TICK_DELAY);
+                    }
+                    break;
+
+                case MESSAGE_CODE_FINISHED_LOADING:
+                    removeMessages(MESSAGE_CODE_STARTED_LOADING);
+                    removeMessages(MESSAGE_CODE_TICK);
+                    break;
+
+                default:
+                    super.handleMessage(msg);
+            }
+        }
+
+        void onLoadingStarted() {
+            sendEmptyMessage(MESSAGE_CODE_STARTED_LOADING);
+        }
+
+        void onLoadingFinished() {
+            sendEmptyMessage(MESSAGE_CODE_FINISHED_LOADING);
+        }
+
+        private void sendTickMessageDelayed(int seqNum, int delay) {
+            final Message message = obtainMessage(MESSAGE_CODE_TICK);
+            message.arg1 = seqNum;
+
+            sendMessageDelayed(message, delay);
+        }
     }
 }

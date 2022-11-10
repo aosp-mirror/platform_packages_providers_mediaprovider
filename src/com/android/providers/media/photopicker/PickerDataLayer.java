@@ -89,6 +89,7 @@ public class PickerDataLayer {
             mSyncController.syncAllMedia();
 
             if (TextUtils.isEmpty(albumId)) {
+                // TODO(b/257887919): Build proper UI and remove this.
                 // Notify that the picker is launched in case there's any pending UI notification
                 mSyncController.notifyPickerLaunch();
             }

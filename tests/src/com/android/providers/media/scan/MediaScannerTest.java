@@ -23,6 +23,7 @@ import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static org.junit.Assert.assertEquals;
 
 import android.Manifest;
+import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -35,6 +36,7 @@ import android.os.Environment;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.BaseColumns;
+import android.provider.CloudMediaProvider;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.Settings;
@@ -52,6 +54,7 @@ import com.android.providers.media.MediaProvider;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.R;
 import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.cloudproviders.CloudProviderPrimary;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
@@ -80,8 +83,6 @@ public class MediaScannerTest {
         private final File mDir;
         private final MockContentResolver mResolver;
         private final MediaProvider mProvider;
-        private final MediaDocumentsProvider mDocumentsProvider;
-        private final PhotoPickerProvider mPhotoPickerProvider;
         private final UserHandle mUserHandle;
         private Map<String, BackupIdRow> mBackedUpData = new HashMap<>();
 
@@ -104,9 +105,33 @@ public class MediaScannerTest {
             mResolver = new MockContentResolver(this);
             mUserHandle = userHandle;
 
-            final ProviderInfo info = base.getPackageManager()
-                    .resolveContentProvider(MediaStore.AUTHORITY, 0);
-            mProvider = new MediaProvider() {
+            mProvider = getMockedMediaProvider(asFuseThread, configStore);
+            attachInfoAndAddProvider(base, this, mResolver, mProvider, MediaStore.AUTHORITY);
+
+            MediaDocumentsProvider documentsProvider = new MediaDocumentsProvider();
+            attachInfoAndAddProvider(base, this, mResolver, documentsProvider,
+                    MediaDocumentsProvider.AUTHORITY);
+
+            mResolver.addProvider(Settings.AUTHORITY, new MockContentProvider() {
+                @Override
+                public Bundle call(String method, String request, Bundle args) {
+                    return Bundle.EMPTY;
+                }
+            });
+
+            PhotoPickerProvider photoPickerProvider = new PhotoPickerProvider();
+            attachInfoAndAddProvider(base, this, mResolver, photoPickerProvider,
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+
+            final CloudMediaProvider cmp = new CloudProviderPrimary();
+            attachInfoAndAddProvider(base, this, mResolver, cmp, CloudProviderPrimary.AUTHORITY);
+
+            MediaStore.waitForIdle(mResolver);
+        }
+
+        private MediaProvider getMockedMediaProvider(boolean asFuseThread,
+                ConfigStore configStore) {
+            return new MediaProvider() {
                 @Override
                 public boolean isFuseThread() {
                     return asFuseThread;
@@ -123,7 +148,7 @@ public class MediaScannerTest {
                 }
 
                 @Override
-                protected void checkConfigAndUpdateGetContentAlias() {
+                protected void storageNativeBootPropertyChangeListener() {
                     // Ignore this as test app cannot read device config
                 }
 
@@ -148,31 +173,6 @@ public class MediaScannerTest {
                     return Optional.ofNullable(mBackedUpData.get(filePath));
                 }
             };
-            mProvider.attachInfo(this, info);
-            mResolver.addProvider(MediaStore.AUTHORITY, mProvider);
-
-            final ProviderInfo documentsInfo = base.getPackageManager()
-                    .resolveContentProvider(MediaDocumentsProvider.AUTHORITY, 0);
-            mDocumentsProvider = new MediaDocumentsProvider();
-            mDocumentsProvider.attachInfo(this, documentsInfo);
-            mResolver.addProvider(MediaDocumentsProvider.AUTHORITY, mDocumentsProvider);
-
-            mResolver.addProvider(Settings.AUTHORITY, new MockContentProvider() {
-                @Override
-                public Bundle call(String method, String request, Bundle args) {
-                    return Bundle.EMPTY;
-                }
-            });
-
-            final ProviderInfo photoPickerProviderInfo = base.getPackageManager()
-                    .resolveContentProvider(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
-                            0);
-            mPhotoPickerProvider = new PhotoPickerProvider();
-            mPhotoPickerProvider.attachInfo(this, photoPickerProviderInfo);
-            mResolver.addProvider(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
-                    mPhotoPickerProvider);
-
-            MediaStore.waitForIdle(mResolver);
         }
 
         @Override
@@ -196,6 +196,14 @@ public class MediaScannerTest {
 
         public void setBackedUpData(Map<String, BackupIdRow> backedUpData) {
             this.mBackedUpData = backedUpData;
+        }
+
+        private void attachInfoAndAddProvider(Context base, Context isolatedContext,
+                ContentResolver isolatedResolver, ContentProvider provider, String authority) {
+            final ProviderInfo info = base.getPackageManager()
+                    .resolveContentProvider(authority, 0);
+            provider.attachInfo(this, info);
+            mResolver.addProvider(authority, provider);
         }
     }
 

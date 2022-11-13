@@ -208,9 +208,25 @@ public class PickerSyncController {
         }
     }
 
+    /**
+     * Resets media library previously synced from the current {@link CloudMediaProvider} as well
+     * as the {@link #mLocalProvider local provider}.
+     */
+    public void resetAllMedia() {
+        resetAllMedia(mLocalProvider, /* isLocal */ true);
+        synchronized (mLock) {
+            resetAllMedia(mCloudProviderInfo.authority, /* isLocal */ false);
+        }
+    }
+
     private void resetAllMedia(String authority, boolean isLocal) {
-        executeSyncReset(authority, isLocal);
-        resetCachedMediaCollectionInfo(authority, isLocal);
+        Trace.beginSection(traceSectionName("resetAllMedia", isLocal));
+        try {
+            executeSyncReset(authority, isLocal);
+            resetCachedMediaCollectionInfo(authority, isLocal);
+        } finally {
+            Trace.endSection();
+        }
     }
 
     @NonNull
@@ -415,6 +431,7 @@ public class PickerSyncController {
         }
     }
 
+    // TODO(b/257887919): Build proper UI and remove this.
     /**
      * Notifies about picker UI launched
      */

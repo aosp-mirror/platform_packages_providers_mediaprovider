@@ -39,16 +39,11 @@
     <string name="allow" msgid="8885707816848569619">"अनुमति दें"</string>
     <string name="deny" msgid="6040983710442068936">"अनुमति न दें"</string>
     <string name="picker_browse" msgid="5554477454636075934">"ब्राउज़ करें…"</string>
-    <!-- no translation found for picker_settings (7388913035769329672) -->
-    <skip />
-    <!-- no translation found for picker_settings_title (5647700706470673258) -->
-    <skip />
-    <!-- no translation found for picker_settings_description (7486394662725656081) -->
-    <skip />
-    <!-- no translation found for picker_settings_selection_message (245453573086488596) -->
-    <skip />
-    <!-- no translation found for picker_settings_no_provider (2582311853680058223) -->
-    <skip />
+    <string name="picker_settings" msgid="7388913035769329672">"सेटिंग"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"क्लाउड मीडिया ऐप्लिकेशन"</string>
+    <string name="picker_settings_description" msgid="7486394662725656081">"Android में फ़ोटो पिकर की मदद से, उन फ़ोटो और वीडियो को शेयर करें जिनका बैक अप आपने अन्य सेवाओं पर लिया है."</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"क्लाउड पर मौजूद मीडिया को यहां से ऐक्सेस करें:"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"कोई नहीं"</string>
     <string name="add" msgid="2894574044585549298">"जोड़ें"</string>
     <string name="deselect" msgid="4297825044827769490">"चुना हुआ हटाएं"</string>
     <string name="deselected" msgid="8488133193326208475">"चुना हुआ हटाया गया"</string>

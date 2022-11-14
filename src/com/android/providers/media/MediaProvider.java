@@ -172,6 +172,7 @@ import android.os.Parcelable;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -10625,7 +10626,9 @@ public class MediaProvider extends ContentProvider {
     protected boolean isStableUrisEnabled(String volumeName) {
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
-                return mConfigStore.isStableUrisForInternalVolumeEnabled();
+                return mConfigStore.isStableUrisForInternalVolumeEnabled()
+                        || SystemProperties.getBoolean("persist.sys.fuse.backup.internal_db_backup",
+                        /* defaultValue */ false);
             default:
                 return false;
         }

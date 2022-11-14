@@ -610,7 +610,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         int i = 0;
         // Wait for external primary to be attached as we use same thread for internal volume.
         // Maximum wait for 5s
-        while (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY) && i < 100) {
+        while (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY) && i < 1000) {
             Log.d(TAG, "Waiting for external primary volume to be attached.");
             // Poll after every 5 ms
             SystemClock.sleep(5);

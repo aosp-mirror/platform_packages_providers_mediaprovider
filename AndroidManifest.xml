@@ -135,6 +135,12 @@
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
+        <service
+            android:name=
+                "com.android.providers.media.stableuris.job.StableUriIdleMaintenanceService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE"/>
+
         <service android:name="com.android.providers.media.fuse.ExternalStorageServiceImpl"
                  android:exported="true"
                  android:permission="android.permission.BIND_EXTERNAL_STORAGE_SERVICE">

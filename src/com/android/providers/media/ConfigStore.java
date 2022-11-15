@@ -19,9 +19,11 @@ package com.android.providers.media;
 import static android.provider.DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT;
 
 import android.os.Binder;
+import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.util.Supplier;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -114,13 +116,19 @@ public interface ConfigStore {
      */
     class ConfigStoreImpl implements ConfigStore {
         private static final String KEY_TAKE_OVER_GET_CONTENT = "take_over_get_content";
-        private static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
+
+        @VisibleForTesting
+        public static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
 
         private static final String KEY_TRANSCODE_ENABLED = "transcode_enabled";
         private static final String KEY_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = "transcode_default";
         private static final String KEY_TRANSCODE_MAX_DURATION = "transcode_max_duration_ms";
         private static final String KEY_TRANSCODE_COMPAT_MANIFEST = "transcode_compat_manifest";
         private static final String KEY_TRANSCODE_COMPAT_STALE = "transcode_compat_stale";
+
+        private static final String SYSPROP_TRANSCODE_MAX_DURATION =
+            "persist.sys.fuse.transcode_max_file_duration_ms";
+        private static final int TRANSCODE_MAX_DURATION_INVALID = 0;
 
         private static final String KEY_PICKER_ALLOWED_CLOUD_PROVIDERS = "allowed_cloud_providers";
         private static final String KEY_PICKER_SYNC_DELAY = "default_sync_delay_ms";
@@ -163,6 +171,19 @@ public interface ConfigStore {
 
         @Override
         public int getTranscodeMaxDurationMs() {
+            // First check if OEMs overwrite default duration via system property.
+            int maxDurationMs = SystemProperties.getInt(
+                SYSPROP_TRANSCODE_MAX_DURATION, TRANSCODE_MAX_DURATION_INVALID);
+
+            // Give priority to OEM value if set. Only accept larger values, which can be desired
+            // for more performant devices. Lower values may result in unexpected behaviour
+            // (a value of 0 would mean transcoding is actually disabled) or break CTS tests (a
+            // value small enough to prevent transcoding the videos under test).
+            // Otherwise, fallback to device config / default values.
+            if (maxDurationMs != TRANSCODE_MAX_DURATION_INVALID
+                    && maxDurationMs > DEFAULT_TRANSCODE_MAX_DURATION) {
+                return maxDurationMs;
+            }
             return getIntDeviceConfig(KEY_TRANSCODE_MAX_DURATION, DEFAULT_TRANSCODE_MAX_DURATION);
         }
 

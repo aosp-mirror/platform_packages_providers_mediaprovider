@@ -99,6 +99,7 @@ import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_PREFIX;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
 import static com.android.providers.media.util.SyntheticPathUtils.createSparseFile;
@@ -6642,9 +6643,17 @@ public class MediaProvider extends ContentProvider {
                 }
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
                 // TODO(b/245746037): replace UID check with Permission(MANAGE_CLOUD_MEDIA_PROVIDER)
-                if (Binder.getCallingUid() != MY_UID) {
-                    throw new SecurityException("Get cloud provider not allowed. Calling UID:"
-                            + Binder.getCallingUid() + ", MP UID:" + MY_UID);
+                // PhotoPickerSettingsActivity will run as either the primary or the managed user.
+                // Since the activity shows both personal and work tabs, it will have to make get
+                // cloud provider IPC call to both instances of Media Provider - one running as
+                // primary profile and the other as managed profile. Hence, UID check will not be
+                // feasible here.
+                if (!checkPermissionSelf(Binder.getCallingUid())) {
+                    throw new SecurityException("Get cloud provider not allowed. "
+                            + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
+                            + " Calling UID:" + Binder.getCallingUid()
+                            + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
+                            + " Media Provider UID:" + MY_UID);
                 }
                 final Bundle bundle = new Bundle();
                 bundle.putString(MediaStore.GET_CLOUD_PROVIDER_RESULT,

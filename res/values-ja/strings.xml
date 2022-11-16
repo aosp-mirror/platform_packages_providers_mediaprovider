@@ -39,7 +39,8 @@
     <string name="allow" msgid="8885707816848569619">"許可"</string>
     <string name="deny" msgid="6040983710442068936">"許可しない"</string>
     <string name="picker_browse" msgid="5554477454636075934">"参照…"</string>
-    <string name="picker_settings" msgid="7388913035769329672">"設定"</string>
+    <!-- no translation found for picker_settings (6443463167344790260) -->
+    <skip />
     <string name="picker_settings_title" msgid="5647700706470673258">"クラウド メディア アプリ"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"他のサービスからバックアップした写真と動画を Android の写真選択ツールで共有できます"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"クラウド メディアへのアクセス元"</string>
@@ -67,6 +68,7 @@
     <string name="picker_privacy_message" msgid="9132700451027116817">"このアプリは、選択した写真にのみアクセスできます。"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> 件のアイテム}other{<xliff:g id="COUNT_1">^1</xliff:g> 件のアイテム}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"追加（<xliff:g id="COUNT">^1</xliff:g> 件）"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"許可（<xliff:g id="COUNT">^1</xliff:g> 件）"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"カメラ"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"ダウンロード"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"お気に入り"</string>

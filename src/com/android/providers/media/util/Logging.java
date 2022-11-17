@@ -77,7 +77,8 @@ public class Logging {
      * Write the given message to persistent logs.
      */
     public static void logPersistent(@NonNull String format, @Nullable Object ... args) {
-        final String msg = String.format(Locale.ROOT, format, args);
+        final String msg = (args == null || args.length == 0)
+                ? format : String.format(Locale.ROOT, format, args);
 
         Log.i(TAG, msg);
 

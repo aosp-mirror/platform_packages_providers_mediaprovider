@@ -39,7 +39,8 @@
     <string name="allow" msgid="8885707816848569619">"允許"</string>
     <string name="deny" msgid="6040983710442068936">"拒絕"</string>
     <string name="picker_browse" msgid="5554477454636075934">"瀏覽…"</string>
-    <string name="picker_settings" msgid="7388913035769329672">"設定"</string>
+    <!-- no translation found for picker_settings (6443463167344790260) -->
+    <skip />
     <string name="picker_settings_title" msgid="5647700706470673258">"雲端媒體應用程式"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"在 Android 相片點選器分享從其他服務備份的相片和影片"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"從以下位置存取雲端媒體："</string>
@@ -67,6 +68,7 @@
     <string name="picker_privacy_message" msgid="9132700451027116817">"此應用程式只能存取您選取的相片"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> 個項目}other{<xliff:g id="COUNT_1">^1</xliff:g> 個項目}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"新增 (<xliff:g id="COUNT">^1</xliff:g> 個)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"允許 (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"相機"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"下載"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"我的最愛"</string>

@@ -39,7 +39,8 @@
     <string name="allow" msgid="8885707816848569619">"Ооба"</string>
     <string name="deny" msgid="6040983710442068936">"Жок"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Карап чыгуу…"</string>
-    <string name="picker_settings" msgid="7388913035769329672">"Параметрлер"</string>
+    <!-- no translation found for picker_settings (6443463167344790260) -->
+    <skip />
     <string name="picker_settings_title" msgid="5647700706470673258">"Булуттагы мультимедиа колдонмосу"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Камдык көчүрмөсү башка кызматтарда сакталган сүрөттөр менен видеолорду Android Photopicker аркылуу бөлүшүү"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Төмөнкүдөн алынган булуттагы мультимедианы колдонуу:"</string>
@@ -67,6 +68,7 @@
     <string name="picker_privacy_message" msgid="9132700451027116817">"Бул колдонмо сиз тандаган сүрөттөргө гана кире алат"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> нерсе}other{<xliff:g id="COUNT_1">^1</xliff:g> нерсе}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Кошуу (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Уруксат берүү (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Камера"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Жүктөлүп алынгандар"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Тандалмалар"</string>

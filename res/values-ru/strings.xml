@@ -39,7 +39,8 @@
     <string name="allow" msgid="8885707816848569619">"Разрешить"</string>
     <string name="deny" msgid="6040983710442068936">"Запретить"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Посмотреть"</string>
-    <string name="picker_settings" msgid="7388913035769329672">"Настройки"</string>
+    <!-- no translation found for picker_settings (6443463167344790260) -->
+    <skip />
     <string name="picker_settings_title" msgid="5647700706470673258">"Приложение для мультимедиа в облаке"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Делитесь фотографиями и видео из других сервисов, для которых вы сохранили резервные копии, в окне выбора фотографий Android"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Получите доступ к мультимедиа в облаке"</string>
@@ -67,6 +68,7 @@
     <string name="picker_privacy_message" msgid="9132700451027116817">"У этого приложения есть доступ только к тем фото, которые вы выбрали."</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> объект}one{<xliff:g id="COUNT_1">^1</xliff:g> объект}few{<xliff:g id="COUNT_1">^1</xliff:g> объекта}many{<xliff:g id="COUNT_1">^1</xliff:g> объектов}other{<xliff:g id="COUNT_1">^1</xliff:g> объекта}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Добавить (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Открыть доступ (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Камера"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Скачанные"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Избранное"</string>

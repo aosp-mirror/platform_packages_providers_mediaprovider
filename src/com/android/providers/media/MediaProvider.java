@@ -10647,6 +10647,11 @@ public class MediaProvider extends ContentProvider {
                 return mConfigStore.isStableUrisForInternalVolumeEnabled()
                         || SystemProperties.getBoolean("persist.sys.fuse.backup.internal_db_backup",
                         /* defaultValue */ false);
+            case MediaStore.VOLUME_EXTERNAL_PRIMARY:
+                return mConfigStore.isStableUrisForExternalVolumeEnabled()
+                        || SystemProperties.getBoolean(
+                        "persist.sys.fuse.backup.external_volume_backup",
+                        /* defaultValue */ false);
             default:
                 return false;
         }

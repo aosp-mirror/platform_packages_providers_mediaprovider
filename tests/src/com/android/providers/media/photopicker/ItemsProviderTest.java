@@ -43,6 +43,7 @@ import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
 
@@ -62,6 +63,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ItemsProviderTest {
@@ -212,11 +214,10 @@ public class ItemsProviderTest {
         final File myAlbumScreenshotsImg = assertCreateNewImage(myAlbumScreenshotsDir);
 
         try {
-            assertGetCategoriesMatchMultiple(
-                    ALBUM_ID_SCREENSHOTS,
-                    ALBUM_ID_DOWNLOADS,
-                    /* numberOfItemsInScreenshots */ 3,
-                    /* numberOfItemsInDownloads */ 1);
+            assertGetCategoriesMatchMultiple(Arrays.asList(
+                    Pair.create(ALBUM_ID_SCREENSHOTS, 3),
+                    Pair.create(ALBUM_ID_DOWNLOADS, 1)
+            ));
         } finally {
             imageFile.delete();
             imageFileInScreenshotDirInDownloads.delete();
@@ -337,9 +338,10 @@ public class ItemsProviderTest {
         final File cameraDir = getCameraDir();
         File videoFile = assertCreateNewVideo(cameraDir);
         try {
-            assertGetCategoriesMatchMultiple(ALBUM_ID_CAMERA, ALBUM_ID_VIDEOS,
-                    /* numberOfItemsInCamera */ 1,
-                    /* numberOfItemsInVideos */ 1);
+            assertGetCategoriesMatchMultiple(Arrays.asList(
+                    Pair.create(ALBUM_ID_VIDEOS, 1),
+                    Pair.create(ALBUM_ID_CAMERA, 1)
+            ));
         } finally {
             videoFile.delete();
         }
@@ -360,10 +362,10 @@ public class ItemsProviderTest {
         File imageFile = assertCreateNewImage(screenshotsDir);
         setIsFavorite(imageFile);
         try {
-            assertGetCategoriesMatchMultiple(ALBUM_ID_SCREENSHOTS,
-                    ALBUM_ID_FAVORITES,
-                    /* numberOfItemsInScreenshots */ 1,
-                    /* numberOfItemsInFavorites */ 1);
+            assertGetCategoriesMatchMultiple(Arrays.asList(
+                    Pair.create(ALBUM_ID_FAVORITES, 1),
+                    Pair.create(ALBUM_ID_SCREENSHOTS, 1)
+            ));
         } finally {
             imageFile.delete();
         }
@@ -384,10 +386,10 @@ public class ItemsProviderTest {
         File imageFile = assertCreateNewImage(downloadsDir);
         setIsFavorite(imageFile);
         try {
-            assertGetCategoriesMatchMultiple(ALBUM_ID_DOWNLOADS,
-                    ALBUM_ID_FAVORITES,
-                    /* numberOfItemsInScreenshots */ 1,
-                    /* numberOfItemsInFavorites */ 1);
+            assertGetCategoriesMatchMultiple(Arrays.asList(
+                    Pair.create(ALBUM_ID_FAVORITES, 1),
+                    Pair.create(ALBUM_ID_DOWNLOADS, 1)
+            ));
         } finally {
             imageFile.delete();
         }
@@ -660,44 +662,38 @@ public class ItemsProviderTest {
     }
 
     private void assertCategoriesNoMatch(String expectedCategoryName) {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
-        while (c != null && c.moveToNext()) {
-            final int nameColumnIndex = c.getColumnIndexOrThrow(AlbumColumns.DISPLAY_NAME);
-            final String categoryName = c.getString(nameColumnIndex);
-            assertThat(categoryName).isNotEqualTo(expectedCategoryName);
+        try (Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null)) {
+            while (c != null && c.moveToNext()) {
+                final int nameColumnIndex = c.getColumnIndexOrThrow(AlbumColumns.DISPLAY_NAME);
+                final String categoryName = c.getString(nameColumnIndex);
+                assertThat(categoryName).isNotEqualTo(expectedCategoryName);
+            }
         }
     }
 
-    private void assertGetCategoriesMatchMultiple(String category1, String category2,
-            int numberOfItems1, int numberOfItems2) {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
-        assertThat(c).isNotNull();
-        assertThat(c.getCount()).isEqualTo(2);
 
-        // Assert that category1 and category2 is returned and has numberOfItems1 and
-        // numberOfItems2 items in them respectively.
-        boolean isCategory1Returned = false;
-        boolean isCategory2Returned = false;
-        while (c.moveToNext()) {
-            final int nameColumnIndex = c.getColumnIndexOrThrow(AlbumColumns.DISPLAY_NAME);
-            final int numOfItemsColumnIndex = c.getColumnIndexOrThrow(
-                    AlbumColumns.MEDIA_COUNT);
-
-            final String categoryName = c.getString(nameColumnIndex);
-            final int numOfItems = c.getInt(numOfItemsColumnIndex);
-
-
-            if (categoryName.equals(category1)) {
-                isCategory1Returned = true;
-                assertThat(numOfItems).isEqualTo(numberOfItems1);
-            } else if (categoryName.equals(category2)) {
-                isCategory2Returned = true;
-                assertThat(numOfItems).isEqualTo(numberOfItems2);
-            }
+    private void assertGetCategoriesMatchMultiple(List<Pair<String, Integer>> categories) {
+        try (Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null)) {
+            assertGetCategoriesMatchMultiple(c, categories);
         }
+    }
 
-        assertThat(isCategory1Returned).isTrue();
-        assertThat(isCategory2Returned).isTrue();
+    private void assertGetCategoriesMatchMultiple(Cursor c,
+            List<Pair<String, Integer>> categories) {
+        assertThat(c).isNotNull();
+        assertWithMessage("Expected number of albums")
+                .that(c.getCount()).isEqualTo(categories.size());
+
+        final int nameColumnIndex = c.getColumnIndexOrThrow(AlbumColumns.DISPLAY_NAME);
+        final int numOfItemsColumnIndex = c.getColumnIndexOrThrow(
+                AlbumColumns.MEDIA_COUNT);
+        for (Pair<String, Integer> category : categories) {
+            c.moveToNext();
+
+            assertThat(category.first).isEqualTo(c.getString(nameColumnIndex));
+            assertWithMessage("Expected item count for " + category.first).that(
+                    c.getInt(numOfItemsColumnIndex)).isEqualTo(category.second);
+        }
     }
 
     private void setIsFavorite(File file) {

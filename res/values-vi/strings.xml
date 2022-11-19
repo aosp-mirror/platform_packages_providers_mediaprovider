@@ -39,7 +39,8 @@
     <string name="allow" msgid="8885707816848569619">"Cho phép"</string>
     <string name="deny" msgid="6040983710442068936">"Từ chối"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Duyệt qua…"</string>
-    <string name="picker_settings" msgid="7388913035769329672">"Cài đặt"</string>
+    <!-- no translation found for picker_settings (6443463167344790260) -->
+    <skip />
     <string name="picker_settings_title" msgid="5647700706470673258">"Ứng dụng nội dung phương tiện trên đám mây"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Chia sẻ ảnh và video bạn sao lưu qua các dịch vụ khác trong Android Photopicker"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Truy cập nội dung phương tiện trên đám mây qua"</string>
@@ -67,6 +68,7 @@
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ứng dụng này chỉ có thể truy cập vào những bức ảnh bạn chọn"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> mục}other{<xliff:g id="COUNT_1">^1</xliff:g> mục}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Thêm (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Cho phép (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Máy ảnh"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Tệp đã tải xuống"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Mục yêu thích"</string>

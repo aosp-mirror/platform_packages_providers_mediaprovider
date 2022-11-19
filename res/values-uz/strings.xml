@@ -39,7 +39,8 @@
     <string name="allow" msgid="8885707816848569619">"Ruxsat"</string>
     <string name="deny" msgid="6040983710442068936">"Rad etish"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Tanlash…"</string>
-    <string name="picker_settings" msgid="7388913035769329672">"Sozlamalar"</string>
+    <!-- no translation found for picker_settings (6443463167344790260) -->
+    <skip />
     <string name="picker_settings_title" msgid="5647700706470673258">"Bulutli media ilovasi"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Android Suratni tanlash vositasi orqali boshqa xizmatlarda zaxiralangan rasm va videolarni ulashing"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Bulutli media kontentni ochish"</string>
@@ -67,6 +68,7 @@
     <string name="picker_privacy_message" msgid="9132700451027116817">"Bu ilova faqat siz tanlagan suratlar bilan ishlay oladi"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ta narsa}other{<xliff:g id="COUNT_1">^1</xliff:g> ta narsa}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Kiritish (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Ruxsat (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Yuklanmalar"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Sevimlilar"</string>

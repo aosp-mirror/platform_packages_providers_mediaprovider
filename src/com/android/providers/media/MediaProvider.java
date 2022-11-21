@@ -8599,6 +8599,17 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    protected boolean isFuseDaemonReadyForFilePath(@NonNull String filePath) {
+        FuseDaemon daemon = null;
+        try {
+            daemon = ExternalStorageServiceImpl.getFuseDaemon(
+                    getVolumeId(new File(filePath)));
+        } catch (FileNotFoundException e) {
+            Log.w(TAG, "No fuse daemon exists for path:" + filePath);
+        }
+        return daemon == null ? false : true;
+    }
+
     private @NonNull FuseDaemon getFuseDaemonForPath(@NonNull String path)
             throws FileNotFoundException {
         return getFuseDaemonForFile(new File(path));

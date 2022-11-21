@@ -1913,6 +1913,7 @@ public final class MediaStore {
          * This is identical to {@link MediaColumns#WIDTH}.
          *
          * @see MediaColumns#WIDTH
+         * @hide
          */
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String WIDTH = "width";
@@ -1921,6 +1922,7 @@ public final class MediaStore {
          * This is identical to {@link MediaColumns#HEIGHT}.
          *
          * @see MediaColumns#HEIGHT
+         * @hide
          */
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String HEIGHT = "height";
@@ -1929,6 +1931,7 @@ public final class MediaStore {
          * This is identical to {@link MediaColumns#ORIENTATION}.
          *
          * @see MediaColumns#ORIENTATION
+         * @hide
          */
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String ORIENTATION = "orientation";

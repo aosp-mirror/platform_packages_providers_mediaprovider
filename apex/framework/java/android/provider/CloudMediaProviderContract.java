@@ -191,11 +191,15 @@ public final class CloudMediaProviderContract {
 
         /**
          * This column contains the width of the image or video.
+         *
+         * @hide
          */
         public static final String WIDTH = "width";
 
         /**
          * This column contains the height of the image or video.
+         *
+         * @hide
          */
         public static final String HEIGHT = "height";
 
@@ -204,6 +208,8 @@ public final class CloudMediaProviderContract {
          * <p>
          * For consistency the indexed value is expressed in degrees, such as 0,
          * 90, 180, or 270.
+         *
+         * @hide
          */
         public static final String ORIENTATION = "orientation";
 

@@ -172,6 +172,7 @@ import android.os.Parcelable;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -8598,6 +8599,17 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    protected boolean isFuseDaemonReadyForFilePath(@NonNull String filePath) {
+        FuseDaemon daemon = null;
+        try {
+            daemon = ExternalStorageServiceImpl.getFuseDaemon(
+                    getVolumeId(new File(filePath)));
+        } catch (FileNotFoundException e) {
+            Log.w(TAG, "No fuse daemon exists for path:" + filePath);
+        }
+        return daemon == null ? false : true;
+    }
+
     private @NonNull FuseDaemon getFuseDaemonForPath(@NonNull String path)
             throws FileNotFoundException {
         return getFuseDaemonForFile(new File(path));
@@ -10632,7 +10644,14 @@ public class MediaProvider extends ContentProvider {
     protected boolean isStableUrisEnabled(String volumeName) {
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
-                return mConfigStore.isStableUrisForInternalVolumeEnabled();
+                return mConfigStore.isStableUrisForInternalVolumeEnabled()
+                        || SystemProperties.getBoolean("persist.sys.fuse.backup.internal_db_backup",
+                        /* defaultValue */ false);
+            case MediaStore.VOLUME_EXTERNAL_PRIMARY:
+                return mConfigStore.isStableUrisForExternalVolumeEnabled()
+                        || SystemProperties.getBoolean(
+                        "persist.sys.fuse.backup.external_volume_backup",
+                        /* defaultValue */ false);
             default:
                 return false;
         }

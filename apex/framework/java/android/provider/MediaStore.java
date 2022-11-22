@@ -296,8 +296,6 @@ public final class MediaStore {
     public static final String DELETE_BACKED_UP_FILE_PATHS = "delete_backed_up_file_paths";
 
     /** {@hide} */
-    public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
-    /** {@hide} */
     public static final String QUERY_ARG_MIME_TYPE = "android:query-arg-mime_type";
     /** {@hide} */
     public static final String QUERY_ARG_SIZE_BYTES = "android:query-arg-size_bytes";
@@ -743,10 +741,38 @@ public final class MediaStore {
      * <p>
      * Before this API, apps could use {@link Intent#ACTION_GET_CONTENT}. However,
      * {@link #ACTION_PICK_IMAGES} is now the recommended option for images and videos,
-     * since it ofers a better user experience.
+     * since it offers a better user experience.
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
+
+    /**
+     * Activity Action: This is a system action for when users choose to select media to share with
+     * an app rather than granting allow all visual media.
+     *
+     * <p>
+     * Callers must specify the intent-extra integer
+     * {@link Intent#EXTRA_UID} with the uid of the app that
+     * will receive the MediaProvider grants for the selected files.
+     * <p>
+     * Callers can optionally specify MIME type (such as {@code image/*} or {@code video/*}),
+     * resulting in a range of content selection that the caller is interested in. The optional MIME
+     * type can be requested with {@link Intent#setType(String)}.
+     * <p>
+     * This action does not alter any permission state for the app, and does not check any
+     * permission state for the app in the underlying media provider file access grants.
+     *
+     * <p>If images/videos were successfully picked this will return {@link Activity#RESULT_OK}
+     * otherwise {@link Activity#RESULT_CANCELED} is returned.
+     *
+     * <p><strong>NOTE:</strong> You should probably not use this. This action requires the {@link
+     * Manifest.permission#GRANT_RUNTIME_PERMISSIONS } permission.
+     *
+     * @hide
+     */
+    // @SystemApi - this is commented out for tm-mainline-prod only.
+    public static final String ACTION_USER_SELECT_IMAGES_FOR_APP =
+            "android.provider.action.USER_SELECT_IMAGES_FOR_APP";
 
     /**
      * Activity Action: Launch settings controlling images or videos selection with

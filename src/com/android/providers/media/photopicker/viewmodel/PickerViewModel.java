@@ -26,6 +26,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -47,7 +48,6 @@ import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
-import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.MimeUtils;
@@ -79,6 +79,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
+    private boolean mIsUserSelectForApp;
 
     private InstanceId mInstanceId;
     private PhotoPickerUiEventLogger mLogger;
@@ -99,6 +100,7 @@ public class PickerViewModel extends AndroidViewModel {
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
         mConfigStore = new ConfigStore.ConfigStoreImpl();
+        mIsUserSelectForApp = false;
     }
 
     @VisibleForTesting
@@ -131,6 +133,14 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public MuteStatus getMuteStatus() {
         return mMuteStatus;
+    }
+
+    /**
+     * @return {@code mIsUserSelectForApp} if the picker is currently being used
+     * for the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP} action.
+     */
+    public boolean isUserSelectForApp() {
+        return mIsUserSelectForApp;
     }
 
     /**
@@ -170,36 +180,10 @@ public class PickerViewModel extends AndroidViewModel {
                 return items;
             }
 
-            // We only add the RECENT header on the PhotosTabFragment with CATEGORY_DEFAULT. In this
-            // case, we call this method {loadItems} with null category. When the category is not
-            // empty, we don't show the RECENT header.
-            final boolean showRecent = category.isDefault();
-
-            int recentSize = 0;
-            long currentDateTaken = 0;
-
-            if (showRecent) {
-                // add Recent date header
-                items.add(Item.createDateItem(0));
-            }
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
-                // here again.
-                final Item item = Item.fromCursor(cursor, userId);
-                final long dateTaken = item.getDateTaken();
-                // the minimum count of items in recent is not reached
-                if (showRecent && recentSize < RECENT_MINIMUM_COUNT) {
-                    recentSize++;
-                    currentDateTaken = dateTaken;
-                }
-
-                // The date taken of these two images are not on the
-                // same day, add the new date header.
-                if (!DateTimeUtils.isSameDate(currentDateTaken, dateTaken)) {
-                    items.add(Item.createDateItem(dateTaken));
-                    currentDateTaken = dateTaken;
-                }
-                items.add(item);
+                //  here again.
+                items.add(Item.fromCursor(cursor, userId));
             }
         }
 
@@ -341,6 +325,19 @@ public class PickerViewModel extends AndroidViewModel {
         mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
 
         mSelection.parseSelectionValuesFromIntent(intent);
+
+        mIsUserSelectForApp =
+                intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+
+        // Ensure that if Photopicker is being used for permissions the target app UID is present
+        // in the extras.
+        if (mIsUserSelectForApp
+                && (intent.getExtras() == null
+                        || !intent.getExtras()
+                                .containsKey(Intent.EXTRA_UID))) {
+            throw new IllegalArgumentException(
+                    "EXTRA_UID is required for" + " ACTION_USER_SELECT_IMAGES_FOR_APP");
+        }
     }
 
     /**

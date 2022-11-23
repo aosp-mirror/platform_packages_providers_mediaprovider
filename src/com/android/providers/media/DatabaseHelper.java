@@ -68,6 +68,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.playlist.Playlist;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
@@ -151,7 +152,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * For devices with adoptable storage support, opting for adoptable storage will not delete
      * /data/media/0 directory.
      */
-    public static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
+    private static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
+
+    protected static final int LEVEL_DB_READ_LIMIT = 1000;
 
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";
@@ -352,6 +355,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @Override
     public void onConfigure(SQLiteDatabase db) {
         Log.v(TAG, "onConfigure() for " + mName);
+
+        if (isExternal()) {
+            db.setForeignKeyConstraintsEnabled(true);
+        }
+
         db.setCustomScalarFunction("_INSERT", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
@@ -513,6 +521,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         } finally {
             mSchemaLock.writeLock().unlock();
         }
+        // In case of a bad MP release which decreases the DB version, we would end up downgrading
+        // database. We are explicitly setting a new session id on database to trigger recovery
+        // in onOpen() call.
+        setXattr(db.getPath(), getSessionIdXattrKeyForDatabase(), UUID.randomUUID().toString());
     }
 
     @Override
@@ -520,11 +532,165 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         Log.v(TAG, "onOpen() for " + mName);
         // Recovering before migration from legacy because recovery process will clear up data to
         // read from xattrs once ids are persisted in xattrs.
+        tryRecoverDatabase(db);
         tryRecoverRowIdSequence(db);
         tryMigrateFromLegacy(db);
     }
 
+    private void tryRecoverDatabase(SQLiteDatabase db) {
+        MediaProvider mediaProvider;
+        try (ContentProviderClient cpc = mContext.getContentResolver()
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            mediaProvider = ((MediaProvider) cpc.getLocalContentProvider());
+        } catch (Exception e) {
+            throw new RuntimeException("Could not retrieve local content provider", e);
+        }
+        String volumeName =
+                isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
+        if (!isInternal() || !mediaProvider.isStableUrisEnabled(volumeName)) {
+            return;
+        }
+
+        synchronized (sRecoveryLock) {
+            // Read last used session id from /data/media/0.
+            Optional<String> lastUsedSessionIdFromExternalStoragePathXattr = getXattr(
+                    getExternalStorageDbXattrPath(), getSessionIdXattrKeyForDatabase());
+            if (!lastUsedSessionIdFromExternalStoragePathXattr.isPresent()) {
+                // First time scenario will have no session id at /data/media/0.
+                // Trigger database backup to external storage because
+                // StableUrisIdleMaintenanceService will be attempted to run only once in 7days.
+                // Any rollback before that will not recover DB rows.
+                BackgroundThread.getExecutor().execute(
+                        () -> mediaProvider.backupInternalDatabase(null));
+                // Set next row id in External Storage to handle rollback in future.
+                backupNextRowId(NEXT_ROW_ID_DEFAULT_BILLION_VALUE);
+                updateSessionIdInDatabaseAndExternalStorage(db);
+                return;
+            }
+
+            Optional<Long> nextRowIdFromXattrOptional = getNextRowIdFromXattr();
+            // Check if session is same as last used.
+            if (isLastUsedDatabaseSession(db) && nextRowIdFromXattrOptional.isPresent()) {
+                // Same session id present as xattr on DB and External Storage
+                Log.i(TAG, String.format(Locale.ROOT,
+                        "No database change across sequential open calls for %s.", mName));
+                mNextRowIdBackup.set(nextRowIdFromXattrOptional.get());
+                updateSessionIdInDatabaseAndExternalStorage(db);
+                return;
+            }
+
+            Log.w(TAG, String.format(Locale.ROOT, "%s database inconsistency identified.", mName));
+            // Delete old data and create new schema.
+            recreateLatestSchema(db);
+            // Recover data from backup
+            // Ensure we do not back up in case of recovery.
+            mIsRecovering.set(true);
+            recoverData(mediaProvider, db, volumeName);
+            updateNextRowIdInDatabaseAndExternalStorage(db);
+            mIsRecovering.set(false);
+            updateSessionIdInDatabaseAndExternalStorage(db);
+            Log.d(TAG, "Recovery completed for " + mName);
+        }
+    }
+
+    protected String getExternalStorageDbXattrPath() {
+        return DATA_MEDIA_XATTR_DIRECTORY_PATH;
+    }
+
+    @GuardedBy("sRecoveryLock")
+    private void recreateLatestSchema(SQLiteDatabase db) {
+        mSchemaLock.writeLock().lock();
+        try {
+            createLatestSchema(db);
+        } finally {
+            mSchemaLock.writeLock().unlock();
+        }
+    }
+
+    @GuardedBy("sRecoveryLock")
+    private void recoverData(MediaProvider mediaProvider, SQLiteDatabase db, String volumeName) {
+        final long startTime = SystemClock.elapsedRealtime();
+        int i = 0;
+        final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
+        // Wait for external primary to be attached as we use same thread for internal volume.
+        // Maximum wait for 10s
+        while (!mediaProvider.isFuseDaemonReadyForFilePath(fuseFilePath) && i < 1000) {
+            Log.d(TAG, "Waiting for fuse daemon to be ready.");
+            // Poll after every 10ms
+            SystemClock.sleep(10);
+            i++;
+        }
+        if (!mediaProvider.isFuseDaemonReadyForFilePath(fuseFilePath)) {
+            Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.");
+            return;
+        }
+
+        long rowsRecovered = 0;
+        String[] backedUpFilePaths;
+        String lastReadValue = "";
+
+        while (true) {
+            backedUpFilePaths = mediaProvider.readBackedUpFilePaths(volumeName, lastReadValue,
+                    LEVEL_DB_READ_LIMIT);
+            if (backedUpFilePaths.length <= 0) {
+                break;
+            }
+
+            for (String filePath : backedUpFilePaths) {
+                Optional<BackupIdRow> fileRow = mediaProvider.readDataFromBackup(volumeName,
+                        filePath);
+                if (fileRow.isPresent() && !fileRow.get().getIsDirty()) {
+                    insertDataInDatabase(db, fileRow.get(), filePath, volumeName);
+                    rowsRecovered++;
+                }
+            }
+
+            // Read less rows than expected
+            if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
+                break;
+            }
+            lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
+        }
+        Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
+                volumeName));
+        Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms",
+                SystemClock.elapsedRealtime() - startTime));
+    }
+
+    private static String getFuseFilePathFromVolumeName(String volumeName) {
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL:
+            case MediaStore.VOLUME_EXTERNAL_PRIMARY:
+                return "/storage/emulated/" + UserHandle.myUserId();
+            default:
+                return "/storage/" + volumeName;
+        }
+    }
+
+    private void insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
+            String volumeName) {
+        final ContentValues values = createValuesFromFileRow(row, filePath, volumeName);
+        if (db.insert("files", null, values) == -1) {
+            Log.e(TAG, "Failed to insert " + values + "; continuing");
+        }
+    }
+
+    private ContentValues createValuesFromFileRow(BackupIdRow row, String filePath,
+            String volumeName) {
+        ContentValues values = new ContentValues();
+        values.put(FileColumns._ID, row.getId());
+        values.put(FileColumns.IS_FAVORITE, row.getIsFavorite());
+        values.put(FileColumns.DATA, filePath);
+        values.put(FileColumns.VOLUME_NAME, volumeName);
+        return values;
+    }
+
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {
+        if (isInternal()) {
+            // Database row id recovery for internal is handled in tryRecoverDatabase()
+            return;
+        }
+
         if (!isNextRowIdBackupEnabled()) {
             Log.d(TAG, "Skipping row id recovery as backup is not enabled.");
             return;
@@ -557,7 +723,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         Optional<String> lastUsedSessionIdFromDatabasePathXattr = getXattr(db.getPath(),
                 getSessionIdXattrKeyForDatabase());
         Optional<String> lastUsedSessionIdFromExternalStoragePathXattr = getXattr(
-                DATA_MEDIA_XATTR_DIRECTORY_PATH, getSessionIdXattrKeyForDatabase());
+                getExternalStorageDbXattrPath(), getSessionIdXattrKeyForDatabase());
 
         return lastUsedSessionIdFromDatabasePathXattr.isPresent()
                 && lastUsedSessionIdFromExternalStoragePathXattr.isPresent()
@@ -569,11 +735,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private void updateSessionIdInDatabaseAndExternalStorage(SQLiteDatabase db) {
         final String uuid = UUID.randomUUID().toString();
         boolean setOnDatabase = setXattr(db.getPath(), getSessionIdXattrKeyForDatabase(), uuid);
-        boolean setOnExternalStorage = setXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
+        boolean setOnExternalStorage = setXattr(getExternalStorageDbXattrPath(),
                 getSessionIdXattrKeyForDatabase(), uuid);
         if (setOnDatabase && setOnExternalStorage) {
             Log.i(TAG, String.format(Locale.ROOT, "SessionId set to %s on paths %s and %s.", uuid,
-                    db.getPath(), DATA_MEDIA_XATTR_DIRECTORY_PATH));
+                    db.getPath(), getExternalStorageDbXattrPath()));
         }
     }
 
@@ -1050,6 +1216,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
                     + "play_order INTEGER NOT NULL)");
+            db.execSQL(
+                    "CREATE TABLE media_grants ("
+                            + "owner_package_name TEXT,"
+                            + "file_id INTEGER,"
+                            + "UNIQUE(owner_package_name, file_id)"
+                            + "FOREIGN KEY (file_id)"
+                            + "  REFERENCES files(_id)"
+                            + "  ON DELETE CASCADE"
+                            + ")");
         }
 
         createLatestViews(db);
@@ -1803,6 +1978,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
     }
 
+    private static void updateAddMediaGrantsTable(SQLiteDatabase db) {
+        db.execSQL(
+                "CREATE TABLE media_grants ("
+                        + "owner_package_name TEXT,"
+                        + "file_id INTEGER,"
+                        + "UNIQUE(owner_package_name, file_id)"
+                        + "FOREIGN KEY (file_id)"
+                        + "  REFERENCES files(_id)"
+                        + "  ON DELETE CASCADE"
+                        + ")");
+    }
+
     private void updateUserId(SQLiteDatabase db) {
         db.execSQL(String.format(Locale.ROOT,
                 "ALTER TABLE files ADD COLUMN _user_id INTEGER DEFAULT %d;",
@@ -1873,7 +2060,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1400;
+    static final int VERSION_U = 1401;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2075,6 +2262,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1400) {
                 // Empty version bump to ensure triggers are recreated
+            }
+            if (fromVersion < 1401) {
+                if (isExternal()) {
+                    updateAddMediaGrantsTable(db);
+                }
             }
 
             // If this is the legacy database, it's not worth recomputing data
@@ -2302,8 +2494,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     Os.getxattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
                             getNextRowIdXattrKeyForDatabase()))));
         } catch (Exception e) {
-            Log.e(TAG, String.format(Locale.ROOT, "Xattr:%s not found on external storage.",
-                    getNextRowIdXattrKeyForDatabase()), e);
+            Log.e(TAG, String.format(Locale.ROOT, "Xattr:%s not found on external storage: %s",
+                    getNextRowIdXattrKeyForDatabase(), e));
             return Optional.empty();
         }
     }
@@ -2319,7 +2511,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         mName));
     }
 
-    protected String getSessionIdXattrKeyForDatabase() {
+    private String getSessionIdXattrKeyForDatabase() {
         if (isInternal()) {
             return INTERNAL_DB_SESSION_ID_XATTR_KEY;
         } else if (isExternal()) {
@@ -2330,7 +2522,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         mName));
     }
 
-    protected static boolean setXattr(String path, String key, String value) {
+    private static boolean setXattr(String path, String key, String value) {
         try (ParcelFileDescriptor pfd = ParcelFileDescriptor.open(new File(path),
                 ParcelFileDescriptor.MODE_READ_ONLY)) {
             // Map id value to xattr key
@@ -2345,7 +2537,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
-    protected static Optional<String> getXattr(String path, String key) {
+    private static Optional<String> getXattr(String path, String key) {
         try {
             return Optional.of(Arrays.toString(Os.getxattr(path, key)));
         } catch (Exception e) {
@@ -2372,13 +2564,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             // Do not back up next row id if DB version is less than R. This is unlikely to hit
             // as we will backport row id backup changes till Android R.
             Log.v(TAG, "Skipping next row id backup for android versions less than R.");
-            return false;
-        }
-
-        if (isInternal()) {
-            // Skip id reuse fix for internal db as it can lead to ids starting from a billion
-            // and can cause aberrant behaviour in Ringtones Manager. Reference: b/229153534.
-            Log.v(TAG, "Skipping next row id backup for internal database.");
             return false;
         }
 

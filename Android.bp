@@ -58,7 +58,6 @@ android_app {
     },
 
     plugins: [
-        "java_api_finder",
         "error_prone_mediaprovider",
         "glide-annotation-processor",
     ],

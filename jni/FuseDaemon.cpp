@@ -931,7 +931,8 @@ static void pf_lookup_postfilter(fuse_req_t req, fuse_ino_t parent, uint32_t err
 
     TRACE_NODE(parent_node, req);
     const string path = parent_node->BuildPath() + "/" + name;
-    if (!fuse->mp->isUidAllowedAccessToDataOrObbPath(req->ctx.uid, path)) {
+    if (strcmp(name, ".nomedia") != 0 &&
+        !fuse->mp->isUidAllowedAccessToDataOrObbPath(req->ctx.uid, path)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1984,7 +1985,8 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
         if (err == 0 &&
             ((stats.st_mode & 0001) || ((stats.st_mode & 0010) && req->ctx.gid == stats.st_gid) ||
              ((stats.st_mode & 0100) && req->ctx.uid == stats.st_uid) ||
-             fuse->mp->isUidAllowedAccessToDataOrObbPath(req->ctx.uid, child_path))) {
+             fuse->mp->isUidAllowedAccessToDataOrObbPath(req->ctx.uid, child_path) ||
+             strcmp(dirent_in->name, ".nomedia") == 0)) {
             *dirent_out = *dirent_in;
             strcpy(dirent_out->name, dirent_in->name);
             fro->size += sizeof(*dirent_out) + round_up(dirent_out->namelen, sizeof(uint64_t));

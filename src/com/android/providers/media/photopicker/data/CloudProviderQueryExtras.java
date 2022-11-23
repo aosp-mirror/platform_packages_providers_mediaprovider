@@ -15,6 +15,8 @@
  */
 package com.android.providers.media.photopicker.data;
 
+import static android.content.ContentResolver.QUERY_ARG_LIMIT;
+
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LIMIT_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
@@ -75,7 +77,7 @@ public class CloudProviderQueryExtras {
 
         final long sizeBytes = bundle.getLong(MediaStore.QUERY_ARG_SIZE_BYTES, LONG_DEFAULT);
         final long generation = LONG_DEFAULT;
-        final int limit = bundle.getInt(MediaStore.QUERY_ARG_LIMIT, LIMIT_DEFAULT);
+        final int limit = bundle.getInt(QUERY_ARG_LIMIT, LIMIT_DEFAULT);
 
         final boolean isFavorite = AlbumColumns.ALBUM_ID_FAVORITES.equals(albumId);
         final boolean isVideo = AlbumColumns.ALBUM_ID_VIDEOS.equals(albumId);

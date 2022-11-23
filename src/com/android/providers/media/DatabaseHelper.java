@@ -355,6 +355,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @Override
     public void onConfigure(SQLiteDatabase db) {
         Log.v(TAG, "onConfigure() for " + mName);
+
+        if (isExternal()) {
+            db.setForeignKeyConstraintsEnabled(true);
+        }
+
         db.setCustomScalarFunction("_INSERT", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
@@ -605,19 +610,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @GuardedBy("sRecoveryLock")
     private void recoverData(MediaProvider mediaProvider, SQLiteDatabase db, String volumeName) {
         final long startTime = SystemClock.elapsedRealtime();
-        final Set<String> externalVolumeNames =
-                mediaProvider.getVolumeCache().getExternalVolumeNames();
         int i = 0;
+        final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
         // Wait for external primary to be attached as we use same thread for internal volume.
-        // Maximum wait for 5s
-        while (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY) && i < 100) {
-            Log.d(TAG, "Waiting for external primary volume to be attached.");
-            // Poll after every 5 ms
-            SystemClock.sleep(5);
+        // Maximum wait for 10s
+        while (!mediaProvider.isFuseDaemonReadyForFilePath(fuseFilePath) && i < 1000) {
+            Log.d(TAG, "Waiting for fuse daemon to be ready.");
+            // Poll after every 10ms
+            SystemClock.sleep(10);
             i++;
         }
-        if (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
-            Log.e(TAG, "Could not recover data as external primary volume did not get attached.");
+        if (!mediaProvider.isFuseDaemonReadyForFilePath(fuseFilePath)) {
+            Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.");
             return;
         }
 
@@ -651,6 +655,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 volumeName));
         Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms",
                 SystemClock.elapsedRealtime() - startTime));
+    }
+
+    private static String getFuseFilePathFromVolumeName(String volumeName) {
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL:
+            case MediaStore.VOLUME_EXTERNAL_PRIMARY:
+                return "/storage/emulated/" + UserHandle.myUserId();
+            default:
+                return "/storage/" + volumeName;
+        }
     }
 
     private void insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
@@ -1202,6 +1216,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
                     + "play_order INTEGER NOT NULL)");
+            db.execSQL(
+                    "CREATE TABLE media_grants ("
+                            + "owner_package_name TEXT,"
+                            + "file_id INTEGER,"
+                            + "UNIQUE(owner_package_name, file_id)"
+                            + "FOREIGN KEY (file_id)"
+                            + "  REFERENCES files(_id)"
+                            + "  ON DELETE CASCADE"
+                            + ")");
         }
 
         createLatestViews(db);
@@ -1955,6 +1978,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
     }
 
+    private static void updateAddMediaGrantsTable(SQLiteDatabase db) {
+        db.execSQL(
+                "CREATE TABLE media_grants ("
+                        + "owner_package_name TEXT,"
+                        + "file_id INTEGER,"
+                        + "UNIQUE(owner_package_name, file_id)"
+                        + "FOREIGN KEY (file_id)"
+                        + "  REFERENCES files(_id)"
+                        + "  ON DELETE CASCADE"
+                        + ")");
+    }
+
     private void updateUserId(SQLiteDatabase db) {
         db.execSQL(String.format(Locale.ROOT,
                 "ALTER TABLE files ADD COLUMN _user_id INTEGER DEFAULT %d;",
@@ -2025,7 +2060,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1400;
+    static final int VERSION_U = 1401;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2227,6 +2262,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1400) {
                 // Empty version bump to ensure triggers are recreated
+            }
+            if (fromVersion < 1401) {
+                if (isExternal()) {
+                    updateAddMediaGrantsTable(db);
+                }
             }
 
             // If this is the legacy database, it's not worth recomputing data

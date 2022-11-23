@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Να επιτρέπεται"</string>
     <string name="deny" msgid="6040983710442068936">"Απόρριψη"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Περιήγηση…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Εφαρμογή μέσων στο cloud"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Εφαρμογή μέσων στο cloud"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Μοιραστείτε φωτογραφίες και βίντεο για τα οποία δημιουργείτε αντίγραφα ασφαλείας από άλλες υπηρεσίες στο Android Photopicker"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Πρόσβαση σε μέσα στο cloud από"</string>

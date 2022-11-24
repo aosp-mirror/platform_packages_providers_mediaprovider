@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"ඉඩ දෙන්න"</string>
     <string name="deny" msgid="6040983710442068936">"ප්‍රතික්ෂේප කරන්න"</string>
     <string name="picker_browse" msgid="5554477454636075934">"බ්‍රවුස් කරන්න…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"ක්ලවුඩ් මාධ්‍ය යෙදුම"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"ක්ලවුඩ් මාධ්‍ය යෙදුම"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"ඔබ Android ඡායාරූප තෝරකය තුළ වෙනත් සේවාවලින් උපස්ථ කරන ඡායාරූප සහ වීඩියෝ බෙදා ගන්න"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"මෙයින් ක්ලවුඩ් මාධ්‍ය වෙත ප්‍රවේශ වන්න"</string>

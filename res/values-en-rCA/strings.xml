@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Allow"</string>
     <string name="deny" msgid="6040983710442068936">"Deny"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Browse…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Cloud media app"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Cloud media app"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Share photos and videos you back up from other services in the Android Photopicker"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Access cloud media from"</string>

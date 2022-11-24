@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Թույլատրել"</string>
     <string name="deny" msgid="6040983710442068936">"Մերժել"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Դիտել…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Ամպային մուլտիմեդիա հավելված"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Ամպային մուլտիմեդիա հավելված"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Android-ի լուսանկարների ընտրիչի միջոցով կիսվեք լուսանկարներով և տեսանյութերով, որոնք պահուստավորում եք այլ ծառայություններում"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Օգտվեք ամպային մեդիա բովանդակությունից հետևյալ մատակարարից՝"</string>

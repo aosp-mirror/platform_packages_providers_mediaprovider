@@ -22,13 +22,19 @@ import android.view.MenuItem;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.ui.settings.SettingsCloudMediaSelectFragment;
+import com.android.providers.media.photopicker.ui.settings.SettingsProfileSelectFragment;
 
 /**
  * Photo Picker settings page where user can view/edit current cloud media provider.
  */
 public class PhotoPickerSettingsActivity extends AppCompatActivity {
+    private UserIdManager mUserIdManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,8 +44,9 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
 
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_photo_picker_settings);
+        mUserIdManager = UserIdManager.create(getApplicationContext());
 
+        setContentView(R.layout.activity_photo_picker_settings);
         displayActionBar();
         switchToFragment();
     }
@@ -52,19 +59,30 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                // Stop PhotoPickerSettingsActivity when back button is pressed.
-                this.finish();
-                return true;
-            default:
+        if (item.getItemId() == android.R.id.home) {
+            // Stop PhotoPickerSettingsActivity when back button is pressed.
+            finish();
+            return true;
         }
         return false;
     }
 
     private void switchToFragment() {
-        // TODO(b/195009187): implement this method.
-        return;
+        final Fragment targetFragment = getTargetFragment();
+        final FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.settings_fragment_container, targetFragment);
+        transaction.commitAllowingStateLoss();
+        getSupportFragmentManager().executePendingTransactions();
     }
 
+    private Fragment getTargetFragment() {
+        // Target fragment is SettingsProfileSelectFragment if there exists more than one
+        // UserHandles for profiles associated with the context user, including the user itself.
+        // Else target fragment is SettingsCloudMediaSelectFragment
+        if (mUserIdManager.isMultiUserProfiles()) {
+            return new SettingsProfileSelectFragment();
+        } else {
+            return new SettingsCloudMediaSelectFragment();
+        }
+    }
 }

@@ -610,19 +610,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @GuardedBy("sRecoveryLock")
     private void recoverData(MediaProvider mediaProvider, SQLiteDatabase db, String volumeName) {
         final long startTime = SystemClock.elapsedRealtime();
-        final Set<String> externalVolumeNames =
-                mediaProvider.getVolumeCache().getExternalVolumeNames();
         int i = 0;
+        final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
         // Wait for external primary to be attached as we use same thread for internal volume.
-        // Maximum wait for 5s
-        while (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY) && i < 1000) {
-            Log.d(TAG, "Waiting for external primary volume to be attached.");
-            // Poll after every 5 ms
-            SystemClock.sleep(5);
+        // Maximum wait for 10s
+        while (!mediaProvider.isFuseDaemonReadyForFilePath(fuseFilePath) && i < 1000) {
+            Log.d(TAG, "Waiting for fuse daemon to be ready.");
+            // Poll after every 10ms
+            SystemClock.sleep(10);
             i++;
         }
-        if (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
-            Log.e(TAG, "Could not recover data as external primary volume did not get attached.");
+        if (!mediaProvider.isFuseDaemonReadyForFilePath(fuseFilePath)) {
+            Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.");
             return;
         }
 
@@ -656,6 +655,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 volumeName));
         Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms",
                 SystemClock.elapsedRealtime() - startTime));
+    }
+
+    private static String getFuseFilePathFromVolumeName(String volumeName) {
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL:
+            case MediaStore.VOLUME_EXTERNAL_PRIMARY:
+                return "/storage/emulated/" + UserHandle.myUserId();
+            default:
+                return "/storage/" + volumeName;
+        }
     }
 
     private void insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,

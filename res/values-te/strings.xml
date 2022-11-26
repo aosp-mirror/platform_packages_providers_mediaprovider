@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"అనుమతించండి"</string>
     <string name="deny" msgid="6040983710442068936">"నిరాకరించండి"</string>
     <string name="picker_browse" msgid="5554477454636075934">"బ్రౌజ్ చేయండి…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"క్లౌడ్ మీడియా యాప్"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"క్లౌడ్ మీడియా యాప్"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Android ఫోటోపికర్‌లోని ఇతర సర్వీస్‌ల నుండి మీరు బ్యాకప్ చేసే ఫోటోలు, వీడియోలను షేర్ చేయండి"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"దాని నుండి క్లౌడ్ మీడియాను యాక్సెస్ చేయండి"</string>

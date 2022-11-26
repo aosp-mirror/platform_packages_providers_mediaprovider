@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Engedélyezés"</string>
     <string name="deny" msgid="6040983710442068936">"Tiltás"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Böngészés…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Felhőbeli médiaalkalmazás"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Felhőbeli médiaalkalmazás"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Az Android Photopicker szolgáltatásban megoszthat olyan fotókat és videókat, amelyekről más alkalmazásokból készít biztonsági másolatot"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Hozzáférés a következő szolgáltatásban tárolt felhőbeli médiatartalmakhoz:"</string>

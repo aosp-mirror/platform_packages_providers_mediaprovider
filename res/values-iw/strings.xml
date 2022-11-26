@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"אישור"</string>
     <string name="deny" msgid="6040983710442068936">"דחייה"</string>
     <string name="picker_browse" msgid="5554477454636075934">"עיון…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"אפליקציית מדיה בענן"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"אפליקציית מדיה בענן"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"‏אפשר לשתף תמונות וסרטונים שגיבית משירותים אחרים בכלי לבחירת תמונות ב-Android"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"גישה למדיה בענן מתוך"</string>

@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Dovoli"</string>
     <string name="deny" msgid="6040983710442068936">"Zavrni"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Brskanje …"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Aplikacija za predstavnost v oblaku"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikacija za predstavnost v oblaku"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Delite fotografije in videoposnetke, ki jih varnostno kopirate v drugih storitvah, z Androidovim izbirnikom fotografij."</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Dostop do predstavnosti v oblaku v storitvi"</string>

@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Consenti"</string>
     <string name="deny" msgid="6040983710442068936">"Rifiuta"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Sfoglia…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"App multimediale cloud"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"App multimediale con funzionalità cloud"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Condividi foto e video di cui esegui il backup da altri servizi nel selettore di foto Android"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accedi ai contenuti multimediali sul cloud da"</string>

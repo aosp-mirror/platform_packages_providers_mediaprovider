@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Povoliť"</string>
     <string name="deny" msgid="6040983710442068936">"Zamietnuť"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Prehliadať…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Ap. na prístup k méd. v cloude"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikácia na prístup k médiám v cloude"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Zdieľanie fotiek a videí, ktoré zálohujete z iných služieb v nástroji Android Photopicker"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Získavať prístup k médiám v cloude v aplikácii"</string>

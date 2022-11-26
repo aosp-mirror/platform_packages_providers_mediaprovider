@@ -193,7 +193,7 @@ void com_android_providers_media_FuseDaemon_initialize_device_id(JNIEnv* env, jo
 void com_android_providers_media_FuseDaemon_setup_volume_db_backup(JNIEnv* env, jobject self,
                                                                    jlong java_daemon) {
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
-    daemon->SetupLevelDbInstance();
+    daemon->SetupLevelDbInstances();
 }
 
 void com_android_providers_media_FuseDaemon_delete_db_backup(JNIEnv* env, jobject self,

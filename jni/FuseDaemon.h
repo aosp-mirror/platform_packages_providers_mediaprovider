@@ -74,9 +74,14 @@ class FuseDaemon final {
     void InitializeDeviceId(const std::string& path);
 
     /**
-     * Setup leveldb instance and connect for backing up volume's database data.
+     * Setup leveldb instances based on the volume.
      */
-    void SetupLevelDbInstance();
+    void SetupLevelDbInstances();
+
+    /**
+     * Creates a leveldb instance and sets up a connection.
+     */
+    void SetupLevelDbConnection(const std::string& instance_name);
 
     /**
      * Deletes entry for given key from leveldb.
@@ -99,10 +104,10 @@ class FuseDaemon final {
      */
     std::string ReadBackedUpDataFromLevelDb(const std::string& filePath);
 
-    /*
-     * Returns true if level db setup exists for internal.
+    /**
+     * Returns true if level db setup exists for given instance.
      */
-    bool CheckLevelDbConnectionForInternal();
+    bool CheckLevelDbConnection(const std::string& instance_name);
 
   private:
     FuseDaemon(const FuseDaemon&) = delete;

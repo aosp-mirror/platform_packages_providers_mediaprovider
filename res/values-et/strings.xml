@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Luba"</string>
     <string name="deny" msgid="6040983710442068936">"Keela"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Sirvimine …"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Pilvemeediarakendus"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Pilvemeediarakendus"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Jagage Androidi fotovalijas fotosid ja videoid, mida varundate muudest teenustest"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Pilvemeediarakendus:"</string>

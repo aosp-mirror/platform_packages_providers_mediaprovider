@@ -176,6 +176,7 @@ android_test {
         "androidx.exifinterface_exifinterface",
         "exoplayer-mediaprovider-ui",
         "SettingsLibProfileSelector",
+        "SettingsLibSelectorWithWidgetPreference",
     ],
 
     certificate: "media",

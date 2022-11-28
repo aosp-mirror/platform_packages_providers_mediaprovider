@@ -23,6 +23,7 @@ import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.util.Supplier;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -41,6 +42,7 @@ import java.util.concurrent.Executor;
 public interface ConfigStore {
     boolean DEFAULT_TAKE_OVER_GET_CONTENT = false;
     boolean DEFAULT_STABILISE_VOLUME_INTERNAL = false;
+    boolean DEFAULT_STABILIZE_VOLUME_EXTERNAL = false;
 
     boolean DEFAULT_TRANSCODE_ENABLED = true;
     boolean DEFAULT_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = false;
@@ -75,6 +77,13 @@ public interface ConfigStore {
      */
     default boolean isStableUrisForInternalVolumeEnabled() {
         return DEFAULT_STABILISE_VOLUME_INTERNAL;
+    }
+
+    /**
+     * @return if stable URI are enabled for the external volume.
+     */
+    default boolean isStableUrisForExternalVolumeEnabled() {
+        return DEFAULT_STABILIZE_VOLUME_EXTERNAL;
     }
 
     /**
@@ -115,7 +124,10 @@ public interface ConfigStore {
      */
     class ConfigStoreImpl implements ConfigStore {
         private static final String KEY_TAKE_OVER_GET_CONTENT = "take_over_get_content";
-        private static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
+
+        @VisibleForTesting
+        public static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
+        private static final String KEY_STABILIZE_VOLUME_EXTERNAL = "stabilize_volume_external";
 
         private static final String KEY_TRANSCODE_ENABLED = "transcode_enabled";
         private static final String KEY_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = "transcode_default";
@@ -152,6 +164,12 @@ public interface ConfigStore {
         public boolean isStableUrisForInternalVolumeEnabled() {
             return getBooleanDeviceConfig(
                     KEY_STABILISE_VOLUME_INTERNAL, DEFAULT_STABILISE_VOLUME_INTERNAL);
+        }
+
+        @Override
+        public boolean isStableUrisForExternalVolumeEnabled() {
+            return getBooleanDeviceConfig(
+                    KEY_STABILIZE_VOLUME_EXTERNAL, DEFAULT_STABILIZE_VOLUME_EXTERNAL);
         }
 
         @Override

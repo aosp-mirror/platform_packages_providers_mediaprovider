@@ -72,6 +72,8 @@ import android.util.Size;
 
 import androidx.annotation.RequiresApi;
 
+import com.android.internal.annotations.VisibleForTesting;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -271,8 +273,28 @@ public final class MediaStore {
     /** {@hide} */
     public static final String USES_FUSE_PASSTHROUGH_RESULT = "uses_fuse_passthrough_result";
 
-    /** {@hide} */
-    public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String RUN_IDLE_MAINTENANCE_FOR_STABLE_URIS =
+            "idle_maintenance_for_stable_uris";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String READ_BACKED_UP_FILE_PATHS = "read_backed_up_file_paths";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String DELETE_BACKED_UP_FILE_PATHS = "delete_backed_up_file_paths";
+
     /** {@hide} */
     public static final String QUERY_ARG_MIME_TYPE = "android:query-arg-mime_type";
     /** {@hide} */
@@ -719,10 +741,38 @@ public final class MediaStore {
      * <p>
      * Before this API, apps could use {@link Intent#ACTION_GET_CONTENT}. However,
      * {@link #ACTION_PICK_IMAGES} is now the recommended option for images and videos,
-     * since it ofers a better user experience.
+     * since it offers a better user experience.
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
+
+    /**
+     * Activity Action: This is a system action for when users choose to select media to share with
+     * an app rather than granting allow all visual media.
+     *
+     * <p>
+     * Callers must specify the intent-extra integer
+     * {@link Intent#EXTRA_UID} with the uid of the app that
+     * will receive the MediaProvider grants for the selected files.
+     * <p>
+     * Callers can optionally specify MIME type (such as {@code image/*} or {@code video/*}),
+     * resulting in a range of content selection that the caller is interested in. The optional MIME
+     * type can be requested with {@link Intent#setType(String)}.
+     * <p>
+     * This action does not alter any permission state for the app, and does not check any
+     * permission state for the app in the underlying media provider file access grants.
+     *
+     * <p>If images/videos were successfully picked this will return {@link Activity#RESULT_OK}
+     * otherwise {@link Activity#RESULT_CANCELED} is returned.
+     *
+     * <p><strong>NOTE:</strong> You should probably not use this. This action requires the {@link
+     * Manifest.permission#GRANT_RUNTIME_PERMISSIONS } permission.
+     *
+     * @hide
+     */
+    // @SystemApi - this is commented out for tm-mainline-prod only.
+    public static final String ACTION_USER_SELECT_IMAGES_FOR_APP =
+            "android.provider.action.USER_SELECT_IMAGES_FOR_APP";
 
     /**
      * Activity Action: Launch settings controlling images or videos selection with
@@ -4634,6 +4684,36 @@ public final class MediaStore {
     /** {@hide} */
     public static void runIdleMaintenance(@NonNull ContentResolver resolver) {
         resolver.call(AUTHORITY, RUN_IDLE_MAINTENANCE_CALL, null, null);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static void runIdleMaintenanceForStableUris(@NonNull ContentResolver resolver) {
+        resolver.call(AUTHORITY, RUN_IDLE_MAINTENANCE_FOR_STABLE_URIS, null, null);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String[] readBackedUpFilePaths(@NonNull ContentResolver resolver,
+            String volumeName) {
+        Bundle bundle = resolver.call(AUTHORITY, READ_BACKED_UP_FILE_PATHS, volumeName, null);
+        return bundle.getStringArray(READ_BACKED_UP_FILE_PATHS);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static void deleteBackedUpFilePaths(@NonNull ContentResolver resolver,
+            String volumeName) {
+        resolver.call(AUTHORITY, DELETE_BACKED_UP_FILE_PATHS, volumeName, null);
     }
 
     /**

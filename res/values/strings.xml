@@ -86,8 +86,11 @@
     <!-- Add browse menu item in Photo Picker to browse items in DocumentsUI. [CHAR LIMIT=30] -->
     <string name="picker_browse">Browse\u2026</string>
 
-    <!-- Settings menu item in Photo Picker menu. [CHAR LIMIT=30] -->
-    <string name="picker_settings">Settings</string>
+    <!-- Settings menu item in Photo Picker menu which allows users to change the cloud media provider app. [CHAR LIMIT=30] -->
+    <string name="picker_settings">Cloud media app</string>
+
+    <!-- PhotoPicker Settings item title in the System Settings menu. [CHAR LIMIT=40] -->
+    <string name="picker_settings_system_settings_menu_title">Cloud media app</string>
 
     <!-- Settings page title in Photo Picker. [CHAR LIMIT=NONE] -->
     <string name="picker_settings_title">Cloud media app</string>
@@ -173,6 +176,10 @@
 
     <!-- Text shown on the add button for multi-select in PhotoPicker. [CHAR LIMIT=30]  -->
     <string name="picker_add_button_multi_select">Add (<xliff:g id="count" example="42">^1</xliff:g>)</string>
+
+    <!-- Text shown on the add button for multi-select in PhotoPicker when granting photo access to apps. [CHAR LIMIT=30]  -->
+    <!-- TODO(b/257208235): Update with finalized UX string. !-->
+    <string name="picker_add_button_multi_select_permissions">Allow (<xliff:g id="count" example="42">^1</xliff:g>)</string>
 
     <!-- Title for the category in the picker that offers items in Camera folder. [CHAR LIMIT=24] -->
     <string name="picker_category_camera">Camera</string>

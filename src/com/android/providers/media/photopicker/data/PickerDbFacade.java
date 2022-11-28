@@ -148,26 +148,48 @@ public class PickerDbFacade {
                     KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
     private static final String WHERE_ALBUM_ID = KEY_ALBUM_ID  + " = ?";
 
-    // This where clause returns all rows for media items that are either local-only or cloud+local
-    // and are marked as favorite.
+    // This where clause returns all rows for media items that are local-only and are marked as
+    // favorite.
     //
-    // 'local_id' IN (SELECT 'local_id'
-    //      FROM 'media'
-    //      WHERE 'local_id' IS NOT NULL
-    //      GROUP BY 'local_id'
-    //      HAVING SUM('is_favorite') >= 1)
-    private static final String WHERE_FAVORITE_LOCAL = String.format(
-            "%s IN (SELECT %s FROM %s WHERE %s IS NOT NULL GROUP BY %s HAVING SUM(%s) >= 1)",
-            KEY_LOCAL_ID, KEY_LOCAL_ID, TABLE_MEDIA, KEY_LOCAL_ID, KEY_LOCAL_ID, KEY_IS_FAVORITE);
+    // 'cloud_id' IS NULL AND 'is_favorite' = 1
+    private static final String WHERE_FAVORITE_LOCAL_ONLY = String.format(
+            "%s IS NULL AND %s = 1", KEY_CLOUD_ID, KEY_IS_FAVORITE);
     // This where clause returns all rows for media items that are cloud-only and are marked as
     // favorite.
     //
     // 'local_id' IS NULL AND 'is_favorite' = 1
     private static final String WHERE_FAVORITE_CLOUD_ONLY = String.format(
             "%s IS NULL AND %s = 1", KEY_LOCAL_ID, KEY_IS_FAVORITE);
+    // This where clause returns all local rows from media items for which either local row is
+    // marked as favorite or corresponding cloud row is marked as favorite.
+    // E.g., Rows -
+    // Row1 : local_id=1,    cloud_id=null, is_favorite=0
+    // Row2 : local_id=2,    cloud_id=null, is_favorite=0
+    // Row3 : local_id=3,    cloud_id=null, is_favorite=1
+    // Row4 : local_id=4,    cloud_id=null, is_favorite=1
+    // --
+    // Row5 : local_id=2,    cloud_id=c1,   is_favorite=1
+    // Row6 : local_id=3,    cloud_id=c2,   is_favorite=1
+    // Row7 : local_id=null, cloud_id=c3,   is_favorite=1
+    //
+    // Returns -
+    // Row2 : local_id=2,    cloud_id=null, is_favorite=0
+    // Row3 : local_id=3,    cloud_id=null, is_favorite=1
+    // Row4 : local_id=4,    cloud_id=null, is_favorite=1
+    //
+    // 'local_id' IN (SELECT 'local_id'
+    //      FROM 'media'
+    //      WHERE 'local_id' IS NOT NULL
+    //      GROUP BY 'local_id'
+    //      HAVING SUM('is_favorite') >= 1)
+    private static final String WHERE_FAVORITE_LOCAL_PLUS_CLOUD = String.format(
+            "%s IN (SELECT %s FROM %s WHERE %s IS NOT NULL GROUP BY %s HAVING SUM(%s) >= 1)",
+            KEY_LOCAL_ID, KEY_LOCAL_ID, TABLE_MEDIA, KEY_LOCAL_ID, KEY_LOCAL_ID, KEY_IS_FAVORITE);
     // This where clause returns all rows for media items that are marked as favorite.
-    private static final String WHERE_FAVORITE = String.format(
-            "( %s OR %s )", WHERE_FAVORITE_LOCAL, WHERE_FAVORITE_CLOUD_ONLY);
+    // Note that this is different from "WHERE_FAVORITE_LOCAL_ONLY + WHERE_FAVORITE_CLOUD_ONLY"
+    // because for local+cloud row with is_favorite=1 we need to pick corresponding local row.
+    private static final String WHERE_FAVORITE_ALL = String.format(
+            "( %s OR %s )", WHERE_FAVORITE_LOCAL_PLUS_CLOUD, WHERE_FAVORITE_CLOUD_ONLY);
 
     // Matches all media including cloud+local, cloud-only and local-only
     private static final SQLiteQueryBuilder QB_MATCH_ALL = createMediaQueryBuilder();
@@ -182,7 +204,7 @@ public class PickerDbFacade {
     // Matches visible media with local_id including cloud+local and local-only
     private static final SQLiteQueryBuilder QB_MATCH_VISIBLE_LOCAL =
             createVisibleLocalMediaQueryBuilder();
-    // Matches stricly local-only media
+    // Matches strictly local-only media
     private static final SQLiteQueryBuilder QB_MATCH_LOCAL_ONLY =
             createLocalOnlyMediaQueryBuilder();
 
@@ -607,10 +629,11 @@ public class PickerDbFacade {
         private final String[] mMimeTypes;
         private final boolean mIsFavorite;
         private final boolean mIsVideo;
+        public boolean mIsLocalOnly;
 
         private QueryFilter(int limit, long dateTakenBeforeMs, long dateTakenAfterMs, long id,
                 String albumId, long sizeBytes, String[] mimeTypes, boolean isFavorite,
-                boolean isVideo) {
+                boolean isVideo, boolean isLocalOnly) {
             this.mLimit = limit;
             this.mDateTakenBeforeMs = dateTakenBeforeMs;
             this.mDateTakenAfterMs = dateTakenAfterMs;
@@ -620,6 +643,7 @@ public class PickerDbFacade {
             this.mMimeTypes = mimeTypes;
             this.mIsFavorite = isFavorite;
             this.mIsVideo = isVideo;
+            this.mIsLocalOnly = isLocalOnly;
         }
     }
 
@@ -641,6 +665,7 @@ public class PickerDbFacade {
         private String[] mimeTypes = STRING_ARRAY_DEFAULT;
         private boolean isFavorite = BOOLEAN_DEFAULT;
         private boolean mIsVideo = BOOLEAN_DEFAULT;
+        private boolean mIsLocalOnly = BOOLEAN_DEFAULT;
 
         public QueryFilterBuilder(int limit) {
             this.limit = limit;
@@ -707,9 +732,18 @@ public class PickerDbFacade {
             return this;
         }
 
+        /**
+         * If {@code isLocalOnly} is {@code true}, the {@link QueryFilter} returns only
+         * local items.
+         */
+        public QueryFilterBuilder setIsLocalOnly(boolean isLocalOnly) {
+            this.mIsLocalOnly = isLocalOnly;
+            return this;
+        }
+
         public QueryFilter build() {
             return new QueryFilter(limit, dateTakenBeforeMs, dateTakenAfterMs, id, albumId,
-                    sizeBytes, mimeTypes, isFavorite, mIsVideo);
+                    sizeBytes, mimeTypes, isFavorite, mIsVideo, mIsLocalOnly);
         }
     }
 
@@ -717,7 +751,7 @@ public class PickerDbFacade {
      * Returns sorted and deduped cloud and local media items from the picker db.
      *
      * Returns a {@link Cursor} containing picker db media rows with columns as
-     * {@link CloudMediaProviderContract#MediaColumns}.
+     * {@link CloudMediaProviderContract.MediaColumns}.
      *
      * The result is sorted in reverse chronological order, i.e. newest first, up to a maximum of
      * {@code limit}. They can also be filtered with {@code query}.
@@ -791,8 +825,13 @@ public class PickerDbFacade {
         for (String albumId : mergedAlbums) {
             List<String> selectionArgs = new ArrayList<>();
             final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
+
+            if (query.mIsLocalOnly) {
+                qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
+            }
+
             if (albumId.equals(ALBUM_ID_FAVORITES)) {
-                qb.appendWhereStandalone(WHERE_FAVORITE);
+                qb.appendWhereStandalone(getWhereForFavorite(query.mIsLocalOnly));
             } else if (albumId.equals(ALBUM_ID_VIDEOS)) {
                 qb.appendWhereStandalone(WHERE_MIME_TYPE);
                 selectionArgs.add("video/%");
@@ -1092,6 +1131,10 @@ public class PickerDbFacade {
     private static String[] buildSelectionArgs(SQLiteQueryBuilder qb, QueryFilter query) {
         List<String> selectArgs = new ArrayList<>();
 
+        if (query.mIsLocalOnly) {
+            qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
+        }
+
         if (query.mId >= 0) {
             if (query.mDateTakenAfterMs >= 0) {
                 qb.appendWhereStandalone(WHERE_DATE_TAKEN_MS_AFTER);
@@ -1118,7 +1161,7 @@ public class PickerDbFacade {
             qb.appendWhereStandalone(WHERE_MIME_TYPE);
             selectArgs.add(VIDEO_MIME_TYPES);
         } else if (query.mIsFavorite) {
-            qb.appendWhereStandalone(WHERE_FAVORITE);
+            qb.appendWhereStandalone(getWhereForFavorite(query.mIsLocalOnly));
         } else if (!TextUtils.isEmpty(query.mAlbumId)) {
             qb.appendWhereStandalone(WHERE_ALBUM_ID);
             selectArgs.add(query.mAlbumId);
@@ -1129,6 +1172,25 @@ public class PickerDbFacade {
         }
 
         return selectArgs.toArray(new String[selectArgs.size()]);
+    }
+
+    /**
+     * Returns where clause to obtain rows that are marked as favorite
+     *
+     * Favorite information can either come from local or from cloud. In case where an item is
+     * marked as favorite in cloud provider, we try to obtain the local row corresponding to this
+     * cloud row to avoid downloading cloud file unnecessarily.
+     * See {@code WHERE_FAVORITE_LOCAL_PLUS_CLOUD}
+     *
+     * For queries that are local only, we don't need any of these complex queries, hence we stick
+     * to simple query like {@code WHERE_FAVORITE_LOCAL_ONLY}
+     */
+    private static String getWhereForFavorite(boolean isLocalOnly) {
+        if (isLocalOnly) {
+            return WHERE_FAVORITE_LOCAL_ONLY;
+        } else {
+            return WHERE_FAVORITE_ALL;
+        }
     }
 
     static void addMimeTypesToQueryBuilderAndSelectionArgs(SQLiteQueryBuilder qb,

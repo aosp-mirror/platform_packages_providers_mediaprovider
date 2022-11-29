@@ -63,4 +63,19 @@
     <!-- Photo Picker Profile Dialog background color. -->
     <attr name="pickerProfileDialogBackgroundColor" format="reference|color" />
 
+    <!-- Photo Picker Banner background color. -->
+    <attr name="pickerBannerBackgroundColor" format="reference|color" />
+
+    <!-- Photo Picker Banner stroke color. -->
+    <attr name="pickerBannerStrokeColor" format="reference|color" />
+
+    <!-- Photo Picker Banner primary text color. -->
+    <attr name="pickerBannerPrimaryTextColor" format="reference|color" />
+
+    <!-- Photo Picker Banner secondary text color. -->
+    <attr name="pickerBannerSecondaryTextColor" format="reference|color" />
+
+    <!-- Photo Picker Banner button text color. -->
+    <attr name="pickerBannerButtonTextColor" format="reference|color" />
+
 </resources>

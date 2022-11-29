@@ -15,10 +15,13 @@
  */
 package com.android.providers.media.photopicker.ui;
 
-import static com.android.providers.media.photopicker.ui.PhotosTabAdapter.COLUMN_COUNT;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_SECTION;
+import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB;
+import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
+import android.content.Context;
 import android.os.Bundle;
-import android.provider.CloudMediaProviderContract;
 import android.text.TextUtils;
 import android.view.View;
 
@@ -30,7 +33,6 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.android.providers.media.R;
-
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -46,8 +48,8 @@ import java.util.Locale;
  * Photos tab fragment for showing the photos
  */
 public class PhotosTabFragment extends TabFragment {
-
     private static final int MINIMUM_SPAN_COUNT = 3;
+    private static final int GRID_COLUMN_COUNT = 3;
     private static final String FRAGMENT_TAG = "PhotosTabFragment";
 
     private Category mCategory = Category.DEFAULT;
@@ -66,45 +68,47 @@ public class PhotosTabFragment extends TabFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        final Context context = getContext();
 
-        final PhotosTabAdapter adapter = new PhotosTabAdapter(mSelection, mImageLoader,
-                this::onItemClick, this::onItemLongClick);
+        // We only add the RECENT header on the PhotosTabFragment with CATEGORY_DEFAULT. In this
+        // case, we call this method {loadItems} with null category. When the category is not
+        // empty, we don't show the RECENT header.
+        final boolean showRecentSection = mCategory.isDefault();
+
+        final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
+                mImageLoader, this::onItemClick, this::onItemLongClick);
         setEmptyMessage(R.string.picker_photos_empty_message);
 
         if (mCategory.isDefault()) {
             // Set the pane title for A11y
             view.setAccessibilityPaneTitle(getString(R.string.picker_photos));
+            mPickerViewModel.getBannerVisibilityLiveData().observe(this, adapter::setShowBanner);
             mPickerViewModel.getItems().observe(this, itemList -> {
-                adapter.updateItemList(itemList);
+                adapter.setMediaItems(itemList);
                 // Handle emptyView's visibility
                 updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
             });
         } else {
             // Set the pane title for A11y
-            view.setAccessibilityPaneTitle(mCategory.getDisplayName(getContext()));
+            view.setAccessibilityPaneTitle(mCategory.getDisplayName(context));
             mPickerViewModel.getCategoryItems(mCategory).observe(this, itemList -> {
                 // If the item count of the albums is zero, albums are not shown on the Albums tab.
                 // The user can't launch the album items page when the album has zero items. So, we
                 // don't need to show emptyView in the case.
                 updateVisibilityForEmptyView(/* shouldShowEmptyView */ false);
 
-                adapter.updateItemList(itemList);
+                adapter.setMediaItems(itemList);
             });
         }
 
-        final GridLayoutManager layoutManager = new GridLayoutManager(getContext(), COLUMN_COUNT);
-        final GridLayoutManager.SpanSizeLookup lookup = adapter.createSpanSizeLookup(layoutManager);
-        layoutManager.setSpanSizeLookup(lookup);
-
-        final PhotosTabItemDecoration itemDecoration = new PhotosTabItemDecoration(
-                view.getContext());
+        final PhotosTabItemDecoration itemDecoration = new PhotosTabItemDecoration(context);
 
         final int spacing = getResources().getDimensionPixelSize(R.dimen.picker_photo_item_spacing);
         final int photoSize = getResources().getDimensionPixelSize(R.dimen.picker_photo_size);
         mRecyclerView.setColumnWidth(photoSize + spacing);
         mRecyclerView.setMinimumSpanCount(MINIMUM_SPAN_COUNT);
 
-        mRecyclerView.setLayoutManager(layoutManager);
+        setLayoutManager(adapter);
         mRecyclerView.setAdapter(adapter);
         mRecyclerView.addItemDecoration(itemDecoration);
     }
@@ -123,15 +127,21 @@ public class PhotosTabFragment extends TabFragment {
     public void onResume() {
         super.onResume();
 
+        final String title;
+        final LayoutModeUtils.Mode layoutMode;
+        final boolean shouldHideProfileButton;
         if (mCategory.isDefault()) {
-            ((PhotoPickerActivity) getActivity()).updateCommonLayouts(
-                    LayoutModeUtils.MODE_PHOTOS_TAB, /* title */ "");
-            hideProfileButton(/* hide */ false);
+            title = "";
+            layoutMode = MODE_PHOTOS_TAB;
+            shouldHideProfileButton = false;
         } else {
-            hideProfileButton(/* hide */ true);
-            ((PhotoPickerActivity) getActivity()).updateCommonLayouts(
-                    LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB, mCategory.getDisplayName(getContext()));
+            title = mCategory.getDisplayName(getContext());
+            layoutMode = MODE_ALBUM_PHOTOS_TAB;
+            shouldHideProfileButton = true;
         }
+
+        getPickerActivity().updateCommonLayouts(layoutMode, title);
+        hideProfileButton(shouldHideProfileButton);
     }
 
     private void onItemClick(@NonNull View view) {
@@ -153,7 +163,8 @@ public class PhotosTabFragment extends TabFragment {
                     Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
                     return;
                 } else {
-                    mSelection.addSelectedItem((Item) view.getTag());
+                    final Item item = (Item) view.getTag();
+                    mSelection.addSelectedItem(item);
                 }
             }
             view.setSelected(!isSelectedBefore);
@@ -162,14 +173,14 @@ public class PhotosTabFragment extends TabFragment {
             // avoid that it says selected twice.
             view.setStateDescription(isSelectedBefore ? getString(R.string.not_selected) : null);
         } else {
-            Item item = (Item) view.getTag();
+            final Item item = (Item) view.getTag();
             mSelection.setSelectedItem(item);
-            ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
+            getPickerActivity().setResultAndFinishSelf();
         }
     }
 
     private boolean onItemLongClick(@NonNull View view) {
-        Item item = (Item) view.getTag();
+        final Item item = (Item) view.getTag();
         if (!mSelection.canSelectMultiple()) {
             // In single select mode, if the item is previewed, we set it as selected item. This is
             // will assist in "Add" button click to return all selected items.
@@ -183,6 +194,10 @@ public class PhotosTabFragment extends TabFragment {
         PreviewFragment.show(getActivity().getSupportFragmentManager(),
                 PreviewFragment.getArgsForPreviewOnLongPress());
         return true;
+    }
+
+    private PhotoPickerActivity getPickerActivity() {
+        return (PhotoPickerActivity) getActivity();
     }
 
     /**
@@ -209,5 +224,25 @@ public class PhotosTabFragment extends TabFragment {
      */
     public static Fragment get(FragmentManager fm) {
         return fm.findFragmentByTag(FRAGMENT_TAG);
+    }
+
+    private void setLayoutManager(@NonNull TabAdapter adapter) {
+        final GridLayoutManager layoutManager =
+                new GridLayoutManager(getContext(), GRID_COLUMN_COUNT);
+        final GridLayoutManager.SpanSizeLookup lookup = new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                final int itemViewType = adapter.getItemViewType(position);
+                // For the item view types ITEM_TYPE_BANNER and ITEM_TYPE_SECTION, it is full
+                // span, return the span count of the layoutManager.
+                if (itemViewType == ITEM_TYPE_BANNER || itemViewType == ITEM_TYPE_SECTION) {
+                    return layoutManager.getSpanCount();
+                } else {
+                    return 1;
+                }
+            }
+        };
+        layoutManager.setSpanSizeLookup(lookup);
+        mRecyclerView.setLayoutManager(layoutManager);
     }
 }

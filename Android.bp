@@ -26,6 +26,8 @@ android_app {
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
         "exoplayer-mediaprovider-ui",
+        "modules-utils-shell-command-handler",
+        "SettingsLibProfileSelector",
     ],
 
     libs: [
@@ -150,4 +152,9 @@ prebuilt_etc {
     name: "preinstalled-packages-com.android.providers.media.module.xml",
     src: "preinstalled-packages-com.android.providers.media.module.xml",
     sub_dir: "sysconfig",
+}
+
+sh_binary {
+    name: "media_provider",
+    src: "cli/media_provider_cli_wrapper.sh",
 }

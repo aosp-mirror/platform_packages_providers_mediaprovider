@@ -199,6 +199,11 @@
             android:exported="true"
             android:enabled="false" >
 
+            <intent-filter android:priority="100" >
+                <action android:name="android.provider.action.PICK_IMAGES_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
             <!-- ============== BEGIN SYSTEM SETTINGS MENU ITEM SECTION ============== -->
             <intent-filter>
                 <action android:name="com.android.settings.action.IA_SETTINGS"/>

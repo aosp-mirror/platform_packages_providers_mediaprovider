@@ -70,6 +70,9 @@ public class PickerUriResolver {
     public static final String MEDIA_PATH = "media";
     public static final String ALBUM_PATH = "albums";
 
+    public static final String LOCAL_PATH = "local";
+    public static final String ALL_PATH = "all";
+
     private final Context mContext;
     private final PickerDbFacade mDbFacade;
 

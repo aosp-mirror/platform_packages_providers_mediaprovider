@@ -49,6 +49,8 @@ public class PickerDataLayer {
     private static final String TAG = "PickerDataLayer";
     private static final boolean DEBUG = false;
 
+    public static final String QUERY_ARG_LOCAL_ONLY = "android:query-arg-local-only";
+
     private final Context mContext;
     private final PickerDbFacade mDbFacade;
     private final PickerSyncController mSyncController;
@@ -62,50 +64,80 @@ public class PickerDataLayer {
         mLocalProvider = dbFacade.getLocalProvider();
     }
 
-    public Cursor fetchMedia(Bundle queryArgs) {
+    /**
+     * Returns {@link Cursor} with all local media part of the given album in {@code queryArgs}
+     */
+    public Cursor fetchLocalMedia(Bundle queryArgs) {
+        queryArgs.putBoolean(QUERY_ARG_LOCAL_ONLY, true);
+        return fetchMediaInternal(queryArgs);
+    }
+
+    /**
+     * Returns {@link Cursor} with all local+cloud media part of the given album in
+     * {@code queryArgs}
+     */
+    public Cursor fetchAllMedia(Bundle queryArgs) {
+        queryArgs.putBoolean(QUERY_ARG_LOCAL_ONLY, false);
+        return fetchMediaInternal(queryArgs);
+    }
+
+    private Cursor fetchMediaInternal(Bundle queryArgs) {
         if (DEBUG) {
-            Log.d(TAG, "fetchMedia() [" + Thread.currentThread() + "] args=" + queryArgs);
+            Log.d(TAG, "fetchMediaInternal() [" + Thread.currentThread() + "] args=" + queryArgs);
         }
 
-        final CloudProviderQueryExtras queryExtras
-                = CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs, mLocalProvider);
-        final String authority = queryExtras.getAlbumAuthority();
+        final CloudProviderQueryExtras queryExtras =
+                CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs);
+        final String albumAuthority = queryExtras.getAlbumAuthority();
 
-        Trace.beginSection(traceSectionName("fetchMedia", authority));
+        Trace.beginSection(traceSectionName("fetchMediaInternal", albumAuthority));
         try {
-            return fetchMediaInternal(authority, queryExtras);
+            final boolean isLocalOnly = queryExtras.isLocalOnly();
+            final String albumId = queryExtras.getAlbumId();
+            // Use media table for all media except albums. Merged categories like,
+            // favorites and video are tagged in the media table and are not a part of
+            // album_media.
+            if (TextUtils.isEmpty(albumId) || isMergedAlbum(queryExtras)) {
+                // Refresh the 'media' table
+                syncAllMedia(isLocalOnly);
+
+                if (!isLocalOnly && TextUtils.isEmpty(albumId)) {
+                    // TODO(b/257887919): Build proper UI and remove this.
+                    // Notify that the picker is launched in case there's any pending UI
+                    // notification
+                    mSyncController.notifyPickerLaunch();
+                }
+
+                // Fetch all merged and deduped cloud and local media from 'media' table
+                // This also matches 'merged' albums like Favorites because |authority| will
+                // be null, hence we have to fetch the data from the picker db
+                return mDbFacade.queryMediaForUi(queryExtras.toQueryFilter());
+            } else {
+                if (isLocalOnly && !isLocal(albumAuthority)) {
+                    // This is error condition because when cloud content is disabled, we shouldn't
+                    // send any cloud albums in available albums list.
+                    throw new IllegalStateException(
+                            "Can't exclude cloud contents in cloud album " + albumAuthority);
+                }
+
+                // The album type here can only be local or cloud because merged categories like,
+                // Favorites and Videos would hit the first condition.
+                // Refresh the 'album_media' table
+                mSyncController.syncAlbumMedia(albumId, isLocal(albumAuthority));
+
+                // Fetch album specific media for local or cloud from 'album_media' table
+                return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), albumAuthority);
+            }
         } finally {
             Trace.endSection();
         }
     }
 
-    private Cursor fetchMediaInternal(String authority, CloudProviderQueryExtras queryExtras) {
-        final String albumId = queryExtras.getAlbumId();
-        // Use media table for all media except albums. Merged categories like,
-        // favorites and video are tagged in the media table and are not a part of
-        // album_media.
-        if (TextUtils.isEmpty(albumId) || isMergedAlbum(queryExtras)) {
-            // Refresh the 'media' table
-            mSyncController.syncAllMedia();
-
-            if (TextUtils.isEmpty(albumId)) {
-                // TODO(b/257887919): Build proper UI and remove this.
-                // Notify that the picker is launched in case there's any pending UI notification
-                mSyncController.notifyPickerLaunch();
-            }
-
-            // Fetch all merged and deduped cloud and local media from 'media' table
-            // This also matches 'merged' albums like Favorites because |authority| will
-            // be null, hence we have to fetch the data from the picker db
-            return mDbFacade.queryMediaForUi(queryExtras.toQueryFilter());
+    private void syncAllMedia(boolean isLocalOnly) {
+        if (isLocalOnly) {
+            mSyncController.syncAllMediaFromLocalProvider();
         } else {
-            // The album type here can only be local or cloud because merged categories like,
-            // Favorites and Videos would hit the first condition.
-            // Refresh the 'album_media' table
-            mSyncController.syncAlbumMedia(albumId, isLocal(authority));
-
-            // Fetch album specific media for local or cloud from 'album_media' table
-            return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), authority);
+            mSyncController.syncAllMedia();
         }
     }
 
@@ -119,55 +151,71 @@ public class PickerDataLayer {
         return isFavorite || isVideo;
     }
 
-    public Cursor fetchAlbums(Bundle queryArgs) {
+    /**
+     * Returns {@link Cursor} with all local and merged albums with local items.
+     */
+    public Cursor fetchLocalAlbums(Bundle queryArgs) {
+        queryArgs.putBoolean(QUERY_ARG_LOCAL_ONLY, true);
+        return fetchAlbumsInternal(queryArgs);
+    }
+
+    /**
+     * Returns {@link Cursor} with all local, merged and cloud albums
+     */
+    public Cursor fetchAllAlbums(Bundle queryArgs) {
+        queryArgs.putBoolean(QUERY_ARG_LOCAL_ONLY, false);
+        return fetchAlbumsInternal(queryArgs);
+    }
+
+    private Cursor fetchAlbumsInternal(Bundle queryArgs) {
         if (DEBUG) {
             Log.d(TAG, "fetchAlbums() [" + Thread.currentThread() + "] args=" + queryArgs);
         }
 
         Trace.beginSection(traceSectionName("fetchAlbums"));
         try {
-            return fetchAlbumsInternal(queryArgs);
+            final boolean isLocalOnly = queryArgs.getBoolean(QUERY_ARG_LOCAL_ONLY, false);
+            // Refresh the 'media' table so that 'merged' albums (Favorites and Videos) are
+            // up-to-date
+            syncAllMedia(isLocalOnly);
+
+            final String cloudProvider = mDbFacade.getCloudProvider();
+            final CloudProviderQueryExtras queryExtras =
+                    CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs);
+            final Bundle cloudMediaArgs = queryExtras.toCloudMediaBundle();
+            final List<Cursor> cursors = new ArrayList<>();
+            final Bundle cursorExtra = new Bundle();
+            cursorExtra.putString(MediaStore.EXTRA_CLOUD_PROVIDER, cloudProvider);
+            cursorExtra.putString(MediaStore.EXTRA_LOCAL_PROVIDER, mLocalProvider);
+
+            // Favorites and Videos are merged albums.
+            final Cursor mergedAlbums = mDbFacade.getMergedAlbums(queryExtras.toQueryFilter());
+            if (mergedAlbums != null) {
+                cursors.add(mergedAlbums);
+            }
+
+            final Cursor localAlbums = queryProviderAlbums(mLocalProvider, cloudMediaArgs);
+            if (localAlbums != null) {
+                cursors.add(localAlbums);
+            }
+
+            if (!isLocalOnly) {
+                final Cursor cloudAlbums = queryProviderAlbums(cloudProvider, cloudMediaArgs);
+                if (cloudAlbums != null) {
+                    cursors.add(cloudAlbums);
+                }
+            }
+
+            if (cursors.isEmpty()) {
+                return null;
+            }
+
+            MergeCursor mergeCursor = new MergeCursor(cursors.toArray(new Cursor[cursors.size()]));
+            mergeCursor.setExtras(cursorExtra);
+            return mergeCursor;
         } finally {
             Trace.endSection();
         }
-    }
-
-    private Cursor fetchAlbumsInternal(Bundle queryArgs) {
-        // Refresh the 'media' table so that 'merged' albums (Favorites and Videos) are up to date
-        mSyncController.syncAllMedia();
-
-        final String cloudProvider = mDbFacade.getCloudProvider();
-        final CloudProviderQueryExtras queryExtras
-                = CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs, mLocalProvider);
-        final Bundle cloudMediaArgs = queryExtras.toCloudMediaBundle();
-        final List<Cursor> cursors = new ArrayList<>();
-        final Bundle cursorExtra = new Bundle();
-        cursorExtra.putString(MediaStore.EXTRA_CLOUD_PROVIDER, cloudProvider);
-        cursorExtra.putString(MediaStore.EXTRA_LOCAL_PROVIDER, mLocalProvider);
-
-        // Favorites and Videos are merged albums.
-        final Cursor mergedAlbums = mDbFacade.getMergedAlbums(queryExtras.toQueryFilter());
-        if (mergedAlbums != null) {
-            cursors.add(mergedAlbums);
-        }
-
-        final Cursor localAlbums = queryProviderAlbums(mLocalProvider, cloudMediaArgs);
-        if (localAlbums != null) {
-            cursors.add(localAlbums);
-        }
-
-        final Cursor cloudAlbums = queryProviderAlbums(cloudProvider, cloudMediaArgs);
-        if (cloudAlbums != null) {
-            cursors.add(cloudAlbums);
-        }
-
-        if (cursors.isEmpty()) {
-            return null;
-        }
-
-        MergeCursor mergeCursor = new MergeCursor(cursors.toArray(new Cursor[cursors.size()]));
-        mergeCursor.setExtras(cursorExtra);
-        return mergeCursor;
     }
 
     @Nullable

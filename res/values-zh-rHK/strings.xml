@@ -40,10 +40,13 @@
     <string name="deny" msgid="6040983710442068936">"拒絕"</string>
     <string name="picker_browse" msgid="5554477454636075934">"瀏覽…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"雲端媒體應用程式"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"雲端媒體應用程式"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"雲端媒體應用程式"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"在 Android 相片點選器分享從其他服務備份的相片和影片"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"從以下位置存取雲端媒體："</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"無"</string>
+    <!-- no translation found for picker_settings_toast_error (697274445512467469) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"新增"</string>
     <string name="deselect" msgid="4297825044827769490">"取消選取"</string>
     <string name="deselected" msgid="8488133193326208475">"已取消選取"</string>

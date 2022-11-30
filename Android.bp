@@ -13,6 +13,7 @@ android_app {
         "androidx.core_core",
         "androidx.legacy_legacy-support-core-ui",
         "androidx.lifecycle_lifecycle-extensions",
+        "androidx.preference_preference",
         "androidx.recyclerview_recyclerview",
         "com.google.android.material_material",
         "guava",
@@ -27,6 +28,8 @@ android_app {
         "androidx.exifinterface_exifinterface",
         "exoplayer-mediaprovider-ui",
         "modules-utils-shell-command-handler",
+        "SettingsLibProfileSelector",
+        "SettingsLibSelectorWithWidgetPreference",
     ],
 
     libs: [

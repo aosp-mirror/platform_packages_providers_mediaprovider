@@ -75,6 +75,14 @@ public class LoggingTest {
     }
 
     @Test
+    public void testNoFormat() throws Exception {
+        String s = "!@#$%^";
+        Logging.logPersistent(s);
+
+        assertLoggedMessageContains(s);
+    }
+
+    @Test
     public void testRotation() throws Exception {
         final char[] raw = new char[1024];
         Arrays.fill(raw, '!');

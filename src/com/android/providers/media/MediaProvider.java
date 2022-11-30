@@ -1062,12 +1062,12 @@ public class MediaProvider extends ContentProvider {
         mThumbSize = new Size(thumbSize, thumbSize);
 
         mMediaScanner = new ModernMediaScanner(context);
-
+        mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false, false,
-                Column.class, ExportedSince.class, Metrics::logSchemaChange, mFilesListener,
+                mProjectionHelper, Metrics::logSchemaChange, mFilesListener,
                 MIGRATION_LISTENER, mIdGenerator, true);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false,
-                Column.class, ExportedSince.class, Metrics::logSchemaChange, mFilesListener,
+                mProjectionHelper, Metrics::logSchemaChange, mFilesListener,
                 MIGRATION_LISTENER, mIdGenerator, true);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
         mPickerDbFacade = new PickerDbFacade(context);
@@ -1075,7 +1075,7 @@ public class MediaProvider extends ContentProvider {
         mConfigStore = createConfigStore();
         mPickerSyncController = new PickerSyncController(context, mPickerDbFacade, mConfigStore);
         mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
-        mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade);
+        mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper);
 
         mDatabaseBackupAndRecovery = createDatabaseBackupAndRecovery();
 
@@ -10403,6 +10403,7 @@ public class MediaProvider extends ContentProvider {
 
     private MediaScanner mMediaScanner;
 
+    private ProjectionHelper mProjectionHelper;
     private DatabaseHelper mInternalDatabase;
     private DatabaseHelper mExternalDatabase;
     private PickerDbFacade mPickerDbFacade;
@@ -10663,7 +10664,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public ArrayMap<String, String> getProjectionMap(Class<?>... clazzes) {
-        return mExternalDatabase.getProjectionMap(clazzes);
+        return mProjectionHelper.getProjectionMap(clazzes);
     }
 
     static <T> boolean containsAny(Set<T> a, Set<T> b) {

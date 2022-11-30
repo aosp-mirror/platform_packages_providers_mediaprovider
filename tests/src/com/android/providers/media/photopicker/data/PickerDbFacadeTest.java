@@ -30,10 +30,14 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.CloudMediaProviderContract.MediaColumns;
+import android.provider.Column;
+import android.provider.ExportedSince;
 import android.provider.MediaStore.PickerMediaColumns;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+
+import com.android.providers.media.ProjectionHelper;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -65,6 +69,7 @@ public class PickerDbFacadeTest {
 
     private PickerDbFacade mFacade;
     private Context mContext;
+    private ProjectionHelper mProjectionHelper;
 
     @Before
     public void setUp() {
@@ -73,6 +78,7 @@ public class PickerDbFacadeTest {
         dbPath.delete();
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER);
         mFacade.setCloudProvider(CLOUD_PROVIDER);
+        mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
     }
 
     @Test
@@ -718,18 +724,8 @@ public class PickerDbFacadeTest {
         assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
 
         // Assert all projection columns
-        final String[] allProjection = new String[] {
-                PickerMediaColumns.DISPLAY_NAME,
-                PickerMediaColumns.DATA,
-                PickerMediaColumns.MIME_TYPE,
-                PickerMediaColumns.DATE_TAKEN,
-                PickerMediaColumns.SIZE,
-                PickerMediaColumns.DURATION_MILLIS,
-                PickerMediaColumns.HEIGHT,
-                PickerMediaColumns.WIDTH,
-                PickerMediaColumns.ORIENTATION
-        };
-
+        final String[] allProjection = mProjectionHelper.getProjectionMap(
+                PickerMediaColumns.class).keySet().toArray(new String[0]);
         try (Cursor cr = mFacade.queryMediaIdForApps(LOCAL_PROVIDER, LOCAL_ID,
                         allProjection)) {
             assertThat(cr.getCount()).isEqualTo(1);

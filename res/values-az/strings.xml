@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"İcazə verin"</string>
     <string name="deny" msgid="6040983710442068936">"Rədd edin"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Gözdən keçirin…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Bulud media tətbiqi"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Bulud media tətbiqi"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Android Fotoseçicidə digər xidmətlərdən yedəklədiyiniz foto və videoları paylaşın"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Bulud mediasına buradan giriş edin:"</string>

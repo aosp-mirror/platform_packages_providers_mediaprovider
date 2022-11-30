@@ -1087,6 +1087,92 @@ public class PickerDbFacadeTest {
     }
 
     @Test
+    public void testFetchLocalOnly() throws Exception {
+        Cursor localCursor1 = getMediaCursor(LOCAL_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+        Cursor localCursor2 = getMediaCursor(LOCAL_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cloudCursor1 = getMediaCursor(CLOUD_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+        Cursor cloudCursor2 = getMediaCursor(CLOUD_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        // Item Info:
+        // 2 items - local - one of them in favorite album
+        // 2 items - cloud - one in favorite album, one in video album
+        // Albums Info:
+        // Videos     - Merged Album - 1 Video File (1 cloud)
+        // Favorites  - Merged Album - 2 files (1 local + 1 cloud)
+
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginAddMediaOperation(CLOUD_PROVIDER)) {
+            assertWriteOperation(operation, cloudCursor1, 1);
+            assertWriteOperation(operation, cloudCursor2, 1);
+            operation.setSuccess();
+        }
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginAddMediaOperation(LOCAL_PROVIDER)) {
+            assertWriteOperation(operation, localCursor1, 1);
+            assertWriteOperation(operation, localCursor2, 1);
+            operation.setSuccess();
+        }
+
+        PickerDbFacade.QueryFilterBuilder qfb =
+                new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
+        // Verify that we see all(local + cloud) items.
+        try (Cursor cr = mFacade.queryMediaForUi(qfb.build())) {
+            assertThat(cr.getCount()).isEqualTo(4);
+        }
+
+        // Verify that we only see local items with isLocalOnly=true
+        qfb.setIsLocalOnly(true);
+        try (Cursor cr = mFacade.queryMediaForUi(qfb.build())) {
+            assertThat(cr.getCount()).isEqualTo(2);
+
+            cr.moveToNext();
+            assertThat(cr.getString(cr.getColumnIndex(MediaColumns.ID))).isEqualTo(LOCAL_ID + "2");
+            cr.moveToNext();
+            assertThat(cr.getString(cr.getColumnIndex(MediaColumns.ID))).isEqualTo(LOCAL_ID + "1");
+        }
+
+        // Verify that we see all available merged albums and their respective media count
+        qfb.setIsLocalOnly(false);
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+            assertThat(cr.getCount()).isEqualTo(2);
+            cr.moveToFirst();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_FAVORITES,
+                    ALBUM_ID_FAVORITES,
+                    CLOUD_ID + "1",
+                    DATE_TAKEN_MS,
+                    /* count */ 2);
+            cr.moveToNext();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_VIDEOS,
+                    ALBUM_ID_VIDEOS,
+                    CLOUD_ID + "2",
+                    DATE_TAKEN_MS,
+                    /* count */ 1);
+        }
+
+        qfb.setIsLocalOnly(true);
+        // Verify that with isLocalOnly=true, we only see one album with only one local item.
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_FAVORITES,
+                    ALBUM_ID_FAVORITES,
+                    LOCAL_ID + "1",
+                    DATE_TAKEN_MS,
+                    /* count */ 1);
+        }
+    }
+
+    @Test
     public void testDataColumn() throws Exception {
         Cursor imageCursor = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, IMAGE_MIME_TYPE,

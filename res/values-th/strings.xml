@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"อนุญาต"</string>
     <string name="deny" msgid="6040983710442068936">"ปฏิเสธ"</string>
     <string name="picker_browse" msgid="5554477454636075934">"เรียกดู…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"แอปสื่อในระบบคลาวด์"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"แอปสื่อในระบบคลาวด์"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"แชร์รูปภาพและวิดีโอที่คุณสำรองข้อมูลไว้จากบริการอื่นๆ ใน Android Photopicker"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"เข้าถึงสื่อในระบบคลาวด์จาก"</string>

@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Permitir"</string>
     <string name="deny" msgid="6040983710442068936">"Rechazar"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Explorar…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"App multimedia en la nube"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplicación multimedia en la nube"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Comparte las fotos y los vídeos de los que hayas creado una copia de seguridad desde otros servicios en el Photopicker de Android"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accede a los medios en la nube desde"</string>

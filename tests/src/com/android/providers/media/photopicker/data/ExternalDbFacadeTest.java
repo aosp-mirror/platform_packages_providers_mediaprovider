@@ -50,6 +50,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.DatabaseHelper;
+import com.android.providers.media.ProjectionHelper;
 import com.android.providers.media.VolumeCache;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
@@ -916,8 +917,8 @@ public class ExternalDbFacadeTest {
 
     private static class TestDatabaseHelper extends DatabaseHelper {
         public TestDatabaseHelper(Context context) {
-            super(context, TEST_CLEAN_DB, 1, false, false, null, null, null, null, null, null,
-                    false);
+            super(context, TEST_CLEAN_DB, 1, false, false, new ProjectionHelper(null, null), null,
+                    null, null, null, false);
         }
     }
 }

@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Дозволи"</string>
     <string name="deny" msgid="6040983710442068936">"Одбиј"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Прегледај…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Апликација за медије у клауду"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Апликација за медије у клауду"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Делите слике и видео снимке за које правите резервне копије из других услуга у Android бирачу слика"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Приступајте медијима у клауду из"</string>

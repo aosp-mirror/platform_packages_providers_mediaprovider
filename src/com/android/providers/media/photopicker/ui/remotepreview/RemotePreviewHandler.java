@@ -32,7 +32,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.RemoteException;
-import android.os.SystemProperties;
 import android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PlaybackState;
 import android.provider.ICloudMediaSurfaceController;
 import android.provider.ICloudMediaSurfaceStateChangedCallback;
@@ -76,13 +75,6 @@ public final class RemotePreviewHandler {
 
     private boolean mIsInBackground = false;
     private int mSurfaceCounter = 0;
-
-    /**
-     * Returns {@code true} if remote preview is enabled.
-     */
-    public static boolean isRemotePreviewEnabled() {
-        return SystemProperties.getBoolean("sys.photopicker.remote_preview", true);
-    }
 
     public RemotePreviewHandler(Context context, MuteStatus muteStatus) {
         mContext = context;

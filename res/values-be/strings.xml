@@ -39,8 +39,7 @@
     <string name="allow" msgid="8885707816848569619">"Дазволіць"</string>
     <string name="deny" msgid="6040983710442068936">"Адмовіць"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Прагляд…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Воблачнае мультымедыя"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Воблачная мультымедыйная праграма"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Дзякуючы інструменту выбару фота на Android вы можаце хутка абагуліць фота і відэа, рэзервовыя копіі якіх створаны ў іншых сэрвісах"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Доступ да воблачных мультымедыя з:"</string>

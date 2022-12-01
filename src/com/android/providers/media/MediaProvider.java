@@ -100,6 +100,7 @@ import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
+import static com.android.providers.media.util.StringUtils.componentStateToString;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_PREFIX;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
 import static com.android.providers.media.util.SyntheticPathUtils.createSparseFile;
@@ -1360,8 +1361,9 @@ public class MediaProvider extends ContentProvider {
                 ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
                 : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
 
-        Log.i(TAG, "Change component enabled state to " + expectedState
-                + " for PhotoPickerGetContentActivity. ");
+        Log.i(TAG, "Changed PhotoPickerGetContentActivity component state to "
+                + componentStateToString(expectedState));
+
         getContext().getPackageManager().setComponentEnabledSetting(componentName, expectedState,
                 PackageManager.DONT_KILL_APP);
 

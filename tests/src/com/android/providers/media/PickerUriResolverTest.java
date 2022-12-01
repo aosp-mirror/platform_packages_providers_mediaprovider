@@ -41,6 +41,8 @@ import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
 import android.provider.CloudMediaProviderContract;
+import android.provider.Column;
+import android.provider.ExportedSince;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
@@ -75,7 +77,8 @@ public class PickerUriResolverTest {
 
     private static class TestPickerUriResolver extends PickerUriResolver {
         TestPickerUriResolver(Context context) {
-            super(context, new PickerDbFacade(getTargetContext()));
+            super(context, new PickerDbFacade(getTargetContext()),
+                    new ProjectionHelper(Column.class, ExportedSince.class));
         }
 
         @Override

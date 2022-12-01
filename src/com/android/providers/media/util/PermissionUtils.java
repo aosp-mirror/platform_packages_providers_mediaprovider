@@ -40,6 +40,7 @@ import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
+import android.annotation.UserIdInt;
 import android.app.AppOpsManager;
 import android.app.DownloadManager;
 import android.content.Context;
@@ -67,6 +68,14 @@ public class PermissionUtils {
     public static void clearOpDescription() { sOpDescription.set(null); }
 
     public static boolean checkPermissionSelf(@NonNull Context context, int pid, int uid) {
+        return UserHandle.getAppId(android.os.Process.myUid()) == UserHandle.getAppId(uid);
+    }
+
+    /**
+     * Return {@code true} when the given user id's corresponsing app id is the same as current
+     * process's app id, else return {@code false}.
+     */
+    public static boolean checkPermissionSelf(@UserIdInt int uid) {
         return UserHandle.getAppId(android.os.Process.myUid()) == UserHandle.getAppId(uid);
     }
 

@@ -18,9 +18,11 @@ package com.android.providers.media.photopicker;
 
 import static android.content.Intent.ACTION_GET_CONTENT;
 
+import static com.android.providers.media.photopicker.PhotoPickerSettingsActivity.EXTRA_CURRENT_USER_ID;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
+import android.annotation.UserIdInt;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -266,13 +268,18 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 launchDocumentsUiAndFinishPicker();
                 return true;
             case R.id.settings:
-                final Intent intent = new Intent(this, PhotoPickerSettingsActivity.class);
-                startActivity(intent);
+                startSettingsActivity();
                 return true;
             default:
                 // Continue to return the result of base class' onOptionsItemSelected(item)
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void startSettingsActivity() {
+        final Intent intent = new Intent(this, PhotoPickerSettingsActivity.class);
+        intent.putExtra(EXTRA_CURRENT_USER_ID, getCurrentUserId());
+        startActivity(intent);
     }
 
     @Override
@@ -508,6 +515,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
             getPackageManager().setComponentEnabledSetting(componentName,
                     PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
         }
+    }
+
+    @UserIdInt
+    private int getCurrentUserId() {
+        final UserIdManager userIdManager = mPickerViewModel.getUserIdManager();
+        return userIdManager.getCurrentUserProfileId().getIdentifier();
     }
 
     /**

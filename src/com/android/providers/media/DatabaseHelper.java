@@ -35,7 +35,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.mtp.MtpConstants;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
@@ -81,8 +80,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -174,8 +171,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final String mVolumeName;
     final boolean mEarlyUpgrade;
     final boolean mLegacyProvider;
-    final @Nullable Class<? extends Annotation> mColumnAnnotation;
-    final @Nullable Class<? extends Annotation> mExportedSinceAnnotation;
+    private final ProjectionHelper mProjectionHelper;
     final @Nullable OnSchemaChangeListener mSchemaListener;
     final @Nullable OnFilesChangeListener mFilesListener;
     final @Nullable OnLegacyMigrationListener mMigrationListener;
@@ -247,21 +243,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     public DatabaseHelper(Context context, String name,
             boolean earlyUpgrade, boolean legacyProvider,
-            @Nullable Class<? extends Annotation> columnAnnotation,
-            @Nullable Class<? extends Annotation> exportedSinceAnnotation,
+            ProjectionHelper projectionHelper,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
             @Nullable UnaryOperator<String> idGenerator, boolean enableNextRowIdRecovery) {
         this(context, name, getDatabaseVersion(context), earlyUpgrade, legacyProvider,
-                columnAnnotation, exportedSinceAnnotation, schemaListener, filesListener,
+               projectionHelper, schemaListener, filesListener,
                 migrationListener, idGenerator, enableNextRowIdRecovery);
     }
 
     public DatabaseHelper(Context context, String name, int version,
             boolean earlyUpgrade, boolean legacyProvider,
-            @Nullable Class<? extends Annotation> columnAnnotation,
-            @Nullable Class<? extends Annotation> exportedSinceAnnotation,
+            ProjectionHelper projectionHelper,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
@@ -279,8 +273,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
         mEarlyUpgrade = earlyUpgrade;
         mLegacyProvider = legacyProvider;
-        mColumnAnnotation = columnAnnotation;
-        mExportedSinceAnnotation = exportedSinceAnnotation;
+        mProjectionHelper = projectionHelper;
         mSchemaListener = schemaListener;
         mFilesListener = filesListener;
         mMigrationListener = migrationListener;
@@ -777,46 +770,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
-    @GuardedBy("mProjectionMapCache")
-    private final ArrayMap<Class<?>, ArrayMap<String, String>>
-            mProjectionMapCache = new ArrayMap<>();
-
-    /**
-     * Return a projection map that represents the valid columns that can be
-     * queried the given contract class. The mapping is built automatically
-     * using the {@link android.provider.Column} annotation, and is designed to
-     * ensure that we always support public API commitments.
-     */
-    public ArrayMap<String, String> getProjectionMap(Class<?>... clazzes) {
-        ArrayMap<String, String> result = new ArrayMap<>();
-        synchronized (mProjectionMapCache) {
-            for (Class<?> clazz : clazzes) {
-                ArrayMap<String, String> map = mProjectionMapCache.get(clazz);
-                if (map == null) {
-                    map = new ArrayMap<>();
-                    try {
-                        for (Field field : clazz.getFields()) {
-                            if (Objects.equals(field.getName(), "_ID") || (mColumnAnnotation != null
-                                    && field.isAnnotationPresent(mColumnAnnotation))) {
-                                boolean shouldIgnoreByOsVersion = shouldBeIgnoredByOsVersion(field);
-                                if (!shouldIgnoreByOsVersion) {
-                                    final String column = (String) field.get(null);
-                                    map.put(column, column);
-                                }
-                            }
-                        }
-                    } catch (ReflectiveOperationException e) {
-                        throw new RuntimeException(e);
-                    }
-                    mProjectionMapCache.put(clazz, map);
-                }
-                result.putAll(map);
-            }
-            return result;
-        }
-    }
-
-    /**
+   /**
      * Local state related to any transaction currently active on a specific
      * thread, such as collecting the set of {@link Uri} that should be notified
      * upon transaction success.
@@ -1568,7 +1522,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private void createLatestViews(SQLiteDatabase db) {
         makePristineViews(db);
 
-        if (mColumnAnnotation == null) {
+        if (!mProjectionHelper.hasColumnAnnotation()) {
             Log.w(TAG, "No column annotation provided; not creating views");
             return;
         }
@@ -1673,7 +1627,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private String getColumnsForCollection(Class<?> collection) {
-        return String.join(",", getProjectionMap(collection).keySet()) + ",_modifier";
+        return String.join(",", mProjectionHelper.getProjectionMap(collection).keySet())
+                + ",_modifier";
     }
 
     private static void makePristineTriggers(SQLiteDatabase db) {
@@ -2387,31 +2342,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             Log.i(TAG, "Waiting for passthrough to be mounted...");
             SystemClock.sleep(100);
-        }
-    }
-
-    private boolean shouldBeIgnoredByOsVersion(@NonNull Field field) {
-        if (mExportedSinceAnnotation == null) {
-            return false;
-        }
-
-        if (!field.isAnnotationPresent(mExportedSinceAnnotation)) {
-            return false;
-        }
-
-        try {
-            final Annotation annotation = field.getAnnotation(mExportedSinceAnnotation);
-            final int exportedSinceOSVersion = (int) annotation.annotationType().getMethod(
-                    "osVersion").invoke(annotation);
-            final boolean shouldIgnore = exportedSinceOSVersion > Build.VERSION.SDK_INT;
-            if (shouldIgnore) {
-                Log.d(TAG, "Ignoring column " + field.get(null) + " with version "
-                        + exportedSinceOSVersion + " in OS version " + Build.VERSION.SDK_INT);
-            }
-            return shouldIgnore;
-        } catch (Exception e) {
-            Log.e(TAG, "Can't parse the OS version in ExportedSince annotation", e);
-            return false;
         }
     }
 

@@ -26,6 +26,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -75,9 +76,12 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Item>> mCategoryItemList;
     // The list of categories.
     private MutableLiveData<List<Category>> mCategoryList;
+    // Boolean Banner visibility
+    private MutableLiveData<Boolean> mBannerVisibility;
 
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
+    private boolean mIsUserSelectForApp;
 
     private InstanceId mInstanceId;
     private PhotoPickerUiEventLogger mLogger;
@@ -98,6 +102,7 @@ public class PickerViewModel extends AndroidViewModel {
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
         mConfigStore = new ConfigStore.ConfigStoreImpl();
+        mIsUserSelectForApp = false;
     }
 
     @VisibleForTesting
@@ -133,6 +138,14 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * @return {@code mIsUserSelectForApp} if the picker is currently being used
+     * for the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP} action.
+     */
+    public boolean isUserSelectForApp() {
+        return mIsUserSelectForApp;
+    }
+
+    /**
      * Reset PickerViewModel.
      * @param switchToPersonalProfile is true then set personal profile as current profile.
      */
@@ -158,11 +171,22 @@ public class PickerViewModel extends AndroidViewModel {
         return mItemList;
     }
 
+    /**
+     * @return the live data of banner visibility boolean {@link #mBannerVisibility}.
+     */
+    @NonNull
+    public LiveData<Boolean> getBannerVisibilityLiveData() {
+        if (mBannerVisibility == null) {
+            // TODO(b/195009152): Update to hold and track the actual value.
+            mBannerVisibility = new MutableLiveData<>(false);
+        }
+        return mBannerVisibility;
+    }
+
     private List<Item> loadItems(Category category, UserId userId) {
         final List<Item> items = new ArrayList<>();
 
-        try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
-                /* limit */ -1, mMimeTypeFilters, userId)) {
+        try (Cursor cursor = fetchItems(category, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any items for " + category
                         + ", either cursor is null or cursor count is zero");
@@ -179,6 +203,16 @@ public class PickerViewModel extends AndroidViewModel {
         Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
                 + userId.toString());
         return items;
+    }
+
+    private Cursor fetchItems(Category category, UserId userId) {
+        if (isUserSelectForApp()) {
+            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+            // action for permission flow. We only show local items in this case.
+            return mItemsProvider.getLocalItems(category, /* limit */ -1, mMimeTypeFilters, userId);
+        } else {
+            return mItemsProvider.getAllItems(category, /* limit */ -1, mMimeTypeFilters, userId);
+        }
     }
 
     private void loadItemsAsync() {
@@ -253,7 +287,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
-        try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilters, userId)) {
+        try (Cursor cursor = fetchCategories(userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
                         + " cursor count is zero");
@@ -269,6 +303,16 @@ public class PickerViewModel extends AndroidViewModel {
                     "Loaded " + categoryList.size() + " categories for user " + userId.toString());
         }
         return categoryList;
+    }
+
+    private Cursor fetchCategories(UserId userId) {
+        if (isUserSelectForApp()) {
+            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+            // action for permission flow. We only show local items in this case.
+            return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId);
+        } else {
+            return mItemsProvider.getAllCategories(mMimeTypeFilters, userId);
+        }
     }
 
     private void loadCategoriesAsync() {
@@ -314,6 +358,19 @@ public class PickerViewModel extends AndroidViewModel {
         mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
 
         mSelection.parseSelectionValuesFromIntent(intent);
+
+        mIsUserSelectForApp =
+                intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+
+        // Ensure that if Photopicker is being used for permissions the target app UID is present
+        // in the extras.
+        if (mIsUserSelectForApp
+                && (intent.getExtras() == null
+                        || !intent.getExtras()
+                                .containsKey(Intent.EXTRA_UID))) {
+            throw new IllegalArgumentException(
+                    "EXTRA_UID is required for" + " ACTION_USER_SELECT_IMAGES_FOR_APP");
+        }
     }
 
     /**

@@ -39,16 +39,11 @@
     <string name="allow" msgid="8885707816848569619">"سماح"</string>
     <string name="deny" msgid="6040983710442068936">"رفض"</string>
     <string name="picker_browse" msgid="5554477454636075934">"جارٍ التصفّح..."</string>
-    <!-- no translation found for picker_settings (7388913035769329672) -->
-    <skip />
-    <!-- no translation found for picker_settings_title (5647700706470673258) -->
-    <skip />
-    <!-- no translation found for picker_settings_description (7486394662725656081) -->
-    <skip />
-    <!-- no translation found for picker_settings_selection_message (245453573086488596) -->
-    <skip />
-    <!-- no translation found for picker_settings_no_provider (2582311853680058223) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"تطبيق وسائط في السحابة الإلكترونية"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"تطبيق الوسائط في السحابة الإلكترونية"</string>
+    <string name="picker_settings_description" msgid="7486394662725656081">"‏يمكنك استخدام Android Photopicker لمشاركة الصور والفيديوهات التي تحتفظ بنسخة احتياطية منها من الخدمات الأخرى."</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"الوصول إلى الوسائط في السحابة الإلكترونية من"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"بلا تطبيق"</string>
     <string name="add" msgid="2894574044585549298">"إضافة"</string>
     <string name="deselect" msgid="4297825044827769490">"إلغاء الاختيار"</string>
     <string name="deselected" msgid="8488133193326208475">"تم إلغاء الاختيار"</string>
@@ -72,6 +67,7 @@
     <string name="picker_privacy_message" msgid="9132700451027116817">"يمكن لهذا التطبيق الوصول إلى الصور التي تختارها فقط."</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{عنصر واحد (<xliff:g id="COUNT_0">^1</xliff:g>)}zero{<xliff:g id="COUNT_1">^1</xliff:g> عنصر}two{عنصران (<xliff:g id="COUNT_1">^1</xliff:g>)}few{<xliff:g id="COUNT_1">^1</xliff:g> عناصر}many{<xliff:g id="COUNT_1">^1</xliff:g> عنصرًا}other{<xliff:g id="COUNT_1">^1</xliff:g> عنصر}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"إضافة (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"السماح (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"الكاميرا"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"العناصر التي تم تنزيلها"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"العناصر المفضّلة"</string>

@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.data;
 
 import static android.content.ContentResolver.QUERY_ARG_LIMIT;
+import static android.database.DatabaseUtils.dumpCursorToString;
 import static android.widget.Toast.LENGTH_LONG;
 
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
@@ -58,6 +59,7 @@ import java.util.Arrays;
 public class ItemsProvider {
     private static final String TAG = ItemsProvider.class.getSimpleName();
     private static final boolean DEBUG = false;
+    private static final boolean DEBUG_DUMP_CURSORS = false;
 
     private final Context mContext;
 
@@ -107,8 +109,9 @@ public class ItemsProvider {
     public Cursor getAllItems(Category category, int limit, @Nullable String[] mimeTypes,
             @Nullable UserId userId) throws IllegalArgumentException {
         if (DEBUG) {
-            Log.d(TAG, "getAllItems() [" + Thread.currentThread() + "] userId=" + userId + " cat="
-                    + category + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit=" + limit);
+            Log.d(TAG, "getAllItems() userId=" + userId + " cat=" + category
+                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit=" + limit);
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         Trace.beginSection("ItemsProvider.getAllItems");
@@ -149,8 +152,9 @@ public class ItemsProvider {
     public Cursor getLocalItems(Category category, int limit, @Nullable String[] mimeTypes,
             @Nullable UserId userId) throws IllegalArgumentException {
         if (DEBUG) {
-            Log.d(TAG, "getLocalItems() [" + Thread.currentThread() + "] userId=" + userId + " cat="
-                    + category + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit=" + limit);
+            Log.d(TAG, "getLocalItems() userId=" + userId + " cat=" + category
+                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit=" + limit);
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         Trace.beginSection("ItemsProvider.getLocalItems");
@@ -178,8 +182,9 @@ public class ItemsProvider {
     @Nullable
     public Cursor getAllCategories(@Nullable String[] mimeTypes, @Nullable UserId userId) {
         if (DEBUG) {
-            Log.d(TAG, "getAllCategories() [" + Thread.currentThread() + "] userId=" + userId
+            Log.d(TAG, "getAllCategories() userId=" + userId
                     + " mimeTypes=" + Arrays.toString(mimeTypes));
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         Trace.beginSection("ItemsProvider.getAllCategories");
@@ -208,8 +213,9 @@ public class ItemsProvider {
     @Nullable
     public Cursor getLocalCategories(@Nullable String[] mimeTypes, @Nullable UserId userId) {
         if (DEBUG) {
-            Log.d(TAG, "getLocalCategories() [" + Thread.currentThread() + "] userId=" + userId
+            Log.d(TAG, "getLocalCategories() userId=" + userId
                     + " mimeTypes=" + Arrays.toString(mimeTypes));
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         Trace.beginSection("ItemsProvider.getLocalCategories");
@@ -220,6 +226,7 @@ public class ItemsProvider {
         }
     }
 
+    @Nullable
     private Cursor queryMedia(@NonNull Uri uri, int limit, String[] mimeTypes,
             @NonNull Category category, @Nullable UserId userId) throws IllegalStateException {
         if (userId == null) {
@@ -227,15 +234,14 @@ public class ItemsProvider {
         }
 
         if (DEBUG) {
-            Log.d(TAG,
-                    "queryMedia() [" + Thread.currentThread() + "] userId=" + userId + " uri=" + uri
-                            + " cat=" + category + " mimeTypes=" + Arrays.toString(mimeTypes)
-                            + " limit=" + limit, /* log stacktrace */ new Throwable());
+            Log.d(TAG, "queryMedia() userId=" + userId + " uri=" + uri + " cat=" + category
+                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit=" + limit);
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
+        Trace.beginSection("ItemsProvider.queryMedia");
 
         final Bundle extras = new Bundle();
-
-        Trace.beginSection("ItemsProvider.queryMedia");
+        Cursor result = null;
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
             if (client == null) {
@@ -250,7 +256,9 @@ public class ItemsProvider {
             extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category.getId());
             extras.putString(MediaStore.QUERY_ARG_ALBUM_AUTHORITY, category.getAuthority());
 
-            return client.query(uri, /* projection */ null, extras, /* cancellationSignal */ null);
+            result = client.query(uri, /* projection */ null, extras,
+                    /* cancellationSignal */ null);
+            return result;
         } catch (RemoteException | NameNotFoundException ignored) {
             // Do nothing, return null.
             Log.e(TAG, "Failed to query merged media with extras: "
@@ -258,6 +266,16 @@ public class ItemsProvider {
             return null;
         } finally {
             Trace.endSection();
+            if (DEBUG) {
+                if (result == null) {
+                    Log.d(TAG, "queryMedia()'s result is null");
+                } else {
+                    Log.d(TAG, "queryMedia() loaded " + result.getCount() + " items");
+                    if (DEBUG_DUMP_CURSORS) {
+                        Log.v(TAG, dumpCursorToString(result));
+                    }
+                }
+            }
         }
     }
 
@@ -269,15 +287,14 @@ public class ItemsProvider {
         }
 
         if (DEBUG) {
-            Log.d(TAG,
-                    "queryAlbums() [" + Thread.currentThread() + "] userId=" + userId + " uri="
-                            + uri + " mimeTypes=" + Arrays.toString(mimeTypes),
-                    /* log stacktrace */ new Throwable());
+            Log.d(TAG, "queryAlbums() userId=" + userId + " uri=" + uri
+                    + " mimeTypes=" + Arrays.toString(mimeTypes));
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
+        Trace.beginSection("ItemsProvider.queryAlbums");
 
         final Bundle extras = new Bundle();
-
-        Trace.beginSection("ItemsProvider.queryAlbums");
+        Cursor result = null;
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
             if (client == null) {
@@ -289,8 +306,9 @@ public class ItemsProvider {
                 extras.putStringArray(MediaStore.QUERY_ARG_MIME_TYPE, mimeTypes);
             }
 
-            return client.query(uri, /* projection */ null, extras, /* cancellationSignal */
-                    null);
+            result = client.query(uri, /* projection */ null, extras,
+                    /* cancellationSignal */ null);
+            return result;
         } catch (RemoteException | NameNotFoundException ignored) {
             // Do nothing, return null.
             Log.w(TAG, "Failed to query merged albums with extras: "
@@ -298,6 +316,16 @@ public class ItemsProvider {
             return null;
         } finally {
             Trace.endSection();
+            if (DEBUG) {
+                if (result == null) {
+                    Log.d(TAG, "queryAlbums()'s result is null");
+                } else {
+                    Log.d(TAG, "queryAlbums() loaded " + result.getCount() + " items");
+                    if (DEBUG_DUMP_CURSORS) {
+                        Log.v(TAG, dumpCursorToString(result));
+                    }
+                }
+            }
         }
     }
 

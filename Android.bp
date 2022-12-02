@@ -32,6 +32,7 @@ android_app {
         "unsupportedappusage",
         "app-compat-annotations",
         "framework-annotations-lib",
+        "framework-configinfrastructure",
         "framework-mediaprovider.impl",
         "framework-media.stubs.module_lib",
         "framework-statsd",
@@ -57,7 +58,6 @@ android_app {
     },
 
     plugins: [
-        "java_api_finder",
         "error_prone_mediaprovider",
         "glide-annotation-processor",
     ],

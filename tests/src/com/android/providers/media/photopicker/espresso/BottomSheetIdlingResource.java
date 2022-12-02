@@ -22,6 +22,7 @@ import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_
 import android.view.View;
 
 import androidx.annotation.NonNull;
+import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.espresso.IdlingResource;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
@@ -94,15 +95,17 @@ public class BottomSheetIdlingResource implements IdlingResource {
     }
 
     /**
-     * @return {@link BottomSheetIdlingResource} that is registered to the activity
-     * related to the given {@link ActivityScenarioRule}.
+     * @return {@link BottomSheetIdlingResource} that is registered to the activity related to the
+     *     given {@link ActivityScenarioRule}.
+     * @param scenario
      */
-    public static BottomSheetIdlingResource register(ActivityScenarioRule rule) {
+    public static BottomSheetIdlingResource register(ActivityScenario scenario) {
         final BottomSheetIdlingResource[] idlingResources = new BottomSheetIdlingResource[1];
-        rule.getScenario().onActivity((activity -> {
-            idlingResources[0] = new BottomSheetIdlingResource(
-                    activity.findViewById(R.id.bottom_sheet));
-        }));
+        scenario.onActivity(
+                (activity -> {
+                    idlingResources[0] =
+                            new BottomSheetIdlingResource(activity.findViewById(R.id.bottom_sheet));
+                }));
         IdlingRegistry.getInstance().register(idlingResources[0]);
         return idlingResources[0];
     }

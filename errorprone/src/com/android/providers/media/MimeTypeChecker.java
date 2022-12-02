@@ -89,6 +89,7 @@ public final class MimeTypeChecker extends BugChecker
 
     private static class MimeWithoutCaseFoldingMatcher
             implements Matcher<ExpressionTree>, Predicate<ExpressionTree> {
+        @SuppressWarnings("TreeToString") //TODO(b/254480640): https://errorprone.info/bugpattern/TreeToString
         @Override
         public boolean matches(ExpressionTree tree, VisitorState state) {
             // This is a pretty rough way to match raw names, but it works

@@ -39,12 +39,15 @@
     <string name="allow" msgid="8885707816848569619">"Ruhusu"</string>
     <string name="deny" msgid="6040983710442068936">"Kataa"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Vinjari…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
+    <string name="picker_settings" msgid="6443463167344790260">"Programu ya maudhui ya Wingu"</string>
+    <!-- no translation found for picker_settings_system_settings_menu_title (3055084757610063581) -->
     <skip />
     <string name="picker_settings_title" msgid="5647700706470673258">"Programu ya maudhui ya kwenye wingu"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Shiriki nakala za picha na video unazohifadhi kutoka katika huduma nyinginezo kwenye Kiteua picha cha Android"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Fikia maudhui ya kwenye wingu katika"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Hamna"</string>
+    <!-- no translation found for picker_settings_toast_error (697274445512467469) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"Weka"</string>
     <string name="deselect" msgid="4297825044827769490">"Acha kuchagua"</string>
     <string name="deselected" msgid="8488133193326208475">"Umeacha kuchagua"</string>

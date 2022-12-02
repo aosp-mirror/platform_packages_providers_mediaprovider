@@ -49,12 +49,14 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.DatabaseBackupAndRecovery;
 import com.android.providers.media.DatabaseHelper;
 import com.android.providers.media.MediaDocumentsProvider;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.R;
 import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.VolumeCache;
 import com.android.providers.media.cloudproviders.CloudProviderPrimary;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
@@ -85,6 +87,7 @@ public class MediaScannerTest {
         private final MockContentResolver mResolver;
         private final MediaProvider mProvider;
         private final UserHandle mUserHandle;
+
         private Map<String, BackupIdRow> mBackedUpData = new HashMap<>();
 
         public IsolatedContext(Context base, String tag, boolean asFuseThread) {
@@ -144,41 +147,54 @@ public class MediaScannerTest {
                 }
 
                 @Override
-                protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
-                    // Ignoring this as test app would not have access to update xattr.
+                protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
+                    return new TestDatabaseBackupAndRecovery(this, configStore, getVolumeCache());
                 }
 
                 @Override
                 protected void storageNativeBootPropertyChangeListener() {
                     // Ignore this as test app cannot read device config
                 }
+            };
+        }
 
-                @Override
-                protected boolean isStableUrisEnabled(String volumeName) {
-                    if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
-                        return true;
-                    }
-                    return false;
-                }
+        private class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
 
-                @Override
-                protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue,
-                        int limit) {
-                    Object[] backedUpValues =  mBackedUpData.keySet().toArray();
-                    return Arrays.copyOf(backedUpValues, backedUpValues.length, String[].class);
-                }
+            TestDatabaseBackupAndRecovery(MediaProvider mediaProvider, ConfigStore configStore,
+                    VolumeCache volumeCache) {
+                super(mediaProvider, configStore, volumeCache);
+            }
 
-                @Override
-                protected Optional<BackupIdRow> readDataFromBackup(String volumeName,
-                        String filePath) {
-                    return Optional.ofNullable(mBackedUpData.get(filePath));
-                }
+            @Override
+            protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
+                // Ignoring this as test app would not have access to update xattr.
+            }
 
-                @Override
-                protected boolean isFuseDaemonReadyForFilePath(@NonNull String filePath) {
+            @Override
+            protected boolean isStableUrisEnabled(String volumeName) {
+                if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
                     return true;
                 }
-            };
+                return false;
+            }
+
+            @Override
+            protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue,
+                    int limit) {
+                Object[] backedUpValues =  mBackedUpData.keySet().toArray();
+                return Arrays.copyOf(backedUpValues, backedUpValues.length, String[].class);
+            }
+
+            @Override
+            protected Optional<BackupIdRow> readDataFromBackup(String volumeName,
+                    String filePath) {
+                return Optional.ofNullable(mBackedUpData.get(filePath));
+            }
+
+            @Override
+            protected boolean isFuseDaemonReadyForFilePath(@NonNull String filePath) {
+                return true;
+            }
         }
 
         @Override

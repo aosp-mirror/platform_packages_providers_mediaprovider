@@ -202,4 +202,8 @@
         </activity-alias>
 
     </application>
+    <uses-sdk android:minSdkVersion="33" />
+    <install-constraints>
+        <fingerprint-prefix android:value="samsung/"/>
+    </install-constraints>
 </manifest>

@@ -40,10 +40,14 @@
     <string name="deny" msgid="6040983710442068936">"مسترد کریں"</string>
     <string name="picker_browse" msgid="5554477454636075934">"براؤز کریں…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"کلاؤڈ میڈیا ایپ"</string>
+    <!-- no translation found for picker_settings_system_settings_menu_title (3055084757610063581) -->
+    <skip />
     <string name="picker_settings_title" msgid="5647700706470673258">"کلاؤڈ میڈیا ایپ"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"‏ان تصاویر اور ویڈیوز کا اشتراک کریں جنہیں آپ Android Photopicker میں دیگر سروسز سے بیک اپ کرتے ہیں"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"اس سے کلاؤڈ میڈیا تک رسائی حاصل کریں"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"کوئی نہیں"</string>
+    <!-- no translation found for picker_settings_toast_error (697274445512467469) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"شامل کریں"</string>
     <string name="deselect" msgid="4297825044827769490">"غیر منتخب کریں"</string>
     <string name="deselected" msgid="8488133193326208475">"غیر منتخب کردہ"</string>

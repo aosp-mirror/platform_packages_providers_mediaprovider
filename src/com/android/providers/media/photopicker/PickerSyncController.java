@@ -164,22 +164,34 @@ public class PickerSyncController {
     public void syncAllMedia() {
         Trace.beginSection(traceSectionName("syncAllMedia"));
         try {
-            syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true);
+            syncAllMediaFromLocalProvider();
 
-            synchronized (mLock) {
-                final String cloudProvider = mCloudProviderInfo.authority;
-                syncAllMediaFromProvider(cloudProvider, /* isLocal */ false,
-                        /* retryOnFailure */ true);
-
-                // Reset the album_media table every time we sync all media
-                // TODO(sergeynv@): do we really need to reset for both providers?
-                resetAlbumMedia();
-
-                // Set the latest cloud provider on the facade
-                mDbFacade.setCloudProvider(cloudProvider);
-            }
+            syncAllMediaFromCloudProvider();
         } finally {
             Trace.endSection();
+        }
+    }
+
+
+    /**
+     * Syncs the local media
+     */
+    public void syncAllMediaFromLocalProvider() {
+        syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true);
+    }
+
+    private void syncAllMediaFromCloudProvider() {
+        synchronized (mLock) {
+            final String cloudProvider = mCloudProviderInfo.authority;
+            syncAllMediaFromProvider(cloudProvider, /* isLocal */ false,
+                    /* retryOnFailure */ true);
+
+            // Reset the album_media table every time we sync all media
+            // TODO(258765155): do we really need to reset for both providers?
+            resetAlbumMedia();
+
+            // Set the latest cloud provider on the facade
+            mDbFacade.setCloudProvider(cloudProvider);
         }
     }
 
@@ -189,12 +201,19 @@ public class PickerSyncController {
      */
     public void syncAlbumMedia(String albumId, boolean isLocal) {
         if (isLocal) {
-            syncAlbumMediaFromProvider(mLocalProvider, /* isLocal */ true, albumId);
+            syncAlbumMediaFromLocalProvider(albumId);
         } else {
-            synchronized (mLock) {
-                syncAlbumMediaFromProvider(
-                        mCloudProviderInfo.authority, /* isLocal */ false, albumId);
-            }
+            syncAlbumMediaFromCloudProvider(albumId);
+        }
+    }
+
+    private void syncAlbumMediaFromLocalProvider(String albumId) {
+        syncAlbumMediaFromProvider(mLocalProvider, /* isLocal */ true, albumId);
+    }
+
+    private void syncAlbumMediaFromCloudProvider(String albumId) {
+        synchronized (mLock) {
+            syncAlbumMediaFromProvider(mCloudProviderInfo.authority, /* isLocal */ false, albumId);
         }
     }
 

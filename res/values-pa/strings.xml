@@ -39,12 +39,15 @@
     <string name="allow" msgid="8885707816848569619">"ਆਗਿਆ ਦਿਓ"</string>
     <string name="deny" msgid="6040983710442068936">"ਨਾ ਕਰਨ ਦਿਓ"</string>
     <string name="picker_browse" msgid="5554477454636075934">"ਬ੍ਰਾਊਜ਼ ਕਰੋ…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
+    <string name="picker_settings" msgid="6443463167344790260">"ਕਲਾਊਡ ਮੀਡੀਆ ਐਪ"</string>
+    <!-- no translation found for picker_settings_system_settings_menu_title (3055084757610063581) -->
     <skip />
     <string name="picker_settings_title" msgid="5647700706470673258">"ਕਲਾਊਡ ਮੀਡੀਆ ਐਪ"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Android ਦੇ ਫ਼ੋਟੋ ਚੋਣਕਾਰ ਦੀ ਮਦਦ ਨਾਲ ਉਨ੍ਹਾਂ ਫ਼ੋਟੋਆਂ ਅਤੇ ਵੀਡੀਓ ਨੂੰ ਸਾਂਝਾ ਕਰੋ ਜਿਨ੍ਹਾਂ ਦਾ ਬੈਕਅੱਪ ਤੁਸੀਂ ਹੋਰ ਸੇਵਾਵਾਂ ਤੋਂ ਲਿਆ ਹੈ"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"ਇੱਥੋਂ ਕਲਾਊਡ ਮੀਡੀਆ ਤੱਕ ਪਹੁੰਚ ਕਰੋ"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ਕੋਈ ਨਹੀਂ"</string>
+    <!-- no translation found for picker_settings_toast_error (697274445512467469) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"ਸ਼ਾਮਲ ਕਰੋ"</string>
     <string name="deselect" msgid="4297825044827769490">"ਅਣ-ਚੁਣਿਆ ਕਰੋ"</string>
     <string name="deselected" msgid="8488133193326208475">"ਅਣ-ਚੁਣਿਆ"</string>

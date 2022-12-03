@@ -26,6 +26,12 @@ java_sdk_library {
         "java/**/*.aidl",
     ],
 
+    aidl: {
+        local_include_dirs: [
+            "java",
+        ],
+    },
+
     permitted_packages: [
         "android.provider",
     ],

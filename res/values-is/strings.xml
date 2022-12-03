@@ -77,6 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Hætta að þagga myndskeið"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Spila myndskeið"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Gera hlé á spilun"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Skýjaefni er nú í boði frá <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"ekki valið"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Leyfa <xliff:g id="APP_NAME_0">^1</xliff:g> að breyta þessari hljóðskrá?}one{Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> hljóðskrá?}other{Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> hljóðskrám?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Breytir hljóðskrá…}one{Breytir <xliff:g id="COUNT">^1</xliff:g> hljóðskrá…}other{Breytir <xliff:g id="COUNT">^1</xliff:g> hljóðskrám…}}"</string>

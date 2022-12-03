@@ -77,6 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"व्हिडिओ अनम्यूट करा"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"व्हिडिओ प्ले करा"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"व्हिडिओ थांबवा"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"आता <xliff:g id="PKG_NAME">%1$s</xliff:g> कडून क्लाउड मीडिया उपलब्ध आहे"</string>
     <string name="not_selected" msgid="2244008151669896758">"निवडला नाही"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला या ऑडिओ फाइलमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> ऑडिओ फाइलमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ऑडिओ फाइलमध्ये फेरबदल करत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> ऑडिओ फाइलमध्ये फेरबदल करत आहे…}}"</string>

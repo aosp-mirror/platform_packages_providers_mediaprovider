@@ -42,12 +42,12 @@
     <string name="deselect" msgid="4297825044827769490">"Desmarcar"</string>
     <string name="deselected" msgid="8488133193326208475">"Desmarcado"</string>
     <string name="select" msgid="2704765470563027689">"Seleccionar"</string>
-    <string name="selected" msgid="9151797369975828124">"Marcado"</string>
+    <string name="selected" msgid="9151797369975828124">"Seleccionado"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Selecciona hasta <xliff:g id="COUNT_0">^1</xliff:g> elemento}many{Select up to <xliff:g id="COUNT_1">^1</xliff:g> items}other{Selecciona hasta <xliff:g id="COUNT_1">^1</xliff:g> elementos}}"</string>
     <string name="recent" msgid="6694613584743207874">"Reciente"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"No hay fotos ni vídeos"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"No hay ningún álbum"</string>
-    <string name="picker_view_selected" msgid="2266031384396143883">"Ver seleccionados"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Ver seleccionado"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotos"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Álbumes"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Vista previa"</string>

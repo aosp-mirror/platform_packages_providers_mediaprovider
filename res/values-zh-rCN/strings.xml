@@ -40,8 +40,7 @@
     <string name="deny" msgid="6040983710442068936">"拒绝"</string>
     <string name="picker_browse" msgid="5554477454636075934">"浏览…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"云端媒体应用"</string>
-    <!-- no translation found for picker_settings_system_settings_menu_title (3055084757610063581) -->
-    <skip />
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"云端媒体应用"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"云端媒体应用"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"在 Android 照片选择器中分享您从其他服务备份的照片和视频"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"从以下位置访问云端媒体："</string>

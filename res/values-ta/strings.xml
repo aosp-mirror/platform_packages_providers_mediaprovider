@@ -40,8 +40,7 @@
     <string name="deny" msgid="6040983710442068936">"நிராகரி"</string>
     <string name="picker_browse" msgid="5554477454636075934">"உலாவுக…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"கிளவுடு மீடியா ஆப்ஸ்"</string>
-    <!-- no translation found for picker_settings_system_settings_menu_title (3055084757610063581) -->
-    <skip />
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"கிளவுடு மீடியா ஆப்ஸ்"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"கிளவுடு மீடியா ஆப்ஸ்"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"பிற சேவைகளில் இருந்து காப்புப் பிரதி எடுக்கும் படங்களையும் வீடியோக்களையும் Android ஃபோட்டோ தேர்வுக் கருவி மூலம் பகிரலாம்"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"கிளவுட் மீடியாவை இதிலிருந்து அணுகும்"</string>

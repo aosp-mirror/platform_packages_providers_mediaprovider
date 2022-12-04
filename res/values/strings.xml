@@ -104,6 +104,9 @@
     <!-- A label for an option in a single-select choice list that lets user select a Cloud media provider application. [CHAR LIMIT=NONE] -->
     <string name="picker_settings_no_provider">None</string>
 
+    <!-- Error message displayed to the user when the user is not able to change cloud media app preference in Picker Settings. [CHAR LIMIT=50] -->
+    <string name="picker_settings_toast_error">Could not change cloud media app at this time.</string>
+
     <!-- Add button for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="add">Add</string>
 

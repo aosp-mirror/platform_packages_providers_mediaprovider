@@ -34,8 +34,6 @@ import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalV
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalYear;
 import static com.android.providers.media.scan.ModernMediaScanner.shouldScanDirectory;
 import static com.android.providers.media.scan.ModernMediaScanner.shouldScanPathAndIsPathHidden;
-import static com.android.providers.media.util.FileUtils.isDirectoryHidden;
-import static com.android.providers.media.util.FileUtils.isFileHidden;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -531,55 +529,6 @@ public class ModernMediaScannerTest {
             assertShouldScanDirectory(new File(prefix + "/DCIM/.thumbnails"));
             assertShouldntScanDirectory(new File(prefix + "/.transforms"));
         }
-    }
-
-    private static void assertDirectoryHidden(File file) {
-        assertTrue(file.getAbsolutePath(), isDirectoryHidden(file));
-    }
-
-    private static void assertDirectoryNotHidden(File file) {
-        assertFalse(file.getAbsolutePath(), isDirectoryHidden(file));
-    }
-
-    @Test
-    public void testIsDirectoryHidden() throws Exception {
-        for (String prefix : new String[] {
-                "/storage/emulated/0",
-                "/storage/0000-0000",
-        }) {
-            assertDirectoryNotHidden(new File(prefix));
-            assertDirectoryNotHidden(new File(prefix + "/meow"));
-
-            assertDirectoryHidden(new File(prefix + "/.meow"));
-        }
-
-
-        final File nomediaFile = new File("storage/emulated/0/Download/meow", ".nomedia");
-        try {
-            assertTrue(nomediaFile.getParentFile().mkdirs());
-            assertTrue(nomediaFile.createNewFile());
-
-            assertDirectoryHidden(nomediaFile.getParentFile());
-
-            assertTrue(nomediaFile.delete());
-
-            assertDirectoryNotHidden(nomediaFile.getParentFile());
-        } finally {
-            nomediaFile.delete();
-            nomediaFile.getParentFile().delete();
-        }
-    }
-
-    @Test
-    public void testIsFileHidden() throws Exception {
-        assertFalse(isFileHidden(
-                new File("/storage/emulated/0/DCIM/IMG1024.JPG")));
-        assertFalse(isFileHidden(
-                new File("/storage/emulated/0/DCIM/.pending-1577836800-IMG1024.JPG")));
-        assertFalse(isFileHidden(
-                new File("/storage/emulated/0/DCIM/.trashed-1577836800-IMG1024.JPG")));
-        assertTrue(isFileHidden(
-                new File("/storage/emulated/0/DCIM/.IMG1024.JPG")));
     }
 
     @Test

@@ -39,11 +39,14 @@
     <string name="allow" msgid="8885707816848569619">"অনুমতি দিন"</string>
     <string name="deny" msgid="6040983710442068936">"বাতিল করুন"</string>
     <string name="picker_browse" msgid="5554477454636075934">"ব্রাউজ করুন…"</string>
-    <string name="picker_settings" msgid="7388913035769329672">"সেটিংস"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"ক্লাউড মিডিয়া অ্যাপ"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"ক্লাউড মিডিয়া অ্যাপ"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"ক্লাউড মিডিয়া অ্যাপ"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Android ফটোপিকার টুলে অন্যান্য পরিষেবা থেকে ব্যাক-আপ নেওয়া ফটো ও ভিডিও শেয়ার করুন"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"এখান থেকে ক্লাউড মিডিয়া অ্যাক্সেস করুন"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"কোনওটিই নয়"</string>
+    <!-- no translation found for picker_settings_toast_error (697274445512467469) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"যোগ করুন"</string>
     <string name="deselect" msgid="4297825044827769490">"টিক চিহ্নটি সরিয়ে দিন"</string>
     <string name="deselected" msgid="8488133193326208475">"টিকচিহ্ন সরিয়ে দিন"</string>
@@ -67,6 +70,7 @@
     <string name="picker_privacy_message" msgid="9132700451027116817">"এই অ্যাপ শুধুমাত্র আপনার বেছে নেওয়া ছবি অ্যাক্সেস করতে পারবে"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g>টি আইটেম}one{<xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম}other{<xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>)টি যোগ করুন"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"অনুমতি দিন (<xliff:g id="COUNT">^1</xliff:g>টি)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"ক্যামেরা"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"ডাউনলোড করা আইটেম"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"পছন্দসই আইটেম"</string>

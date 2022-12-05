@@ -175,6 +175,8 @@ android_test {
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
         "exoplayer-mediaprovider-ui",
+        "SettingsLibProfileSelector",
+        "SettingsLibSelectorWithWidgetPreference",
     ],
 
     certificate: "media",

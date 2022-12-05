@@ -81,8 +81,6 @@ public class PickerSyncController {
     private static final String PREFS_KEY_CLOUD_PROVIDER_AUTHORITY = "cloud_provider_authority";
     private static final String PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION =
             "cloud_provider_pending_notification";
-    private static final String PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE =
-            "user_aware_about_cloud_media_app_settings";
     private static final String PREFS_KEY_CLOUD_PREFIX = "cloud_provider:";
     private static final String PREFS_KEY_LOCAL_PREFIX = "local_provider:";
 
@@ -144,12 +142,13 @@ public class PickerSyncController {
 
         mSyncDelayMs = configStore.getPickerSyncDelayMs();
 
-        final CloudProviderInfo defaultInfo = getDefaultCloudProviderInfo(cachedAuthority,
-                isUserAwareAboutCloudMediaAppSettings());
+        final CloudProviderInfo defaultInfo = getDefaultCloudProviderInfo(cachedAuthority);
 
         if (Objects.equals(defaultInfo.authority, cachedAuthority)) {
             // Just set it without persisting since it's not changing and persisting would
             // notify the user that cloud media is now available
+            // TODO(b/259247084): mCloudProviderInfo should be CloudProviderInfo.EMPTY when
+            //  Cloud Provider is in UNSET state.
             mCloudProviderInfo = defaultInfo;
         } else {
             // Persist it so that we notify the user that cloud media is now available
@@ -165,22 +164,34 @@ public class PickerSyncController {
     public void syncAllMedia() {
         Trace.beginSection(traceSectionName("syncAllMedia"));
         try {
-            syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true);
+            syncAllMediaFromLocalProvider();
 
-            synchronized (mLock) {
-                final String cloudProvider = mCloudProviderInfo.authority;
-                syncAllMediaFromProvider(cloudProvider, /* isLocal */ false,
-                        /* retryOnFailure */ true);
-
-                // Reset the album_media table every time we sync all media
-                // TODO(sergeynv@): do we really need to reset for both providers?
-                resetAlbumMedia();
-
-                // Set the latest cloud provider on the facade
-                mDbFacade.setCloudProvider(cloudProvider);
-            }
+            syncAllMediaFromCloudProvider();
         } finally {
             Trace.endSection();
+        }
+    }
+
+
+    /**
+     * Syncs the local media
+     */
+    public void syncAllMediaFromLocalProvider() {
+        syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true);
+    }
+
+    private void syncAllMediaFromCloudProvider() {
+        synchronized (mLock) {
+            final String cloudProvider = mCloudProviderInfo.authority;
+            syncAllMediaFromProvider(cloudProvider, /* isLocal */ false,
+                    /* retryOnFailure */ true);
+
+            // Reset the album_media table every time we sync all media
+            // TODO(258765155): do we really need to reset for both providers?
+            resetAlbumMedia();
+
+            // Set the latest cloud provider on the facade
+            mDbFacade.setCloudProvider(cloudProvider);
         }
     }
 
@@ -190,12 +201,19 @@ public class PickerSyncController {
      */
     public void syncAlbumMedia(String albumId, boolean isLocal) {
         if (isLocal) {
-            syncAlbumMediaFromProvider(mLocalProvider, /* isLocal */ true, albumId);
+            syncAlbumMediaFromLocalProvider(albumId);
         } else {
-            synchronized (mLock) {
-                syncAlbumMediaFromProvider(
-                        mCloudProviderInfo.authority, /* isLocal */ false, albumId);
-            }
+            syncAlbumMediaFromCloudProvider(albumId);
+        }
+    }
+
+    private void syncAlbumMediaFromLocalProvider(String albumId) {
+        syncAlbumMediaFromProvider(mLocalProvider, /* isLocal */ true, albumId);
+    }
+
+    private void syncAlbumMediaFromCloudProvider(String albumId) {
+        synchronized (mLock) {
+            syncAlbumMediaFromProvider(mCloudProviderInfo.authority, /* isLocal */ false, albumId);
         }
     }
 
@@ -431,6 +449,7 @@ public class PickerSyncController {
         }
     }
 
+    // TODO(b/257887919): Build proper UI and remove this.
     /**
      * Notifies about picker UI launched
      */
@@ -471,27 +490,9 @@ public class PickerSyncController {
         updateBooleanUserPref(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, false);
     }
 
-    /**
-     * Notifies about cloud media app banner displayed in picker UI
-     */
-    @VisibleForTesting
-    void notifyUserCloudMediaAware() {
-        updateBooleanUserPref(PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE, true);
-    }
-
     private void updateBooleanUserPref(String key, boolean value) {
         final SharedPreferences.Editor editor = mUserPrefs.edit();
         editor.putBoolean(key, value);
-        editor.apply();
-    }
-
-    /**
-     * Clears the flag - user aware about cloud media app settings
-     */
-    @VisibleForTesting
-    void clearUserAwareAboutCloudMediaAppSettingsFlag() {
-        final SharedPreferences.Editor editor = mUserPrefs.edit();
-        editor.remove(PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE);
         editor.apply();
     }
 
@@ -832,14 +833,7 @@ public class PickerSyncController {
      * Get the default {@link CloudProviderInfo} at {@link PickerSyncController} construction
      */
     @VisibleForTesting
-    CloudProviderInfo getDefaultCloudProviderInfo(String cachedProvider,
-            boolean isUserAwareAboutCloudMediaAppSettings) {
-        if (cachedProvider == null && isUserAwareAboutCloudMediaAppSettings) {
-            Log.i(TAG, "Skipping default cloud provider selection since the user has made an "
-                    + "explicit empty choice");
-            return CloudProviderInfo.EMPTY;
-        }
-
+    CloudProviderInfo getDefaultCloudProviderInfo(String cachedProvider) {
         final List<CloudProviderInfo> infos = getAvailableCloudProviders();
 
         if (infos.size() == 1) {
@@ -871,17 +865,6 @@ public class PickerSyncController {
 
         // No default set or default not installed
         return CloudProviderInfo.EMPTY;
-    }
-
-    /**
-     * @return the value of the user pref
-     * {@link PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE} with the default value as
-     * {@code false}
-     */
-    @VisibleForTesting
-    boolean isUserAwareAboutCloudMediaAppSettings() {
-        return mUserPrefs.getBoolean(PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE,
-                /* defaultValue */ false);
     }
 
     private static String traceSectionName(@NonNull String method) {

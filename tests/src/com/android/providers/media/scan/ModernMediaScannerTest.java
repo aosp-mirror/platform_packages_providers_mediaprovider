@@ -934,8 +934,8 @@ public class ModernMediaScannerTest {
 
         File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         mModern.scanFile(dir, REASON_UNKNOWN);
-        try {
-            mIsolatedResolver.openFileDescriptor(uri, "w", null);
+        try (ParcelFileDescriptor fd = mIsolatedResolver.openFileDescriptor(uri, "w", null)) {
+            assertThat(fd).isNotNull();
         } catch (FileNotFoundException e) {
             throw new AssertionError("Can't open uri " + uri, e);
         }

@@ -39,12 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"İcazə verin"</string>
     <string name="deny" msgid="6040983710442068936">"Rədd edin"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Gözdən keçirin…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Bulud media tətbiqi"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Bulud media tətbiqi"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Bulud media tətbiqi"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Android Fotoseçicidə digər xidmətlərdən yedəklədiyiniz foto və videoları paylaşın"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Bulud mediasına buradan giriş edin:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Heç bir"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"İndi bulud media tətbiqini dəyişmək mümkün deyil."</string>
     <string name="add" msgid="2894574044585549298">"Əlavə edin"</string>
     <string name="deselect" msgid="4297825044827769490">"Seçimi ləğv edin"</string>
     <string name="deselected" msgid="8488133193326208475">"Seçimi ləğv edilib"</string>

@@ -39,12 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"അനുവദിക്കൂ"</string>
     <string name="deny" msgid="6040983710442068936">"നിരസിക്കുക"</string>
     <string name="picker_browse" msgid="5554477454636075934">"ബ്രൗസ് ചെയ്യുക…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"ക്ലൗഡ് മീഡിയ ആപ്പ്"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"ക്ലൗഡ് മീഡിയ ആപ്പ്"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"ക്ലൗഡ് മീഡിയ ആക്‌സസ് ചെയ്യുക"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"മറ്റ് സേവനങ്ങളിൽ നിന്ന് നിങ്ങൾ ബാക്കപ്പ് ചെയ്യുന്ന ഫോട്ടോകളും വീഡിയോകളും Android Photopicker-ൽ പങ്കിടുക"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"ക്ലൗഡ് മീഡിയ ആപ്പിൽ നിന്ന്"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ഒന്നുമില്ല"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"ക്ലൗഡ് മീഡിയ ആപ്പ് ഇപ്പോൾ മാറ്റാനാകുന്നില്ല."</string>
     <string name="add" msgid="2894574044585549298">"ചേർക്കുക"</string>
     <string name="deselect" msgid="4297825044827769490">"തിരഞ്ഞെടുത്തത് മാറ്റുക"</string>
     <string name="deselected" msgid="8488133193326208475">"തിരഞ്ഞെടുത്തത് മാറ്റി"</string>

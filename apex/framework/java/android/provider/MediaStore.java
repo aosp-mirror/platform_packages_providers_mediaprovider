@@ -1198,7 +1198,7 @@ public final class MediaStore {
      * The displayed prompt will reflect all the media items you're requesting,
      * including those for which you already hold write access. If you want to
      * determine if you already hold write access before requesting access, use
-     * {@code ContentResolver#checkUriPermission(Uri, int, int)} with
+     * {@link Context#checkUriPermission(Uri, int, int, int)} with
      * {@link Intent#FLAG_GRANT_WRITE_URI_PERMISSION}.
      * <p>
      * For security and performance reasons this method does not support
@@ -1239,7 +1239,7 @@ public final class MediaStore {
      * The displayed prompt will reflect all the media items you're requesting,
      * including those for which you already hold write access. If you want to
      * determine if you already hold write access before requesting access, use
-     * {@code ContentResolver#checkUriPermission(Uri, int, int)} with
+     * {@link Context#checkUriPermission(Uri, int, int, int)} with
      * {@link Intent#FLAG_GRANT_WRITE_URI_PERMISSION}.
      *
      * @param resolver Used to connect with {@link MediaStore#AUTHORITY}.
@@ -1280,7 +1280,7 @@ public final class MediaStore {
      * The displayed prompt will reflect all the media items you're requesting,
      * including those for which you already hold write access. If you want to
      * determine if you already hold write access before requesting access, use
-     * {@code ContentResolver#checkUriPermission(Uri, int, int)} with
+     * {@link Context#checkUriPermission(Uri, int, int, int)} with
      * {@link Intent#FLAG_GRANT_WRITE_URI_PERMISSION}.
      *
      * @param resolver Used to connect with {@link MediaStore#AUTHORITY}.
@@ -1321,7 +1321,7 @@ public final class MediaStore {
      * The displayed prompt will reflect all the media items you're requesting,
      * including those for which you already hold write access. If you want to
      * determine if you already hold write access before requesting access, use
-     * {@code ContentResolver#checkUriPermission(Uri, int, int)} with
+     * {@link Context#checkUriPermission(Uri, int, int, int)} with
      * {@link Intent#FLAG_GRANT_WRITE_URI_PERMISSION}.
      *
      * @param resolver Used to connect with {@link MediaStore#AUTHORITY}.

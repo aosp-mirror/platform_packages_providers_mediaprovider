@@ -39,15 +39,12 @@
     <string name="allow" msgid="8885707816848569619">"Benarkan"</string>
     <string name="deny" msgid="6040983710442068936">"Tolak"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Semak imbas…"</string>
-    <string name="picker_settings" msgid="6443463167344790260">"Apl media awan"</string>
-    <!-- no translation found for picker_settings_system_settings_menu_title (3055084757610063581) -->
+    <!-- no translation found for picker_settings (6443463167344790260) -->
     <skip />
     <string name="picker_settings_title" msgid="5647700706470673258">"Apl media awan"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Kongsi foto dan video yang anda sandarkan daripada perkhidmatan lain dalam Pemilih Foto Android"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Akses media awan daripada"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Tiada"</string>
-    <!-- no translation found for picker_settings_toast_error (697274445512467469) -->
-    <skip />
     <string name="add" msgid="2894574044585549298">"Tambah"</string>
     <string name="deselect" msgid="4297825044827769490">"Nyahpilih"</string>
     <string name="deselected" msgid="8488133193326208475">"Dinyahpilih"</string>

@@ -16,25 +16,14 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.util.StringUtils.componentStateToString;
-
 import android.app.Application;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.util.Log;
 
-import androidx.annotation.NonNull;
-
-import com.android.modules.utils.BackgroundThread;
-import com.android.providers.media.photopicker.PhotoPickerSettingsActivity;
 import com.android.providers.media.util.Logging;
 
 import java.io.File;
 
 public class MediaApplication extends Application {
-    private static final String TAG = "MediaApplication";
-
     /**
      * MediaProvider's code runs in two processes: primary and UI (PhotoPicker).
      *
@@ -50,12 +39,8 @@ public class MediaApplication extends Application {
      * ":PhotoPicker".
      */
     private static final boolean sIsUiProcess;
-    @NonNull
-    private static final ConfigStore sConfigStore;
-
     static {
         sIsUiProcess = getProcessName().endsWith(":PhotoPicker");
-        sConfigStore = new ConfigStore.ConfigStoreImpl();
 
         // Only need to load fuse lib in the primary process.
         if (!sIsUiProcess) {
@@ -69,27 +54,6 @@ public class MediaApplication extends Application {
 
         final File persistentDir = this.getDir("logs", Context.MODE_PRIVATE);
         Logging.initPersistent(persistentDir);
-
-        if (isPrimaryProcess()) {
-            readAndApplyDeviceConfig();
-            sConfigStore.addOnChangeListener(
-                    BackgroundThread.getExecutor(), this::readAndApplyDeviceConfig);
-        }
-    }
-
-    private void readAndApplyDeviceConfig() {
-        final int newComponentState = sConfigStore.getAllowlistedCloudProviders().isEmpty()
-                ? PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-                : PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
-
-        final ComponentName settingActivityComponentName = new ComponentName(/* context */ this,
-                PhotoPickerSettingsActivity.class);
-
-        getPackageManager().setComponentEnabledSetting(
-                settingActivityComponentName, newComponentState, PackageManager.DONT_KILL_APP);
-
-        Log.i(TAG, "Changed PhotoPickerSettingsActivity component state to "
-                + componentStateToString(newComponentState));
     }
 
     /** Check if this process is the primary MediaProvider's process. */

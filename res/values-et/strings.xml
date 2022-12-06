@@ -40,10 +40,13 @@
     <string name="deny" msgid="6040983710442068936">"Keela"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Sirvimine …"</string>
     <string name="picker_settings" msgid="6443463167344790260">"Pilvemeediarakendus"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Pilvemeediarakendus"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Pilvemeediarakendus"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Jagage Androidi fotovalijas fotosid ja videoid, mida varundate muudest teenustest"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Pilvemeediarakendus:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Pole"</string>
+    <!-- no translation found for picker_settings_toast_error (697274445512467469) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"Lisa"</string>
     <string name="deselect" msgid="4297825044827769490">"Tühista valik"</string>
     <string name="deselected" msgid="8488133193326208475">"Valik on tühistatud"</string>

@@ -40,7 +40,6 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
-import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.util.Log;
 import android.view.Menu;
@@ -85,8 +84,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private static final float BOTTOM_SHEET_PEEK_HEIGHT_PERCENTAGE = 0.60f;
     private static final float HIDE_PROFILE_BUTTON_THRESHOLD = -0.5f;
     private static final String LOGGER_INSTANCE_ID_ARG = "loggerInstanceIdArg";
-    private static final String ENABLE_SETTINGS_SYS_PROP =
-            "debug.photopicker.enable_settings_screen";
 
     private PickerViewModel mPickerViewModel;
     private Selection mSelection;
@@ -175,8 +172,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mFragmentContainerView = findViewById(R.id.fragment_container);
 
         mCrossProfileListeners = new CrossProfileListeners();
-
-        enableSettingsActivity();
     }
 
     @Override
@@ -283,10 +278,16 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
+    public void onRestart() {
+        super.onRestart();
+
         // TODO(b/195009187): Conditionally reset PhotoPicker when current profile's cloud
-        // provider has changed.
+        // provider has changed. Currently, we'll reset picker each time it restarts when settings
+        // page is enabled to avoid the scenario where cloud provider has changed from the settings
+        // page but picker continues to show stale data from old provider.
+        if (isSettingsScreenEnabled()) {
+            reset(/* switchToPersonalProfile */ false);
+        }
     }
 
     private void rerouteGetContentRequestIfRequired() {
@@ -508,15 +509,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mPickerViewModel.logPickerCancel(Binder.getCallingUid(), getCallingPackage());
     }
 
-    private void enableSettingsActivity() {
-        if (isSettingsScreenEnabled()) {
-            final ComponentName componentName = new ComponentName(this,
-                    PhotoPickerSettingsActivity.class);
-            getPackageManager().setComponentEnabledSetting(componentName,
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
-        }
-    }
-
     @UserIdInt
     private int getCurrentUserId() {
         final UserIdManager userIdManager = mPickerViewModel.getUserIdManager();
@@ -697,10 +689,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
      * Returns {@code true} if settings page is enabled.
      */
     private boolean isSettingsScreenEnabled() {
-        List<String> allowedCloudProviders = mPickerViewModel.getConfigStore()
-                .getAllowlistedCloudProviders();
-        return !allowedCloudProviders.isEmpty()
-                && SystemProperties.getBoolean(ENABLE_SETTINGS_SYS_PROP, false);
+        final ComponentName componentName = new ComponentName(this,
+                PhotoPickerSettingsActivity.class);
+        return getPackageManager().getComponentEnabledSetting(componentName)
+                == PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
     }
 
     /**

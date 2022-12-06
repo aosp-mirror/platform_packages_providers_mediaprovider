@@ -40,10 +40,12 @@
     <string name="deny" msgid="6040983710442068936">"Weier"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Blaai …"</string>
     <string name="picker_settings" msgid="6443463167344790260">"Wolkmedia-app"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Wolkmedia-app"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Wolkmedia-app"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Deel foto\'s en video\'s wat jy van ander dienste af in die Android Fotokieser rugsteun"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Kry toegang tot wolkmedia vanaf"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Geen"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Kon nie wolkmedia-app op dié tydstip verander nie."</string>
     <string name="add" msgid="2894574044585549298">"Voeg by"</string>
     <string name="deselect" msgid="4297825044827769490">"Ontkies"</string>
     <string name="deselected" msgid="8488133193326208475">"Ontkies"</string>

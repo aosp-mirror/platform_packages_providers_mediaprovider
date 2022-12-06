@@ -40,8 +40,7 @@
     <string name="deny" msgid="6040983710442068936">"Отказ"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Преглед…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"Медийно приложение в облака"</string>
-    <!-- no translation found for picker_settings_system_settings_menu_title (3055084757610063581) -->
-    <skip />
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Приложение за мултимедия в облака"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Приложение за мултимедия в облака"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Инструментът на Android за избор на снимки ви дава възможност да споделяте изображения и видеоклипове, на които създавате резервни копия от други услуги"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Достъп до мултимедия в облака от"</string>

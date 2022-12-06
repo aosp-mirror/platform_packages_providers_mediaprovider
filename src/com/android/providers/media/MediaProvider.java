@@ -1352,20 +1352,11 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     protected void storageNativeBootPropertyChangeListener() {
-        final String photoPickerGetContentActivity =
-                PhotoPickerActivity.class.getPackage().getName() + ".PhotoPickerGetContentActivity";
-        final ComponentName componentName = new ComponentName(getContext().getPackageName(),
-                photoPickerGetContentActivity);
+        setComponentEnabledSetting("PhotoPickerGetContentActivity",
+                mConfigStore.isGetContentTakeOverEnabled());
 
-        final int expectedState = mConfigStore.isGetContentTakeOverEnabled()
-                ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
-
-        Log.i(TAG, "Changed PhotoPickerGetContentActivity component state to "
-                + componentStateToString(expectedState));
-
-        getContext().getPackageManager().setComponentEnabledSetting(componentName, expectedState,
-                PackageManager.DONT_KILL_APP);
+        setComponentEnabledSetting("PhotoPickerUserSelectActivity",
+                mConfigStore.isUserSelectForAppEnabled());
 
         if (mConfigStore.isStableUrisForInternalVolumeEnabled()
                 && mVolumeCache.getExternalVolumeNames().contains(
@@ -1375,6 +1366,23 @@ public class MediaProvider extends ContentProvider {
                             + " and recovery setup.");
             setupVolumeDbBackupForInternalIfMissing();
         }
+    }
+
+    private void setComponentEnabledSetting(@NonNull String activityName, boolean isEnabled) {
+        final String activityFullName =
+                PhotoPickerActivity.class.getPackage().getName() + "." + activityName;
+        final ComponentName componentName = new ComponentName(getContext().getPackageName(),
+                activityFullName);
+
+        final int expectedState = isEnabled
+                ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+
+        Log.i(TAG, "Changed " + activityName + " component state to "
+                + componentStateToString(expectedState));
+
+        getContext().getPackageManager().setComponentEnabledSetting(componentName, expectedState,
+                PackageManager.DONT_KILL_APP);
     }
 
     Optional<DatabaseHelper> getDatabaseHelper(String dbName) {

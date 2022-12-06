@@ -40,8 +40,7 @@
     <string name="deny" msgid="6040983710442068936">"거부"</string>
     <string name="picker_browse" msgid="5554477454636075934">"찾아보기…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"클라우드 미디어 앱"</string>
-    <!-- no translation found for picker_settings_system_settings_menu_title (3055084757610063581) -->
-    <skip />
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"클라우드 미디어 앱"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"클라우드 미디어 앱"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"다른 서비스에서 백업한 사진과 동영상을 Android 사진 선택 도구에서 공유합니다."</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"클라우드 미디어 액세스 위치"</string>

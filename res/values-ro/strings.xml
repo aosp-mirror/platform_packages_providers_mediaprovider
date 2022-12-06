@@ -40,8 +40,7 @@
     <string name="deny" msgid="6040983710442068936">"Refuz"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Răsfoiește…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"Aplicația media în cloud"</string>
-    <!-- no translation found for picker_settings_system_settings_menu_title (3055084757610063581) -->
-    <skip />
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplicația media în cloud"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplicația media în cloud"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Distribuie fotografiile și videoclipurile cărora le faci backup din alte servicii în Android Photopicker"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accesează conținutul media în cloud din"</string>

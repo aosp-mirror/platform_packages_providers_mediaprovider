@@ -278,10 +278,16 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
+    public void onRestart() {
+        super.onRestart();
+
         // TODO(b/195009187): Conditionally reset PhotoPicker when current profile's cloud
-        // provider has changed.
+        // provider has changed. Currently, we'll reset picker each time it restarts when settings
+        // page is enabled to avoid the scenario where cloud provider has changed from the settings
+        // page but picker continues to show stale data from old provider.
+        if (isSettingsScreenEnabled()) {
+            reset(/* switchToPersonalProfile */ false);
+        }
     }
 
     private void rerouteGetContentRequestIfRequired() {

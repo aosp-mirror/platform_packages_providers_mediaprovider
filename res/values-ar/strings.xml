@@ -40,8 +40,7 @@
     <string name="deny" msgid="6040983710442068936">"رفض"</string>
     <string name="picker_browse" msgid="5554477454636075934">"جارٍ التصفّح..."</string>
     <string name="picker_settings" msgid="6443463167344790260">"تطبيق وسائط في السحابة الإلكترونية"</string>
-    <!-- no translation found for picker_settings_system_settings_menu_title (3055084757610063581) -->
-    <skip />
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"تطبيق وسائط في السحابة الإلكترونية"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"تطبيق الوسائط في السحابة الإلكترونية"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"‏يمكنك استخدام Android Photopicker لمشاركة الصور والفيديوهات التي تحتفظ بنسخة احتياطية منها من الخدمات الأخرى."</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"الوصول إلى الوسائط في السحابة الإلكترونية من"</string>

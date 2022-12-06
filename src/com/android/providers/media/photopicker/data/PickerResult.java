@@ -83,9 +83,9 @@ public class PickerResult {
      * @param ItemList list of Item for which we return uri list.
      */
     @NonNull
-    private static List<Uri> getPickerUrisForItems(@NonNull List<Item> ItemList) {
+    public static List<Uri> getPickerUrisForItems(@NonNull List<Item> itemList) {
         List<Uri> uris = new ArrayList<>();
-        for (Item item : ItemList) {
+        for (Item item : itemList) {
             uris.add(getPickerUri(item.getContentUri()));
         }
 

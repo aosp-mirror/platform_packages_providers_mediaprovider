@@ -696,7 +696,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         // If we are here then the file supports HEVC, so we only check if the package is in the
         // mAppCompatCapabilities.  If it's there, we will respect that value.
         LocalCallingIdentity identity = mMediaProvider.getCachedCallingIdentityForTranscoding(uid);
-        final String[] callingPackages = identity.getSharedPackageNames();
+        final String[] callingPackages = identity.getSharedPackageNamesArray();
 
         // Check app manifest support
         for (String callingPackage : callingPackages) {

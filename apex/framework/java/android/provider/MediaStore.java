@@ -4859,8 +4859,7 @@ public final class MediaStore {
     }
 
     /** {@hide} */
-    public static String getCurrentCloudProvider(@NonNull Context context) {
-        final ContentResolver resolver = context.getContentResolver();
+    public static String getCurrentCloudProvider(@NonNull ContentResolver resolver) {
         try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
             final Bundle out = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
                     /* extras */ null);

@@ -1067,6 +1067,7 @@ public class MediaProvider extends ContentProvider {
                 MIGRATION_LISTENER, mIdGenerator, true);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
         mPickerDbFacade = new PickerDbFacade(context);
+        mMediaGrants = new MediaGrants(mExternalDatabase);
 
         mConfigStore = createConfigStore();
         mPickerSyncController = new PickerSyncController(context, mPickerDbFacade, mConfigStore);
@@ -1674,6 +1675,8 @@ public class MediaProvider extends ContentProvider {
         deleteAndroidMediaEntries(db, packageName, userId);
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
+        // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package is removed.
+        mMediaGrants.removeAllMediaGrantsForPackage(packageName);
     }
 
     private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
@@ -6221,6 +6224,22 @@ public class MediaProvider extends ContentProvider {
                     restoreLocalCallingIdentity(token);
                 }
             }
+            case MediaStore.GRANT_MEDIA_READ_FOR_PACKAGE_CALL: {
+                if (!checkPermissionSelf(Binder.getCallingUid())) {
+                    throw new SecurityException("Create media grants not allowed. "
+                            + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
+                            + " Calling UID:" + Binder.getCallingUid()
+                            + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
+                            + " Media Provider UID:" + MY_UID);
+                }
+                final int packageUid = extras.getInt(Intent.EXTRA_UID);
+                final ArrayList<Uri> uris =
+                            extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
+                final PackageManager pm = getContext().getPackageManager();
+                final String packageName = pm.getNameForUid(packageUid);
+                mMediaGrants.addMediaGrantsForPackage(packageName, uris);
+                return null;
+            }
             case MediaStore.CREATE_WRITE_REQUEST_CALL:
             case MediaStore.CREATE_FAVORITE_REQUEST_CALL:
             case MediaStore.CREATE_TRASH_REQUEST_CALL:
@@ -10205,6 +10224,7 @@ public class MediaProvider extends ContentProvider {
     private PickerSyncController mPickerSyncController;
     private TranscodeHelper mTranscodeHelper;
     private DatabaseBackupAndRecovery mDatabaseBackupAndRecovery;
+    private MediaGrants mMediaGrants;
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;

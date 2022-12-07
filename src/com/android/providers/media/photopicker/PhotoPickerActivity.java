@@ -17,9 +17,12 @@
 package com.android.providers.media.photopicker;
 
 import static android.content.Intent.ACTION_GET_CONTENT;
+import static android.provider.MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP;
+import static android.provider.MediaStore.grantMediaReadForPackage;
 
 import static com.android.providers.media.photopicker.PhotoPickerSettingsActivity.EXTRA_CURRENT_USER_ID;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
+import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
 import android.annotation.UserIdInt;
@@ -67,6 +70,7 @@ import com.android.providers.media.photopicker.ui.TabContainerFragment;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
+import com.android.providers.media.util.ForegroundThread;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback;
@@ -489,8 +493,27 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     public void setResultAndFinishSelf() {
-        setResult(Activity.RESULT_OK, getPickerResponseIntent(mSelection.canSelectMultiple(),
-                mSelection.getSelectedItems()));
+        Intent intent = getIntent();
+        // In addition to the activity result, add the selected files to the MediaProvider
+        // media_grants database.
+        if (intent.getAction().equals(ACTION_USER_SELECT_IMAGES_FOR_APP)) {
+            // Since Photopicker is in permission mode, don't send back URI grants.
+            setResult(Activity.RESULT_OK);
+            // The permission controller will pass the requesting package's UID here
+            Bundle extras = intent.getExtras();
+            int uid = extras.getInt(Intent.EXTRA_UID);
+            List<Uri> uris = getPickerUrisForItems(mSelection.getSelectedItems());
+            ForegroundThread.getExecutor().execute(() -> {
+                // Handle grants in another thread to not block the UI.
+                grantMediaReadForPackage(getApplicationContext(), uid, uris);
+            });
+        } else {
+            // Include the URI grants in the data we send back to the parent.
+            setResult(
+                    Activity.RESULT_OK,
+                    getPickerResponseIntent(
+                            mSelection.canSelectMultiple(), mSelection.getSelectedItems()));
+        }
 
         logPickerSelectionConfirmed(mSelection.getSelectedItems().size());
         finishWithoutLoggingCancelledResult();

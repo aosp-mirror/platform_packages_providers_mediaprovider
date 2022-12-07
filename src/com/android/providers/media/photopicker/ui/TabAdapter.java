@@ -24,6 +24,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
@@ -49,7 +50,8 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     @NonNull private final LiveData<String> mCloudMediaProviderAppTitle;
     @NonNull private final LiveData<String> mCloudMediaAccountName;
 
-    private Banner mBanner;
+    @Nullable private Banner mBanner;
+    @Nullable private OnBannerClickListener mOnBannerClickListener;
     /**
      * Combined list of Sections and Media Items, ordered based on their position in the view.
      *
@@ -65,12 +67,14 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     TabAdapter(@NonNull ImageLoader imageLoader, @NonNull LifecycleOwner lifecycleOwner,
             @NonNull LiveData<String> cloudMediaProviderAppTitle,
             @NonNull LiveData<String> cloudMediaAccountName,
-            @NonNull LiveData<Boolean> shouldShowChooseAppBanner) {
+            @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
+            @NonNull OnBannerClickListener onChooseAppBannerClickListener) {
         mImageLoader = imageLoader;
         mCloudMediaProviderAppTitle = cloudMediaProviderAppTitle;
         mCloudMediaAccountName = cloudMediaAccountName;
 
-        shouldShowChooseAppBanner.observe(lifecycleOwner, this::setChooseAppBannerShown);
+        shouldShowChooseAppBanner.observe(lifecycleOwner,
+                isShown -> setChooseAppBannerShown(isShown, onChooseAppBannerClickListener));
     }
 
     @NonNull
@@ -148,7 +152,7 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private void onBindBannerViewHolder(@NonNull RecyclerView.ViewHolder itemHolder) {
         final BannerHolder bannerVH = (BannerHolder) itemHolder;
         bannerVH.bind(mBanner, mCloudMediaProviderAppTitle.getValue(),
-                mCloudMediaAccountName.getValue());
+                mCloudMediaAccountName.getValue(), mOnBannerClickListener);
     }
 
     void onBindSectionViewHolder(@NonNull RecyclerView.ViewHolder itemHolder, int position) {
@@ -180,17 +184,21 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     /**
      * Update the 'choose app' banner visibility in tab adapter
      */
-    private void setChooseAppBannerShown(boolean isShown) {
+    private void setChooseAppBannerShown(boolean isShown,
+            @NonNull OnBannerClickListener onBannerClickListener) {
         if (isShown) {
             if (mBanner == null) {
                 mBanner = Banner.CHOOSE_APP;
+                mOnBannerClickListener = onBannerClickListener;
                 notifyItemInserted(/* position */ 0);
             } else if (mBanner != Banner.CHOOSE_APP) {
                 mBanner = Banner.CHOOSE_APP;
+                mOnBannerClickListener = onBannerClickListener;
                 notifyItemChanged(/* position */ 0);
             }
         } else if (mBanner == Banner.CHOOSE_APP) {
             mBanner = null;
+            mOnBannerClickListener = null;
             notifyItemRemoved(/* position */ 0);
         }
     }
@@ -237,12 +245,17 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             mActionButton = itemView.findViewById(R.id.action_button);
         }
 
-        void bind(@NonNull Banner banner, String cloudAppName, String cloudUserAccount) {
+        void bind(@NonNull Banner banner, String cloudAppName, String cloudUserAccount,
+                @NonNull OnBannerClickListener onBannerClickListener) {
             final Context context = itemView.getContext();
+
+            itemView.setOnClickListener(v -> onBannerClickListener.onBannerClick());
 
             mPrimaryText.setText(banner.getPrimaryText(context, cloudAppName));
             mSecondaryText.setText(banner.getSecondaryText(context, cloudAppName,
                     cloudUserAccount));
+
+            mDismissButton.setOnClickListener(v -> onBannerClickListener.onDismissButtonClick());
 
             if (banner.mActionButtonText != -1) {
                 mActionButton.setText(banner.mActionButtonText);
@@ -305,5 +318,10 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     throw new IllegalStateException("Unknown banner type " + name());
             }
         }
+    }
+
+    interface OnBannerClickListener {
+        void onBannerClick();
+        void onDismissButtonClick();
     }
 }

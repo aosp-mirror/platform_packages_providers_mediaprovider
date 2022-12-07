@@ -24,7 +24,8 @@ import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.AC
 
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
-import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
+
+import static java.util.Objects.requireNonNull;
 
 import android.content.Context;
 import android.content.Intent;
@@ -319,28 +320,40 @@ public class PickerDataLayer {
     }
 
     /**
-     * Cursor wrapper that sets the column names to {@link ALL_PROJECTION}.
-     * Also sets the authority received in the constructor if missing from the cursor.
-     *
-     * Extra columns in the original cursor are ignored.
-     * Missing columns (except authority) are set with default value {@code null}.
+     * A {@link CursorWrapper} that exposes the data stored in the underlying {@link Cursor} in the
+     * {@link ALL_PROJECTION} "format", additionally overriding the {@link AUTHORITY} column.
+     * Columns from the underlying that are not in the {@link ALL_PROJECTION} are ignored.
+     * Missing columns (except {@link AUTHORITY}) are set with default value of {@code null}.
      */
     private static class AlbumsCursorWrapper extends CursorWrapper {
         static final String TAG = "AlbumsCursorWrapper";
-        static final Map<String, Integer> ALL_PROJECTION_COLUMN_NAME_TO_INDEX_MAP =
-                new HashMap<>();
+
+        @NonNull static final Map<String, Integer> COLUMN_NAME_TO_INDEX_MAP;
+        static final int AUTHORITY_COLUMN_INDEX;
         static {
+            final Map<String, Integer> map = new HashMap<>();
             for (int columnIndex = 0; columnIndex < ALL_PROJECTION.length; columnIndex++) {
-                ALL_PROJECTION_COLUMN_NAME_TO_INDEX_MAP.put(ALL_PROJECTION[columnIndex],
-                        columnIndex);
+                map.put(ALL_PROJECTION[columnIndex], columnIndex);
             }
+            COLUMN_NAME_TO_INDEX_MAP = map;
+            AUTHORITY_COLUMN_INDEX = map.get(AUTHORITY);
         }
 
-        private final String mAuthority;
+        @NonNull final String mAuthority;
+        @NonNull final int[] mColumnIndexToCursorColumnIndexArray;
 
-        AlbumsCursorWrapper(Cursor cursor, String authority) {
-            super(cursor);
-            mAuthority = authority;
+        boolean mAuthorityMismatchLogged = false;
+
+        AlbumsCursorWrapper(@NonNull Cursor cursor, @NonNull String authority) {
+            super(requireNonNull(cursor));
+            mAuthority = requireNonNull(authority);
+
+            mColumnIndexToCursorColumnIndexArray = new int[ALL_PROJECTION.length];
+            for (int columnIndex = 0; columnIndex < ALL_PROJECTION.length; columnIndex++) {
+                final String columnName = ALL_PROJECTION[columnIndex];
+                final int cursorColumnIndex = cursor.getColumnIndex(columnName);
+                mColumnIndexToCursorColumnIndexArray[columnIndex] = cursorColumnIndex;
+            }
         }
 
         @Override
@@ -350,7 +363,7 @@ public class PickerDataLayer {
 
         @Override
         public int getColumnIndex(String columnName) {
-            return ALL_PROJECTION_COLUMN_NAME_TO_INDEX_MAP.get(columnName);
+            return COLUMN_NAME_TO_INDEX_MAP.get(columnName);
         }
 
         @Override
@@ -377,15 +390,28 @@ public class PickerDataLayer {
 
         @Override
         public String getString(int columnIndex) {
-            final String columnName = getColumnName(columnIndex);
-            final String columnValue = getCursorString(getWrappedCursor(), columnName);
-            if (!AUTHORITY.equals(columnName)) {
-                return columnValue;
+            // 1. Get value from the underlying cursor.
+            final int cursorColumnIndex = mColumnIndexToCursorColumnIndexArray[columnIndex];
+            final String cursorValue = cursorColumnIndex != -1
+                    ? getWrappedCursor().getString(cursorColumnIndex) : null;
+
+            // 2a. If this is NOT the AUTHORITY column: just return the value.
+            if (columnIndex != AUTHORITY_COLUMN_INDEX) {
+                return cursorValue;
             }
-            if (columnValue != null && !columnValue.equals(mAuthority)) {
-                Log.w(TAG, "Cursor authority " + columnValue + " is different from the"
-                        + "saved authority " + mAuthority);
+
+            // Validity check: the cursor's authority value, if present, is expected to match the
+            // mAuthority. Don't throw though, just log (at WARN). Also, only log once for the
+            // cursor (we don't need 10,000 of these lines in the log).
+            if (!mAuthorityMismatchLogged
+                    && cursorValue != null && !cursorValue.equals(mAuthority)) {
+                Log.w(TAG, "Cursor authority - '" + cursorValue + "' - is different from the "
+                        + "expected authority '" + mAuthority + "'");
+                mAuthorityMismatchLogged = true;
             }
+
+            // 2b. If this IS the AUTHORITY column: "override" whatever value (which may be null)
+            // is stored in the cursor.
             return mAuthority;
         }
     }

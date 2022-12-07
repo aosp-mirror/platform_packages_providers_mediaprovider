@@ -25,14 +25,26 @@ import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
 import static com.android.providers.media.AccessChecker.getWhereForConstrainedAccess;
 import static com.android.providers.media.AccessChecker.getWhereForMediaTypeMatch;
 import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
+import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
+import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
 import static com.android.providers.media.MediaProvider.AUDIO_MEDIA;
 import static com.android.providers.media.MediaProvider.DOWNLOADS;
+import static com.android.providers.media.MediaProvider.DOWNLOADS_ID;
 import static com.android.providers.media.MediaProvider.FILES;
+import static com.android.providers.media.MediaProvider.FILES_ID;
 import static com.android.providers.media.MediaProvider.IMAGES_MEDIA;
+import static com.android.providers.media.MediaProvider.IMAGES_MEDIA_ID;
+import static com.android.providers.media.MediaProvider.IMAGES_THUMBNAILS;
+import static com.android.providers.media.MediaProvider.IMAGES_THUMBNAILS_ID;
 import static com.android.providers.media.MediaProvider.VIDEO_MEDIA;
+import static com.android.providers.media.MediaProvider.VIDEO_MEDIA_ID;
+import static com.android.providers.media.MediaProvider.VIDEO_THUMBNAILS;
+import static com.android.providers.media.MediaProvider.VIDEO_THUMBNAILS_ID;
 
 import static com.google.common.truth.Truth.assertWithMessage;
+
+import static org.junit.Assert.assertThrows;
 
 import android.os.Bundle;
 import android.system.Os;
@@ -183,6 +195,109 @@ public class AccessCheckerTest {
     }
 
     @Test
+    public void testHasUserSelectedAccess_noPerms() {
+        LocalCallingIdentity hasNoPerms = LocalCallingIdentity.forTest(
+                InstrumentationRegistry.getTargetContext(), Os.getuid(), 0);
+        for (int collection : Arrays.asList(
+                AUDIO_MEDIA,
+                VIDEO_MEDIA,
+                IMAGES_MEDIA,
+                DOWNLOADS,
+                FILES)) {
+            // App with no permissions doesn't have access to user selected items.
+            assertWithMessage("Expected no user selected read access to collection " + collection)
+                    .that(hasUserSelectedAccess(hasNoPerms, collection, false)).isFalse();
+        }
+
+        for (int collection : Arrays.asList(
+                AUDIO_MEDIA,
+                VIDEO_MEDIA,
+                IMAGES_MEDIA,
+                DOWNLOADS,
+                FILES)) {
+            // App with no permissions doesn't have access to user selected items.
+            assertWithMessage("Expected no user selected write access to collection " + collection)
+                    .that(hasUserSelectedAccess(hasNoPerms, collection, true)).isFalse();
+        }
+    }
+
+    @Test
+    public void testHasUserSelectedAccess_userSelectedPerms() {
+        LocalCallingIdentity userSelectPerms = LocalCallingIdentity.forTest(
+                InstrumentationRegistry.getTargetContext(), Os.getuid(),
+                getUserSelectedPermission());
+        for (int collection : Arrays.asList(
+                VIDEO_MEDIA,
+                IMAGES_MEDIA,
+                DOWNLOADS,
+                FILES)) {
+            // App with user selected permission grant has read access to user selected visual media
+            // files
+            assertWithMessage("Expected no user selected read access to collection " + collection)
+                    .that(hasUserSelectedAccess(userSelectPerms, collection, false)).isTrue();
+        }
+
+        // App with user selected permission grant doesn't have access to audio files.
+        assertWithMessage("Expected no user selected read access to audio collection")
+                .that(hasUserSelectedAccess(userSelectPerms, AUDIO_MEDIA, false)).isFalse();
+
+        for (int collection : Arrays.asList(
+                AUDIO_MEDIA,
+                VIDEO_MEDIA,
+                IMAGES_MEDIA,
+                DOWNLOADS,
+                FILES)) {
+            // App with user selected permission grant doesn't have write access
+            assertWithMessage("Expected no user selected write access to collection " + collection)
+                    .that(hasUserSelectedAccess(userSelectPerms, collection, true)).isFalse();
+        }
+    }
+
+    @Test
+    public void testGetWhereForUserSelectedAccess() {
+        LocalCallingIdentity callingIdentity = LocalCallingIdentity.forTest(
+                InstrumentationRegistry.getTargetContext(), Os.getuid(),
+                getUserSelectedPermission());
+        for (int collection : Arrays.asList(
+                VIDEO_MEDIA,
+                VIDEO_MEDIA_ID,
+                IMAGES_MEDIA,
+                IMAGES_MEDIA_ID,
+                DOWNLOADS,
+                DOWNLOADS_ID,
+                FILES,
+                FILES_ID)) {
+            assertWithMessage("Expected user selected where clause for collection " + collection)
+                    .that(getWhereForUserSelectedAccess(callingIdentity, collection))
+                    .isEqualTo("_id IN (SELECT file_id from media_grants WHERE "
+                            + getWhereForOwnerPackageMatch(callingIdentity) + ")");
+        }
+
+        for (int collection : Arrays.asList(
+                IMAGES_THUMBNAILS,
+                IMAGES_THUMBNAILS_ID)) {
+            assertWithMessage("Expected user selected where clause for collection " + collection)
+                    .that(getWhereForUserSelectedAccess(callingIdentity, collection))
+                    .isEqualTo("image_id IN (SELECT file_id from media_grants WHERE "
+                            + getWhereForOwnerPackageMatch(callingIdentity) + ")");
+        }
+
+        for (int collection : Arrays.asList(
+                VIDEO_THUMBNAILS,
+                VIDEO_THUMBNAILS_ID)) {
+            assertWithMessage("Expected user selected where clause for collection " + collection)
+                    .that(getWhereForUserSelectedAccess(callingIdentity, collection))
+                    .isEqualTo("video_id IN (SELECT file_id from media_grants WHERE "
+                            + getWhereForOwnerPackageMatch(callingIdentity) + ")");
+        }
+
+
+        assertThrows(UnsupportedOperationException.class,
+                () -> getWhereForUserSelectedAccess(callingIdentity, AUDIO_MEDIA));
+    }
+
+
+    @Test
     public void testGetWhereForConstrainedAccess_forRead_noPerms() {
         LocalCallingIdentity hasNoPerms = LocalCallingIdentity.forTest(
                 InstrumentationRegistry.getTargetContext(), Os.getuid(), 0);
@@ -323,6 +438,10 @@ public class AccessCheckerTest {
                 | LocalCallingIdentity.PERMISSION_READ_VIDEO
                 | LocalCallingIdentity.PERMISSION_READ_IMAGES
                 | LocalCallingIdentity.PERMISSION_IS_LEGACY_READ;
+    }
+
+    private static int getUserSelectedPermission() {
+        return LocalCallingIdentity.PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED;
     }
 
     private static int getLegacyWritePermission() {

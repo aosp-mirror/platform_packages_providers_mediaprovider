@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker;
 
+import static android.database.DatabaseUtils.dumpCursorToString;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALL_PROJECTION;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.AUTHORITY;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
@@ -56,6 +57,7 @@ import java.util.Map;
 public class PickerDataLayer {
     private static final String TAG = "PickerDataLayer";
     private static final boolean DEBUG = false;
+    private static final boolean DEBUG_DUMP_CURSORS = false;
 
     public static final String QUERY_ARG_LOCAL_ONLY = "android:query-arg-local-only";
 
@@ -91,7 +93,10 @@ public class PickerDataLayer {
 
     private Cursor fetchMediaInternal(Bundle queryArgs) {
         if (DEBUG) {
-            Log.d(TAG, "fetchMediaInternal() [" + Thread.currentThread() + "] args=" + queryArgs);
+            Log.d(TAG, "fetchMediaInternal() "
+                    + (queryArgs.getBoolean(QUERY_ARG_LOCAL_ONLY) ? "LOCAL_ONLY" : "ALL")
+                    + " args=" + queryArgs);
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         final CloudProviderQueryExtras queryExtras =
@@ -99,6 +104,8 @@ public class PickerDataLayer {
         final String albumAuthority = queryExtras.getAlbumAuthority();
 
         Trace.beginSection(traceSectionName("fetchMediaInternal", albumAuthority));
+
+        Cursor result = null;
         try {
             final boolean isLocalOnly = queryExtras.isLocalOnly();
             final String albumId = queryExtras.getAlbumId();
@@ -119,7 +126,7 @@ public class PickerDataLayer {
                 // Fetch all merged and deduped cloud and local media from 'media' table
                 // This also matches 'merged' albums like Favorites because |authority| will
                 // be null, hence we have to fetch the data from the picker db
-                return mDbFacade.queryMediaForUi(queryExtras.toQueryFilter());
+                result = mDbFacade.queryMediaForUi(queryExtras.toQueryFilter());
             } else {
                 if (isLocalOnly && !isLocal(albumAuthority)) {
                     // This is error condition because when cloud content is disabled, we shouldn't
@@ -134,10 +141,22 @@ public class PickerDataLayer {
                 mSyncController.syncAlbumMedia(albumId, isLocal(albumAuthority));
 
                 // Fetch album specific media for local or cloud from 'album_media' table
-                return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), albumAuthority);
+                result = mDbFacade.queryAlbumMediaForUi(
+                        queryExtras.toQueryFilter(), albumAuthority);
             }
+            return result;
         } finally {
             Trace.endSection();
+            if (DEBUG) {
+                if (result == null) {
+                    Log.d(TAG, "fetchMediaInternal()'s result is null");
+                } else {
+                    Log.d(TAG, "fetchMediaInternal() loaded " + result.getCount() + " items");
+                    if (DEBUG_DUMP_CURSORS) {
+                        Log.v(TAG, dumpCursorToString(result));
+                    }
+                }
+            }
         }
     }
 
@@ -177,10 +196,15 @@ public class PickerDataLayer {
 
     private Cursor fetchAlbumsInternal(Bundle queryArgs) {
         if (DEBUG) {
-            Log.d(TAG, "fetchAlbums() [" + Thread.currentThread() + "] args=" + queryArgs);
+            Log.d(TAG, "fetchAlbums() "
+                    + (queryArgs.getBoolean(QUERY_ARG_LOCAL_ONLY) ? "LOCAL_ONLY" : "ALL")
+                    + " args=" + queryArgs);
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         Trace.beginSection(traceSectionName("fetchAlbums"));
+
+        Cursor result = null;
         try {
             final boolean isLocalOnly = queryArgs.getBoolean(QUERY_ARG_LOCAL_ONLY, false);
             // Refresh the 'media' table so that 'merged' albums (Favorites and Videos) are
@@ -223,18 +247,29 @@ public class PickerDataLayer {
                 return null;
             }
 
-            MergeCursor mergeCursor = new MergeCursor(cursors.toArray(new Cursor[cursors.size()]));
-            mergeCursor.setExtras(cursorExtra);
-            return mergeCursor;
+            result = new MergeCursor(cursors.toArray(new Cursor[cursors.size()]));
+            result.setExtras(cursorExtra);
+            return result;
         } finally {
             Trace.endSection();
+            if (DEBUG) {
+                if (result == null) {
+                    Log.d(TAG, "fetchAlbumsInternal()'s result is null");
+                } else {
+                    Log.d(TAG, "fetchAlbumsInternal() loaded " + result.getCount() + " items");
+                    if (DEBUG_DUMP_CURSORS) {
+                        Log.v(TAG, dumpCursorToString(result));
+                    }
+                }
+            }
         }
     }
 
     @Nullable
     public AccountInfo fetchCloudAccountInfo() {
         if (DEBUG) {
-            Log.d(TAG, "fetchCloudAccountInfo() [" + Thread.currentThread() + "]");
+            Log.d(TAG, "fetchCloudAccountInfo()");
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         final String cloudProvider = mDbFacade.getCloudProvider();

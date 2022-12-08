@@ -48,7 +48,11 @@ import static android.provider.MediaStore.READ_BACKED_UP_FILE_PATHS;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
+import static com.android.providers.media.AccessChecker.getWhereForConstrainedAccess;
 import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
+import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
+import static com.android.providers.media.AccessChecker.hasAccessToCollection;
+import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.LEVEL_DB_READ_LIMIT;
@@ -2396,15 +2400,13 @@ public class MediaProvider extends ContentProvider {
         }
 
         int uriType = matchUri(uri, isCallingPackageAllowedHidden());
-        if (AccessChecker.hasAccessToCollection(mCallingIdentity.get(), uriType,
-                /* forWrite */ true)) {
+        if (hasAccessToCollection(mCallingIdentity.get(), uriType, /* forWrite */ true)) {
             // has direct write access to whole collection, no special filtering needed.
             return null;
         }
 
-        final String writeAccessCheckSql =
-                AccessChecker.getWhereForConstrainedAccess(mCallingIdentity.get(), uriType,
-                        /* forWrite */ true, Bundle.EMPTY);
+        final String writeAccessCheckSql = getWhereForConstrainedAccess(mCallingIdentity.get(),
+                uriType, /* forWrite */ true, Bundle.EMPTY);
 
         final String matchWritableRowsClause = String.format("%s=0 OR (%s=1 AND (%s OR %s))",
                 column, column, MATCH_PENDING_FROM_FUSE, writeAccessCheckSql);
@@ -5599,14 +5601,25 @@ public class MediaProvider extends ContentProvider {
             return;
         }
 
-        if (AccessChecker.hasAccessToCollection(mCallingIdentity.get(), uriType, forWrite)) {
+        if (hasAccessToCollection(mCallingIdentity.get(), uriType, forWrite)) {
             // has direct access to whole collection, no special filtering needed.
             return;
         }
 
-        appendWhereStandalone(qb,
-                AccessChecker.getWhereForConstrainedAccess(mCallingIdentity.get(), uriType,
-                        forWrite, extras));
+        final ArrayList<String> options = new ArrayList<>();
+        if (hasUserSelectedAccess(mCallingIdentity.get(), uriType, forWrite)) {
+            // If app has READ_MEDIA_VISUAL_USER_SELECTED permission, allow access on files granted
+            // via PhotoPicker launched for Permission. These grants are defined in media_grants
+            // table.
+            options.add(getWhereForUserSelectedAccess(mCallingIdentity.get(), uriType));
+        }
+
+        // Allow access to files which are owned by the caller. Or allow access to files based on
+        // legacy or any other special access permissions.
+        options.add(getWhereForConstrainedAccess(mCallingIdentity.get(), uriType, forWrite,
+                extras));
+
+        appendWhereStandalone(qb, TextUtils.join(" OR ", options));
     }
 
     /**

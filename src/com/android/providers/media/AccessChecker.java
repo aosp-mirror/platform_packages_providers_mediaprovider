@@ -136,6 +136,76 @@ public class AccessChecker {
     }
 
     /**
+     * Returns {@code true} if the request is for read access to a collection that contains
+     * visual media files and app has READ_MEDIA_VISUAL_USER_SELECTED permission.
+     *
+     * @param callingIdentity {@link LocalCallingIdentity} of the caller to verify permission state
+     * @param uriType the collection info for which the requested access is,
+     *                e.g., Images -> {@link MediaProvider}#IMAGES_MEDIA.
+     * @param forWrite type of the access requested. Read / write access to the file / collection.
+     */
+    public static boolean hasUserSelectedAccess(@NonNull LocalCallingIdentity callingIdentity,
+            int uriType, boolean forWrite) {
+        if (forWrite) {
+            // Apps only get read access via media_grants. For write access on user selected items,
+            // app needs to get uri grants.
+            return false;
+        }
+
+        switch (uriType) {
+            case IMAGES_MEDIA:
+            case IMAGES_MEDIA_ID:
+            case IMAGES_THUMBNAILS_ID:
+            case IMAGES_THUMBNAILS:
+            case VIDEO_MEDIA_ID:
+            case VIDEO_MEDIA:
+            case VIDEO_THUMBNAILS_ID:
+            case VIDEO_THUMBNAILS:
+            case DOWNLOADS_ID:
+            case DOWNLOADS:
+            case FILES_ID:
+            case FILES: {
+                return callingIdentity.checkCallingPermissionUserSelected();
+            }
+            default: return false;
+        }
+    }
+
+    /**
+     * Returns where clause for access on user selected permission.
+     *
+     * <p><strong>NOTE:</strong> This method assumes that app has necessary permissions and returns
+     * the where clause without checking any permission state of the app.
+     */
+    @NonNull
+    public static String getWhereForUserSelectedAccess(
+            @NonNull LocalCallingIdentity callingIdentity, int uriType) {
+        switch (uriType) {
+            case IMAGES_MEDIA:
+            case IMAGES_MEDIA_ID:
+            case VIDEO_MEDIA_ID:
+            case VIDEO_MEDIA:
+            case DOWNLOADS_ID:
+            case DOWNLOADS:
+            case FILES_ID:
+            case FILES: {
+                return getWhereForUserSelectedMatch(callingIdentity, MediaColumns._ID);
+            }
+            case IMAGES_THUMBNAILS_ID:
+            case IMAGES_THUMBNAILS: {
+                return getWhereForUserSelectedMatch(callingIdentity, "image_id");
+            }
+            case VIDEO_THUMBNAILS_ID:
+            case VIDEO_THUMBNAILS: {
+                return getWhereForUserSelectedMatch(callingIdentity, "video_id");
+            }
+            default:
+                throw new UnsupportedOperationException(
+                        "Unknown or unsupported type: " + uriType);
+        }
+    }
+
+    /**
      * Returns where clause for constrained access.
      *
      * Where clause is generated based on the given collection type{@code uriType} and access
@@ -289,6 +359,13 @@ public class AccessChecker {
     @VisibleForTesting
     static String getWhereForExternalPrimaryMatch() {
         return bindSelection("volume_name=?", MediaStore.VOLUME_EXTERNAL_PRIMARY);
+    }
+
+    private static String getWhereForUserSelectedMatch(
+            @NonNull LocalCallingIdentity callingIdentity, String id) {
+
+        return String.format("%s IN (SELECT file_id from media_grants WHERE %s)", id,
+                getWhereForOwnerPackageMatch(callingIdentity));
     }
 
     /**

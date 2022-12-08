@@ -45,8 +45,7 @@
     <string name="picker_settings_description" msgid="7486394662725656081">"Jagage Androidi fotovalijas fotosid ja videoid, mida varundate muudest teenustest"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Pilvemeediarakendus:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Pole"</string>
-    <!-- no translation found for picker_settings_toast_error (697274445512467469) -->
-    <skip />
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Pilvepõhist meediarakendust ei saanud muuta."</string>
     <string name="add" msgid="2894574044585549298">"Lisa"</string>
     <string name="deselect" msgid="4297825044827769490">"Tühista valik"</string>
     <string name="deselected" msgid="8488133193326208475">"Valik on tühistatud"</string>
@@ -93,6 +92,8 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Proovi uuesti"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Pilvemeedia on nüüd rakenduse <xliff:g id="PKG_NAME">%1$s</xliff:g> kaudu saadaval"</string>
     <string name="not_selected" msgid="2244008151669896758">"pole valitud"</string>
+    <!-- no translation found for preloading_progress_message (4741327138031980582) -->
+    <skip />
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Varundatud fotod on nüüd kaasatud"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Saate valida fotosid rakendusest <xliff:g id="APP_NAME">%1$s</xliff:g> konto <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> kaudu"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Rakenduse <xliff:g id="APP_NAME">%1$s</xliff:g> kontot värskendati"</string>

@@ -40,6 +40,7 @@ import androidx.lifecycle.Observer;
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
 import com.android.modules.utils.BackgroundThread;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
@@ -377,6 +378,10 @@ public class PickerViewModel extends AndroidViewModel {
 
         mIsUserSelectForApp =
                 intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+        if (!SdkLevel.isAtLeastU() && mIsUserSelectForApp) {
+            throw new IllegalArgumentException("ACTION_USER_SELECT_IMAGES_FOR_APP is not enabled "
+                    + " for this OS version");
+        }
 
         // Ensure that if Photopicker is being used for permissions the target app UID is present
         // in the extras.

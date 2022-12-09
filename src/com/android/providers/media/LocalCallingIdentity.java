@@ -333,6 +333,8 @@ public class LocalCallingIdentity {
     public static final int APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID = 1 << 25;
     public static final int PERMISSION_ACCESS_MTP = 1 << 26;
 
+    public static final int PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED = 1 << 27;
+
     private volatile int hasPermission;
     private volatile int hasPermissionResolved;
 
@@ -408,6 +410,9 @@ public class LocalCallingIdentity {
             case PERMISSION_ACCESS_MTP:
                 return checkPermissionAccessMtp(
                         context, pid, uid, getPackageName(), attributionTag);
+            case PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED:
+                // TODO(b/259058625) Check new user select permission
+                return false;
             default:
                 return false;
         }
@@ -672,6 +677,13 @@ public class LocalCallingIdentity {
      */
     public boolean isCallingPackageLegacyWrite() {
         return hasPermission(PERMISSION_IS_LEGACY_WRITE);
+    }
+
+    /**
+     * Return {@code true} if this package has user selected access on images/videos.
+     */
+    public boolean checkCallingPermissionUserSelected() {
+        return hasPermission(PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED);
     }
 
     protected void dump(PrintWriter writer) {

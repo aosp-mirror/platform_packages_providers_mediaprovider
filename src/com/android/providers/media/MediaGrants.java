@@ -16,7 +16,7 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.MediaProvider.PICKER_ID;
+import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -26,7 +26,6 @@ import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.android.providers.media.MediaProvider.LocalUriMatcher;
 import com.android.providers.media.photopicker.PickerSyncController;
 
 import java.util.List;
@@ -113,10 +112,12 @@ public class MediaGrants {
 
         return mExternalDatabase.runWithTransaction(
                 (db) -> {
-                    int grantsRemoved = mQueryBuilder.delete(
-                            db,
-                            /* selection= */ String.format("%s = ?", OWNER_PACKAGE_NAME_COLUMN),
-                            /* selectionArgs= */ new String[] {packageName});
+                    int grantsRemoved =
+                            mQueryBuilder.delete(
+                                    db,
+                                    /* selection= */ String.format(
+                                            "%s = ?", OWNER_PACKAGE_NAME_COLUMN),
+                                    /* selectionArgs= */ new String[] {packageName});
                     Log.d(
                             TAG,
                             String.format(

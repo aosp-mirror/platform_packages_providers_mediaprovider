@@ -70,9 +70,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
-import com.android.providers.media.VolumeCache;
-import com.android.providers.media.fuse.ExternalStorageServiceImpl;
-import com.android.providers.media.fuse.FuseDaemon;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -1808,20 +1805,5 @@ public class FileUtils {
 
     public static File fromFuseFile(File file) {
         return new File(file.getPath().replaceFirst(FUSE_FS_PREFIX, LOWER_FS_PREFIX));
-    }
-
-    /**
-     * @return {@link FuseDaemon} corresponding to a given file
-     */
-    @NonNull
-    public static FuseDaemon getFuseDaemonForFile(@NonNull File file, VolumeCache volumeCache)
-            throws FileNotFoundException {
-        final FuseDaemon daemon = ExternalStorageServiceImpl.getFuseDaemon(
-                volumeCache.getVolumeId(file));
-        if (daemon == null) {
-            throw new FileNotFoundException("Missing FUSE daemon for " + file);
-        } else {
-            return daemon;
-        }
     }
 }

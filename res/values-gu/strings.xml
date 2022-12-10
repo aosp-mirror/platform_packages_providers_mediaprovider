@@ -92,6 +92,8 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ફરી પ્રયાસ કરો"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ક્લાઉડ મીડિયા હવે <xliff:g id="PKG_NAME">%1$s</xliff:g>માંથી પણ ઉપલબ્ધ છે"</string>
     <string name="not_selected" msgid="2244008151669896758">"પસંદ નહીં કરેલી"</string>
+    <!-- no translation found for preloading_progress_message (4741327138031980582) -->
+    <skip />
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"બૅકઅપ લીધેલા ફોટા હવે શામેલ કરવામાં આવ્યા છે"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"તમે <xliff:g id="APP_NAME">%1$s</xliff:g> એકાઉન્ટના <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> પરથી ફોટા પસંદ કરી શકો છો"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> એકાઉન્ટ અપડેટ કરવામાં આવ્યું"</string>

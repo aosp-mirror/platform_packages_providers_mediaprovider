@@ -92,6 +92,8 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"پھر کوشش کریں"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"کلاؤڈ میڈیا اب <xliff:g id="PKG_NAME">%1$s</xliff:g> سے دستیاب ہے"</string>
     <string name="not_selected" msgid="2244008151669896758">"غیر منتخب کردہ"</string>
+    <!-- no translation found for preloading_progress_message (4741327138031980582) -->
+    <skip />
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"بیک اپ لی گئی تصاویر اب شامل ہیں"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"آپ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> کے <xliff:g id="APP_NAME">%1$s</xliff:g> اکاؤنٹ سے تصاویر منتخب کر سکتے ہیں"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> اکاؤنٹ اپ ڈیٹ کیا گیا"</string>

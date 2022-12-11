@@ -45,8 +45,7 @@
     <string name="picker_settings_description" msgid="7486394662725656081">"Android ফটোপিকার টুলে অন্যান্য পরিষেবা থেকে ব্যাক-আপ নেওয়া ফটো ও ভিডিও শেয়ার করুন"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"এখান থেকে ক্লাউড মিডিয়া অ্যাক্সেস করুন"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"কোনওটিই নয়"</string>
-    <!-- no translation found for picker_settings_toast_error (697274445512467469) -->
-    <skip />
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"এই মুহূর্তে ক্লাউড মিডিয়া অ্যাপ বদল করা যায়নি।"</string>
     <string name="add" msgid="2894574044585549298">"যোগ করুন"</string>
     <string name="deselect" msgid="4297825044827769490">"টিক চিহ্নটি সরিয়ে দিন"</string>
     <string name="deselected" msgid="8488133193326208475">"টিকচিহ্ন সরিয়ে দিন"</string>
@@ -93,6 +92,8 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"আবার চেষ্টা করুন"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ক্লাউড মিডিয়া এখন <xliff:g id="PKG_NAME">%1$s</xliff:g> থেকে উপলভ্য"</string>
     <string name="not_selected" msgid="2244008151669896758">"বেছে নেওয়া হয়নি"</string>
+    <!-- no translation found for preloading_progress_message (4741327138031980582) -->
+    <skip />
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ব্যাক-আপ নেওয়া ফটো এখন যোগ করা হয়েছে"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"আপনি <xliff:g id="APP_NAME">%1$s</xliff:g>-এর অ্যাকাউন্ট <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> থেকে ফটো বেছে নিতে পারবেন"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g>-এর অ্যাকাউন্ট আপডেট করা হয়েছে"</string>

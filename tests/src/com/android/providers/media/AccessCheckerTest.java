@@ -28,19 +28,19 @@ import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageM
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
-import static com.android.providers.media.MediaProvider.AUDIO_MEDIA;
-import static com.android.providers.media.MediaProvider.DOWNLOADS;
-import static com.android.providers.media.MediaProvider.DOWNLOADS_ID;
-import static com.android.providers.media.MediaProvider.FILES;
-import static com.android.providers.media.MediaProvider.FILES_ID;
-import static com.android.providers.media.MediaProvider.IMAGES_MEDIA;
-import static com.android.providers.media.MediaProvider.IMAGES_MEDIA_ID;
-import static com.android.providers.media.MediaProvider.IMAGES_THUMBNAILS;
-import static com.android.providers.media.MediaProvider.IMAGES_THUMBNAILS_ID;
-import static com.android.providers.media.MediaProvider.VIDEO_MEDIA;
-import static com.android.providers.media.MediaProvider.VIDEO_MEDIA_ID;
-import static com.android.providers.media.MediaProvider.VIDEO_THUMBNAILS;
-import static com.android.providers.media.MediaProvider.VIDEO_THUMBNAILS_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_MEDIA;
+import static com.android.providers.media.LocalUriMatcher.DOWNLOADS;
+import static com.android.providers.media.LocalUriMatcher.DOWNLOADS_ID;
+import static com.android.providers.media.LocalUriMatcher.FILES;
+import static com.android.providers.media.LocalUriMatcher.FILES_ID;
+import static com.android.providers.media.LocalUriMatcher.IMAGES_MEDIA;
+import static com.android.providers.media.LocalUriMatcher.IMAGES_MEDIA_ID;
+import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS;
+import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS_ID;
+import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA;
+import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA_ID;
+import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS;
+import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS_ID;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 

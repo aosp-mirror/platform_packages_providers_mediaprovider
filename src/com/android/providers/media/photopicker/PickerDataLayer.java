@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker;
 
+import static android.database.DatabaseUtils.dumpCursorToString;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALL_PROJECTION;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.AUTHORITY;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
@@ -24,7 +25,8 @@ import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.AC
 
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
-import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
+
+import static java.util.Objects.requireNonNull;
 
 import android.content.Context;
 import android.content.Intent;
@@ -55,6 +57,7 @@ import java.util.Map;
 public class PickerDataLayer {
     private static final String TAG = "PickerDataLayer";
     private static final boolean DEBUG = false;
+    private static final boolean DEBUG_DUMP_CURSORS = false;
 
     public static final String QUERY_ARG_LOCAL_ONLY = "android:query-arg-local-only";
 
@@ -90,7 +93,10 @@ public class PickerDataLayer {
 
     private Cursor fetchMediaInternal(Bundle queryArgs) {
         if (DEBUG) {
-            Log.d(TAG, "fetchMediaInternal() [" + Thread.currentThread() + "] args=" + queryArgs);
+            Log.d(TAG, "fetchMediaInternal() "
+                    + (queryArgs.getBoolean(QUERY_ARG_LOCAL_ONLY) ? "LOCAL_ONLY" : "ALL")
+                    + " args=" + queryArgs);
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         final CloudProviderQueryExtras queryExtras =
@@ -98,6 +104,8 @@ public class PickerDataLayer {
         final String albumAuthority = queryExtras.getAlbumAuthority();
 
         Trace.beginSection(traceSectionName("fetchMediaInternal", albumAuthority));
+
+        Cursor result = null;
         try {
             final boolean isLocalOnly = queryExtras.isLocalOnly();
             final String albumId = queryExtras.getAlbumId();
@@ -118,7 +126,7 @@ public class PickerDataLayer {
                 // Fetch all merged and deduped cloud and local media from 'media' table
                 // This also matches 'merged' albums like Favorites because |authority| will
                 // be null, hence we have to fetch the data from the picker db
-                return mDbFacade.queryMediaForUi(queryExtras.toQueryFilter());
+                result = mDbFacade.queryMediaForUi(queryExtras.toQueryFilter());
             } else {
                 if (isLocalOnly && !isLocal(albumAuthority)) {
                     // This is error condition because when cloud content is disabled, we shouldn't
@@ -133,10 +141,22 @@ public class PickerDataLayer {
                 mSyncController.syncAlbumMedia(albumId, isLocal(albumAuthority));
 
                 // Fetch album specific media for local or cloud from 'album_media' table
-                return mDbFacade.queryAlbumMediaForUi(queryExtras.toQueryFilter(), albumAuthority);
+                result = mDbFacade.queryAlbumMediaForUi(
+                        queryExtras.toQueryFilter(), albumAuthority);
             }
+            return result;
         } finally {
             Trace.endSection();
+            if (DEBUG) {
+                if (result == null) {
+                    Log.d(TAG, "fetchMediaInternal()'s result is null");
+                } else {
+                    Log.d(TAG, "fetchMediaInternal() loaded " + result.getCount() + " items");
+                    if (DEBUG_DUMP_CURSORS) {
+                        Log.v(TAG, dumpCursorToString(result));
+                    }
+                }
+            }
         }
     }
 
@@ -176,10 +196,15 @@ public class PickerDataLayer {
 
     private Cursor fetchAlbumsInternal(Bundle queryArgs) {
         if (DEBUG) {
-            Log.d(TAG, "fetchAlbums() [" + Thread.currentThread() + "] args=" + queryArgs);
+            Log.d(TAG, "fetchAlbums() "
+                    + (queryArgs.getBoolean(QUERY_ARG_LOCAL_ONLY) ? "LOCAL_ONLY" : "ALL")
+                    + " args=" + queryArgs);
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         Trace.beginSection(traceSectionName("fetchAlbums"));
+
+        Cursor result = null;
         try {
             final boolean isLocalOnly = queryArgs.getBoolean(QUERY_ARG_LOCAL_ONLY, false);
             // Refresh the 'media' table so that 'merged' albums (Favorites and Videos) are
@@ -222,18 +247,29 @@ public class PickerDataLayer {
                 return null;
             }
 
-            MergeCursor mergeCursor = new MergeCursor(cursors.toArray(new Cursor[cursors.size()]));
-            mergeCursor.setExtras(cursorExtra);
-            return mergeCursor;
+            result = new MergeCursor(cursors.toArray(new Cursor[cursors.size()]));
+            result.setExtras(cursorExtra);
+            return result;
         } finally {
             Trace.endSection();
+            if (DEBUG) {
+                if (result == null) {
+                    Log.d(TAG, "fetchAlbumsInternal()'s result is null");
+                } else {
+                    Log.d(TAG, "fetchAlbumsInternal() loaded " + result.getCount() + " items");
+                    if (DEBUG_DUMP_CURSORS) {
+                        Log.v(TAG, dumpCursorToString(result));
+                    }
+                }
+            }
         }
     }
 
     @Nullable
     public AccountInfo fetchCloudAccountInfo() {
         if (DEBUG) {
-            Log.d(TAG, "fetchCloudAccountInfo() [" + Thread.currentThread() + "]");
+            Log.d(TAG, "fetchCloudAccountInfo()");
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         final String cloudProvider = mDbFacade.getCloudProvider();
@@ -319,28 +355,40 @@ public class PickerDataLayer {
     }
 
     /**
-     * Cursor wrapper that sets the column names to {@link ALL_PROJECTION}.
-     * Also sets the authority received in the constructor if missing from the cursor.
-     *
-     * Extra columns in the original cursor are ignored.
-     * Missing columns (except authority) are set with default value {@code null}.
+     * A {@link CursorWrapper} that exposes the data stored in the underlying {@link Cursor} in the
+     * {@link ALL_PROJECTION} "format", additionally overriding the {@link AUTHORITY} column.
+     * Columns from the underlying that are not in the {@link ALL_PROJECTION} are ignored.
+     * Missing columns (except {@link AUTHORITY}) are set with default value of {@code null}.
      */
     private static class AlbumsCursorWrapper extends CursorWrapper {
         static final String TAG = "AlbumsCursorWrapper";
-        static final Map<String, Integer> ALL_PROJECTION_COLUMN_NAME_TO_INDEX_MAP =
-                new HashMap<>();
+
+        @NonNull static final Map<String, Integer> COLUMN_NAME_TO_INDEX_MAP;
+        static final int AUTHORITY_COLUMN_INDEX;
         static {
+            final Map<String, Integer> map = new HashMap<>();
             for (int columnIndex = 0; columnIndex < ALL_PROJECTION.length; columnIndex++) {
-                ALL_PROJECTION_COLUMN_NAME_TO_INDEX_MAP.put(ALL_PROJECTION[columnIndex],
-                        columnIndex);
+                map.put(ALL_PROJECTION[columnIndex], columnIndex);
             }
+            COLUMN_NAME_TO_INDEX_MAP = map;
+            AUTHORITY_COLUMN_INDEX = map.get(AUTHORITY);
         }
 
-        private final String mAuthority;
+        @NonNull final String mAuthority;
+        @NonNull final int[] mColumnIndexToCursorColumnIndexArray;
 
-        AlbumsCursorWrapper(Cursor cursor, String authority) {
-            super(cursor);
-            mAuthority = authority;
+        boolean mAuthorityMismatchLogged = false;
+
+        AlbumsCursorWrapper(@NonNull Cursor cursor, @NonNull String authority) {
+            super(requireNonNull(cursor));
+            mAuthority = requireNonNull(authority);
+
+            mColumnIndexToCursorColumnIndexArray = new int[ALL_PROJECTION.length];
+            for (int columnIndex = 0; columnIndex < ALL_PROJECTION.length; columnIndex++) {
+                final String columnName = ALL_PROJECTION[columnIndex];
+                final int cursorColumnIndex = cursor.getColumnIndex(columnName);
+                mColumnIndexToCursorColumnIndexArray[columnIndex] = cursorColumnIndex;
+            }
         }
 
         @Override
@@ -350,7 +398,7 @@ public class PickerDataLayer {
 
         @Override
         public int getColumnIndex(String columnName) {
-            return ALL_PROJECTION_COLUMN_NAME_TO_INDEX_MAP.get(columnName);
+            return COLUMN_NAME_TO_INDEX_MAP.get(columnName);
         }
 
         @Override
@@ -377,15 +425,28 @@ public class PickerDataLayer {
 
         @Override
         public String getString(int columnIndex) {
-            final String columnName = getColumnName(columnIndex);
-            final String columnValue = getCursorString(getWrappedCursor(), columnName);
-            if (!AUTHORITY.equals(columnName)) {
-                return columnValue;
+            // 1. Get value from the underlying cursor.
+            final int cursorColumnIndex = mColumnIndexToCursorColumnIndexArray[columnIndex];
+            final String cursorValue = cursorColumnIndex != -1
+                    ? getWrappedCursor().getString(cursorColumnIndex) : null;
+
+            // 2a. If this is NOT the AUTHORITY column: just return the value.
+            if (columnIndex != AUTHORITY_COLUMN_INDEX) {
+                return cursorValue;
             }
-            if (columnValue != null && !columnValue.equals(mAuthority)) {
-                Log.w(TAG, "Cursor authority " + columnValue + " is different from the"
-                        + "saved authority " + mAuthority);
+
+            // Validity check: the cursor's authority value, if present, is expected to match the
+            // mAuthority. Don't throw though, just log (at WARN). Also, only log once for the
+            // cursor (we don't need 10,000 of these lines in the log).
+            if (!mAuthorityMismatchLogged
+                    && cursorValue != null && !cursorValue.equals(mAuthority)) {
+                Log.w(TAG, "Cursor authority - '" + cursorValue + "' - is different from the "
+                        + "expected authority '" + mAuthority + "'");
+                mAuthorityMismatchLogged = true;
             }
+
+            // 2b. If this IS the AUTHORITY column: "override" whatever value (which may be null)
+            // is stored in the cursor.
             return mAuthority;
         }
     }

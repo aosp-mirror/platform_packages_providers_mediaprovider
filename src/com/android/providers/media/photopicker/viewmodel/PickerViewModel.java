@@ -35,6 +35,7 @@ import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
@@ -76,6 +77,10 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Item>> mCategoryItemList;
     // The list of categories.
     private MutableLiveData<List<Category>> mCategoryList;
+    // Boolean Banner visibility
+    private MutableLiveData<Boolean> mBannerVisibility;
+    // Authority of the current CloudMediaProvider
+    private final MutableLiveData<String> mCloudMediaProviderAuthority;
 
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
@@ -101,6 +106,9 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger = new PhotoPickerUiEventLogger();
         mConfigStore = new ConfigStore.ConfigStoreImpl();
         mIsUserSelectForApp = false;
+
+        mCloudMediaProviderAuthority = new MutableLiveData<>();
+        fetchCloudMediaProviderAuthority(context);
     }
 
     @VisibleForTesting
@@ -137,10 +145,20 @@ public class PickerViewModel extends AndroidViewModel {
 
     /**
      * @return {@code mIsUserSelectForApp} if the picker is currently being used
-     * for the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP} action.
+     *         for the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP} action.
      */
     public boolean isUserSelectForApp() {
         return mIsUserSelectForApp;
+    }
+
+    /**
+     * @return a {@link LiveData} that holds the value (once it's fetched) of the
+     *         {@link android.content.ContentProvider#mAuthority authority} of the current
+     *         {@link android.provider.CloudMediaProvider}.
+     */
+    @NonNull
+    public LiveData<String> getCloudMediaProviderAuthorityLiveData() {
+        return mCloudMediaProviderAuthority;
     }
 
     /**
@@ -169,11 +187,22 @@ public class PickerViewModel extends AndroidViewModel {
         return mItemList;
     }
 
+    /**
+     * @return the live data of banner visibility boolean {@link #mBannerVisibility}.
+     */
+    @NonNull
+    public LiveData<Boolean> getBannerVisibilityLiveData() {
+        if (mBannerVisibility == null) {
+            // TODO(b/195009152): Update to hold and track the actual value.
+            mBannerVisibility = new MutableLiveData<>(false);
+        }
+        return mBannerVisibility;
+    }
+
     private List<Item> loadItems(Category category, UserId userId) {
         final List<Item> items = new ArrayList<>();
 
-        try (Cursor cursor = mItemsProvider.getItems(category, /* offset */ 0,
-                /* limit */ -1, mMimeTypeFilters, userId)) {
+        try (Cursor cursor = fetchItems(category, userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any items for " + category
                         + ", either cursor is null or cursor count is zero");
@@ -190,6 +219,16 @@ public class PickerViewModel extends AndroidViewModel {
         Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
                 + userId.toString());
         return items;
+    }
+
+    private Cursor fetchItems(Category category, UserId userId) {
+        if (isUserSelectForApp()) {
+            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+            // action for permission flow. We only show local items in this case.
+            return mItemsProvider.getLocalItems(category, /* limit */ -1, mMimeTypeFilters, userId);
+        } else {
+            return mItemsProvider.getAllItems(category, /* limit */ -1, mMimeTypeFilters, userId);
+        }
     }
 
     private void loadItemsAsync() {
@@ -264,7 +303,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
-        try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilters, userId)) {
+        try (Cursor cursor = fetchCategories(userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
                         + " cursor count is zero");
@@ -280,6 +319,16 @@ public class PickerViewModel extends AndroidViewModel {
                     "Loaded " + categoryList.size() + " categories for user " + userId.toString());
         }
         return categoryList;
+    }
+
+    private Cursor fetchCategories(UserId userId) {
+        if (isUserSelectForApp()) {
+            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+            // action for permission flow. We only show local items in this case.
+            return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId);
+        } else {
+            return mItemsProvider.getAllCategories(mMimeTypeFilters, userId);
+        }
     }
 
     private void loadCategoriesAsync() {
@@ -392,12 +441,10 @@ public class PickerViewModel extends AndroidViewModel {
             mLogger.logPickerOpenWithAnyOtherFilter(mInstanceId, callingUid, callingPackage);
         }
 
-        logPickerOpenedWithCloudProvider(context);
+        maybeLogPickerOpenedWithCloudProvider();
     }
 
-    // TODO(b/245745412): Fix log params (uid & package name)
-    // TODO(b/245745424): Solve for active cloud provider without a logged in account
-    private void logPickerOpenedWithCloudProvider(@NonNull Context context) {
+    private void fetchCloudMediaProviderAuthority(@NonNull Context context) {
         BackgroundThread.getExecutor().execute(() -> {
             final String providerAuthority;
             // TODO(b/245746037): Remove try-catch.
@@ -411,13 +458,31 @@ public class PickerViewModel extends AndroidViewModel {
             //  check for MANAGE_CLOUD_MEDIA_PROVIDER permission.
             try {
                 providerAuthority = getCurrentCloudProvider(context);
-            } catch (RuntimeException e) {
-                Log.w(TAG, "Could not retrieve the current cloud provider", e);
-                return;
-            }
+                Log.d(TAG, "Current CloudMediaProvider authority: " + providerAuthority);
 
-            mLogger.logPickerOpenWithActiveCloudProvider(
-                    mInstanceId, /* cloudProviderUid */ -1, providerAuthority);
+                mCloudMediaProviderAuthority.postValue(providerAuthority);
+            } catch (RuntimeException e) {
+                Log.w(TAG, "Could not fetch the current CloudMediaProvider", e);
+            }
+        });
+    }
+
+    // TODO(b/245745412): Fix log params (uid & package name)
+    // TODO(b/245745424): Solve for active cloud provider without a logged in account
+    private void maybeLogPickerOpenedWithCloudProvider() {
+        mCloudMediaProviderAuthority.observeForever(new Observer<>() {
+            @Override
+            public void onChanged(String providerAuthority) {
+                Log.d(TAG, "logPickerOpenedWithCloudProvider() provider=" + providerAuthority
+                        + ", log=" + (providerAuthority != null));
+
+                if (providerAuthority != null) {
+                    mLogger.logPickerOpenWithActiveCloudProvider(
+                            mInstanceId, /* cloudProviderUid */ -1, providerAuthority);
+                }
+                // We only need to get the value once.
+                mCloudMediaProviderAuthority.removeObserver(this);
+            }
         });
     }
 

@@ -16,7 +16,8 @@
 
 package com.android.providers.media.photopicker.ui;
 
-import static com.android.providers.media.photopicker.ui.PhotosTabAdapter.ITEM_TYPE_DATE_HEADER;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_SECTION;
 
 import android.content.Context;
 import android.graphics.Rect;
@@ -48,19 +49,20 @@ public class PhotosTabItemDecoration extends RecyclerView.ItemDecoration {
         final GridLayoutManager layoutManager = (GridLayoutManager) parent.getLayoutManager();
         final int column = lp.getSpanIndex();
         final int spanCount = layoutManager.getSpanCount();
+        final int adapterPosition = parent.getChildAdapterPosition(view);
+        final int itemViewType = parent.getAdapter().getItemViewType(adapterPosition);
 
-        // The date header doesn't have spacing
-        if (lp.getSpanSize() == spanCount) {
+        // The date header and banners don't have spacing
+        if (itemViewType == ITEM_TYPE_BANNER || itemViewType == ITEM_TYPE_SECTION) {
             outRect.set(0, 0, 0, 0);
             return;
         }
 
-        final int adapterPosition = parent.getChildAdapterPosition(view);
         if (adapterPosition > column) {
-            final int itemViewType = parent.getAdapter().getItemViewType(
-                    adapterPosition - column - 1);
+            final int aboveItemPosition = adapterPosition - column - 1;
+            final int aboveItemViewType = parent.getAdapter().getItemViewType(aboveItemPosition);
             // if the above item is not a date header, add the top spacing
-            if (itemViewType != ITEM_TYPE_DATE_HEADER) {
+            if (aboveItemViewType != ITEM_TYPE_SECTION) {
                 outRect.top = mSpacing;
             }
         }

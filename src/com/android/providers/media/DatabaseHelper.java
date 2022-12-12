@@ -35,7 +35,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.mtp.MtpConstants;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
@@ -81,8 +80,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -174,8 +171,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final String mVolumeName;
     final boolean mEarlyUpgrade;
     final boolean mLegacyProvider;
-    final @Nullable Class<? extends Annotation> mColumnAnnotation;
-    final @Nullable Class<? extends Annotation> mExportedSinceAnnotation;
+    private final ProjectionHelper mProjectionHelper;
     final @Nullable OnSchemaChangeListener mSchemaListener;
     final @Nullable OnFilesChangeListener mFilesListener;
     final @Nullable OnLegacyMigrationListener mMigrationListener;
@@ -247,21 +243,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     public DatabaseHelper(Context context, String name,
             boolean earlyUpgrade, boolean legacyProvider,
-            @Nullable Class<? extends Annotation> columnAnnotation,
-            @Nullable Class<? extends Annotation> exportedSinceAnnotation,
+            ProjectionHelper projectionHelper,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
             @Nullable UnaryOperator<String> idGenerator, boolean enableNextRowIdRecovery) {
         this(context, name, getDatabaseVersion(context), earlyUpgrade, legacyProvider,
-                columnAnnotation, exportedSinceAnnotation, schemaListener, filesListener,
+               projectionHelper, schemaListener, filesListener,
                 migrationListener, idGenerator, enableNextRowIdRecovery);
     }
 
     public DatabaseHelper(Context context, String name, int version,
             boolean earlyUpgrade, boolean legacyProvider,
-            @Nullable Class<? extends Annotation> columnAnnotation,
-            @Nullable Class<? extends Annotation> exportedSinceAnnotation,
+            ProjectionHelper projectionHelper,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
@@ -279,8 +273,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
         mEarlyUpgrade = earlyUpgrade;
         mLegacyProvider = legacyProvider;
-        mColumnAnnotation = columnAnnotation;
-        mExportedSinceAnnotation = exportedSinceAnnotation;
+        mProjectionHelper = projectionHelper;
         mSchemaListener = schemaListener;
         mFilesListener = filesListener;
         mMigrationListener = migrationListener;
@@ -355,6 +348,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @Override
     public void onConfigure(SQLiteDatabase db) {
         Log.v(TAG, "onConfigure() for " + mName);
+
+        if (isExternal()) {
+            db.setForeignKeyConstraintsEnabled(true);
+        }
+
         db.setCustomScalarFunction("_INSERT", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
@@ -605,19 +603,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @GuardedBy("sRecoveryLock")
     private void recoverData(MediaProvider mediaProvider, SQLiteDatabase db, String volumeName) {
         final long startTime = SystemClock.elapsedRealtime();
-        final Set<String> externalVolumeNames =
-                mediaProvider.getVolumeCache().getExternalVolumeNames();
         int i = 0;
+        final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
         // Wait for external primary to be attached as we use same thread for internal volume.
-        // Maximum wait for 5s
-        while (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY) && i < 1000) {
-            Log.d(TAG, "Waiting for external primary volume to be attached.");
-            // Poll after every 5 ms
-            SystemClock.sleep(5);
+        // Maximum wait for 10s
+        while (!mediaProvider.isFuseDaemonReadyForFilePath(fuseFilePath) && i < 1000) {
+            Log.d(TAG, "Waiting for fuse daemon to be ready.");
+            // Poll after every 10ms
+            SystemClock.sleep(10);
             i++;
         }
-        if (!externalVolumeNames.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
-            Log.e(TAG, "Could not recover data as external primary volume did not get attached.");
+        if (!mediaProvider.isFuseDaemonReadyForFilePath(fuseFilePath)) {
+            Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.");
             return;
         }
 
@@ -651,6 +648,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 volumeName));
         Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms",
                 SystemClock.elapsedRealtime() - startTime));
+    }
+
+    private static String getFuseFilePathFromVolumeName(String volumeName) {
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL:
+            case MediaStore.VOLUME_EXTERNAL_PRIMARY:
+                return "/storage/emulated/" + UserHandle.myUserId();
+            default:
+                return "/storage/" + volumeName;
+        }
     }
 
     private void insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
@@ -763,46 +770,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
-    @GuardedBy("mProjectionMapCache")
-    private final ArrayMap<Class<?>, ArrayMap<String, String>>
-            mProjectionMapCache = new ArrayMap<>();
-
-    /**
-     * Return a projection map that represents the valid columns that can be
-     * queried the given contract class. The mapping is built automatically
-     * using the {@link android.provider.Column} annotation, and is designed to
-     * ensure that we always support public API commitments.
-     */
-    public ArrayMap<String, String> getProjectionMap(Class<?>... clazzes) {
-        ArrayMap<String, String> result = new ArrayMap<>();
-        synchronized (mProjectionMapCache) {
-            for (Class<?> clazz : clazzes) {
-                ArrayMap<String, String> map = mProjectionMapCache.get(clazz);
-                if (map == null) {
-                    map = new ArrayMap<>();
-                    try {
-                        for (Field field : clazz.getFields()) {
-                            if (Objects.equals(field.getName(), "_ID") || (mColumnAnnotation != null
-                                    && field.isAnnotationPresent(mColumnAnnotation))) {
-                                boolean shouldIgnoreByOsVersion = shouldBeIgnoredByOsVersion(field);
-                                if (!shouldIgnoreByOsVersion) {
-                                    final String column = (String) field.get(null);
-                                    map.put(column, column);
-                                }
-                            }
-                        }
-                    } catch (ReflectiveOperationException e) {
-                        throw new RuntimeException(e);
-                    }
-                    mProjectionMapCache.put(clazz, map);
-                }
-                result.putAll(map);
-            }
-            return result;
-        }
-    }
-
-    /**
+   /**
      * Local state related to any transaction currently active on a specific
      * thread, such as collecting the set of {@link Uri} that should be notified
      * upon transaction success.
@@ -1202,6 +1170,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
                     + "play_order INTEGER NOT NULL)");
+            db.execSQL(
+                    "CREATE TABLE media_grants ("
+                            + "owner_package_name TEXT,"
+                            + "file_id INTEGER,"
+                            + "UNIQUE(owner_package_name, file_id) ON CONFLICT IGNORE "
+                            + "FOREIGN KEY (file_id)"
+                            + "  REFERENCES files(_id)"
+                            + "  ON DELETE CASCADE"
+                            + ")");
         }
 
         createLatestViews(db);
@@ -1545,7 +1522,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private void createLatestViews(SQLiteDatabase db) {
         makePristineViews(db);
 
-        if (mColumnAnnotation == null) {
+        if (!mProjectionHelper.hasColumnAnnotation()) {
             Log.w(TAG, "No column annotation provided; not creating views");
             return;
         }
@@ -1650,7 +1627,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private String getColumnsForCollection(Class<?> collection) {
-        return String.join(",", getProjectionMap(collection).keySet()) + ",_modifier";
+        return String.join(",", mProjectionHelper.getProjectionMap(collection).keySet())
+                + ",_modifier";
     }
 
     private static void makePristineTriggers(SQLiteDatabase db) {
@@ -1955,6 +1933,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
     }
 
+    private static void updateAddMediaGrantsTable(SQLiteDatabase db) {
+        db.execSQL("DROP TABLE IF EXISTS media_grants");
+        db.execSQL(
+                "CREATE TABLE media_grants ("
+                        + "owner_package_name TEXT,"
+                        + "file_id INTEGER,"
+                        + "UNIQUE(owner_package_name, file_id) ON CONFLICT IGNORE "
+                        + "FOREIGN KEY (file_id)"
+                        + "  REFERENCES files(_id)"
+                        + "  ON DELETE CASCADE"
+                        + ")");
+    }
+
     private void updateUserId(SQLiteDatabase db) {
         db.execSQL(String.format(Locale.ROOT,
                 "ALTER TABLE files ADD COLUMN _user_id INTEGER DEFAULT %d;",
@@ -2025,7 +2016,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1400;
+    static final int VERSION_U = 1402;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2228,6 +2219,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (fromVersion < 1400) {
                 // Empty version bump to ensure triggers are recreated
             }
+            // 1401 is intentionally skipped here, media_grants
+            // table changes will be updated in 1402.
+            if (fromVersion < 1402) {
+                if (isExternal()) {
+                    updateAddMediaGrantsTable(db);
+                }
+            }
 
             // If this is the legacy database, it's not worth recomputing data
             // values locally, since they'll be recomputed after the migration
@@ -2347,31 +2345,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             Log.i(TAG, "Waiting for passthrough to be mounted...");
             SystemClock.sleep(100);
-        }
-    }
-
-    private boolean shouldBeIgnoredByOsVersion(@NonNull Field field) {
-        if (mExportedSinceAnnotation == null) {
-            return false;
-        }
-
-        if (!field.isAnnotationPresent(mExportedSinceAnnotation)) {
-            return false;
-        }
-
-        try {
-            final Annotation annotation = field.getAnnotation(mExportedSinceAnnotation);
-            final int exportedSinceOSVersion = (int) annotation.annotationType().getMethod(
-                    "osVersion").invoke(annotation);
-            final boolean shouldIgnore = exportedSinceOSVersion > Build.VERSION.SDK_INT;
-            if (shouldIgnore) {
-                Log.d(TAG, "Ignoring column " + field.get(null) + " with version "
-                        + exportedSinceOSVersion + " in OS version " + Build.VERSION.SDK_INT);
-            }
-            return shouldIgnore;
-        } catch (Exception e) {
-            Log.e(TAG, "Can't parse the OS version in ExportedSince annotation", e);
-            return false;
         }
     }
 

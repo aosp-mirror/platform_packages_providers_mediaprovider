@@ -178,8 +178,8 @@ public class PickerViewModelTest {
         }
 
         @Override
-        public Cursor getItems(Category category, int offset,
-                int limit, @Nullable String[] mimeType, @Nullable UserId userId) throws
+        public Cursor getAllItems(Category category, int limit, @Nullable String[] mimeType,
+                @Nullable UserId userId) throws
                 IllegalArgumentException, IllegalStateException {
             final MatrixCursor c = new MatrixCursor(MediaColumns.ALL_PROJECTION);
 
@@ -203,7 +203,7 @@ public class PickerViewModelTest {
         }
 
         @Nullable
-        public Cursor getCategories(@Nullable String[] mimeType, @Nullable UserId userId) {
+        public Cursor getAllCategories(@Nullable String[] mimeType, @Nullable UserId userId) {
             if (mCategoriesCursor != null) {
                 return mCategoriesCursor;
             }

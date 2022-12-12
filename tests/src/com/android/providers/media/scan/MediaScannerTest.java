@@ -23,6 +23,7 @@ import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static org.junit.Assert.assertEquals;
 
 import android.Manifest;
+import android.annotation.NonNull;
 import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -171,6 +172,11 @@ public class MediaScannerTest {
                 protected Optional<BackupIdRow> readDataFromBackup(String volumeName,
                         String filePath) {
                     return Optional.ofNullable(mBackedUpData.get(filePath));
+                }
+
+                @Override
+                protected boolean isFuseDaemonReadyForFilePath(@NonNull String filePath) {
+                    return true;
                 }
             };
         }

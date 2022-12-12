@@ -77,12 +77,11 @@ import java.util.Set;
  */
 public class PickerSyncController {
     private static final String TAG = "PickerSyncController";
+    private static final boolean DEBUG = false;
 
     private static final String PREFS_KEY_CLOUD_PROVIDER_AUTHORITY = "cloud_provider_authority";
     private static final String PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION =
             "cloud_provider_pending_notification";
-    private static final String PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE =
-            "user_aware_about_cloud_media_app_settings";
     private static final String PREFS_KEY_CLOUD_PREFIX = "cloud_provider:";
     private static final String PREFS_KEY_LOCAL_PREFIX = "local_provider:";
 
@@ -144,12 +143,13 @@ public class PickerSyncController {
 
         mSyncDelayMs = configStore.getPickerSyncDelayMs();
 
-        final CloudProviderInfo defaultInfo = getDefaultCloudProviderInfo(cachedAuthority,
-                isUserAwareAboutCloudMediaAppSettings());
+        final CloudProviderInfo defaultInfo = getDefaultCloudProviderInfo(cachedAuthority);
 
         if (Objects.equals(defaultInfo.authority, cachedAuthority)) {
             // Just set it without persisting since it's not changing and persisting would
             // notify the user that cloud media is now available
+            // TODO(b/259247084): mCloudProviderInfo should be CloudProviderInfo.EMPTY when
+            //  Cloud Provider is in UNSET state.
             mCloudProviderInfo = defaultInfo;
         } else {
             // Persist it so that we notify the user that cloud media is now available
@@ -163,24 +163,37 @@ public class PickerSyncController {
      * Syncs the local and currently enabled cloud {@link CloudMediaProvider} instances
      */
     public void syncAllMedia() {
+        Log.d(TAG, "syncAllMedia");
+
         Trace.beginSection(traceSectionName("syncAllMedia"));
         try {
-            syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true);
-
-            synchronized (mLock) {
-                final String cloudProvider = mCloudProviderInfo.authority;
-                syncAllMediaFromProvider(cloudProvider, /* isLocal */ false,
-                        /* retryOnFailure */ true);
-
-                // Reset the album_media table every time we sync all media
-                // TODO(sergeynv@): do we really need to reset for both providers?
-                resetAlbumMedia();
-
-                // Set the latest cloud provider on the facade
-                mDbFacade.setCloudProvider(cloudProvider);
-            }
+            syncAllMediaFromLocalProvider();
+            syncAllMediaFromCloudProvider();
         } finally {
             Trace.endSection();
+        }
+    }
+
+
+    /**
+     * Syncs the local media
+     */
+    public void syncAllMediaFromLocalProvider() {
+        syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true);
+    }
+
+    private void syncAllMediaFromCloudProvider() {
+        synchronized (mLock) {
+            final String cloudProvider = mCloudProviderInfo.authority;
+            syncAllMediaFromProvider(cloudProvider, /* isLocal */ false,
+                    /* retryOnFailure */ true);
+
+            // Reset the album_media table every time we sync all media
+            // TODO(258765155): do we really need to reset for both providers?
+            resetAlbumMedia();
+
+            // Set the latest cloud provider on the facade
+            mDbFacade.setCloudProvider(cloudProvider);
         }
     }
 
@@ -190,12 +203,19 @@ public class PickerSyncController {
      */
     public void syncAlbumMedia(String albumId, boolean isLocal) {
         if (isLocal) {
-            syncAlbumMediaFromProvider(mLocalProvider, /* isLocal */ true, albumId);
+            syncAlbumMediaFromLocalProvider(albumId);
         } else {
-            synchronized (mLock) {
-                syncAlbumMediaFromProvider(
-                        mCloudProviderInfo.authority, /* isLocal */ false, albumId);
-            }
+            syncAlbumMediaFromCloudProvider(albumId);
+        }
+    }
+
+    private void syncAlbumMediaFromLocalProvider(String albumId) {
+        syncAlbumMediaFromProvider(mLocalProvider, /* isLocal */ true, albumId);
+    }
+
+    private void syncAlbumMediaFromCloudProvider(String albumId) {
+        synchronized (mLock) {
+            syncAlbumMediaFromProvider(mCloudProviderInfo.authority, /* isLocal */ false, albumId);
         }
     }
 
@@ -472,27 +492,9 @@ public class PickerSyncController {
         updateBooleanUserPref(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, false);
     }
 
-    /**
-     * Notifies about cloud media app banner displayed in picker UI
-     */
-    @VisibleForTesting
-    void notifyUserCloudMediaAware() {
-        updateBooleanUserPref(PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE, true);
-    }
-
     private void updateBooleanUserPref(String key, boolean value) {
         final SharedPreferences.Editor editor = mUserPrefs.edit();
         editor.putBoolean(key, value);
-        editor.apply();
-    }
-
-    /**
-     * Clears the flag - user aware about cloud media app settings
-     */
-    @VisibleForTesting
-    void clearUserAwareAboutCloudMediaAppSettingsFlag() {
-        final SharedPreferences.Editor editor = mUserPrefs.edit();
-        editor.remove(PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE);
         editor.apply();
     }
 
@@ -519,6 +521,13 @@ public class PickerSyncController {
 
     private void syncAllMediaFromProvider(String authority, boolean isLocal,
             boolean retryOnFailure) {
+        Log.d(TAG, "syncAllMediaFromProvider() " + (isLocal ? "LOCAL" : "CLOUD")
+                + ", auth=" + authority
+                + ", retry=" + retryOnFailure);
+        if (DEBUG) {
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
+        }
+
         Trace.beginSection(traceSectionName("syncAllMediaFromProvider", isLocal));
         try {
             final SyncRequestParams params = getSyncRequestParams(authority, isLocal);
@@ -741,48 +750,50 @@ public class PickerSyncController {
                 /* extras */ null);
     }
 
-    @SyncType
-    private SyncRequestParams getSyncRequestParams(String authority, boolean isLocal) {
+    @NonNull
+    private SyncRequestParams getSyncRequestParams(@Nullable String authority, boolean isLocal) {
+        Log.d(TAG, "getSyncRequestParams() " + (isLocal ? "LOCAL" : "CLOUD")
+                + ", auth=" + authority);
+        if (DEBUG) {
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
+        }
+
+        final SyncRequestParams result;
         if (authority == null) {
             // Only cloud authority can be null
-            Log.d(TAG, "Fetching SyncRequestParams. Null cloud authority. Result: SYNC_TYPE_RESET");
-            return SyncRequestParams.forResetMedia();
+            result = SyncRequestParams.forResetMedia();
+        } else {
+            final Bundle cachedMediaCollectionInfo = getCachedMediaCollectionInfo(isLocal);
+            final Bundle latestMediaCollectionInfo = getLatestMediaCollectionInfo(authority);
+
+            final String latestCollectionId =
+                    latestMediaCollectionInfo.getString(MEDIA_COLLECTION_ID);
+            final long latestGeneration =
+                    latestMediaCollectionInfo.getLong(LAST_MEDIA_SYNC_GENERATION);
+            Log.d(TAG, "   Latest ID/Gen=" + latestCollectionId + "/" + latestGeneration);
+
+            final String cachedCollectionId =
+                    cachedMediaCollectionInfo.getString(MEDIA_COLLECTION_ID);
+            final long cachedGeneration =
+                    cachedMediaCollectionInfo.getLong(LAST_MEDIA_SYNC_GENERATION);
+            Log.d(TAG, "   Cached ID/Gen=" + cachedCollectionId + "/" + cachedGeneration);
+
+            if (TextUtils.isEmpty(latestCollectionId) || latestGeneration < 0) {
+                throw new IllegalStateException("Unexpected Latest Media Collection Info: "
+                        + "ID/Gen=" + latestCollectionId + "/" + latestGeneration);
+            }
+
+            if (!Objects.equals(latestCollectionId, cachedCollectionId)) {
+                result = SyncRequestParams.forFullMedia(latestMediaCollectionInfo);
+            } else if (cachedGeneration == latestGeneration) {
+                result = SyncRequestParams.forNone();
+            } else {
+                result = SyncRequestParams.forIncremental(
+                        cachedGeneration, latestMediaCollectionInfo);
+            }
         }
-
-        final Bundle cachedMediaCollectionInfo = getCachedMediaCollectionInfo(isLocal);
-        final Bundle latestMediaCollectionInfo = getLatestMediaCollectionInfo(authority);
-
-        final String latestCollectionId = latestMediaCollectionInfo.getString(MEDIA_COLLECTION_ID);
-        final long latestGeneration = latestMediaCollectionInfo.getLong(LAST_MEDIA_SYNC_GENERATION);
-
-        final String cachedCollectionId = cachedMediaCollectionInfo.getString(MEDIA_COLLECTION_ID);
-        final long cachedGeneration = cachedMediaCollectionInfo.getLong(LAST_MEDIA_SYNC_GENERATION);
-
-        Log.d(TAG, "Fetching SyncRequestParams. Islocal: " + isLocal
-                + ". Authority: " + authority
-                + ". LatestMediaCollectionInfo: " + latestMediaCollectionInfo
-                + ". CachedMediaCollectionInfo: " + cachedMediaCollectionInfo);
-
-        if (TextUtils.isEmpty(latestCollectionId) || latestGeneration < 0) {
-            throw new IllegalStateException("Unexpected media collection info. mediaCollectionId: "
-                    + latestCollectionId + ". lastMediaSyncGeneration: " + latestGeneration);
-        }
-
-        if (!Objects.equals(latestCollectionId, cachedCollectionId)) {
-            Log.d(TAG, "SyncRequestParams. Islocal: " + isLocal + ". Authority: " + authority
-                    + ". Result: SYNC_TYPE_FULL");
-            return SyncRequestParams.forFullMedia(latestMediaCollectionInfo);
-        }
-
-        if (cachedGeneration == latestGeneration) {
-            Log.d(TAG, "SyncRequestParams. Islocal: " + isLocal + ". Authority: " + authority
-                    + ". Result: SYNC_TYPE_NONE");
-            return SyncRequestParams.forNone();
-        }
-
-        Log.d(TAG, "SyncRequestParams. Islocal: " + isLocal + ". Authority: " + authority
-                + ". Result: SYNC_TYPE_INCREMENTAL");
-        return SyncRequestParams.forIncremental(cachedGeneration, latestMediaCollectionInfo);
+        Log.d(TAG, "   RESULT=" + result);
+        return result;
     }
 
     private String getPrefsKey(boolean isLocal, String key) {
@@ -833,14 +844,7 @@ public class PickerSyncController {
      * Get the default {@link CloudProviderInfo} at {@link PickerSyncController} construction
      */
     @VisibleForTesting
-    CloudProviderInfo getDefaultCloudProviderInfo(String cachedProvider,
-            boolean isUserAwareAboutCloudMediaAppSettings) {
-        if (cachedProvider == null && isUserAwareAboutCloudMediaAppSettings) {
-            Log.i(TAG, "Skipping default cloud provider selection since the user has made an "
-                    + "explicit empty choice");
-            return CloudProviderInfo.EMPTY;
-        }
-
+    CloudProviderInfo getDefaultCloudProviderInfo(String cachedProvider) {
         final List<CloudProviderInfo> infos = getAvailableCloudProviders();
 
         if (infos.size() == 1) {
@@ -872,17 +876,6 @@ public class PickerSyncController {
 
         // No default set or default not installed
         return CloudProviderInfo.EMPTY;
-    }
-
-    /**
-     * @return the value of the user pref
-     * {@link PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE} with the default value as
-     * {@code false}
-     */
-    @VisibleForTesting
-    boolean isUserAwareAboutCloudMediaAppSettings() {
-        return mUserPrefs.getBoolean(PREFS_KEY_IS_USER_CLOUD_MEDIA_AWARE,
-                /* defaultValue */ false);
     }
 
     private static String traceSectionName(@NonNull String method) {
@@ -931,22 +924,21 @@ public class PickerSyncController {
     }
 
     private static class SyncRequestParams {
-        private static final SyncRequestParams SYNC_REQUEST_NONE =
-                new SyncRequestParams(SYNC_TYPE_NONE);
-        private static final SyncRequestParams SYNC_REQUEST_MEDIA_RESET =
+        static final SyncRequestParams SYNC_REQUEST_NONE = new SyncRequestParams(SYNC_TYPE_NONE);
+        static final SyncRequestParams SYNC_REQUEST_MEDIA_RESET =
                 new SyncRequestParams(SYNC_TYPE_MEDIA_RESET);
 
-        private final int syncType;
+        final int syncType;
         // Only valid for SYNC_TYPE_INCREMENTAL
-        private final long syncGeneration;
+        final long syncGeneration;
         // Only valid for SYNC_TYPE_[INCREMENTAL|FULL]
-        private final Bundle latestMediaCollectionInfo;
+        final Bundle latestMediaCollectionInfo;
 
-        private SyncRequestParams(@SyncType int syncType) {
+        SyncRequestParams(@SyncType int syncType) {
             this(syncType, /* syncGeneration */ 0, /* latestMediaCollectionInfo */ null);
         }
 
-        private SyncRequestParams(@SyncType int syncType, long syncGeneration,
+        SyncRequestParams(@SyncType int syncType, long syncGeneration,
                 Bundle latestMediaCollectionInfo) {
             this.syncType = syncType;
             this.syncGeneration = syncGeneration;
@@ -973,6 +965,27 @@ public class PickerSyncController {
         static SyncRequestParams forIncremental(long generation, Bundle latestMediaCollectionInfo) {
             return new SyncRequestParams(SYNC_TYPE_MEDIA_INCREMENTAL, generation,
                     latestMediaCollectionInfo);
+        }
+
+        @Override
+        public String toString() {
+            return "SyncRequestParams{type=" + syncTypeToString(syncType)
+                    + ", gen=" + syncGeneration + ", latest=" + latestMediaCollectionInfo + '}';
+        }
+    }
+
+    private static String syncTypeToString(@SyncType int syncType) {
+        switch (syncType) {
+            case SYNC_TYPE_NONE:
+                return "NONE";
+            case SYNC_TYPE_MEDIA_INCREMENTAL:
+                return "MEDIA_INCREMENTAL";
+            case SYNC_TYPE_MEDIA_FULL:
+                return "MEDIA_FULL";
+            case SYNC_TYPE_MEDIA_RESET:
+                return "MEDIA_RESET";
+            default:
+                return "Unknown";
         }
     }
 }

@@ -105,6 +105,19 @@ public class MediaGrantsTest {
     }
 
     @Test
+    public void testAddDuplicateMediaGrants() throws Exception {
+
+        Long fileId1 = insertFileInResolver("test_file1");
+        List<Uri> uris = List.of(buildValidPickerUri(fileId1));
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris);
+        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME);
+
+        // Add the same grant again to ensure no database insert failure.
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris);
+        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME);
+    }
+
+    @Test
     public void testAddMediaGrantsRequiresPickerUri() throws Exception {
 
         Uri invalidUri =

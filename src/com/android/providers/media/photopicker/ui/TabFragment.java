@@ -19,6 +19,8 @@ import static com.android.providers.media.photopicker.ui.DevicePolicyResources.D
 import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Drawables.WORK_PROFILE_ICON;
 import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.SWITCH_TO_PERSONAL_MESSAGE;
 import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.SWITCH_TO_WORK_MESSAGE;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_SECTION;
 
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
@@ -31,9 +33,9 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -45,6 +47,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -275,9 +278,11 @@ public abstract class TabFragment extends Fragment {
     }
 
     private boolean shouldShowProfileButton() {
-        return mUserIdManager.isMultiUserProfiles() && !mHideProfileButton &&
-                (!mSelection.canSelectMultiple() ||
-                        mSelection.getSelectedItemCount().getValue() == 0);
+        return mUserIdManager.isMultiUserProfiles()
+                && !mHideProfileButton
+                && !mPickerViewModel.isUserSelectForApp()
+                && (!mSelection.canSelectMultiple()
+                        || mSelection.getSelectedItemCount().getValue() == 0);
     }
 
     private void onClickProfileButton() {
@@ -398,9 +403,48 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setVisibility(shouldShowEmptyView ? View.GONE : View.VISIBLE);
     }
 
-    private static String generateAddButtonString(Context context, int size) {
+    /**
+     * Generates the Button Label for the {@link TabFragment#mAddButton}.
+     *
+     * @param context The current application context.
+     * @param size The current size of the selection.
+     * @return Localized, formatted string.
+     */
+    private String generateAddButtonString(Context context, int size) {
         final String sizeString = NumberFormat.getInstance(Locale.getDefault()).format(size);
-        final String template = context.getString(R.string.picker_add_button_multi_select);
+        final String template =
+                mPickerViewModel.isUserSelectForApp()
+                        ? context.getString(R.string.picker_add_button_multi_select_permissions)
+                        : context.getString(R.string.picker_add_button_multi_select);
+
         return TextUtils.expandTemplate(template, sizeString).toString();
+    }
+
+    protected final void observeAndUpdateBannerVisibility(@NonNull TabAdapter adapter) {
+        mPickerViewModel.getBannerVisibilityLiveData().observe(this, adapter::setShowBanner);
+    }
+
+    protected final PhotoPickerActivity getPickerActivity() {
+        return (PhotoPickerActivity) getActivity();
+    }
+
+    protected final void setLayoutManager(@NonNull TabAdapter adapter, int spanCount) {
+        final GridLayoutManager layoutManager =
+                new GridLayoutManager(getContext(), spanCount);
+        final GridLayoutManager.SpanSizeLookup lookup = new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                final int itemViewType = adapter.getItemViewType(position);
+                // For the item view types ITEM_TYPE_BANNER and ITEM_TYPE_SECTION, it is full
+                // span, return the span count of the layoutManager.
+                if (itemViewType == ITEM_TYPE_BANNER || itemViewType == ITEM_TYPE_SECTION) {
+                    return layoutManager.getSpanCount();
+                } else {
+                    return 1;
+                }
+            }
+        };
+        layoutManager.setSpanSizeLookup(lookup);
+        mRecyclerView.setLayoutManager(layoutManager);
     }
 }

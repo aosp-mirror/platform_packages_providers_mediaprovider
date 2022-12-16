@@ -47,6 +47,7 @@ import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Utility class for Picker Uris, it handles (includes permission checks, incoming args
@@ -70,12 +71,17 @@ public class PickerUriResolver {
     public static final String MEDIA_PATH = "media";
     public static final String ALBUM_PATH = "albums";
 
+    public static final String LOCAL_PATH = "local";
+    public static final String ALL_PATH = "all";
+
     private final Context mContext;
     private final PickerDbFacade mDbFacade;
+    private final ProjectionHelper mProjectionHelper;
 
-    PickerUriResolver(Context context, PickerDbFacade dbFacade) {
+    PickerUriResolver(Context context, PickerDbFacade dbFacade, ProjectionHelper projectionHelper) {
         mContext = context;
         mDbFacade = dbFacade;
+        mProjectionHelper = projectionHelper;
     }
 
     public ParcelFileDescriptor openFile(Uri uri, String mode, CancellationSignal signal,
@@ -300,25 +306,15 @@ public class PickerUriResolver {
             return;
         }
 
+        Set<String> validProjectionColumns = mProjectionHelper.getProjectionMap(
+                MediaStore.PickerMediaColumns.class).keySet();
         for (String column : projection) {
-            switch (column) {
-                // TODO (b/251427354): Create a list for all valid PickerMediaColumns
-                case MediaStore.PickerMediaColumns.DATA:
-                case MediaStore.PickerMediaColumns.DISPLAY_NAME:
-                case MediaStore.PickerMediaColumns.MIME_TYPE:
-                case MediaStore.PickerMediaColumns.DATE_TAKEN:
-                case MediaStore.PickerMediaColumns.SIZE:
-                case MediaStore.PickerMediaColumns.DURATION_MILLIS:
-                case MediaStore.PickerMediaColumns.HEIGHT:
-                case MediaStore.PickerMediaColumns.WIDTH:
-                case MediaStore.PickerMediaColumns.ORIENTATION:
-                    break;
-                default:
-                    final PhotoPickerUiEventLogger logger = new PhotoPickerUiEventLogger();
-                    logger.logPickerQueriedWithUnknownColumn(callingUid, callingPackageName);
+            if (!validProjectionColumns.contains(column)) {
+                final PhotoPickerUiEventLogger logger = new PhotoPickerUiEventLogger();
+                logger.logPickerQueriedWithUnknownColumn(callingUid, callingPackageName);
 
-                    throw new IllegalArgumentException("Unexpected picker URI projection. Uri:"
-                            + uri + ". Column: " + column);
+                throw new IllegalArgumentException("Unexpected picker URI projection. Uri:"
+                        + uri + ". Column: " + column);
             }
         }
     }

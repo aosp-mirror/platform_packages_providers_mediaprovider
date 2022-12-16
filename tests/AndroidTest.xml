@@ -14,7 +14,7 @@
      limitations under the License.
 -->
 <configuration description="Runs Tests for MediaProvder.">
-    <target_preparer class="com.android.tradefed.targetprep.TestAppInstallSetup">
+    <target_preparer class="com.android.tradefed.targetprep.suite.SuiteApkInstaller">
         <option name="test-file-name" value="MediaProviderTests.apk" />
         <option name="test-file-name" value="MediaProviderTestAppForPermissionActivity.apk" />
         <option name="test-file-name" value="MediaProviderTestAppForPermissionActivity33.apk" />

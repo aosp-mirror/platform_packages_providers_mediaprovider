@@ -17,12 +17,14 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
+import static android.Manifest.permission.QUERY_ALL_PACKAGES;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
+import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
@@ -37,6 +39,7 @@ import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
 import static android.provider.MediaStore.MEDIA_IGNORE_FILENAME;
 import static android.provider.MediaStore.MY_UID;
+import static android.provider.MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
@@ -298,6 +301,7 @@ import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XAttrUtils;
 import com.android.providers.media.util.XmpInterface;
 
+import com.google.common.base.Strings;
 import com.google.common.hash.Hashing;
 
 import java.io.File;
@@ -3462,7 +3466,24 @@ public class MediaProvider extends ContentProvider {
             onLocaleChanged(false);
         }
 
-        final Cursor c = qb.query(helper, projection, queryArgs, signal);
+        Cursor c = qb.query(helper, projection, queryArgs, signal);
+
+        // Starting U, we are filtering owner package names for apps without visibility
+        // on other packages. Apps with QUERY_ALL_PACKAGES permission are not affected.
+        final boolean shouldFilterOwnerPackageNameFlag = true;
+        if (shouldFilterOwnerPackageNameFlag && isApplicableForOwnerPackageNameFiltering(c)) {
+            final long startTime = SystemClock.elapsedRealtime();
+            final String[] resultOwnerPackageNames = getOwnerPackageNames(c);
+            if (resultOwnerPackageNames.length != 0) {
+                final Set<String> queryablePackages = getQueryablePackages(resultOwnerPackageNames);
+                if (resultOwnerPackageNames.length != queryablePackages.size()) {
+                    c = filterOwnerPackageNames(c, queryablePackages);
+                }
+            }
+            final long durationMillis = SystemClock.elapsedRealtime() - startTime;
+            Log.d(TAG, "Filtering owner package names took " + durationMillis + " ms");
+        }
+
         if (c != null && !forSelf) {
             // As a performance optimization, only configure notifications when
             // resulting cursor will leave our process
@@ -3487,6 +3508,69 @@ public class MediaProvider extends ContentProvider {
         }
 
         return c;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private Set<String> getQueryablePackages(String[] packageNames) {
+        final boolean[] canPackageBeQueried;
+        try {
+            canPackageBeQueried = mPackageManager.canPackageQuery(
+                    mCallingIdentity.get().getPackageName(), packageNames);
+        } catch (NameNotFoundException e) {
+            Log.e(TAG, "Invalid package name", e);
+            // If package manager throws an error, only assume calling package as queryable package
+            return new HashSet<>(Arrays.asList(mCallingIdentity.get().getPackageName()));
+        }
+
+        final Set<String> queryablePackages = new HashSet<>();
+        for (int i = 0; i < packageNames.length; i++) {
+            if (canPackageBeQueried[i]) {
+                queryablePackages.add(packageNames[i]);
+            }
+        }
+        return queryablePackages;
+    }
+
+    private String[] getOwnerPackageNames(Cursor c) {
+        final Set<String> ownerPackageNames = new HashSet<>();
+        final int ownerPackageNameColIndex = c.getColumnIndex(MediaColumns.OWNER_PACKAGE_NAME);
+
+        while (c.moveToNext()) {
+            final String ownerPackageName = c.getString(ownerPackageNameColIndex);
+            if (!Strings.isNullOrEmpty(ownerPackageName)) {
+                ownerPackageNames.add(ownerPackageName);
+            }
+        }
+        c.moveToPosition(-1);
+
+        return ownerPackageNames.toArray(new String[0]);
+    }
+
+    private Cursor filterOwnerPackageNames(@NonNull Cursor c,
+            @NonNull Set<String> queryablePackages) {
+        final MatrixCursor filteredCursor = new MatrixCursor(c.getColumnNames(), c.getCount());
+
+        while (c.moveToNext()) {
+            final MatrixCursor.RowBuilder row = filteredCursor.newRow();
+            for (int colIndex = 0; colIndex < c.getColumnCount(); colIndex++) {
+                if (OWNER_PACKAGE_NAME.equals(c.getColumnName(colIndex))
+                        && !queryablePackages.contains(c.getString(colIndex))) {
+                    row.add(null);
+                } else if (c.getType(colIndex) == FIELD_TYPE_BLOB) {
+                    row.add(c.getBlob(colIndex));
+                } else {
+                    row.add(c.getString(colIndex));
+                }
+            }
+        }
+        return filteredCursor;
+    }
+
+    private boolean isApplicableForOwnerPackageNameFiltering(Cursor c) {
+        return SdkLevel.isAtLeastU() && c != null
+                && Arrays.asList(c.getColumnNames()).contains(MediaColumns.OWNER_PACKAGE_NAME)
+                && getContext().checkPermission(QUERY_ALL_PACKAGES,
+                mCallingIdentity.get().pid, mCallingIdentity.get().uid) == PERMISSION_DENIED;
     }
 
     private boolean isUriSupportedForRedaction(Uri uri) {

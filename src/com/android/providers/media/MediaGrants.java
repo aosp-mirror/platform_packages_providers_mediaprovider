@@ -37,7 +37,7 @@ import java.util.Objects;
  *
  * <p>Manages media grants for files in the {@code files} table based on package name.
  */
-public class MediaGrants {
+class MediaGrants {
     public static final String TAG = "MediaGrants";
     public static final String MEDIA_GRANTS_TABLE = "media_grants";
     public static final String FILE_ID_COLUMN = "file_id";
@@ -60,7 +60,7 @@ public class MediaGrants {
      * @param packageName the package name that will receive access.
      * @param uris list of content {@link android.net.Uri} that are recognized by media provider.
      */
-    public void addMediaGrantsForPackage(String packageName, List<Uri> uris)
+    void addMediaGrantsForPackage(String packageName, List<Uri> uris)
             throws IllegalArgumentException {
 
         mExternalDatabase.runWithTransaction(
@@ -102,7 +102,7 @@ public class MediaGrants {
      *
      * @return the number of grants removed.
      */
-    public int removeAllMediaGrantsForPackage(String packageName) throws IllegalArgumentException {
+    int removeAllMediaGrantsForPackage(String packageName) throws IllegalArgumentException {
 
         Objects.requireNonNull(packageName);
         if (TextUtils.isEmpty(packageName)) {
@@ -122,6 +122,21 @@ public class MediaGrants {
                             TAG,
                             String.format(
                                     "Removed %s media_grants for %s", grantsRemoved, packageName));
+                    return grantsRemoved;
+                });
+    }
+
+    /**
+     * Removes all existing media grants for all packages from the external database. This will not
+     * alter the files or file metadata themselves.
+     *
+     * @return the number of grants removed.
+     */
+    int removeAllMediaGrants() {
+        return mExternalDatabase.runWithTransaction(
+                (db) -> {
+                    int grantsRemoved = mQueryBuilder.delete(db, null, null);
+                    Log.d(TAG, String.format("Removed %d existing media_grants", grantsRemoved));
                     return grantsRemoved;
                 });
     }

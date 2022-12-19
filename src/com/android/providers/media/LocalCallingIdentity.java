@@ -33,6 +33,7 @@ import static com.android.providers.media.util.PermissionUtils.checkPermissionRe
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVideo;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVisualUserSelected;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionShell;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteAudio;
@@ -411,8 +412,8 @@ public class LocalCallingIdentity {
                 return checkPermissionAccessMtp(
                         context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED:
-                // TODO(b/259058625) Check new user select permission
-                return false;
+                return checkPermissionReadVisualUserSelected(context, pid, uid, getPackageName(),
+                        attributionTag, targetSdkIsAtLeastT);
             default:
                 return false;
         }

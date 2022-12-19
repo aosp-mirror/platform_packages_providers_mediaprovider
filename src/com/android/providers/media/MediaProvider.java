@@ -6468,17 +6468,10 @@ public class MediaProvider extends ContentProvider {
                 return bundle;
             }
             case MediaStore.NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL: {
-                final boolean notifyCloudEventResult;
-                if (mPickerSyncController.isProviderEnabled(arg, Binder.getCallingUid())) {
-                    mPickerSyncController.notifyMediaEvent();
-                    notifyCloudEventResult = true;
-                } else {
-                    notifyCloudEventResult = false;
-                }
+                Log.w(TAG, "NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL: no-op!");
 
-                Bundle bundle = new Bundle();
-                bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT,
-                        notifyCloudEventResult);
+                final Bundle bundle = new Bundle();
+                bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT, false);
                 return bundle;
             }
             case MediaStore.USES_FUSE_PASSTHROUGH: {

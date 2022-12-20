@@ -1281,6 +1281,7 @@ public class MediaProvider extends ContentProvider {
                 MIGRATION_LISTENER, mIdGenerator, true);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
         mPickerDbFacade = new PickerDbFacade(context);
+
         mMediaGrants = new MediaGrants(mExternalDatabase);
 
         mConfigStore = createConfigStore();
@@ -1390,6 +1391,11 @@ public class MediaProvider extends ContentProvider {
         storageNativeBootPropertyChangeListener();
         mConfigStore.addOnChangeListener(
                 BackgroundThread.getExecutor(), this::storageNativeBootPropertyChangeListener);
+
+        // media_grants are cleared on device reboot, and onCreate is a good signal for this.
+        ForegroundThread.getExecutor().execute(() -> {
+            mMediaGrants.removeAllMediaGrants();
+        });
 
         PulledMetrics.initialize(context);
         return true;

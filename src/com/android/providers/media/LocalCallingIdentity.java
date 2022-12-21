@@ -71,6 +71,7 @@ import java.io.PrintWriter;
 import java.util.Locale;
 
 public class LocalCallingIdentity {
+
     public final int pid;
     public final int uid;
     private final UserHandle user;
@@ -110,13 +111,14 @@ public class LocalCallingIdentity {
         String callingPackage = provider.getCallingPackageUnchecked();
         int binderUid = Binder.getCallingUid();
         if (callingPackage == null) {
-            if (binderUid == Process.SYSTEM_UID) {
+            if (binderUid == Process.SYSTEM_UID || binderUid == Process.myUid()) {
                 // If UID is system assume we are running as ourself and not handling IPC
                 // Otherwise, we'd crash when we attempt AppOpsManager#checkPackage
                 // in LocalCallingIdentity#getPackageName
                 return fromSelf(context);
             }
-            callingPackage = context.getOpPackageName();
+            // Package will be resolved during getPackageNameInternal()
+            callingPackage = null;
         }
         String callingAttributionTag = provider.getCallingAttributionTag();
         if (callingAttributionTag == null) {
@@ -218,7 +220,14 @@ public class LocalCallingIdentity {
         return packageName;
     }
 
+    public boolean isValidProviderOrFuseCallingIdentity() {
+        return packageNameUnchecked != null;
+    }
+
     private String getPackageNameInternal() {
+        if (packageNameUnchecked == null) {
+            return context.getPackageManager().getNameForUid(uid);
+        }
         // Verify that package name is actually owned by UID
         context.getSystemService(AppOpsManager.class)
                 .checkPackage(uid, packageNameUnchecked);

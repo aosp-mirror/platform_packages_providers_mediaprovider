@@ -645,7 +645,15 @@ public class MediaProvider extends ContentProvider {
         @Override
         public Object onTransactStarted(IBinder binder, int transactionCode) {
             if (LOGV) Trace.beginSection(Thread.currentThread().getStackTrace()[5].getMethodName());
-            return Binder.setCallingWorkSourceUid(mCallingIdentity.get().uid);
+            // Check if mCallindIdentity was created within a fuse or content provider transaction
+            if (mCallingIdentity.get().isValidProviderOrFuseCallingIdentity()) {
+                return Binder.setCallingWorkSourceUid(mCallingIdentity.get().uid);
+            }
+            // If mCallingIdentity was not created for a fuse or content provider transaction,
+            // we should reset it, the next time it is retrieved it will be created for the
+            // appropriate caller.
+            mCallingIdentity.remove();
+            return Binder.setCallingWorkSourceUid(Binder.getCallingUid());
         }
 
         @Override

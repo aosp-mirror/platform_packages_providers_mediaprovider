@@ -41,7 +41,6 @@ import java.util.concurrent.Executor;
  */
 public interface ConfigStore {
     boolean DEFAULT_TAKE_OVER_GET_CONTENT = false;
-    boolean DEFAULT_USER_SELECT_FOR_APP = true;
     boolean DEFAULT_STABILISE_VOLUME_INTERNAL = false;
     boolean DEFAULT_STABILIZE_VOLUME_EXTERNAL = false;
 
@@ -118,13 +117,6 @@ public interface ConfigStore {
     }
 
     /**
-     * @return if PhotoPickerUserSelectActivity should be enabled
-     */
-    default boolean isUserSelectForAppEnabled() {
-        return DEFAULT_USER_SELECT_FOR_APP;
-    }
-
-    /**
      * @return if stable URI are enabled for the internal volume.
      */
     default boolean isStableUrisForInternalVolumeEnabled() {
@@ -176,7 +168,6 @@ public interface ConfigStore {
      */
     class ConfigStoreImpl implements ConfigStore {
         private static final String KEY_TAKE_OVER_GET_CONTENT = "take_over_get_content";
-        private static final String KEY_USER_SELECT_FOR_APP = "user_select_for_app";
 
         @VisibleForTesting
         public static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
@@ -235,11 +226,6 @@ public interface ConfigStore {
         @Override
         public boolean isGetContentTakeOverEnabled() {
             return getBooleanDeviceConfig(KEY_TAKE_OVER_GET_CONTENT, DEFAULT_TAKE_OVER_GET_CONTENT);
-        }
-
-        @Override
-        public boolean isUserSelectForAppEnabled() {
-            return getBooleanDeviceConfig(KEY_USER_SELECT_FOR_APP, DEFAULT_USER_SELECT_FOR_APP);
         }
 
         @Override

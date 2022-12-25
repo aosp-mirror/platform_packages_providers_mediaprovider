@@ -645,7 +645,15 @@ public class MediaProvider extends ContentProvider {
         @Override
         public Object onTransactStarted(IBinder binder, int transactionCode) {
             if (LOGV) Trace.beginSection(Thread.currentThread().getStackTrace()[5].getMethodName());
-            return Binder.setCallingWorkSourceUid(mCallingIdentity.get().uid);
+            // Check if mCallindIdentity was created within a fuse or content provider transaction
+            if (mCallingIdentity.get().isValidProviderOrFuseCallingIdentity()) {
+                return Binder.setCallingWorkSourceUid(mCallingIdentity.get().uid);
+            }
+            // If mCallingIdentity was not created for a fuse or content provider transaction,
+            // we should reset it, the next time it is retrieved it will be created for the
+            // appropriate caller.
+            mCallingIdentity.remove();
+            return Binder.setCallingWorkSourceUid(Binder.getCallingUid());
         }
 
         @Override
@@ -1281,6 +1289,7 @@ public class MediaProvider extends ContentProvider {
                 MIGRATION_LISTENER, mIdGenerator, true);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
         mPickerDbFacade = new PickerDbFacade(context);
+
         mMediaGrants = new MediaGrants(mExternalDatabase);
 
         mConfigStore = createConfigStore();
@@ -1391,26 +1400,22 @@ public class MediaProvider extends ContentProvider {
         mConfigStore.addOnChangeListener(
                 BackgroundThread.getExecutor(), this::storageNativeBootPropertyChangeListener);
 
+        // media_grants are cleared on device reboot, and onCreate is a good signal for this.
+        ForegroundThread.getExecutor().execute(() -> {
+            mMediaGrants.removeAllMediaGrants();
+        });
+
         PulledMetrics.initialize(context);
         return true;
     }
 
     @VisibleForTesting
     protected void storageNativeBootPropertyChangeListener() {
-        final String photoPickerGetContentActivity =
-                PhotoPickerActivity.class.getPackage().getName() + ".PhotoPickerGetContentActivity";
-        final ComponentName componentName = new ComponentName(getContext().getPackageName(),
-                photoPickerGetContentActivity);
+        setComponentEnabledSetting("PhotoPickerGetContentActivity",
+                mConfigStore.isGetContentTakeOverEnabled());
 
-        final int expectedState = mConfigStore.isGetContentTakeOverEnabled()
-                ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
-
-        Log.i(TAG, "Changed PhotoPickerGetContentActivity component state to "
-                + componentStateToString(expectedState));
-
-        getContext().getPackageManager().setComponentEnabledSetting(componentName, expectedState,
-                PackageManager.DONT_KILL_APP);
+        setComponentEnabledSetting("PhotoPickerUserSelectActivity",
+                mConfigStore.isUserSelectForAppEnabled());
 
         if (mConfigStore.isStableUrisForInternalVolumeEnabled()
                 && mVolumeCache.getExternalVolumeNames().contains(
@@ -1420,6 +1425,23 @@ public class MediaProvider extends ContentProvider {
                             + " and recovery setup.");
             setupVolumeDbBackupForInternalIfMissing();
         }
+    }
+
+    private void setComponentEnabledSetting(@NonNull String activityName, boolean isEnabled) {
+        final String activityFullName =
+                PhotoPickerActivity.class.getPackage().getName() + "." + activityName;
+        final ComponentName componentName = new ComponentName(getContext().getPackageName(),
+                activityFullName);
+
+        final int expectedState = isEnabled
+                ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+
+        Log.i(TAG, "Changed " + activityName + " component state to "
+                + componentStateToString(expectedState));
+
+        getContext().getPackageManager().setComponentEnabledSetting(componentName, expectedState,
+                PackageManager.DONT_KILL_APP);
     }
 
     Optional<DatabaseHelper> getDatabaseHelper(String dbName) {

@@ -39,12 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"Разрешаване"</string>
     <string name="deny" msgid="6040983710442068936">"Отказ"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Преглед…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Медийно приложение в облака"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Приложение за мултимедия в облака"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Приложение за мултимедия в облака"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Инструментът на Android за избор на снимки ви дава възможност да споделяте изображения и видеоклипове, на които създавате резервни копия от други услуги"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Достъп до мултимедия в облака от"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Няма"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Медийното приложение в облака не бе променено."</string>
     <string name="add" msgid="2894574044585549298">"Добавяне"</string>
     <string name="deselect" msgid="4297825044827769490">"Премахване на избора"</string>
     <string name="deselected" msgid="8488133193326208475">"Неизбрано"</string>
@@ -91,6 +92,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Нов опит"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Вече е налице мултимедия в облака от <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не е избрано"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"Готови: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> от <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Снимките, за които е създадено резервно копие, вече са добавени"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Можете да избирате снимки от профила <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> в(ъв) <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Профилът в(ъв) <xliff:g id="APP_NAME">%1$s</xliff:g> е актуализиран"</string>

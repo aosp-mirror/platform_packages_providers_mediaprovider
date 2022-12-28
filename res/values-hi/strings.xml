@@ -39,12 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"अनुमति दें"</string>
     <string name="deny" msgid="6040983710442068936">"अनुमति न दें"</string>
     <string name="picker_browse" msgid="5554477454636075934">"ब्राउज़ करें…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"क्लाउड मीडिया ऐप्लिकेशन"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"क्लाउड मीडिया ऐप्लिकेशन"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"क्लाउड मीडिया ऐप्लिकेशन"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Android में फ़ोटो पिकर की मदद से, उन फ़ोटो और वीडियो को शेयर करें जिनका बैक अप आपने अन्य सेवाओं पर लिया है."</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"क्लाउड पर मौजूद मीडिया को यहां से ऐक्सेस करें:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"कोई नहीं"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"इस समय क्लाउड मीडिया ऐप्लिकेशन नहीं बदला जा सका."</string>
     <string name="add" msgid="2894574044585549298">"जोड़ें"</string>
     <string name="deselect" msgid="4297825044827769490">"चुना हुआ हटाएं"</string>
     <string name="deselected" msgid="8488133193326208475">"चुना हुआ हटाया गया"</string>
@@ -91,6 +92,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"फिर से कोशिश करें"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"क्लाउड मीडिया अब <xliff:g id="PKG_NAME">%1$s</xliff:g> पर उपलब्ध है"</string>
     <string name="not_selected" msgid="2244008151669896758">"नहीं चुना गया"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> में से <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> तैयार हैं"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"बैक अप ली गई फ़ोटो अब जोड़ दी गई हैं"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"आपके पास, <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> वाले <xliff:g id="APP_NAME">%1$s</xliff:g> खाते से फ़ोटो चुनने का विकल्प है"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> खाता अपडेट किया गया"</string>

@@ -39,12 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"İzin ver"</string>
     <string name="deny" msgid="6040983710442068936">"Reddet"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Göz at…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Bulut medya uygulaması"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Bulut medya uygulaması"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Bulut medya uygulaması"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Diğer hizmetlerden yedeklediğiniz fotoğrafları ve videoları Android fotoğraf seçicide paylaşın"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Şuradaki bulut medyasına erişin"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Yok"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Bulut medya uygulaması şu anda değiştirilemiyor."</string>
     <string name="add" msgid="2894574044585549298">"Ekle"</string>
     <string name="deselect" msgid="4297825044827769490">"Seçimi kaldır"</string>
     <string name="deselected" msgid="8488133193326208475">"Seçimi kaldırıldı"</string>
@@ -91,6 +92,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Tekrar dene"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Bulut üzerinde saklanan medya dosyaları artık <xliff:g id="PKG_NAME">%1$s</xliff:g> uygulamasından kullanılabilir"</string>
     <string name="not_selected" msgid="2244008151669896758">"seçili değil"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> adetten <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> adedi hazır"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Yedeklenen fotoğraflar artık dahil ediliyor"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> uygulamasındaki <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> hesabından fotoğraf seçebilirsiniz"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> hesabı güncellendi"</string>

@@ -77,8 +77,6 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Item>> mCategoryItemList;
     // The list of categories.
     private MutableLiveData<List<Category>> mCategoryList;
-    // Boolean Banner visibility
-    private MutableLiveData<Boolean> mBannerVisibility;
     // Authority of the current CloudMediaProvider
     private final MutableLiveData<String> mCloudMediaProviderAuthority;
 
@@ -162,6 +160,26 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * @return a {@link LiveData} that holds the value (once it's fetched) of the package name
+     *         of the current {@link android.provider.CloudMediaProvider}.
+     */
+    @NonNull
+    public LiveData<String> getCloudMediaProviderAppTitleLiveData() {
+        // TODO(b/195009152): Update to hold and track the actual value.
+        return new MutableLiveData<>();
+    }
+
+    /**
+     * @return a {@link LiveData} that holds the value (once it's fetched) of the account name
+     *         of the current {@link android.provider.CloudMediaProvider}.
+     */
+    @NonNull
+    public LiveData<String> getCloudMediaAccountNameLiveData() {
+        // TODO(b/195009152): Update to hold and track the actual value.
+        return new MutableLiveData<>();
+    }
+
+    /**
      * Reset PickerViewModel.
      * @param switchToPersonalProfile is true then set personal profile as current profile.
      */
@@ -185,18 +203,6 @@ public class PickerViewModel extends AndroidViewModel {
             updateItems();
         }
         return mItemList;
-    }
-
-    /**
-     * @return the live data of banner visibility boolean {@link #mBannerVisibility}.
-     */
-    @NonNull
-    public LiveData<Boolean> getBannerVisibilityLiveData() {
-        if (mBannerVisibility == null) {
-            // TODO(b/195009152): Update to hold and track the actual value.
-            mBannerVisibility = new MutableLiveData<>(false);
-        }
-        return mBannerVisibility;
     }
 
     private List<Item> loadItems(Category category, UserId userId) {

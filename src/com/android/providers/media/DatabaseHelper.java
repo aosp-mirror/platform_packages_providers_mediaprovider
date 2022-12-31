@@ -540,7 +540,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
         String volumeName =
                 isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
-        if (!isInternal() || !mediaProvider.isStableUrisEnabled(volumeName)) {
+        if (!isInternal()
+                || !mediaProvider.getDatabaseBackupAndRecovery().isStableUrisEnabled(volumeName)) {
             return;
         }
 
@@ -554,7 +555,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // StableUrisIdleMaintenanceService will be attempted to run only once in 7days.
                 // Any rollback before that will not recover DB rows.
                 BackgroundThread.getExecutor().execute(
-                        () -> mediaProvider.backupInternalDatabase(null));
+                        () -> mediaProvider.getDatabaseBackupAndRecovery()
+                                .backupInternalDatabase(null));
                 // Set next row id in External Storage to handle rollback in future.
                 backupNextRowId(NEXT_ROW_ID_DEFAULT_BILLION_VALUE);
                 updateSessionIdInDatabaseAndExternalStorage(db);
@@ -607,13 +609,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
         // Wait for external primary to be attached as we use same thread for internal volume.
         // Maximum wait for 10s
-        while (!mediaProvider.isFuseDaemonReadyForFilePath(fuseFilePath) && i < 1000) {
+        DatabaseBackupAndRecovery dbBackupAndRecovery =
+                mediaProvider.getDatabaseBackupAndRecovery();
+        while (!dbBackupAndRecovery.isFuseDaemonReadyForFilePath(fuseFilePath)
+                && i < 1000) {
             Log.d(TAG, "Waiting for fuse daemon to be ready.");
             // Poll after every 10ms
             SystemClock.sleep(10);
             i++;
         }
-        if (!mediaProvider.isFuseDaemonReadyForFilePath(fuseFilePath)) {
+        if (!dbBackupAndRecovery.isFuseDaemonReadyForFilePath(fuseFilePath)) {
             Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.");
             return;
         }
@@ -623,15 +628,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         String lastReadValue = "";
 
         while (true) {
-            backedUpFilePaths = mediaProvider.readBackedUpFilePaths(volumeName, lastReadValue,
-                    LEVEL_DB_READ_LIMIT);
+            backedUpFilePaths = mediaProvider.getDatabaseBackupAndRecovery()
+                            .readBackedUpFilePaths(volumeName, lastReadValue, LEVEL_DB_READ_LIMIT);
             if (backedUpFilePaths.length <= 0) {
                 break;
             }
 
             for (String filePath : backedUpFilePaths) {
-                Optional<BackupIdRow> fileRow = mediaProvider.readDataFromBackup(volumeName,
-                        filePath);
+                Optional<BackupIdRow> fileRow = mediaProvider.getDatabaseBackupAndRecovery()
+                                .readDataFromBackup(volumeName, filePath);
                 if (fileRow.isPresent() && !fileRow.get().getIsDirty()) {
                     insertDataInDatabase(db, fileRow.get(), filePath, volumeName);
                     rowsRecovered++;

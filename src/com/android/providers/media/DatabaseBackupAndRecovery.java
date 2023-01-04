@@ -31,7 +31,6 @@ import androidx.annotation.NonNull;
 import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
-import com.android.providers.media.util.FileUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -112,7 +111,8 @@ public class DatabaseBackupAndRecovery {
             if (!new File(sRecoveryDirectoryPath).exists()) {
                 new File(sRecoveryDirectoryPath).mkdirs();
             }
-            FileUtils.getFuseDaemonForFile(volume.getPath(), mVolumeCache).setupVolumeDbBackup();
+            MediaProvider.getFuseDaemonForFile(volume.getPath(), mVolumeCache)
+                    .setupVolumeDbBackup();
         } catch (IOException e) {
             Log.e(TAG, "Failure in setting up backup and recovery for volume: " + volume.getName(),
                     e);
@@ -253,7 +253,7 @@ public class DatabaseBackupAndRecovery {
     @NonNull
     private FuseDaemon getFuseDaemonForPath(@NonNull String path)
             throws FileNotFoundException {
-        return FileUtils.getFuseDaemonForFile(new File(path), mVolumeCache);
+        return MediaProvider.getFuseDaemonForFile(new File(path), mVolumeCache);
     }
 
     protected void updateNextRowIdAndSetDirtyIfRequired(@NonNull DatabaseHelper helper,

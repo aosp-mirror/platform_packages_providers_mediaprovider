@@ -19,6 +19,8 @@ import static com.android.providers.media.photopicker.ui.DevicePolicyResources.D
 import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Drawables.WORK_PROFILE_ICON;
 import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.SWITCH_TO_PERSONAL_MESSAGE;
 import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.SWITCH_TO_WORK_MESSAGE;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_SECTION;
 
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
@@ -45,6 +47,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -52,6 +55,7 @@ import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.viewmodel.BannerViewModel;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
@@ -65,6 +69,7 @@ import java.util.Locale;
 public abstract class TabFragment extends Fragment {
 
     protected PickerViewModel mPickerViewModel;
+    protected BannerViewModel mBannerViewModel;
     protected Selection mSelection;
     protected ImageLoader mImageLoader;
     protected AutoFitRecyclerView mRecyclerView;
@@ -114,7 +119,9 @@ public abstract class TabFragment extends Fragment {
         mImageLoader = new ImageLoader(context);
         mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
         mRecyclerView.setHasFixedSize(true);
-        mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
+        final ViewModelProvider viewModelProvider = new ViewModelProvider(requireActivity());
+        mPickerViewModel = viewModelProvider.get(PickerViewModel.class);
+        mBannerViewModel = viewModelProvider.get(BannerViewModel.class);
         mSelection = mPickerViewModel.getSelection();
         mRecyclerViewBottomPadding = getResources().getDimensionPixelSize(
                 R.dimen.picker_recycler_view_bottom_padding);
@@ -415,5 +422,29 @@ public abstract class TabFragment extends Fragment {
                         : context.getString(R.string.picker_add_button_multi_select);
 
         return TextUtils.expandTemplate(template, sizeString).toString();
+    }
+
+    protected final PhotoPickerActivity getPickerActivity() {
+        return (PhotoPickerActivity) getActivity();
+    }
+
+    protected final void setLayoutManager(@NonNull TabAdapter adapter, int spanCount) {
+        final GridLayoutManager layoutManager =
+                new GridLayoutManager(getContext(), spanCount);
+        final GridLayoutManager.SpanSizeLookup lookup = new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                final int itemViewType = adapter.getItemViewType(position);
+                // For the item view types ITEM_TYPE_BANNER and ITEM_TYPE_SECTION, it is full
+                // span, return the span count of the layoutManager.
+                if (itemViewType == ITEM_TYPE_BANNER || itemViewType == ITEM_TYPE_SECTION) {
+                    return layoutManager.getSpanCount();
+                } else {
+                    return 1;
+                }
+            }
+        };
+        layoutManager.setSpanSizeLookup(lookup);
+        mRecyclerView.setLayoutManager(layoutManager);
     }
 }

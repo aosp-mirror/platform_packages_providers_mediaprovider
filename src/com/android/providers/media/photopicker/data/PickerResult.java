@@ -80,12 +80,12 @@ public class PickerResult {
     /**
      * Returns list of PhotoPicker Uris corresponding to each {@link Item}
      *
-     * @param ItemList list of Item for which we return uri list.
+     * @param items list of Item for which we return uri list.
      */
     @NonNull
-    private static List<Uri> getPickerUrisForItems(@NonNull List<Item> ItemList) {
+    public static List<Uri> getPickerUrisForItems(@NonNull List<Item> items) {
         List<Uri> uris = new ArrayList<>();
-        for (Item item : ItemList) {
+        for (Item item : items) {
             uris.add(getPickerUri(item.getContentUri()));
         }
 

@@ -17,9 +17,13 @@
 package com.android.providers.media.photopicker;
 
 import static android.content.Intent.ACTION_GET_CONTENT;
+import static android.provider.MediaStore.ACTION_PICK_IMAGES;
+import static android.provider.MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP;
+import static android.provider.MediaStore.grantMediaReadForPackage;
 
 import static com.android.providers.media.photopicker.PhotoPickerSettingsActivity.EXTRA_CURRENT_USER_ID;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
+import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
 import android.annotation.UserIdInt;
@@ -39,8 +43,8 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.util.Log;
 import android.view.Menu;
@@ -54,13 +58,17 @@ import android.view.accessibility.AccessibilityManager;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.FragmentManager;
+import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.android.providers.media.ConfigStore;
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.PickerResult;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.UserId;
@@ -68,6 +76,7 @@ import com.android.providers.media.photopicker.ui.TabContainerFragment;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
+import com.android.providers.media.util.ForegroundThread;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback;
@@ -85,10 +94,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private static final float BOTTOM_SHEET_PEEK_HEIGHT_PERCENTAGE = 0.60f;
     private static final float HIDE_PROFILE_BUTTON_THRESHOLD = -0.5f;
     private static final String LOGGER_INSTANCE_ID_ARG = "loggerInstanceIdArg";
-    private static final String ENABLE_SETTINGS_SYS_PROP =
-            "debug.photopicker.enable_settings_screen";
+    private static final String EXTRA_PRELOAD_SELECTED =
+            "com.android.providers.media.photopicker.extra.PRELOAD_SELECTED";
 
+    private ViewModelProvider mViewModelProvider;
     private PickerViewModel mPickerViewModel;
+    private PreloaderInstanceHolder mPreloaderInstanceHolder;
+
     private Selection mSelection;
     private BottomSheetBehavior mBottomSheetBehavior;
     private View mBottomBar;
@@ -139,6 +151,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         ta.recycle();
 
         mDefaultBackgroundColor = getColor(R.color.picker_background_color);
+        mViewModelProvider = new ViewModelProvider(this);
         mPickerViewModel = createViewModel();
         mSelection = mPickerViewModel.getSelection();
 
@@ -176,7 +189,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mCrossProfileListeners = new CrossProfileListeners();
 
-        enableSettingsActivity();
+        mPreloaderInstanceHolder = mViewModelProvider.get(PreloaderInstanceHolder.class);
+        if (mPreloaderInstanceHolder.preloader != null) {
+            subscribeToSelectedMediaPreloader(mPreloaderInstanceHolder.preloader);
+        }
     }
 
     @Override
@@ -193,7 +209,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     @VisibleForTesting
     @NonNull
     protected PickerViewModel createViewModel() {
-        return new ViewModelProvider(this).get(PickerViewModel.class);
+        return mViewModelProvider.get(PickerViewModel.class);
     }
 
     @Override
@@ -283,10 +299,16 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
+    public void onRestart() {
+        super.onRestart();
+
         // TODO(b/195009187): Conditionally reset PhotoPicker when current profile's cloud
-        // provider has changed.
+        // provider has changed. Currently, we'll reset picker each time it restarts when settings
+        // page is enabled to avoid the scenario where cloud provider has changed from the settings
+        // page but picker continues to show stale data from old provider.
+        if (isSettingsScreenEnabled()) {
+            reset(/* switchToPersonalProfile */ false);
+        }
     }
 
     private void rerouteGetContentRequestIfRequired() {
@@ -473,11 +495,96 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     public void setResultAndFinishSelf() {
-        setResult(Activity.RESULT_OK, getPickerResponseIntent(mSelection.canSelectMultiple(),
-                mSelection.getSelectedItems()));
-
         logPickerSelectionConfirmed(mSelection.getSelectedItems().size());
+
+        if (shouldPreloadSelectedItems()) {
+            final var uris = PickerResult.getPickerUrisForItems(mSelection.getSelectedItems());
+            mPreloaderInstanceHolder.preloader =
+                    SelectedMediaPreloader.preload(/* activity */ this, uris);
+            subscribeToSelectedMediaPreloader(mPreloaderInstanceHolder.preloader);
+        } else {
+            setResultAndFinishSelfInternal();
+        }
+    }
+
+    private void setResultAndFinishSelfInternal() {
+        // In addition to the activity result, add the selected files to the MediaProvider
+        // media_grants database.
+        if (isUserSelectImagesForAppAction()) {
+            setResultForUserSelectImagesForAppAction();
+        } else {
+            setResultForPickImagesOrGetContentAction();
+        }
+
         finishWithoutLoggingCancelledResult();
+    }
+
+    private void setResultForUserSelectImagesForAppAction() {
+        // Since Photopicker is in permission mode, don't send back URI grants.
+        setResult(RESULT_OK);
+        // The permission controller will pass the requesting package's UID here
+        final Bundle extras = getIntent().getExtras();
+        final int uid = extras.getInt(Intent.EXTRA_UID);
+        final List<Uri> uris = getPickerUrisForItems(mSelection.getSelectedItems());
+        ForegroundThread.getExecutor().execute(() -> {
+            // Handle grants in another thread to not block the UI.
+            grantMediaReadForPackage(getApplicationContext(), uid, uris);
+        });
+    }
+
+    private void setResultForPickImagesOrGetContentAction() {
+        final Intent resultData = getPickerResponseIntent(
+                mSelection.canSelectMultiple(),
+                mSelection.getSelectedItems());
+        setResult(RESULT_OK, resultData);
+    }
+
+    private boolean shouldPreloadSelectedItems() {
+        // Only preload if the cloud media may be shown in the PhotoPicker.
+        if (!isCloudMediaIntegrationEnabled()) {
+            return false;
+        }
+
+        final boolean isGetContent = isGetContentAction();
+        final boolean isPickImages = isPickImagesAction();
+        final ConfigStore cs = mPickerViewModel.getConfigStore();
+
+        if (getIntent().hasExtra(EXTRA_PRELOAD_SELECTED)) {
+            if (Build.isDebuggable()
+                    || (isPickImages && cs.shouldPickerRespectPreloadArgumentForPickImages())) {
+                return getIntent().getBooleanExtra(EXTRA_PRELOAD_SELECTED,
+                        /* default, not used */ false);
+            }
+        }
+
+        if (isGetContent) {
+            return cs.shouldPickerPreloadForGetContent();
+        } else if (isPickImages) {
+            return cs.shouldPickerPreloadForPickImages();
+        } else {
+            Log.w(TAG, "Not preloading selection for \"" + getIntent().getAction() + "\" action");
+            return false;
+        }
+    }
+
+    private void subscribeToSelectedMediaPreloader(@NonNull SelectedMediaPreloader preloader) {
+        preloader.getIsFinishedLiveData().observe(
+                /* lifecycleOwner */ PhotoPickerActivity.this,
+                isFinished -> {
+                    if (isFinished) {
+                        setResultAndFinishSelfInternal();
+                    }
+                });
+    }
+
+    /**
+     * NOTE: this may wrongly return {@code false} if called before {@link PickerViewModel} had a
+     * chance to fetch the authority of the current {@link android.provider.CloudMediaProvider}.
+     * However, {@link PickerViewModel} initiates the "fetch" in its ctor, so this may only happen
+     * very early on in the lifecycle.
+     */
+    private boolean isCloudMediaIntegrationEnabled() {
+        return mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue() != null;
     }
 
     /**
@@ -506,15 +613,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private void logPickerCancelled() {
         mPickerViewModel.logPickerCancel(Binder.getCallingUid(), getCallingPackage());
-    }
-
-    private void enableSettingsActivity() {
-        if (isSettingsScreenEnabled()) {
-            final ComponentName componentName = new ComponentName(this,
-                    PhotoPickerSettingsActivity.class);
-            getPackageManager().setComponentEnabledSetting(componentName,
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
-        }
     }
 
     @UserIdInt
@@ -697,17 +795,32 @@ public class PhotoPickerActivity extends AppCompatActivity {
      * Returns {@code true} if settings page is enabled.
      */
     private boolean isSettingsScreenEnabled() {
-        List<String> allowedCloudProviders = mPickerViewModel.getConfigStore()
-                .getAllowlistedCloudProviders();
-        return !allowedCloudProviders.isEmpty()
-                && SystemProperties.getBoolean(ENABLE_SETTINGS_SYS_PROP, false);
+        final ComponentName componentName = new ComponentName(this,
+                PhotoPickerSettingsActivity.class);
+        return getPackageManager().getComponentEnabledSetting(componentName)
+                == PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
     }
 
     /**
-     * Returns {@code true} if intent action is ACTION_GET_CONTENT.
+     * Returns {@code true} if intent action is {@link ACTION_GET_CONTENT}.
      */
     private boolean isGetContentAction() {
         return ACTION_GET_CONTENT.equals(getIntent().getAction());
+    }
+
+    /**
+     * Returns {@code true} if intent action is {@link ACTION_PICK_IMAGES}.
+     */
+    private boolean isPickImagesAction() {
+        return ACTION_PICK_IMAGES.equals(getIntent().getAction());
+    }
+
+    /**
+     * Returns {@code true} if intent action is {@link ACTION_USER_SELECT_IMAGES_FOR_APP}
+     * (the 3-way storage permission grant flow)
+     */
+    private boolean isUserSelectImagesForAppAction() {
+        return ACTION_USER_SELECT_IMAGES_FOR_APP.equals(getIntent().getAction());
     }
 
     private class CrossProfileListeners {
@@ -809,5 +922,16 @@ public class PhotoPickerActivity extends AppCompatActivity {
             // assumptions on the state of the PhotoPicker when it was in Work Profile mode.
             reset(/* switchToPersonalProfile */ true);
         }
+    }
+
+    /**
+     * A {@link ViewModel} class only responsible for keeping track of "active"
+     * {@link SelectedMediaPreloader} instance (if any).
+     * This class has to be public, since somewhere in {@link ViewModelProvider} it will try to use
+     * reflection to create an instance of this class.
+     */
+    public static class PreloaderInstanceHolder extends ViewModel {
+        @Nullable
+        SelectedMediaPreloader preloader;
     }
 }

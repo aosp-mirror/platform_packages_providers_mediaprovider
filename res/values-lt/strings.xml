@@ -40,10 +40,12 @@
     <string name="deny" msgid="6040983710442068936">"Atmesti"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Naršyti…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"Medijos debesyje programa"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Medijos debesyje programa"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Medijos debesyje programa"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Naudodami „Android Photopicker“ bendrinkite nuotraukas ir vaizdo įrašus, kurių atsargines kopijas kuriate kitose paslaugose"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Pasiekti mediją debesyje iš"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nėra"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Šiuo metu nepavyko pakeisti debesies medijos programos."</string>
     <string name="add" msgid="2894574044585549298">"Pridėti"</string>
     <string name="deselect" msgid="4297825044827769490">"Panaikinti pasirinkimą"</string>
     <string name="deselected" msgid="8488133193326208475">"Pasirinkimas panaikintas"</string>
@@ -90,6 +92,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Bandyti dar kartą"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Debesyje esanti medija dabar pasiekiama iš „<xliff:g id="PKG_NAME">%1$s</xliff:g>“"</string>
     <string name="not_selected" msgid="2244008151669896758">"nepasirinkta"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"Paruošta: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> iš <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Dabar įtraukiamos atsarginės nuotraukų kopijos"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Galite pasirinkti nuotraukas iš „<xliff:g id="APP_NAME">%1$s</xliff:g>“ paskyros <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"„<xliff:g id="APP_NAME">%1$s</xliff:g>“ paskyra atnaujinta"</string>

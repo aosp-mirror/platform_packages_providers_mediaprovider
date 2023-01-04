@@ -104,6 +104,9 @@
     <!-- A label for an option in a single-select choice list that lets user select a Cloud media provider application. [CHAR LIMIT=NONE] -->
     <string name="picker_settings_no_provider">None</string>
 
+    <!-- Error message displayed to the user when the user is not able to change cloud media app preference in Picker Settings. [CHAR LIMIT=50] -->
+    <string name="picker_settings_toast_error">Could not change cloud media app at this time.</string>
+
     <!-- Add button for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="add">Add</string>
 
@@ -239,6 +242,9 @@
 
     <!-- Default not selected text used by accessibility for an element that can be unselected. [CHAR LIMIT=NONE] -->
     <string name="not_selected">not selected</string>
+
+    <!-- A message for the Progress Dialog shown while preloading selected items before "closing" Photo Picker. [CHAR LIMIT=NONE] -->
+    <string name="preloading_progress_message"><xliff:g id="number_preloaded">%1$d</xliff:g> of <xliff:g id="number_total">%2$d</xliff:g> ready</string>
 
     <!-- ========================= PHOTO PICKER CLOUD EDUCATION BANNERS ========================= -->
 

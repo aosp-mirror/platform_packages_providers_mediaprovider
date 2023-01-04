@@ -132,4 +132,13 @@
         <item name="pickerBannerButtonTextColor">?android:attr/colorAccent</item>
     </style>
 
+    <style name="PickerBannerButtonTheme"
+           parent = "@style/Widget.Material3.Button.TextButton">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">@dimen/picker_banner_button_text_size</item>
+        <item name="android:letterSpacing">@dimen/picker_banner_button_text_letter_spacing</item>
+        <item name="android:textColor">?attr/pickerBannerButtonTextColor</item>
+    </style>
+
 </resources>

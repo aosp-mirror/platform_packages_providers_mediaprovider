@@ -40,10 +40,12 @@
     <string name="deny" msgid="6040983710442068936">"Odbij"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Pregledajte…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"Apl. za med. sadržaje u oblaku"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikacija za medijske sadržaje u oblaku"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikacija za medijske sadržaje u oblaku"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Dijelite fotografije i videozapise čije sigurnosne kopije napravite s drugih usluga u Android Photopickeru"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Pristupite medijskom sadržaju u oblaku iz"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Ništa"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Promjena medijske aplikacije u oblaku nije uspjela."</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Poništi odabir"</string>
     <string name="deselected" msgid="8488133193326208475">"Odabir poništen"</string>
@@ -90,6 +92,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Pokušaj ponovo"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Medijski sadržaj u oblaku je sada dostupan od usluge <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nije odabrano"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"Spremno: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> od <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Sigurnosne kopije fotografija su sada uključene"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Možete odabrati fotografije s računa <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> u aplikaciji <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Račun u aplikaciji <xliff:g id="APP_NAME">%1$s</xliff:g> je ažuriran"</string>

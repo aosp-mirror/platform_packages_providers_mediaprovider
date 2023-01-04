@@ -107,7 +107,6 @@
     <!-- PhotoPicker Settings Activity -->
     <dimen name="picker_heading_text_size">40sp</dimen>
     <dimen name="picker_settings_title_margin_top">45dp</dimen>
-    <dimen name="picker_settings_default_margin_top">20dp</dimen>
     <dimen name="picker_settings_margin_default">15dp</dimen>
     <dimen name="picker_body_text_size">16sp</dimen>
 

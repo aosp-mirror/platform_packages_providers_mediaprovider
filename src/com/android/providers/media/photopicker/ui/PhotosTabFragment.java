@@ -15,8 +15,6 @@
  */
 package com.android.providers.media.photopicker.ui;
 
-import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
-import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_SECTION;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
@@ -30,10 +28,10 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
@@ -75,14 +73,22 @@ public class PhotosTabFragment extends TabFragment {
         // empty, we don't show the RECENT header.
         final boolean showRecentSection = mCategory.isDefault();
 
+        // We only show the Banners on the PhotosTabFragment with CATEGORY_DEFAULT (Main grid).
+        final boolean shouldShowBanners = mCategory.isDefault();
+        final LiveData<Boolean> showChooseAppBanner = shouldShowBanners
+                ? mBannerViewModel.shouldShowChooseAppBannerLiveData()
+                : new MutableLiveData<>(false);
+
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
-                mImageLoader, this::onItemClick, this::onItemLongClick);
+                mImageLoader, this::onItemClick, this::onItemLongClick, /* lifecycleOwner */ this,
+                mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
+                mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner);
+
         setEmptyMessage(R.string.picker_photos_empty_message);
 
         if (mCategory.isDefault()) {
             // Set the pane title for A11y
             view.setAccessibilityPaneTitle(getString(R.string.picker_photos));
-            mPickerViewModel.getBannerVisibilityLiveData().observe(this, adapter::setShowBanner);
             mPickerViewModel.getItems().observe(this, itemList -> {
                 adapter.setMediaItems(itemList);
                 // Handle emptyView's visibility
@@ -108,7 +114,7 @@ public class PhotosTabFragment extends TabFragment {
         mRecyclerView.setColumnWidth(photoSize + spacing);
         mRecyclerView.setMinimumSpanCount(MINIMUM_SPAN_COUNT);
 
-        setLayoutManager(adapter);
+        setLayoutManager(adapter, GRID_COLUMN_COUNT);
         mRecyclerView.setAdapter(adapter);
         mRecyclerView.addItemDecoration(itemDecoration);
     }
@@ -196,10 +202,6 @@ public class PhotosTabFragment extends TabFragment {
         return true;
     }
 
-    private PhotoPickerActivity getPickerActivity() {
-        return (PhotoPickerActivity) getActivity();
-    }
-
     /**
      * Create the fragment with the category and add it into the FragmentManager
      *
@@ -224,25 +226,5 @@ public class PhotosTabFragment extends TabFragment {
      */
     public static Fragment get(FragmentManager fm) {
         return fm.findFragmentByTag(FRAGMENT_TAG);
-    }
-
-    private void setLayoutManager(@NonNull TabAdapter adapter) {
-        final GridLayoutManager layoutManager =
-                new GridLayoutManager(getContext(), GRID_COLUMN_COUNT);
-        final GridLayoutManager.SpanSizeLookup lookup = new GridLayoutManager.SpanSizeLookup() {
-            @Override
-            public int getSpanSize(int position) {
-                final int itemViewType = adapter.getItemViewType(position);
-                // For the item view types ITEM_TYPE_BANNER and ITEM_TYPE_SECTION, it is full
-                // span, return the span count of the layoutManager.
-                if (itemViewType == ITEM_TYPE_BANNER || itemViewType == ITEM_TYPE_SECTION) {
-                    return layoutManager.getSpanCount();
-                } else {
-                    return 1;
-                }
-            }
-        };
-        layoutManager.setSpanSizeLookup(lookup);
-        mRecyclerView.setLayoutManager(layoutManager);
     }
 }

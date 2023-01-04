@@ -40,10 +40,12 @@
     <string name="deny" msgid="6040983710442068936">"Татгалзах"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Үзэх…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"Үүлэн медиа апп"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Үүлэн медиа апп"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Үүлэн медиа апп"</string>
     <string name="picker_settings_description" msgid="7486394662725656081">"Android Photopicker-д өөр үйлчилгээнээс хуулбарласан зураг болон видеог хуваалцаарай"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Дараахаас үүлэн медиад хандах"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Байхгүй"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Энэ удаад үүлэн медиа аппыг өөрчилж чадсангүй."</string>
     <string name="add" msgid="2894574044585549298">"Нэмэх"</string>
     <string name="deselect" msgid="4297825044827769490">"Сонголтыг цуцлах"</string>
     <string name="deselected" msgid="8488133193326208475">"Сонголтыг цуцалсан"</string>
@@ -90,6 +92,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Дахин оролдох"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Үүлэн медиаг одоо <xliff:g id="PKG_NAME">%1$s</xliff:g>-с авах боломжтой боллоо"</string>
     <string name="not_selected" msgid="2244008151669896758">"сонгоогүй"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>-с <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> бэлэн"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Одоо хуулбарласан зургийг багтаасан"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Та <xliff:g id="APP_NAME">%1$s</xliff:g> <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> бүртгэлээс зураг сонгох боломжтой"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> бүртгэлийг шинэчилсэн"</string>

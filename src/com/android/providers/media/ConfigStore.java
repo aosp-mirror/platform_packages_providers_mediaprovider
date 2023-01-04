@@ -41,6 +41,7 @@ import java.util.concurrent.Executor;
  */
 public interface ConfigStore {
     boolean DEFAULT_TAKE_OVER_GET_CONTENT = false;
+    boolean DEFAULT_USER_SELECT_FOR_APP = false;
     boolean DEFAULT_STABILISE_VOLUME_INTERNAL = false;
     boolean DEFAULT_STABILIZE_VOLUME_EXTERNAL = false;
 
@@ -49,6 +50,10 @@ public interface ConfigStore {
     int DEFAULT_TRANSCODE_MAX_DURATION = 60 * 1000; // 1 minute
 
     int DEFAULT_PICKER_SYNC_DELAY = 5000; // 5 seconds
+
+    boolean DEFAULT_PICKER_GET_CONTENT_PRELOAD = true;
+    boolean DEFAULT_PICKER_PICK_IMAGES_PRELOAD = true;
+    boolean DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG = false;
 
     /**
      * @return non-null list of {@link android.provider.CloudMediaProvider}
@@ -66,10 +71,57 @@ public interface ConfigStore {
     }
 
     /**
+     * @return if {@link com.android.providers.media.photopicker.PhotoPickerActivity} should preload
+     *         selected media items before "returning"
+     *         ({@link com.android.providers.media.photopicker.PhotoPickerActivity#setResultAndFinishSelf()})
+     *         back to the calling application, in the case when the PhotoPicker was launched via
+     *         {@link android.content.Intent#ACTION_GET_CONTENT ACTION_GET_CONTENT}.
+     * @see com.android.providers.media.photopicker.PhotoPickerActivity#shouldPreloadSelectedItems()
+     * @see com.android.providers.media.photopicker.SelectedMediaPreloader
+     */
+    default boolean shouldPickerPreloadForGetContent() {
+        return DEFAULT_PICKER_GET_CONTENT_PRELOAD;
+    }
+
+    /**
+     * @return if {@link com.android.providers.media.photopicker.PhotoPickerActivity} should preload
+     *         selected media items before "returning"
+     *         ({@link com.android.providers.media.photopicker.PhotoPickerActivity#setResultAndFinishSelf()})
+     *         back to the calling application, in the case when the PhotoPicker was launched via
+     *         {@link android.provider.MediaStore#ACTION_PICK_IMAGES ACTION_PICK_IMAGES}.
+     * @see com.android.providers.media.photopicker.PhotoPickerActivity#shouldPreloadSelectedItems()
+     * @see com.android.providers.media.photopicker.SelectedMediaPreloader
+     */
+    default boolean shouldPickerPreloadForPickImages() {
+        return DEFAULT_PICKER_PICK_IMAGES_PRELOAD;
+    }
+
+    /**
+     * @return if {@link com.android.providers.media.photopicker.PhotoPickerActivity} should respect
+     *         {@code EXTRA_PRELOAD_SELECTED} {@code Intent} "argument" when making a
+     *         decision whether to preload selected media items before "returning"
+     *         ({@link com.android.providers.media.photopicker.PhotoPickerActivity#setResultAndFinishSelf()})
+     *         back to the calling application, in the case when the PhotoPicker was launched via
+     *         {@link android.provider.MediaStore#ACTION_PICK_IMAGES ACTION_PICK_IMAGES}.
+     * @see com.android.providers.media.photopicker.PhotoPickerActivity#shouldPreloadSelectedItems()
+     * @see com.android.providers.media.photopicker.SelectedMediaPreloader
+     */
+    default boolean shouldPickerRespectPreloadArgumentForPickImages() {
+        return DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG;
+    }
+
+    /**
      * @return if PhotoPicker should handle {@link android.content.Intent#ACTION_GET_CONTENT}.
      */
     default boolean isGetContentTakeOverEnabled() {
         return DEFAULT_TAKE_OVER_GET_CONTENT;
+    }
+
+    /**
+     * @return if PhotoPickerUserSelectActivity should be enabled
+     */
+    default boolean isUserSelectForAppEnabled() {
+        return DEFAULT_USER_SELECT_FOR_APP;
     }
 
     /**
@@ -124,6 +176,7 @@ public interface ConfigStore {
      */
     class ConfigStoreImpl implements ConfigStore {
         private static final String KEY_TAKE_OVER_GET_CONTENT = "take_over_get_content";
+        private static final String KEY_USER_SELECT_FOR_APP = "user_select_for_app";
 
         @VisibleForTesting
         public static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
@@ -141,6 +194,12 @@ public interface ConfigStore {
 
         private static final String KEY_PICKER_ALLOWED_CLOUD_PROVIDERS = "allowed_cloud_providers";
         private static final String KEY_PICKER_SYNC_DELAY = "default_sync_delay_ms";
+        private static final String KEY_PICKER_GET_CONTENT_PRELOAD =
+                "picker_get_content_preload_selected";
+        private static final String KEY_PICKER_PICK_IMAGES_PRELOAD =
+                "picker_pick_images_preload_selected";
+        private static final String KEY_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG =
+                "picker_pick_images_respect_preload_selected_arg";
 
         private static final boolean sCanReadDeviceConfig = SdkLevel.isAtLeastS();
 
@@ -156,8 +215,31 @@ public interface ConfigStore {
         }
 
         @Override
+        public boolean shouldPickerPreloadForGetContent() {
+            return getBooleanDeviceConfig(KEY_PICKER_GET_CONTENT_PRELOAD,
+                    DEFAULT_PICKER_GET_CONTENT_PRELOAD);
+        }
+
+        @Override
+        public boolean shouldPickerPreloadForPickImages() {
+            return getBooleanDeviceConfig(KEY_PICKER_PICK_IMAGES_PRELOAD,
+                    DEFAULT_PICKER_PICK_IMAGES_PRELOAD);
+        }
+
+        @Override
+        public boolean shouldPickerRespectPreloadArgumentForPickImages() {
+            return getBooleanDeviceConfig(KEY_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG,
+                    DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG);
+        }
+
+        @Override
         public boolean isGetContentTakeOverEnabled() {
             return getBooleanDeviceConfig(KEY_TAKE_OVER_GET_CONTENT, DEFAULT_TAKE_OVER_GET_CONTENT);
+        }
+
+        @Override
+        public boolean isUserSelectForAppEnabled() {
+            return getBooleanDeviceConfig(KEY_USER_SELECT_FOR_APP, DEFAULT_USER_SELECT_FOR_APP);
         }
 
         @Override

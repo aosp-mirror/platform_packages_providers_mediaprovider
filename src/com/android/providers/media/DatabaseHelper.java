@@ -1179,7 +1179,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     "CREATE TABLE media_grants ("
                             + "owner_package_name TEXT,"
                             + "file_id INTEGER,"
-                            + "UNIQUE(owner_package_name, file_id)"
+                            + "UNIQUE(owner_package_name, file_id) ON CONFLICT IGNORE "
                             + "FOREIGN KEY (file_id)"
                             + "  REFERENCES files(_id)"
                             + "  ON DELETE CASCADE"
@@ -1939,11 +1939,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private static void updateAddMediaGrantsTable(SQLiteDatabase db) {
+        db.execSQL("DROP TABLE IF EXISTS media_grants");
         db.execSQL(
                 "CREATE TABLE media_grants ("
                         + "owner_package_name TEXT,"
                         + "file_id INTEGER,"
-                        + "UNIQUE(owner_package_name, file_id)"
+                        + "UNIQUE(owner_package_name, file_id) ON CONFLICT IGNORE "
                         + "FOREIGN KEY (file_id)"
                         + "  REFERENCES files(_id)"
                         + "  ON DELETE CASCADE"
@@ -2020,7 +2021,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1401;
+    static final int VERSION_U = 1402;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2223,7 +2224,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (fromVersion < 1400) {
                 // Empty version bump to ensure triggers are recreated
             }
-            if (fromVersion < 1401) {
+            // 1401 is intentionally skipped here, media_grants
+            // table changes will be updated in 1402.
+            if (fromVersion < 1402) {
                 if (isExternal()) {
                     updateAddMediaGrantsTable(db);
                 }

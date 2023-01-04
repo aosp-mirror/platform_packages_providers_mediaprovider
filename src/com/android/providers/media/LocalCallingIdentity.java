@@ -33,6 +33,7 @@ import static com.android.providers.media.util.PermissionUtils.checkPermissionRe
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVideo;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVisualUserSelected;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionShell;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteAudio;
@@ -73,6 +74,7 @@ import java.io.PrintWriter;
 import java.util.Locale;
 
 public class LocalCallingIdentity {
+
     public final int pid;
     public final int uid;
     private final UserHandle user;
@@ -112,13 +114,14 @@ public class LocalCallingIdentity {
         String callingPackage = provider.getCallingPackageUnchecked();
         int binderUid = Binder.getCallingUid();
         if (callingPackage == null) {
-            if (binderUid == Process.SYSTEM_UID) {
+            if (binderUid == Process.SYSTEM_UID || binderUid == Process.myUid()) {
                 // If UID is system assume we are running as ourself and not handling IPC
                 // Otherwise, we'd crash when we attempt AppOpsManager#checkPackage
                 // in LocalCallingIdentity#getPackageName
                 return fromSelf(context);
             }
-            callingPackage = context.getOpPackageName();
+            // Package will be resolved during getPackageNameInternal()
+            callingPackage = null;
         }
         String callingAttributionTag = provider.getCallingAttributionTag();
         if (callingAttributionTag == null) {
@@ -242,7 +245,19 @@ public class LocalCallingIdentity {
         return packageName;
     }
 
+    public boolean isValidProviderOrFuseCallingIdentity() {
+        return packageNameUnchecked != null;
+    }
+
     private String getPackageNameInternal() {
+        // TODO(b/263480773): The packageNameUnchecked can be null when
+        //  ContentProvider#getCallingPackageUnchecked returns null and the binder UID is not system
+        //  or MediaProvider. In such scenarios, previously an exception was thrown in the
+        //  checkPackage() call below. This was fixed for b/261444895 however, we still need to
+        //  investigate if we should explicitly throw an exception in such cases.
+        if (packageNameUnchecked == null) {
+            return context.getPackageManager().getNameForUid(uid);
+        }
         // Verify that package name is actually owned by UID
         context.getSystemService(AppOpsManager.class)
                 .checkPackage(uid, packageNameUnchecked);
@@ -333,6 +348,8 @@ public class LocalCallingIdentity {
     public static final int APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID = 1 << 25;
     public static final int PERMISSION_ACCESS_MTP = 1 << 26;
 
+    public static final int PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED = 1 << 27;
+
     private volatile int hasPermission;
     private volatile int hasPermissionResolved;
 
@@ -408,6 +425,9 @@ public class LocalCallingIdentity {
             case PERMISSION_ACCESS_MTP:
                 return checkPermissionAccessMtp(
                         context, pid, uid, getPackageName(), attributionTag);
+            case PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED:
+                return checkPermissionReadVisualUserSelected(context, pid, uid, getPackageName(),
+                        attributionTag, targetSdkIsAtLeastT);
             default:
                 return false;
         }
@@ -672,6 +692,13 @@ public class LocalCallingIdentity {
      */
     public boolean isCallingPackageLegacyWrite() {
         return hasPermission(PERMISSION_IS_LEGACY_WRITE);
+    }
+
+    /**
+     * Return {@code true} if this package has user selected access on images/videos.
+     */
+    public boolean checkCallingPermissionUserSelected() {
+        return hasPermission(PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED);
     }
 
     protected void dump(PrintWriter writer) {

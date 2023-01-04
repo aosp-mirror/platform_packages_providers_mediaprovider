@@ -45,8 +45,7 @@
     <string name="picker_settings_description" msgid="7486394662725656081">"Comparte las fotos y los vídeos de los que hayas creado una copia de seguridad desde otros servicios en el selector de fotos de Android"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accede al contenido multimedia en la nube desde"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Ninguna"</string>
-    <!-- no translation found for picker_settings_toast_error (697274445512467469) -->
-    <skip />
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"No se puede cambiar la app multimedia en la nube."</string>
     <string name="add" msgid="2894574044585549298">"Añadir"</string>
     <string name="deselect" msgid="4297825044827769490">"Desmarcar"</string>
     <string name="deselected" msgid="8488133193326208475">"Desmarcado"</string>
@@ -93,6 +92,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Reintentar"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Contenido multimedia en la nube ahora disponible desde <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"no seleccionado"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> de <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> listos"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Ahora se incluye la copia de seguridad de las fotos"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Puedes seleccionar fotos de la cuenta de <xliff:g id="APP_NAME">%1$s</xliff:g> de <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Cuenta de <xliff:g id="APP_NAME">%1$s</xliff:g> actualizada"</string>

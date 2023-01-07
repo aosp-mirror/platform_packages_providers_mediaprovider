@@ -28,10 +28,10 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
@@ -73,8 +73,17 @@ public class PhotosTabFragment extends TabFragment {
         // empty, we don't show the RECENT header.
         final boolean showRecentSection = mCategory.isDefault();
 
+        // We only show the Banners on the PhotosTabFragment with CATEGORY_DEFAULT (Main grid).
+        final boolean shouldShowBanners = mCategory.isDefault();
+        final LiveData<Boolean> showChooseAppBanner = shouldShowBanners
+                ? mBannerViewModel.shouldShowChooseAppBannerLiveData()
+                : new MutableLiveData<>(false);
+
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
-                mImageLoader, this::onItemClick, this::onItemLongClick);
+                mImageLoader, this::onItemClick, this::onItemLongClick, /* lifecycleOwner */ this,
+                mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
+                mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner);
+
         setEmptyMessage(R.string.picker_photos_empty_message);
 
         if (mCategory.isDefault()) {
@@ -98,10 +107,6 @@ public class PhotosTabFragment extends TabFragment {
             });
         }
 
-        final GridLayoutManager layoutManager = new GridLayoutManager(context, GRID_COLUMN_COUNT);
-        final GridLayoutManager.SpanSizeLookup lookup = adapter.createSpanSizeLookup(layoutManager);
-        layoutManager.setSpanSizeLookup(lookup);
-
         final PhotosTabItemDecoration itemDecoration = new PhotosTabItemDecoration(context);
 
         final int spacing = getResources().getDimensionPixelSize(R.dimen.picker_photo_item_spacing);
@@ -109,7 +114,7 @@ public class PhotosTabFragment extends TabFragment {
         mRecyclerView.setColumnWidth(photoSize + spacing);
         mRecyclerView.setMinimumSpanCount(MINIMUM_SPAN_COUNT);
 
-        mRecyclerView.setLayoutManager(layoutManager);
+        setLayoutManager(adapter, GRID_COLUMN_COUNT);
         mRecyclerView.setAdapter(adapter);
         mRecyclerView.addItemDecoration(itemDecoration);
     }
@@ -195,10 +200,6 @@ public class PhotosTabFragment extends TabFragment {
         PreviewFragment.show(getActivity().getSupportFragmentManager(),
                 PreviewFragment.getArgsForPreviewOnLongPress());
         return true;
-    }
-
-    private PhotoPickerActivity getPickerActivity() {
-        return (PhotoPickerActivity) getActivity();
     }
 
     /**

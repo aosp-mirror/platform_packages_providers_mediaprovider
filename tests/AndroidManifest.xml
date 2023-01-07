@@ -4,6 +4,16 @@
 
     <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="30" />
 
+    <queries>
+        <package android:name="com.android.providers.media.testapp.withoutperms" />
+        <package android:name="com.android.providers.media.testapp.permission" />
+        <package android:name="com.android.providers.media.testapp.permissionmedia" />
+        <package android:name="com.android.providers.media.testapp.withstorageperms" />
+        <package android:name="com.android.providers.media.testapp.withmediaperms" />
+        <package android:name="com.android.providers.media.testapp.withuserselectedperms" />
+        <package android:name="com.android.providers.media.testapp.legacy" />
+    </queries>
+
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.UPDATE_APP_OPS_STATS" />
@@ -28,6 +38,18 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.provider.action.PICK_IMAGES" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.FRAMEWORK_INSTRUMENTATION_TEST" />
+            </intent-filter>
+            <intent-filter>
+               <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.FRAMEWORK_INSTRUMENTATION_TEST" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.FRAMEWORK_INSTRUMENTATION_TEST" />
             </intent-filter>

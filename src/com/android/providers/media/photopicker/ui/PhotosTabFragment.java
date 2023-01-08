@@ -82,7 +82,8 @@ public class PhotosTabFragment extends TabFragment {
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
                 mImageLoader, this::onItemClick, this::onItemLongClick, /* lifecycleOwner */ this,
                 mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
-                mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner);
+                mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner,
+                mOnChooseAppBannerClickListener);
 
         setEmptyMessage(R.string.picker_photos_empty_message);
 

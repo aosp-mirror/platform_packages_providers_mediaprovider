@@ -118,6 +118,9 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     @Override
     public final int getItemViewType(int position) {
+        if (position < 0) {
+            throw new IllegalStateException("Get item view type for negative position " + position);
+        }
         if (isItemTypeBanner(position)) {
             return ITEM_TYPE_BANNER;
         } else if (isItemTypeSection(position)) {
@@ -211,6 +214,9 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     @NonNull
     final Object getAdapterItem(int position) {
+        if (position < 0) {
+            throw new IllegalStateException("Get adapter item for negative position " + position);
+        }
         if (isItemTypeBanner(position)) {
             return mBanner;
         }

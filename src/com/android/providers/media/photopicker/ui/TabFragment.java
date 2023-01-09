@@ -447,4 +447,22 @@ public abstract class TabFragment extends Fragment {
         layoutManager.setSpanSizeLookup(lookup);
         mRecyclerView.setLayoutManager(layoutManager);
     }
+
+    protected final TabAdapter.OnBannerClickListener mOnChooseAppBannerClickListener =
+            new TabAdapter.OnBannerClickListener() {
+                @Override
+                public void onBannerClick() {
+                    dismissBanner();
+                    getPickerActivity().startSettingsActivity();
+                }
+
+                @Override
+                public void onDismissButtonClick() {
+                    dismissBanner();
+                }
+
+                private void dismissBanner() {
+                    mBannerViewModel.onUserDismissedChooseAppBanner();
+                }
+            };
 }

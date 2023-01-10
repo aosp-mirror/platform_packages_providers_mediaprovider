@@ -17,9 +17,11 @@
 package com.android.providers.media.photopicker.viewmodel;
 
 import android.app.Application;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.UiThread;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -55,7 +57,11 @@ public class BannerViewModel extends AndroidViewModel {
      * Set the {@link LiveData} value of Choose App banner visibility {@link #mShowChooseAppBanner}
      * as {@code false}.
      */
+    @UiThread
     public void onUserDismissedChooseAppBanner() {
+        if (!Looper.getMainLooper().isCurrentThread()) {
+            throw new IllegalStateException("Must be called from the Main (UI) thread");
+        }
         if (mShowChooseAppBanner == null) {
             Log.wtf(TAG, "Choose app banner live data is null on dismiss");
             return;

@@ -26,6 +26,7 @@ import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.READ_MEDIA_AUDIO;
 import static android.Manifest.permission.READ_MEDIA_IMAGES;
 import static android.Manifest.permission.READ_MEDIA_VIDEO;
+import static android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED;
 import static android.Manifest.permission.UPDATE_DEVICE_STATS;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
@@ -248,6 +249,25 @@ public class PermissionUtils {
         }
         return checkAppOpAllowingLegacy(context, OPSTR_WRITE_MEDIA_IMAGES, pid,
                 uid, packageName, attributionTag,
+                generateAppOpMessage(packageName, sOpDescription.get()));
+    }
+
+    /**
+     * Check if the given package has been granted the
+     * android.Manifest.permission#READ_MEDIA_VISUAL_USER_SELECTED permission.
+     */
+    public static boolean checkPermissionReadVisualUserSelected(
+            @NonNull Context context,
+            int pid,
+            int uid,
+            @NonNull String packageName,
+            @Nullable String attributionTag,
+            boolean targetSdkIsAtLeastT) {
+        if (!SdkLevel.isAtLeastU() || !targetSdkIsAtLeastT) {
+            return false;
+        }
+        return checkPermissionForDataDelivery(context, READ_MEDIA_VISUAL_USER_SELECTED, pid, uid,
+                packageName, attributionTag,
                 generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
@@ -486,6 +506,7 @@ public class PermissionUtils {
             case READ_MEDIA_AUDIO:
             case READ_MEDIA_VIDEO:
             case READ_MEDIA_IMAGES:
+            case READ_MEDIA_VISUAL_USER_SELECTED:
                 return true;
         }
         return false;

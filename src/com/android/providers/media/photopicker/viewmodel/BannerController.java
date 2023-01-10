@@ -72,6 +72,9 @@ class BannerController {
     // Boolean Choose App Banner visibility
     private boolean mShowChooseAppBanner;
 
+    // Boolean Choose App Banner visibility
+    private boolean mShowCloudMediaAvailableBanner;
+
     BannerController(@NonNull Context context, @NonNull ConfigStore configStore,
             @NonNull UserHandle userHandle) {
 
@@ -161,6 +164,10 @@ class BannerController {
         // providers list is not empty.
         mShowChooseAppBanner = (mCmpAuthority == null)
                 && !getAvailableCloudProviders(context, configStore, userHandle).isEmpty();
+        // mShowCloudMediaAvailableBanner is true iff the new authority AND account name are
+        // NOT null while the old authority OR account is / are null.
+        mShowCloudMediaAvailableBanner = mCmpAuthority != null && mCmpAccountName != null
+                && (lastCmpAuthority == null || lastCmpAccountName == null);
 
         // 4. Update the saved and cached cloud provider info with the latest info.
         final SharedPreferences.Editor uiPrefsEditor = getUiPrefs(context).edit();
@@ -196,6 +203,7 @@ class BannerController {
         mCmpLabel = null;
         mCmpAccountName = null;
         mShowChooseAppBanner = false;
+        mShowCloudMediaAvailableBanner = false;
     }
 
     /**
@@ -230,6 +238,14 @@ class BannerController {
     }
 
     /**
+     * @return the 'Cloud Media Available' banner visibility
+     *         {@link #mShowCloudMediaAvailableBanner}.
+     */
+    boolean shouldShowCloudMediaAvailableBanner() {
+        return mShowCloudMediaAvailableBanner;
+    }
+
+    /**
      * Dismiss (hide) the 'Choose App' banner
      *
      * Set the 'Choose App' banner visibility {@link #mShowChooseAppBanner} as {@code false}.
@@ -239,6 +255,20 @@ class BannerController {
             Log.wtf(TAG, "Choose app banner visibility for current user is false on dismiss");
         } else {
             mShowChooseAppBanner = false;
+        }
+    }
+
+    /**
+     * Dismiss (hide) the 'Cloud Media Available' banner
+     *
+     * Set the 'Cloud Media Available' banner visibility {@link #mShowCloudMediaAvailableBanner}
+     * as {@code false}.
+     */
+    void onUserDismissedCloudMediaAvailableBanner() {
+        if (!mShowCloudMediaAvailableBanner) {
+            Log.wtf(TAG, "Choose app banner visibility for current user is false on dismiss");
+        } else {
+            mShowCloudMediaAvailableBanner = false;
         }
     }
 

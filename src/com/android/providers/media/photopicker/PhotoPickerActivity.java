@@ -292,7 +292,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void startSettingsActivity() {
+    /**
+     * Launch the Photo Picker settings page where user can view/edit current cloud media provider.
+     */
+    public void startSettingsActivity() {
         final Intent intent = new Intent(this, PhotoPickerSettingsActivity.class);
         intent.putExtra(EXTRA_CURRENT_USER_ID, getCurrentUserId());
         startActivity(intent);

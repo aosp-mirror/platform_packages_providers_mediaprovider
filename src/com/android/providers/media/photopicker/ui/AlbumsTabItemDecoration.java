@@ -47,11 +47,16 @@ public class AlbumsTabItemDecoration extends RecyclerView.ItemDecoration {
     public void getItemOffsets(Rect outRect, View view, RecyclerView parent,
             RecyclerView.State state) {
         final int adapterPosition = parent.getChildAdapterPosition(view);
+        if (adapterPosition == RecyclerView.NO_POSITION) {
+            outRect.setEmpty();
+            return;
+        }
+
         final int itemViewType = parent.getAdapter().getItemViewType(adapterPosition);
 
         // The banners don't have spacing
         if (itemViewType == ITEM_TYPE_BANNER) {
-            outRect.set(0, 0, 0, 0);
+            outRect.setEmpty();
             return;
         }
 

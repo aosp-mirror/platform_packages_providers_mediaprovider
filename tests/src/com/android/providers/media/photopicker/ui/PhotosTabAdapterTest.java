@@ -180,7 +180,8 @@ public class PhotosTabAdapterTest {
                 mock(View.OnLongClickListener.class), mock(LifecycleOwner.class),
                 /* cloudMediaProviderAppTitle */ mock(LiveData.class),
                 /* cloudMediaAccountName */ mock(LiveData.class),
-                /* shouldShowChooseAppBanner */ mock(LiveData.class));
+                /* shouldShowChooseAppBanner */ mock(LiveData.class),
+                /* onChooseAppBannerClickListener */ mock(TabAdapter.OnBannerClickListener.class));
     }
 
     private static Item generateFakeImageItem(String id) {

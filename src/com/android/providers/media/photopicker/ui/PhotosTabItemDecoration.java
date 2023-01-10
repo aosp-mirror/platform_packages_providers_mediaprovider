@@ -44,12 +44,12 @@ public class PhotosTabItemDecoration extends RecyclerView.ItemDecoration {
     @Override
     public void getItemOffsets(Rect outRect, View view, RecyclerView parent,
             RecyclerView.State state) {
-        final GridLayoutManager.LayoutParams lp =
-                (GridLayoutManager.LayoutParams) view.getLayoutParams();
-        final GridLayoutManager layoutManager = (GridLayoutManager) parent.getLayoutManager();
-        final int column = lp.getSpanIndex();
-        final int spanCount = layoutManager.getSpanCount();
         final int adapterPosition = parent.getChildAdapterPosition(view);
+        if (adapterPosition == RecyclerView.NO_POSITION) {
+            outRect.setEmpty();
+            return;
+        }
+
         final int itemViewType = parent.getAdapter().getItemViewType(adapterPosition);
 
         // The date header and banners don't have spacing
@@ -57,6 +57,12 @@ public class PhotosTabItemDecoration extends RecyclerView.ItemDecoration {
             outRect.set(0, 0, 0, 0);
             return;
         }
+
+        final GridLayoutManager.LayoutParams lp =
+                (GridLayoutManager.LayoutParams) view.getLayoutParams();
+        final GridLayoutManager layoutManager = (GridLayoutManager) parent.getLayoutManager();
+        final int column = lp.getSpanIndex();
+        final int spanCount = layoutManager.getSpanCount();
 
         if (adapterPosition > column) {
             final int aboveItemPosition = adapterPosition - column - 1;

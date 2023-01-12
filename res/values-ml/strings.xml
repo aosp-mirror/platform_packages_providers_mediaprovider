@@ -77,7 +77,6 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"വീഡിയോ അൺമ്യൂട്ട് ചെയ്യുന്നു"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"വീഡിയോ പ്ലേ ചെയ്യുക"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"വീഡിയോ താൽക്കാലികമായി നിർത്തുക"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ഇപ്പോൾ <xliff:g id="PKG_NAME">%1$s</xliff:g> എന്നതിൽ നിന്ന് ക്ലൗഡ് മീഡിയ ലഭ്യമാണ്"</string>
     <string name="not_selected" msgid="2244008151669896758">"തിരഞ്ഞെടുത്തിട്ടില്ല"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ഈ ഓഡിയോ ഫയൽ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}other{<xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ഓഡിയോ ഫയൽ പരിഷ്‌ക്കരിക്കുന്നു…}other{<xliff:g id="COUNT">^1</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്‌ക്കരിക്കുന്നു…}}"</string>

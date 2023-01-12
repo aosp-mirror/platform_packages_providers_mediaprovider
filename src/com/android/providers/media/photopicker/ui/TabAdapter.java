@@ -260,6 +260,7 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             if (banner.mActionButtonText != -1) {
                 mActionButton.setText(banner.mActionButtonText);
                 mActionButton.setVisibility(View.VISIBLE);
+                mActionButton.setOnClickListener(v -> onBannerClickListener.onActionButtonClick());
             } else {
                 mActionButton.setVisibility(View.GONE);
             }
@@ -321,7 +322,12 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     }
 
     interface OnBannerClickListener {
-        void onBannerClick();
+        void onActionButtonClick();
+
         void onDismissButtonClick();
+
+        default void onBannerClick() {
+            onActionButtonClick();
+        }
     }
 }

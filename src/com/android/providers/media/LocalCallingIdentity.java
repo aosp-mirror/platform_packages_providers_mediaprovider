@@ -74,6 +74,7 @@ import java.io.PrintWriter;
 import java.util.Locale;
 
 public class LocalCallingIdentity {
+
     public final int pid;
     public final int uid;
     private final UserHandle user;
@@ -113,13 +114,14 @@ public class LocalCallingIdentity {
         String callingPackage = provider.getCallingPackageUnchecked();
         int binderUid = Binder.getCallingUid();
         if (callingPackage == null) {
-            if (binderUid == Process.SYSTEM_UID) {
+            if (binderUid == Process.SYSTEM_UID || binderUid == Process.myUid()) {
                 // If UID is system assume we are running as ourself and not handling IPC
                 // Otherwise, we'd crash when we attempt AppOpsManager#checkPackage
                 // in LocalCallingIdentity#getPackageName
                 return fromSelf(context);
             }
-            callingPackage = context.getOpPackageName();
+            // Package will be resolved during getPackageNameInternal()
+            callingPackage = null;
         }
         String callingAttributionTag = provider.getCallingAttributionTag();
         if (callingAttributionTag == null) {
@@ -243,7 +245,19 @@ public class LocalCallingIdentity {
         return packageName;
     }
 
+    public boolean isValidProviderOrFuseCallingIdentity() {
+        return packageNameUnchecked != null;
+    }
+
     private String getPackageNameInternal() {
+        // TODO(b/263480773): The packageNameUnchecked can be null when
+        //  ContentProvider#getCallingPackageUnchecked returns null and the binder UID is not system
+        //  or MediaProvider. In such scenarios, previously an exception was thrown in the
+        //  checkPackage() call below. This was fixed for b/261444895 however, we still need to
+        //  investigate if we should explicitly throw an exception in such cases.
+        if (packageNameUnchecked == null) {
+            return context.getPackageManager().getNameForUid(uid);
+        }
         // Verify that package name is actually owned by UID
         context.getSystemService(AppOpsManager.class)
                 .checkPackage(uid, packageNameUnchecked);

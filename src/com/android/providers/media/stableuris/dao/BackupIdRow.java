@@ -35,6 +35,8 @@ public final class BackupIdRow implements Serializable {
 
     private long mId;
     private int mIsFavorite;
+    private int mIsPending;
+    private int mIsTrashed;
     private boolean mIsDirty;
     // This is not Owner Package name but a unique identifier to it
     private int mOwnerPackageId;
@@ -48,6 +50,8 @@ public final class BackupIdRow implements Serializable {
     public static class Builder {
         private long mId;
         private int mIsFavorite;
+        private int mIsPending;
+        private int mIsTrashed;
         private boolean mIsDirty;
         private int mOwnerPackageId;
         private int mDateExpires;
@@ -62,6 +66,22 @@ public final class BackupIdRow implements Serializable {
          */
         public Builder setIsFavorite(int isFavorite) {
             this.mIsFavorite = isFavorite;
+            return this;
+        }
+
+        /**
+         * Sets the isPending value
+         */
+        public Builder setIsPending(int isPending) {
+            this.mIsPending = isPending;
+            return this;
+        }
+
+        /**
+         * Sets the isTrashed value
+         */
+        public Builder setIsTrashed(int isTrashed) {
+            this.mIsTrashed = isTrashed;
             return this;
         }
 
@@ -103,6 +123,8 @@ public final class BackupIdRow implements Serializable {
         public BackupIdRow build() {
             BackupIdRow backupIdRow = new BackupIdRow(this.mId);
             backupIdRow.mIsFavorite = this.mIsFavorite;
+            backupIdRow.mIsPending = this.mIsPending;
+            backupIdRow.mIsTrashed = this.mIsTrashed;
             backupIdRow.mIsDirty = this.mIsDirty;
             backupIdRow.mOwnerPackageId = this.mOwnerPackageId;
             backupIdRow.mDateExpires = this.mDateExpires;
@@ -128,6 +150,14 @@ public final class BackupIdRow implements Serializable {
         return mIsFavorite;
     }
 
+    public int getIsPending() {
+        return mIsPending;
+    }
+
+    public int getIsTrashed() {
+        return mIsTrashed;
+    }
+
     public int getOwnerPackageId() {
         return mOwnerPackageId;
     }
@@ -150,6 +180,8 @@ public final class BackupIdRow implements Serializable {
     public String toString() {
         return "id = " + getId()
                 + " is_favorite = " + getIsFavorite()
+                + " is_pending = " + getIsPending()
+                + " is_trashed = " + getIsTrashed()
                 + " is_dirty = " + getIsDirty()
                 + " owner_package_id = " + getOwnerPackageId()
                 + " user_id = " + getUserId()
@@ -165,6 +197,8 @@ public final class BackupIdRow implements Serializable {
 
         return Objects.equals(getId(), that.getId())
                 && Objects.equals(getIsFavorite(), that.getIsFavorite())
+                && Objects.equals(getIsPending(), that.getIsPending())
+                && Objects.equals(getIsTrashed(), that.getIsTrashed())
                 && getOwnerPackageId() == that.getOwnerPackageId()
                 && getUserId() == that.getUserId()
                 && getDateExpires() == that.getDateExpires()
@@ -173,8 +207,8 @@ public final class BackupIdRow implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getIsFavorite(), getOwnerPackageId(), getUserId(),
-                getDateExpires(), getIsDirty());
+        return Objects.hash(getId(), getIsFavorite(), getIsPending(), getIsTrashed(),
+                getOwnerPackageId(), getUserId(), getDateExpires(), getIsDirty());
     }
 
     /**

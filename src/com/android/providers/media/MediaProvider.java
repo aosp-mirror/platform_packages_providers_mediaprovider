@@ -892,8 +892,6 @@ public class MediaProvider extends ContentProvider {
                     Trace.endSection();
                 }
 
-                mDatabaseBackupAndRecovery.deleteFromDbBackup(deletedRow);
-
                 switch (deletedRow.getMediaType()) {
                     case FileColumns.MEDIA_TYPE_PLAYLIST:
                     case FileColumns.MEDIA_TYPE_AUDIO:
@@ -914,6 +912,8 @@ public class MediaProvider extends ContentProvider {
                         deletedRow.getMediaType())) {
                     mPickerSyncController.notifyMediaEvent();
                 }
+
+                mDatabaseBackupAndRecovery.deleteFromDbBackup(helper, deletedRow);
             });
         }
     };

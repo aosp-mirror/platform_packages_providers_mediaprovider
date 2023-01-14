@@ -269,11 +269,7 @@ public class DatabaseBackupAndRecovery {
      */
     protected void backupVolumeDbData(DatabaseHelper databaseHelper, String volumeName,
             String insertedFilePath, FileRow insertedRow) {
-        if (!isStableUrisEnabled(volumeName)) {
-            return;
-        }
-
-        if (databaseHelper.isDatabaseRecovering()) {
+        if (!isBackupUpdateRequired(databaseHelper, insertedRow)) {
             return;
         }
 
@@ -302,8 +298,8 @@ public class DatabaseBackupAndRecovery {
     /**
      * Deletes backed up data(needed for recovery) from external storage.
      */
-    protected void deleteFromDbBackup(FileRow deletedRow) {
-        if (!isStableUrisEnabled(deletedRow.getVolumeName())) {
+    protected void deleteFromDbBackup(DatabaseHelper databaseHelper, FileRow deletedRow) {
+        if (!isBackupUpdateRequired(databaseHelper, deletedRow)) {
             return;
         }
 
@@ -315,6 +311,14 @@ public class DatabaseBackupAndRecovery {
         } catch (IOException e) {
             Log.w(TAG, "Failure in deleting backup data for key: " + deletedFilePath, e);
         }
+    }
+
+    protected boolean isBackupUpdateRequired(DatabaseHelper databaseHelper, FileRow row) {
+        if (isStableUrisEnabled(row.getVolumeName()) && !databaseHelper.isDatabaseRecovering()) {
+            return true;
+        }
+
+        return false;
     }
 
 

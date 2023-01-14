@@ -64,12 +64,12 @@ import static org.junit.Assert.assertEquals;
 import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.Build;
 
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.cts.install.lib.TestApp;
-import com.android.modules.utils.build.SdkLevel;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -152,10 +152,8 @@ public class PermissionUtilsTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU, codeName = "Tiramisu")
     public void testDefaultPermissionsOnTestAppWithStoragePerms() throws Exception {
-        if (!SdkLevel.isAtLeastT()) {
-            return;
-        }
         String packageName = TEST_APP_WITH_STORAGE_PERMS.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
         adoptShellPermission(UPDATE_APP_OPS_STATS);
@@ -190,10 +188,8 @@ public class PermissionUtilsTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU, codeName = "Tiramisu")
     public void testDefaultPermissionsOnTestAppWithMediaPerms() throws Exception {
-        if (!SdkLevel.isAtLeastT()) {
-            return;
-        }
         String packageName = TEST_APP_WITH_MEDIA_PERMS.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
         adoptShellPermission(UPDATE_APP_OPS_STATS);
@@ -417,28 +413,18 @@ public class PermissionUtilsTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU, codeName = "Tiramisu")
     public void testReadVideoOnTestAppWithMediaPerms() throws Exception {
-        if (!SdkLevel.isAtLeastT()) {
-            return;
-        }
         assertReadVideoOnTestApp(TEST_APP_WITH_MEDIA_PERMS);
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 34)
+    @SdkSuppress(minSdkVersion = 34, codeName = "UpsideDownCake")
     public void testReadMediaVisualUserSelectedOnTestApp() throws Exception {
         boolean targetSdkIsAtLeastT = true;
         final String packageName = TEST_APP_WITH_USER_SELECTED_PERMS.getPackageName();
         int testAppUid = getApplicationContext().getPackageManager().getPackageUid(packageName,
                 PackageManager.PackageInfoFlags.of(0));
-
-        if (!SdkLevel.isAtLeastU()) {
-            assertThat(checkPermissionReadVisualUserSelected(getApplicationContext(), TEST_APP_PID,
-                    testAppUid,
-                    packageName, null, targetSdkIsAtLeastT)).isFalse();
-            return;
-        }
-
         adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
         try {
             assertThat(checkPermissionReadVisualUserSelected(getApplicationContext(), TEST_APP_PID,
@@ -512,10 +498,8 @@ public class PermissionUtilsTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU, codeName = "Tiramisu")
     public void testReadAudioOnTestAppWithMediaPerms() throws Exception {
-        if (!SdkLevel.isAtLeastT()) {
-            return;
-        }
         assertReadAudioOnTestApp(TEST_APP_WITH_MEDIA_PERMS);
     }
 
@@ -546,10 +530,8 @@ public class PermissionUtilsTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU, codeName = "Tiramisu")
     public void testReadImagesOnTestAppWithMediaPerms() throws Exception {
-        if (!SdkLevel.isAtLeastT()) {
-            return;
-        }
         assertReadImagesOnTestApp(TEST_APP_WITH_MEDIA_PERMS);
     }
 

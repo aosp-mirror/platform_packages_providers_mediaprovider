@@ -2552,29 +2552,45 @@ void FuseDaemon::SetupLevelDbInstances() {
     }
 }
 
+std::string deriveVolumeName(const std::string& path) {
+    std::string volume_name;
+    if (!android::base::StartsWith(path, STORAGE_PREFIX)) {
+        volume_name = VOLUME_INTERNAL;
+    } else if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
+        volume_name = VOLUME_EXTERNAL_PRIMARY;
+    } else {
+        size_t size = sizeof(STORAGE_PREFIX) / sizeof(STORAGE_PREFIX[0]);
+        volume_name = volume_name.substr(size);
+    }
+    return volume_name;
+}
+
 void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
-    if (!android::base::StartsWith(key, STORAGE_PREFIX) &&
-        CheckLevelDbConnection(VOLUME_INTERNAL)) {
-        leveldb::Status status;
-        status = fuse->level_db_connection_map[VOLUME_INTERNAL]->Delete(leveldb::WriteOptions(),
-                                                                        key);
-        if (!status.ok()) {
-            LOG(INFO) << "Failure in leveldb delete for key: " << key;
-        }
+    std::string volume_name = deriveVolumeName(key);
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb delete in volume:" << volume_name << " for key:" << key;
+        return;
+    }
+
+    leveldb::Status status;
+    status = fuse->level_db_connection_map[VOLUME_INTERNAL]->Delete(leveldb::WriteOptions(), key);
+    if (!status.ok()) {
+        LOG(ERROR) << "Failure in leveldb delete for key: " << key <<
+            " from volume:" << volume_name;
     }
 }
 
 void FuseDaemon::InsertInLevelDb(const std::string& key, const std::string& value) {
-    if (!android::base::StartsWith(key, STORAGE_PREFIX) &&
-        CheckLevelDbConnection(VOLUME_INTERNAL)) {
-        leveldb::Status status;
-        status = fuse->level_db_connection_map[VOLUME_INTERNAL]->Put(leveldb::WriteOptions(), key,
-                                                                     value);
-        if (!status.ok()) {
-            LOG(ERROR) << "Failure in leveldb insert for key: " << key << status.ToString();
-        } else {
-            LOG(INFO) << "Insert successful for key:" << key;
-        }
+    std::string volume_name = deriveVolumeName(key);
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb insert in volume:" << volume_name << " for key:" << key;
+        return;
+    }
+
+    leveldb::Status status;
+    status = fuse->level_db_connection_map[volume_name]->Put(leveldb::WriteOptions(), key, value);
+    if (!status.ok()) {
+        LOG(ERROR) << "Failure in leveldb insert for key: " << key << " in volume:" << volume_name;
     }
 }
 

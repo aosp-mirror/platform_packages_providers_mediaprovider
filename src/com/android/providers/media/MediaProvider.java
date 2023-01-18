@@ -1560,6 +1560,14 @@ public class MediaProvider extends ContentProvider {
 
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
         final long startTime = SystemClock.elapsedRealtime();
+
+        // Print # of deleted files
+        synchronized (mCachedCallingIdentityForFuse) {
+            for (int i = 0; i < mCachedCallingIdentityForFuse.size(); i++) {
+                mCachedCallingIdentityForFuse.valueAt(i).dump("Idle maintenance");
+            }
+        }
+
         // Trim any stale log files before we emit new events below
         Logging.trimPersistent();
 
@@ -10269,7 +10277,8 @@ public class MediaProvider extends ContentProvider {
             LocalCallingIdentity localCallingIdentity) {
         final File toDelete = new File(path);
         if (toDelete.delete()) {
-            localCallingIdentity.incrementDeletedFileCountBypassingDatabase();
+            final int mediaType = MimeUtils.resolveMediaType(MimeUtils.resolveMimeType(toDelete));
+            localCallingIdentity.incrementDeletedFileCountBypassingDatabase(mediaType);
             return 0;
         } else {
             return OsConstants.ENOENT;
@@ -11424,10 +11433,8 @@ public class MediaProvider extends ContentProvider {
 
     private void dumpAccessLogs(PrintWriter writer) {
         synchronized (mCachedCallingIdentityForFuse) {
-            for (int key = 0; key <= mCachedCallingIdentityForFuse.size(); key++) {
-                if (mCachedCallingIdentityForFuse.contains(key)) {
-                    mCachedCallingIdentityForFuse.get(key).dump(writer);
-                }
+            for (int i = 0; i < mCachedCallingIdentityForFuse.size(); i++) {
+                mCachedCallingIdentityForFuse.valueAt(i).dump(writer);
             }
         }
     }

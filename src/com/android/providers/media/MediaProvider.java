@@ -6423,11 +6423,17 @@ public class MediaProvider extends ContentProvider {
                 return bundle;
             }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
-                // TODO(b/190713331): Remove after initial development
+                // TODO(b/267327327): Add permission check before updating cloud provider. Also
+                //  validate the new cloud provider before setting it by using
+                //  PickerSyncController#setCloudProvider instead of
+                //  PickerSyncController#forceSetCloudProvider.
                 final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);
-                Log.i(TAG, "Test initiated cloud provider switch: " + cloudProvider);
+                Log.i(TAG, "Request received to set cloud provider to " + cloudProvider);
                 mPickerSyncController.forceSetCloudProvider(cloudProvider);
-                // fall-through
+                Log.i(TAG, "Completed request to set cloud provider to " + cloudProvider);
+
+                mPickerSyncController.reloadAllMediaAsync();
+                return new Bundle();
             }
             case MediaStore.SYNC_PROVIDERS_CALL: {
                 syncAllMedia();

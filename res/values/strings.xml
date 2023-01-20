@@ -96,7 +96,7 @@
     <string name="picker_settings_title">Cloud media app</string>
 
     <!-- Settings page description in Photo Picker. [CHAR LIMIT=NONE] -->
-    <string name="picker_settings_description">Share photos and videos you back up from other services in the Android Photopicker</string>
+    <string name="picker_settings_description">Access your cloud media when an app or website asks you to select photos or videos</string>
 
     <!-- Settings page select cloud provider message in Photo Picker. [CHAR LIMIT=NONE] -->
     <string name="picker_settings_selection_message">Access cloud media from</string>

@@ -22,8 +22,11 @@ import static android.app.AppOpsManager.permissionToOp;
 import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
+import static android.content.ContentResolver.QUERY_ARG_SQL_GROUP_BY;
+import static android.content.ContentResolver.QUERY_ARG_SQL_HAVING;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
+import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
@@ -3478,8 +3481,7 @@ public class MediaProvider extends ContentProvider {
 
         // Starting U, we are filtering owner package names for apps without visibility
         // on other packages. Apps with QUERY_ALL_PACKAGES permission are not affected.
-        final boolean shouldFilterOwnerPackageNameFlag = true;
-        if (shouldFilterOwnerPackageNameFlag && isApplicableForOwnerPackageNameFiltering(c)) {
+        if (shouldFilterOwnerPackageNameFlag() && isApplicableForOwnerPackageNameFiltering(c)) {
             final long startTime = SystemClock.elapsedRealtime();
             final String[] resultOwnerPackageNames = getOwnerPackageNames(c);
             if (resultOwnerPackageNames.length != 0) {
@@ -3579,6 +3581,10 @@ public class MediaProvider extends ContentProvider {
                 && Arrays.asList(c.getColumnNames()).contains(MediaColumns.OWNER_PACKAGE_NAME)
                 && getContext().checkPermission(QUERY_ALL_PACKAGES,
                 mCallingIdentity.get().pid, mCallingIdentity.get().uid) == PERMISSION_DENIED;
+    }
+
+    private boolean shouldFilterOwnerPackageNameFlag() {
+        return true;
     }
 
     private boolean isUriSupportedForRedaction(Uri uri) {
@@ -5737,7 +5743,37 @@ public class MediaProvider extends ContentProvider {
             qb.setProjectionGreylist(sGreylist);
         }
 
+        // Starting U, if owner package name is used in query arguments,
+        // we are restricting result set to only self-owned packages.
+        if (shouldFilterOwnerPackageNameFlag() && shouldFilterByOwnerPackageName(extras, type)) {
+            Log.d(TAG, "Restricting result set to only packages owned by calling package: "
+                    + mCallingIdentity.get().getSharedPackagesAsString());
+            final String ownerPackageMatchClause = getWhereForOwnerPackageMatch(
+                    mCallingIdentity.get());
+            appendWhereStandalone(qb, ownerPackageMatchClause);
+        }
+
         return qb;
+    }
+
+    private boolean shouldFilterByOwnerPackageName(Bundle queryArgs, int type) {
+        return type == TYPE_QUERY && SdkLevel.isAtLeastU() && containsOwnerPackageName(queryArgs)
+                && getContext().checkPermission(QUERY_ALL_PACKAGES, mCallingIdentity.get().pid,
+                mCallingIdentity.get().uid) == PERMISSION_DENIED;
+    }
+
+    private boolean containsOwnerPackageName(Bundle queryArgs) {
+        final String selection = queryArgs.getString(QUERY_ARG_SQL_SELECTION, "")
+                .toLowerCase(Locale.ROOT);
+        final String groupBy = queryArgs.getString(QUERY_ARG_SQL_GROUP_BY, "")
+                .toLowerCase(Locale.ROOT);
+        final String sort = queryArgs.getString(QUERY_ARG_SQL_SORT_ORDER, "")
+                .toLowerCase(Locale.ROOT);
+        final String having = queryArgs.getString(QUERY_ARG_SQL_HAVING, "")
+                .toLowerCase(Locale.ROOT);
+
+        return selection.contains(OWNER_PACKAGE_NAME) || groupBy.contains(OWNER_PACKAGE_NAME)
+                || sort.contains(OWNER_PACKAGE_NAME) || having.contains(OWNER_PACKAGE_NAME);
     }
 
     private void appendAccessCheckQuery(@NonNull SQLiteQueryBuilder qb, boolean forWrite,

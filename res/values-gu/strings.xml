@@ -42,7 +42,8 @@
     <string name="picker_settings" msgid="6443463167344790260">"ક્લાઉડ મીડિયા ઍપ"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"ક્લાઉડ મીડિયા ઍપ"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"ક્લાઉડ મીડિયા ઍપ"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Android Photopickerમાં તમે અન્ય સેવાઓથી બૅકઅપ લો છો તે ફોટા અને વીડિયોને શેર કરો"</string>
+    <!-- no translation found for picker_settings_description (2916686824777214585) -->
+    <skip />
     <string name="picker_settings_selection_message" msgid="245453573086488596">"આમાંથી ક્લાઉડ મીડિયાને ઍક્સેસ કરો"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"એકપણ નહીં"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"આ સમયે ક્લાઉડ મીડિયા ઍપને બદલી શકાઈ નથી."</string>

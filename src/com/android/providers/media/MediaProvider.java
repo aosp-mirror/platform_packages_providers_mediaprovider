@@ -585,7 +585,63 @@ public class MediaProvider extends ContentProvider {
             new SparseArray<>();
 
     private final OnOpChangedListener mModeListener =
-            (op, packageName) -> invalidateLocalCallingIdentityCache(packageName, "op " + op);
+            (op, packageName) -> onModeChanged(packageName, op);
+
+    /**
+     * Callback method called as part of {@link OnOpChangedListener}.
+     * When an AppOp is written -
+     * 1. We invalidate saved LocalCallingIdentity object for the package. This
+     *    is needed to ensure we read the new permission state
+     * 2. If the AppOp change was on the read media appOps, we clear any stale
+     *    grants,
+     *
+     * @param packageName - package for which AppOp changed
+     * @param op - AppOp for which the mode changed.
+     */
+    private void onModeChanged(String packageName, String op) {
+        invalidateLocalCallingIdentityCache(packageName, "op " + op /* reason */);
+        removeMediaGrantsOnModeChange(packageName, op);
+    }
+
+    /**
+     * Removes media_grants for the given {@code packageName} if the AppOp
+     * change resulted in a state of "Allow All" or "Deny All" for read
+     * permission.
+     */
+    private void removeMediaGrantsOnModeChange(String packageName, String op) {
+        // b/265963379: onModeChanged is always called with op=OPSTR_READ_EXTERNAL_STORAGE even if
+        // the appOp mode changed for other read media app ops. Handle all read media app op changes
+        // until the bug is fixed.
+        if (!SdkLevel.isAtLeastU() || !isReadMediaAppOp(op)) {
+            return;
+        }
+
+        final int uid;
+        try {
+            uid = getContext().getPackageManager().getPackageUid(packageName, 0);
+        } catch (NameNotFoundException e) {
+            Log.e(TAG, "Unable to resolve uid. Ignoring the AppOp change for " + packageName);
+            return;
+        }
+
+        final LocalCallingIdentity localCallingIdentity =
+                LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid);
+        if (!localCallingIdentity.checkCallingPermissionUserSelected()) {
+            // Revoke media grants if permission state is not "Select flow".
+            mMediaGrants.removeAllMediaGrantsForPackage(packageName, "op " + op /* reason */);
+        }
+    }
+
+    /**
+     * Returns {@code true} if the given {@code op} is one of the appOp
+     * related to read media appOps
+     */
+    private boolean isReadMediaAppOp(String op) {
+        return AppOpsManager.OPSTR_READ_EXTERNAL_STORAGE.equals(op)
+                || AppOpsManager.OPSTR_READ_MEDIA_IMAGES.equals(op)
+                || AppOpsManager.OPSTR_READ_MEDIA_VIDEO.equals(op)
+                || AppOpsManager.OPSTR_READ_MEDIA_VISUAL_USER_SELECTED.equals(op);
+    }
 
     /**
      * Retrieves a cached calling identity or creates a new one. Also, always sets the app-op
@@ -1194,6 +1250,10 @@ public class MediaProvider extends ContentProvider {
                 null /* all packages */, mModeListener);
         appOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_MEDIA_VIDEO,
                 null /* all packages */, mModeListener);
+        if (SdkLevel.isAtLeastU()) {
+            appOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_MEDIA_VISUAL_USER_SELECTED,
+                    null /* all packages */, mModeListener);
+        }
         appOpsManager.startWatchingMode(AppOpsManager.OPSTR_WRITE_EXTERNAL_STORAGE,
                 null /* all packages */, mModeListener);
         appOpsManager.startWatchingMode(permissionToOp(ACCESS_MEDIA_LOCATION),
@@ -1748,7 +1808,7 @@ public class MediaProvider extends ContentProvider {
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
         // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package is removed.
-        mMediaGrants.removeAllMediaGrantsForPackage(packageName);
+        mMediaGrants.removeAllMediaGrantsForPackage(packageName, /* reason */ "Package orphaned");
     }
 
     private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {

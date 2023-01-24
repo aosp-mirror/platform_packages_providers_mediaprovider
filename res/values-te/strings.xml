@@ -42,7 +42,8 @@
     <string name="picker_settings" msgid="6443463167344790260">"క్లౌడ్ మీడియా యాప్"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"క్లౌడ్ మీడియా యాప్"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"క్లౌడ్ మీడియా యాప్"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Android ఫోటోపికర్‌లోని ఇతర సర్వీస్‌ల నుండి మీరు బ్యాకప్ చేసే ఫోటోలు, వీడియోలను షేర్ చేయండి"</string>
+    <!-- no translation found for picker_settings_description (2916686824777214585) -->
+    <skip />
     <string name="picker_settings_selection_message" msgid="245453573086488596">"దాని నుండి క్లౌడ్ మీడియాను యాక్సెస్ చేయండి"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ఏవీ లేవు"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"ఈ సమయంలో క్లౌడ్ మీడియా యాప్ మార్చడం సాధ్యపడలేదు."</string>

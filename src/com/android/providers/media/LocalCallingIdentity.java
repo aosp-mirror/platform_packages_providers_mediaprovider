@@ -376,7 +376,7 @@ public class LocalCallingIdentity {
             case PERMISSION_IS_SELF:
                 return checkPermissionSelf(context, pid, uid);
             case PERMISSION_IS_SHELL:
-                return checkPermissionShell(context, pid, uid);
+                return checkPermissionShell(uid);
             case PERMISSION_IS_MANAGER:
                 return checkPermissionManager(context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_IS_DELEGATOR:

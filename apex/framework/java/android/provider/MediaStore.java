@@ -4871,6 +4871,7 @@ public final class MediaStore {
     /**
      * Grant {@link com.android.providers.media.MediaGrants} for the given package, for the
      * list of local (to the device) content uris. These must be valid picker uris.
+     *
      * @hide
      */
     public static void grantMediaReadForPackage(

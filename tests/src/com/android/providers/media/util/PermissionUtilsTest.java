@@ -121,7 +121,7 @@ public class PermissionUtilsTest {
         final String packageName = context.getPackageName();
 
         assertThat(checkPermissionSelf(context, pid, uid)).isTrue();
-        assertThat(checkPermissionShell(context, pid, uid)).isFalse();
+        assertThat(checkPermissionShell(uid)).isFalse();
         assertThat(checkPermissionManager(context, pid, uid, packageName, null)).isFalse();
         assertThat(checkPermissionDelegator(context, pid, uid)).isFalse();
         assertThat(checkPermissionManageMedia(context, pid, uid, packageName, null)).isFalse();
@@ -160,7 +160,7 @@ public class PermissionUtilsTest {
 
         try {
             assertThat(checkPermissionSelf(getContext(), TEST_APP_PID, testAppUid)).isFalse();
-            assertThat(checkPermissionShell(getContext(), TEST_APP_PID, testAppUid)).isFalse();
+            assertThat(checkPermissionShell(testAppUid)).isFalse();
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
                             null)).isFalse();
@@ -196,7 +196,7 @@ public class PermissionUtilsTest {
 
         try {
             assertThat(checkPermissionSelf(getContext(), TEST_APP_PID, testAppUid)).isFalse();
-            assertThat(checkPermissionShell(getContext(), TEST_APP_PID, testAppUid)).isFalse();
+            assertThat(checkPermissionShell(testAppUid)).isFalse();
             assertThat(checkIsLegacyStorageGranted(getContext(), testAppUid, packageName, null))
                     .isFalse();
             assertThat(checkPermissionInstallPackages(
@@ -225,7 +225,7 @@ public class PermissionUtilsTest {
 
         try {
             assertThat(checkPermissionSelf(getContext(), TEST_APP_PID, testAppUid)).isFalse();
-            assertThat(checkPermissionShell(getContext(), TEST_APP_PID, testAppUid)).isFalse();
+            assertThat(checkPermissionShell(testAppUid)).isFalse();
             assertThat(
                     checkPermissionManager(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
@@ -274,7 +274,7 @@ public class PermissionUtilsTest {
 
         try {
             assertThat(checkPermissionSelf(getContext(), TEST_APP_PID, testAppUid)).isFalse();
-            assertThat(checkPermissionShell(getContext(), TEST_APP_PID, testAppUid)).isFalse();
+            assertThat(checkPermissionShell(testAppUid)).isFalse();
             assertThat(
                     checkPermissionManager(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();

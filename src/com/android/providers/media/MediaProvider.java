@@ -145,6 +145,7 @@ import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionShell;
 import static com.android.providers.media.util.StringUtils.componentStateToString;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_PREFIX;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
@@ -6366,18 +6367,43 @@ public class MediaProvider extends ContentProvider {
                 }
             }
             case MediaStore.GRANT_MEDIA_READ_FOR_PACKAGE_CALL: {
-                if (!checkPermissionSelf(Binder.getCallingUid())) {
+                final int caller = Binder.getCallingUid();
+                final List<Uri> uris;
+                final String packageName;
+                if (checkPermissionSelf(caller)) {
+                    // If the caller is MediaProvider the accepted parameters are EXTRA_URI_LIST
+                    // and EXTRA_UID.
+                    if (!extras.containsKey(
+                            MediaStore.EXTRA_URI_LIST)
+                                    && !extras.containsKey(Intent.EXTRA_UID)) {
+                        throw new IllegalArgumentException(
+                                "Missing required extras arguments: EXTRA_URI_LIST or"
+                                    + " EXTRA_UID");
+                    }
+                    uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
+                    final PackageManager pm = getContext().getPackageManager();
+                    final int packageUid = extras.getInt(Intent.EXTRA_UID);
+                    packageName = pm.getNameForUid(packageUid);
+                } else if (checkPermissionShell(caller)) {
+                    // If the caller is the shell, the accepted parameters are EXTRA_URI (as string)
+                    // and EXTRA_PACKAGE_NAME (as string).
+                    if (!extras.containsKey(MediaStore.EXTRA_URI)
+                                    && !extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
+                        throw new IllegalArgumentException(
+                                "Missing required extras arguments: EXTRA_URI or"
+                                    + " EXTRA_PACKAGE_NAME");
+                    }
+                    packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
+                    uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+                } else {
+                    // All other callers are unauthorized.
                     throw new SecurityException("Create media grants not allowed. "
-                            + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
-                            + " Calling UID:" + Binder.getCallingUid()
-                            + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
-                            + " Media Provider UID:" + MY_UID);
+                                + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
+                                + " Calling UID:" + Binder.getCallingUid()
+                                + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
+                                + " Media Provider UID:" + MY_UID);
                 }
-                final int packageUid = extras.getInt(Intent.EXTRA_UID);
-                final ArrayList<Uri> uris =
-                            extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
-                final PackageManager pm = getContext().getPackageManager();
-                final String packageName = pm.getNameForUid(packageUid);
+
                 mMediaGrants.addMediaGrantsForPackage(packageName, uris);
                 return null;
             }

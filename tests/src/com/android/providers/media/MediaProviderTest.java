@@ -72,7 +72,6 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.MediaProvider.FallbackException;
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
 import com.android.providers.media.MediaProvider.VolumeNotFoundException;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.FileUtilsTest;
 import com.android.providers.media.util.SQLiteQueryBuilder;

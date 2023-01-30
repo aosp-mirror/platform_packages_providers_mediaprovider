@@ -37,8 +37,6 @@ import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
-
 import com.google.common.io.ByteStreams;
 import com.google.common.truth.Truth;
 

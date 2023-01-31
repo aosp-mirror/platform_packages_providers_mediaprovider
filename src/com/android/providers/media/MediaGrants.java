@@ -102,8 +102,8 @@ class MediaGrants {
      *
      * @return the number of grants removed.
      */
-    int removeAllMediaGrantsForPackage(String packageName) throws IllegalArgumentException {
-
+    int removeAllMediaGrantsForPackage(String packageName, String reason)
+            throws IllegalArgumentException {
         Objects.requireNonNull(packageName);
         if (TextUtils.isEmpty(packageName)) {
             throw new IllegalArgumentException(
@@ -121,7 +121,8 @@ class MediaGrants {
                     Log.d(
                             TAG,
                             String.format(
-                                    "Removed %s media_grants for %s", grantsRemoved, packageName));
+                                    "Removed %s media_grants for %s. Reason: %s",
+                                    grantsRemoved, packageName, reason));
                     return grantsRemoved;
                 });
     }

@@ -33,7 +33,6 @@ import android.provider.MediaStore;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.scan.MediaScannerTest;
 import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.util.FileUtils;
 
@@ -66,8 +65,7 @@ public class ResolvePlaylistTest {
         mDir.mkdirs();
         FileUtils.deleteContents(mDir);
 
-        mIsolatedContext = new MediaScannerTest.IsolatedContext(context, "modern",
-                /*asFuseThread*/ false);
+        mIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
         mIsolatedResolver = mIsolatedContext.getContentResolver();
 
         mModern = new ModernMediaScanner(mIsolatedContext);

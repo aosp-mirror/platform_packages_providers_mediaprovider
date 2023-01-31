@@ -36,10 +36,10 @@ import android.system.Os;
 import androidx.core.util.Supplier;
 import androidx.test.InstrumentationRegistry;
 
+import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.UserId;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

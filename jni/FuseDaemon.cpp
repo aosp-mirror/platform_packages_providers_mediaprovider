@@ -2573,7 +2573,7 @@ void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
     }
 
     leveldb::Status status;
-    status = fuse->level_db_connection_map[VOLUME_INTERNAL]->Delete(leveldb::WriteOptions(), key);
+    status = fuse->level_db_connection_map[volume_name]->Delete(leveldb::WriteOptions(), key);
     if (!status.ok()) {
         LOG(ERROR) << "Failure in leveldb delete for key: " << key <<
             " from volume:" << volume_name;
@@ -2600,38 +2600,42 @@ std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string&
     int counter = 0;
     std::vector<std::string> file_paths;
 
-    if (android::base::EqualsIgnoreCase(volume_name, VOLUME_INTERNAL) &&
-        CheckLevelDbConnection(VOLUME_INTERNAL)) {
-        leveldb::Iterator* it =
-                fuse->level_db_connection_map[VOLUME_INTERNAL]->NewIterator(leveldb::ReadOptions());
-        if (android::base::EqualsIgnoreCase(last_read_value, "")) {
-            it->SeekToFirst();
-        } else {
-            // Start after last read value
-            leveldb::Slice slice = last_read_value;
-            it->Seek(slice);
-            it->Next();
-        }
-        for (; it->Valid() && counter < limit; it->Next()) {
-            file_paths.push_back(it->key().ToString());
-            counter++;
-        }
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb file paths read for volume:" << volume_name;
+        return file_paths;
     }
 
+    leveldb::Iterator* it =
+            fuse->level_db_connection_map[volume_name]->NewIterator(leveldb::ReadOptions());
+    if (android::base::EqualsIgnoreCase(last_read_value, "")) {
+        it->SeekToFirst();
+    } else {
+        // Start after last read value
+        leveldb::Slice slice = last_read_value;
+        it->Seek(slice);
+        it->Next();
+    }
+    for (; it->Valid() && counter < limit; it->Next()) {
+        file_paths.push_back(it->key().ToString());
+        counter++;
+    }
     return file_paths;
 }
 
 std::string FuseDaemon::ReadBackedUpDataFromLevelDb(const std::string& filePath) {
     std::string data = "";
-    if (!android::base::StartsWithIgnoreCase(filePath, STORAGE_PREFIX) &&
-        CheckLevelDbConnection(VOLUME_INTERNAL)) {
-        leveldb::Status status = fuse->level_db_connection_map[VOLUME_INTERNAL]->Get(
-                leveldb::ReadOptions(), filePath, &data);
-        if (!status.ok()) {
-            LOG(WARNING) << "Failure in leveldb read for key: " << filePath << status.ToString();
-        } else {
-            LOG(DEBUG) << "Read successful for key: " << filePath;
-        }
+    std::string volume_name = deriveVolumeName(filePath);
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb data read for key:" << filePath;
+        return data;
+    }
+
+    leveldb::Status status = fuse->level_db_connection_map[volume_name]->Get(leveldb::ReadOptions(),
+                                                                             filePath, &data);
+    if (!status.ok()) {
+        LOG(WARNING) << "Failure in leveldb read for key: " << filePath << status.ToString();
+    } else {
+        LOG(DEBUG) << "Read successful for key: " << filePath;
     }
     return data;
 }

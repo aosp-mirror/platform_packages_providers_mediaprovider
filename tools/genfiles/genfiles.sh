@@ -20,7 +20,7 @@
 
 # This script queries a media provider database, and generates a script to
 # approximately recreate the same file system structure on another device,
-# using dummy files.
+# using placeholder files.
 
 EXTERNAL=$2
 if [ "$EXTERNAL" == "" ]

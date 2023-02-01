@@ -49,8 +49,8 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
-import android.os.UserHandle;
 import android.os.SystemProperties;
+import android.os.UserHandle;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
@@ -734,8 +734,8 @@ public class FileUtils {
                 extFromMimeType = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
             }
 
-            if (MimeUtils.equalIgnoreCase(mimeType, mimeTypeFromExt)
-                    || MimeUtils.equalIgnoreCase(ext, extFromMimeType)) {
+            if (StringUtils.equalIgnoreCase(mimeType, mimeTypeFromExt)
+                    || StringUtils.equalIgnoreCase(ext, extFromMimeType)) {
                 // Extension maps back to requested MIME type; allow it
             } else {
                 // No match; insist that create file matches requested MIME
@@ -973,12 +973,13 @@ public class FileUtils {
             "(?i)^Android/(?:data|media|obb)/([^/]+)(/?.*)?");
 
     /**
-     * Regex that matches Android/obb or Android/data path.
+     * Regex that matches exactly Android/obb or Android/data or Android/obb/ or Android/data/
+     * suffix absolute file path.
      */
     private static final Pattern PATTERN_DATA_OR_OBB_PATH = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?"
             + PROP_CROSS_USER_ROOT_PATTERN
-            + "Android/(?:data|obb)(?:/.*)?$");
+            + "Android/(?:data|obb)/?$");
 
     /**
      * Regex that matches Android/obb or Android/data relative path (as defined in
@@ -992,6 +993,15 @@ public class FileUtils {
      */
     private static final Pattern PATTERN_OBB_OR_CHILD_RELATIVE_PATH = Pattern.compile(
             "(?i)^Android/obb(?:/.*)?$");
+
+    private static final Pattern PATTERN_VISIBLE = Pattern.compile(
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?$");
+
+    private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?/"
+                    + "(?:(?:Android/(?:data|obb|sandbox)$)|"
+                    + "(?:\\.transforms$)|"
+                    + "(?:(?:Movies|Music|Pictures)/.thumbnails$))");
 
     /**
      * The recordings directory. This is used for R OS. For S OS or later,
@@ -1173,11 +1183,17 @@ public class FileUtils {
     @VisibleForTesting
     static boolean isExternalMediaDirectory(@NonNull String path, String crossUserRoot) {
         final String relativePath = extractRelativePath(path);
-        if (relativePath != null) {
-            final String externalMediaDir = (crossUserRoot == null || crossUserRoot.isEmpty())
-                    ? "Android/media" : crossUserRoot + "/Android/media";
-            return relativePath.startsWith(externalMediaDir);
+        if (relativePath == null) {
+            return false;
         }
+
+        if (StringUtils.startsWithIgnoreCase(relativePath, "Android/media")) {
+            return true;
+        }
+        if (!TextUtils.isEmpty(crossUserRoot)) {
+            return StringUtils.startsWithIgnoreCase(relativePath, crossUserRoot + "/Android/media");
+        }
+
         return false;
     }
 
@@ -1205,6 +1221,18 @@ public class FileUtils {
     public static boolean isObbOrChildRelativePath(@Nullable String path) {
         if (path == null) return false;
         final Matcher m = PATTERN_OBB_OR_CHILD_RELATIVE_PATH.matcher(path);
+        return m.matches();
+    }
+
+    public static boolean shouldBeVisible(@Nullable String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_VISIBLE.matcher(path);
+        return m.matches();
+    }
+
+    public static boolean shouldBeInvisible(@Nullable String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_INVISIBLE.matcher(path);
         return m.matches();
     }
 
@@ -1332,6 +1360,8 @@ public class FileUtils {
             // The relative path for files in the top directory is "/"
             if (!"/".equals(values.getAsString(MediaColumns.RELATIVE_PATH))) {
                 values.put(MediaColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
+            } else {
+                values.putNull(MediaColumns.BUCKET_DISPLAY_NAME);
             }
         }
     }
@@ -1370,9 +1400,18 @@ public class FileUtils {
             resolvedDisplayName = displayName;
         }
 
-        final File filePath = buildPath(volumePath,
-                values.getAsString(MediaColumns.RELATIVE_PATH), resolvedDisplayName);
-        values.put(MediaColumns.DATA, filePath.getAbsolutePath());
+        String relativePath = values.getAsString(MediaColumns.RELATIVE_PATH);
+        if (relativePath == null) {
+          relativePath = "";
+        }
+        try {
+            final File filePath = buildPath(volumePath, relativePath, resolvedDisplayName);
+            values.put(MediaColumns.DATA, filePath.getCanonicalPath());
+        } catch (IOException e) {
+            throw new IllegalArgumentException(
+                    String.format("Failure in conversion to canonical file path. Failure path: %s.",
+                            relativePath.concat(resolvedDisplayName)), e);
+        }
     }
 
     public static void sanitizeValues(@NonNull ContentValues values,
@@ -1444,6 +1483,48 @@ public class FileUtils {
     }
 
     /**
+     * Returns true if the given File should be hidden (if it or any of its parents is hidden).
+     * This can be called before the file is created, to check if it will be hidden once created.
+     */
+    @VisibleForTesting
+    public static boolean shouldFileBeHidden(@NonNull File file) {
+        if (isFileHidden(file)) {
+            return true;
+        }
+
+        File parent = file.getParentFile();
+        while (parent != null) {
+            if (isDirectoryHidden(parent)) {
+                return true;
+            }
+            parent = parent.getParentFile();
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns true if the given dir should be hidden (if it or any of its parents is hidden).
+     * This can be called before the file is created, to check if it will be hidden once created.
+     */
+    @VisibleForTesting
+    public static boolean shouldDirBeHidden(@NonNull File file) {
+        if (isDirectoryHidden(file)) {
+            return true;
+        }
+
+        File parent = file.getParentFile();
+        while (parent != null) {
+            if (isDirectoryHidden(parent)) {
+                return true;
+            }
+            parent = parent.getParentFile();
+        }
+
+        return false;
+    }
+
+    /**
      * Test if this given directory should be considered hidden.
      */
     @VisibleForTesting
@@ -1457,6 +1538,11 @@ public class FileUtils {
 
         // check for .nomedia presence
         if (!nomedia.exists()) {
+            return false;
+        }
+
+        if (shouldBeVisible(dir.getAbsolutePath())) {
+            nomedia.delete();
             return false;
         }
 
@@ -1567,22 +1653,33 @@ public class FileUtils {
     }
 
     /**
-     * @return {@code true} if {@code dir} is dirty and should be scanned, {@code false} otherwise.
+     * @return {@code true} if {@code dir} has nomedia and it is dirty directory, so it should be
+     * scanned. Returns {@code false} otherwise.
      */
     public static boolean isDirectoryDirty(File dir) {
         File nomedia = new File(dir, ".nomedia");
-        if (nomedia.exists()) {
-            try {
-                Optional<String> expectedPath = readString(nomedia);
-                // Returns true If .nomedia file is empty or content doesn't match |dir|
-                // Returns false otherwise
-                return !expectedPath.isPresent()
-                        || !expectedPath.get().equals(dir.getPath());
-            } catch (IOException e) {
-                Log.w(TAG, "Failed to read directory dirty" + dir);
-            }
+
+        // We return false for directories that don't have .nomedia
+        if (!nomedia.exists()) {
+            return false;
         }
-        return true;
+
+        // We don't write to ".nomedia" dirs, only to ".nomedia" files. If this ".nomedia" is not
+        // a file, then don't try to read it.
+        if (!nomedia.isFile()) {
+            return true;
+        }
+
+        try {
+            Optional<String> expectedPath = readString(nomedia);
+            // Returns true If .nomedia file is empty or content doesn't match |dir|
+            // Returns false otherwise
+            return !expectedPath.isPresent()
+                    || !expectedPath.get().equals(dir.getPath());
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to read directory dirty" + dir);
+            return true;
+        }
     }
 
     /**
@@ -1591,7 +1688,7 @@ public class FileUtils {
      */
     public static void setDirectoryDirty(File dir, boolean isDirty) {
         File nomedia = new File(dir, ".nomedia");
-        if (nomedia.exists()) {
+        if (nomedia.exists() && nomedia.isFile()) {
             try {
                 writeString(nomedia, isDirty ? Optional.of("") : Optional.of(dir.getPath()));
             } catch (IOException e) {
@@ -1645,5 +1742,20 @@ public class FileUtils {
         }
 
         return null;
+    }
+
+    public static File buildPrimaryVolumeFile(int userId, String... segments) {
+        return buildPath(new File("/storage/emulated/" + userId), segments);
+    }
+
+    private static final String LOWER_FS_PREFIX = "/storage/";
+    private static final String FUSE_FS_PREFIX = "/mnt/user/" + UserHandle.myUserId() + "/";
+
+    public static File toFuseFile(File file) {
+        return new File(file.getPath().replaceFirst(LOWER_FS_PREFIX, FUSE_FS_PREFIX));
+    }
+
+    public static File fromFuseFile(File file) {
+        return new File(file.getPath().replaceFirst(FUSE_FS_PREFIX, LOWER_FS_PREFIX));
     }
 }

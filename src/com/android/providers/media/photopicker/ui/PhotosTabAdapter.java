@@ -55,9 +55,10 @@ class PhotosTabAdapter extends TabAdapter {
             @NonNull LifecycleOwner lifecycleOwner,
             @NonNull LiveData<String> cloudMediaProviderAppTitle,
             @NonNull LiveData<String> cloudMediaAccountName,
-            @NonNull LiveData<Boolean> shouldShowChooseAppBanner) {
+            @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
+            @NonNull OnBannerClickListener onChooseAppBannerClickListener) {
         super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
-                shouldShowChooseAppBanner);
+                shouldShowChooseAppBanner, onChooseAppBannerClickListener);
         mShowRecentSection = showRecentSection;
         mSelection = selection;
         mOnMediaItemClickListener = onMediaItemClickListener;

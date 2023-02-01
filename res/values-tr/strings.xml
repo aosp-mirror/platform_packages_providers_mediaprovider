@@ -42,7 +42,8 @@
     <string name="picker_settings" msgid="6443463167344790260">"Bulut medya uygulaması"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Bulut medya uygulaması"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Bulut medya uygulaması"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Diğer hizmetlerden yedeklediğiniz fotoğrafları ve videoları Android fotoğraf seçicide paylaşın"</string>
+    <!-- no translation found for picker_settings_description (2916686824777214585) -->
+    <skip />
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Şuradaki bulut medyasına erişin"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Yok"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Bulut medya uygulaması şu anda değiştirilemiyor."</string>

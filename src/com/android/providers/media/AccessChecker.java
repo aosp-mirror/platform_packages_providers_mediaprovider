@@ -23,38 +23,38 @@ import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_SUBTITLE;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
 import static android.provider.MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 
-import static com.android.providers.media.MediaProvider.AUDIO_ALBUMART;
-import static com.android.providers.media.MediaProvider.AUDIO_ALBUMART_ID;
-import static com.android.providers.media.MediaProvider.AUDIO_ALBUMS;
-import static com.android.providers.media.MediaProvider.AUDIO_ALBUMS_ID;
-import static com.android.providers.media.MediaProvider.AUDIO_ARTISTS;
-import static com.android.providers.media.MediaProvider.AUDIO_ARTISTS_ID;
-import static com.android.providers.media.MediaProvider.AUDIO_ARTISTS_ID_ALBUMS;
-import static com.android.providers.media.MediaProvider.AUDIO_GENRES;
-import static com.android.providers.media.MediaProvider.AUDIO_GENRES_ALL_MEMBERS;
-import static com.android.providers.media.MediaProvider.AUDIO_GENRES_ID;
-import static com.android.providers.media.MediaProvider.AUDIO_GENRES_ID_MEMBERS;
-import static com.android.providers.media.MediaProvider.AUDIO_MEDIA;
-import static com.android.providers.media.MediaProvider.AUDIO_MEDIA_ID;
-import static com.android.providers.media.MediaProvider.AUDIO_MEDIA_ID_GENRES;
-import static com.android.providers.media.MediaProvider.AUDIO_MEDIA_ID_GENRES_ID;
-import static com.android.providers.media.MediaProvider.AUDIO_PLAYLISTS;
-import static com.android.providers.media.MediaProvider.AUDIO_PLAYLISTS_ID;
-import static com.android.providers.media.MediaProvider.AUDIO_PLAYLISTS_ID_MEMBERS;
-import static com.android.providers.media.MediaProvider.AUDIO_PLAYLISTS_ID_MEMBERS_ID;
-import static com.android.providers.media.MediaProvider.DOWNLOADS;
-import static com.android.providers.media.MediaProvider.DOWNLOADS_ID;
-import static com.android.providers.media.MediaProvider.FILES;
-import static com.android.providers.media.MediaProvider.FILES_ID;
-import static com.android.providers.media.MediaProvider.IMAGES_MEDIA;
-import static com.android.providers.media.MediaProvider.IMAGES_MEDIA_ID;
-import static com.android.providers.media.MediaProvider.IMAGES_THUMBNAILS;
-import static com.android.providers.media.MediaProvider.IMAGES_THUMBNAILS_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_ALBUMART;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_ALBUMART_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_ALBUMS;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_ALBUMS_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_ARTISTS;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_ARTISTS_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_ARTISTS_ID_ALBUMS;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_GENRES;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_GENRES_ALL_MEMBERS;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_GENRES_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_GENRES_ID_MEMBERS;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_MEDIA;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_MEDIA_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_MEDIA_ID_GENRES;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_MEDIA_ID_GENRES_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_PLAYLISTS;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_PLAYLISTS_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_PLAYLISTS_ID_MEMBERS;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_PLAYLISTS_ID_MEMBERS_ID;
+import static com.android.providers.media.LocalUriMatcher.DOWNLOADS;
+import static com.android.providers.media.LocalUriMatcher.DOWNLOADS_ID;
+import static com.android.providers.media.LocalUriMatcher.FILES;
+import static com.android.providers.media.LocalUriMatcher.FILES_ID;
+import static com.android.providers.media.LocalUriMatcher.IMAGES_MEDIA;
+import static com.android.providers.media.LocalUriMatcher.IMAGES_MEDIA_ID;
+import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS;
+import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS_ID;
+import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA;
+import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA_ID;
+import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS;
+import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS_ID;
 import static com.android.providers.media.MediaProvider.INCLUDED_DEFAULT_DIRECTORIES;
-import static com.android.providers.media.MediaProvider.VIDEO_MEDIA;
-import static com.android.providers.media.MediaProvider.VIDEO_MEDIA_ID;
-import static com.android.providers.media.MediaProvider.VIDEO_THUMBNAILS;
-import static com.android.providers.media.MediaProvider.VIDEO_THUMBNAILS_ID;
 import static com.android.providers.media.util.DatabaseUtils.bindSelection;
 
 import android.os.Bundle;
@@ -132,6 +132,76 @@ public class AccessChecker {
                 throw new UnsupportedOperationException(
                         "Unknown or unsupported type: " + uriType);
             }
+        }
+    }
+
+    /**
+     * Returns {@code true} if the request is for read access to a collection that contains
+     * visual media files and app has READ_MEDIA_VISUAL_USER_SELECTED permission.
+     *
+     * @param callingIdentity {@link LocalCallingIdentity} of the caller to verify permission state
+     * @param uriType the collection info for which the requested access is,
+     *                e.g., Images -> {@link MediaProvider}#IMAGES_MEDIA.
+     * @param forWrite type of the access requested. Read / write access to the file / collection.
+     */
+    public static boolean hasUserSelectedAccess(@NonNull LocalCallingIdentity callingIdentity,
+            int uriType, boolean forWrite) {
+        if (forWrite) {
+            // Apps only get read access via media_grants. For write access on user selected items,
+            // app needs to get uri grants.
+            return false;
+        }
+
+        switch (uriType) {
+            case IMAGES_MEDIA:
+            case IMAGES_MEDIA_ID:
+            case IMAGES_THUMBNAILS_ID:
+            case IMAGES_THUMBNAILS:
+            case VIDEO_MEDIA_ID:
+            case VIDEO_MEDIA:
+            case VIDEO_THUMBNAILS_ID:
+            case VIDEO_THUMBNAILS:
+            case DOWNLOADS_ID:
+            case DOWNLOADS:
+            case FILES_ID:
+            case FILES: {
+                return callingIdentity.checkCallingPermissionUserSelected();
+            }
+            default: return false;
+        }
+    }
+
+    /**
+     * Returns where clause for access on user selected permission.
+     *
+     * <p><strong>NOTE:</strong> This method assumes that app has necessary permissions and returns
+     * the where clause without checking any permission state of the app.
+     */
+    @NonNull
+    public static String getWhereForUserSelectedAccess(
+            @NonNull LocalCallingIdentity callingIdentity, int uriType) {
+        switch (uriType) {
+            case IMAGES_MEDIA:
+            case IMAGES_MEDIA_ID:
+            case VIDEO_MEDIA_ID:
+            case VIDEO_MEDIA:
+            case DOWNLOADS_ID:
+            case DOWNLOADS:
+            case FILES_ID:
+            case FILES: {
+                return getWhereForUserSelectedMatch(callingIdentity, MediaColumns._ID);
+            }
+            case IMAGES_THUMBNAILS_ID:
+            case IMAGES_THUMBNAILS: {
+                return getWhereForUserSelectedMatch(callingIdentity, "image_id");
+            }
+            case VIDEO_THUMBNAILS_ID:
+            case VIDEO_THUMBNAILS: {
+                return getWhereForUserSelectedMatch(callingIdentity, "video_id");
+            }
+            default:
+                throw new UnsupportedOperationException(
+                        "Unknown or unsupported type: " + uriType);
         }
     }
 
@@ -289,6 +359,13 @@ public class AccessChecker {
     @VisibleForTesting
     static String getWhereForExternalPrimaryMatch() {
         return bindSelection("volume_name=?", MediaStore.VOLUME_EXTERNAL_PRIMARY);
+    }
+
+    private static String getWhereForUserSelectedMatch(
+            @NonNull LocalCallingIdentity callingIdentity, String id) {
+
+        return String.format("%s IN (SELECT file_id from media_grants WHERE %s)", id,
+                getWhereForOwnerPackageMatch(callingIdentity));
     }
 
     /**

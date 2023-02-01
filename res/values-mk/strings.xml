@@ -42,7 +42,8 @@
     <string name="picker_settings" msgid="6443463167344790260">"Апликација за содржини во облак"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Апликација за содржини во облак"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Апликација за аудиовизуелни содржини во облак"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Споделувајте фотографии и видеа од кои сте направиле бекап од други услуги во „Избирачот на фотографии на Android“"</string>
+    <!-- no translation found for picker_settings_description (2916686824777214585) -->
+    <skip />
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Пристапете до аудиовизуелните содржини во облак од"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Нема"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Не може да се промени апликацијата за аудиовизуелни содржини во облак во моментов."</string>
@@ -92,6 +93,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Повторно"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Аудиовизуелните содржини во облак сега се достапни од <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не е избрано"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"Подготвени: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> од <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Бекап од фотографиите сега е влучен"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Можете да изберете фотографии од сметката <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> на <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Сметката на <xliff:g id="APP_NAME">%1$s</xliff:g> е ажурирана"</string>

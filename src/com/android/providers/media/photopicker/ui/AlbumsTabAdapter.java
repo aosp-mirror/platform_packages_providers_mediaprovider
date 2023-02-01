@@ -20,67 +20,61 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Category;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Adapts from model to something RecyclerView understands.
  */
-public class AlbumsTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
+class AlbumsTabAdapter extends TabAdapter {
 
-    private static final int ITEM_TYPE_CATEGORY = 1;
-
-    public static final int COLUMN_COUNT = 2;
-
-    private final ImageLoader mImageLoader;
-    private final View.OnClickListener mOnClickListener;
+    private final OnAlbumClickListener mOnAlbumClickListener;
     private final boolean mHasMimeTypeFilter;
 
-    private List<Category> mCategoryList = new ArrayList<>();
-
-
-    public AlbumsTabAdapter(ImageLoader imageLoader, View.OnClickListener listener,
-            boolean hasMimeTypeFilter) {
-        mImageLoader = imageLoader;
-        mOnClickListener = listener;
+    AlbumsTabAdapter(@NonNull ImageLoader imageLoader,
+            @NonNull OnAlbumClickListener onAlbumClickListener,
+            boolean hasMimeTypeFilter,
+            @NonNull LifecycleOwner lifecycleOwner,
+            @NonNull LiveData<String> cloudMediaProviderAppTitle,
+            @NonNull LiveData<String> cloudMediaAccountName,
+            @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
+            @NonNull OnBannerClickListener onChooseAppBannerClickListener) {
+        super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
+                shouldShowChooseAppBanner, onChooseAppBannerClickListener);
+        mOnAlbumClickListener = onAlbumClickListener;
         mHasMimeTypeFilter = hasMimeTypeFilter;
     }
 
     @NonNull
     @Override
-    public BaseViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
-        return new AlbumGridHolder(viewGroup.getContext(), viewGroup, mImageLoader,
-                mHasMimeTypeFilter);
+    RecyclerView.ViewHolder createMediaItemViewHolder(@NonNull ViewGroup viewGroup) {
+        final View view = getView(viewGroup, R.layout.item_album_grid);
+        return new AlbumGridHolder(view, mImageLoader, mHasMimeTypeFilter, mOnAlbumClickListener);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull BaseViewHolder itemHolder, int position) {
-        final Category category = getCategory(position);
-        itemHolder.itemView.setTag(category);
-        itemHolder.itemView.setOnClickListener(mOnClickListener);
-        itemHolder.bind();
+    void onBindMediaItemViewHolder(@NonNull RecyclerView.ViewHolder viewHolder, int position) {
+        final Category category = (Category) getAdapterItem(position);
+        final AlbumGridHolder albumGridVH = (AlbumGridHolder) viewHolder;
+        albumGridVH.bind(category);
     }
 
     @Override
-    public int getItemCount() {
-        return mCategoryList.size();
+    boolean isItemTypeMediaItem(int position) {
+        return getAdapterItem(position) instanceof Category;
     }
 
-    @Override
-    public int getItemViewType(int position) {
-        return ITEM_TYPE_CATEGORY;
+    void updateCategoryList(@NonNull List<Category> categoryList) {
+        setAllItems(categoryList);
     }
 
-    public Category getCategory(int position) {
-        return mCategoryList.get(position);
-    }
-
-    public void updateCategoryList(List<Category> categoryList) {
-        mCategoryList = categoryList;
-        notifyDataSetChanged();
+    interface OnAlbumClickListener {
+        void onAlbumClick(@NonNull Category category);
     }
 }

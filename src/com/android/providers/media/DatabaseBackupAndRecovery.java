@@ -31,7 +31,6 @@ import androidx.annotation.NonNull;
 import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
-import com.android.providers.media.util.FileUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -112,7 +111,8 @@ public class DatabaseBackupAndRecovery {
             if (!new File(sRecoveryDirectoryPath).exists()) {
                 new File(sRecoveryDirectoryPath).mkdirs();
             }
-            FileUtils.getFuseDaemonForFile(volume.getPath(), mVolumeCache).setupVolumeDbBackup();
+            MediaProvider.getFuseDaemonForFile(volume.getPath(), mVolumeCache)
+                    .setupVolumeDbBackup();
         } catch (IOException e) {
             Log.e(TAG, "Failure in setting up backup and recovery for volume: " + volume.getName(),
                     e);
@@ -253,7 +253,7 @@ public class DatabaseBackupAndRecovery {
     @NonNull
     private FuseDaemon getFuseDaemonForPath(@NonNull String path)
             throws FileNotFoundException {
-        return FileUtils.getFuseDaemonForFile(new File(path), mVolumeCache);
+        return MediaProvider.getFuseDaemonForFile(new File(path), mVolumeCache);
     }
 
     protected void updateNextRowIdAndSetDirtyIfRequired(@NonNull DatabaseHelper helper,
@@ -269,11 +269,7 @@ public class DatabaseBackupAndRecovery {
      */
     protected void backupVolumeDbData(DatabaseHelper databaseHelper, String volumeName,
             String insertedFilePath, FileRow insertedRow) {
-        if (!isStableUrisEnabled(volumeName)) {
-            return;
-        }
-
-        if (databaseHelper.isDatabaseRecovering()) {
+        if (!isBackupUpdateRequired(databaseHelper, insertedRow)) {
             return;
         }
 
@@ -302,8 +298,8 @@ public class DatabaseBackupAndRecovery {
     /**
      * Deletes backed up data(needed for recovery) from external storage.
      */
-    protected void deleteFromDbBackup(FileRow deletedRow) {
-        if (!isStableUrisEnabled(deletedRow.getVolumeName())) {
+    protected void deleteFromDbBackup(DatabaseHelper databaseHelper, FileRow deletedRow) {
+        if (!isBackupUpdateRequired(databaseHelper, deletedRow)) {
             return;
         }
 
@@ -315,6 +311,14 @@ public class DatabaseBackupAndRecovery {
         } catch (IOException e) {
             Log.w(TAG, "Failure in deleting backup data for key: " + deletedFilePath, e);
         }
+    }
+
+    protected boolean isBackupUpdateRequired(DatabaseHelper databaseHelper, FileRow row) {
+        if (isStableUrisEnabled(row.getVolumeName()) && !databaseHelper.isDatabaseRecovering()) {
+            return true;
+        }
+
+        return false;
     }
 
 

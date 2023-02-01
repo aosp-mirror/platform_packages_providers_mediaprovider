@@ -42,7 +42,8 @@
     <string name="picker_settings" msgid="6443463167344790260">"Cloudmedia-app"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Cloudmedia-app"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Cloudmedia-app"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Deel foto\'s en video\'s waarvan je een back-up hebt gemaakt uit andere services in de fotokiezer van Android"</string>
+    <!-- no translation found for picker_settings_description (2916686824777214585) -->
+    <skip />
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Cloudmedia openen vanuit"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Geen"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Cloudmedia-app kan nu niet worden gewijzigd."</string>
@@ -92,6 +93,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Opnieuw proberen"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Cloudmedia nu beschikbaar van <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"niet geselecteerd"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> van <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> klaar"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Nu ook met foto\'s waarvan een back-up is gemaakt"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Je kunt foto\'s selecteren uit het <xliff:g id="APP_NAME">%1$s</xliff:g>-account <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Account voor <xliff:g id="APP_NAME">%1$s</xliff:g> geüpdatet"</string>

@@ -72,6 +72,7 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.MediaProvider.FallbackException;
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
 import com.android.providers.media.MediaProvider.VolumeNotFoundException;
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.FileUtilsTest;
 import com.android.providers.media.util.SQLiteQueryBuilder;
@@ -304,6 +305,37 @@ public class MediaProviderTest {
         final Collection<Uri> uris = Arrays.asList(
                 MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY, 42));
         assertNotNull(MediaStore.createWriteRequest(sIsolatedResolver, uris));
+    }
+
+    @Test
+    public void testGrantMediaReadForPackage() throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File testFile = stage(R.raw.lg_g4_iso_800_jpg,
+                                    new File(dir, "test" + System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, testFile);
+        Long fileId = ContentUris.parseId(uri);
+
+        final Uri.Builder builder = Uri.EMPTY.buildUpon();
+        builder.scheme("content");
+        builder.encodedAuthority(MediaStore.AUTHORITY);
+
+        final Uri testUri = builder.appendPath("picker")
+                                .appendPath(Integer.toString(UserHandle.myUserId()))
+                                .appendPath(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                                .appendPath(MediaStore.AUTHORITY)
+                                .appendPath(Long.toString(fileId))
+                                .build();
+
+        try {
+            MediaStore.grantMediaReadForPackage(sIsolatedContext,
+                                                android.os.Process.myUid(),
+                                                List.of(testUri));
+        } finally {
+            dir.delete();
+            testFile.delete();
+        }
+
     }
 
     /**

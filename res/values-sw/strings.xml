@@ -39,12 +39,14 @@
     <string name="allow" msgid="8885707816848569619">"Ruhusu"</string>
     <string name="deny" msgid="6040983710442068936">"Kataa"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Vinjari…"</string>
-    <!-- no translation found for picker_settings (6443463167344790260) -->
-    <skip />
+    <string name="picker_settings" msgid="6443463167344790260">"Programu ya maudhui ya Wingu"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Programu ya maudhui ya Wingu"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Programu ya maudhui ya kwenye wingu"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Shiriki nakala za picha na video unazohifadhi kutoka katika huduma nyinginezo kwenye Kiteua picha cha Android"</string>
+    <!-- no translation found for picker_settings_description (2916686824777214585) -->
+    <skip />
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Fikia maudhui ya kwenye wingu katika"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Hamna"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Imeshindwa kubadilisha programu ya maudhui ya wingu kwa wakati huu."</string>
     <string name="add" msgid="2894574044585549298">"Weka"</string>
     <string name="deselect" msgid="4297825044827769490">"Acha kuchagua"</string>
     <string name="deselected" msgid="8488133193326208475">"Umeacha kuchagua"</string>
@@ -91,6 +93,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Jaribu tena"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Maudhui ya kwenye wingu sasa yanapatikana katika <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"haijachaguliwa"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> kati ya <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ziko tayari"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Picha zilizohifadhiwa nakala zimejumuishwa sasa"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Unaweza kuchagua picha zilizotoka kwenye akaunti ya <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> katika programu ya <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Umesasisha akaunti ya <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>

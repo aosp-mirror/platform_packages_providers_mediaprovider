@@ -40,6 +40,8 @@ public class BackupIdRowTest {
     public void testAllFields() throws Exception {
         BackupIdRow row = BackupIdRow.newBuilder(5)
                 .setIsFavorite(1)
+                .setIsPending(1)
+                .setIsTrashed(0)
                 .setOwnerPackagedId(1)
                 .setUserId(1)
                 .setDateExpires(10)
@@ -51,6 +53,8 @@ public class BackupIdRowTest {
 
         BackupIdRow row2 = BackupIdRow.newBuilder(5)
                 .setIsFavorite(1)
+                .setIsPending(1)
+                .setIsTrashed(0)
                 .setOwnerPackagedId(1)
                 .setUserId(1)
                 .setDateExpires(10)

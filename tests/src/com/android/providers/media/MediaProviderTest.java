@@ -72,7 +72,7 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.MediaProvider.FallbackException;
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
 import com.android.providers.media.MediaProvider.VolumeNotFoundException;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.FileUtilsTest;
 import com.android.providers.media.util.SQLiteQueryBuilder;
@@ -115,7 +115,8 @@ public class MediaProviderTest {
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.READ_DEVICE_CONFIG,
-                        Manifest.permission.INTERACT_ACROSS_USERS);
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
         resetIsolatedContext();
     }
@@ -307,6 +308,37 @@ public class MediaProviderTest {
         assertNotNull(MediaStore.createWriteRequest(sIsolatedResolver, uris));
     }
 
+    @Test
+    public void testGrantMediaReadForPackage() throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File testFile = stage(R.raw.lg_g4_iso_800_jpg,
+                                    new File(dir, "test" + System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, testFile);
+        Long fileId = ContentUris.parseId(uri);
+
+        final Uri.Builder builder = Uri.EMPTY.buildUpon();
+        builder.scheme("content");
+        builder.encodedAuthority(MediaStore.AUTHORITY);
+
+        final Uri testUri = builder.appendPath("picker")
+                                .appendPath(Integer.toString(UserHandle.myUserId()))
+                                .appendPath(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                                .appendPath(MediaStore.AUTHORITY)
+                                .appendPath(Long.toString(fileId))
+                                .build();
+
+        try {
+            MediaStore.grantMediaReadForPackage(sIsolatedContext,
+                                                android.os.Process.myUid(),
+                                                List.of(testUri));
+        } finally {
+            dir.delete();
+            testFile.delete();
+        }
+
+    }
+
     /**
      * We already have solid coverage of this logic in
      * {@code CtsProviderTestCases}, but the coverage system currently doesn't
@@ -378,6 +410,9 @@ public class MediaProviderTest {
 
     @Test
     public void testInsertionWithInvalidFilePath_throwsIllegalArgumentException() {
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
+                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
         final ContentValues values = new ContentValues();
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Android/media/com.example");
         values.put(MediaStore.Images.Media.DISPLAY_NAME,
@@ -391,6 +426,11 @@ public class MediaProviderTest {
         assertThat(illegalArgumentException).hasMessageThat().contains(
                 "Primary directory Android not allowed for content://media/external_primary/file;"
                         + " allowed directories are [Download, Documents]");
+        // Add Shell Permissions to restore to @BeforeClass state.
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(Manifest.permission.READ_DEVICE_CONFIG,
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
     }
 
     @Test

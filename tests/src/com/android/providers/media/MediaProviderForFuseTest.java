@@ -16,10 +16,10 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_READ;
-import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_WRITE;
 import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_CREATE;
 import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_DELETE;
+import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_READ;
+import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_WRITE;
 
 import android.Manifest;
 import android.app.UiAutomation;
@@ -36,8 +36,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
-
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import com.google.common.io.ByteStreams;
 import com.google.common.truth.Truth;
@@ -75,7 +73,8 @@ public class MediaProviderForFuseTest {
                 Manifest.permission.LOG_COMPAT_CHANGE,
                 Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                 Manifest.permission.UPDATE_APP_OPS_STATS,
-                Manifest.permission.INTERACT_ACROSS_USERS);
+                Manifest.permission.INTERACT_ACROSS_USERS,
+                Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
         final Context context = InstrumentationRegistry.getTargetContext();
         sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ true);

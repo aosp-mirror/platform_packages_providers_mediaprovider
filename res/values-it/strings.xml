@@ -42,7 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"App multimediale cloud"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"App multimediale cloud"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"App multimediale con funzionalità cloud"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Condividi foto e video di cui esegui il backup da altri servizi nel selettore di foto Android"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Accedi ai tuoi contenuti multimediali cloud quando un\'app o un sito web ti chiede di selezionare foto o video"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accedi ai contenuti multimediali sul cloud da"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nessuna"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Ora è impossibile cambiare app multimediale cloud."</string>

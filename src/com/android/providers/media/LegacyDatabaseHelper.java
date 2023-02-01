@@ -223,11 +223,13 @@ public class LegacyDatabaseHelper extends SQLiteOpenHelper implements AutoClosea
     }
 
     public void beginTransaction() {
-        Trace.beginSection("transaction " + getDatabaseName());
-        Trace.beginSection("beginTransaction");
+        Trace.beginSection(traceSectionName("transaction"));
+        Trace.beginSection(traceSectionName("beginTransaction"));
         try {
             beginTransactionInternal();
         } finally {
+            // Only end the "beginTransaction" section. We'll end the "transaction" section in
+            // endTransaction().
             Trace.endSection();
         }
     }
@@ -256,11 +258,12 @@ public class LegacyDatabaseHelper extends SQLiteOpenHelper implements AutoClosea
     }
 
     public void endTransaction() {
-        Trace.beginSection("endTransaction");
+        Trace.beginSection(traceSectionName("endTransaction"));
         try {
             endTransactionInternal();
         } finally {
             Trace.endSection();
+            // End "transaction" section, which we started in beginTransaction().
             Trace.endSection();
         }
     }
@@ -1094,5 +1097,9 @@ public class LegacyDatabaseHelper extends SQLiteOpenHelper implements AutoClosea
             default:
                 return false;
         }
+    }
+
+    private String traceSectionName(@NonNull String method) {
+        return "LegacyDH[" + getDatabaseName() + "]." + method;
     }
 }

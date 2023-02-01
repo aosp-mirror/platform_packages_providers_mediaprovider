@@ -774,7 +774,7 @@ public final class MediaStore {
      *
      * @hide
      */
-    // @SystemApi - this is commented out for tm-mainline-prod only.
+    @SystemApi
     public static final String ACTION_USER_SELECT_IMAGES_FOR_APP =
             "android.provider.action.USER_SELECT_IMAGES_FOR_APP";
 
@@ -2661,8 +2661,7 @@ public final class MediaStore {
              * @param name The name of the image
              * @param description The description of the image
              * @return The URL to the newly created image
-             * @deprecated inserting of images should be performed using 
-             *             {@link ContentResolver#insert} and
+             * @deprecated inserting of images should be performed using
              *             {@link MediaColumns#IS_PENDING}, which offers richer
              *             control over lifecycle.
              */
@@ -2689,7 +2688,6 @@ public final class MediaStore {
              * @return The URL to the newly created image, or <code>null</code> if the image failed to be stored
              *              for any reason.
              * @deprecated inserting of images should be performed using
-             *             {@link ContentResolver#insert} and
              *             {@link MediaColumns#IS_PENDING}, which offers richer
              *             control over lifecycle.
              */
@@ -4873,6 +4871,7 @@ public final class MediaStore {
     /**
      * Grant {@link com.android.providers.media.MediaGrants} for the given package, for the
      * list of local (to the device) content uris. These must be valid picker uris.
+     *
      * @hide
      */
     public static void grantMediaReadForPackage(

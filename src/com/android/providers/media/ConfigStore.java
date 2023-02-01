@@ -41,7 +41,7 @@ import java.util.concurrent.Executor;
  */
 public interface ConfigStore {
     boolean DEFAULT_TAKE_OVER_GET_CONTENT = false;
-    boolean DEFAULT_USER_SELECT_FOR_APP = false;
+    boolean DEFAULT_USER_SELECT_FOR_APP = true;
     boolean DEFAULT_STABILISE_VOLUME_INTERNAL = false;
     boolean DEFAULT_STABILIZE_VOLUME_EXTERNAL = false;
 

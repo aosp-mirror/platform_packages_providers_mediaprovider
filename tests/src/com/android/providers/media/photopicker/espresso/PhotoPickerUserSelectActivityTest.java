@@ -44,7 +44,6 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import com.android.providers.media.R;
 
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -58,20 +57,16 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         mScenario.close();
     }
 
-    @Ignore
     @Test
     public void testMissingUidExtraReturnsCancelled() {
 
         Intent intent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
         intent.addCategory(Intent.CATEGORY_FRAMEWORK_INSTRUMENTATION_TEST);
-        // TODO(b/258182087): {@link ActivityScenario#launchActivityForResult} does not exist in
-        // tm-mainline-prod and requires an androidx.test upgrade.
-        // mScenario = ActivityScenario.launchActivityForResult(intent);
+        mScenario = ActivityScenario.launchActivityForResult(intent);
 
         assertThat(mScenario.getResult().getResultCode()).isEqualTo(Activity.RESULT_CANCELED);
     }
 
-    @Ignore
     @Test
     public void testActivityCancelledByUser() {
         launchValidActivity();
@@ -83,7 +78,6 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         assertThat(mScenario.getResult().getResultCode()).isEqualTo(Activity.RESULT_CANCELED);
     }
 
-    @Ignore
     @Test
     public void testActivityProfileButtonNotShown() {
         launchValidActivity();
@@ -110,7 +104,6 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
     }
 
-    @Ignore
     @Test
     public void testAddButtonIsShownWithCorrectTextWhenItemsSelected() {
         launchValidActivity();
@@ -130,10 +123,8 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
 
     /** Test helper to launch a valid test activity. */
     private void launchValidActivity() {
-        // TODO(b/258182087): {@link ActivityScenario#launchActivityForResult} does not exist in
-        // tm-mainline-prod and requires an androidx.test upgrade.
-        // mScenario =
-        //         ActivityScenario.launchActivityForResult(
-        //                 PhotoPickerBaseTest.getUserSelectImagesForAppIntent());
+        mScenario =
+                ActivityScenario.launchActivityForResult(
+                        PhotoPickerBaseTest.getUserSelectImagesForAppIntent());
     }
 }

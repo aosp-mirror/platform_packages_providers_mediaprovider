@@ -36,10 +36,10 @@ import android.system.Os;
 import androidx.core.util.Supplier;
 import androidx.test.InstrumentationRegistry;
 
+import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.UserId;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -169,7 +169,8 @@ public class PhotoPickerBaseTest {
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS,
-                        Manifest.permission.READ_DEVICE_CONFIG);
+                        Manifest.permission.READ_DEVICE_CONFIG,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
         sIsolatedContext = new IsolatedContext(getTargetContext(), "modern",
                 /* asFuseThread */ false);

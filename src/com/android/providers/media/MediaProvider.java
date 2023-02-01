@@ -17,12 +17,14 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
+import static android.Manifest.permission.QUERY_ALL_PACKAGES;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
+import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
@@ -37,6 +39,7 @@ import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
 import static android.provider.MediaStore.MEDIA_IGNORE_FILENAME;
 import static android.provider.MediaStore.MY_UID;
+import static android.provider.MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
@@ -145,6 +148,7 @@ import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionShell;
 import static com.android.providers.media.util.StringUtils.componentStateToString;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_PREFIX;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
@@ -298,6 +302,7 @@ import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XAttrUtils;
 import com.android.providers.media.util.XmpInterface;
 
+import com.google.common.base.Strings;
 import com.google.common.hash.Hashing;
 
 import java.io.File;
@@ -585,7 +590,63 @@ public class MediaProvider extends ContentProvider {
             new SparseArray<>();
 
     private final OnOpChangedListener mModeListener =
-            (op, packageName) -> invalidateLocalCallingIdentityCache(packageName, "op " + op);
+            (op, packageName) -> onModeChanged(packageName, op);
+
+    /**
+     * Callback method called as part of {@link OnOpChangedListener}.
+     * When an AppOp is written -
+     * 1. We invalidate saved LocalCallingIdentity object for the package. This
+     *    is needed to ensure we read the new permission state
+     * 2. If the AppOp change was on the read media appOps, we clear any stale
+     *    grants,
+     *
+     * @param packageName - package for which AppOp changed
+     * @param op - AppOp for which the mode changed.
+     */
+    private void onModeChanged(String packageName, String op) {
+        invalidateLocalCallingIdentityCache(packageName, "op " + op /* reason */);
+        removeMediaGrantsOnModeChange(packageName, op);
+    }
+
+    /**
+     * Removes media_grants for the given {@code packageName} if the AppOp
+     * change resulted in a state of "Allow All" or "Deny All" for read
+     * permission.
+     */
+    private void removeMediaGrantsOnModeChange(String packageName, String op) {
+        // b/265963379: onModeChanged is always called with op=OPSTR_READ_EXTERNAL_STORAGE even if
+        // the appOp mode changed for other read media app ops. Handle all read media app op changes
+        // until the bug is fixed.
+        if (!SdkLevel.isAtLeastU() || !isReadMediaAppOp(op)) {
+            return;
+        }
+
+        final int uid;
+        try {
+            uid = getContext().getPackageManager().getPackageUid(packageName, 0);
+        } catch (NameNotFoundException e) {
+            Log.e(TAG, "Unable to resolve uid. Ignoring the AppOp change for " + packageName);
+            return;
+        }
+
+        final LocalCallingIdentity localCallingIdentity =
+                LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid);
+        if (!localCallingIdentity.checkCallingPermissionUserSelected()) {
+            // Revoke media grants if permission state is not "Select flow".
+            mMediaGrants.removeAllMediaGrantsForPackage(packageName, "op " + op /* reason */);
+        }
+    }
+
+    /**
+     * Returns {@code true} if the given {@code op} is one of the appOp
+     * related to read media appOps
+     */
+    private boolean isReadMediaAppOp(String op) {
+        return AppOpsManager.OPSTR_READ_EXTERNAL_STORAGE.equals(op)
+                || AppOpsManager.OPSTR_READ_MEDIA_IMAGES.equals(op)
+                || AppOpsManager.OPSTR_READ_MEDIA_VIDEO.equals(op)
+                || AppOpsManager.OPSTR_READ_MEDIA_VISUAL_USER_SELECTED.equals(op);
+    }
 
     /**
      * Retrieves a cached calling identity or creates a new one. Also, always sets the app-op
@@ -1194,6 +1255,10 @@ public class MediaProvider extends ContentProvider {
                 null /* all packages */, mModeListener);
         appOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_MEDIA_VIDEO,
                 null /* all packages */, mModeListener);
+        if (SdkLevel.isAtLeastU()) {
+            appOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_MEDIA_VISUAL_USER_SELECTED,
+                    null /* all packages */, mModeListener);
+        }
         appOpsManager.startWatchingMode(AppOpsManager.OPSTR_WRITE_EXTERNAL_STORAGE,
                 null /* all packages */, mModeListener);
         appOpsManager.startWatchingMode(permissionToOp(ACCESS_MEDIA_LOCATION),
@@ -1748,7 +1813,7 @@ public class MediaProvider extends ContentProvider {
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
         // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package is removed.
-        mMediaGrants.removeAllMediaGrantsForPackage(packageName);
+        mMediaGrants.removeAllMediaGrantsForPackage(packageName, /* reason */ "Package orphaned");
     }
 
     private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
@@ -2537,7 +2602,6 @@ public class MediaProvider extends ContentProvider {
                 // files and directories in the given directory.
                 return new String[] {"/"};
             }
-
             // Getting UserId from the directory path, as clone user shares the MediaProvider
             // of user 0.
             int userIdFromPath = FileUtils.extractUserId(path);
@@ -2546,7 +2610,6 @@ public class MediaProvider extends ContentProvider {
             if (userIdFromPath == -1) {
                 userIdFromPath = sUserId;
             }
-
             // For all other paths, get file names from media provider database.
             // Return media and non-media files visible to the calling package.
             ArrayList<String> fileNamesList = new ArrayList<>();
@@ -3404,9 +3467,8 @@ public class MediaProvider extends ContentProvider {
         final DatabaseHelper helper = getDatabaseForUri(uri);
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, queryArgs,
                 honoredArgs::add);
-
         // Allowing hidden column _user_id for this query to support Cloned Profile use case.
-        if (isFuseThread() && table == FILES) {
+        if (table == FILES) {
             qb.allowColumn(FileColumns._USER_ID);
         }
 
@@ -3473,7 +3535,24 @@ public class MediaProvider extends ContentProvider {
             onLocaleChanged(false);
         }
 
-        final Cursor c = qb.query(helper, projection, queryArgs, signal);
+        Cursor c = qb.query(helper, projection, queryArgs, signal);
+
+        // Starting U, we are filtering owner package names for apps without visibility
+        // on other packages. Apps with QUERY_ALL_PACKAGES permission are not affected.
+        final boolean shouldFilterOwnerPackageNameFlag = true;
+        if (shouldFilterOwnerPackageNameFlag && isApplicableForOwnerPackageNameFiltering(c)) {
+            final long startTime = SystemClock.elapsedRealtime();
+            final String[] resultOwnerPackageNames = getOwnerPackageNames(c);
+            if (resultOwnerPackageNames.length != 0) {
+                final Set<String> queryablePackages = getQueryablePackages(resultOwnerPackageNames);
+                if (resultOwnerPackageNames.length != queryablePackages.size()) {
+                    c = filterOwnerPackageNames(c, queryablePackages);
+                }
+            }
+            final long durationMillis = SystemClock.elapsedRealtime() - startTime;
+            Log.d(TAG, "Filtering owner package names took " + durationMillis + " ms");
+        }
+
         if (c != null && !forSelf) {
             // As a performance optimization, only configure notifications when
             // resulting cursor will leave our process
@@ -3498,6 +3577,69 @@ public class MediaProvider extends ContentProvider {
         }
 
         return c;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private Set<String> getQueryablePackages(String[] packageNames) {
+        final boolean[] canPackageBeQueried;
+        try {
+            canPackageBeQueried = mPackageManager.canPackageQuery(
+                    mCallingIdentity.get().getPackageName(), packageNames);
+        } catch (NameNotFoundException e) {
+            Log.e(TAG, "Invalid package name", e);
+            // If package manager throws an error, only assume calling package as queryable package
+            return new HashSet<>(Arrays.asList(mCallingIdentity.get().getPackageName()));
+        }
+
+        final Set<String> queryablePackages = new HashSet<>();
+        for (int i = 0; i < packageNames.length; i++) {
+            if (canPackageBeQueried[i]) {
+                queryablePackages.add(packageNames[i]);
+            }
+        }
+        return queryablePackages;
+    }
+
+    private String[] getOwnerPackageNames(Cursor c) {
+        final Set<String> ownerPackageNames = new HashSet<>();
+        final int ownerPackageNameColIndex = c.getColumnIndex(MediaColumns.OWNER_PACKAGE_NAME);
+
+        while (c.moveToNext()) {
+            final String ownerPackageName = c.getString(ownerPackageNameColIndex);
+            if (!Strings.isNullOrEmpty(ownerPackageName)) {
+                ownerPackageNames.add(ownerPackageName);
+            }
+        }
+        c.moveToPosition(-1);
+
+        return ownerPackageNames.toArray(new String[0]);
+    }
+
+    private Cursor filterOwnerPackageNames(@NonNull Cursor c,
+            @NonNull Set<String> queryablePackages) {
+        final MatrixCursor filteredCursor = new MatrixCursor(c.getColumnNames(), c.getCount());
+
+        while (c.moveToNext()) {
+            final MatrixCursor.RowBuilder row = filteredCursor.newRow();
+            for (int colIndex = 0; colIndex < c.getColumnCount(); colIndex++) {
+                if (OWNER_PACKAGE_NAME.equals(c.getColumnName(colIndex))
+                        && !queryablePackages.contains(c.getString(colIndex))) {
+                    row.add(null);
+                } else if (c.getType(colIndex) == FIELD_TYPE_BLOB) {
+                    row.add(c.getBlob(colIndex));
+                } else {
+                    row.add(c.getString(colIndex));
+                }
+            }
+        }
+        return filteredCursor;
+    }
+
+    private boolean isApplicableForOwnerPackageNameFiltering(Cursor c) {
+        return SdkLevel.isAtLeastU() && c != null
+                && Arrays.asList(c.getColumnNames()).contains(MediaColumns.OWNER_PACKAGE_NAME)
+                && getContext().checkPermission(QUERY_ALL_PACKAGES,
+                mCallingIdentity.get().pid, mCallingIdentity.get().uid) == PERMISSION_DENIED;
     }
 
     private boolean isUriSupportedForRedaction(Uri uri) {
@@ -4854,9 +4996,15 @@ public class MediaProvider extends ContentProvider {
                 } else if (isCallingPackageManager()) {
                     // Apps with MANAGE_EXTERNAL_STORAGE have all files access, hence they are
                     // allowed to insert files anywhere.
+                } else if (getCallingPackageTargetSdkVersion() >=
+                        Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    // Throwing an exception so that it doesn't result in some unexpected
+                    // behavior for apps and make them aware of what is happening.
+                    throw new IllegalArgumentException("Mutation of " + column
+                        + " is not allowed.");
                 } else {
                     Log.w(TAG, "Ignoring mutation of  " + column + " from "
-                            + getCallingPackageOrSelf());
+                        + getCallingPackageOrSelf());
                     initialValues.remove(column);
                 }
             }
@@ -6306,18 +6454,43 @@ public class MediaProvider extends ContentProvider {
                 }
             }
             case MediaStore.GRANT_MEDIA_READ_FOR_PACKAGE_CALL: {
-                if (!checkPermissionSelf(Binder.getCallingUid())) {
+                final int caller = Binder.getCallingUid();
+                final List<Uri> uris;
+                final String packageName;
+                if (checkPermissionSelf(caller)) {
+                    // If the caller is MediaProvider the accepted parameters are EXTRA_URI_LIST
+                    // and EXTRA_UID.
+                    if (!extras.containsKey(
+                            MediaStore.EXTRA_URI_LIST)
+                                    && !extras.containsKey(Intent.EXTRA_UID)) {
+                        throw new IllegalArgumentException(
+                                "Missing required extras arguments: EXTRA_URI_LIST or"
+                                    + " EXTRA_UID");
+                    }
+                    uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
+                    final PackageManager pm = getContext().getPackageManager();
+                    final int packageUid = extras.getInt(Intent.EXTRA_UID);
+                    packageName = pm.getNameForUid(packageUid);
+                } else if (checkPermissionShell(caller)) {
+                    // If the caller is the shell, the accepted parameters are EXTRA_URI (as string)
+                    // and EXTRA_PACKAGE_NAME (as string).
+                    if (!extras.containsKey(MediaStore.EXTRA_URI)
+                                    && !extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
+                        throw new IllegalArgumentException(
+                                "Missing required extras arguments: EXTRA_URI or"
+                                    + " EXTRA_PACKAGE_NAME");
+                    }
+                    packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
+                    uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+                } else {
+                    // All other callers are unauthorized.
                     throw new SecurityException("Create media grants not allowed. "
-                            + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
-                            + " Calling UID:" + Binder.getCallingUid()
-                            + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
-                            + " Media Provider UID:" + MY_UID);
+                                + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
+                                + " Calling UID:" + Binder.getCallingUid()
+                                + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
+                                + " Media Provider UID:" + MY_UID);
                 }
-                final int packageUid = extras.getInt(Intent.EXTRA_UID);
-                final ArrayList<Uri> uris =
-                            extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
-                final PackageManager pm = getContext().getPackageManager();
-                final String packageName = pm.getNameForUid(packageUid);
+
                 mMediaGrants.addMediaGrantsForPackage(packageName, uris);
                 return null;
             }

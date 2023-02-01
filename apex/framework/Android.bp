@@ -26,6 +26,12 @@ java_sdk_library {
         "java/**/*.aidl",
     ],
 
+    aidl: {
+        local_include_dirs: [
+            "java",
+        ],
+    },
+
     permitted_packages: [
         "android.provider",
     ],
@@ -56,4 +62,13 @@ filegroup {
         "java/**/*.java",
     ],
     path: "java",
+}
+
+java_api_contribution {
+    name: "framework-mediaprovider-public-stubs",
+    api_surface: "public",
+    api_file: "api/current.txt",
+    visibility: [
+        "//build/orchestrator/apis",
+    ],
 }

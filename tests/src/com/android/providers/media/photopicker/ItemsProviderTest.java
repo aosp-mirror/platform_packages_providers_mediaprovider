@@ -50,13 +50,13 @@ import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
 
+import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 import com.android.providers.media.cloudproviders.CloudProviderPrimary;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.UserId;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import com.google.common.io.ByteStreams;
 
@@ -98,7 +98,8 @@ public class ItemsProviderTest {
         uiAutomation.adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.READ_DEVICE_CONFIG,
-                        Manifest.permission.INTERACT_ACROSS_USERS);
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
         // Remove sync delay to avoid flaky tests
         final String setSyncDelayCommand =

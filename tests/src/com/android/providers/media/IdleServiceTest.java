@@ -81,7 +81,8 @@ public class IdleServiceTest {
                         android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         android.Manifest.permission.READ_DEVICE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS,
-                        android.Manifest.permission.DUMP);
+                        android.Manifest.permission.DUMP,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
         mDir = new File(context.getExternalMediaDirs()[0], "test_" + System.nanoTime());
         mDir.mkdirs();
@@ -208,7 +209,7 @@ public class IdleServiceTest {
     public void testDetectSpecialFormat() throws Exception {
         // Require isolated resolver to query hidden column _special_format
         final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext = new MediaScannerTest.IsolatedContext(context, "modern",
+        final Context isolatedContext = new IsolatedContext(context, "modern",
                 /*asFuseThread*/ false);
         final ContentResolver resolver = isolatedContext.getContentResolver();
 

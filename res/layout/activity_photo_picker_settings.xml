@@ -17,9 +17,15 @@
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:id="@+id/settings_activity_root"
+              android:background="@color/picker_background_color"
               android:orientation="vertical"
               android:layout_height="match_parent"
               android:layout_width="match_parent">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/picker_settings_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize" />
 
     <TextView
         android:id="@+id/picker_settings_title"

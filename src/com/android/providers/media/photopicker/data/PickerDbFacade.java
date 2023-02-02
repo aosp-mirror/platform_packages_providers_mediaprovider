@@ -22,7 +22,6 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.PickerMediaColumns;
 
-import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
@@ -805,8 +804,7 @@ public class PickerDbFacade {
 
         synchronized (mLock) {
             if (authority.equals(mLocalProvider) || authority.equals(mCloudProvider)) {
-                return qb.query(mDatabase, getMediaStoreProjectionLocked(authority, mediaId,
-                                projection),
+                return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
                         /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
                         /* orderBy */ null, /* limitStr */ null);
             }
@@ -922,8 +920,7 @@ public class PickerDbFacade {
         };
     }
 
-    private String[] getMediaStoreProjectionLocked(String authority, String mediaId,
-            String[] columns) {
+    private String[] getMediaStoreProjectionLocked(String[] columns) {
         final String[] projection = new String[columns.length];
 
         for (int i = 0; i < projection.length; i++) {
@@ -963,12 +960,10 @@ public class PickerDbFacade {
                             getProjectionSimple(KEY_ORIENTATION, PickerMediaColumns.ORIENTATION);
                     break;
                 default:
-                    Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
-                    throw new IllegalArgumentException(
-                            "Unexpected picker URI projection. Uri:"
-                                    + uri
-                                    + ". Column: "
-                                    + columns[i]);
+                    projection[i] = getProjectionSimple("NULL", columns[i]);
+                    // Ignore unsupported columns; we do not throw error here to support
+                    // backward compatibility
+                    Log.w(TAG, "Unexpected Picker column: " + columns[i]);
             }
         }
 
@@ -1225,10 +1220,13 @@ public class PickerDbFacade {
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         qb.setTables(TABLE_ALBUM_MEDIA);
 
+        // In case of local albums, local_id cannot be null.
+        // In case of cloud albums, there can be 2 types of media items:
+        // 1. Cloud-only - Only cloud_id will be populated and local_id will be null.
+        // 2. Local + Cloud - Only local_id will be populated and cloud_id will be null as showing
+        // local copy is preferred over cloud copy.
         if (isLocal) {
             qb.appendWhereStandalone(WHERE_NOT_NULL_LOCAL_ID);
-        } else {
-            qb.appendWhereStandalone(WHERE_NOT_NULL_CLOUD_ID);
         }
 
         return qb;
@@ -1315,6 +1313,14 @@ public class PickerDbFacade {
     }
 
     private static final class AddAlbumMediaOperation extends AlbumWriteOperation {
+        private static final String[] sLocalMediaProjection = new String[] {
+                KEY_DATE_TAKEN_MS,
+                KEY_SYNC_GENERATION,
+                KEY_SIZE_BYTES,
+                KEY_DURATION_MS,
+                KEY_MIME_TYPE,
+                KEY_STANDARD_MIME_TYPE_EXTENSION
+        };
 
         private AddAlbumMediaOperation(SQLiteDatabase database, boolean isLocal, String albumId) {
             super(database, isLocal, albumId);
@@ -1333,6 +1339,32 @@ public class PickerDbFacade {
 
             while (cursor.moveToNext()) {
                 ContentValues values = cursorToContentValue(cursor, isLocal, albumId);
+
+                // In case of cloud albums, cloud provider returns both local and cloud ids.
+                // We give preference to inserting media data for the local copy of an item instead
+                // of the cloud copy. Hence, if local copy is available, fetch metadata from media
+                // table and update the album_media row accordingly.
+                if (!isLocal) {
+                    final String localId = values.getAsString(KEY_LOCAL_ID);
+                    final String cloudId = values.getAsString(KEY_CLOUD_ID);
+                    if (!TextUtils.isEmpty(localId) && !TextUtils.isEmpty(cloudId)) {
+                        // Fetch local media item details from media table.
+                        try (Cursor cursorLocalMedia = getLocalMediaMetadata(localId)) {
+                            if (cursorLocalMedia != null && cursorLocalMedia.getCount() == 1) {
+                                // If local media item details are present in the media table,
+                                // update content values and remove cloud id.
+                                values.putNull(KEY_CLOUD_ID);
+                                updateContentValues(values, cursorLocalMedia);
+                            } else {
+                                // If local media item details are NOT present in the media table,
+                                // insert cloud row after removing local_id. This will only happen
+                                // when local id points to a deleted item.
+                                values.putNull(KEY_LOCAL_ID);
+                            }
+                        }
+                    }
+                }
+
                 try {
                     if (qb.insert(getDatabase(), values) > 0) {
                         counter++;
@@ -1345,6 +1377,39 @@ public class PickerDbFacade {
             }
 
             return counter;
+        }
+
+        private void updateContentValues(ContentValues values, Cursor cursor) {
+            if (cursor.moveToFirst()) {
+                for (int columnIndex = 0; columnIndex < cursor.getColumnCount(); columnIndex++) {
+                    String column = cursor.getColumnName(columnIndex);
+                    switch (column) {
+                        case KEY_DATE_TAKEN_MS:
+                        case KEY_SYNC_GENERATION:
+                        case KEY_SIZE_BYTES:
+                        case KEY_DURATION_MS:
+                        case KEY_STANDARD_MIME_TYPE_EXTENSION:
+                            values.put(column, cursor.getLong(columnIndex));
+                            break;
+                        case KEY_MIME_TYPE:
+                            values.put(column, cursor.getString(columnIndex));
+                            break;
+                        default:
+                            throw new IllegalArgumentException(
+                                    "Column " + column + " not recognized.");
+                    }
+                }
+            }
+        }
+
+        private Cursor getLocalMediaMetadata(String localId) {
+            final SQLiteQueryBuilder qb = createVisibleLocalMediaQueryBuilder();
+            final String[] selectionArgs = new String[] {localId};
+            qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
+
+            return qb.query(getDatabase(), sLocalMediaProjection, /* selection */ null,
+                    selectionArgs, /* groupBy */ null, /* having */ null,
+                    /* orderBy */ null);
         }
     }
 }

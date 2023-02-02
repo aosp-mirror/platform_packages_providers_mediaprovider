@@ -76,12 +76,15 @@ public class PickerUriResolver {
 
     private final Context mContext;
     private final PickerDbFacade mDbFacade;
-    private final ProjectionHelper mProjectionHelper;
+    private final Set<String> mAllValidProjectionColumns;
+    private final String[] mAllValidProjectionColumnsArray;
 
     PickerUriResolver(Context context, PickerDbFacade dbFacade, ProjectionHelper projectionHelper) {
         mContext = context;
         mDbFacade = dbFacade;
-        mProjectionHelper = projectionHelper;
+        mAllValidProjectionColumns = projectionHelper.getProjectionMap(
+                MediaStore.PickerMediaColumns.class).keySet();
+        mAllValidProjectionColumnsArray = mAllValidProjectionColumns.toArray(new String[0]);
     }
 
     public ParcelFileDescriptor openFile(Uri uri, String mode, CancellationSignal signal,
@@ -131,7 +134,7 @@ public class PickerUriResolver {
             String callingPackageName) {
         checkUriPermission(uri, callingPid, callingUid);
         try {
-            checkProjectionColumns(uri, projection, callingUid, callingPackageName);
+            logUnknownProjectionColumns(projection, callingUid, callingPackageName);
             return queryInternal(uri, projection);
         } catch (IllegalStateException e) {
             // This is to be consistent with MediaProvider, it returns an empty cursor if the row
@@ -146,14 +149,7 @@ public class PickerUriResolver {
 
         if (canHandleUriInUser(uri)) {
             if (projection == null || projection.length == 0) {
-                projection = new String[]{
-                        MediaStore.PickerMediaColumns.DISPLAY_NAME,
-                        MediaStore.PickerMediaColumns.DATA,
-                        MediaStore.PickerMediaColumns.MIME_TYPE,
-                        MediaStore.PickerMediaColumns.DATE_TAKEN,
-                        MediaStore.PickerMediaColumns.SIZE,
-                        MediaStore.PickerMediaColumns.DURATION_MILLIS
-                };
+                projection = mAllValidProjectionColumnsArray;
             }
 
             return queryPickerUri(uri, projection);
@@ -300,21 +296,16 @@ public class PickerUriResolver {
         return getUserId(uri) == mContext.getUser().getIdentifier();
     }
 
-    private void checkProjectionColumns(Uri uri, String[] projection, int callingUid,
+    private void logUnknownProjectionColumns(String[] projection, int callingUid,
             String callingPackageName) {
-        if (projection == null) {
+        if (projection == null || callingPackageName.equals(mContext.getPackageName())) {
             return;
         }
 
-        Set<String> validProjectionColumns = mProjectionHelper.getProjectionMap(
-                MediaStore.PickerMediaColumns.class).keySet();
         for (String column : projection) {
-            if (!validProjectionColumns.contains(column)) {
+            if (!mAllValidProjectionColumns.contains(column)) {
                 final PhotoPickerUiEventLogger logger = new PhotoPickerUiEventLogger();
                 logger.logPickerQueriedWithUnknownColumn(callingUid, callingPackageName);
-
-                throw new IllegalArgumentException("Unexpected picker URI projection. Uri:"
-                        + uri + ". Column: " + column);
             }
         }
     }

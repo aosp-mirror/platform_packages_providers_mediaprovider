@@ -50,9 +50,9 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.DatabaseHelper;
+import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.ProjectionHelper;
 import com.android.providers.media.VolumeCache;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import org.junit.Before;
 import org.junit.Test;

@@ -268,6 +268,10 @@ public final class MediaStore {
     /** {@hide} */
     public static final String CREATE_SURFACE_CONTROLLER = "create_surface_controller";
 
+    /** @hide */
+    public static final String GRANT_MEDIA_READ_FOR_PACKAGE_CALL =
+            "grant_media_read_for_package";
+
     /** {@hide} */
     public static final String USES_FUSE_PASSTHROUGH = "uses_fuse_passthrough";
     /** {@hide} */
@@ -2657,7 +2661,8 @@ public final class MediaStore {
              * @param name The name of the image
              * @param description The description of the image
              * @return The URL to the newly created image
-             * @deprecated inserting of images should be performed using
+             * @deprecated inserting of images should be performed using 
+             *             {@link ContentResolver#insert} and
              *             {@link MediaColumns#IS_PENDING}, which offers richer
              *             control over lifecycle.
              */
@@ -2684,6 +2689,7 @@ public final class MediaStore {
              * @return The URL to the newly created image, or <code>null</code> if the image failed to be stored
              *              for any reason.
              * @deprecated inserting of images should be performed using
+             *             {@link ContentResolver#insert} and
              *             {@link MediaColumns#IS_PENDING}, which offers richer
              *             control over lifecycle.
              */
@@ -4859,6 +4865,27 @@ public final class MediaStore {
             final Bundle out = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
                     /* extras */ null);
             return out.getString(GET_CLOUD_PROVIDER_RESULT);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    /**
+     * Grant {@link com.android.providers.media.MediaGrants} for the given package, for the
+     * list of local (to the device) content uris. These must be valid picker uris.
+     *
+     * @hide
+     */
+    public static void grantMediaReadForPackage(
+            @NonNull Context context, int packageUid, List<Uri> uris) {
+        final ContentResolver resolver = context.getContentResolver();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle extras = new Bundle();
+            extras.putInt(Intent.EXTRA_UID, packageUid);
+            extras.putParcelableArrayList(EXTRA_URI_LIST, new ArrayList<Uri>(uris));
+            client.call(GRANT_MEDIA_READ_FOR_PACKAGE_CALL,
+                    /* arg= */ null,
+                    /* extras= */ extras);
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
         }

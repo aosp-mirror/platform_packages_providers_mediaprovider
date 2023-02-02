@@ -39,16 +39,26 @@ public class BackupIdRowTest {
     @Test
     public void testAllFields() throws Exception {
         BackupIdRow row = BackupIdRow.newBuilder(5)
-                .setIsFavorite(/* isFavorite */ 1)
-                .setIsDirty(/* isDirty */ true)
+                .setIsFavorite(1)
+                .setIsPending(1)
+                .setIsTrashed(0)
+                .setOwnerPackagedId(1)
+                .setUserId(1)
+                .setDateExpires(10)
+                .setIsDirty(true)
                 .build();
         String s = BackupIdRow.serialize(row);
 
         assertThat(BackupIdRow.deserialize(s)).isEqualTo(row);
 
         BackupIdRow row2 = BackupIdRow.newBuilder(5)
-                .setIsFavorite(/* isFavorite */ 1)
-                .setIsDirty(/* isDirty */ false)
+                .setIsFavorite(1)
+                .setIsPending(1)
+                .setIsTrashed(0)
+                .setOwnerPackagedId(1)
+                .setUserId(1)
+                .setDateExpires(10)
+                .setIsDirty(false)
                 .build();
 
         assertThat(BackupIdRow.deserialize(s)).isNotEqualTo(row2);

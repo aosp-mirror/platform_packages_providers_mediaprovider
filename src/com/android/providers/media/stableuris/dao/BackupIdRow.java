@@ -35,15 +35,27 @@ public final class BackupIdRow implements Serializable {
 
     private long mId;
     private int mIsFavorite;
+    private int mIsPending;
+    private int mIsTrashed;
     private boolean mIsDirty;
+    // This is not Owner Package name but a unique identifier to it
+    private int mOwnerPackageId;
+    private int mDateExpires;
+    // This is required to support cloned user data
+    private int mUserId;
 
     /**
      * Builder class for {@link BackupIdRow}
      */
     public static class Builder {
         private long mId;
-        private int mIsFavorite = 0;
+        private int mIsFavorite;
+        private int mIsPending;
+        private int mIsTrashed;
         private boolean mIsDirty;
+        private int mOwnerPackageId;
+        private int mDateExpires;
+        private int mUserId;
 
         Builder(long id) {
             this.mId = id;
@@ -54,6 +66,46 @@ public final class BackupIdRow implements Serializable {
          */
         public Builder setIsFavorite(int isFavorite) {
             this.mIsFavorite = isFavorite;
+            return this;
+        }
+
+        /**
+         * Sets the isPending value
+         */
+        public Builder setIsPending(int isPending) {
+            this.mIsPending = isPending;
+            return this;
+        }
+
+        /**
+         * Sets the isTrashed value
+         */
+        public Builder setIsTrashed(int isTrashed) {
+            this.mIsTrashed = isTrashed;
+            return this;
+        }
+
+        /**
+         * Sets the ownerPackagedId value
+         */
+        public Builder setOwnerPackagedId(int ownerPackagedId) {
+            this.mOwnerPackageId = ownerPackagedId;
+            return this;
+        }
+
+        /**
+         * Sets the dateExpires value
+         */
+        public Builder setDateExpires(int dateExpires) {
+            this.mDateExpires = dateExpires;
+            return this;
+        }
+
+        /**
+         * Sets the userId value
+         */
+        public Builder setUserId(int userId) {
+            this.mUserId = userId;
             return this;
         }
 
@@ -71,7 +123,12 @@ public final class BackupIdRow implements Serializable {
         public BackupIdRow build() {
             BackupIdRow backupIdRow = new BackupIdRow(this.mId);
             backupIdRow.mIsFavorite = this.mIsFavorite;
+            backupIdRow.mIsPending = this.mIsPending;
+            backupIdRow.mIsTrashed = this.mIsTrashed;
             backupIdRow.mIsDirty = this.mIsDirty;
+            backupIdRow.mOwnerPackageId = this.mOwnerPackageId;
+            backupIdRow.mDateExpires = this.mDateExpires;
+            backupIdRow.mUserId = this.mUserId;
 
             return backupIdRow;
         }
@@ -93,6 +150,26 @@ public final class BackupIdRow implements Serializable {
         return mIsFavorite;
     }
 
+    public int getIsPending() {
+        return mIsPending;
+    }
+
+    public int getIsTrashed() {
+        return mIsTrashed;
+    }
+
+    public int getOwnerPackageId() {
+        return mOwnerPackageId;
+    }
+
+    public int getUserId() {
+        return mUserId;
+    }
+
+    public int getDateExpires() {
+        return mDateExpires;
+    }
+
     public boolean getIsDirty() {
         return mIsDirty;
     }
@@ -103,7 +180,12 @@ public final class BackupIdRow implements Serializable {
     public String toString() {
         return "id = " + getId()
                 + " is_favorite = " + getIsFavorite()
-                + " is_dirty = " + getIsDirty();
+                + " is_pending = " + getIsPending()
+                + " is_trashed = " + getIsTrashed()
+                + " is_dirty = " + getIsDirty()
+                + " owner_package_id = " + getOwnerPackageId()
+                + " user_id = " + getUserId()
+                + " date_expires = " + getDateExpires();
     }
 
     @Override
@@ -115,12 +197,18 @@ public final class BackupIdRow implements Serializable {
 
         return Objects.equals(getId(), that.getId())
                 && Objects.equals(getIsFavorite(), that.getIsFavorite())
-                && Objects.equals(getIsDirty(), that.getIsDirty());
+                && Objects.equals(getIsPending(), that.getIsPending())
+                && Objects.equals(getIsTrashed(), that.getIsTrashed())
+                && getOwnerPackageId() == that.getOwnerPackageId()
+                && getUserId() == that.getUserId()
+                && getDateExpires() == that.getDateExpires()
+                && getIsDirty() == that.getIsDirty();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getIsFavorite(), getIsDirty());
+        return Objects.hash(getId(), getIsFavorite(), getIsPending(), getIsTrashed(),
+                getOwnerPackageId(), getUserId(), getDateExpires(), getIsDirty());
     }
 
     /**

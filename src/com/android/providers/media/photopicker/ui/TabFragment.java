@@ -451,7 +451,7 @@ public abstract class TabFragment extends Fragment {
     protected final TabAdapter.OnBannerClickListener mOnChooseAppBannerClickListener =
             new TabAdapter.OnBannerClickListener() {
                 @Override
-                public void onBannerClick() {
+                public void onActionButtonClick() {
                     dismissBanner();
                     getPickerActivity().startSettingsActivity();
                 }

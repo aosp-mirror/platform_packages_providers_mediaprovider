@@ -52,7 +52,6 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.scan.MediaScannerTest;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -332,9 +331,8 @@ public class PickerUriResolverTest {
         // For unit testing: IsolatedContext is the context of another User: user.
         // PickerUriResolver should correctly be able to call into other user's content resolver
         // from the current context.
-        final MediaScannerTest.IsolatedContext otherUserContext =
-                new MediaScannerTest.IsolatedContext(getTargetContext(), "databases",
-                        /* asFuseThread */ false, userHandle);
+        final IsolatedContext otherUserContext = new IsolatedContext(getTargetContext(),
+                "databases", /* asFuseThread */ false, userHandle);
         otherUserContext.setPickerUriResolver(new TestPickerUriResolver(otherUserContext));
 
         when(sCurrentContext.createPackageContextAsUser("android", /* flags= */ 0, userHandle)).

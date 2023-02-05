@@ -698,7 +698,10 @@ public class LocalCallingIdentity {
      * Return {@code true} if this package has user selected access on images/videos.
      */
     public boolean checkCallingPermissionUserSelected() {
-        return hasPermission(PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED);
+        // For user select mode READ_MEDIA_VISUAL_USER_SELECTED == true &&
+        // READ_MEDIA_IMAGES == false && READ_MEDIA_VIDEO == false
+        return hasPermission(PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED)
+                && !hasPermission(PERMISSION_READ_IMAGES) && !hasPermission(PERMISSION_READ_VIDEO);
     }
 
     protected void dump(PrintWriter writer) {

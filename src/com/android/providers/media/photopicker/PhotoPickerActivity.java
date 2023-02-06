@@ -187,8 +187,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         final String intentAction = intent != null ? intent.getAction() : null;
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
-        mPickerViewModel.logPickerOpened(getApplicationContext(), Binder.getCallingUid(),
-                getCallingPackage(), intentAction);
+        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
@@ -314,10 +313,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void onRestart() {
         super.onRestart();
 
-        // TODO(b/195009187): Conditionally reset PhotoPicker when current profile's cloud
-        // provider has changed. Currently, we'll reset picker each time it restarts when settings
-        // page is enabled to avoid the scenario where cloud provider has changed from the settings
-        // page but picker continues to show stale data from old provider.
+        // TODO(b/262001857): For each profile, conditionally reset PhotoPicker when cloud provider
+        //  app or account has changed. Currently, we'll reset picker each time it restarts when
+        //  settings page is enabled to avoid the scenario where cloud provider app or account has
+        //  changed but picker continues to show stale data from old provider app and account.
         if (isSettingsScreenEnabled()) {
             reset(/* switchToPersonalProfile */ false);
         }
@@ -596,14 +595,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 });
     }
 
-    /**
-     * NOTE: this may wrongly return {@code false} if called before {@link PickerViewModel} had a
-     * chance to fetch the authority of the current {@link android.provider.CloudMediaProvider}.
-     * However, {@link PickerViewModel} initiates the "fetch" in its ctor, so this may only happen
-     * very early on in the lifecycle.
-     */
     private boolean isCloudMediaIntegrationEnabled() {
-        return mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue() != null;
+        return mPickerViewModel.getCloudMediaProviderAuthority() != null;
     }
 
     /**

@@ -42,8 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"אפליקציית מדיה בענן"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"אפליקציית מדיה בענן"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"אפליקציית מדיה בענן"</string>
-    <!-- no translation found for picker_settings_description (2916686824777214585) -->
-    <skip />
+    <string name="picker_settings_description" msgid="2916686824777214585">"ניתן לגשת למדיה בענן כשאפליקציה או אתר מבקשים ממך לבחור תמונות או סרטונים"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"גישה למדיה בענן מתוך"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ללא"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"לא ניתן להחליף את אפליקציית המדיה בענן כרגע."</string>

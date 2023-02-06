@@ -193,7 +193,7 @@
 
         <activity
             android:name="com.android.providers.media.photopicker.PhotoPickerSettingsActivity"
-            android:theme="@style/PickerSettingsTheme"
+            android:theme="@style/PickerDefaultTheme"
             android:process=":PhotoPicker"
             android:excludeFromRecents="true"
             android:exported="true"

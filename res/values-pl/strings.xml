@@ -42,8 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Aplikacja do multimediów w chmurze"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikacja do multimediów w chmurze"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikacja do multimediów w chmurze"</string>
-    <!-- no translation found for picker_settings_description (2916686824777214585) -->
-    <skip />
+    <string name="picker_settings_description" msgid="2916686824777214585">"Korzystaj z multimediów w chmurze, gdy aplikacja bądź strona poprosi o wybór zdjęć lub filmów"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Otwieraj multimedia w chmurze za pomocą:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Brak"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Nie udało się zmienić aplikacji do multimediów w chmurze."</string>

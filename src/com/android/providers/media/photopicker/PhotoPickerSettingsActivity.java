@@ -29,6 +29,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -71,6 +72,8 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
     }
 
     private void displayActionBar() {
+        final Toolbar toolbar = findViewById(R.id.picker_settings_toolbar);
+        setSupportActionBar(toolbar);
         final ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setDisplayShowTitleEnabled(false);

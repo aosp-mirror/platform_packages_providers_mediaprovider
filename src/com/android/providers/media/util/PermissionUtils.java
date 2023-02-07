@@ -80,7 +80,11 @@ public class PermissionUtils {
         return UserHandle.getAppId(android.os.Process.myUid()) == UserHandle.getAppId(uid);
     }
 
-    public static boolean checkPermissionShell(@NonNull Context context, int pid, int uid) {
+    /**
+     * Returns {@code true} if the given {@code uid} is a {@link android.os.Process.ROOT_UID} or
+     * {@link android.os.Process.SHELL_UID}. {@code false} otherwise.
+     */
+    public static boolean checkPermissionShell(int uid) {
         switch (uid) {
             case android.os.Process.ROOT_UID:
             case android.os.Process.SHELL_UID:

@@ -42,7 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Ứng dụng đa phương tiện trên đám mây"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Ứng dụng đa phương tiện trên đám mây"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Ứng dụng nội dung phương tiện trên đám mây"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Chia sẻ ảnh và video bạn sao lưu qua các dịch vụ khác trong Android Photopicker"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Truy cập vào nội dung nghe nhìn trên đám mây của bạn khi ứng dụng hoặc trang web yêu cầu bạn chọn ảnh hoặc video"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Truy cập nội dung phương tiện trên đám mây qua"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Không có"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Hiện không thay đổi được ứng dụng đa phương tiện đám mây."</string>

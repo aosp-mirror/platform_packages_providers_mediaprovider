@@ -42,7 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Aplikacija za medije u klaudu"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikacija za medije u klaudu"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikacija za medije u klaudu"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Delite slike i video snimke za koje pravite rezervne kopije iz drugih usluga u Android biraču slika"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Pristup medijima u klaudu kada aplikacija ili veb-sajt zatraži da izaberete slike ili video snimke"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Pristupajte medijima u klaudu iz"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Ništa"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Promena aplikacije za medije u klaudu nije uspela."</string>

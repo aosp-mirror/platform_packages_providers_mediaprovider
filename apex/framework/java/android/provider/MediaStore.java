@@ -1516,6 +1516,12 @@ public final class MediaStore {
         /**
          * Package name that contributed this media. The value may be
          * {@code NULL} if ownership cannot be reliably determined.
+         * <p>
+         * From Android {@link Build.VERSION_CODES#UPSIDE_DOWN_CAKE} onwards,
+         * visibility and query of this field will depend on
+         * <a href="/training/basics/intents/package-visibility">package visibility</a>.
+         * For {@link ContentResolver#query} operation, result set will
+         * be restricted to visible packages only.
          */
         @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
         public static final String OWNER_PACKAGE_NAME = "owner_package_name";

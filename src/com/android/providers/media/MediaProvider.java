@@ -806,7 +806,13 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType) {
+    private void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType,
+            @NonNull String volumeName) {
+        // Quota type is only updated for external primary volume
+        if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+            return;
+        }
+
         Trace.beginSection("MP.updateQuotaTypeForUri");
         File file;
         try {
@@ -877,7 +883,8 @@ public class MediaProvider extends ContentProvider {
                     // Update the quota type on the filesystem
                     Uri fileUri = MediaStore.Files.getContentUri(insertedRow.getVolumeName(),
                             insertedRow.getId());
-                    updateQuotaTypeForUri(fileUri, insertedRow.getMediaType());
+                    updateQuotaTypeForUri(fileUri, insertedRow.getMediaType(),
+                            insertedRow.getVolumeName());
                 }
 
                 // Tell our SAF provider so it knows when views are no longer empty
@@ -912,7 +919,7 @@ public class MediaProvider extends ContentProvider {
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
-                    updateQuotaTypeForUri(fileUri, newRow.getMediaType());
+                    updateQuotaTypeForUri(fileUri, newRow.getMediaType(), oldRow.getVolumeName());
                 }
 
                 if (mExternalDbFacade.onFileUpdated(oldRow.getId(),

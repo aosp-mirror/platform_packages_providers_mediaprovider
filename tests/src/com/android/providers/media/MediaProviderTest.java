@@ -882,14 +882,36 @@ public class MediaProviderTest {
         assertFalse(isGreylistMatch(
                 "SELECT secret FROM other_table"));
 
-        assertTrue(isGreylistMatch(
-                "case when case when (date_added >= 157680000 and date_added < 1892160000) then date_added * 1000 when (date_added >= 157680000000 and date_added < 1892160000000) then date_added when (date_added >= 157680000000000 and date_added < 1892160000000000) then date_added / 1000 else 0 end > case when (date_modified >= 157680000 and date_modified < 1892160000) then date_modified * 1000 when (date_modified >= 157680000000 and date_modified < 1892160000000) then date_modified when (date_modified >= 157680000000000 and date_modified < 1892160000000000) then date_modified / 1000 else 0 end then case when (date_added >= 157680000 and date_added < 1892160000) then date_added * 1000 when (date_added >= 157680000000 and date_added < 1892160000000) then date_added when (date_added >= 157680000000000 and date_added < 1892160000000000) then date_added / 1000 else 0 end else case when (date_modified >= 157680000 and date_modified < 1892160000) then date_modified * 1000 when (date_modified >= 157680000000 and date_modified < 1892160000000) then date_modified when (date_modified >= 157680000000000 and date_modified < 1892160000000000) then date_modified / 1000 else 0 end end as corrected_added_modified"));
-        assertTrue(isGreylistMatch(
-                "MAX(case when (datetaken >= 157680000 and datetaken < 1892160000) then datetaken * 1000 when (datetaken >= 157680000000 and datetaken < 1892160000000) then datetaken when (datetaken >= 157680000000000 and datetaken < 1892160000000000) then datetaken / 1000 else 0 end)"));
-        assertTrue(isGreylistMatch(
-                "0 as orientation"));
-        assertTrue(isGreylistMatch(
-                "\"content://media/internal/audio/media\""));
+        assertTrue(
+                isGreylistMatch(
+                        "case when case when (date_added >= 157680000 and date_added < 1892160000)"
+                            + " then date_added * 1000 when (date_added >= 157680000000 and"
+                            + " date_added < 1892160000000) then date_added when (date_added >="
+                            + " 157680000000000 and date_added < 1892160000000000) then date_added"
+                            + " / 1000 else 0 end > case when (date_modified >= 157680000 and"
+                            + " date_modified < 1892160000) then date_modified * 1000 when"
+                            + " (date_modified >= 157680000000 and date_modified < 1892160000000)"
+                            + " then date_modified when (date_modified >= 157680000000000 and"
+                            + " date_modified < 1892160000000000) then date_modified / 1000 else 0"
+                            + " end then case when (date_added >= 157680000 and date_added <"
+                            + " 1892160000) then date_added * 1000 when (date_added >= 157680000000"
+                            + " and date_added < 1892160000000) then date_added when (date_added >="
+                            + " 157680000000000 and date_added < 1892160000000000) then date_added"
+                            + " / 1000 else 0 end else case when (date_modified >= 157680000 and"
+                            + " date_modified < 1892160000) then date_modified * 1000 when"
+                            + " (date_modified >= 157680000000 and date_modified < 1892160000000)"
+                            + " then date_modified when (date_modified >= 157680000000000 and"
+                            + " date_modified < 1892160000000000) then date_modified / 1000 else 0"
+                            + " end end as corrected_added_modified"));
+        assertTrue(
+                isGreylistMatch(
+                        "MAX(case when (datetaken >= 157680000 and datetaken < 1892160000) then"
+                            + " datetaken * 1000 when (datetaken >= 157680000000 and datetaken <"
+                            + " 1892160000000) then datetaken when (datetaken >= 157680000000000"
+                            + " and datetaken < 1892160000000000) then datetaken / 1000 else 0"
+                            + " end)"));
+        assertTrue(isGreylistMatch("0 as orientation"));
+        assertTrue(isGreylistMatch("\"content://media/internal/audio/media\""));
     }
 
     @Test
@@ -912,14 +934,24 @@ public class MediaProviderTest {
 
     @Test
     public void testGreylist_116489751_116135586_116117120_116084561_116074030_116062802() {
-        assertTrue(isGreylistMatch(
-                "MAX(case when (date_added >= 157680000 and date_added < 1892160000) then date_added * 1000 when (date_added >= 157680000000 and date_added < 1892160000000) then date_added when (date_added >= 157680000000000 and date_added < 1892160000000000) then date_added / 1000 else 0 end)"));
+        assertTrue(
+                isGreylistMatch(
+                        "MAX(case when (date_added >= 157680000 and date_added < 1892160000) then"
+                            + " date_added * 1000 when (date_added >= 157680000000 and date_added <"
+                            + " 1892160000000) then date_added when (date_added >= 157680000000000"
+                            + " and date_added < 1892160000000000) then date_added / 1000 else 0"
+                            + " end)"));
     }
 
     @Test
     public void testGreylist_116699470() {
-        assertTrue(isGreylistMatch(
-                "MAX(case when (date_modified >= 157680000 and date_modified < 1892160000) then date_modified * 1000 when (date_modified >= 157680000000 and date_modified < 1892160000000) then date_modified when (date_modified >= 157680000000000 and date_modified < 1892160000000000) then date_modified / 1000 else 0 end)"));
+        assertTrue(
+                isGreylistMatch(
+                        "MAX(case when (date_modified >= 157680000 and date_modified < 1892160000)"
+                            + " then date_modified * 1000 when (date_modified >= 157680000000 and"
+                            + " date_modified < 1892160000000) then date_modified when"
+                            + " (date_modified >= 157680000000000 and date_modified <"
+                            + " 1892160000000000) then date_modified / 1000 else 0 end)"));
     }
 
     @Test
@@ -985,8 +1017,13 @@ public class MediaProviderTest {
 
     @Test
     public void testGreylist_129746861() {
-        assertTrue(isGreylistMatch(
-                "case when (datetaken >= 157680000 and datetaken < 1892160000) then datetaken * 1000 when (datetaken >= 157680000000 and datetaken < 1892160000000) then datetaken when (datetaken >= 157680000000000 and datetaken < 1892160000000000) then datetaken / 1000 else 0 end"));
+        assertTrue(
+                isGreylistMatch(
+                        "case when (datetaken >= 157680000 and datetaken < 1892160000) then"
+                            + " datetaken * 1000 when (datetaken >= 157680000000 and datetaken <"
+                            + " 1892160000000) then datetaken when (datetaken >= 157680000000000"
+                            + " and datetaken < 1892160000000000) then datetaken / 1000 else 0"
+                            + " end"));
     }
 
     @Test

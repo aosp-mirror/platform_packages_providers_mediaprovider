@@ -49,6 +49,8 @@ import java.util.Set;
 public class StableUriIdleMaintenanceServiceTest {
     private static final String TAG = "StableUriIdleMaintenanceServiceTest";
 
+    private static final String INTERNAL_BACKUP_NAME = "leveldb-internal";
+
     private boolean mInitialDeviceConfigValue = false;
 
     @Before
@@ -101,6 +103,8 @@ public class StableUriIdleMaintenanceServiceTest {
         // Creates backup
         MediaStore.runIdleMaintenanceForStableUris(resolver);
 
+        List<String> backedUpFiles = Arrays.asList(MediaStore.getBackupFiles(resolver));
+        assertTrue(backedUpFiles.contains(INTERNAL_BACKUP_NAME));
         // Read all backed up paths
         List<String> backedUpPaths = Arrays.asList(
                 MediaStore.readBackedUpFilePaths(resolver, MediaStore.VOLUME_INTERNAL));

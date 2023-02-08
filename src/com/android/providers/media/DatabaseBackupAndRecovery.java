@@ -38,6 +38,8 @@ import com.android.providers.media.util.StringUtils;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -444,5 +446,12 @@ public class DatabaseBackupAndRecovery {
         }
         // TODO(b/259258592): Recover owner package name from owner id
         return values;
+    }
+
+    /**
+     * Returns list of backed up files from external storage.
+     */
+    protected List<File> getBackupFiles() {
+        return Arrays.asList(new File(sRecoveryDirectoryPath).listFiles());
     }
 }

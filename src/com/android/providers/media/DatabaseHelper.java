@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import static com.android.providers.media.DatabaseBackupAndRecovery.insertDataInDatabase;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
@@ -700,24 +701,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             default:
                 return "/storage/" + volumeName;
         }
-    }
-
-    private void insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
-            String volumeName) {
-        final ContentValues values = createValuesFromFileRow(row, filePath, volumeName);
-        if (db.insert("files", null, values) == -1) {
-            Log.e(TAG, "Failed to insert " + values + "; continuing");
-        }
-    }
-
-    private ContentValues createValuesFromFileRow(BackupIdRow row, String filePath,
-            String volumeName) {
-        ContentValues values = new ContentValues();
-        values.put(FileColumns._ID, row.getId());
-        values.put(FileColumns.IS_FAVORITE, row.getIsFavorite());
-        values.put(FileColumns.DATA, filePath);
-        values.put(FileColumns.VOLUME_NAME, volumeName);
-        return values;
     }
 
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {

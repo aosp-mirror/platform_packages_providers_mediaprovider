@@ -542,7 +542,15 @@ public class FileUtilsTest {
                     extractRelativePath(prefix + "DCIM/foo.jpg"));
             assertEquals("DCIM/My Vacation/",
                     extractRelativePath(prefix + "DCIM/My Vacation/foo.jpg"));
+            assertEquals("Pictures/",
+                    extractRelativePath(prefix + "DCIM/../Pictures/.//foo.jpg"));
+            assertEquals("/",
+                    extractRelativePath(prefix + "DCIM/Pictures/./..//..////foo.jpg"));
+            assertEquals("Android/data/",
+                    extractRelativePath(prefix + "DCIM/foo.jpg/.//../../Android/data/poc"));
         }
+
+        assertEquals(null, extractRelativePath("/sdcard/\\\u0000"));
     }
 
     @Test

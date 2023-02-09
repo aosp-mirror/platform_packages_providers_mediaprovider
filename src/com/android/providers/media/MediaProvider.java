@@ -5447,7 +5447,7 @@ public class MediaProvider extends ContentProvider {
         // to commit to this as an API.
         final boolean includeAllVolumes = shouldIncludeRecentlyUnmountedVolumes(uri, extras);
 
-        appendAccessCheckQuery(qb, forWrite, uri, match, extras);
+        appendAccessCheckQuery(qb, forWrite, uri, match, extras, volumeName);
 
         switch (match) {
             case IMAGES_MEDIA_ID:
@@ -5845,7 +5845,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void appendAccessCheckQuery(@NonNull SQLiteQueryBuilder qb, boolean forWrite,
-            @NonNull Uri uri, int uriType, @NonNull Bundle extras) {
+            @NonNull Uri uri, int uriType, @NonNull Bundle extras, @NonNull String volumeName) {
         Objects.requireNonNull(extras);
         final Uri redactedUri = extras.getParcelable(QUERY_ARG_REDACTED_URI);
 
@@ -5866,10 +5866,12 @@ public class MediaProvider extends ContentProvider {
         }
 
         final ArrayList<String> options = new ArrayList<>();
-        if (hasUserSelectedAccess(mCallingIdentity.get(), uriType, forWrite)) {
+        if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)
+                && hasUserSelectedAccess(mCallingIdentity.get(), uriType, forWrite)) {
             // If app has READ_MEDIA_VISUAL_USER_SELECTED permission, allow access on files granted
             // via PhotoPicker launched for Permission. These grants are defined in media_grants
             // table.
+            // We exclude volume internal from the query because media_grants are not supported.
             options.add(getWhereForUserSelectedAccess(mCallingIdentity.get(), uriType));
         }
 

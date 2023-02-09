@@ -123,6 +123,12 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         onView(withId(addButtonId)).check(matches(isDisplayed()));
     }
 
+    @Test
+    public void testUserSelectCorrectHeaderTextIsShown() {
+        launchValidActivity();
+        onView(withText(R.string.picker_header_permissions)).check(matches(isDisplayed()));
+    }
+
     /** Test helper to launch a valid test activity. */
     private void launchValidActivity() {
         mScenario =

@@ -16,6 +16,9 @@
 
 package com.android.providers.media;
 
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
@@ -624,20 +627,26 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
 
         long rowsRecovered = 0;
+        long dirtyRowsCount = 0;
         String[] backedUpFilePaths;
         String lastReadValue = "";
 
         while (true) {
             backedUpFilePaths = mediaProvider.getDatabaseBackupAndRecovery()
-                            .readBackedUpFilePaths(volumeName, lastReadValue, LEVEL_DB_READ_LIMIT);
+                    .readBackedUpFilePaths(volumeName, lastReadValue, LEVEL_DB_READ_LIMIT);
             if (backedUpFilePaths.length <= 0) {
                 break;
             }
 
             for (String filePath : backedUpFilePaths) {
                 Optional<BackupIdRow> fileRow = mediaProvider.getDatabaseBackupAndRecovery()
-                                .readDataFromBackup(volumeName, filePath);
-                if (fileRow.isPresent() && !fileRow.get().getIsDirty()) {
+                        .readDataFromBackup(volumeName, filePath);
+                if (fileRow.isPresent()) {
+                    if (fileRow.get().getIsDirty()) {
+                        dirtyRowsCount++;
+                        continue;
+                    }
+
                     insertDataInDatabase(db, fileRow.get(), filePath, volumeName);
                     rowsRecovered++;
                 }
@@ -649,10 +658,22 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
         }
+        long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+        MediaProviderStatsLog.write(MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED,
+                getVolumeName(volumeName), recoveryTime, rowsRecovered, dirtyRowsCount);
         Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
                 volumeName));
-        Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms",
-                SystemClock.elapsedRealtime() - startTime));
+        Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms", recoveryTime));
+    }
+
+    private int getVolumeName(String volumeName) {
+        if (volumeName.equalsIgnoreCase(MediaStore.VOLUME_INTERNAL)) {
+            return MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
+        } else if (volumeName.equalsIgnoreCase(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            return MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
+        }
+
+        return MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
     }
 
     private static String getFuseFilePathFromVolumeName(String volumeName) {

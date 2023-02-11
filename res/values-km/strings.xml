@@ -42,8 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"កម្មវិធី​មេឌៀលើពពក"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"កម្មវិធី​មេឌៀលើពពក"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"កម្មវិធី​មេឌៀលើពពក"</string>
-    <!-- no translation found for picker_settings_description (2916686824777214585) -->
-    <skip />
+    <string name="picker_settings_description" msgid="2916686824777214585">"ចូលប្រើប្រាស់មេឌៀលើពពករបស់អ្នក នៅពេលកម្មវិធី ឬគេហទំព័រស្នើឱ្យអ្នកជ្រើសរើសរូបថត ឬវីដេអូ"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"ចូលប្រើប្រាស់មេឌៀលើពពកពី"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"គ្មាន"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"មិនអាចប្ដូរ​កម្មវិធី​មេឌៀ​ពពក​នៅពេលនេះបានទេ។"</string>

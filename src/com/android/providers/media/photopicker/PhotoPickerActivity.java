@@ -47,6 +47,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.UserHandle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -55,6 +56,7 @@ import android.view.ViewOutlineProvider;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityManager;
+import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
@@ -107,8 +109,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private View mBottomSheetView;
     private View mFragmentContainerView;
     private View mDragBar;
-    private View mPrivacyText;
     private View mProfileButton;
+    private TextView mPrivacyText;
     private TabLayout mTabLayout;
     private Toolbar mToolbar;
     private CrossProfileListeners mCrossProfileListeners;
@@ -631,7 +633,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         updateBottomSheetBehavior(mode);
         updateFragmentContainerViewPadding(mode);
         updateDragBarVisibility(mode);
-        updatePrivacyTextVisibility(mode);
+        updateHeaderTextVisibility(mode);
         // The bottom bar and profile button are not shown on preview, hide them in preview. We
         // handle the visibility of them in TabFragment. We don't need to make them shown in
         // non-preview page here.
@@ -772,10 +774,29 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mDragBar.setVisibility(shouldShowDragBar ? View.VISIBLE : View.GONE);
     }
 
-    private void updatePrivacyTextVisibility(@NonNull LayoutModeUtils.Mode mode) {
-        // The privacy text is only shown on the Photos tab and Albums tab
+    private void updateHeaderTextVisibility(@NonNull LayoutModeUtils.Mode mode) {
+        // The privacy text is only shown on the Photos tab and Albums tab when not in
+        // permission select mode.
         final boolean shouldShowPrivacyMessage = mode.isPhotosTabOrAlbumsTab;
-        mPrivacyText.setVisibility(shouldShowPrivacyMessage ? View.VISIBLE : View.GONE);
+
+        if (!shouldShowPrivacyMessage) {
+            mPrivacyText.setVisibility(View.GONE);
+            return;
+        }
+
+        if (mPickerViewModel.isUserSelectForApp()) {
+            mPrivacyText.setText(R.string.picker_header_permissions);
+            mPrivacyText.setTextSize(
+                    TypedValue.COMPLEX_UNIT_PX,
+                    getResources().getDimension(R.dimen.picker_user_select_header_text_size));
+        } else {
+            mPrivacyText.setText(R.string.picker_privacy_message);
+            mPrivacyText.setTextSize(
+                    TypedValue.COMPLEX_UNIT_PX,
+                    getResources().getDimension(R.dimen.picker_privacy_text_size));
+        }
+
+        mPrivacyText.setVisibility(View.VISIBLE);
     }
 
     /**

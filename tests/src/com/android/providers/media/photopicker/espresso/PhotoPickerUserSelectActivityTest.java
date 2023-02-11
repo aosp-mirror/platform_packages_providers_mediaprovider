@@ -128,6 +128,13 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         onView(withId(addButtonId)).check(matches(isDisplayed()));
     }
 
+    @Ignore
+    @Test
+    public void testUserSelectCorrectHeaderTextIsShown() {
+        launchValidActivity();
+        onView(withText(R.string.picker_header_permissions)).check(matches(isDisplayed()));
+    }
+
     /** Test helper to launch a valid test activity. */
     private void launchValidActivity() {
         // TODO(b/258182087): {@link ActivityScenario#launchActivityForResult} does not exist in

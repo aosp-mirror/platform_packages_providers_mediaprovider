@@ -126,6 +126,10 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
 
         onView(withId(addButtonId)).check(matches(withText("Allow (1)")));
         onView(withId(addButtonId)).check(matches(isDisplayed()));
+
+
+        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+        onView(withId(addButtonId)).check(matches(withText("Allow (1)")));
     }
 
     @Ignore

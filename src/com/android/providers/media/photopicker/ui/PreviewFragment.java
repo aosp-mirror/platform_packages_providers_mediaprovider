@@ -69,6 +69,7 @@ public class PreviewFragment extends Fragment {
     }
 
     private Selection mSelection;
+    private PickerViewModel mPickerViewModel;
     private ViewPager2Wrapper mViewPager2Wrapper;
     private boolean mShouldShowGifBadge;
     private boolean mShouldShowMotionPhotoBadge;
@@ -100,10 +101,9 @@ public class PreviewFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
             Bundle savedInstanceState) {
-        mSelection = new ViewModelProvider(requireActivity()).get(PickerViewModel.class)
-                .getSelection();
-        mMuteStatus = new ViewModelProvider(requireActivity()).get(PickerViewModel.class)
-                .getMuteStatus();
+        mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
+        mSelection = mPickerViewModel.getSelection();
+        mMuteStatus = mPickerViewModel.getMuteStatus();
         return inflater.inflate(R.layout.fragment_preview, parent, /* attachToRoot */ false);
     }
 
@@ -232,9 +232,18 @@ public class PreviewFragment extends Fragment {
         mViewPager2Wrapper.addOnPageChangeCallback(new OnPageChangeCallback(selectedCheckButton));
 
         // Update add button text to include number of items selected.
-        mSelection.getSelectedItemCount().observe(this, selectedItemCount -> {
-            viewSelectedAddButton.setText(generateAddButtonString(getContext(), selectedItemCount));
-        });
+        mSelection
+                .getSelectedItemCount()
+                .observe(
+                        this,
+                        selectedItemCount -> {
+                            viewSelectedAddButton.setText(
+                                    generateAddButtonString(
+                                            /* context= */ getContext(),
+                                            /* size= */ selectedItemCount,
+                                            /* isUserSelectForApp= */ mPickerViewModel
+                                                    .isUserSelectForApp()));
+                        });
 
         selectedCheckButton.setOnClickListener(
                 v -> onClickSelectedCheckButton(selectedCheckButton));
@@ -378,9 +387,13 @@ public class PreviewFragment extends Fragment {
     }
 
     // TODO: There is a same method in TabFragment. To find a way to reuse it.
-    private static String generateAddButtonString(@NonNull Context context, int size) {
+    private static String generateAddButtonString(
+            @NonNull Context context, int size, boolean isUserSelectForApp) {
         final String sizeString = NumberFormat.getInstance(Locale.getDefault()).format(size);
-        final String template = context.getString(R.string.picker_add_button_multi_select);
+        final String template =
+                isUserSelectForApp
+                        ? context.getString(R.string.picker_add_button_multi_select_permissions)
+                        : context.getString(R.string.picker_add_button_multi_select);
         return TextUtils.expandTemplate(template, sizeString).toString();
     }
 }

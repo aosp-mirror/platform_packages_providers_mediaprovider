@@ -16,6 +16,9 @@
 
 package com.android.providers.media;
 
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
@@ -356,19 +359,27 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_INSERT", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":", 6);
+                final String[] split = arg.split(":", 10);
                 final String volumeName = split[0];
                 final long id = Long.parseLong(split[1]);
                 final int mediaType = Integer.parseInt(split[2]);
                 final boolean isDownload = Integer.parseInt(split[3]) != 0;
                 final boolean isPending = Integer.parseInt(split[4]) != 0;
-                final String path = split[5];
+                final boolean isTrashed = Integer.parseInt(split[5]) != 0;
+                final boolean isFavorite = Integer.parseInt(split[6]) != 0;
+                final int userId = Integer.parseInt(split[7]);
+                final String dateExpires = split[8];
+                final String path = split[9];
 
                 FileRow insertedRow = FileRow.newBuilder(id)
                         .setVolumeName(volumeName)
                         .setMediaType(mediaType)
                         .setIsDownload(isDownload)
                         .setIsPending(isPending)
+                        .setIsTrashed(isTrashed)
+                        .setIsFavorite(isFavorite)
+                        .setUserId(userId)
+                        .setDateExpires(dateExpires)
                         .setPath(path)
                         .build();
                 Trace.beginSection(traceSectionName("_INSERT"));
@@ -383,7 +394,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_UPDATE", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":", 18);
+                final String[] split = arg.split(":", 22);
                 final String volumeName = split[0];
                 final long oldId = Long.parseLong(split[1]);
                 final int oldMediaType = Integer.parseInt(split[2]);
@@ -401,7 +412,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final int newSpecialFormat = Integer.parseInt(split[14]);
                 final String oldOwnerPackage = split[15];
                 final String newOwnerPackage = split[16];
-                final String oldPath = split[17];
+                final int oldUserId = Integer.parseInt(split[17]);
+                final int newUserId = Integer.parseInt(split[18]);
+                final String oldDateExpires = split[19];
+                final String newDateExpires = split[20];
+                final String oldPath = split[21];
 
                 FileRow oldRow = FileRow.newBuilder(oldId)
                         .setVolumeName(volumeName)
@@ -412,6 +427,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         .setIsFavorite(oldIsFavorite)
                         .setSpecialFormat(oldSpecialFormat)
                         .setOwnerPackageName(oldOwnerPackage)
+                        .setUserId(oldUserId)
+                        .setDateExpires(oldDateExpires)
                         .setPath(oldPath)
                         .build();
                 FileRow newRow = FileRow.newBuilder(newId)
@@ -423,6 +440,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         .setIsFavorite(newIsFavorite)
                         .setSpecialFormat(newSpecialFormat)
                         .setOwnerPackageName(newOwnerPackage)
+                        .setUserId(newUserId)
+                        .setDateExpires(newDateExpires)
                         .build();
 
                 Trace.beginSection(traceSectionName("_UPDATE"));
@@ -624,20 +643,26 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
 
         long rowsRecovered = 0;
+        long dirtyRowsCount = 0;
         String[] backedUpFilePaths;
         String lastReadValue = "";
 
         while (true) {
             backedUpFilePaths = mediaProvider.getDatabaseBackupAndRecovery()
-                            .readBackedUpFilePaths(volumeName, lastReadValue, LEVEL_DB_READ_LIMIT);
+                    .readBackedUpFilePaths(volumeName, lastReadValue, LEVEL_DB_READ_LIMIT);
             if (backedUpFilePaths.length <= 0) {
                 break;
             }
 
             for (String filePath : backedUpFilePaths) {
                 Optional<BackupIdRow> fileRow = mediaProvider.getDatabaseBackupAndRecovery()
-                                .readDataFromBackup(volumeName, filePath);
-                if (fileRow.isPresent() && !fileRow.get().getIsDirty()) {
+                        .readDataFromBackup(volumeName, filePath);
+                if (fileRow.isPresent()) {
+                    if (fileRow.get().getIsDirty()) {
+                        dirtyRowsCount++;
+                        continue;
+                    }
+
                     insertDataInDatabase(db, fileRow.get(), filePath, volumeName);
                     rowsRecovered++;
                 }
@@ -649,10 +674,22 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
         }
+        long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+        MediaProviderStatsLog.write(MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED,
+                getVolumeName(volumeName), recoveryTime, rowsRecovered, dirtyRowsCount);
         Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
                 volumeName));
-        Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms",
-                SystemClock.elapsedRealtime() - startTime));
+        Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms", recoveryTime));
+    }
+
+    private int getVolumeName(String volumeName) {
+        if (volumeName.equalsIgnoreCase(MediaStore.VOLUME_INTERNAL)) {
+            return MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
+        } else if (volumeName.equalsIgnoreCase(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            return MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
+        }
+
+        return MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
     }
 
     private static String getFuseFilePathFromVolumeName(String volumeName) {
@@ -1651,8 +1688,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         makePristineTriggers(db);
 
         final String insertArg =
-                "new.volume_name||':'||new._id||':'||new.media_type||':'||new.is_download"
-                + "||':'||new.is_pending||':'||new._data";
+                "new.volume_name||':'||new._id||':'||new.media_type||':'||new"
+                        + ".is_download||':'||new.is_pending||':'||new.is_trashed||':'||new"
+                        + ".is_favorite||':'||new._user_id||':'||new.date_expires||':'||new._data";
         final String updateArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
@@ -1663,7 +1701,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "||':'||ifnull(old._special_format,0)"
                         + "||':'||ifnull(new._special_format,0)"
                         + "||':'||ifnull(old.owner_package_name,'null')"
-                        + "||':'||ifnull(new.owner_package_name,'null')||':'||old._data";
+                        + "||':'||ifnull(new.owner_package_name,'null')"
+                        + "||':'||ifnull(old._user_id,0)"
+                        + "||':'||ifnull(new._user_id,0)"
+                        + "||':'||old.date_expires"
+                        + "||':'||new.date_expires"
+                        + "||':'||old._data";
         final String deleteArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
                         + "||':'||ifnull(old.owner_package_name,'null')||':'||old._data";
@@ -2021,7 +2064,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1402;
+    static final int VERSION_U = 1403;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2230,6 +2273,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 if (isExternal()) {
                     updateAddMediaGrantsTable(db);
                 }
+            }
+            if (fromVersion < 1403) {
+                // Empty version bump to ensure triggers are recreated
             }
 
             // If this is the legacy database, it's not worth recomputing data

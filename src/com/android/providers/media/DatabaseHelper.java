@@ -1199,6 +1199,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     "CREATE TABLE media_grants ("
                             + "owner_package_name TEXT,"
                             + "file_id INTEGER,"
+                            + "package_user_id INTEGER,"
                             + "UNIQUE(owner_package_name, file_id) ON CONFLICT IGNORE "
                             + "FOREIGN KEY (file_id)"
                             + "  REFERENCES files(_id)"
@@ -1971,6 +1972,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 "CREATE TABLE media_grants ("
                         + "owner_package_name TEXT,"
                         + "file_id INTEGER,"
+                        + "package_user_id INTEGER,"
                         + "UNIQUE(owner_package_name, file_id) ON CONFLICT IGNORE "
                         + "FOREIGN KEY (file_id)"
                         + "  REFERENCES files(_id)"
@@ -2048,7 +2050,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1404;
+    static final int VERSION_U = 1405;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2251,15 +2253,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (fromVersion < 1400) {
                 // Empty version bump to ensure triggers are recreated
             }
-            // 1401 is intentionally skipped here, media_grants
-            // table changes will be updated in 1402.
-            if (fromVersion < 1402) {
+            if (fromVersion < 1404) {
+                // Empty version bump to ensure triggers are recreated
+            }
+
+            if (fromVersion < 1405) {
                 if (isExternal()) {
                     updateAddMediaGrantsTable(db);
                 }
-            }
-            if (fromVersion < 1404) {
-                // Empty version bump to ensure triggers are recreated
             }
 
             // If this is the legacy database, it's not worth recomputing data

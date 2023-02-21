@@ -101,4 +101,9 @@ public class MediaApplication extends Application {
     public static boolean isUiProcess() {
         return sIsUiProcess;
     }
+
+    @NonNull
+    public static ConfigStore getConfigStore() {
+        return sConfigStore;
+    }
 }

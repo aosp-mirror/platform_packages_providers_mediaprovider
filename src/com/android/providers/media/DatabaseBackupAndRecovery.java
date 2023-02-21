@@ -19,7 +19,9 @@ package com.android.providers.media;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.util.Logging.TAG;
 
+import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.CancellationSignal;
 import android.os.SystemProperties;
 import android.os.UserHandle;
@@ -31,6 +33,7 @@ import androidx.annotation.NonNull;
 import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
+import com.android.providers.media.util.StringUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -174,16 +177,27 @@ public class DatabaseBackupAndRecovery {
                     new String[]{
                             MediaStore.Files.FileColumns._ID,
                             MediaStore.Files.FileColumns.DATA,
-                            MediaStore.Files.FileColumns.IS_FAVORITE
+                            MediaStore.Files.FileColumns.IS_FAVORITE,
+                            MediaStore.Files.FileColumns.IS_PENDING,
+                            MediaStore.Files.FileColumns.IS_TRASHED,
+                            MediaStore.Files.FileColumns.MEDIA_TYPE,
+                            MediaStore.Files.FileColumns._USER_ID,
+                            MediaStore.Files.FileColumns.DATE_EXPIRES,
+                            MediaStore.Files.FileColumns.OWNER_PACKAGE_NAME,
                     }, null, null, null, null, null, null, signal)) {
                 while (c.moveToNext()) {
                     final long id = c.getLong(0);
                     final String data = c.getString(1);
-                    final int isFavorite = c.getInt(2);
-                    BackupIdRow.Builder builder = BackupIdRow.newBuilder(id);
-                    builder.setIsFavorite(isFavorite);
-                    builder.setIsDirty(false);
-                    fuseDaemon.backupVolumeDbData(data, BackupIdRow.serialize(builder.build()));
+                    final boolean isFavorite = c.getInt(2) != 0;
+                    final boolean isPending = c.getInt(3) != 0;
+                    final boolean isTrashed = c.getInt(4) != 0;
+                    final int mediaType = c.getInt(5);
+                    final int userId = c.getInt(6);
+                    final String dateExpires = c.getString(7);
+                    final String ownerPackageName = c.getString(8);
+                    BackupIdRow backupIdRow = createBackupIdRow(id, mediaType, isFavorite,
+                            isPending, isTrashed, userId, dateExpires, ownerPackageName);
+                    fuseDaemon.backupVolumeDbData(data, BackupIdRow.serialize(backupIdRow));
                 }
                 Log.d(TAG,
                         "Backed up data of internal database to external storage on idle "
@@ -290,10 +304,27 @@ public class DatabaseBackupAndRecovery {
     }
 
     private BackupIdRow createBackupIdRow(FileRow insertedRow) {
-        BackupIdRow.Builder builder = BackupIdRow.newBuilder(insertedRow.getId());
-        builder.setIsFavorite(insertedRow.isFavorite() ? 1 : 0);
-        return builder.build();
+        return createBackupIdRow(insertedRow.getId(), insertedRow.getMediaType(),
+                insertedRow.isFavorite(), insertedRow.isPending(), insertedRow.isTrashed(),
+                insertedRow.getUserId(), insertedRow.getDateExpires(),
+                insertedRow.getOwnerPackageName());
     }
+
+    private BackupIdRow createBackupIdRow(long id, int mediaType, boolean isFavorite,
+            boolean isPending, boolean isTrashed, int userId, String dateExpires,
+            String ownerPackageName) {
+        BackupIdRow.Builder builder = BackupIdRow.newBuilder(id);
+        builder.setMediaType(mediaType);
+        builder.setIsFavorite(isFavorite ? 1 : 0);
+        builder.setIsPending(isPending ? 1 : 0);
+        builder.setIsTrashed(isTrashed ? 1 : 0);
+        builder.setUserId(userId);
+        builder.setDateExpires(dateExpires);
+        // TODO(b/259258592): Set owner id based on owner package name and user_id(needed for app
+        //  cloning)
+        return builder.setIsDirty(false).build();
+    }
+
 
     /**
      * Deletes backed up data(needed for recovery) from external storage.
@@ -386,5 +417,32 @@ public class DatabaseBackupAndRecovery {
             Log.e(TAG, "Failure in marking data as dirty to external storage for path:"
                     + updatedFilePath, e);
         }
+    }
+
+    protected static void insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
+            String volumeName) {
+        final ContentValues values = createValuesFromFileRow(row, filePath, volumeName);
+        if (db.insert("files", null, values) == -1) {
+            Log.e(TAG, "Failed to insert " + values + "; continuing");
+        }
+    }
+
+    private static ContentValues createValuesFromFileRow(BackupIdRow row, String filePath,
+            String volumeName) {
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Files.FileColumns._ID, row.getId());
+        values.put(MediaStore.Files.FileColumns.IS_FAVORITE, row.getIsFavorite());
+        values.put(MediaStore.Files.FileColumns.IS_PENDING, row.getIsPending());
+        values.put(MediaStore.Files.FileColumns.IS_TRASHED, row.getIsTrashed());
+        values.put(MediaStore.Files.FileColumns._USER_ID, row.getUserId());
+        values.put(MediaStore.Files.FileColumns.DATA, filePath);
+        values.put(MediaStore.Files.FileColumns.VOLUME_NAME, volumeName);
+        values.put(MediaStore.Files.FileColumns.MEDIA_TYPE, row.getMediaType());
+        if (!StringUtils.isNullOrEmpty(row.getDateExpires())) {
+            values.put(MediaStore.Files.FileColumns.DATE_EXPIRES,
+                    Long.valueOf(row.getDateExpires()));
+        }
+        // TODO(b/259258592): Recover owner package name from owner id
+        return values;
     }
 }

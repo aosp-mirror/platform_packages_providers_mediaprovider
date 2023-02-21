@@ -44,7 +44,7 @@ public class BackupIdRowTest {
                 .setIsTrashed(0)
                 .setOwnerPackagedId(1)
                 .setUserId(1)
-                .setDateExpires(10)
+                .setDateExpires("10")
                 .setIsDirty(true)
                 .build();
         String s = BackupIdRow.serialize(row);
@@ -57,7 +57,7 @@ public class BackupIdRowTest {
                 .setIsTrashed(0)
                 .setOwnerPackagedId(1)
                 .setUserId(1)
-                .setDateExpires(10)
+                .setDateExpires("10")
                 .setIsDirty(false)
                 .build();
 

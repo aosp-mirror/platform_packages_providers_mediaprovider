@@ -297,6 +297,13 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
+    public static final String GET_BACKUP_FILES = "get_backup_files";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
     public static final String DELETE_BACKED_UP_FILE_PATHS = "delete_backed_up_file_paths";
 
     /** {@hide} */
@@ -4724,6 +4731,16 @@ public final class MediaStore {
     public static void deleteBackedUpFilePaths(@NonNull ContentResolver resolver,
             String volumeName) {
         resolver.call(AUTHORITY, DELETE_BACKED_UP_FILE_PATHS, volumeName, null);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String[] getBackupFiles(@NonNull ContentResolver resolver) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_BACKUP_FILES, null, null);
+        return bundle.getStringArray(GET_BACKUP_FILES);
     }
 
     /**

@@ -37,6 +37,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Process;
 import android.os.Trace;
 import android.os.storage.StorageManager;
@@ -94,7 +95,8 @@ public class PickerSyncController {
     private static final int SYNC_TYPE_MEDIA_INCREMENTAL = 1;
     private static final int SYNC_TYPE_MEDIA_FULL = 2;
     private static final int SYNC_TYPE_MEDIA_RESET = 3;
-
+    @NonNull
+    private static final Handler sBgThreadHandler = BackgroundThread.getHandler();
     @IntDef(flag = false, prefix = { "SYNC_TYPE_" }, value = {
             SYNC_TYPE_NONE,
             SYNC_TYPE_MEDIA_INCREMENTAL,
@@ -114,7 +116,6 @@ public class PickerSyncController {
     private final Runnable mSyncAllMediaCallback;
 
     private final PhotoPickerUiEventLogger mLogger;
-
     private final Object mLock = new Object();
     @GuardedBy("mLock")
     private CloudProviderInfo mCloudProviderInfo;
@@ -427,6 +428,14 @@ public class PickerSyncController {
     }
 
     /**
+     * Starts picker sync immediately in a background thread.
+     */
+    public void reloadAllMediaAsync() {
+        sBgThreadHandler.removeCallbacks(mSyncAllMediaCallback);
+        sBgThreadHandler.post(mSyncAllMediaCallback);
+    }
+
+    /**
      * Notifies about media events like inserts/updates/deletes from cloud and local providers and
      * syncs the changes in the background.
      *
@@ -434,8 +443,8 @@ public class PickerSyncController {
      * notifications.
      */
     public void notifyMediaEvent() {
-        BackgroundThread.getHandler().removeCallbacks(mSyncAllMediaCallback);
-        BackgroundThread.getHandler().postDelayed(mSyncAllMediaCallback, mSyncDelayMs);
+        sBgThreadHandler.removeCallbacks(mSyncAllMediaCallback);
+        sBgThreadHandler.postDelayed(mSyncAllMediaCallback, mSyncDelayMs);
     }
 
     /**

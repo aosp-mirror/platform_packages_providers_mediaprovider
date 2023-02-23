@@ -42,8 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Εφαρμογή μέσων στο cloud"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Εφαρμογή μέσων στο cloud"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Εφαρμογή μέσων στο cloud"</string>
-    <!-- no translation found for picker_settings_description (2916686824777214585) -->
-    <skip />
+    <string name="picker_settings_description" msgid="2916686824777214585">"Αποκτήστε πρόσβαση στα μέσα σας στο cloud όταν μια εφαρμογή ή ένας ιστότοπος σάς ζητήσει να επιλέξετε φωτογραφίες ή βίντεο"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Πρόσβαση σε μέσα στο cloud από"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Καμία"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Η αλλαγή της εφαρμογής μέσων cloud ήταν αδύνατη."</string>
@@ -68,6 +67,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Οι εφαρμογές εργασίας τέθηκαν σε παύση"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Για να ανοίξετε φωτογραφίες εργασίας, ενεργοποιήστε τις εφαρμογές εργασίας και έπειτα δοκιμάστε ξανά."</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Αυτή η εφαρμογή μπορεί να αποκτήσει πρόσβαση μόνο στις φωτογρ. που επιλέγετε."</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Επιλέξτε φωτογραφίες και βίντεο στις οποίες επιτρέπετε να έχει πρόσβαση η εφαρμογή"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> στοιχείο}other{<xliff:g id="COUNT_1">^1</xliff:g> στοιχεία}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Προσθήκη (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Αποδοχή (<xliff:g id="COUNT">^1</xliff:g>)"</string>

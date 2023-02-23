@@ -38,7 +38,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
 
     public static final String PICKER_DATABASE_NAME = "picker.db";
 
-    private static final int VERSION_T = 8;
+    private static final int VERSION_T = 9;
     public static final int VERSION_LATEST = VERSION_T;
 
     final Context mContext;

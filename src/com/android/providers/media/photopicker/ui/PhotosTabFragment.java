@@ -76,7 +76,7 @@ public class PhotosTabFragment extends TabFragment {
         // We only show the Banners on the PhotosTabFragment with CATEGORY_DEFAULT (Main grid).
         final boolean shouldShowBanners = mCategory.isDefault();
         final LiveData<Boolean> showChooseAppBanner = shouldShowBanners
-                ? mBannerViewModel.shouldShowChooseAppBannerLiveData()
+                ? mPickerViewModel.shouldShowChooseAppBannerLiveData()
                 : new MutableLiveData<>(false);
 
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,

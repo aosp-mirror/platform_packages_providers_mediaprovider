@@ -47,7 +47,7 @@
     <string name="recent" msgid="6694613584743207874">"Недавние"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Фото или видео нет."</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Альбомов нет."</string>
-    <string name="picker_view_selected" msgid="2266031384396143883">"Смотреть выбранное"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Посмотреть выбранное"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Фотографии"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Альбомы"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Предварительный просмотр"</string>
@@ -58,7 +58,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Доступ к персональным данным из рабочего приложения запрещен."</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Рабочие приложения приостановлены"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Чтобы открыть рабочие фотографии, включите рабочие приложения и повторите попытку."</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"У этого приложения есть доступ только к тем фото, которые вы выбрали."</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Этому приложению доступны только выбранные вами фото."</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> объект}one{<xliff:g id="COUNT_1">^1</xliff:g> объект}few{<xliff:g id="COUNT_1">^1</xliff:g> объекта}many{<xliff:g id="COUNT_1">^1</xliff:g> объектов}other{<xliff:g id="COUNT_1">^1</xliff:g> объекта}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Добавить (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Камера"</string>

@@ -164,9 +164,8 @@
                 android:finishOnCloseSystemDialogs="true"
                 android:launchMode="singleTop"
                 android:excludeFromRecents="true"
-                android:visibleToInstantApps="true"
-                android:priority="100" >
-            <intent-filter>
+                android:visibleToInstantApps="true" >
+            <intent-filter android:priority="100">
                 <action android:name="android.os.storage.action.CLEAR_APP_CACHE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>

@@ -133,6 +133,8 @@
 
     <!-- The message for empty message on Photos tab in PhotoPicker when the item count is zero. [CHAR LIMIT=NONE] -->
     <string name="picker_photos_empty_message">No photos or videos</string>
+    <!-- The empty message for an album in PhotoPicker when the item count is zero. [CHAR LIMIT=NONE] -->
+    <string name="picker_album_media_empty_message">No supported photos or videos</string>
     <!-- The message for empty message on Albums tab in PhotoPicker when the item count is zero. [CHAR LIMIT=NONE] -->
     <string name="picker_albums_empty_message">No albums</string>
 

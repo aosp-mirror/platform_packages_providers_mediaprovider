@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import static com.android.providers.media.DatabaseBackupAndRecovery.insertDataInDatabase;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
@@ -700,24 +701,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             default:
                 return "/storage/" + volumeName;
         }
-    }
-
-    private void insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
-            String volumeName) {
-        final ContentValues values = createValuesFromFileRow(row, filePath, volumeName);
-        if (db.insert("files", null, values) == -1) {
-            Log.e(TAG, "Failed to insert " + values + "; continuing");
-        }
-    }
-
-    private ContentValues createValuesFromFileRow(BackupIdRow row, String filePath,
-            String volumeName) {
-        ContentValues values = new ContentValues();
-        values.put(FileColumns._ID, row.getId());
-        values.put(FileColumns.IS_FAVORITE, row.getIsFavorite());
-        values.put(FileColumns.DATA, filePath);
-        values.put(FileColumns.VOLUME_NAME, volumeName);
-        return values;
     }
 
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {
@@ -1690,7 +1673,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final String insertArg =
                 "new.volume_name||':'||new._id||':'||new.media_type||':'||new"
                         + ".is_download||':'||new.is_pending||':'||new.is_trashed||':'||new"
-                        + ".is_favorite||':'||new._user_id||':'||new.date_expires||':'||new._data";
+                        + ".is_favorite||':'||new._user_id||':'||ifnull(new.date_expires,'null')"
+                        + "||':'||new._data";
         final String updateArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
@@ -1704,8 +1688,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "||':'||ifnull(new.owner_package_name,'null')"
                         + "||':'||ifnull(old._user_id,0)"
                         + "||':'||ifnull(new._user_id,0)"
-                        + "||':'||old.date_expires"
-                        + "||':'||new.date_expires"
+                        + "||':'||ifnull(old.date_expires,'null')"
+                        + "||':'||ifnull(new.date_expires,'null')"
                         + "||':'||old._data";
         final String deleteArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
@@ -2064,7 +2048,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1403;
+    static final int VERSION_U = 1404;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2274,7 +2258,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     updateAddMediaGrantsTable(db);
                 }
             }
-            if (fromVersion < 1403) {
+            if (fromVersion < 1404) {
                 // Empty version bump to ensure triggers are recreated
             }
 

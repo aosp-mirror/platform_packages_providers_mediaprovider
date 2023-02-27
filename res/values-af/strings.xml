@@ -77,6 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Ontdemp video"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Speel video"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Onderbreek video"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Wolkmedia is nou deur <xliff:g id="PKG_NAME">%1$s</xliff:g> beskikbaar"</string>
     <string name="not_selected" msgid="2244008151669896758">"nie gekies nie"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie oudiolêer te wysig?}other{Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> oudiolêers te wysig?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Wysig tans oudiolêer …}other{Wysig tans <xliff:g id="COUNT">^1</xliff:g> oudiolêers …}}"</string>

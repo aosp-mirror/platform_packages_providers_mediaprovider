@@ -81,8 +81,7 @@ public class SettingsProfileSelectFragment extends ProfileSelectFragment {
         final int previouslySelectedTab = mSettingsViewModel.getSelectedTab();
         if (previouslySelectedTab != SettingsViewModel.TAB_NOT_SET) {
             // Selected tab state has previously been set in onPause() and we should restore it.
-            final TabLayout.Tab tab = mTabLayout.getTabAt(previouslySelectedTab);
-            tab.select();
+            mTabLayout.getTabAt(previouslySelectedTab).select();
         }
     }
 
@@ -121,6 +120,7 @@ public class SettingsProfileSelectFragment extends ProfileSelectFragment {
         return fragment;
     }
 
+    @UserIdInt
     private int getTabUserId(int tabPosition) {
         final UserIdManager userIdManager = mSettingsViewModel.getUserIdManager();
 

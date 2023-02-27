@@ -16,11 +16,14 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeType;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Trace;
 import android.util.Log;
 
 import androidx.annotation.VisibleForTesting;
@@ -77,6 +80,20 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
         Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
 
         resetData(db);
+    }
+
+    @Override
+    public void onConfigure(SQLiteDatabase db) {
+        Log.v(TAG, "onConfigure() for " + mName);
+
+        db.setCustomScalarFunction("_GET_EXTENSION", (arg) -> {
+            Trace.beginSection("_GET_EXTENSION");
+            try {
+                return getExtensionFromMimeType(arg);
+            } finally {
+                Trace.endSection();
+            }
+        });
     }
 
     private void resetData(SQLiteDatabase db) {

@@ -54,6 +54,8 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Chọn tối đa <xliff:g id="COUNT_0">^1</xliff:g> mục}other{Chọn tối đa <xliff:g id="COUNT_1">^1</xliff:g> mục}}"</string>
     <string name="recent" msgid="6694613584743207874">"Gần đây"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Không có ảnh hoặc video nào"</string>
+    <!-- no translation found for picker_album_media_empty_message (7061850698189881671) -->
+    <skip />
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Không có đĩa nhạc nào"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Xem các mục được chọn"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Ảnh"</string>

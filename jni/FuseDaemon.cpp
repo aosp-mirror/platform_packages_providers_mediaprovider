@@ -2640,6 +2640,44 @@ std::string FuseDaemon::ReadBackedUpDataFromLevelDb(const std::string& filePath)
     return data;
 }
 
+std::string FuseDaemon::ReadOwnership(const std::string& key) {
+    // Return empty string if key not found
+    std::string data = "";
+    if (CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        leveldb::Status status = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Get(
+                leveldb::ReadOptions(), key, &data);
+        if (!status.ok()) {
+            LOG(WARNING) << "Failure in leveldb read for key: " << key << status.ToString();
+        } else {
+            LOG(DEBUG) << "Read successful for key: " << key;
+        }
+    }
+    return data;
+}
+
+void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
+                                       const std::string& ownerPackageIdentifier) {
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "Failure in leveldb insert for ownership relation.";
+        return;
+    }
+
+    leveldb::Status status1, status2;
+    status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+            leveldb::WriteOptions(), ownerId, ownerPackageIdentifier);
+    status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+            leveldb::WriteOptions(), ownerPackageIdentifier, ownerId);
+    if (!status1.ok() || !status2.ok()) {
+        // If both inserts did not go through, remove both.
+        status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                            ownerId);
+        status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                            ownerPackageIdentifier);
+        LOG(ERROR) << "Failure in leveldb insert for owner_id: " << ownerId
+                   << " and ownerPackageIdentifier:" << ownerPackageIdentifier;
+    }
+}
+
 bool FuseDaemon::CheckLevelDbConnection(const std::string& instance_name) {
     if (fuse->level_db_connection_map.find(instance_name) == fuse->level_db_connection_map.end()) {
         LOG(ERROR) << "Leveldb setup is missing for :" << instance_name;

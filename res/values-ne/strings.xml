@@ -54,6 +54,8 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{बढीमा <xliff:g id="COUNT_0">^1</xliff:g> वटा वस्तु चयन गर्नुहोस्}other{बढीमा <xliff:g id="COUNT_1">^1</xliff:g> वटा वस्तु चयन गर्नुहोस्}}"</string>
     <string name="recent" msgid="6694613584743207874">"हालसालैका"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"कुनै पनि फोटो वा भिडियो छैन"</string>
+    <!-- no translation found for picker_album_media_empty_message (7061850698189881671) -->
+    <skip />
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"कुनै पनि एल्बम छैन"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"चयन गरिएका फोटो तथा भिडियोहरू हेर्नुहोस्"</string>
     <string name="picker_photos" msgid="7415035516411087392">"फोटोहरू"</string>

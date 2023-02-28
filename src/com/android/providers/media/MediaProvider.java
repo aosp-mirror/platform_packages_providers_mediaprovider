@@ -6591,7 +6591,10 @@ public class MediaProvider extends ContentProvider {
                 mPickerSyncController.forceSetCloudProvider(cloudProvider);
                 Log.i(TAG, "Completed request to set cloud provider to " + cloudProvider);
 
-                mPickerSyncController.reloadAllMediaAsync();
+                // Cannot start sync here yet because currently sync and other picker related
+                // queries like SET_CLOUD_PROVIDER_CALL and GET_CLOUD_PROVIDER use the same lock.
+                // If we start sync here and then user tries to return to the Picker or change the
+                // provider again, Picker will ANR and crash.
                 return new Bundle();
             }
             case MediaStore.SYNC_PROVIDERS_CALL: {

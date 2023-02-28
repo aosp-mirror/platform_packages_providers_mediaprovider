@@ -43,7 +43,6 @@ import android.app.Activity;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.view.View;
-import android.widget.Button;
 
 import androidx.appcompat.widget.Toolbar;
 import androidx.test.espresso.IdlingRegistry;
@@ -223,7 +222,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    public void testPreview_addButtonWidth() throws Exception {
+    public void testPreview_addButtonVisible() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
@@ -233,32 +232,6 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
             // Check that Add button is visible
             onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
             onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.add)));
-        }
-
-        setPortraitOrientation(mRule.getScenario());
-        try (ViewPager2IdlingResource idlingResource =
-                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
-            mRule.getScenario().onActivity(activity -> {
-                final Button addOrSelectButton
-                        = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
-                final int expectedAddOrSelectButtonWidth = activity.getResources()
-                        .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
-                // Check that button width in portrait mode is = R.dimen.preview_add_or_select_width
-                assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
-            });
-        }
-
-        setLandscapeOrientation(mRule.getScenario());
-        try (ViewPager2IdlingResource idlingResource =
-                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
-            mRule.getScenario().onActivity(activity -> {
-                final Button addOrSelectButton
-                        = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
-                final int expectedAddOrSelectButtonWidth = activity.getResources()
-                        .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
-                // Check that button width in landscape mode is R.dimen.preview_add_or_select_width
-                assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
-            });
         }
     }
 

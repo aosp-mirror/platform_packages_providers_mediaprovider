@@ -428,14 +428,6 @@ public class PickerSyncController {
     }
 
     /**
-     * Starts picker sync immediately in a background thread.
-     */
-    public void reloadAllMediaAsync() {
-        sBgThreadHandler.removeCallbacks(mSyncAllMediaCallback);
-        sBgThreadHandler.post(mSyncAllMediaCallback);
-    }
-
-    /**
      * Notifies about media events like inserts/updates/deletes from cloud and local providers and
      * syncs the changes in the background.
      *

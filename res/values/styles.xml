@@ -97,6 +97,10 @@
         <item name="android:windowNoTitle">true</item>
     </style>
 
+    <style name="PickerSettingsDefaultTheme" parent="PickerDefaultTheme">
+        <item name="android:windowIsTranslucent">false</item>
+    </style>
+
     <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
         <item name="pickerDragBarColor">#DADCE0</item>

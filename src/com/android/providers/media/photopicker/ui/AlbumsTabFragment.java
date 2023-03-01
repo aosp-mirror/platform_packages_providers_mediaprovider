@@ -49,7 +49,7 @@ public class AlbumsTabFragment extends TabFragment {
                 mPickerViewModel.hasMimeTypeFilters(), /* lifecycleOwner */ this,
                 mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
                 mPickerViewModel.getCloudMediaAccountNameLiveData(),
-                mBannerViewModel.shouldShowChooseAppBannerLiveData(),
+                mPickerViewModel.shouldShowChooseAppBannerLiveData(),
                 mOnChooseAppBannerClickListener);
         mPickerViewModel.getCategories().observe(this, categoryList -> {
             adapter.updateCategoryList(categoryList);

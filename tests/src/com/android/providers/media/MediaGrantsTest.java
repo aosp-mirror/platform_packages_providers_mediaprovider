@@ -29,6 +29,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Process;
+import android.os.UserHandle;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
@@ -50,6 +51,7 @@ public class MediaGrantsTest {
     private MediaGrants mGrants;
 
     private static final String TEST_OWNER_PACKAGE_NAME = "com.android.test.package";
+    private static final int TEST_USER_ID = UserHandle.myUserId();
 
     @BeforeClass
     public static void setUpClass() {
@@ -87,10 +89,10 @@ public class MediaGrantsTest {
         Long fileId2 = insertFileInResolver(mIsolatedResolver, "test_file2");
         List<Uri> uris = List.of(buildValidPickerUri(fileId1), buildValidPickerUri(fileId2));
 
-        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris);
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris, TEST_USER_ID);
 
-        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME);
-        assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME);
+        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
     }
 
     @Test
@@ -98,12 +100,12 @@ public class MediaGrantsTest {
 
         Long fileId1 = insertFileInResolver(mIsolatedResolver, "test_file1");
         List<Uri> uris = List.of(buildValidPickerUri(fileId1));
-        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris);
-        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME);
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
 
         // Add the same grant again to ensure no database insert failure.
-        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris);
-        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME);
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
     }
 
     @Test
@@ -121,7 +123,8 @@ public class MediaGrantsTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, List.of(invalidUri));
+                    mGrants.addMediaGrantsForPackage(
+                            TEST_OWNER_PACKAGE_NAME, List.of(invalidUri), TEST_USER_ID);
                 });
     }
 
@@ -131,10 +134,10 @@ public class MediaGrantsTest {
         Long fileId1 = insertFileInResolver(mIsolatedResolver, "test_file1");
         Long fileId2 = insertFileInResolver(mIsolatedResolver, "test_file2");
         List<Uri> uris = List.of(buildValidPickerUri(fileId1), buildValidPickerUri(fileId2));
-        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris);
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris, TEST_USER_ID);
 
-        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME);
-        assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME);
+        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
 
         int removed = mGrants.removeAllMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, "test");
         assertEquals(2, removed);
@@ -176,13 +179,13 @@ public class MediaGrantsTest {
         Long fileId1 = insertFileInResolver(mIsolatedResolver, "test_file1");
         Long fileId2 = insertFileInResolver(mIsolatedResolver, "test_file2");
         List<Uri> uris = List.of(buildValidPickerUri(fileId1), buildValidPickerUri(fileId2));
-        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris);
-        mGrants.addMediaGrantsForPackage(secondPackageName, uris);
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris, TEST_USER_ID);
+        mGrants.addMediaGrantsForPackage(secondPackageName, uris, TEST_USER_ID);
 
-        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME);
-        assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME);
-        assertGrantExistsForPackage(fileId1, secondPackageName);
-        assertGrantExistsForPackage(fileId2, secondPackageName);
+        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId1, secondPackageName, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId2, secondPackageName, TEST_USER_ID);
 
         int removed = mGrants.removeAllMediaGrants();
         assertEquals(4, removed);
@@ -223,12 +226,18 @@ public class MediaGrantsTest {
         // Use mIsolatedContext here to ensure we pass the security check.
         MediaStore.grantMediaReadForPackage(mIsolatedContext, Process.myUid(), uris);
 
-        assertGrantExistsForPackage(fileId1, mContext.getPackageName());
-        assertGrantExistsForPackage(fileId2, mContext.getPackageName());
+        assertGrantExistsForPackage(fileId1, mContext.getPackageName(), TEST_USER_ID);
+        assertGrantExistsForPackage(fileId2, mContext.getPackageName(), TEST_USER_ID);
     }
 
-    /** Assert a media grant exists in the given database for the given file and package. */
-    private void assertGrantExistsForPackage(Long fileId, String packageName) {
+    /**
+     * Assert a media grant exists in the given database.
+     *
+     * @param fileId        the corresponding files._id column value.
+     * @param packageName   i.e. com.android.test.package
+     * @param userId        the user id of the package.
+     */
+    private void assertGrantExistsForPackage(Long fileId, String packageName, int userId) {
 
         try (Cursor c =
                 mExternalDatabase.runWithTransaction(
@@ -237,14 +246,17 @@ public class MediaGrantsTest {
                                         MediaGrants.MEDIA_GRANTS_TABLE,
                                         new String[] {
                                             MediaGrants.FILE_ID_COLUMN,
-                                            MediaGrants.OWNER_PACKAGE_NAME_COLUMN
+                                            MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                                            MediaGrants.PACKAGE_USER_ID_COLUMN
                                         },
                                         String.format(
-                                                "%s = '%s' AND %s = %s",
+                                                "%s = '%s' AND %s = %s AND %s = %s",
                                                 MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
                                                 packageName,
                                                 MediaGrants.FILE_ID_COLUMN,
-                                                Long.toString(fileId)),
+                                                Long.toString(fileId),
+                                                MediaGrants.PACKAGE_USER_ID_COLUMN,
+                                                Integer.toString(userId)),
                                         null,
                                         null,
                                         null,

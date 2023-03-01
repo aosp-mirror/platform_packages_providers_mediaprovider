@@ -73,8 +73,12 @@ function sqlite3-pull () {
     fi
     package=$(get-package)
 
-    rm $dir/external.db
-    rm $dir/external.db-wal
+    if [ -f "$dir/external.db" ]; then
+      rm "$dir/external.db"
+    fi
+    if [ -f "$dir/external.db-wal" ]; then
+      rm "$dir/external.db-wal"
+    fi
 
     adb pull /data/user/0/$package/databases/external.db $dir/external.db
     adb pull /data/user/0/$package/databases/external.db-wal "$dir/external.db-wal"

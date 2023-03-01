@@ -53,7 +53,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"Преглед"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Префрли на работен профил"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Префрли на личен профил"</string>
-    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано од вашиот администратор"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано од администраторот"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Не е дозволено пристапување до работни податоци од лична апликација"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Не е дозволено пристапување до лични податоци од работна апликација"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Работните апликации се паузирани"</string>
@@ -77,6 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Вклучете звук на видео"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Пушти го видеото"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Паузирај го видеото"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"Аудиовизуелните содржини во облак сега се достапни од <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не е избрано"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Да се дозволи <xliff:g id="APP_NAME_0">^1</xliff:g> да ја измени аудиодатотекава?}one{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотека?}other{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотеки?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Се изменува аудиодатотеката…}one{Се изменуваат <xliff:g id="COUNT">^1</xliff:g> аудиодатотека…}other{Се изменуваат <xliff:g id="COUNT">^1</xliff:g> аудиодатотеки…}}"</string>

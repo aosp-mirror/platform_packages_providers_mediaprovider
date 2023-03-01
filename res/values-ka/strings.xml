@@ -77,6 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"ვიდეოს დადუმების მოხსნა"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"ვიდეოს დაკვრა"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"ვიდეოს დაპაუზება"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"ღრუბლოვანი მედია უკვე ხელმისაწვდომია <xliff:g id="PKG_NAME">%1$s</xliff:g>-ისგან"</string>
     <string name="not_selected" msgid="2244008151669896758">"არ არის არჩეული"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{აძლევთ უფლებას <xliff:g id="APP_NAME_0">^1</xliff:g>-ს, შეცვალოს ეს აუდიოფაილი?}other{აძლევთ უფლებას <xliff:g id="APP_NAME_1">^1</xliff:g>-ს, შეცვალოს <xliff:g id="COUNT">^2</xliff:g> აუდიოფაილი?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{მიმდინარეობს აუდიოფაილის მოდიფიკაცია…}other{მიმდინარეობს <xliff:g id="COUNT">^1</xliff:g> აუდიოფაილის მოდიფიკაცია…}}"</string>

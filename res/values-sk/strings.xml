@@ -54,6 +54,8 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Vyberte maximálne <xliff:g id="COUNT_0">^1</xliff:g> položku}few{Vyberte maximálne <xliff:g id="COUNT_1">^1</xliff:g> položky}many{Select up to <xliff:g id="COUNT_1">^1</xliff:g> items}other{Vyberte maximálne <xliff:g id="COUNT_1">^1</xliff:g> položiek}}"</string>
     <string name="recent" msgid="6694613584743207874">"Nedávne"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Žiadne fotky ani videá"</string>
+    <!-- no translation found for picker_album_media_empty_message (7061850698189881671) -->
+    <skip />
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Žiadne albumy"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Zobraziť vybrané"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotky"</string>

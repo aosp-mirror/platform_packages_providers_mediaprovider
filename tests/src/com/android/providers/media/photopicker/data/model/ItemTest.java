@@ -302,17 +302,22 @@ public class ItemTest {
             long generationModified, long duration, int specialFormat) {
         final MatrixCursor cursor = new MatrixCursor(MediaColumns.ALL_PROJECTION);
         cursor.addRow(new Object[] {
-                    id,
-                    dateTaken,
-                    generationModified,
-                    mimeType,
-                    specialFormat,
-                    "1", // size_bytes
-                    null, // media_store_uri
-                    duration,
-                    "0", // is_favorite
-                    "/storage/emulated/0/foo", // data
-                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY});
+                id,
+                dateTaken,
+                generationModified,
+                mimeType,
+                specialFormat,
+                "1", // size_bytes
+                null, // media_store_uri
+                duration,
+                "0", // is_favorite
+                800, // width
+                500, // height
+                0, // orientation
+                "/storage/emulated/0/foo", // data
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+                }
+        );
         return cursor;
     }
 }

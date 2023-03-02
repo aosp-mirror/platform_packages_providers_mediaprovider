@@ -98,6 +98,10 @@ class MediaProviderShellCommand extends BasicShellCommandHandler {
                 return runCloudProviderSet(pw);
             case "unset":
                 return runCloudProviderUnset(pw);
+            case "sync-library":
+                return runCloudProviderSyncLibrary(pw);
+            case "reset-library":
+                return runCloudProviderResetLibrary(pw);
             default:
                 pw.println("Error: unknown cloud-provider command '" + subcommand + "'");
                 return 1;
@@ -167,6 +171,28 @@ class MediaProviderShellCommand extends BasicShellCommandHandler {
         return success ? 0 : 1;
     }
 
+    private int runCloudProviderSyncLibrary(@NonNull PrintWriter pw) {
+        pw.println("Syncing PhotoPicker's library (CMP and local)...");
+
+        // TODO(b/242550131): add PickerSyncController's API to make it possible to sync from only
+        //  one provider at a time (i.e. either CMP or local)
+        mPickerSyncController.syncAllMedia();
+
+        pw.println("Done.");
+        return 0;
+    }
+
+    private int runCloudProviderResetLibrary(@NonNull PrintWriter pw) {
+        pw.println("Resetting PhotoPicker's library (CMP and local)...");
+
+        // TODO(b/242550131): add PickerSyncController's API to make it possible to reset just one
+        //  provider's library at a time (i.e. either CMP or local).
+        mPickerSyncController.resetAllMedia();
+
+        pw.println("Done.");
+        return 0;
+    }
+
     @Override
     public void onHelp() {
         final PrintWriter pw = getOutPrintWriter();
@@ -193,6 +219,13 @@ class MediaProviderShellCommand extends BasicShellCommandHandler {
         pw.println();
         pw.println("      unset");
         pw.println("          Unset CloudMediaProvider (disables CMP integration).");
+        pw.println();
+        pw.println("      sync-library");
+        pw.println("          Sync media from the current CloudMediaProvider and local provider.");
+        pw.println();
+        pw.println("      reset-library");
+        pw.println("          Reset media previously synced from the CloudMediaProvider and");
+        pw.println("          the local provider.");
         pw.println();
     }
 

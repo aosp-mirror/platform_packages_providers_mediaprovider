@@ -51,7 +51,6 @@ import androidx.collection.ArraySet;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
 
 import com.google.common.collect.ImmutableSet;
@@ -71,6 +70,7 @@ public class DatabaseHelperTest {
 
     private static Context sIsolatedContext;
     private static ContentResolver sIsolatedResolver;
+    private static ProjectionHelper sProjectionHelper;
 
     @Before
     public void setUp() {
@@ -79,6 +79,7 @@ public class DatabaseHelperTest {
         final Context context = InstrumentationRegistry.getTargetContext();
         sIsolatedContext = new IsolatedContext(context, TAG, /*asFuseThread*/ false);
         sIsolatedResolver = sIsolatedContext.getContentResolver();
+        sProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
     }
 
     @Test
@@ -687,8 +688,8 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperO extends DatabaseHelper {
         public DatabaseHelperO(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_O, false, false, Column.class,
-                    ExportedSince.class, null, null, null, null, false);
+            super(context, name, DatabaseHelper.VERSION_O, false, false, sProjectionHelper, null,
+                    null, null, null, false);
         }
 
         @Override
@@ -699,8 +700,8 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperP extends DatabaseHelper {
         public DatabaseHelperP(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_P, false, false, Column.class,
-                    ExportedSince.class, null, null, null, null, false);
+            super(context, name, DatabaseHelper.VERSION_P, false, false, sProjectionHelper, null,
+                    null, null, null, false);
         }
 
         @Override
@@ -711,8 +712,8 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperQ extends DatabaseHelper {
         public DatabaseHelperQ(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_Q, false, false, Column.class,
-                    ExportedSince.class, null, null, null, null, false);
+            super(context, name, DatabaseHelper.VERSION_Q, false, false, sProjectionHelper, null,
+                    null, null, null, false);
         }
 
         @Override
@@ -723,8 +724,8 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperR extends DatabaseHelper {
         public DatabaseHelperR(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_R, false, false, Column.class,
-                    ExportedSince.class, null, null, MediaProvider.MIGRATION_LISTENER, null, false);
+            super(context, name, DatabaseHelper.VERSION_R, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false);
         }
 
         @Override
@@ -735,7 +736,7 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperS extends DatabaseHelper {
         public DatabaseHelperS(Context context, String name) {
-            super(context, name, VERSION_S, false, false, Column.class, ExportedSince.class, null,
+            super(context, name, VERSION_S, false, false, sProjectionHelper, null,
                     null, MediaProvider.MIGRATION_LISTENER, null, false);
         }
 
@@ -748,8 +749,8 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperT extends DatabaseHelper {
         public DatabaseHelperT(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_T, false, false, Column.class,
-                    ExportedSince.class, null, null, MediaProvider.MIGRATION_LISTENER, null, false);
+            super(context, name, DatabaseHelper.VERSION_T, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false);
         }
 
         @Override
@@ -765,8 +766,8 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperU extends DatabaseHelper {
         public DatabaseHelperU(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_U, false, false, Column.class,
-                    ExportedSince.class, null, null, MediaProvider.MIGRATION_LISTENER, null, false);
+            super(context, name, DatabaseHelper.VERSION_U, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false);
         }
 
         @Override

@@ -135,6 +135,12 @@
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
+        <service
+            android:name=
+                "com.android.providers.media.stableuris.job.StableUriIdleMaintenanceService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE"/>
+
         <service android:name="com.android.providers.media.fuse.ExternalStorageServiceImpl"
                  android:exported="true"
                  android:permission="android.permission.BIND_EXTERNAL_STORAGE_SERVICE">
@@ -158,9 +164,8 @@
                 android:finishOnCloseSystemDialogs="true"
                 android:launchMode="singleTop"
                 android:excludeFromRecents="true"
-                android:visibleToInstantApps="true"
-                android:priority="100" >
-            <intent-filter>
+                android:visibleToInstantApps="true" >
+            <intent-filter android:priority="100">
                 <action android:name="android.os.storage.action.CLEAR_APP_CACHE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -187,11 +192,54 @@
 
         <activity
             android:name="com.android.providers.media.photopicker.PhotoPickerSettingsActivity"
-            android:theme="@style/PickerSettingsTheme"
+            android:theme="@style/PickerSettingsDefaultTheme"
+            android:launchMode="singleInstance"
             android:process=":PhotoPicker"
-            android:excludeFromRecents="true"
+            android:excludeFromRecents="false"
             android:exported="true"
-            android:enabled="false" />
+            android:enabled="false" >
+
+            <intent-filter android:priority="100" >
+                <action android:name="android.provider.action.PICK_IMAGES_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- ============== BEGIN SYSTEM SETTINGS MENU ITEM SECTION ============== -->
+            <intent-filter>
+                <action android:name="com.android.settings.action.IA_SETTINGS"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+
+            <meta-data
+                android:name="com.android.settings.category"
+                android:value="com.android.settings.category.ia.apps"/>
+            <meta-data
+                android:name="com.android.settings.title"
+                android:resource="@string/picker_settings_system_settings_menu_title"/>
+            <meta-data
+                android:name="com.android.settings.profile"
+                android:value="primary_profile_only"/>
+            <!-- ============== END BEGIN SYSTEM SETTINGS MENU ITEM SECTION ============== -->
+        </activity>
+
+        <activity-alias
+            android:name="com.android.providers.media.photopicker.PhotoPickerUserSelectActivity"
+            android:targetActivity="com.android.providers.media.photopicker.PhotoPickerActivity"
+            android:permission="android.permission.GRANT_RUNTIME_PERMISSIONS"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:enabled="false">
+            <intent-filter android:priority="100">
+               <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
 
         <activity-alias
             android:name="com.android.providers.media.photopicker.PhotoPickerGetContentActivity"

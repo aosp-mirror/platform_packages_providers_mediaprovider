@@ -25,6 +25,8 @@ import static org.mockito.Mockito.mock;
 import android.text.format.DateUtils;
 import android.view.View;
 
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LiveData;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.photopicker.data.Selection;
@@ -175,7 +177,11 @@ public class PhotosTabAdapterTest {
     private static PhotosTabAdapter createAdapter(boolean shouldShowRecentSection) {
         return new PhotosTabAdapter(/* showRecentSection */ shouldShowRecentSection,
                 mock(Selection.class), mock(ImageLoader.class), mock(View.OnClickListener.class),
-                mock(View.OnLongClickListener.class));
+                mock(View.OnLongClickListener.class), mock(LifecycleOwner.class),
+                /* cloudMediaProviderAppTitle */ mock(LiveData.class),
+                /* cloudMediaAccountName */ mock(LiveData.class),
+                /* shouldShowChooseAppBanner */ mock(LiveData.class),
+                /* onChooseAppBannerClickListener */ mock(TabAdapter.OnBannerClickListener.class));
     }
 
     private static Item generateFakeImageItem(String id) {

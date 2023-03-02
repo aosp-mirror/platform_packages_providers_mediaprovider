@@ -15,6 +15,8 @@
  */
 package com.android.providers.media.photopicker.data;
 
+import static android.content.ContentResolver.QUERY_ARG_LIMIT;
+
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LIMIT_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
@@ -25,6 +27,8 @@ import android.os.Bundle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.MediaStore;
+
+import com.android.providers.media.photopicker.PickerDataLayer;
 
 /**
  * Represents the {@link CloudMediaProviderContract} extra filters from a {@link Bundle}.
@@ -38,6 +42,7 @@ public class CloudProviderQueryExtras {
     private final int mLimit;
     private final boolean mIsFavorite;
     private final boolean mIsVideo;
+    private final boolean mIsLocalOnly;
 
     private CloudProviderQueryExtras() {
         mAlbumId = STRING_DEFAULT;
@@ -48,10 +53,12 @@ public class CloudProviderQueryExtras {
         mLimit = LIMIT_DEFAULT;
         mIsFavorite = BOOLEAN_DEFAULT;
         mIsVideo = BOOLEAN_DEFAULT;
+        mIsLocalOnly = BOOLEAN_DEFAULT;
     }
 
     private CloudProviderQueryExtras(String albumId, String albumAuthority, String[] mimeTypes,
-            long sizeBytes, long generation, int limit, boolean isFavorite, boolean isVideo) {
+            long sizeBytes, long generation, int limit, boolean isFavorite, boolean isVideo,
+            boolean isLocalOnly) {
         mAlbumId = albumId;
         mAlbumAuthority = albumAuthority;
         mMimeTypes = mimeTypes;
@@ -60,10 +67,13 @@ public class CloudProviderQueryExtras {
         mLimit = limit;
         mIsFavorite = isFavorite;
         mIsVideo = isVideo;
+        mIsLocalOnly = isLocalOnly;
     }
 
-    public static CloudProviderQueryExtras fromMediaStoreBundle(Bundle bundle,
-            String localProvider) {
+    /**
+     * Builds {@link CloudProviderQueryExtras} from {@link Bundle} queryExtras from MediaProvider
+     */
+    public static CloudProviderQueryExtras fromMediaStoreBundle(Bundle bundle) {
         if (bundle == null) {
             return new CloudProviderQueryExtras();
         }
@@ -75,13 +85,16 @@ public class CloudProviderQueryExtras {
 
         final long sizeBytes = bundle.getLong(MediaStore.QUERY_ARG_SIZE_BYTES, LONG_DEFAULT);
         final long generation = LONG_DEFAULT;
-        final int limit = bundle.getInt(MediaStore.QUERY_ARG_LIMIT, LIMIT_DEFAULT);
+        final int limit = bundle.getInt(QUERY_ARG_LIMIT, LIMIT_DEFAULT);
 
         final boolean isFavorite = AlbumColumns.ALBUM_ID_FAVORITES.equals(albumId);
         final boolean isVideo = AlbumColumns.ALBUM_ID_VIDEOS.equals(albumId);
 
+        final boolean isLocalOnly = bundle.getBoolean(PickerDataLayer.QUERY_ARG_LOCAL_ONLY,
+                BOOLEAN_DEFAULT);
+
         return new CloudProviderQueryExtras(albumId, albumAuthority, mimeTypes, sizeBytes,
-                generation, limit, isFavorite, isVideo);
+                generation, limit, isFavorite, isVideo, isLocalOnly);
     }
 
     public static CloudProviderQueryExtras fromCloudMediaBundle(Bundle bundle) {
@@ -102,9 +115,10 @@ public class CloudProviderQueryExtras {
 
         final boolean isFavorite = BOOLEAN_DEFAULT;
         final boolean isVideo = BOOLEAN_DEFAULT;
+        final boolean isLocalOnly = BOOLEAN_DEFAULT;
 
         return new CloudProviderQueryExtras(albumId, albumAuthority, mimeTypes, sizeBytes,
-                generation, limit, isFavorite, isVideo);
+                generation, limit, isFavorite, isVideo, isLocalOnly);
     }
 
     public PickerDbFacade.QueryFilter toQueryFilter() {
@@ -114,6 +128,7 @@ public class CloudProviderQueryExtras {
         qfb.setIsFavorite(mIsFavorite);
         qfb.setIsVideo(mIsVideo);
         qfb.setAlbumId(mAlbumId);
+        qfb.setIsLocalOnly(mIsLocalOnly);
         return qfb.build();
     }
 
@@ -152,5 +167,9 @@ public class CloudProviderQueryExtras {
 
     public boolean isVideo() {
         return mIsVideo;
+    }
+
+    public boolean isLocalOnly() {
+        return mIsLocalOnly;
     }
 }

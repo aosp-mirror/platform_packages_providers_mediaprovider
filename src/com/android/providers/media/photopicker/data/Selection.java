@@ -158,33 +158,42 @@ public class Selection {
         return Collections.unmodifiableList(mSelectedItemsForPreview);
     }
 
-    /**
-     * Parse values from {@code intent} and set corresponding fields
-     */
+    /** Parse values from {@code intent} and set corresponding fields */
     public void parseSelectionValuesFromIntent(Intent intent) {
         final Bundle extras = intent.getExtras();
         final boolean isExtraPickImagesMaxSet =
                 extras != null && extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_MAX);
 
-        // Support Intent.EXTRA_ALLOW_MULTIPLE flag only for ACTION_GET_CONTENT
-        if (intent.getAction() != null && intent.getAction().equals(
-                Intent.ACTION_GET_CONTENT)) {
+        if (intent.getAction() != null
+                && intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
+            // If this is picking media for an app, enable multiselect.
+            mSelectMultiple = true;
+            // Allow selections up to the limit.
+            // TODO(b/255301849): Update max limit after discussing with product team.
+            mMaxSelectionLimit = MediaStore.getPickImagesMaxLimit();
+
+            return;
+        } else if (intent.getAction() != null
+                // Support Intent.EXTRA_ALLOW_MULTIPLE flag only for ACTION_GET_CONTENT
+                && intent.getAction().equals(Intent.ACTION_GET_CONTENT)) {
             if (isExtraPickImagesMaxSet) {
-                throw new IllegalArgumentException("EXTRA_PICK_IMAGES_MAX is not supported for "
-                        + "ACTION_GET_CONTENT");
+                throw new IllegalArgumentException(
+                        "EXTRA_PICK_IMAGES_MAX is not supported for " + "ACTION_GET_CONTENT");
             }
 
             mSelectMultiple = intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
             if (mSelectMultiple) {
                 mMaxSelectionLimit = MediaStore.getPickImagesMaxLimit();
             }
+
             return;
         }
 
         // Check EXTRA_PICK_IMAGES_MAX value only if the flag is set.
         if (isExtraPickImagesMaxSet) {
-            final int extraMax = intent.getIntExtra(MediaStore.EXTRA_PICK_IMAGES_MAX,
-                    /* defaultValue */ -1);
+            final int extraMax =
+                    intent.getIntExtra(MediaStore.EXTRA_PICK_IMAGES_MAX,
+                            /* defaultValue */ -1);
             // Multi selection max limit should always be greater than 1 and less than or equal
             // to PICK_IMAGES_MAX_LIMIT.
             if (extraMax <= 1 || extraMax > MediaStore.getPickImagesMaxLimit()) {

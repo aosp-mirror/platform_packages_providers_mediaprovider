@@ -25,6 +25,7 @@ import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
 import static com.android.providers.media.AccessChecker.getWhereForConstrainedAccess;
 import static com.android.providers.media.AccessChecker.getWhereForMediaTypeMatch;
 import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
+import static com.android.providers.media.AccessChecker.getWhereForUserIdMatch;
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
@@ -270,7 +271,10 @@ public class AccessCheckerTest {
             assertWithMessage("Expected user selected where clause for collection " + collection)
                     .that(getWhereForUserSelectedAccess(callingIdentity, collection))
                     .isEqualTo("_id IN (SELECT file_id from media_grants WHERE "
-                            + getWhereForOwnerPackageMatch(callingIdentity) + ")");
+                            + getWhereForOwnerPackageMatch(callingIdentity)
+                            + " AND "
+                            + getWhereForUserIdMatch(callingIdentity)
+                            + ")");
         }
 
         for (int collection : Arrays.asList(
@@ -279,7 +283,10 @@ public class AccessCheckerTest {
             assertWithMessage("Expected user selected where clause for collection " + collection)
                     .that(getWhereForUserSelectedAccess(callingIdentity, collection))
                     .isEqualTo("image_id IN (SELECT file_id from media_grants WHERE "
-                            + getWhereForOwnerPackageMatch(callingIdentity) + ")");
+                            + getWhereForOwnerPackageMatch(callingIdentity)
+                            + " AND "
+                            + getWhereForUserIdMatch(callingIdentity)
+                            + ")");
         }
 
         for (int collection : Arrays.asList(
@@ -288,7 +295,10 @@ public class AccessCheckerTest {
             assertWithMessage("Expected user selected where clause for collection " + collection)
                     .that(getWhereForUserSelectedAccess(callingIdentity, collection))
                     .isEqualTo("video_id IN (SELECT file_id from media_grants WHERE "
-                            + getWhereForOwnerPackageMatch(callingIdentity) + ")");
+                            + getWhereForOwnerPackageMatch(callingIdentity)
+                            + " AND "
+                            + getWhereForUserIdMatch(callingIdentity)
+                            + ")");
         }
 
 

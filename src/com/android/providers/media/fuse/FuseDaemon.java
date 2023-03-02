@@ -266,6 +266,31 @@ public final class FuseDaemon extends Thread {
         }
     }
 
+    /**
+     * Reads owner id for given owner package identifier from external storage.
+     */
+    public String readFromOwnershipBackup(String ownerPackageIdentifier) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            return native_read_ownership(mPtr, ownerPackageIdentifier);
+        }
+    }
+
+    /**
+     * Creates owner id to owner package identifier and vice versa relation in external storage.
+     */
+    public void createOwnerIdRelation(String ownerId, String ownerPackageIdentifier)
+            throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_create_owner_id_relation(mPtr, ownerId, ownerPackageIdentifier);
+        }
+    }
+
     private native long native_new(MediaProvider mediaProvider);
 
     // Takes ownership of the passed in file descriptor!
@@ -284,9 +309,11 @@ public final class FuseDaemon extends Thread {
     private native void native_setup_volume_db_backup(long daemon);
     private native void native_delete_db_backup(long daemon, String key);
     private native void native_backup_volume_db_data(long daemon, String key, String value);
-
     private native String[] native_read_backed_up_file_paths(long daemon, String volumeName,
             String lastReadValue, int limit);
     private native String native_read_backed_up_data(long daemon, String key);
+    private native String native_read_ownership(long daemon, String ownerPackageIdentifier);
+    private native void native_create_owner_id_relation(long daemon, String ownerId,
+            String ownerPackageIdentifier);
     public static native boolean native_is_fuse_thread();
 }

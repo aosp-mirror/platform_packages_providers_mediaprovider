@@ -297,6 +297,13 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
+    public static final String GET_BACKUP_FILES = "get_backup_files";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
     public static final String DELETE_BACKED_UP_FILE_PATHS = "delete_backed_up_file_paths";
 
     /** {@hide} */
@@ -4723,6 +4730,16 @@ public final class MediaStore {
     }
 
     /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String[] getBackupFiles(@NonNull ContentResolver resolver) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_BACKUP_FILES, null, null);
+        return bundle.getStringArray(GET_BACKUP_FILES);
+    }
+
+    /**
      * Block until any pending operations have finished, such as
      * {@link #scanFile} or {@link #scanVolume} requests.
      *
@@ -4859,8 +4876,7 @@ public final class MediaStore {
     }
 
     /** {@hide} */
-    public static String getCurrentCloudProvider(@NonNull Context context) {
-        final ContentResolver resolver = context.getContentResolver();
+    public static String getCurrentCloudProvider(@NonNull ContentResolver resolver) {
         try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
             final Bundle out = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
                     /* extras */ null);

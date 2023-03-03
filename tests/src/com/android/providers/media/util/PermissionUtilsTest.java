@@ -20,6 +20,7 @@ import static android.Manifest.permission.MANAGE_APP_OPS_MODES;
 import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.MANAGE_MEDIA;
 import static android.Manifest.permission.UPDATE_APP_OPS_STATS;
+import static android.app.AppOpsManager.OPSTR_ACCESS_MEDIA_LOCATION;
 import static android.app.AppOpsManager.OPSTR_NO_ISOLATED_STORAGE;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_AUDIO;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_IMAGES;
@@ -126,7 +127,7 @@ public class PermissionUtilsTest {
         assertThat(checkPermissionDelegator(context, pid, uid)).isFalse();
         assertThat(checkPermissionManageMedia(context, pid, uid, packageName, null)).isFalse();
         assertThat(checkPermissionAccessMediaLocation(context, pid, uid,
-                packageName, null)).isFalse();
+                packageName, null, true)).isFalse();
 
         assertThat(checkPermissionReadStorage(context, pid, uid, packageName, null)).isTrue();
         assertThat(checkPermissionWriteStorage(context, pid, uid, packageName, null)).isTrue();
@@ -236,7 +237,7 @@ public class PermissionUtilsTest {
                     .isFalse();
 
             assertThat(checkPermissionAccessMediaLocation(getContext(), TEST_APP_PID, testAppUid,
-                    packageName, null)).isFalse();
+                    packageName, null, false)).isFalse();
 
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
@@ -285,7 +286,7 @@ public class PermissionUtilsTest {
                     .isFalse();
 
             assertThat(checkPermissionAccessMediaLocation(getContext(), TEST_APP_PID, testAppUid,
-                    packageName, null)).isTrue();
+                    packageName, null, false)).isTrue();
 
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
@@ -577,6 +578,52 @@ public class PermissionUtilsTest {
             assertThat(
                     checkAppOpRequestInstallPackagesForSharedUid(getContext(), testAppUid,
                             packageName, null)).isFalse();
+        } finally {
+            dropShellPermission();
+        }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE, codeName = "UpsideDownCake")
+    public void requestsAmlCompatBehaviorOnTestApp() throws Exception {
+        String packageName = TEST_APP_WITH_MEDIA_PERMS.getPackageName();
+        int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
+        String packageNameWithUser = TEST_APP_WITH_USER_SELECTED_PERMS.getPackageName();
+        int testAppUidWithUser =
+                getContext().getPackageManager().getPackageUid(packageNameWithUser, 0);
+        adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
+        try {
+            // With AML granted, access granted
+            assertThat(checkPermissionAccessMediaLocation(getContext(), TEST_APP_PID, testAppUid,
+                    packageName, null, true)).isTrue();
+
+            // With AML denied and requested, and RMVUS granted, access granted
+            modifyAppOp(testAppUid, OPSTR_ACCESS_MEDIA_LOCATION, AppOpsManager.MODE_IGNORED);
+            assertThat(checkPermissionAccessMediaLocation(getContext(), TEST_APP_PID, testAppUid,
+                    packageName, null, true)).isTrue();
+
+            // With AML denied and requested, and RMVUS granted, but targetSDK < T,
+            // access denied
+            assertThat(checkPermissionAccessMediaLocation(getContext(), TEST_APP_PID, testAppUid,
+                    packageName, null, false)).isFalse();
+
+            // With AML denied and requested, and RMVUS denied, access denied
+            modifyAppOp(testAppUid, OPSTR_READ_MEDIA_VISUAL_USER_SELECTED,
+                    AppOpsManager.MODE_IGNORED);
+            assertThat(checkPermissionAccessMediaLocation(getContext(), TEST_APP_PID, testAppUid,
+                    packageName, null, false)).isFalse();
+
+            // If AML is granted, and RMVUS granted explicitly, access granted
+            assertThat(checkPermissionAccessMediaLocation(getContext(), TEST_APP_PID,
+                    testAppUidWithUser, packageNameWithUser, null, true)).isTrue();
+
+            // If AML is denied, RMVUS granted, but requested explicitly, access denied
+            modifyAppOp(testAppUidWithUser, OPSTR_ACCESS_MEDIA_LOCATION,
+                    AppOpsManager.MODE_IGNORED);
+            assertThat(checkPermissionAccessMediaLocation(getContext(), TEST_APP_PID,
+                    testAppUidWithUser, packageNameWithUser, null, true)).isFalse();
+
+
         } finally {
             dropShellPermission();
         }

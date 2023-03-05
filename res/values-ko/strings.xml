@@ -54,6 +54,8 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{최대 <xliff:g id="COUNT_0">^1</xliff:g>개 항목을 선택하세요}other{최대 <xliff:g id="COUNT_1">^1</xliff:g>개 항목을 선택하세요}}"</string>
     <string name="recent" msgid="6694613584743207874">"최근"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"사진 또는 동영상 없음"</string>
+    <!-- no translation found for picker_album_media_empty_message (7061850698189881671) -->
+    <skip />
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"앨범 없음"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"선택 항목 보기"</string>
     <string name="picker_photos" msgid="7415035516411087392">"사진"</string>

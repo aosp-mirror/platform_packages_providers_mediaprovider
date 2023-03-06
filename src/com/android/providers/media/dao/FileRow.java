@@ -29,6 +29,9 @@ public class FileRow {
     private boolean mIsTrashed;
     private boolean mIsFavorite;
     private int mSpecialFormat;
+    private int mUserId;
+    // String data type used as value can be null
+    private String mDateExpires;
 
     public static class Builder {
         private final long mId;
@@ -41,6 +44,8 @@ public class FileRow {
         private boolean mIsTrashed;
         private boolean mIsFavorite;
         private int mSpecialFormat;
+        private int mUserId;
+        private String mDateExpires;
 
         Builder(long id) {
             this.mId = id;
@@ -91,6 +96,16 @@ public class FileRow {
             return this;
         }
 
+        public Builder setUserId(int userId) {
+            this.mUserId = userId;
+            return this;
+        }
+
+        public Builder setDateExpires(String dateExpires) {
+            this.mDateExpires = dateExpires;
+            return this;
+        }
+
         public FileRow build() {
             FileRow fileRow = new FileRow(this.mId);
             fileRow.mPath = this.mPath;
@@ -102,6 +117,8 @@ public class FileRow {
             fileRow.mIsTrashed = this.mIsTrashed;
             fileRow.mIsFavorite = this.mIsFavorite;
             fileRow.mSpecialFormat = this.mSpecialFormat;
+            fileRow.mUserId = this.mUserId;
+            fileRow.mDateExpires = this.mDateExpires;
 
             return fileRow;
         }
@@ -153,5 +170,13 @@ public class FileRow {
 
     public int getSpecialFormat() {
         return mSpecialFormat;
+    }
+
+    public int getUserId() {
+        return mUserId;
+    }
+
+    public String getDateExpires() {
+        return mDateExpires;
     }
 }

@@ -105,6 +105,17 @@ class FuseDaemon final {
     std::string ReadBackedUpDataFromLevelDb(const std::string& filePath);
 
     /**
+     * Reads value for given key, returns empty string if not found.
+     */
+    std::string ReadOwnership(const std::string& key);
+
+    /**
+     * Create owner id to owner package identifier and vice versa relation in leveldb.
+     */
+    void CreateOwnerIdRelation(const std::string& ownerId,
+                               const std::string& ownerPackageIdentifier);
+
+    /**
      * Returns true if level db setup exists for given instance.
      */
     bool CheckLevelDbConnection(const std::string& instance_name);

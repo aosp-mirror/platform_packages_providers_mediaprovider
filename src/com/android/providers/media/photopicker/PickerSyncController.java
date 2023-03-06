@@ -31,9 +31,7 @@ import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import android.annotation.IntDef;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -428,14 +426,6 @@ public class PickerSyncController {
     }
 
     /**
-     * Starts picker sync immediately in a background thread.
-     */
-    public void reloadAllMediaAsync() {
-        sBgThreadHandler.removeCallbacks(mSyncAllMediaCallback);
-        sBgThreadHandler.post(mSyncAllMediaCallback);
-    }
-
-    /**
      * Notifies about media events like inserts/updates/deletes from cloud and local providers and
      * syncs the changes in the background.
      *
@@ -465,15 +455,15 @@ public class PickerSyncController {
      * Notifies about picker UI launched
      */
     public void notifyPickerLaunch() {
-        final String packageName;
+        final String authority;
         synchronized (mLock) {
-            packageName = mCloudProviderInfo.packageName;
+            authority = mCloudProviderInfo.authority;
         }
 
         final boolean hasPendingNotification = mUserPrefs.getBoolean(
                 PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, /* defaultValue */ false);
 
-        if (!hasPendingNotification || (packageName == null)) {
+        if (!hasPendingNotification || (authority == null)) {
             Log.d(TAG, "No pending UI notification");
             return;
         }
@@ -484,13 +474,7 @@ public class PickerSyncController {
             Log.i(TAG, "Cloud media now available in the picker");
 
             final PackageManager pm = mContext.getPackageManager();
-            String appName = packageName;
-            try {
-                ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0);
-                appName = (String) pm.getApplicationLabel(appInfo);
-            } catch (final NameNotFoundException e) {
-                Log.i(TAG, "Failed to get appName for package: " + packageName);
-            }
+            final String appName = CloudProviderUtils.getProviderLabel(pm, authority);
 
             final String message = mContext.getResources().getString(R.string.picker_cloud_sync,
                     appName);

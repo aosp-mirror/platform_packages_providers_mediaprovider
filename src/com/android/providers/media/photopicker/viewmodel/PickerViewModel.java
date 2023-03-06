@@ -94,6 +94,9 @@ public class PickerViewModel extends AndroidViewModel {
     private final MutableLiveData<String> mCloudMediaAccountName = new MutableLiveData<>();
     // Boolean Choose App Banner visibility
     private final MutableLiveData<Boolean> mShowChooseAppBanner = new MutableLiveData<>(false);
+    // Boolean Cloud Media Available Banner visibility
+    private final MutableLiveData<Boolean> mShowCloudMediaAvailableBanner =
+            new MutableLiveData<>(false);
 
     // The banner controllers per user
     private final PerUser<BannerController> mBannerControllers = new PerUser<BannerController>() {
@@ -615,6 +618,8 @@ public class PickerViewModel extends AndroidViewModel {
             mCloudMediaProviderLabel.postValue(bannerController.getCloudMediaProviderLabel());
             mCloudMediaAccountName.postValue(bannerController.getCloudMediaProviderAccountName());
             mShowChooseAppBanner.postValue(bannerController.shouldShowChooseAppBanner());
+            mShowCloudMediaAvailableBanner.postValue(
+                    bannerController.shouldShowCloudMediaAvailableBanner());
         });
     }
 
@@ -626,6 +631,7 @@ public class PickerViewModel extends AndroidViewModel {
     @UiThread
     private void hideAllBanners() {
         mShowChooseAppBanner.setValue(false);
+        mShowCloudMediaAvailableBanner.setValue(false);
     }
 
     /**
@@ -635,6 +641,15 @@ public class PickerViewModel extends AndroidViewModel {
     @NonNull
     public LiveData<Boolean> shouldShowChooseAppBannerLiveData() {
         return mShowChooseAppBanner;
+    }
+
+    /**
+     * @return the {@link LiveData} of the 'Cloud Media Available' banner visibility
+     *         {@link #mShowCloudMediaAvailableBanner}.
+     */
+    @NonNull
+    public LiveData<Boolean> shouldShowCloudMediaAvailableBannerLiveData() {
+        return mShowCloudMediaAvailableBanner;
     }
 
     /**
@@ -662,6 +677,34 @@ public class PickerViewModel extends AndroidViewModel {
             mShowChooseAppBanner.setValue(false);
         }
         bannerController.onUserDismissedChooseAppBanner();
+    }
+
+    /**
+     * Dismiss (hide) the 'Cloud Media Available' banner for the current user.
+     *
+     * 1. Set the {@link LiveData} value of the 'Cloud Media Available' banner visibility
+     *    {@link #mShowCloudMediaAvailableBanner} as {@code false}.
+     *
+     * 2. Update the 'Cloud Media Available' banner visibility of the current user
+     *    {@link BannerController} to {@code false}.
+     */
+    @UiThread
+    public void onUserDismissedCloudMediaAvailableBanner() {
+        final BannerController bannerController = getCurrentBannerController();
+
+        if (bannerController == null) {
+            Log.wtf(TAG, "Banner controller not yet created for the current user on cloud media"
+                    + "available banner dismiss");
+            return;
+        }
+
+        if (Boolean.FALSE.equals(mShowCloudMediaAvailableBanner.getValue())) {
+            Log.wtf(TAG, "Cloud media available banner visibility live data value is false on"
+                    + "dismiss");
+        } else {
+            mShowCloudMediaAvailableBanner.setValue(false);
+        }
+        bannerController.onUserDismissedCloudMediaAvailableBanner();
     }
 
     @Nullable

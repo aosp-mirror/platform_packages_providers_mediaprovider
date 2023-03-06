@@ -79,12 +79,16 @@ public class PhotosTabFragment extends TabFragment {
         final LiveData<Boolean> showChooseAppBanner = shouldShowBanners
                 ? mPickerViewModel.shouldShowChooseAppBannerLiveData()
                 : new MutableLiveData<>(false);
+        final LiveData<Boolean> showCloudMediaAvailableBanner = shouldShowBanners
+                ? mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData()
+                : new MutableLiveData<>(false);
 
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
                 mImageLoader, this::onItemClick, this::onItemLongClick, /* lifecycleOwner */ this,
                 mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
                 mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner,
-                mOnChooseAppBannerClickListener);
+                showCloudMediaAvailableBanner, mOnChooseAppBannerClickListener,
+                mOnCloudMediaAvailableBannerClickListener);
 
         if (mCategory.isDefault()) {
             setEmptyMessage(R.string.picker_photos_empty_message);

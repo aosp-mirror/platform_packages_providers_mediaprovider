@@ -87,12 +87,8 @@ public class SettingsCloudMediaViewModelTest {
         doReturn(mPackageManager).when(mContext).getPackageManager();
         doReturn(mResources).when(mContext).getResources();
         doReturn(mContentProviderClient).when(mCloudMediaViewModel).getContentProviderClient();
-        doAnswer(i -> {
-            ApplicationInfo applicationInfo = new ApplicationInfo();
-            applicationInfo.packageName = (String) i.getArgument(0);
-            applicationInfo.uid = 0;
-            return applicationInfo;
-        }).when(mPackageManager).getApplicationInfo(any(), anyInt());
+        doAnswer(i -> createProviderInfo(i.getArgument(/* index */ 0)))
+                .when(mPackageManager).resolveContentProvider(any(), anyInt());
     }
 
     @Test

@@ -54,6 +54,8 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Odaberite najviše <xliff:g id="COUNT_0">^1</xliff:g> stavku}one{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavku}few{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavke}other{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="recent" msgid="6694613584743207874">"Nedavno"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Nema fotografija i videozapisa"</string>
+    <!-- no translation found for picker_album_media_empty_message (7061850698189881671) -->
+    <skip />
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nema albuma"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Prikaži odabrano"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotografije"</string>
@@ -67,6 +69,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Poslovne aplikacije su pauzirane"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Da biste otvorili fotografije s poslovnog profila, uključite poslovne aplikacije i pokušajte ponovo"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ova aplikacija može pristupiti samo fotografijama koje odaberete"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Odaberite fotografije i videozapise kojima će aplikacija moći pristupiti"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> stavka}one{<xliff:g id="COUNT_1">^1</xliff:g> stavka}few{<xliff:g id="COUNT_1">^1</xliff:g> stavke}other{<xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Dodaj (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Dopusti (<xliff:g id="COUNT">^1</xliff:g>)"</string>

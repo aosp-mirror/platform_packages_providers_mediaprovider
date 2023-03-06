@@ -54,6 +54,8 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{ជ្រើសរើស​ធាតុ​រហូតដល់ <xliff:g id="COUNT_0">^1</xliff:g>}other{ជ្រើសរើស​ធាតុ​រហូតដល់ <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="recent" msgid="6694613584743207874">"ថ្មីៗ"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"គ្មានរូបថត ឬវីដេអូទេ"</string>
+    <!-- no translation found for picker_album_media_empty_message (7061850698189881671) -->
+    <skip />
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"គ្មាន​អាល់ប៊ុម​ទេ"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"មើលអ្វីដែលបានជ្រើសរើស"</string>
     <string name="picker_photos" msgid="7415035516411087392">"រូបថត"</string>
@@ -67,6 +69,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"កម្មវិធី​ការងារ​ត្រូវបានផ្អាក"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ដើម្បីបើក​រូបថតការងារ សូមបើក​កម្មវិធីការងារ​របស់អ្នក រួចព្យាយាម​ម្ដងទៀត"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"កម្មវិធីនេះ​អាចចូលប្រើបានតែ​រូបថត​ដែលអ្នកជ្រើសរើស​ប៉ុណ្ណោះ"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"ជ្រើសរើស​រូបថត និងវីដេអូ​ដែលអ្នកអនុញ្ញាតឱ្យ​កម្មវិធីនេះចូលប្រើ"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{ធាតុ <xliff:g id="COUNT_0">^1</xliff:g>}other{ធាតុ <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"បញ្ចូល (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"អនុញ្ញាត (<xliff:g id="COUNT">^1</xliff:g>)"</string>

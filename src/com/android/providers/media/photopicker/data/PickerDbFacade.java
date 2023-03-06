@@ -125,11 +125,6 @@ public class PickerDbFacade {
     @VisibleForTesting
     public static final String KEY_ORIENTATION = "orientation";
 
-    @VisibleForTesting
-    public static final String IMAGE_FILE_EXTENSION = ".jpg";
-    @VisibleForTesting
-    public static final String VIDEO_FILE_EXTENSION = ".mp4";
-
     private static final String WHERE_ID = KEY_ID + " = ?";
     private static final String WHERE_LOCAL_ID = KEY_LOCAL_ID + " = ?";
     private static final String WHERE_CLOUD_ID = KEY_CLOUD_ID + " = ?";
@@ -1013,10 +1008,7 @@ public class PickerDbFacade {
         // <media-id>.<file-extension>
         // See comment in #getProjectionAuthorityLocked for why cloud_id is preferred over local_id
         final String mediaId = String.format("IFNULL(%s, %s)", KEY_CLOUD_ID, KEY_LOCAL_ID);
-        // TODO(b/195009139): Add .gif fileextension support
-        final String fileExtension =
-                String.format("CASE WHEN %s LIKE 'image/%%' THEN '%s' ELSE '%s' END",
-                        KEY_MIME_TYPE, IMAGE_FILE_EXTENSION, VIDEO_FILE_EXTENSION);
+        final String fileExtension = String.format("_GET_EXTENSION(%s)", KEY_MIME_TYPE);
 
         return mediaId + "||" + fileExtension;
     }

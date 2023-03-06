@@ -18,6 +18,9 @@ package com.android.providers.media;
 
 import static com.android.providers.media.DatabaseBackupAndRecovery.getXattr;
 import static com.android.providers.media.DatabaseBackupAndRecovery.setXattr;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
@@ -68,6 +71,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.playlist.Playlist;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
@@ -149,6 +153,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * /data/media/0 directory.
      */
     private static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
+
+    protected static final int LEVEL_DB_READ_LIMIT = 1000;
 
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";
@@ -551,11 +557,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         } catch (Exception e) {
             throw new RuntimeException("Could not retrieve local content provider", e);
         }
-        DatabaseBackupAndRecovery databaseBackupAndRecovery =
-                mediaProvider.getDatabaseBackupAndRecovery();
         String volumeName =
                 isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
-        if (!isInternal() || !databaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
+        if (!isInternal()
+                || !mediaProvider.getDatabaseBackupAndRecovery().isStableUrisEnabled(volumeName)) {
             return;
         }
 
@@ -569,8 +574,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // StableUrisIdleMaintenanceService will be attempted to run only once in 7days.
                 // Any rollback before that will not recover DB rows.
                 BackgroundThread.getExecutor().execute(
-                        () -> databaseBackupAndRecovery.backupInternalDatabase(null));
-                // Set next row id in External Storage to handle rollback in the future.
+                        () -> mediaProvider.getDatabaseBackupAndRecovery()
+                                .backupInternalDatabase(null));
+                // Set next row id in External Storage to handle rollback in future.
                 backupNextRowId(NEXT_ROW_ID_DEFAULT_BILLION_VALUE);
                 updateSessionIdInDatabaseAndExternalStorage(db);
                 return;
@@ -593,7 +599,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             // Recover data from backup
             // Ensure we do not back up in case of recovery.
             mIsRecovering.set(true);
-            databaseBackupAndRecovery.recoverData(db, volumeName);
+            recoverData(mediaProvider, db, volumeName);
             updateNextRowIdInDatabaseAndExternalStorage(db);
             mIsRecovering.set(false);
             updateSessionIdInDatabaseAndExternalStorage(db);
@@ -612,6 +618,88 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             createLatestSchema(db);
         } finally {
             mSchemaLock.writeLock().unlock();
+        }
+    }
+
+    @GuardedBy("sRecoveryLock")
+    private void recoverData(MediaProvider mediaProvider, SQLiteDatabase db, String volumeName) {
+        final long startTime = SystemClock.elapsedRealtime();
+        int i = 0;
+        final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
+        // Wait for external primary to be attached as we use same thread for internal volume.
+        // Maximum wait for 10s
+        DatabaseBackupAndRecovery dbBackupAndRecovery =
+                mediaProvider.getDatabaseBackupAndRecovery();
+        while (!dbBackupAndRecovery.isFuseDaemonReadyForFilePath(fuseFilePath)
+                && i < 1000) {
+            Log.d(TAG, "Waiting for fuse daemon to be ready.");
+            // Poll after every 10ms
+            SystemClock.sleep(10);
+            i++;
+        }
+        if (!dbBackupAndRecovery.isFuseDaemonReadyForFilePath(fuseFilePath)) {
+            Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.");
+            return;
+        }
+
+        long rowsRecovered = 0;
+        long dirtyRowsCount = 0;
+        String[] backedUpFilePaths;
+        String lastReadValue = "";
+
+        while (true) {
+            backedUpFilePaths = mediaProvider.getDatabaseBackupAndRecovery()
+                    .readBackedUpFilePaths(volumeName, lastReadValue, LEVEL_DB_READ_LIMIT);
+            if (backedUpFilePaths.length <= 0) {
+                break;
+            }
+
+            for (String filePath : backedUpFilePaths) {
+                Optional<BackupIdRow> fileRow = mediaProvider.getDatabaseBackupAndRecovery()
+                        .readDataFromBackup(volumeName, filePath);
+                if (fileRow.isPresent()) {
+                    if (fileRow.get().getIsDirty()) {
+                        dirtyRowsCount++;
+                        continue;
+                    }
+
+                    dbBackupAndRecovery.insertDataInDatabase(db, fileRow.get(), filePath,
+                            volumeName);
+                    rowsRecovered++;
+                }
+            }
+
+            // Read less rows than expected
+            if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
+                break;
+            }
+            lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
+        }
+        long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+        MediaProviderStatsLog.write(MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED,
+                getVolumeName(volumeName), recoveryTime, rowsRecovered, dirtyRowsCount);
+        Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
+                volumeName));
+        Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms", recoveryTime));
+    }
+
+    private int getVolumeName(String volumeName) {
+        if (volumeName.equalsIgnoreCase(MediaStore.VOLUME_INTERNAL)) {
+            return MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
+        } else if (volumeName.equalsIgnoreCase(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            return MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
+        }
+
+        return MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
+    }
+
+    private static String getFuseFilePathFromVolumeName(String volumeName) {
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL:
+            case MediaStore.VOLUME_EXTERNAL_PRIMARY:
+                return "/storage/emulated/" + UserHandle.myUserId();
+            default:
+                return "/storage/" + volumeName;
         }
     }
 

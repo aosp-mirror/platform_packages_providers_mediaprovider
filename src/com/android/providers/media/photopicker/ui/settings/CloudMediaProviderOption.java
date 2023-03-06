@@ -16,9 +16,11 @@
 
 package com.android.providers.media.photopicker.ui.settings;
 
+import static com.android.providers.media.photopicker.util.CloudProviderUtils.getProviderLabel;
+
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ProviderInfo;
 import android.graphics.drawable.Drawable;
 
 import androidx.annotation.NonNull;
@@ -57,11 +59,11 @@ class CloudMediaProviderOption {
             // managed profile, icons are displayed with a badge. The label of an app in managed
             // profile may also be different.
             final PackageManager packageManager = userId.getPackageManager(context);
-            final ApplicationInfo applicationInfo = packageManager.getApplicationInfo(
-                    cloudProviderInfo.packageName, 0);
+            final ProviderInfo providerInfo = packageManager.resolveContentProvider(
+                    cloudProviderInfo.authority, /* flags */ 0);
 
-            final CharSequence label = packageManager.getApplicationLabel(applicationInfo);
-            final Drawable icon = packageManager.getApplicationIcon(applicationInfo);
+            final CharSequence label = getProviderLabel(packageManager, providerInfo);
+            final Drawable icon = providerInfo.loadIcon(packageManager);
             final String key = cloudProviderInfo.authority;
             return new CloudMediaProviderOption(key , label, icon);
         } catch (PackageManager.NameNotFoundException e) {

@@ -16,7 +16,6 @@
 
 package com.android.providers.media.cloudproviders;
 
-import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
 import android.content.res.AssetFileDescriptor;
@@ -37,7 +36,7 @@ import java.io.FileNotFoundException;
  * {@link MediaGenerator}
  */
 public class CloudProviderPrimary extends CloudMediaProvider {
-    private static final String AUTHORITY =
+    public static final String AUTHORITY =
             "com.android.providers.media.photopicker.tests.cloud_primary";
 
     private final MediaGenerator mMediaGenerator =

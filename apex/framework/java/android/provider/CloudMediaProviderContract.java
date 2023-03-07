@@ -240,6 +240,9 @@ public final class CloudMediaProviderContract {
             MEDIA_STORE_URI,
             DURATION_MILLIS,
             IS_FAVORITE,
+            WIDTH,
+            HEIGHT,
+            ORIENTATION,
             DATA,
             AUTHORITY,
         };

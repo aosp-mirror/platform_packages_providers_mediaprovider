@@ -88,7 +88,10 @@ public class ExternalDbFacade {
         FileColumns._SPECIAL_FORMAT + " AS " +
                 CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
         MediaColumns.DURATION + " AS " + CloudMediaProviderContract.MediaColumns.DURATION_MILLIS,
-        MediaColumns.IS_FAVORITE + " AS " + CloudMediaProviderContract.MediaColumns.IS_FAVORITE
+        MediaColumns.IS_FAVORITE + " AS " + CloudMediaProviderContract.MediaColumns.IS_FAVORITE,
+        MediaColumns.WIDTH + " AS " + CloudMediaProviderContract.MediaColumns.WIDTH,
+        MediaColumns.HEIGHT + " AS " + CloudMediaProviderContract.MediaColumns.HEIGHT,
+        MediaColumns.ORIENTATION + " AS " + CloudMediaProviderContract.MediaColumns.ORIENTATION,
     };
     private static final String[] PROJECTION_MEDIA_INFO = new String[] {
         "MAX(" + MediaColumns.GENERATION_MODIFIED + ") AS "

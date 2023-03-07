@@ -86,4 +86,12 @@ public final class CloudProviderInfo {
                 + ", uid=" + uid
                 + '}';
     }
+
+    /** Returns a short string representation of the object. */
+    public String toShortString() {
+        if (isEmpty()) {
+            return "-";
+        }
+        return "pkg: " + packageName + " / auth: " + authority;
+    }
 }

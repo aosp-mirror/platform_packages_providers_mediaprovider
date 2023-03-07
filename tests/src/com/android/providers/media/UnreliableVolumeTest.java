@@ -20,7 +20,7 @@ import static androidx.test.InstrumentationRegistry.getContext;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import android.app.UiAutomation;
 import android.content.ContentValues;
@@ -31,11 +31,12 @@ import android.os.Environment;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
+
 import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.photopicker.data.UnreliableVolumeDatabaseHelper;
-import com.android.providers.media.scan.MediaScannerTest;
 import com.android.providers.media.util.UserCache;
+
 import com.google.common.io.ByteStreams;
 
 import org.junit.AfterClass;
@@ -75,8 +76,7 @@ public class UnreliableVolumeTest {
         createRemovableVolume();
         final Context context = getContext();
         UserCache mUserCache = new UserCache(context);
-        sIsolatedContext = new MediaScannerTest.IsolatedContext(context, TAG,
-                /*asFuseThread*/ false);
+        sIsolatedContext = new IsolatedContext(context, TAG, /*asFuseThread*/ false);
         sVolumeCache = new VolumeCache(context, mUserCache);
         sVolumeCache.update();
         sVolumeName = getCurrentPublicVolumeString();

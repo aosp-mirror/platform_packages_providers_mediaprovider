@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "MediaProviderWrapper.h"
 #include "jni.h"
@@ -73,9 +74,14 @@ class FuseDaemon final {
     void InitializeDeviceId(const std::string& path);
 
     /**
-     * Setup leveldb instance and connect for backing up volume's database data.
+     * Setup leveldb instances based on the volume.
      */
-    void SetupLevelDbInstance();
+    void SetupLevelDbInstances();
+
+    /**
+     * Creates a leveldb instance and sets up a connection.
+     */
+    void SetupLevelDbConnection(const std::string& instance_name);
 
     /**
      * Deletes entry for given key from leveldb.
@@ -86,6 +92,33 @@ class FuseDaemon final {
      * Inserts in leveldb instance of volume derived from path.
      */
     void InsertInLevelDb(const std::string& key, const std::string& value);
+
+    /**
+     * Reads file paths for given volume from leveldb for given range.
+     */
+    std::vector<std::string> ReadFilePathsFromLevelDb(const std::string& volume_name,
+                                                      const std::string& lastReadValue, int limit);
+
+    /**
+     * Reads backed up data from leveldb.
+     */
+    std::string ReadBackedUpDataFromLevelDb(const std::string& filePath);
+
+    /**
+     * Reads value for given key, returns empty string if not found.
+     */
+    std::string ReadOwnership(const std::string& key);
+
+    /**
+     * Create owner id to owner package identifier and vice versa relation in leveldb.
+     */
+    void CreateOwnerIdRelation(const std::string& ownerId,
+                               const std::string& ownerPackageIdentifier);
+
+    /**
+     * Returns true if level db setup exists for given instance.
+     */
+    bool CheckLevelDbConnection(const std::string& instance_name);
 
   private:
     FuseDaemon(const FuseDaemon&) = delete;

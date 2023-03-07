@@ -18,10 +18,10 @@ package com.android.providers.media;
 
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
-import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
+
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_ARRAY_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
@@ -75,8 +75,8 @@ public class PickerProviderMediaGenerator {
 
     private static final String[] ALBUM_PROJECTION = new String[] {
         AlbumColumns.ID,
-        AlbumColumns.DISPLAY_NAME,
         AlbumColumns.DATE_TAKEN_MILLIS,
+        AlbumColumns.DISPLAY_NAME,
         AlbumColumns.MEDIA_COVER_ID,
         AlbumColumns.MEDIA_COUNT,
         AlbumColumns.AUTHORITY
@@ -419,9 +419,9 @@ public class PickerProviderMediaGenerator {
 
             return new String[] {
                 id,
-                mediaCoverId,
-                /* displayName */ id,
                 String.valueOf(dateTakenMs),
+                /* displayName */ id,
+                mediaCoverId,
                 String.valueOf(mediaCount),
                 isLocal ? LocalProvider.AUTHORITY : null
             };

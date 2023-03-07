@@ -39,6 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"Ruhusu"</string>
     <string name="deny" msgid="6040983710442068936">"Kataa"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Vinjari…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Programu ya maudhui ya Wingu"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Programu ya maudhui ya Wingu"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Programu ya maudhui ya kwenye wingu"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Fikia maudhui kwenye wingu lako programu au tovuti inapokuomba uchague picha au video"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Fikia maudhui ya kwenye wingu katika"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Hamna"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Imeshindwa kubadilisha programu ya maudhui ya wingu kwa wakati huu."</string>
     <string name="add" msgid="2894574044585549298">"Weka"</string>
     <string name="deselect" msgid="4297825044827769490">"Acha kuchagua"</string>
     <string name="deselected" msgid="8488133193326208475">"Umeacha kuchagua"</string>
@@ -47,6 +54,8 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Chagua hadi kipengee <xliff:g id="COUNT_0">^1</xliff:g>}other{Chagua hadi vipengee <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="recent" msgid="6694613584743207874">"Za hivi majuzi"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Hakuna picha au video"</string>
+    <!-- no translation found for picker_album_media_empty_message (7061850698189881671) -->
+    <skip />
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Hakuna albamu"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Angalia ulizochagua"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Picha"</string>
@@ -60,8 +69,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Programu za kazini zimesimamishwa"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ili ufungue picha za kazini, washa programu zako za kazini kisha ujaribu tena"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Programu hii inaweza tu kufikia picha unazochagua"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Chagua picha na video unazoiruhusu programu hii kufikia"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{Kipengee <xliff:g id="COUNT_0">^1</xliff:g>}other{Vipengee <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Weka (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Ruhusu (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Vipakuliwa"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Vipendwa"</string>
@@ -84,6 +95,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Jaribu tena"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Maudhui ya kwenye wingu sasa yanapatikana katika <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"haijachaguliwa"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> kati ya <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ziko tayari"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Picha zilizohifadhiwa nakala zimejumuishwa sasa"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Unaweza kuchagua picha zilizotoka kwenye akaunti ya <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> katika programu ya <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Umesasisha akaunti ya <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>

@@ -68,13 +68,18 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             @NonNull LiveData<String> cloudMediaProviderAppTitle,
             @NonNull LiveData<String> cloudMediaAccountName,
             @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
-            @NonNull OnBannerClickListener onChooseAppBannerClickListener) {
+            @NonNull LiveData<Boolean> shouldShowCloudMediaAvailableBanner,
+            @NonNull OnBannerClickListener onChooseAppBannerClickListener,
+            @NonNull OnBannerClickListener onCloudMediaAvailableBannerClickListener) {
         mImageLoader = imageLoader;
         mCloudMediaProviderAppTitle = cloudMediaProviderAppTitle;
         mCloudMediaAccountName = cloudMediaAccountName;
 
-        shouldShowChooseAppBanner.observe(lifecycleOwner,
-                isShown -> setChooseAppBannerShown(isShown, onChooseAppBannerClickListener));
+        shouldShowChooseAppBanner.observe(lifecycleOwner, isVisible ->
+                setBannerVisibility(isVisible, Banner.CHOOSE_APP, onChooseAppBannerClickListener));
+        shouldShowCloudMediaAvailableBanner.observe(lifecycleOwner, isVisible ->
+                setBannerVisibility(isVisible, Banner.CLOUD_MEDIA_AVAILABLE,
+                        onCloudMediaAvailableBannerClickListener));
     }
 
     @NonNull
@@ -184,19 +189,19 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     /**
      * Update the 'choose app' banner visibility in tab adapter
      */
-    private void setChooseAppBannerShown(boolean isShown,
+    private void setBannerVisibility(boolean isVisible, @NonNull Banner banner,
             @NonNull OnBannerClickListener onBannerClickListener) {
-        if (isShown) {
+        if (isVisible) {
             if (mBanner == null) {
-                mBanner = Banner.CHOOSE_APP;
+                mBanner = banner;
                 mOnBannerClickListener = onBannerClickListener;
                 notifyItemInserted(/* position */ 0);
-            } else if (mBanner != Banner.CHOOSE_APP) {
-                mBanner = Banner.CHOOSE_APP;
+            } else if (mBanner != banner) {
+                mBanner = banner;
                 mOnBannerClickListener = onBannerClickListener;
                 notifyItemChanged(/* position */ 0);
             }
-        } else if (mBanner == Banner.CHOOSE_APP) {
+        } else if (mBanner == banner) {
             mBanner = null;
             mOnBannerClickListener = null;
             notifyItemRemoved(/* position */ 0);

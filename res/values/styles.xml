@@ -99,6 +99,8 @@
 
     <style name="PickerSettingsDefaultTheme" parent="PickerDefaultTheme">
         <item name="android:windowIsTranslucent">false</item>
+        <item name="android:listPreferredItemHeightSmall">@dimen/picker_settings_list_item_height</item>
+        <item name="android:listPreferredItemPaddingEnd">@dimen/picker_settings_list_item_padding_end</item>
     </style>
 
     <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">

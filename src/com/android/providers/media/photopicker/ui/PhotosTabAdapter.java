@@ -21,8 +21,9 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
@@ -42,12 +43,6 @@ class PhotosTabAdapter extends TabAdapter {
     private static final int RECENT_MINIMUM_COUNT = 12;
 
     private final boolean mShowRecentSection;
-    /**
-     * List of {@link com.android.providers.media.photopicker.data.model.Item Item} and
-     * {@link DateHeader} objects.
-     */
-    private List<Object> mItems = new ArrayList<>();
-    private final ImageLoader mImageLoader;
     private final View.OnClickListener mOnMediaItemClickListener;
     private final View.OnLongClickListener mOnMediaItemLongClickListener;
     private final Selection mSelection;
@@ -56,20 +51,31 @@ class PhotosTabAdapter extends TabAdapter {
             @NonNull Selection selection,
             @NonNull ImageLoader imageLoader,
             @NonNull View.OnClickListener onMediaItemClickListener,
-            @NonNull View.OnLongClickListener onMediaItemLongClickListener) {
+            @NonNull View.OnLongClickListener onMediaItemLongClickListener,
+            @NonNull LifecycleOwner lifecycleOwner,
+            @NonNull LiveData<String> cloudMediaProviderAppTitle,
+            @NonNull LiveData<String> cloudMediaAccountName,
+            @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
+            @NonNull LiveData<Boolean> shouldShowCloudMediaAvailableBanner,
+            @NonNull OnBannerClickListener onChooseAppBannerClickListener,
+            @NonNull OnBannerClickListener onCloudMediaAvailableBannerClickListener) {
+        super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
+                shouldShowChooseAppBanner, shouldShowCloudMediaAvailableBanner,
+                onChooseAppBannerClickListener, onCloudMediaAvailableBannerClickListener);
         mShowRecentSection = showRecentSection;
-        mImageLoader = imageLoader;
         mSelection = selection;
         mOnMediaItemClickListener = onMediaItemClickListener;
         mOnMediaItemLongClickListener = onMediaItemLongClickListener;
     }
 
+    @NonNull
     @Override
     RecyclerView.ViewHolder createSectionViewHolder(@NonNull ViewGroup viewGroup) {
         final View view = getView(viewGroup, R.layout.item_date_header);
         return new DateHeaderViewHolder(view);
     }
 
+    @NonNull
     @Override
     RecyclerView.ViewHolder createMediaItemViewHolder(@NonNull ViewGroup viewGroup) {
         final View view = getView(viewGroup, R.layout.item_photo_grid);
@@ -102,11 +108,6 @@ class PhotosTabAdapter extends TabAdapter {
     }
 
     @Override
-    int getMediaItemCount() {
-        return mItems.size();
-    }
-
-    @Override
     boolean isItemTypeSection(int position) {
         return getAdapterItem(position) instanceof DateHeader;
     }
@@ -117,12 +118,14 @@ class PhotosTabAdapter extends TabAdapter {
     }
 
     void setMediaItems(@NonNull List<Item> mediaItems) {
+        final List<Object> mediaItemsWithDateHeaders;
         if (!mediaItems.isEmpty()) {
-            mItems = new ArrayList<>(mediaItems.size() + 1); // We'll have at least one section
+            // We'll have at least one section
+            mediaItemsWithDateHeaders = new ArrayList<>(mediaItems.size() + 1);
 
             // First: show "Recent" section header if needed.
             if (mShowRecentSection) {
-                mItems.add(new DateHeader(DateHeader.RECENT));
+                mediaItemsWithDateHeaders.add(new DateHeader(DateHeader.RECENT));
             }
 
             int recentItemsCount = 0;
@@ -136,29 +139,19 @@ class PhotosTabAdapter extends TabAdapter {
                 } else if (!DateTimeUtils.isSameDate(prevItemDate, itemDate)) {
                     // The dateTaken of these two images are not on the same day: add a new date
                     // header
-                    mItems.add(new DateHeader(itemDate));
+                    mediaItemsWithDateHeaders.add(new DateHeader(itemDate));
                 }
 
-                mItems.add(mediaItem);
+                mediaItemsWithDateHeaders.add(mediaItem);
 
                 prevItemDate = itemDate;
             }
         } else {
-            mItems = Collections.emptyList();
+            mediaItemsWithDateHeaders = Collections.emptyList();
         }
+        setAllItems(mediaItemsWithDateHeaders);
 
         notifyDataSetChanged();
-    }
-
-    @Nullable
-    @VisibleForTesting
-    Object getAdapterItem(int position) {
-        if (isItemTypeBanner(position)) {
-            return null;
-        }
-
-        final int effectiveItemListPosition = position - getBannerCount();
-        return mItems.get(effectiveItemListPosition);
     }
 
     @VisibleForTesting

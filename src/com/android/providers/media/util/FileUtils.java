@@ -70,9 +70,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
-import com.android.providers.media.VolumeCache;
-import com.android.providers.media.fuse.ExternalStorageServiceImpl;
-import com.android.providers.media.fuse.FuseDaemon;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -1116,7 +1113,9 @@ public class FileUtils {
     }
 
     public static @Nullable String extractRelativePath(@Nullable String data) {
+        data = getCanonicalPath(data);
         if (data == null) return null;
+
         final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(data);
         if (matcher.find()) {
             final int lastSlash = data.lastIndexOf('/');
@@ -1810,18 +1809,15 @@ public class FileUtils {
         return new File(file.getPath().replaceFirst(FUSE_FS_PREFIX, LOWER_FS_PREFIX));
     }
 
-    /**
-     * @return {@link FuseDaemon} corresponding to a given file
-     */
-    @NonNull
-    public static FuseDaemon getFuseDaemonForFile(@NonNull File file, VolumeCache volumeCache)
-            throws FileNotFoundException {
-        final FuseDaemon daemon = ExternalStorageServiceImpl.getFuseDaemon(
-                volumeCache.getVolumeId(file));
-        if (daemon == null) {
-            throw new FileNotFoundException("Missing FUSE daemon for " + file);
-        } else {
-            return daemon;
+    @Nullable
+    private static String getCanonicalPath(@Nullable String path) {
+        if (path == null) return null;
+
+        try {
+            return new File(path).getCanonicalPath();
+        } catch (IOException e) {
+            Log.d(TAG, "Unable to get canonical path from invalid data path: " + path, e);
+            return null;
         }
     }
 }

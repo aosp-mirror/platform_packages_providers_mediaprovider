@@ -51,7 +51,6 @@ import androidx.collection.ArraySet;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
 
 import com.google.common.collect.ImmutableSet;

@@ -19,6 +19,8 @@ import static com.android.providers.media.photopicker.ui.DevicePolicyResources.D
 import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Drawables.WORK_PROFILE_ICON;
 import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.SWITCH_TO_PERSONAL_MESSAGE;
 import static com.android.providers.media.photopicker.ui.DevicePolicyResources.Strings.SWITCH_TO_WORK_MESSAGE;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_SECTION;
 
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
@@ -45,6 +47,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -114,7 +117,8 @@ public abstract class TabFragment extends Fragment {
         mImageLoader = new ImageLoader(context);
         mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
         mRecyclerView.setHasFixedSize(true);
-        mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
+        final ViewModelProvider viewModelProvider = new ViewModelProvider(requireActivity());
+        mPickerViewModel = viewModelProvider.get(PickerViewModel.class);
         mSelection = mPickerViewModel.getSelection();
         mRecyclerViewBottomPadding = getResources().getDimensionPixelSize(
                 R.dimen.picker_recycler_view_bottom_padding);
@@ -306,6 +310,9 @@ public abstract class TabFragment extends Fragment {
 
         mPickerViewModel.updateItems();
         mPickerViewModel.updateCategories();
+        // Note - Banners should always be updated after the items & categories to ensure a
+        // consistent UI.
+        mPickerViewModel.maybeInitialiseAndSetBannersForCurrentUser();
     }
 
     private void updateProfileButtonContent(boolean isManagedUserSelected) {
@@ -416,4 +423,59 @@ public abstract class TabFragment extends Fragment {
 
         return TextUtils.expandTemplate(template, sizeString).toString();
     }
+
+    protected final PhotoPickerActivity getPickerActivity() {
+        return (PhotoPickerActivity) getActivity();
+    }
+
+    protected final void setLayoutManager(@NonNull TabAdapter adapter, int spanCount) {
+        final GridLayoutManager layoutManager =
+                new GridLayoutManager(getContext(), spanCount);
+        final GridLayoutManager.SpanSizeLookup lookup = new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                final int itemViewType = adapter.getItemViewType(position);
+                // For the item view types ITEM_TYPE_BANNER and ITEM_TYPE_SECTION, it is full
+                // span, return the span count of the layoutManager.
+                if (itemViewType == ITEM_TYPE_BANNER || itemViewType == ITEM_TYPE_SECTION) {
+                    return layoutManager.getSpanCount();
+                } else {
+                    return 1;
+                }
+            }
+        };
+        layoutManager.setSpanSizeLookup(lookup);
+        mRecyclerView.setLayoutManager(layoutManager);
+    }
+
+    private abstract class OnBannerClickListener implements TabAdapter.OnBannerClickListener {
+        @Override
+        public void onActionButtonClick() {
+            dismissBanner();
+            getPickerActivity().startSettingsActivity();
+        }
+
+        @Override
+        public void onDismissButtonClick() {
+            dismissBanner();
+        }
+
+        abstract void dismissBanner();
+    }
+
+    protected final OnBannerClickListener mOnChooseAppBannerClickListener =
+            new OnBannerClickListener() {
+                @Override
+                void dismissBanner() {
+                    mPickerViewModel.onUserDismissedChooseAppBanner();
+                }
+            };
+
+    protected final OnBannerClickListener mOnCloudMediaAvailableBannerClickListener =
+            new OnBannerClickListener() {
+                @Override
+                void dismissBanner() {
+                    mPickerViewModel.onUserDismissedCloudMediaAvailableBanner();
+                }
+            };
 }

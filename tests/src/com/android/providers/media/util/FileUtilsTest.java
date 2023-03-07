@@ -49,7 +49,9 @@ import static com.android.providers.media.util.FileUtils.extractVolumePath;
 import static com.android.providers.media.util.FileUtils.fromFuseFile;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
 import static com.android.providers.media.util.FileUtils.isDataOrObbRelativePath;
+import static com.android.providers.media.util.FileUtils.isDirectoryHidden;
 import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
+import static com.android.providers.media.util.FileUtils.isFileHidden;
 import static com.android.providers.media.util.FileUtils.isObbOrChildRelativePath;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.FileUtils.translateModeAccessToPosix;
@@ -547,7 +549,15 @@ public class FileUtilsTest {
                     extractRelativePath(prefix + "DCIM/foo.jpg"));
             assertEquals("DCIM/My Vacation/",
                     extractRelativePath(prefix + "DCIM/My Vacation/foo.jpg"));
+            assertEquals("Pictures/",
+                    extractRelativePath(prefix + "DCIM/../Pictures/.//foo.jpg"));
+            assertEquals("/",
+                    extractRelativePath(prefix + "DCIM/Pictures/./..//..////foo.jpg"));
+            assertEquals("Android/data/",
+                    extractRelativePath(prefix + "DCIM/foo.jpg/.//../../Android/data/poc"));
         }
+
+        assertEquals(null, extractRelativePath("/sdcard/\\\u0000"));
     }
 
     @Test
@@ -914,19 +924,67 @@ public class FileUtilsTest {
         assertThat(FileUtils.shouldDirBeHidden(dirInHiddenParent)).isTrue();
     }
 
+    private static void assertDirectoryHidden(File file) {
+        assertTrue(file.getAbsolutePath(), isDirectoryHidden(file));
+    }
+
+    private static void assertDirectoryNotHidden(File file) {
+        assertFalse(file.getAbsolutePath(), isDirectoryHidden(file));
+    }
+
     // Visibility of default dirs is tested in ModernMediaScannerTest#testVisibleDefaultFolders.
     @Test
     public void testIsDirectoryHidden() throws Exception {
+        for (String prefix : new String[] {
+                "/storage/emulated/0",
+                "/storage/0000-0000",
+        }) {
+            assertDirectoryNotHidden(new File(prefix));
+            assertDirectoryNotHidden(new File(prefix + "/meow"));
+
+            assertDirectoryHidden(new File(prefix + "/.meow"));
+        }
+
+        final File nomediaFile = new File("storage/emulated/0/Download/meow", ".nomedia");
+        try {
+            assertTrue(nomediaFile.getParentFile().mkdirs());
+            assertTrue(nomediaFile.createNewFile());
+
+            assertDirectoryHidden(nomediaFile.getParentFile());
+
+            assertTrue(nomediaFile.delete());
+
+            assertDirectoryNotHidden(nomediaFile.getParentFile());
+        } finally {
+            nomediaFile.delete();
+            nomediaFile.getParentFile().delete();
+        }
+    }
+
+    @Test
+    public void testIsDirectoryHidden_downloadDirectory() throws Exception {
         File visibleDir = getNewDirInDownload("testDirectory");
-        assertThat(FileUtils.isDirectoryHidden(visibleDir)).isFalse();
+        assertDirectoryNotHidden(visibleDir);
 
         File hiddenDirName = getNewDirInDownload(".testDirectory");
-        assertThat(FileUtils.isDirectoryHidden(hiddenDirName)).isTrue();
+        assertDirectoryHidden(hiddenDirName);
 
         File hiddenDirNomedia = getNewDirInDownload("testDirectory2");
         File nomedia = new File(hiddenDirNomedia, ".nomedia");
         assertThat(nomedia.createNewFile()).isTrue();
-        assertThat(FileUtils.isDirectoryHidden(hiddenDirNomedia)).isTrue();
+        assertDirectoryHidden(hiddenDirNomedia);
+    }
+
+    @Test
+    public void testIsFileHidden() throws Exception {
+        assertFalse(isFileHidden(
+                new File("/storage/emulated/0/DCIM/IMG1024.JPG")));
+        assertFalse(isFileHidden(
+                new File("/storage/emulated/0/DCIM/.pending-1577836800-IMG1024.JPG")));
+        assertFalse(isFileHidden(
+                new File("/storage/emulated/0/DCIM/.trashed-1577836800-IMG1024.JPG")));
+        assertTrue(isFileHidden(
+                new File("/storage/emulated/0/DCIM/.IMG1024.JPG")));
     }
 
     @Test

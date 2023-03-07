@@ -16,14 +16,24 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Adapts from model to something RecyclerView understands.
@@ -36,7 +46,41 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     // Media items (a.k.a. Items) for "Photos" tab, Albums (a.k.a. Categories) for "Albums" tab
     private static final int ITEM_TYPE_MEDIA_ITEM = 2;
 
-    boolean mShowBanner;
+    @NonNull final ImageLoader mImageLoader;
+    @NonNull private final LiveData<String> mCloudMediaProviderAppTitle;
+    @NonNull private final LiveData<String> mCloudMediaAccountName;
+
+    @Nullable private Banner mBanner;
+    @Nullable private OnBannerClickListener mOnBannerClickListener;
+    /**
+     * Combined list of Sections and Media Items, ordered based on their position in the view.
+     *
+     * (List of {@link com.android.providers.media.photopicker.ui.PhotosTabAdapter.DateHeader} and
+     * {@link com.android.providers.media.photopicker.data.model.Item} for the "Photos" tab)
+     *
+     * (List of {@link com.android.providers.media.photopicker.data.model.Category} for the "Albums"
+     * tab)
+     */
+    @NonNull
+    private final List<Object> mAllItems = new ArrayList<>();
+
+    TabAdapter(@NonNull ImageLoader imageLoader, @NonNull LifecycleOwner lifecycleOwner,
+            @NonNull LiveData<String> cloudMediaProviderAppTitle,
+            @NonNull LiveData<String> cloudMediaAccountName,
+            @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
+            @NonNull LiveData<Boolean> shouldShowCloudMediaAvailableBanner,
+            @NonNull OnBannerClickListener onChooseAppBannerClickListener,
+            @NonNull OnBannerClickListener onCloudMediaAvailableBannerClickListener) {
+        mImageLoader = imageLoader;
+        mCloudMediaProviderAppTitle = cloudMediaProviderAppTitle;
+        mCloudMediaAccountName = cloudMediaAccountName;
+
+        shouldShowChooseAppBanner.observe(lifecycleOwner, isVisible ->
+                setBannerVisibility(isVisible, Banner.CHOOSE_APP, onChooseAppBannerClickListener));
+        shouldShowCloudMediaAvailableBanner.observe(lifecycleOwner, isVisible ->
+                setBannerVisibility(isVisible, Banner.CLOUD_MEDIA_AVAILABLE,
+                        onCloudMediaAvailableBannerClickListener));
+    }
 
     @NonNull
     @Override
@@ -74,11 +118,14 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     @Override
     public final int getItemCount() {
-        return getBannerCount() + getSectionCount() + getMediaItemCount();
+        return getBannerCount() + getAllItemsCount();
     }
 
     @Override
     public final int getItemViewType(int position) {
+        if (position < 0) {
+            throw new IllegalStateException("Get item view type for negative position " + position);
+        }
         if (isItemTypeBanner(position)) {
             return ITEM_TYPE_BANNER;
         } else if (isItemTypeSection(position)) {
@@ -91,20 +138,26 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
+    @NonNull
     private RecyclerView.ViewHolder createBannerViewHolder(@NonNull ViewGroup viewGroup) {
         final View view = getView(viewGroup, R.layout.item_banner);
         return new BannerHolder(view);
     }
 
+    @NonNull
     RecyclerView.ViewHolder createSectionViewHolder(@NonNull ViewGroup viewGroup) {
-        // no-op: descendants may implement
-        return null;
+        // A descendant must override this method if and only if {@link isItemTypeSection} is
+        // implemented and may return {@code true} for them.
+        throw new IllegalStateException("Attempt to create an unimplemented section view holder");
     }
 
+    @NonNull
     abstract RecyclerView.ViewHolder createMediaItemViewHolder(@NonNull ViewGroup viewGroup);
 
     private void onBindBannerViewHolder(@NonNull RecyclerView.ViewHolder itemHolder) {
-        // no-op for now
+        final BannerHolder bannerVH = (BannerHolder) itemHolder;
+        bannerVH.bind(mBanner, mCloudMediaProviderAppTitle.getValue(),
+                mCloudMediaAccountName.getValue(), mOnBannerClickListener);
     }
 
     void onBindSectionViewHolder(@NonNull RecyclerView.ViewHolder itemHolder, int position) {
@@ -114,19 +167,16 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     abstract void onBindMediaItemViewHolder(@NonNull RecyclerView.ViewHolder itemHolder,
             int position);
 
-    final int getBannerCount() {
-        return (mShowBanner ? 1 : 0);
+    private int getBannerCount() {
+        return mBanner != null ? 1 : 0;
     }
 
-    int getSectionCount() {
-        // Effectively a no-op. Extending classes may (or may not) want to override.
-        return 0;
+    private int getAllItemsCount() {
+        return mAllItems.size();
     }
 
-    abstract int getMediaItemCount();
-
-    final boolean isItemTypeBanner(int position) {
-        return position == 0 && mShowBanner;
+    private boolean isItemTypeBanner(int position) {
+        return position > -1 && position < getBannerCount();
     }
 
     boolean isItemTypeSection(int position) {
@@ -137,13 +187,47 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     abstract boolean isItemTypeMediaItem(int position);
 
     /**
-     * Update the banner visibility in tab adapter {@link #mShowBanner}
+     * Update the 'choose app' banner visibility in tab adapter
      */
-    final void setShowBanner(boolean showBanner) {
-        if (showBanner != mShowBanner) {
-            mShowBanner = showBanner;
-            notifyDataSetChanged();
+    private void setBannerVisibility(boolean isVisible, @NonNull Banner banner,
+            @NonNull OnBannerClickListener onBannerClickListener) {
+        if (isVisible) {
+            if (mBanner == null) {
+                mBanner = banner;
+                mOnBannerClickListener = onBannerClickListener;
+                notifyItemInserted(/* position */ 0);
+            } else if (mBanner != banner) {
+                mBanner = banner;
+                mOnBannerClickListener = onBannerClickListener;
+                notifyItemChanged(/* position */ 0);
+            }
+        } else if (mBanner == banner) {
+            mBanner = null;
+            mOnBannerClickListener = null;
+            notifyItemRemoved(/* position */ 0);
         }
+    }
+
+    /**
+     * Update the List of all items (excluding the banner) in tab adapter {@link #mAllItems}
+     */
+    protected final void setAllItems(@NonNull List<?> items) {
+        mAllItems.clear();
+        mAllItems.addAll(items);
+        notifyDataSetChanged();
+    }
+
+    @NonNull
+    final Object getAdapterItem(int position) {
+        if (position < 0) {
+            throw new IllegalStateException("Get adapter item for negative position " + position);
+        }
+        if (isItemTypeBanner(position)) {
+            return mBanner;
+        }
+
+        final int effectiveItemIndex = position - getBannerCount();
+        return mAllItems.get(effectiveItemIndex);
     }
 
     @NonNull
@@ -153,8 +237,102 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     }
 
     private static class BannerHolder extends RecyclerView.ViewHolder {
+        final TextView mPrimaryText;
+        final TextView mSecondaryText;
+        final Button mDismissButton;
+        final Button mActionButton;
+
         BannerHolder(@NonNull View itemView) {
             super(itemView);
+            mPrimaryText = itemView.findViewById(R.id.banner_primary_text);
+            mSecondaryText = itemView.findViewById(R.id.banner_secondary_text);
+            mDismissButton = itemView.findViewById(R.id.dismiss_button);
+            mActionButton = itemView.findViewById(R.id.action_button);
+        }
+
+        void bind(@NonNull Banner banner, String cloudAppName, String cloudUserAccount,
+                @NonNull OnBannerClickListener onBannerClickListener) {
+            final Context context = itemView.getContext();
+
+            itemView.setOnClickListener(v -> onBannerClickListener.onBannerClick());
+
+            mPrimaryText.setText(banner.getPrimaryText(context, cloudAppName));
+            mSecondaryText.setText(banner.getSecondaryText(context, cloudAppName,
+                    cloudUserAccount));
+
+            mDismissButton.setOnClickListener(v -> onBannerClickListener.onDismissButtonClick());
+
+            if (banner.mActionButtonText != -1) {
+                mActionButton.setText(banner.mActionButtonText);
+                mActionButton.setVisibility(View.VISIBLE);
+                mActionButton.setOnClickListener(v -> onBannerClickListener.onActionButtonClick());
+            } else {
+                mActionButton.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    private enum Banner {
+        CLOUD_MEDIA_AVAILABLE(R.string.picker_banner_cloud_first_time_available_title,
+                R.string.picker_banner_cloud_first_time_available_desc,
+                R.string.picker_banner_cloud_change_account_button),
+        ACCOUNT_UPDATED(R.string.picker_banner_cloud_account_changed_title,
+                R.string.picker_banner_cloud_account_changed_desc, /* no action button */ -1),
+        CHOOSE_ACCOUNT(R.string.picker_banner_cloud_choose_account_title,
+                R.string.picker_banner_cloud_choose_account_desc,
+                R.string.picker_banner_cloud_choose_account_button),
+        CHOOSE_APP(R.string.picker_banner_cloud_choose_app_title,
+                R.string.picker_banner_cloud_choose_app_desc,
+                R.string.picker_banner_cloud_choose_app_button);
+
+        @StringRes final int mPrimaryText;
+        @StringRes final int mSecondaryText;
+        @StringRes final int mActionButtonText;
+
+        Banner(int primaryText, int secondaryText, int actionButtonText) {
+            mPrimaryText = primaryText;
+            mSecondaryText = secondaryText;
+            mActionButtonText = actionButtonText;
+        }
+
+        String getPrimaryText(@NonNull Context context, String appName) {
+            switch (this) {
+                case CLOUD_MEDIA_AVAILABLE:
+                    // fall-through
+                case CHOOSE_APP:
+                    return context.getString(mPrimaryText);
+                case ACCOUNT_UPDATED:
+                    // fall-through
+                case CHOOSE_ACCOUNT:
+                    return context.getString(mPrimaryText, appName);
+                default:
+                    throw new IllegalStateException("Unknown banner type " + name());
+            }
+        }
+
+        String getSecondaryText(@NonNull Context context, String appName, String userAccount) {
+            switch (this) {
+                case CLOUD_MEDIA_AVAILABLE:
+                    return context.getString(mSecondaryText, appName, userAccount);
+                case ACCOUNT_UPDATED:
+                    return context.getString(mSecondaryText, userAccount);
+                case CHOOSE_ACCOUNT:
+                    return context.getString(mSecondaryText, appName);
+                case CHOOSE_APP:
+                    return context.getString(mSecondaryText);
+                default:
+                    throw new IllegalStateException("Unknown banner type " + name());
+            }
+        }
+    }
+
+    interface OnBannerClickListener {
+        void onActionButtonClick();
+
+        void onDismissButtonClick();
+
+        default void onBannerClick() {
+            onActionButtonClick();
         }
     }
 }

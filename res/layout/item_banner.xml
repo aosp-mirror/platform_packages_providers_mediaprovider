@@ -15,11 +15,9 @@
   ~ limitations under the License.
   -->
 
-<!-- TODO(b/195009152): Use default Text and Button visibilities post backend implementation -->
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/item_banner"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_gravity="center_horizontal"
@@ -60,7 +58,6 @@
                     android:id="@+id/banner_primary_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/picker_banner_cloud_choose_app_title"
                     android:textSize="@dimen/picker_banner_primary_text_size"
                     android:letterSpacing="@dimen/picker_banner_primary_text_letter_spacing"
                     android:textColor="?attr/pickerBannerPrimaryTextColor"
@@ -70,7 +67,6 @@
                     android:id="@+id/banner_secondary_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/picker_banner_cloud_choose_app_desc"
                     android:textSize="@dimen/picker_banner_secondary_text_size"
                     android:letterSpacing="@dimen/picker_banner_secondary_text_letter_spacing"
                     android:textColor="?attr/pickerBannerSecondaryTextColor"
@@ -81,7 +77,6 @@
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/banner_buttons"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:orientation="horizontal"
@@ -89,51 +84,15 @@
             android:paddingTop="@dimen/picker_banner_layout_buttons_padding_top"
             android:paddingHorizontal="@dimen/picker_banner_layout_buttons_padding_horizontal">
 
-            <!-- TODO Add buttons dynamically to the layout post backend implementation -->
             <Button
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/PickerBannerButtonTheme"
                 android:id="@+id/dismiss_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
                 android:text="@string/picker_banner_cloud_dismiss_button"
-                android:textSize="@dimen/picker_banner_button_text_size"
-                android:letterSpacing="@dimen/picker_banner_button_text_letter_spacing"
-                android:textColor="?attr/pickerBannerButtonTextColor"
             />
 
             <Button
-                style="@style/Widget.Material3.Button.TextButton"
-                android:id="@+id/choose_app_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/picker_banner_cloud_choose_app_button"
-                android:textSize="@dimen/picker_banner_button_text_size"
-                android:letterSpacing="@dimen/picker_banner_button_text_letter_spacing"
-                android:textColor="?attr/pickerBannerButtonTextColor"
-            />
-
-            <Button
-                style="@style/Widget.Material3.Button.TextButton"
-                android:id="@+id/choose_account_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/picker_banner_cloud_choose_account_button"
-                android:textSize="@dimen/picker_banner_button_text_size"
-                android:letterSpacing="@dimen/picker_banner_button_text_letter_spacing"
-                android:textColor="?attr/pickerBannerButtonTextColor"
-                android:visibility="gone"
-            />
-
-            <Button
-                style="@style/Widget.Material3.Button.TextButton"
-                android:id="@+id/change_account_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/picker_banner_cloud_change_account_button"
-                android:textSize="@dimen/picker_banner_button_text_size"
-                android:letterSpacing="@dimen/picker_banner_button_text_letter_spacing"
-                android:textColor="?attr/pickerBannerButtonTextColor"
-                android:visibility="gone"
+                style="@style/PickerBannerButtonTheme"
+                android:id="@+id/action_button"
             />
 
         </LinearLayout>

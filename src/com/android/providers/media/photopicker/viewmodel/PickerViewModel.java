@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.viewmodel;
 
 import static android.content.Intent.ACTION_GET_CONTENT;
+import static android.content.Intent.EXTRA_LOCAL_ONLY;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
@@ -120,6 +121,8 @@ public class PickerViewModel extends AndroidViewModel {
     private Category mCurrentCategory;
     private ConfigStore mConfigStore;
 
+    private boolean mIsLocalOnly;
+
     public PickerViewModel(@NonNull Application application) {
         super(application);
         mAppContext = application.getApplicationContext();
@@ -131,6 +134,7 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger = new PhotoPickerUiEventLogger();
         mConfigStore = new ConfigStore.ConfigStoreImpl();
         mIsUserSelectForApp = false;
+        mIsLocalOnly = false;
         maybeInitialiseAndSetBannersForCurrentUser();
     }
 
@@ -255,9 +259,12 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private Cursor fetchItems(Category category, UserId userId) {
-        if (isUserSelectForApp()) {
-            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
-            // action for permission flow. We only show local items in this case.
+        if (isUserSelectForApp() || isLocalOnly()) {
+            // We only show local items in below cases.
+            // 1. Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+            // action for permission flow.
+            // 2. Photo Picker is launched with {@link EXTRA_LOCAL_ONLY} as true in
+            // {@link ACTION_GET_CONTENT} or {@link ACTION_PICK_IMAGES}.
             return mItemsProvider.getLocalItems(category, /* limit */ -1, mMimeTypeFilters, userId);
         } else {
             return mItemsProvider.getAllItems(category, /* limit */ -1, mMimeTypeFilters, userId);
@@ -355,9 +362,12 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private Cursor fetchCategories(UserId userId) {
-        if (isUserSelectForApp()) {
-            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
-            // action for permission flow. We only show local items in this case.
+        if (isUserSelectForApp() || isLocalOnly()) {
+            // We only show local items in below cases.
+            // 1. Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+            // action for permission flow.
+            // 2. Photo Picker is launched with {@link EXTRA_LOCAL_ONLY} as true in
+            // {@link ACTION_GET_CONTENT} or {@link ACTION_PICK_IMAGES}.
             return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId);
         } else {
             return mItemsProvider.getAllCategories(mMimeTypeFilters, userId);
@@ -407,6 +417,8 @@ public class PickerViewModel extends AndroidViewModel {
         mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
 
         mSelection.parseSelectionValuesFromIntent(intent);
+
+        mIsLocalOnly = intent.getBooleanExtra(EXTRA_LOCAL_ONLY, false);
 
         mIsUserSelectForApp =
                 intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
@@ -555,6 +567,13 @@ public class PickerViewModel extends AndroidViewModel {
             updateBannersForUser(mUserIdManager.getCurrentUserProfileId());
         }
         maybeInitialiseAndSetBannersForCurrentUser();
+    }
+
+
+    // Return whether hotopicker's launch intent has extra {@link EXTRA_LOCAL_ONLY} set to true
+    // or not.
+    public boolean isLocalOnly() {
+        return mIsLocalOnly;
     }
 
     /**

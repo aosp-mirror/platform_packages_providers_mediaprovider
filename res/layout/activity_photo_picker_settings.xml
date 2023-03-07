@@ -46,7 +46,6 @@
 
     <FrameLayout
         android:id="@+id/settings_fragment_container"
-        android:layout_margin="@dimen/picker_settings_margin_default"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />

@@ -27,6 +27,7 @@ import androidx.annotation.VisibleForTesting;
 import androidx.core.util.Supplier;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -334,7 +335,7 @@ public interface ConfigStore {
 
         private static List<String> getStringArrayDeviceConfig(@NonNull String key) {
             final String items = getStringDeviceConfig(key);
-            if (items == null || items.isBlank()) {
+            if (StringUtils.isNullOrEmpty(items)) {
                 return Collections.emptyList();
             }
             return Arrays.asList(items.split(","));

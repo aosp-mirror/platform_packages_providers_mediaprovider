@@ -67,7 +67,17 @@ public class AlbumsTabItemDecoration extends RecyclerView.ItemDecoration {
         final int spanCount = layoutManager.getSpanCount();
 
         // the top gap of the album items on the first row is mSpacing
-        if (adapterPosition <= spanCount) {
+        /**
+         * {@link adapterPosition} for album items =
+         *         {@link TabAdapter#getBannerCount()} + {@link column}
+         *         + ((album item row index) * {@link spanCount}).
+         *
+         * Since {@link TabAdapter#getBannerCount()} only returns a 1 or 0,
+         * and {@link spanCount} > 1,
+         * for the first row of album items, {@link adapterPosition} <= {@link column} + 1,
+         * whereas for the further rows, {@link adapterPosition} > {@link column} + 1.
+         */
+        if (adapterPosition <= column + 1) {
             outRect.top = mSpacing;
         } else {
             outRect.top = mTopSpacing;

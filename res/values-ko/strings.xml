@@ -54,6 +54,8 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{최대 <xliff:g id="COUNT_0">^1</xliff:g>개 항목을 선택하세요}other{최대 <xliff:g id="COUNT_1">^1</xliff:g>개 항목을 선택하세요}}"</string>
     <string name="recent" msgid="6694613584743207874">"최근"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"사진 또는 동영상 없음"</string>
+    <!-- no translation found for picker_album_media_empty_message (7061850698189881671) -->
+    <skip />
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"앨범 없음"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"선택 항목 보기"</string>
     <string name="picker_photos" msgid="7415035516411087392">"사진"</string>
@@ -67,6 +69,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"직장 앱이 일시중지됨"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"직장 사진을 열려면 직장 앱을 사용 설정한 후 다시 시도하세요."</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"앱은 사용자가 선택한 사진에만 액세스할 수 있습니다."</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"이 앱에서 액세스할 수 있도록 허용할 사진과 동영상을 선택하세요"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{항목 <xliff:g id="COUNT_0">^1</xliff:g>개}other{항목 <xliff:g id="COUNT_1">^1</xliff:g>개}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"추가(<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"허용(<xliff:g id="COUNT">^1</xliff:g>)"</string>

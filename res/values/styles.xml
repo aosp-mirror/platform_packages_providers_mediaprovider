@@ -97,6 +97,12 @@
         <item name="android:windowNoTitle">true</item>
     </style>
 
+    <style name="PickerSettingsDefaultTheme" parent="PickerDefaultTheme">
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:listPreferredItemHeightSmall">@dimen/picker_settings_list_item_height</item>
+        <item name="android:listPreferredItemPaddingEnd">@dimen/picker_settings_list_item_padding_end</item>
+    </style>
+
     <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
         <item name="pickerDragBarColor">#DADCE0</item>

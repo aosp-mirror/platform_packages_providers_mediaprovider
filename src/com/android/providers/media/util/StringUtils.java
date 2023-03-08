@@ -136,4 +136,12 @@ public class StringUtils {
         }
         return String.format("%s ( %d )", componentStateAsString, componentState);
     }
+
+    /**
+     * Returns true if dateExpires is empty string or has null value.
+     */
+    public static boolean isNullOrEmpty(String dateExpires) {
+        return dateExpires == null || dateExpires.trim().isEmpty()
+                || dateExpires.trim().equalsIgnoreCase("null");
+    }
 }

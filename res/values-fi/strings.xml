@@ -54,6 +54,8 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Valitse enintään <xliff:g id="COUNT_0">^1</xliff:g> kohde}other{Valitse enintään <xliff:g id="COUNT_1">^1</xliff:g> kohdetta}}"</string>
     <string name="recent" msgid="6694613584743207874">"Viimeisimmät"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Ei kuvia tai videoita"</string>
+    <!-- no translation found for picker_album_media_empty_message (7061850698189881671) -->
+    <skip />
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Ei albumeita"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Katso valitut"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Kuvat"</string>
@@ -67,6 +69,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Työsovellukset on keskeytetty"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Jos haluat avata työkuvasi, laita työsovellukset päälle ja yritä uudelleen"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Sovelluksella on pääsy vain valitsemiisi kuviin"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Valitse kuvat ja videot, joihin sovellus saa pääsyn"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> kohde}other{<xliff:g id="COUNT_1">^1</xliff:g> kohdetta}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Lisää (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Salli (<xliff:g id="COUNT">^1</xliff:g>)"</string>

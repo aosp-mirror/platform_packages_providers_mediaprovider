@@ -297,6 +297,13 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
+    public static final String GET_BACKUP_FILES = "get_backup_files";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
     public static final String DELETE_BACKED_UP_FILE_PATHS = "delete_backed_up_file_paths";
 
     /** {@hide} */
@@ -1516,6 +1523,12 @@ public final class MediaStore {
         /**
          * Package name that contributed this media. The value may be
          * {@code NULL} if ownership cannot be reliably determined.
+         * <p>
+         * From Android {@link Build.VERSION_CODES#UPSIDE_DOWN_CAKE} onwards,
+         * visibility and query of this field will depend on
+         * <a href="/training/basics/intents/package-visibility">package visibility</a>.
+         * For {@link ContentResolver#query} operation, result set will
+         * be restricted to visible packages only.
          */
         @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
         public static final String OWNER_PACKAGE_NAME = "owner_package_name";
@@ -4721,6 +4734,16 @@ public final class MediaStore {
     }
 
     /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String[] getBackupFiles(@NonNull ContentResolver resolver) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_BACKUP_FILES, null, null);
+        return bundle.getStringArray(GET_BACKUP_FILES);
+    }
+
+    /**
      * Block until any pending operations have finished, such as
      * {@link #scanFile} or {@link #scanVolume} requests.
      *
@@ -4857,8 +4880,7 @@ public final class MediaStore {
     }
 
     /** {@hide} */
-    public static String getCurrentCloudProvider(@NonNull Context context) {
-        final ContentResolver resolver = context.getContentResolver();
+    public static String getCurrentCloudProvider(@NonNull ContentResolver resolver) {
         try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
             final Bundle out = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
                     /* extras */ null);

@@ -87,8 +87,8 @@ public class PhotosTabFragment extends TabFragment {
                 mImageLoader, this::onItemClick, this::onItemLongClick, /* lifecycleOwner */ this,
                 mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
                 mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner,
-                showCloudMediaAvailableBanner, mOnChooseAppBannerClickListener,
-                mOnCloudMediaAvailableBannerClickListener);
+                showCloudMediaAvailableBanner, mOnChooseAppBannerEventListener,
+                mOnCloudMediaAvailableBannerEventListener);
 
         if (mCategory.isDefault()) {
             setEmptyMessage(R.string.picker_photos_empty_message);

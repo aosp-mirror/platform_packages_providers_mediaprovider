@@ -51,7 +51,7 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     @NonNull private final LiveData<String> mCloudMediaAccountName;
 
     @Nullable private Banner mBanner;
-    @Nullable private OnBannerClickListener mOnBannerClickListener;
+    @Nullable private OnBannerEventListener mOnBannerEventListener;
     /**
      * Combined list of Sections and Media Items, ordered based on their position in the view.
      *
@@ -69,17 +69,17 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             @NonNull LiveData<String> cloudMediaAccountName,
             @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
             @NonNull LiveData<Boolean> shouldShowCloudMediaAvailableBanner,
-            @NonNull OnBannerClickListener onChooseAppBannerClickListener,
-            @NonNull OnBannerClickListener onCloudMediaAvailableBannerClickListener) {
+            @NonNull OnBannerEventListener onChooseAppBannerEventListener,
+            @NonNull OnBannerEventListener onCloudMediaAvailableBannerEventListener) {
         mImageLoader = imageLoader;
         mCloudMediaProviderAppTitle = cloudMediaProviderAppTitle;
         mCloudMediaAccountName = cloudMediaAccountName;
 
         shouldShowChooseAppBanner.observe(lifecycleOwner, isVisible ->
-                setBannerVisibility(isVisible, Banner.CHOOSE_APP, onChooseAppBannerClickListener));
+                setBannerVisibility(isVisible, Banner.CHOOSE_APP, onChooseAppBannerEventListener));
         shouldShowCloudMediaAvailableBanner.observe(lifecycleOwner, isVisible ->
                 setBannerVisibility(isVisible, Banner.CLOUD_MEDIA_AVAILABLE,
-                        onCloudMediaAvailableBannerClickListener));
+                        onCloudMediaAvailableBannerEventListener));
     }
 
     @NonNull
@@ -157,7 +157,7 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private void onBindBannerViewHolder(@NonNull RecyclerView.ViewHolder itemHolder) {
         final BannerHolder bannerVH = (BannerHolder) itemHolder;
         bannerVH.bind(mBanner, mCloudMediaProviderAppTitle.getValue(),
-                mCloudMediaAccountName.getValue(), mOnBannerClickListener);
+                mCloudMediaAccountName.getValue(), mOnBannerEventListener);
     }
 
     void onBindSectionViewHolder(@NonNull RecyclerView.ViewHolder itemHolder, int position) {
@@ -190,20 +190,21 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
      * Update the 'choose app' banner visibility in tab adapter
      */
     private void setBannerVisibility(boolean isVisible, @NonNull Banner banner,
-            @NonNull OnBannerClickListener onBannerClickListener) {
+            @NonNull OnBannerEventListener onBannerEventListener) {
         if (isVisible) {
             if (mBanner == null) {
                 mBanner = banner;
-                mOnBannerClickListener = onBannerClickListener;
+                mOnBannerEventListener = onBannerEventListener;
                 notifyItemInserted(/* position */ 0);
+                mOnBannerEventListener.onBannerAdded();
             } else if (mBanner != banner) {
                 mBanner = banner;
-                mOnBannerClickListener = onBannerClickListener;
+                mOnBannerEventListener = onBannerEventListener;
                 notifyItemChanged(/* position */ 0);
             }
         } else if (mBanner == banner) {
             mBanner = null;
-            mOnBannerClickListener = null;
+            mOnBannerEventListener = null;
             notifyItemRemoved(/* position */ 0);
         }
     }
@@ -251,21 +252,21 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
 
         void bind(@NonNull Banner banner, String cloudAppName, String cloudUserAccount,
-                @NonNull OnBannerClickListener onBannerClickListener) {
+                @NonNull OnBannerEventListener onBannerEventListener) {
             final Context context = itemView.getContext();
 
-            itemView.setOnClickListener(v -> onBannerClickListener.onBannerClick());
+            itemView.setOnClickListener(v -> onBannerEventListener.onBannerClick());
 
             mPrimaryText.setText(banner.getPrimaryText(context, cloudAppName));
             mSecondaryText.setText(banner.getSecondaryText(context, cloudAppName,
                     cloudUserAccount));
 
-            mDismissButton.setOnClickListener(v -> onBannerClickListener.onDismissButtonClick());
+            mDismissButton.setOnClickListener(v -> onBannerEventListener.onDismissButtonClick());
 
             if (banner.mActionButtonText != -1) {
                 mActionButton.setText(banner.mActionButtonText);
                 mActionButton.setVisibility(View.VISIBLE);
-                mActionButton.setOnClickListener(v -> onBannerClickListener.onActionButtonClick());
+                mActionButton.setOnClickListener(v -> onBannerEventListener.onActionButtonClick());
             } else {
                 mActionButton.setVisibility(View.GONE);
             }
@@ -326,7 +327,7 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
-    interface OnBannerClickListener {
+    interface OnBannerEventListener {
         void onActionButtonClick();
 
         void onDismissButtonClick();
@@ -334,5 +335,7 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         default void onBannerClick() {
             onActionButtonClick();
         }
+
+        void onBannerAdded();
     }
 }

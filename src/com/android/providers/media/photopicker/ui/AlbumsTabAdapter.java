@@ -44,9 +44,12 @@ class AlbumsTabAdapter extends TabAdapter {
             @NonNull LiveData<String> cloudMediaProviderAppTitle,
             @NonNull LiveData<String> cloudMediaAccountName,
             @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
-            @NonNull OnBannerClickListener onChooseAppBannerClickListener) {
+            @NonNull LiveData<Boolean> shouldShowCloudMediaAvailableBanner,
+            @NonNull OnBannerEventListener onChooseAppBannerEventListener,
+            @NonNull OnBannerEventListener onCloudMediaAvailableBannerEventListener) {
         super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
-                shouldShowChooseAppBanner, onChooseAppBannerClickListener);
+                shouldShowChooseAppBanner, shouldShowCloudMediaAvailableBanner,
+                onChooseAppBannerEventListener, onCloudMediaAvailableBannerEventListener);
         mOnAlbumClickListener = onAlbumClickListener;
         mHasMimeTypeFilter = hasMimeTypeFilter;
     }

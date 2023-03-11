@@ -54,8 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Изаберите највише <xliff:g id="COUNT_0">^1</xliff:g> ставку}one{Изаберите највише <xliff:g id="COUNT_1">^1</xliff:g> ставку}few{Изаберите највише <xliff:g id="COUNT_1">^1</xliff:g> ставке}other{Изаберите највише <xliff:g id="COUNT_1">^1</xliff:g> ставки}}"</string>
     <string name="recent" msgid="6694613584743207874">"Недавно"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Нема слика нити видео снимака"</string>
-    <!-- no translation found for picker_album_media_empty_message (7061850698189881671) -->
-    <skip />
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Нема подржаних слика нити видео снимака"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Нема албума"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Прикажи изабранo"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Слике"</string>

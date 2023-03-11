@@ -310,7 +310,9 @@ public abstract class TabFragment extends Fragment {
 
         mPickerViewModel.updateItems();
         mPickerViewModel.updateCategories();
-        mPickerViewModel.setBannersForCurrentUser();
+        // Note - Banners should always be updated after the items & categories to ensure a
+        // consistent UI.
+        mPickerViewModel.maybeInitialiseAndSetBannersForCurrentUser();
     }
 
     private void updateProfileButtonContent(boolean isManagedUserSelected) {
@@ -446,21 +448,39 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setLayoutManager(layoutManager);
     }
 
-    protected final TabAdapter.OnBannerClickListener mOnChooseAppBannerClickListener =
-            new TabAdapter.OnBannerClickListener() {
-                @Override
-                public void onActionButtonClick() {
-                    dismissBanner();
-                    getPickerActivity().startSettingsActivity();
-                }
+    private abstract class OnBannerEventListener implements TabAdapter.OnBannerEventListener {
+        @Override
+        public void onActionButtonClick() {
+            dismissBanner();
+            getPickerActivity().startSettingsActivity();
+        }
 
-                @Override
-                public void onDismissButtonClick() {
-                    dismissBanner();
-                }
+        @Override
+        public void onDismissButtonClick() {
+            dismissBanner();
+        }
 
-                private void dismissBanner() {
+        @Override
+        public void onBannerAdded() {
+            mRecyclerView.scrollToPosition(/* position */ 0);
+        }
+
+        abstract void dismissBanner();
+    }
+
+    protected final OnBannerEventListener mOnChooseAppBannerEventListener =
+            new OnBannerEventListener() {
+                @Override
+                void dismissBanner() {
                     mPickerViewModel.onUserDismissedChooseAppBanner();
+                }
+            };
+
+    protected final OnBannerEventListener mOnCloudMediaAvailableBannerEventListener =
+            new OnBannerEventListener() {
+                @Override
+                void dismissBanner() {
+                    mPickerViewModel.onUserDismissedCloudMediaAvailableBanner();
                 }
             };
 }

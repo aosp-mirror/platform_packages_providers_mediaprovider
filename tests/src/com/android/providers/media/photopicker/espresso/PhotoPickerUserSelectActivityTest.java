@@ -134,6 +134,14 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
 
     @Ignore
     @Test
+    public void testNoCloudSettings() {
+        launchValidActivity();
+
+        OverflowMenuUtils.assertOverflowMenuNotShown();
+    }
+
+    @Ignore
+    @Test
     public void testUserSelectCorrectHeaderTextIsShown() {
         launchValidActivity();
         onView(withText(R.string.picker_header_permissions)).check(matches(isDisplayed()));

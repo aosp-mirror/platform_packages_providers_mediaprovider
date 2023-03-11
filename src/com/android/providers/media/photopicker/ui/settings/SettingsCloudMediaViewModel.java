@@ -20,6 +20,7 @@ import static android.provider.MediaStore.AUTHORITY;
 
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.fetchProviderAuthority;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.getAllAvailableCloudProviders;
+import static com.android.providers.media.photopicker.util.CloudProviderUtils.getCloudMediaAccountName;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.persistSelectedProvider;
 
 import static java.util.Objects.requireNonNull;
@@ -28,18 +29,23 @@ import android.content.ContentProviderClient;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.os.Looper;
 import android.os.UserHandle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
 import androidx.annotation.VisibleForTesting;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.util.ForegroundThread;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,11 +54,13 @@ import java.util.List;
  * SettingsCloudMediaViewModel stores cloud media app settings data for each profile.
  */
 public class SettingsCloudMediaViewModel extends ViewModel {
-    public static final String NONE_PREF_KEY = "none";
+    static final String NONE_PREF_KEY = "none";
     private static final String TAG = "SettingsFragVM";
 
     @NonNull
     private final Context mContext;
+    @NonNull
+    private final MutableLiveData<CloudMediaProviderAccount> mCurrentProviderAccount;
     @NonNull
     private final List<CloudMediaProviderOption> mProviderOptions;
     @NonNull
@@ -60,7 +68,7 @@ public class SettingsCloudMediaViewModel extends ViewModel {
     @Nullable
     private String mSelectedProviderAuthority;
 
-    public SettingsCloudMediaViewModel(
+    SettingsCloudMediaViewModel(
             @NonNull Context context,
             @NonNull UserId userId) {
         super();
@@ -69,27 +77,33 @@ public class SettingsCloudMediaViewModel extends ViewModel {
         mUserId = requireNonNull(userId);
         mProviderOptions = new ArrayList<>();
         mSelectedProviderAuthority = null;
+        mCurrentProviderAccount = new MutableLiveData<CloudMediaProviderAccount>();
     }
 
     @NonNull
-    public List<CloudMediaProviderOption> getProviderOptions() {
+    List<CloudMediaProviderOption> getProviderOptions() {
         return mProviderOptions;
     }
 
     @Nullable
-    public String getSelectedProviderAuthority() {
+    String getSelectedProviderAuthority() {
         return mSelectedProviderAuthority;
     }
 
+    @NonNull
+    LiveData<CloudMediaProviderAccount> getCurrentProviderAccount() {
+        return mCurrentProviderAccount;
+    }
+
     @Nullable
-    public String getSelectedPreferenceKey() {
+    String getSelectedPreferenceKey() {
         return getPreferenceKey(mSelectedProviderAuthority);
     }
 
     /**
      * Fetch and cache the available cloud provider options and the selected provider.
      */
-    public void loadData(@NonNull ConfigStore configStore) {
+    void loadData(@NonNull ConfigStore configStore) {
         refreshProviderOptions(configStore);
         refreshSelectedProvider();
     }
@@ -98,7 +112,7 @@ public class SettingsCloudMediaViewModel extends ViewModel {
      * Updates the selected cloud provider on disk and in cache.
      * Returns true if the update was successful.
      */
-    public boolean updateSelectedProvider(@NonNull String newPreferenceKey) {
+    boolean updateSelectedProvider(@NonNull String newPreferenceKey) {
         final String newCloudProvider = getProviderAuthority(newPreferenceKey);
         try (ContentProviderClient client = getContentProviderClient()) {
             if (client == null) {
@@ -153,6 +167,41 @@ public class SettingsCloudMediaViewModel extends ViewModel {
             // page, if we're not able to fetch this info, there is no point in displaying this
             // activity.
             throw new IllegalArgumentException("Could not get selected cloud provider", e);
+        }
+    }
+
+    @UiThread
+    void loadAccountNameAsync() {
+        if (!Looper.getMainLooper().isCurrentThread()) {
+            // This method should only be run from the UI thread so that fetch account name
+            // requests are executed serially.
+            Log.d(TAG, "loadAccountNameAsync method needs to be called from the UI thread");
+            return;
+        }
+
+        final String providerAuthority = getSelectedProviderAuthority();
+        // Foreground thread internally uses a queue to execute each request in a serialized manner.
+        ForegroundThread.getExecutor().execute(() -> {
+            mCurrentProviderAccount.postValue(
+                    fetchAccountFromProvider(providerAuthority));
+        });
+    }
+
+    @Nullable
+    private CloudMediaProviderAccount fetchAccountFromProvider(
+            @Nullable String currentProviderAuthority) {
+        if (currentProviderAuthority == null) {
+            // If the selected cloud provider preference is "None", account name is not applicable.
+            return null;
+        } else {
+            try {
+                final String accountName = getCloudMediaAccountName(
+                        mUserId.getContentResolver(mContext), currentProviderAuthority);
+                return new CloudMediaProviderAccount(currentProviderAuthority, accountName);
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to fetch account name from the cloud media provider.", e);
+                return null;
+            }
         }
     }
 

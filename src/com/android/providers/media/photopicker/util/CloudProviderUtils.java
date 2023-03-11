@@ -17,14 +17,18 @@
 package com.android.providers.media.photopicker.util;
 
 import static android.provider.CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION;
+import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME;
 import static android.provider.MediaStore.EXTRA_CLOUD_PROVIDER;
 import static android.provider.MediaStore.GET_CLOUD_PROVIDER_CALL;
 import static android.provider.MediaStore.GET_CLOUD_PROVIDER_RESULT;
 import static android.provider.MediaStore.SET_CLOUD_PROVIDER_CALL;
 
 import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ResolveInfo;
 import android.os.Bundle;
@@ -40,6 +44,7 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.data.CloudProviderInfo;
+import com.android.providers.media.photopicker.data.model.UserId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -174,5 +179,61 @@ public class CloudProviderUtils {
         final Bundle result = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
                 /* extras */ null);
         return result.getString(GET_CLOUD_PROVIDER_RESULT, defaultAuthority);
+    }
+
+    /**
+     * @return the label for the {@link ProviderInfo} with {@code authority} for the given
+     *         {@link UserHandle}.
+     */
+    @Nullable
+    public static String getProviderLabelForUser(@NonNull Context context, @NonNull UserHandle user,
+            @Nullable String authority) throws PackageManager.NameNotFoundException {
+        if (authority == null) {
+            return null;
+        }
+
+        final PackageManager packageManager = UserId.of(user).getPackageManager(context);
+        return getProviderLabel(packageManager, authority);
+    }
+
+    /**
+     * @return the label for the {@link ProviderInfo} with {@code authority}.
+     */
+    @NonNull
+    public static String getProviderLabel(@NonNull PackageManager packageManager,
+            @NonNull String authority) {
+        final ProviderInfo providerInfo = packageManager.resolveContentProvider(
+                authority, /* flags */ 0);
+        return getProviderLabel(packageManager, providerInfo);
+    }
+
+    /**
+     * @return the label for the given {@link ProviderInfo}.
+     */
+    @NonNull
+    public static String getProviderLabel(@NonNull PackageManager packageManager,
+            @NonNull ProviderInfo providerInfo) {
+        return String.valueOf(providerInfo.loadLabel(packageManager));
+    }
+
+    /**
+     * @return the current cloud media account name for the {@link CloudMediaProvider} with the
+     *         given {@code cloudMediaProviderAuthority}.
+     */
+    @Nullable
+    public static String getCloudMediaAccountName(@NonNull ContentResolver resolver,
+            @Nullable String cloudMediaProviderAuthority) {
+        if (cloudMediaProviderAuthority == null) {
+            return null;
+        }
+
+        try (ContentProviderClient client =
+                     resolver.acquireContentProviderClient(cloudMediaProviderAuthority)) {
+            final Bundle out = client.call(METHOD_GET_MEDIA_COLLECTION_INFO, /* arg */ null,
+                    /* extras */ null);
+            return out.getString(ACCOUNT_NAME);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
     }
 }

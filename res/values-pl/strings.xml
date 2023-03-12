@@ -54,8 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Wybierz maksymalnie <xliff:g id="COUNT_0">^1</xliff:g> element}few{Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementy}many{Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementów}other{Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementu}}"</string>
     <string name="recent" msgid="6694613584743207874">"Ostatnie"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Brak zdjęć i filmów"</string>
-    <!-- no translation found for picker_album_media_empty_message (7061850698189881671) -->
-    <skip />
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Brak obsługiwanych zdjęć i filmów"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Brak albumów"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Wyświetl wybrane"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Zdjęcia"</string>

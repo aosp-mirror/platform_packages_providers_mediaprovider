@@ -483,4 +483,20 @@ public abstract class TabFragment extends Fragment {
                     mPickerViewModel.onUserDismissedCloudMediaAvailableBanner();
                 }
             };
+
+    protected final OnBannerEventListener mOnAccountUpdatedBannerEventListener =
+            new OnBannerEventListener() {
+                @Override
+                void dismissBanner() {
+                    mPickerViewModel.onUserDismissedAccountUpdatedBanner();
+                }
+            };
+
+    protected final OnBannerEventListener mOnChooseAccountBannerEventListener =
+            new OnBannerEventListener() {
+                @Override
+                void dismissBanner() {
+                    mPickerViewModel.onUserDismissedChooseAccountBanner();
+                }
+            };
 }

@@ -478,7 +478,7 @@ public class PermissionActivity extends Activity {
 
         // if verb is write, check ACCESS_MEDIA_LOCATION permission
         if (TextUtils.equals(verb, VERB_WRITE) && !checkPermissionAccessMediaLocation(context, pid,
-                uid, packageName, attributionTag)) {
+                uid, packageName, attributionTag, isTargetSdkAtLeastT)) {
             Log.d(TAG, "No permission ACCESS_MEDIA_LOCATION");
             return true;
         }

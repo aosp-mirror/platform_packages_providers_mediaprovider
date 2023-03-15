@@ -58,10 +58,12 @@ java_sdk_library {
 
 filegroup {
     name: "framework-mediaprovider-sources",
+    defaults: ["framework-sources-module-defaults"],
     srcs: [
         "java/**/*.java",
     ],
     path: "java",
+    visibility: ["//packages/providers/MediaProvider/tests"],
 }
 
 java_api_contribution {

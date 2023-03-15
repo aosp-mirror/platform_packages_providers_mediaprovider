@@ -103,6 +103,8 @@ public class CloudProviderUtils {
             @NonNull UserHandle userHandle) {
         Objects.requireNonNull(context);
 
+        ignoreAllowlist = ignoreAllowlist || !configStore.shouldEnforceCloudProviderAllowlist();
+
         final List<CloudProviderInfo> providers = new ArrayList<>();
 
         // We do not need to get the allowlist from the ConfigStore if we are going to skip

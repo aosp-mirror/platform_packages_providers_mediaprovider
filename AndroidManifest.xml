@@ -177,7 +177,8 @@
                 android:label="@string/picker_app_label"
                 android:theme="@style/PickerDefaultTheme"
                 android:exported="true"
-                android:excludeFromRecents="true" >
+                android:excludeFromRecents="true"
+                android:colorMode="wideColorGamut">
             <intent-filter android:priority="100" >
                 <action android:name="android.provider.action.PICK_IMAGES" />
                 <category android:name="android.intent.category.DEFAULT" />

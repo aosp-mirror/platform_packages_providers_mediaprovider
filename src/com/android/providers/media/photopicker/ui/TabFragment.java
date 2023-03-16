@@ -448,7 +448,7 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setLayoutManager(layoutManager);
     }
 
-    private abstract class OnBannerClickListener implements TabAdapter.OnBannerClickListener {
+    private abstract class OnBannerEventListener implements TabAdapter.OnBannerEventListener {
         @Override
         public void onActionButtonClick() {
             dismissBanner();
@@ -460,19 +460,24 @@ public abstract class TabFragment extends Fragment {
             dismissBanner();
         }
 
+        @Override
+        public void onBannerAdded() {
+            mRecyclerView.scrollToPosition(/* position */ 0);
+        }
+
         abstract void dismissBanner();
     }
 
-    protected final OnBannerClickListener mOnChooseAppBannerClickListener =
-            new OnBannerClickListener() {
+    protected final OnBannerEventListener mOnChooseAppBannerEventListener =
+            new OnBannerEventListener() {
                 @Override
                 void dismissBanner() {
                     mPickerViewModel.onUserDismissedChooseAppBanner();
                 }
             };
 
-    protected final OnBannerClickListener mOnCloudMediaAvailableBannerClickListener =
-            new OnBannerClickListener() {
+    protected final OnBannerEventListener mOnCloudMediaAvailableBannerEventListener =
+            new OnBannerEventListener() {
                 @Override
                 void dismissBanner() {
                     mPickerViewModel.onUserDismissedCloudMediaAvailableBanner();

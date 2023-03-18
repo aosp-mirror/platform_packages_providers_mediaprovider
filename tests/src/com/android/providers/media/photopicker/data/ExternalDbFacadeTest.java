@@ -930,7 +930,7 @@ public class ExternalDbFacadeTest {
     private static class TestDatabaseHelper extends DatabaseHelper {
         public TestDatabaseHelper(Context context) {
             super(context, TEST_CLEAN_DB, 1, false, false, new ProjectionHelper(null, null), null,
-                    null, null, null, false);
+                    null, null, null, false, null);
         }
     }
 }

@@ -58,6 +58,7 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.content.OperationApplicationException;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteBlobTooBigException;
 import android.database.sqlite.SQLiteDatabase;
 import android.drm.DrmManagerClient;
 import android.drm.DrmSupportInfo;
@@ -515,31 +516,21 @@ public class ModernMediaScanner implements MediaScanner {
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
 
-            final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
-            try (Cursor c = mResolver.query(mFilesUri,
-                    new String[]{FileColumns._ID, FileColumns.MEDIA_TYPE, FileColumns.DATE_EXPIRES,
-                            FileColumns.IS_PENDING}, queryArgs, mSignal)) {
-                while (c.moveToNext()) {
-                    final long id = c.getLong(0);
-                    if (Arrays.binarySearch(scannedIds, id) < 0) {
-                        final long dateExpire = c.getLong(2);
-                        final boolean isPending = c.getInt(3) == 1;
-                        // Don't delete the pending item which is not expired.
-                        // If the scan is triggered between invoking
-                        // ContentResolver#insert() and ContentResolver#openFileDescriptor(),
-                        // it raises the FileNotFoundException b/166063754.
-                        if (isPending && dateExpire > System.currentTimeMillis() / 1000) {
-                            continue;
-                        }
-                        mUnknownIds.add(id);
-                        final int mediaType = c.getInt(1);
-                        // Avoid ArrayIndexOutOfBounds if more mediaTypes are added,
-                        // but mediaTypeSize is not updated
-                        if (mediaType < countPerMediaType.length) {
-                            countPerMediaType[mediaType]++;
-                        }
-                    }
-                }
+            int[] countPerMediaType;
+            try {
+                countPerMediaType = addUnknownIdsAndGetMediaTypeCount(queryArgs, scannedIds);
+            } catch (SQLiteBlobTooBigException e) {
+                // Catching SQLiteBlobTooBigException to avoid MP process crash. There can be two
+                // scenarios where SQLiteBlobTooBigException is thrown.
+                // First, where data read by cursor is more than 2MB size. In this case,
+                // next fill window request might try to read data which may not exist anymore due
+                // to a recent update after the last query.
+                // Second, when columns being read have total size of more than 2MB.
+                // We intend to solve for first scenario by querying MP again. If the initial
+                // failure was because of second scenario, a runtime exception will be thrown.
+                Log.e(TAG, "Encountered exception: ", e);
+                mUnknownIds.clear();
+                countPerMediaType = addUnknownIdsAndGetMediaTypeCount(queryArgs, scannedIds);
             } finally {
                 Trace.endSection();
             }
@@ -565,6 +556,37 @@ public class ModernMediaScanner implements MediaScanner {
                 }
                 Trace.endSection();
             }
+        }
+
+        private int[] addUnknownIdsAndGetMediaTypeCount(Bundle queryArgs, long[] scannedIds) {
+            int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
+            try (Cursor c = mResolver.query(mFilesUri,
+                    new String[]{FileColumns._ID, FileColumns.MEDIA_TYPE, FileColumns.DATE_EXPIRES,
+                            FileColumns.IS_PENDING}, queryArgs, mSignal)) {
+                while (c.moveToNext()) {
+                    final long id = c.getLong(0);
+                    if (Arrays.binarySearch(scannedIds, id) < 0) {
+                        final long dateExpire = c.getLong(2);
+                        final boolean isPending = c.getInt(3) == 1;
+                        // Don't delete the pending item which is not expired.
+                        // If the scan is triggered between invoking
+                        // ContentResolver#insert() and ContentResolver#openFileDescriptor(),
+                        // it raises the FileNotFoundException b/166063754.
+                        if (isPending && dateExpire > System.currentTimeMillis() / 1000) {
+                            continue;
+                        }
+                        mUnknownIds.add(id);
+                        final int mediaType = c.getInt(1);
+                        // Avoid ArrayIndexOutOfBounds if more mediaTypes are added,
+                        // but mediaTypeSize is not updated
+                        if (mediaType < countPerMediaType.length) {
+                            countPerMediaType[mediaType]++;
+                        }
+                    }
+                }
+            }
+
+            return countPerMediaType;
         }
 
         private void resolvePlaylists() {

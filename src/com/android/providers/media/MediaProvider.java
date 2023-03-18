@@ -60,9 +60,9 @@ import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageM
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
+import static com.android.providers.media.DatabaseBackupAndRecovery.LEVEL_DB_READ_LIMIT;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
-import static com.android.providers.media.DatabaseHelper.LEVEL_DB_READ_LIMIT;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_ACCESS_MTP;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_INSTALL_PACKAGES;
@@ -447,6 +447,12 @@ public class MediaProvider extends ContentProvider {
      * kept around for app compatibility in R.
      */
     private static final String QUERY_ARG_DO_ASYNC_SCAN = "android:query-arg-do-async-scan";
+
+    /**
+     * Time between two polling attempts for availability of FuseDaemon thread.
+     */
+    private static final long POLLING_TIME_IN_MILLIS = 100;
+
     /**
      * Enable option to defer the scan triggered as part of MediaProvider#update()
      */
@@ -624,20 +630,24 @@ public class MediaProvider extends ContentProvider {
         if (!SdkLevel.isAtLeastU() || !isReadMediaAppOp(op)) {
             return;
         }
-
-        final int uid;
-        try {
-            uid = getContext().getPackageManager().getPackageUid(packageName, 0);
-        } catch (NameNotFoundException e) {
-            Log.e(TAG, "Unable to resolve uid. Ignoring the AppOp change for " + packageName);
-            return;
-        }
-
-        final LocalCallingIdentity localCallingIdentity =
-                LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid);
-        if (!localCallingIdentity.checkCallingPermissionUserSelected()) {
-            // Revoke media grants if permission state is not "Select flow".
-            mMediaGrants.removeAllMediaGrantsForPackage(packageName, "op " + op /* reason */);
+        Context context = getContext();
+        PackageManager packageManager = context.getPackageManager();
+        List<UserHandle> userHandles = mUserCache.getUsersCached();
+        for (UserHandle user : userHandles) {
+            try {
+                int uid = packageManager.getPackageUid(packageName, user.getIdentifier());
+                if (!LocalCallingIdentity.fromExternal(context, mUserCache, uid)
+                        .checkCallingPermissionUserSelected()) {
+                    // If for any user profile containing the package, the UserSelected permission
+                    // has been removed then remove all media grants for that package.
+                    // Revoke media grants if permission state is not "Select flow".
+                    mMediaGrants.removeAllMediaGrantsForPackage(packageName, "op "
+                            + op /* reason */, user.getIdentifier());
+                }
+            } catch (NameNotFoundException e) {
+                Log.d(TAG, "Unable to resolve uid. Ignoring the AppOp change for "
+                        + packageName + ", User : " + user.getIdentifier());
+            }
         }
     }
 
@@ -1186,25 +1196,25 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
+        mConfigStore = createConfigStore();
+        mDatabaseBackupAndRecovery = createDatabaseBackupAndRecovery();
+
         mMediaScanner = new ModernMediaScanner(context);
         mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false, false,
                 mProjectionHelper, Metrics::logSchemaChange, mFilesListener,
-                MIGRATION_LISTENER, mIdGenerator, true);
+                MIGRATION_LISTENER, mIdGenerator, true, mDatabaseBackupAndRecovery);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false,
                 mProjectionHelper, Metrics::logSchemaChange, mFilesListener,
-                MIGRATION_LISTENER, mIdGenerator, true);
+                MIGRATION_LISTENER, mIdGenerator, true, mDatabaseBackupAndRecovery);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
         mPickerDbFacade = new PickerDbFacade(context);
 
         mMediaGrants = new MediaGrants(mExternalDatabase);
 
-        mConfigStore = createConfigStore();
         mPickerSyncController = new PickerSyncController(context, mPickerDbFacade, mConfigStore);
         mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper);
-
-        mDatabaseBackupAndRecovery = createDatabaseBackupAndRecovery();
 
         if (SdkLevel.isAtLeastS()) {
             mTranscodeHelper = new TranscodeHelperImpl(context, this, mConfigStore);
@@ -1823,7 +1833,8 @@ public class MediaProvider extends ContentProvider {
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
         // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package is removed.
-        mMediaGrants.removeAllMediaGrantsForPackage(packageName, /* reason */ "Package orphaned");
+        mMediaGrants.removeAllMediaGrantsForPackage(packageName, /* reason */ "Package orphaned",
+                userId);
     }
 
     private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
@@ -6649,7 +6660,7 @@ public class MediaProvider extends ContentProvider {
                 getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
                         "Permission missing to call RUN_IDLE_MAINTENANCE_FOR_STABLE_URIS by "
                                 + "uid:" + Binder.getCallingUid());
-                mDatabaseBackupAndRecovery.backupDatabases(null);
+                backupDatabases(null);
                 return new Bundle();
             }
             case MediaStore.READ_BACKED_UP_FILE_PATHS: {
@@ -6701,6 +6712,10 @@ public class MediaProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
+    }
+
+    public void backupDatabases(CancellationSignal signal) {
+        mDatabaseBackupAndRecovery.backupDatabases(mInternalDatabase, signal);
     }
 
     private void syncAllMedia() {
@@ -8548,6 +8563,28 @@ public class MediaProvider extends ContentProvider {
             throw new FileNotFoundException("Missing FUSE daemon for " + file);
         } else {
             return daemon;
+        }
+    }
+
+    @NonNull
+    public static FuseDaemon getFuseDaemonForFileWithWait(@NonNull File file,
+            VolumeCache volumeCache, long waitTimeInMilliseconds) throws FileNotFoundException {
+        FuseDaemon fuseDaemon = null;
+        long time = 0;
+        while (time < waitTimeInMilliseconds) {
+            fuseDaemon = ExternalStorageServiceImpl.getFuseDaemon(
+                    volumeCache.getVolumeId(file));
+            if (fuseDaemon != null) {
+                break;
+            }
+            SystemClock.sleep(POLLING_TIME_IN_MILLIS);
+            time += POLLING_TIME_IN_MILLIS;
+        }
+
+        if (fuseDaemon == null) {
+            throw new FileNotFoundException("Missing FUSE daemon for " + file);
+        } else {
+            return fuseDaemon;
         }
     }
 
@@ -10866,6 +10903,6 @@ public class MediaProvider extends ContentProvider {
     }
 
     protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
-        return new DatabaseBackupAndRecovery(this, mConfigStore, mVolumeCache);
+        return new DatabaseBackupAndRecovery(mConfigStore, mVolumeCache);
     }
 }

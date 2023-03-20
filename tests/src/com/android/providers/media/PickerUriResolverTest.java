@@ -50,6 +50,7 @@ import android.provider.MediaStore;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 
@@ -401,7 +402,8 @@ public class PickerUriResolverTest {
     }
 
     private void testGetType(Uri uri, String expectedMimeType) throws Exception {
-        String mimeType = sTestPickerUriResolver.getType(uri);
+        String mimeType = sTestPickerUriResolver.getType(uri,
+                /* callingPid */ -1, /* callingUid */ -1);
         assertThat(mimeType).isEqualTo(expectedMimeType);
     }
 
@@ -436,7 +438,7 @@ public class PickerUriResolverTest {
 
     private void testGetTypeInvalidUser(Uri uri) throws Exception {
         try {
-            sTestPickerUriResolver.getType(uri);
+            sTestPickerUriResolver.getType(uri, /* callingPid */ -1, /* callingUid */ -1);
             fail("Invalid user specified in the picker uri: " + uri);
         } catch (IllegalStateException expected) {
             // expected
@@ -485,7 +487,19 @@ public class PickerUriResolverTest {
     }
 
     private void testGetType_permissionDenied(Uri uri) throws Exception {
-        // getType is unaffected by uri permission grants
-        testGetType(uri, "image/jpeg");
+        if (SdkLevel.isAtLeastU()) {
+            try {
+                sTestPickerUriResolver.getType(uri, /* callingPid */ -1, /* callingUid */ -1);
+                fail("getType should fail if the caller does not have permission grant on"
+                        + " the picker uri: " + uri);
+            } catch (SecurityException expected) {
+                // expected
+                assertThat(expected.getMessage()).isEqualTo("Calling uid ( -1 ) does not have"
+                        + " permission to access picker uri: " + uri);
+            }
+        } else {
+            // getType is unaffected by uri permission grants for U- builds
+            testGetType(uri, "image/jpeg");
+        }
     }
 }

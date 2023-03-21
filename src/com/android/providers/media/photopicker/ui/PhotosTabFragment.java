@@ -76,19 +76,23 @@ public class PhotosTabFragment extends TabFragment {
 
         // We only show the Banners on the PhotosTabFragment with CATEGORY_DEFAULT (Main grid).
         final boolean shouldShowBanners = mCategory.isDefault();
+        final LiveData<Boolean> doNotShowBanner = new MutableLiveData<>(false);
         final LiveData<Boolean> showChooseAppBanner = shouldShowBanners
-                ? mPickerViewModel.shouldShowChooseAppBannerLiveData()
-                : new MutableLiveData<>(false);
+                ? mPickerViewModel.shouldShowChooseAppBannerLiveData() : doNotShowBanner;
         final LiveData<Boolean> showCloudMediaAvailableBanner = shouldShowBanners
-                ? mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData()
-                : new MutableLiveData<>(false);
+                ? mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData() : doNotShowBanner;
+        final LiveData<Boolean> showAccountUpdatedBanner = shouldShowBanners
+                ? mPickerViewModel.shouldShowAccountUpdatedBannerLiveData() : doNotShowBanner;
+        final LiveData<Boolean> showChooseAccountBanner = shouldShowBanners
+                ? mPickerViewModel.shouldShowChooseAccountBannerLiveData() : doNotShowBanner;
 
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
                 mImageLoader, this::onItemClick, this::onItemLongClick, /* lifecycleOwner */ this,
                 mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
                 mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner,
-                showCloudMediaAvailableBanner, mOnChooseAppBannerEventListener,
-                mOnCloudMediaAvailableBannerEventListener);
+                showCloudMediaAvailableBanner, showAccountUpdatedBanner, showChooseAccountBanner,
+                mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
+                mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
 
         if (mCategory.isDefault()) {
             setEmptyMessage(R.string.picker_photos_empty_message);

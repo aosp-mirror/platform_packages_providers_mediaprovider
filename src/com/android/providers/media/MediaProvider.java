@@ -3780,14 +3780,12 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_MEDIA_ID:
             case DOWNLOADS_ID:
             case FILES_ID:
-                final LocalCallingIdentity token = clearLocalCallingIdentity();
-                try (Cursor cursor = queryForSingleItem(url,
-                        new String[] { MediaColumns.MIME_TYPE }, null, null, null)) {
-                    return cursor.getString(0);
-                } catch (FileNotFoundException e) {
-                    throw new IllegalArgumentException(e.getMessage());
-                } finally {
-                     restoreLocalCallingIdentity(token);
+                if (SdkLevel.isAtLeastU()) {
+                    // Starting Android 14, there is permission check for
+                    // getting types requiring internal query.
+                    return queryForTypeAsCaller(url);
+                } else {
+                    return queryForTypeAsSelf(url);
                 }
 
             case IMAGES_MEDIA:
@@ -3820,9 +3818,28 @@ public class MediaProvider extends ContentProvider {
                 return Downloads.CONTENT_TYPE;
 
             case PICKER_ID:
-                return mPickerUriResolver.getType(url);
+                return mPickerUriResolver.getType(url, Binder.getCallingPid(),
+                        Binder.getCallingUid());
         }
         throw new IllegalStateException("Unknown URL : " + url);
+    }
+
+    private String queryForTypeAsSelf(Uri url) {
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try {
+            return queryForTypeAsCaller(url);
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+    }
+
+    private String queryForTypeAsCaller(Uri url) {
+        try (Cursor cursor = queryForSingleItem(url,
+                new String[] { MediaColumns.MIME_TYPE }, null, null, null)) {
+            return cursor.getString(0);
+        } catch (FileNotFoundException e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
     }
 
     @VisibleForTesting

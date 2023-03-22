@@ -69,8 +69,12 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             @NonNull LiveData<String> cloudMediaAccountName,
             @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
             @NonNull LiveData<Boolean> shouldShowCloudMediaAvailableBanner,
+            @NonNull LiveData<Boolean> shouldShowAccountUpdatedBanner,
+            @NonNull LiveData<Boolean> shouldShowChooseAccountBanner,
             @NonNull OnBannerEventListener onChooseAppBannerEventListener,
-            @NonNull OnBannerEventListener onCloudMediaAvailableBannerEventListener) {
+            @NonNull OnBannerEventListener onCloudMediaAvailableBannerEventListener,
+            @NonNull OnBannerEventListener onAccountUpdatedBannerEventListener,
+            @NonNull OnBannerEventListener onChooseAccountBannerEventListener) {
         mImageLoader = imageLoader;
         mCloudMediaProviderAppTitle = cloudMediaProviderAppTitle;
         mCloudMediaAccountName = cloudMediaAccountName;
@@ -80,6 +84,12 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         shouldShowCloudMediaAvailableBanner.observe(lifecycleOwner, isVisible ->
                 setBannerVisibility(isVisible, Banner.CLOUD_MEDIA_AVAILABLE,
                         onCloudMediaAvailableBannerEventListener));
+        shouldShowAccountUpdatedBanner.observe(lifecycleOwner, isVisible ->
+                setBannerVisibility(isVisible, Banner.ACCOUNT_UPDATED,
+                        onAccountUpdatedBannerEventListener));
+        shouldShowChooseAccountBanner.observe(lifecycleOwner, isVisible ->
+                setBannerVisibility(isVisible, Banner.CHOOSE_ACCOUNT,
+                        onChooseAccountBannerEventListener));
     }
 
     @NonNull
@@ -187,7 +197,7 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     abstract boolean isItemTypeMediaItem(int position);
 
     /**
-     * Update the 'choose app' banner visibility in tab adapter
+     * Update the banner visibility in tab adapter
      */
     private void setBannerVisibility(boolean isVisible, @NonNull Banner banner,
             @NonNull OnBannerEventListener onBannerEventListener) {
@@ -197,7 +207,7 @@ abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 mOnBannerEventListener = onBannerEventListener;
                 notifyItemInserted(/* position */ 0);
                 mOnBannerEventListener.onBannerAdded();
-            } else if (mBanner != banner) {
+            } else {
                 mBanner = banner;
                 mOnBannerEventListener = onBannerEventListener;
                 notifyItemChanged(/* position */ 0);

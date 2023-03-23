@@ -41,15 +41,21 @@ public class SafetyProtectionUtils {
      */
     @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.TIRAMISU)
     public static boolean shouldShowSafetyProtectionResources(Context context) {
-        return SdkLevel.isAtLeastT()
-                && DeviceConfig.getBoolean(DeviceConfig.NAMESPACE_PRIVACY,
-                        SAFETY_PROTECTION_RESOURCES_ENABLED, false)
-                && context.getResources().getBoolean(
-                        Resources.getSystem()
-                                .getIdentifier("config_safetyProtectionEnabled",
-                                        "bool", "android"))
-                && context.getDrawable(android.R.drawable.ic_safety_protection) != null
-                && context.getString(android.R.string.safety_protection_display_text) != null
-                && !context.getString(android.R.string.safety_protection_display_text).isEmpty();
+        try {
+            return SdkLevel.isAtLeastT()
+                    && DeviceConfig.getBoolean(DeviceConfig.NAMESPACE_PRIVACY,
+                            SAFETY_PROTECTION_RESOURCES_ENABLED, false)
+                    && context.getResources().getBoolean(
+                            Resources.getSystem()
+                                    .getIdentifier("config_safetyProtectionEnabled",
+                                            "bool", "android"))
+                    && context.getDrawable(android.R.drawable.ic_safety_protection) != null
+                    && !context.getString(
+                            android.R.string.safety_protection_display_text).isEmpty();
+        } catch (Resources.NotFoundException e) {
+            // We should expect the resources to not exist for non-pixel devices
+            // (except for the OEMs that opt-in)
+            return false;
+        }
     }
 }

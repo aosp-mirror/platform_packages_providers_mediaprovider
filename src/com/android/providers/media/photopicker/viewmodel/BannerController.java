@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.viewmodel;
 
 import static android.provider.MediaStore.getCurrentCloudProvider;
 
+import static com.android.providers.media.MediaApplication.getConfigStore;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.getAvailableCloudProviders;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.getCloudMediaAccountName;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.getProviderLabelForUser;
@@ -34,7 +35,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.util.XmlUtils;
 
@@ -64,6 +64,9 @@ class BannerController {
      */
     private static final String ACCOUNT_NAME = "account_name";
 
+    private final Context mContext;
+    private final UserHandle mUserHandle;
+
     /**
      * {@link File} for persisting the last fetched {@link android.provider.CloudMediaProvider}
      * data.
@@ -78,28 +81,35 @@ class BannerController {
     // Label of the current cloud media provider
     private String mCmpLabel;
 
-    // Boolean Choose App Banner visibility
+    // Boolean 'Choose App' banner visibility
     private boolean mShowChooseAppBanner;
 
-    // Boolean Choose App Banner visibility
+    // Boolean 'Cloud Media Available' banner visibility
     private boolean mShowCloudMediaAvailableBanner;
 
-    BannerController(@NonNull Context context, @NonNull ConfigStore configStore,
-            @NonNull UserHandle userHandle) {
+    // Boolean 'Account Updated' banner visibility
+    private boolean mShowAccountUpdatedBanner;
+
+    // Boolean 'Choose Account' banner visibility
+    private boolean mShowChooseAccountBanner;
+
+    BannerController(@NonNull Context context, @NonNull UserHandle userHandle) {
+        mContext = context;
+        mUserHandle = userHandle;
+
         final String lastCloudProviderDataFilePath = DATA_MEDIA_DIRECTORY_PATH
                 + userHandle.getIdentifier() + LAST_CLOUD_PROVIDER_DATA_FILE_PATH_IN_USER_MEDIA_DIR;
         mLastCloudProviderDataFile = new File(lastCloudProviderDataFilePath);
         loadCloudProviderInfo();
 
-        initialise(context, configStore, userHandle);
+        initialise();
     }
 
     /**
-     * Same as {@link #initialise(Context, ConfigStore, UserHandle)}, renamed for readability.
+     * Same as {@link #initialise()}, renamed for readability.
      */
-    void reset(@NonNull Context context, @NonNull ConfigStore configStore,
-            @NonNull UserHandle userHandle) {
-        initialise(context, configStore, userHandle);
+    void reset() {
+        initialise();
     }
 
     /**
@@ -107,19 +117,13 @@ class BannerController {
      *
      * 0. Assert non-main thread.
      * 1. Fetch the latest cloud provider info.
-     * 2. If the previous & new cloud provider infos are the same, No-op.
-     * 3. Reset should show banners.
-     * 4. Update the saved and cached cloud provider info with the latest info.
+     * 2. {@link #onChangeCloudMediaInfo(String, String)} with the newly fetched authority and
+     *    account name.
      *
      * Note : This method is expected to be called only in a non-main thread since we shouldn't
      * block the UI thread on the heavy Binder calls to fetch the cloud media provider info.
      */
-    private void initialise(@NonNull Context context, @NonNull ConfigStore configStore,
-            @NonNull UserHandle userHandle) {
-        final String lastCmpAuthority = mCloudProviderDataMap.get(AUTHORITY);
-        final String lastCmpAccountName = mCloudProviderDataMap.get(ACCOUNT_NAME);
-
-        // Final String declarations for the new Cloud media provider authority & account name
+    private void initialise() {
         final String cmpAuthority, cmpAccountName;
         // TODO(b/245746037): Remove try-catch for the RuntimeException.
         //  Under the hood MediaStore.getCurrentCloudProvider() makes an IPC call to the primary
@@ -136,9 +140,9 @@ class BannerController {
 
             // 1. Fetch the latest cloud provider info.
             final ContentResolver contentResolver =
-                    UserId.of(userHandle).getContentResolver(context);
+                    UserId.of(mUserHandle).getContentResolver(mContext);
             cmpAuthority = getCurrentCloudProvider(contentResolver);
-            mCmpLabel = getProviderLabelForUser(context, userHandle, cmpAuthority);
+            mCmpLabel = getProviderLabelForUser(mContext, mUserHandle, cmpAuthority);
             cmpAccountName = getCloudMediaAccountName(contentResolver, cmpAuthority);
 
             // Not logging the account name due to privacy concerns
@@ -146,39 +150,80 @@ class BannerController {
                     + mCmpLabel);
         } catch (PackageManager.NameNotFoundException | RuntimeException e) {
             Log.w(TAG, "Could not fetch the current CloudMediaProvider", e);
-            hideBanners();
+            resetToDefault();
             return;
         }
 
-        // 2. If the previous & new cloud provider infos are the same, No-op.
+        onChangeCloudMediaInfo(cmpAuthority, cmpAccountName);
+    }
+
+    /**
+     * On Change Cloud Media Info
+     *
+     * @param cmpAuthority Current {@link android.provider.CloudMediaProvider} authority.
+     * @param cmpAccountName Current {@link android.provider.CloudMediaProvider} account name.
+     *
+     * 1. If the previous & new cloud provider infos are the same, No-op.
+     * 2. Reset should show banners.
+     * 3. Update the saved and cached cloud provider info with the latest info.
+     */
+    private void onChangeCloudMediaInfo(@Nullable String cmpAuthority,
+            @Nullable String cmpAccountName) {
+        // 1. If the previous & new cloud provider infos are the same, No-op.
+        final String lastCmpAuthority = mCloudProviderDataMap.get(AUTHORITY);
+        final String lastCmpAccountName = mCloudProviderDataMap.get(ACCOUNT_NAME);
+
         if (TextUtils.equals(lastCmpAuthority, cmpAuthority)
                 && TextUtils.equals(lastCmpAccountName, cmpAccountName)) {
             // no-op
             return;
         }
 
-        // 3. Reset should show banners.
-        // mShowChooseAppBanner is true iff new authority is null and the available cloud
-        // providers list is not empty.
-        mShowChooseAppBanner = (cmpAuthority == null)
-                && !getAvailableCloudProviders(context, configStore, userHandle).isEmpty();
-        // mShowCloudMediaAvailableBanner is true iff the new authority AND account name are
-        // NOT null while the old authority OR account is / are null.
-        mShowCloudMediaAvailableBanner = cmpAuthority != null && cmpAccountName != null
-                && (lastCmpAuthority == null || lastCmpAccountName == null);
+        // 2. Update banner visibilities.
+        clearBanners();
 
-        // 4. Update the saved and cached cloud provider info with the latest info.
+        if (cmpAuthority == null) {
+            // mShowChooseAppBanner is true iff the new authority is null and the available cloud
+            // providers list is not empty.
+            mShowChooseAppBanner =
+                    !getAvailableCloudProviders(mContext, getConfigStore(), mUserHandle).isEmpty();
+        } else if (cmpAccountName == null) {
+            // mShowChooseAccountBanner is true iff the new account name is null while the new
+            // authority is NOT null.
+            mShowChooseAccountBanner = true;
+        } else if (TextUtils.equals(lastCmpAuthority, cmpAuthority)) {
+            // mShowAccountUpdatedBanner is true iff the new authority AND account name are NOT null
+            // AND the authority is unchanged.
+            mShowAccountUpdatedBanner = true;
+        } else {
+            // mShowCloudMediaAvailableBanner is true iff the new authority AND account name are
+            // NOT null AND the authority has changed.
+            mShowCloudMediaAvailableBanner = true;
+        }
+
+        // 3. Update the saved and cached cloud provider info with the latest info.
         persistCloudProviderInfo(cmpAuthority, cmpAccountName);
     }
 
     /**
-     * Hide all banners (Fallback for error scenarios)
+     * Reset all the controller data to their default values.
      */
-    private void hideBanners() {
+    private void resetToDefault() {
         mCloudProviderDataMap.clear();
         mCmpLabel = null;
+        clearBanners();
+    }
+
+    /**
+     * Clear all banners
+     *
+     * Reset all should show banner {@code boolean} values to {@code false}.
+     */
+    private void clearBanners() {
         mShowChooseAppBanner = false;
         mShowCloudMediaAvailableBanner = false;
+        mShowAccountUpdatedBanner = false;
+        mShowChooseAccountBanner = false;
     }
 
     /**
@@ -221,14 +266,27 @@ class BannerController {
     }
 
     /**
+     * @return the 'Account Updated' banner visibility {@link #mShowAccountUpdatedBanner}.
+     */
+    boolean shouldShowAccountUpdatedBanner() {
+        return mShowAccountUpdatedBanner;
+    }
+
+    /**
+     * @return the 'Choose Account' banner visibility {@link #mShowChooseAccountBanner}.
+     */
+    boolean shouldShowChooseAccountBanner() {
+        return mShowChooseAccountBanner;
+    }
+
+    /**
      * Dismiss (hide) the 'Choose App' banner
      *
      * Set the 'Choose App' banner visibility {@link #mShowChooseAppBanner} as {@code false}.
      */
     void onUserDismissedChooseAppBanner() {
         if (!mShowChooseAppBanner) {
-            Log.wtf(TAG, "Choose app banner visibility for current user is false on"
-                    + "dismiss");
+            Log.wtf(TAG, "Choose app banner visibility for current user is false on dismiss");
         } else {
             mShowChooseAppBanner = false;
         }
@@ -242,10 +300,38 @@ class BannerController {
      */
     void onUserDismissedCloudMediaAvailableBanner() {
         if (!mShowCloudMediaAvailableBanner) {
-            Log.wtf(TAG, "Cloud media available banner visibility for current user is false on"
+            Log.wtf(TAG, "Cloud media available banner visibility for current user is false on "
                     + "dismiss");
         } else {
             mShowCloudMediaAvailableBanner = false;
+        }
+    }
+
+    /**
+     * Dismiss (hide) the 'Account Updated' banner
+     *
+     * Set the 'Account Updated' banner visibility {@link #mShowAccountUpdatedBanner} as
+     * {@code false}.
+     */
+    void onUserDismissedAccountUpdatedBanner() {
+        if (!mShowAccountUpdatedBanner) {
+            Log.wtf(TAG, "Account Updated banner visibility for current user is false on dismiss");
+        } else {
+            mShowAccountUpdatedBanner = false;
+        }
+    }
+
+    /**
+     * Dismiss (hide) the 'Choose Account' banner
+     *
+     * Set the 'Choose Account' banner visibility {@link #mShowChooseAccountBanner} as
+     * {@code false}.
+     */
+    void onUserDismissedChooseAccountBanner() {
+        if (!mShowChooseAccountBanner) {
+            Log.wtf(TAG, "Choose Account banner visibility for current user is false on dismiss");
+        } else {
+            mShowChooseAccountBanner = false;
         }
     }
 

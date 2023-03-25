@@ -87,24 +87,6 @@ public class VolumeCache {
         }
     }
 
-    /**
-     * @return List of paths to unreliable volumes if any, an empty list otherwise
-     */
-    public @NonNull List<File> getUnreliableVolumePath() throws FileNotFoundException {
-        List<File> unreliableVolumes = new ArrayList<>();
-        synchronized (mLock) {
-            for (MediaVolume volume : mExternalVolumes){
-                final File volPath = volume.getPath();
-                if (volPath != null && volPath.getPath() != null
-                        && !volPath.getPath().startsWith("/storage/")){
-                    unreliableVolumes.add(volPath);
-                }
-            }
-        }
-
-        return unreliableVolumes;
-    }
-
     public @NonNull MediaVolume findVolume(@NonNull String volumeName, @NonNull UserHandle user)
             throws FileNotFoundException {
         synchronized (mLock) {

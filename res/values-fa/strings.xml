@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{حداکثر <xliff:g id="COUNT_0">^1</xliff:g> مورد را انتخاب کنید}one{حداکثر <xliff:g id="COUNT_1">^1</xliff:g> مورد را انتخاب کنید}other{حداکثر <xliff:g id="COUNT_1">^1</xliff:g> مورد را انتخاب کنید}}"</string>
     <string name="recent" msgid="6694613584743207874">"اخیر"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"عکس یا ویدیویی موجود نیست"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"عکس یا ویدیو پشتیبانی‌شده‌ای وجود ندارد"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"آلبومی موجود نیست"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"مشاهده موارد انتخاب‌شده"</string>
     <string name="picker_photos" msgid="7415035516411087392">"عکس‌ها"</string>
@@ -67,6 +68,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"برنامه‌های کاری موقتاً متوقف شده‌اند."</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"برای باز کردن عکس‌های کاری، برنامه‌های کاری را روشن کنید و سپس دوباره امتحان کنید"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"این برنامه فقط می‌تواند به عکس‌های انتخابی شما دسترسی پیدا کند"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"عکس‌ها و ویدیوهایی را که اجازه می‌دهید این برنامه به آن‌ها دسترسی داشته باشد انتخاب کنید"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> مورد}one{<xliff:g id="COUNT_1">^1</xliff:g> مورد}other{<xliff:g id="COUNT_1">^1</xliff:g> مورد}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"افزودن (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"اجازه دادن (<xliff:g id="COUNT">^1</xliff:g>)"</string>

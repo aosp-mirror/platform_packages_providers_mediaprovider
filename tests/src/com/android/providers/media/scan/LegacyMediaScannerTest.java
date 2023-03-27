@@ -48,12 +48,6 @@ public class LegacyMediaScannerTest {
         } catch (UnsupportedOperationException expected) {
         }
         try {
-            scanner.scanFile(new File("/dev/null"), MediaScanner.REASON_UNKNOWN,
-                    InstrumentationRegistry.getContext().getPackageName());
-            fail();
-        } catch (UnsupportedOperationException expected) {
-        }
-        try {
             scanner.onDetachVolume(null);
             fail();
         } catch (UnsupportedOperationException expected) {

@@ -153,6 +153,7 @@ public class PickerSyncController {
         } else {
             // Persist it so that we notify the user that cloud media is now available
             persistCloudProviderInfo(defaultInfo);
+            resetCachedMediaCollectionInfo(defaultInfo.authority, /* isLocal */ false);
         }
 
         Log.d(TAG, "Initialized cloud provider to: " + mCloudProviderInfo.authority);

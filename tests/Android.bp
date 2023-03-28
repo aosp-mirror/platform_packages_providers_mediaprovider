@@ -194,7 +194,7 @@ android_test {
         ],
     },
 
-    java_resources: [
+    data: [
         ":MediaProviderTestAppWithStoragePerms",
         ":MediaProviderTestAppWithMediaPerms",
         ":MediaProviderTestAppWithoutPerms",
@@ -202,6 +202,7 @@ android_test {
         ":MediaProviderTestAppForPermissionActivity33",
         ":LegacyMediaProviderTestApp",
     ],
+    per_testcase_directory: true,
 
     min_sdk_version: "30",
 }

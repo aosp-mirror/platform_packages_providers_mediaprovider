@@ -105,10 +105,10 @@ public class CloudProviderUtils {
 
         final List<CloudProviderInfo> providers = new ArrayList<>();
 
-        // We do not need to read the allowlist from the ConfigStore (DeviceConfig) if we are not
-        // going to skip if-allowlisted check below.
-        final List<String> allowlistedProviders =
-                ignoreAllowlist ? null : configStore.getAllowlistedCloudProviders();
+        // We do not need to get the allowlist from the ConfigStore if we are going to skip
+        // if-allowlisted check below.
+        final List<String> allowlistedPackages =
+                ignoreAllowlist ? null : configStore.getAllowedCloudProviderPackages();
 
         final Intent intent = new Intent(CloudMediaProviderContract.PROVIDER_INTERFACE);
         final List<ResolveInfo> allAvailableProviders = getAllCloudProvidersForUser(context,
@@ -116,9 +116,7 @@ public class CloudProviderUtils {
 
         for (ResolveInfo info : allAvailableProviders) {
             final ProviderInfo providerInfo = info.providerInfo;
-            final String authority = providerInfo.authority;
-
-            if (authority == null) {
+            if (providerInfo.authority == null) {
                 // Provider does NOT declare an authority.
                 continue;
             }
@@ -128,12 +126,13 @@ public class CloudProviderUtils {
                 continue;
             }
 
-            if (!ignoreAllowlist && !allowlistedProviders.contains(authority)) {
+            if (!ignoreAllowlist && !allowlistedPackages.contains(providerInfo.packageName)) {
                 // Provider is not allowlisted.
                 continue;
             }
 
-            final CloudProviderInfo cloudProvider = new CloudProviderInfo(authority,
+            final CloudProviderInfo cloudProvider = new CloudProviderInfo(
+                    providerInfo.authority,
                     providerInfo.applicationInfo.packageName,
                     providerInfo.applicationInfo.uid);
             providers.add(cloudProvider);

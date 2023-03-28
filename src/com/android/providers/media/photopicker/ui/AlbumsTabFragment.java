@@ -50,7 +50,11 @@ public class AlbumsTabFragment extends TabFragment {
                 mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
                 mPickerViewModel.getCloudMediaAccountNameLiveData(),
                 mPickerViewModel.shouldShowChooseAppBannerLiveData(),
-                mOnChooseAppBannerClickListener);
+                mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData(),
+                mPickerViewModel.shouldShowAccountUpdatedBannerLiveData(),
+                mPickerViewModel.shouldShowChooseAccountBannerLiveData(),
+                mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
+                mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
         mPickerViewModel.getCategories().observe(this, categoryList -> {
             adapter.updateCategoryList(categoryList);
             // Handle emptyView's visibility

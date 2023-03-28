@@ -26,6 +26,8 @@ import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import com.android.providers.media.photopicker.PickerSyncController;
 
 import java.util.List;
@@ -107,32 +109,35 @@ class MediaGrants {
      * database entry in files table. Any deletion in files table will automatically delete
      * corresponding media_grants.
      *
+     * <p>The action is performed for only specific {@code user}.</p>
+     *
      * @param packageName   the package name to clear media grants for.
      * @param reason        a logged reason why the grants are being cleared.
+     * @param user          the user for which the grants need to be modified.
      *
      * @return              the number of grants removed.
      */
-    int removeAllMediaGrantsForPackage(String packageName, String reason)
+    int removeAllMediaGrantsForPackage(String packageName, String reason,
+            @NonNull Integer user)
             throws IllegalArgumentException {
         Objects.requireNonNull(packageName);
         if (TextUtils.isEmpty(packageName)) {
             throw new IllegalArgumentException(
                     "Removing grants requires a non empty package name.");
         }
-
         return mExternalDatabase.runWithTransaction(
                 (db) -> {
                     int grantsRemoved =
                             mQueryBuilder.delete(
-                                    db,
-                                    /* selection= */ String.format(
-                                            "%s = ?", OWNER_PACKAGE_NAME_COLUMN),
-                                    /* selectionArgs= */ new String[] {packageName});
-                    Log.d(
-                            TAG,
-                            String.format(
-                                    "Removed %s media_grants for %s. Reason: %s",
-                                    grantsRemoved, packageName, reason));
+                                    db, String.format(
+                                            "%s = ? AND %s = ?", OWNER_PACKAGE_NAME_COLUMN,
+                                            PACKAGE_USER_ID_COLUMN),
+                                    new String[]{packageName, String.valueOf(user)});
+                    Log.d(TAG,
+                            String.format("Removed %s media_grants for %s user for %s. Reason: %s",
+                                    grantsRemoved, String.valueOf(user),
+                                    packageName,
+                                    reason));
                     return grantsRemoved;
                 });
     }

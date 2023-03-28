@@ -4862,7 +4862,7 @@ public final class MediaStore {
      * {@link #isCurrentCloudMediaProviderAuthority(ContentResolver, String)}, the request will be
      * unsuccessful.
      *
-     * @return {@code true} if the notification was successful, {@code false} otherwise
+     * @throws SecurityException if the request was unsuccessful.
      */
     public static void notifyCloudMediaChangedEvent(@NonNull ContentResolver resolver,
             @NonNull String authority, @NonNull String currentMediaCollectionId)

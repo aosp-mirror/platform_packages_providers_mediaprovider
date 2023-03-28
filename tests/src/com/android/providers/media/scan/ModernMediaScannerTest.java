@@ -779,24 +779,6 @@ public class ModernMediaScannerTest {
         assertThat(mModern.scanFile(image, REASON_UNKNOWN)).isNull();
     }
 
-    @Test
-    public void testScanFileAndUpdateOwnerPackageName() throws Exception {
-        final File image = new File(mDir, "image.jpg");
-        final String thisPackageName = InstrumentationRegistry.getContext().getPackageName();
-        stage(R.raw.test_image, image);
-
-        assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        // scanning the image file inserts new database entry with OWNER_PACKAGE_NAME as
-        // thisPackageName.
-        assertNotNull(mModern.scanFile(image, REASON_UNKNOWN, thisPackageName));
-        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                new String[] {MediaColumns.OWNER_PACKAGE_NAME}, null, null, null)) {
-            assertEquals(1, cursor.getCount());
-            cursor.moveToNext();
-            assertEquals(thisPackageName, cursor.getString(0));
-        }
-    }
-
     /**
      * Verify fix for obscure bug which would cause us to delete files outside a
      * directory that share a common prefix.

@@ -42,9 +42,6 @@ public class LocalUriMatcherTest {
         assertMatchesPublic(
                 LocalUriMatcher.PICKER_ID,
                 assembleTestUri(new String[] {"picker", "0", "anything", "media", "anything"}));
-        assertMatchesPublic(
-                LocalUriMatcher.PICKER_UNRELIABLE_VOLUME,
-                assembleTestUri(new String[] {"picker", "unreliable", "1"}));
 
         assertMatchesPublic(LocalUriMatcher.CLI, assembleTestUri(new String[] {"cli"}));
 
@@ -206,9 +203,6 @@ public class LocalUriMatcherTest {
         assertMatchesHidden(
                 LocalUriMatcher.PICKER_ID,
                 assembleTestUri(new String[] {"picker", "0", "anything", "media", "anything"}));
-        assertMatchesHidden(
-                LocalUriMatcher.PICKER_UNRELIABLE_VOLUME,
-                assembleTestUri(new String[] {"picker", "unreliable", "1"}));
 
         assertMatchesHidden(LocalUriMatcher.CLI, assembleTestUri(new String[] {"cli"}));
 

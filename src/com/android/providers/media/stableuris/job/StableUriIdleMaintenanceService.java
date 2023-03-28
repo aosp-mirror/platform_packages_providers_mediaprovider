@@ -48,8 +48,7 @@ public class StableUriIdleMaintenanceService extends JobService {
         new Thread(() -> {
             try (ContentProviderClient cpc = getContentResolver()
                     .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-                ((MediaProvider) cpc.getLocalContentProvider()).getDatabaseBackupAndRecovery()
-                                .backupDatabases(mSignal);
+                ((MediaProvider) cpc.getLocalContentProvider()).backupDatabases(mSignal);
             } catch (OperationCanceledException e) {
                 Log.e(TAG, "StableUriIdleMaintenanceService operation cancelled: ", e);
             }

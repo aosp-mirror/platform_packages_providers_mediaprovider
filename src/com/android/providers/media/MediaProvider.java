@@ -1169,8 +1169,20 @@ public class MediaProvider extends ContentProvider {
         super.attachInfo(context, info);
     }
 
+    @Nullable
+    private static MediaProvider sInstance;
+
+    @Nullable
+    static synchronized MediaProvider getInstance() {
+        return sInstance;
+    }
+
     @Override
     public boolean onCreate() {
+        synchronized (MediaProvider.class) {
+            sInstance = this;
+        }
+
         final Context context = getContext();
 
         mUserCache = new UserCache(context);
@@ -10750,7 +10762,7 @@ public class MediaProvider extends ContentProvider {
         if (configStore == null) {
             // Tests did not provide an alternative implementation: create our regular "production"
             // ConfigStore.
-            configStore = new ConfigStore.ConfigStoreImpl();
+            configStore = MediaApplication.getConfigStore();
         }
         return configStore;
     }

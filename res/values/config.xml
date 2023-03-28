@@ -15,10 +15,15 @@
 -->
 
 <resources>
-    <string name="config_default_cloud_provider_authority" translatable="false"></string>
     <string-array name="config_supported_transcoding_relative_paths" translatable="false">
       <item>DCIM/Camera/</item>
     </string-array>
     <string-array name="config_supported_uncached_relative_paths" translatable="false">
     </string-array>
+
+    <!-- Configs for Cloud-Media-in-Photo-Picker -->
+    <string name="config_default_cloud_media_provider_package" translatable="false"></string>
+    <!-- DEPRECATED: Use the config_defaultCloudMediaProviderPackage. -->
+    <string name="config_default_cloud_provider_authority" translatable="false"></string>
+
 </resources>

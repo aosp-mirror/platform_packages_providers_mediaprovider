@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.viewmodel;
 
 import static android.content.Intent.ACTION_GET_CONTENT;
+import static android.content.Intent.EXTRA_LOCAL_ONLY;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
@@ -39,6 +40,7 @@ import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
@@ -85,16 +87,30 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Item>> mCategoryItemList;
     // The list of categories.
     private MutableLiveData<List<Category>> mCategoryList;
+
+    // Authority of the current CloudMediaProvider of the current user
+    private final MutableLiveData<String> mCloudMediaProviderAuthority = new MutableLiveData<>();
+    // Label of the current CloudMediaProvider of the current user
+    private final MutableLiveData<String> mCloudMediaProviderLabel = new MutableLiveData<>();
+    // Account name of the current CloudMediaProvider of the current user
+    private final MutableLiveData<String> mCloudMediaAccountName = new MutableLiveData<>();
+
     // Boolean Choose App Banner visibility
-    @NonNull
     private final MutableLiveData<Boolean> mShowChooseAppBanner = new MutableLiveData<>(false);
+    // Boolean Cloud Media Available Banner visibility
+    private final MutableLiveData<Boolean> mShowCloudMediaAvailableBanner =
+            new MutableLiveData<>(false);
+    // Boolean 'Account Updated' banner visibility
+    private final MutableLiveData<Boolean> mShowAccountUpdatedBanner = new MutableLiveData<>(false);
+    // Boolean 'Choose Account' banner visibility
+    private final MutableLiveData<Boolean> mShowChooseAccountBanner = new MutableLiveData<>(false);
 
     // The banner controllers per user
     private final PerUser<BannerController> mBannerControllers = new PerUser<BannerController>() {
         @NonNull
         @Override
         protected BannerController create(@UserIdInt int userId) {
-            return new BannerController(mAppContext, mConfigStore, UserHandle.of(userId));
+            return new BannerController(mAppContext, UserHandle.of(userId));
         }
     };
 
@@ -111,6 +127,8 @@ public class PickerViewModel extends AndroidViewModel {
     private Category mCurrentCategory;
     private ConfigStore mConfigStore;
 
+    private boolean mIsLocalOnly;
+
     public PickerViewModel(@NonNull Application application) {
         super(application);
         mAppContext = application.getApplicationContext();
@@ -122,7 +140,8 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger = new PhotoPickerUiEventLogger();
         mConfigStore = new ConfigStore.ConfigStoreImpl();
         mIsUserSelectForApp = false;
-        setBannersForCurrentUser();
+        mIsLocalOnly = false;
+        maybeInitialiseAndSetBannersForCurrentUser();
     }
 
     @VisibleForTesting
@@ -166,24 +185,22 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * If the selected tab profile is the same as the profile the picker was launched from,
-     * @return the {@link android.content.ContentProvider#mAuthority authority} of the current
-     *         {@link android.provider.CloudMediaProvider}
-     * Else, return {@code null}.
+     * @return a {@link LiveData} that holds the value (once it's fetched) of the
+     *         {@link android.content.ContentProvider#mAuthority authority} of the current
+     *         {@link android.provider.CloudMediaProvider}.
      */
-    @Nullable
-    public String getCloudMediaProviderAuthority() {
-        return getCurrentBannerController().getCloudMediaProviderAuthority();
+    @NonNull
+    public LiveData<String> getCloudMediaProviderAuthorityLiveData() {
+        return mCloudMediaProviderAuthority;
     }
 
     /**
-     * @return a {@link LiveData} that holds the value (once it's fetched) of the package name
+     * @return a {@link LiveData} that holds the value (once it's fetched) of the label
      *         of the current {@link android.provider.CloudMediaProvider}.
      */
     @NonNull
     public LiveData<String> getCloudMediaProviderAppTitleLiveData() {
-        // TODO(b/195009152): Update to hold and track the actual value.
-        return new MutableLiveData<>();
+        return mCloudMediaProviderLabel;
     }
 
     /**
@@ -192,8 +209,7 @@ public class PickerViewModel extends AndroidViewModel {
      */
     @NonNull
     public LiveData<String> getCloudMediaAccountNameLiveData() {
-        // TODO(b/195009152): Update to hold and track the actual value.
-        return new MutableLiveData<>();
+        return mCloudMediaAccountName;
     }
 
     /**
@@ -211,6 +227,8 @@ public class PickerViewModel extends AndroidViewModel {
         updateItems();
         updateCategories();
         // 4. Update Banners
+        // Note - Banners should always be updated after the items & categories to ensure a
+        // consistent UI.
         updateBanners();
     }
 
@@ -247,9 +265,12 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private Cursor fetchItems(Category category, UserId userId) {
-        if (isUserSelectForApp()) {
-            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
-            // action for permission flow. We only show local items in this case.
+        if (isUserSelectForApp() || isLocalOnly()) {
+            // We only show local items in below cases.
+            // 1. Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+            // action for permission flow.
+            // 2. Photo Picker is launched with {@link EXTRA_LOCAL_ONLY} as true in
+            // {@link ACTION_GET_CONTENT} or {@link ACTION_PICK_IMAGES}.
             return mItemsProvider.getLocalItems(category, /* limit */ -1, mMimeTypeFilters, userId);
         } else {
             return mItemsProvider.getAllItems(category, /* limit */ -1, mMimeTypeFilters, userId);
@@ -347,9 +368,12 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private Cursor fetchCategories(UserId userId) {
-        if (isUserSelectForApp()) {
-            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
-            // action for permission flow. We only show local items in this case.
+        if (isUserSelectForApp() || isLocalOnly()) {
+            // We only show local items in below cases.
+            // 1. Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+            // action for permission flow.
+            // 2. Photo Picker is launched with {@link EXTRA_LOCAL_ONLY} as true in
+            // {@link ACTION_GET_CONTENT} or {@link ACTION_PICK_IMAGES}.
             return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId);
         } else {
             return mItemsProvider.getAllCategories(mMimeTypeFilters, userId);
@@ -399,6 +423,8 @@ public class PickerViewModel extends AndroidViewModel {
         mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
 
         mSelection.parseSelectionValuesFromIntent(intent);
+
+        mIsLocalOnly = intent.getBooleanExtra(EXTRA_LOCAL_ONLY, false);
 
         mIsUserSelectForApp =
                 intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
@@ -469,20 +495,26 @@ public class PickerViewModel extends AndroidViewModel {
             mLogger.logPickerOpenWithAnyOtherFilter(mInstanceId, callingUid, callingPackage);
         }
 
-        logPickerOpenedWithCloudProvider();
+        maybeLogPickerOpenedWithCloudProvider();
     }
 
     // TODO(b/245745412): Fix log params (uid & package name)
     // TODO(b/245745424): Solve for active cloud provider without a logged in account
-    private void logPickerOpenedWithCloudProvider() {
-        final String providerAuthority = getCloudMediaProviderAuthority();
-        Log.d(TAG, "logPickerOpenedWithCloudProvider() provider=" + providerAuthority
-                + ", log=" + (providerAuthority != null));
+    private void maybeLogPickerOpenedWithCloudProvider() {
+        mCloudMediaProviderAuthority.observeForever(new Observer<String>() {
+            @Override
+            public void onChanged(@Nullable String providerAuthority) {
+                Log.d(TAG, "logPickerOpenedWithCloudProvider() provider=" + providerAuthority
+                        + ", log=" + (providerAuthority != null));
 
-        if (providerAuthority != null) {
-            mLogger.logPickerOpenWithActiveCloudProvider(
-                    mInstanceId, /* cloudProviderUid */ -1, providerAuthority);
-        }
+                if (providerAuthority != null) {
+                    mLogger.logPickerOpenWithActiveCloudProvider(
+                            mInstanceId, /* cloudProviderUid */ -1, providerAuthority);
+                }
+                // We only need to get the value once.
+                mCloudMediaProviderAuthority.removeObserver(this);
+            }
+        });
     }
 
     /**
@@ -528,6 +560,11 @@ public class PickerViewModel extends AndroidViewModel {
         return mConfigStore;
     }
 
+    /**
+     * Note - This method is expected to be called only on
+     * {@link android.provider.CloudMediaProvider} app / account change, i.e. currently on
+     * {@link #reset(boolean)}
+     */
     private void updateBanners() {
         if (mUserIdManager.isMultiUserProfiles()) {
             updateBannersForUser(mUserIdManager.getPersonalUserId());
@@ -535,33 +572,129 @@ public class PickerViewModel extends AndroidViewModel {
         } else {
             updateBannersForUser(mUserIdManager.getCurrentUserProfileId());
         }
-        setBannersForCurrentUser();
+        maybeInitialiseAndSetBannersForCurrentUser();
     }
 
+
+    // Return whether hotopicker's launch intent has extra {@link EXTRA_LOCAL_ONLY} set to true
+    // or not.
+    public boolean isLocalOnly() {
+        return mIsLocalOnly;
+    }
+
+    /**
+     * Note - This method is expected to be called only on
+     * {@link android.provider.CloudMediaProvider} app / account change, i.e. currently on
+     * {@link #reset(boolean)}
+     */
     private void updateBannersForUser(@NonNull UserId userId) {
         final int userIdInt = userId.getIdentifier();
-        final UserHandle userHandle = userId.getUserHandle();
-        if (mBannerControllers.contains(userIdInt)) {
-            mBannerControllers.forUser(userIdInt).reset(mAppContext, mConfigStore, userHandle);
+        final BannerController bannerController = mBannerControllers.get(userIdInt);
+        /**
+         * {@link BannerController} can be {@code null} for the given {@link UserId} when
+         * {@link #reset(boolean)} is called before {@link BannerController} construction for this
+         * {@link UserId}. This is expected to occur for the {@link UserId} that the picker was not
+         * launched from when
+         * {@link UserIdManager#isMultiUserProfiles()} is {@code true}, but the user never switched
+         * profiles before a {@link #reset(boolean)}. In this case, we can skip the
+         * {@link BannerController} construction until the user actually switches profiles.
+         */
+        if (bannerController != null) {
+            /**
+             * {@link BannerController#reset()} cannot be called in the UI thread hence,
+             * using {@link ForegroundThread} here.
+             */
+            ForegroundThread.getExecutor().execute(bannerController::reset);
         }
     }
 
     /**
      * Set the banner {@link LiveData} values as per the current user {@link BannerController} data.
+     *
+     * 1. {@link #hideAllBanners()} in the Main thread to ensure consistency with the media items
+     *    displayed for the period when the items and categories have been updated but the
+     *    {@link BannerController} construction or {@link BannerController#reset()} is still in
+     *    progress.
+     *
+     * 2. Get or create the {@link BannerController} for
+     *    {@link UserIdManager#getCurrentUserProfileId()} using {@link PerUser#forUser(int)}.
+     *    Since, the BannerController construction cannot be done in the Main thread, using
+     *    {@link ForegroundThread} here.
+     *
+     * 3. Post the updated {@link BannerController} {@link LiveData} values.
+     *
+     * Note - This method is expected to be called only in the following scenarios:
+     * a. {@link PickerViewModel} construction
+     * b. {@link com.android.providers.media.photopicker.ui.TabFragment#changeProfile}
+     * c. {@link android.provider.CloudMediaProvider} app / account change, i.e. currently on
+     *    {@link #reset(boolean)}
      */
     @UiThread
-    public void setBannersForCurrentUser() {
-        final BannerController bannerController = getCurrentBannerController();
-        mShowChooseAppBanner.setValue(bannerController.shouldShowChooseAppBanner());
+    public void maybeInitialiseAndSetBannersForCurrentUser() {
+        hideAllBanners();
+
+        final int currentUserId = mUserIdManager.getCurrentUserProfileId().getIdentifier();
+        ForegroundThread.getExecutor().execute(() -> {
+            final BannerController bannerController = mBannerControllers.forUser(currentUserId);
+            mCloudMediaProviderAuthority.postValue(
+                    bannerController.getCloudMediaProviderAuthority());
+            mCloudMediaProviderLabel.postValue(bannerController.getCloudMediaProviderLabel());
+            mCloudMediaAccountName.postValue(bannerController.getCloudMediaProviderAccountName());
+            mShowChooseAppBanner.postValue(bannerController.shouldShowChooseAppBanner());
+            mShowCloudMediaAvailableBanner.postValue(
+                    bannerController.shouldShowCloudMediaAvailableBanner());
+            mShowAccountUpdatedBanner.postValue(bannerController.shouldShowAccountUpdatedBanner());
+            mShowChooseAccountBanner.postValue(bannerController.shouldShowChooseAccountBanner());
+        });
     }
 
     /**
-     * @return the {@link LiveData} of the 'Choose App banner' visibility
-     * {@link #mShowChooseAppBanner}.
+     * Hide all banners in the Main thread.
+     *
+     * Set all banner {@link LiveData} values to {@code false}.
+     */
+    @UiThread
+    private void hideAllBanners() {
+        mShowChooseAppBanner.setValue(false);
+        mShowCloudMediaAvailableBanner.setValue(false);
+        mShowAccountUpdatedBanner.setValue(false);
+        mShowChooseAccountBanner.setValue(false);
+    }
+
+    /**
+     * @return the {@link LiveData} of the 'Choose App' banner visibility
+     *         {@link #mShowChooseAppBanner}.
      */
     @NonNull
     public LiveData<Boolean> shouldShowChooseAppBannerLiveData() {
         return mShowChooseAppBanner;
+    }
+
+    /**
+     * @return the {@link LiveData} of the 'Cloud Media Available' banner visibility
+     *         {@link #mShowCloudMediaAvailableBanner}.
+     */
+    @NonNull
+    public LiveData<Boolean> shouldShowCloudMediaAvailableBannerLiveData() {
+        return mShowCloudMediaAvailableBanner;
+    }
+
+    /**
+     * @return the {@link LiveData} of the 'Account Updated' banner visibility
+     *         {@link #mShowAccountUpdatedBanner}.
+     */
+    @NonNull
+    public LiveData<Boolean> shouldShowAccountUpdatedBannerLiveData() {
+        return mShowAccountUpdatedBanner;
+    }
+
+    /**
+     * @return the {@link LiveData} of the 'Choose Account' banner visibility
+     *         {@link #mShowChooseAccountBanner}.
+     */
+    @NonNull
+    public LiveData<Boolean> shouldShowChooseAccountBannerLiveData() {
+        return mShowChooseAccountBanner;
     }
 
     /**
@@ -575,17 +708,107 @@ public class PickerViewModel extends AndroidViewModel {
      */
     @UiThread
     public void onUserDismissedChooseAppBanner() {
+        final BannerController bannerController = getCurrentBannerController();
+
+        if (bannerController == null) {
+            Log.wtf(TAG, "Banner controller not yet created for the current user on Choose App"
+                    + " banner dismiss");
+            return;
+        }
+
         if (Boolean.FALSE.equals(mShowChooseAppBanner.getValue())) {
-            Log.wtf(TAG, "Choose app banner visibility live data value is false on dismiss");
+            Log.wtf(TAG, "Choose App banner visibility live data value is false on dismiss");
         } else {
             mShowChooseAppBanner.setValue(false);
         }
-        getCurrentBannerController().onUserDismissedChooseAppBanner();
+        bannerController.onUserDismissedChooseAppBanner();
     }
 
-    @NonNull
+    /**
+     * Dismiss (hide) the 'Cloud Media Available' banner for the current user.
+     *
+     * 1. Set the {@link LiveData} value of the 'Cloud Media Available' banner visibility
+     *    {@link #mShowCloudMediaAvailableBanner} as {@code false}.
+     *
+     * 2. Update the 'Cloud Media Available' banner visibility of the current user
+     *    {@link BannerController} to {@code false}.
+     */
+    @UiThread
+    public void onUserDismissedCloudMediaAvailableBanner() {
+        final BannerController bannerController = getCurrentBannerController();
+
+        if (bannerController == null) {
+            Log.wtf(TAG, "Banner controller not yet created for the current user on Cloud Media "
+                    + "Available banner dismiss");
+            return;
+        }
+
+        if (Boolean.FALSE.equals(mShowCloudMediaAvailableBanner.getValue())) {
+            Log.wtf(TAG, "Cloud Media Available banner visibility live data value is false on "
+                    + "dismiss");
+        } else {
+            mShowCloudMediaAvailableBanner.setValue(false);
+        }
+        bannerController.onUserDismissedCloudMediaAvailableBanner();
+    }
+
+    /**
+     * Dismiss (hide) the 'Account Updated' banner for the current user.
+     *
+     * 1. Set the {@link LiveData} value of the 'Account Updated' banner visibility
+     *    {@link #mShowAccountUpdatedBanner} as {@code false}.
+     *
+     * 2. Update the 'Account Updated' banner visibility of the current user
+     *    {@link BannerController} to {@code false}.
+     */
+    @UiThread
+    public void onUserDismissedAccountUpdatedBanner() {
+        final BannerController bannerController = getCurrentBannerController();
+
+        if (bannerController == null) {
+            Log.wtf(TAG, "Banner controller not yet created for the current user on Account Updated"
+                    + " banner dismiss");
+            return;
+        }
+
+        if (Boolean.FALSE.equals(mShowAccountUpdatedBanner.getValue())) {
+            Log.wtf(TAG, "Account Updated banner visibility live data value is false on dismiss");
+        } else {
+            mShowAccountUpdatedBanner.setValue(false);
+        }
+        bannerController.onUserDismissedAccountUpdatedBanner();
+    }
+
+    /**
+     * Dismiss (hide) the 'Choose Account' banner for the current user.
+     *
+     * 1. Set the {@link LiveData} value of the 'Choose Account' banner visibility
+     *    {@link #mShowChooseAccountBanner} as {@code false}.
+     *
+     * 2. Update the 'Choose Account' banner visibility of the current user
+     *    {@link BannerController} to {@code false}.
+     */
+    @UiThread
+    public void onUserDismissedChooseAccountBanner() {
+        final BannerController bannerController = getCurrentBannerController();
+
+        if (bannerController == null) {
+            Log.wtf(TAG, "Banner controller not yet created for the current user on Choose Account"
+                    + " banner dismiss");
+            return;
+        }
+
+        if (Boolean.FALSE.equals(mShowChooseAccountBanner.getValue())) {
+            Log.wtf(TAG, "Choose Account banner visibility live data value is false on dismiss");
+        } else {
+            mShowChooseAccountBanner.setValue(false);
+        }
+        bannerController.onUserDismissedChooseAccountBanner();
+    }
+
+    @Nullable
     private BannerController getCurrentBannerController() {
         final int currentUserId = mUserIdManager.getCurrentUserProfileId().getIdentifier();
-        return mBannerControllers.forUser(currentUserId);
+        return mBannerControllers.get(currentUserId);
     }
 }

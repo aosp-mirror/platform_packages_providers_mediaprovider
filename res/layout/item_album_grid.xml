@@ -46,7 +46,9 @@
         android:layout_height="wrap_content"
         android:minHeight="@dimen/picker_album_name_min_height"
         android:layout_marginTop="@dimen/picker_album_name_margin"
-        android:textAppearance="@style/PickerHeaderTextAppearance"/>
+        android:textAppearance="@style/PickerHeaderTextAppearance"
+        android:ellipsize="end"
+        android:maxLines="2"/>
 
     <TextView
         android:id="@+id/item_count"

@@ -34,6 +34,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.util.XmlUtils;
@@ -167,8 +168,8 @@ class BannerController {
      * 2. Reset should show banners.
      * 3. Update the saved and cached cloud provider info with the latest info.
      */
-    private void onChangeCloudMediaInfo(@Nullable String cmpAuthority,
-            @Nullable String cmpAccountName) {
+    @VisibleForTesting
+    void onChangeCloudMediaInfo(@Nullable String cmpAuthority, @Nullable String cmpAccountName) {
         // 1. If the previous & new cloud provider infos are the same, No-op.
         final String lastCmpAuthority = mCloudProviderDataMap.get(AUTHORITY);
         final String lastCmpAccountName = mCloudProviderDataMap.get(ACCOUNT_NAME);
@@ -185,8 +186,7 @@ class BannerController {
         if (cmpAuthority == null) {
             // mShowChooseAppBanner is true iff the new authority is null and the available cloud
             // providers list is not empty.
-            mShowChooseAppBanner =
-                    !getAvailableCloudProviders(mContext, getConfigStore(), mUserHandle).isEmpty();
+            mShowChooseAppBanner = areCloudProviderOptionsAvailable();
         } else if (cmpAccountName == null) {
             // mShowChooseAccountBanner is true iff the new account name is null while the new
             // authority is NOT null.
@@ -224,6 +224,11 @@ class BannerController {
         mShowCloudMediaAvailableBanner = false;
         mShowAccountUpdatedBanner = false;
         mShowChooseAccountBanner = false;
+    }
+
+    @VisibleForTesting
+    boolean areCloudProviderOptionsAvailable() {
+        return !getAvailableCloudProviders(mContext, getConfigStore(), mUserHandle).isEmpty();
     }
 
     /**
@@ -381,6 +386,11 @@ class BannerController {
             mCloudProviderDataMap.put(ACCOUNT_NAME, cmpAccountName);
         }
 
+        updateCloudProviderDataFile();
+    }
+
+    @VisibleForTesting
+    void updateCloudProviderDataFile() {
         FileOutputStream fos = null;
         final AtomicFile atomicLastCloudProviderDataFile = new AtomicFile(
                 mLastCloudProviderDataFile);

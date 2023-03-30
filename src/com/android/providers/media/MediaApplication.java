@@ -159,7 +159,8 @@ public class MediaApplication extends Application {
      * Cloud-Media-in-Photo-Picker feature is enabled or not.
      */
     private void maybeEnablePhotoPickerSettingsActivity() {
-        final boolean isCloudMediaEnabled = getConfigStore().isCloudMediaInPhotoPickerEnabled();
+        final boolean isCloudMediaEnabled =
+                !getConfigStore().getAllowedCloudProviderPackages().isEmpty();
 
         getPackageManager().setComponentEnabledSetting(
                 new ComponentName(this, PhotoPickerSettingsActivity.class),

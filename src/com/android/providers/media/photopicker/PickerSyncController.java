@@ -31,9 +31,7 @@ import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import android.annotation.IntDef;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -62,7 +60,6 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.CloudProviderUtils;
 import com.android.providers.media.util.ForegroundThread;
-import com.android.providers.media.util.StringUtils;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -155,6 +152,7 @@ public class PickerSyncController {
         } else {
             // Persist it so that we notify the user that cloud media is now available
             persistCloudProviderInfo(defaultInfo);
+            resetCachedMediaCollectionInfo(defaultInfo.authority, /* isLocal */ false);
         }
 
         Log.d(TAG, "Initialized cloud provider to: " + mCloudProviderInfo.authority);
@@ -457,15 +455,15 @@ public class PickerSyncController {
      * Notifies about picker UI launched
      */
     public void notifyPickerLaunch() {
-        final String packageName;
+        final String authority;
         synchronized (mLock) {
-            packageName = mCloudProviderInfo.packageName;
+            authority = mCloudProviderInfo.authority;
         }
 
         final boolean hasPendingNotification = mUserPrefs.getBoolean(
                 PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, /* defaultValue */ false);
 
-        if (!hasPendingNotification || (packageName == null)) {
+        if (!hasPendingNotification || (authority == null)) {
             Log.d(TAG, "No pending UI notification");
             return;
         }
@@ -476,13 +474,7 @@ public class PickerSyncController {
             Log.i(TAG, "Cloud media now available in the picker");
 
             final PackageManager pm = mContext.getPackageManager();
-            String appName = packageName;
-            try {
-                ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0);
-                appName = (String) pm.getApplicationLabel(appInfo);
-            } catch (final NameNotFoundException e) {
-                Log.i(TAG, "Failed to get appName for package: " + packageName);
-            }
+            final String appName = CloudProviderUtils.getProviderLabel(pm, authority);
 
             final String message = mContext.getResources().getString(R.string.picker_cloud_sync,
                     appName);
@@ -845,34 +837,36 @@ public class PickerSyncController {
      * Get the default {@link CloudProviderInfo} at {@link PickerSyncController} construction
      */
     @VisibleForTesting
-    CloudProviderInfo getDefaultCloudProviderInfo(String cachedProvider) {
-        final List<CloudProviderInfo> infos = getAvailableCloudProviders();
+    CloudProviderInfo getDefaultCloudProviderInfo(@Nullable String lastProvider) {
+        final List<CloudProviderInfo> providers = getAvailableCloudProviders();
 
-        if (infos.size() == 1) {
-            Log.i(TAG, "Only 1 cloud provider found, hence "
-                    + infos.get(0).authority + " is the default");
-            return infos.get(0);
+        if (providers.size() == 1) {
+            Log.i(TAG, "Only 1 cloud provider found, hence " + providers.get(0).authority
+                    + " is the default");
+            return providers.get(0);
         } else {
-            final String defaultCloudProviderAuthority = StringUtils.getStringConfig(
-                mContext, R.string.config_default_cloud_provider_authority);
-            Log.i(TAG, "Found multiple cloud providers but OEM default is: "
-                    + defaultCloudProviderAuthority);
+            Log.i(TAG, "Found " + providers.size() + " available Cloud Media Providers.");
+        }
 
-            if (cachedProvider != null) {
-                for (CloudProviderInfo info : infos) {
-                    if (info.authority.equals(cachedProvider)) {
-                        return info;
-                    }
+        if (lastProvider != null) {
+            for (CloudProviderInfo provider : providers) {
+                if (provider.authority.equals(lastProvider)) {
+                    return provider;
                 }
             }
+        }
 
-            if (defaultCloudProviderAuthority != null) {
-                for (CloudProviderInfo info : infos) {
-                    if (info.authority.equals(defaultCloudProviderAuthority)) {
-                        return info;
-                    }
+        final String defaultProviderPkg = mConfigStore.getDefaultCloudProviderPackage();
+        if (defaultProviderPkg != null) {
+            Log.i(TAG, "Default Cloud-Media-Provider package is " + defaultProviderPkg);
+
+            for (CloudProviderInfo provider : providers) {
+                if (provider.matches(defaultProviderPkg)) {
+                    return provider;
                 }
             }
+        } else {
+            Log.i(TAG, "Default Cloud-Media-Provider is not set.");
         }
 
         // No default set or default not installed

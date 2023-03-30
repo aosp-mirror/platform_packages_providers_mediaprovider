@@ -27,6 +27,7 @@ import android.text.TextUtils;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.UiThread;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.Preference;
@@ -63,15 +64,27 @@ public class SettingsCloudMediaSelectFragment extends PreferenceFragmentCompat
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+
+        mSettingsCloudMediaViewModel.loadAccountNameAsync();
+    }
+
+    @UiThread
+    @Override
     public void onRadioButtonClicked(@NonNull SelectorWithWidgetPreference selectedPref) {
         final String selectedProviderKey = selectedPref.getKey();
-        final boolean success =
-                mSettingsCloudMediaViewModel.updateSelectedProvider(selectedProviderKey);
-        if (success) {
-            updateSelectedRadioButton();
-        } else {
-            Toast.makeText(getContext(), R.string.picker_settings_toast_error, Toast.LENGTH_SHORT)
-                    .show();
+        // Check if current provider is different from the selected provider.
+        if (!TextUtils.equals(selectedProviderKey,
+                mSettingsCloudMediaViewModel.getSelectedPreferenceKey())) {
+            final boolean success =
+                    mSettingsCloudMediaViewModel.updateSelectedProvider(selectedProviderKey);
+            if (success) {
+                updateSelectedRadioButton();
+            } else {
+                Toast.makeText(getContext(),
+                        R.string.picker_settings_toast_error, Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
@@ -80,9 +93,11 @@ public class SettingsCloudMediaSelectFragment extends PreferenceFragmentCompat
         super.addPreferencesFromResource(R.xml.pref_screen_picker_settings);
 
         mSettingsCloudMediaViewModel.loadData(getConfigStore());
+        observeAccountNameChanges();
         refreshUI();
     }
 
+    @UiThread
     private void refreshUI() {
         final PreferenceScreen screen = getPreferenceScreen();
         resetPreferenceScreen(screen);
@@ -96,6 +111,22 @@ public class SettingsCloudMediaSelectFragment extends PreferenceFragmentCompat
         updateSelectedRadioButton();
     }
 
+    private void observeAccountNameChanges() {
+        mSettingsCloudMediaViewModel.getCurrentProviderAccount()
+                .observe(this, accountDetails -> {
+                    // Only update current account name on the UI if cloud provider linked to the
+                    // account name matches the current provider.
+                    if (accountDetails != null
+                            && accountDetails.getCloudProviderAuthority()
+                            .equals(mSettingsCloudMediaViewModel.getSelectedProviderAuthority())) {
+                        final Preference selectedPref = findPreference(
+                                mSettingsCloudMediaViewModel.getSelectedPreferenceKey());
+                        selectedPref.setSummary(accountDetails.getCloudProviderAccountName());
+                    }
+                });
+    }
+
+    @UiThread
     private void updateSelectedRadioButton() {
         final String selectedPreferenceKey =
                 mSettingsCloudMediaViewModel.getSelectedPreferenceKey();
@@ -105,9 +136,15 @@ public class SettingsCloudMediaSelectFragment extends PreferenceFragmentCompat
             if (pref instanceof SelectorWithWidgetPreference) {
                 final SelectorWithWidgetPreference providerPref =
                         (SelectorWithWidgetPreference) pref;
-                final boolean newSelectionState = TextUtils.equals(
-                        providerPref.getKey(), selectedPreferenceKey);
+
+                final boolean newSelectionState =
+                        TextUtils.equals(providerPref.getKey(), selectedPreferenceKey);
                 providerPref.setChecked(newSelectionState);
+
+                providerPref.setSummary(null);
+                if (newSelectionState) {
+                    mSettingsCloudMediaViewModel.loadAccountNameAsync();
+                }
             }
         }
     }
@@ -133,7 +170,7 @@ public class SettingsCloudMediaSelectFragment extends PreferenceFragmentCompat
         titlePref.setTitle(R.string.picker_settings_selection_message);
         titlePref.setSelectable(false);
         titlePref.setPersistent(false);
-        titlePref.setLayoutResource(R.layout.pref_settings_title);
+        titlePref.setLayoutResource(R.layout.pref_settings_cloud_select_title);
         return titlePref;
     }
 

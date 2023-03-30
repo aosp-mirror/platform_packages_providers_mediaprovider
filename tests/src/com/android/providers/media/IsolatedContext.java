@@ -16,7 +16,6 @@
 
 package com.android.providers.media;
 
-import android.annotation.NonNull;
 import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -31,6 +30,7 @@ import android.test.mock.MockContentProvider;
 import android.test.mock.MockContentResolver;
 
 import com.android.providers.media.cloudproviders.CloudProviderPrimary;
+import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
@@ -110,7 +110,7 @@ public class IsolatedContext extends ContextWrapper {
 
             @Override
             protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
-                return new TestDatabaseBackupAndRecovery(this, configStore, getVolumeCache());
+                return new TestDatabaseBackupAndRecovery(configStore, getVolumeCache());
             }
 
             @Override
@@ -122,9 +122,8 @@ public class IsolatedContext extends ContextWrapper {
 
     private class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
 
-        TestDatabaseBackupAndRecovery(MediaProvider mediaProvider, ConfigStore configStore,
-                VolumeCache volumeCache) {
-            super(mediaProvider, configStore, volumeCache);
+        TestDatabaseBackupAndRecovery(ConfigStore configStore, VolumeCache volumeCache) {
+            super(configStore, volumeCache);
         }
 
         @Override
@@ -154,8 +153,13 @@ public class IsolatedContext extends ContextWrapper {
         }
 
         @Override
-        protected boolean isFuseDaemonReadyForFilePath(@NonNull String filePath) {
-            return true;
+        protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath, long waitTime) {
+            return null;
+        }
+
+        @Override
+        protected void setupVolumeDbBackupAndRecovery(MediaVolume volume) {
+
         }
     }
 
@@ -201,5 +205,9 @@ public class IsolatedContext extends ContextWrapper {
         } else {
             throw new IllegalStateException("Failed to get Database helper");
         }
+    }
+
+    public MediaProvider getMediaProvider() {
+        return mMediaProvider;
     }
 }

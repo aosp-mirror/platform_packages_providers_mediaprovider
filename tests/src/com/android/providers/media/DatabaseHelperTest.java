@@ -310,12 +310,16 @@ public class DatabaseHelperTest {
                 true).build());
         sIsolatedContext = new IsolatedContext(
                 InstrumentationRegistry.getTargetContext(), TAG, /*asFuseThread*/ false);
-        ((IsolatedContext) sIsolatedContext).setBackedUpData(backedUpData);
+        IsolatedContext isolatedContext = (IsolatedContext) sIsolatedContext;
+        isolatedContext.setBackedUpData(backedUpData);
+        DatabaseBackupAndRecovery databaseBackupAndRecovery =
+                isolatedContext.getMediaProvider().getDatabaseBackupAndRecovery();
         sIsolatedResolver = sIsolatedContext.getContentResolver();
         Map<String, Long> pathToIdMap = new HashMap<>();
 
-        try (DatabaseHelper helper = before.getConstructor(Context.class, String.class)
-                .newInstance(sIsolatedContext, "internal.db")) {
+        try (DatabaseHelper helper = before.getConstructor(Context.class, String.class,
+                        DatabaseBackupAndRecovery.class)
+                .newInstance(sIsolatedContext, "internal.db", databaseBackupAndRecovery)) {
             SQLiteDatabase db = helper.getWritableDatabaseForTest();
             assertThat(sIsolatedContext.getDatabasePath("internal.db").exists()).isTrue();
 
@@ -337,8 +341,9 @@ public class DatabaseHelperTest {
         }
 
         // Downgrade will wipe data, and recover non-dirty rows from backup
-        try (DatabaseHelper helper = after.getConstructor(Context.class, String.class)
-                .newInstance(sIsolatedContext, "internal.db")) {
+        try (DatabaseHelper helper = after.getConstructor(Context.class, String.class,
+                        DatabaseBackupAndRecovery.class)
+                .newInstance(sIsolatedContext, "internal.db", databaseBackupAndRecovery)) {
             SQLiteDatabase db = helper.getWritableDatabaseForTest();
             assertThat(sIsolatedContext.getDatabasePath("internal.db").exists()).isTrue();
             try (Cursor c = db.query("files", new String[]{FileColumns._ID, FileColumns.DATA}, null,
@@ -689,7 +694,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperO extends DatabaseHelper {
         public DatabaseHelperO(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_O, false, false, sProjectionHelper, null,
-                    null, null, null, false);
+                    null, null, null, false, null);
         }
 
         @Override
@@ -701,7 +706,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperP extends DatabaseHelper {
         public DatabaseHelperP(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_P, false, false, sProjectionHelper, null,
-                    null, null, null, false);
+                    null, null, null, false, null);
         }
 
         @Override
@@ -713,7 +718,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperQ extends DatabaseHelper {
         public DatabaseHelperQ(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_Q, false, false, sProjectionHelper, null,
-                    null, null, null, false);
+                    null, null, null, false, null);
         }
 
         @Override
@@ -725,7 +730,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperR extends DatabaseHelper {
         public DatabaseHelperR(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_R, false, false, sProjectionHelper, null,
-                    null, MediaProvider.MIGRATION_LISTENER, null, false);
+                    null, MediaProvider.MIGRATION_LISTENER, null, false, null);
         }
 
         @Override
@@ -737,9 +742,8 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperS extends DatabaseHelper {
         public DatabaseHelperS(Context context, String name) {
             super(context, name, VERSION_S, false, false, sProjectionHelper, null,
-                    null, MediaProvider.MIGRATION_LISTENER, null, false);
+                    null, MediaProvider.MIGRATION_LISTENER, null, false, null);
         }
-
 
         @Override
         public void onCreate(SQLiteDatabase db) {
@@ -750,7 +754,13 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperT extends DatabaseHelper {
         public DatabaseHelperT(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_T, false, false, sProjectionHelper, null,
-                    null, MediaProvider.MIGRATION_LISTENER, null, false);
+                    null, MediaProvider.MIGRATION_LISTENER, null, false, null);
+        }
+
+        public DatabaseHelperT(Context context, String name,
+                DatabaseBackupAndRecovery databaseBackupAndRecovery) {
+            super(context, name, DatabaseHelper.VERSION_T, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false, databaseBackupAndRecovery);
         }
 
         @Override
@@ -767,7 +777,13 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperU extends DatabaseHelper {
         public DatabaseHelperU(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_U, false, false, sProjectionHelper, null,
-                    null, MediaProvider.MIGRATION_LISTENER, null, false);
+                    null, MediaProvider.MIGRATION_LISTENER, null, false, null);
+        }
+
+        public DatabaseHelperU(Context context, String name,
+                DatabaseBackupAndRecovery databaseBackupAndRecovery) {
+            super(context, name, DatabaseHelper.VERSION_U, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false, databaseBackupAndRecovery);
         }
 
         @Override

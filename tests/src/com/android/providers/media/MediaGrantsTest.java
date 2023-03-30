@@ -139,7 +139,8 @@ public class MediaGrantsTest {
         assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
         assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
 
-        int removed = mGrants.removeAllMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, "test");
+        int removed = mGrants.removeAllMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, "test",
+                TEST_USER_ID);
         assertEquals(2, removed);
 
         try (Cursor c =
@@ -168,7 +169,7 @@ public class MediaGrantsTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    mGrants.removeAllMediaGrantsForPackage("", "test");
+                    mGrants.removeAllMediaGrantsForPackage("", "test", TEST_USER_ID);
                 });
     }
 

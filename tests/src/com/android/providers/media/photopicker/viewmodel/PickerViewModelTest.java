@@ -274,6 +274,25 @@ public class PickerViewModelTest {
     }
 
     @Test
+    public void testParseValuesFromPickImagesIntent_localOnlyTrue() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_localOnlyFalse() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isFalse();
+    }
+
+    @Test
     public void testParseValuesFromGetContentIntent_validExtraMimeType() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/gif", "video/*"});
@@ -292,5 +311,26 @@ public class PickerViewModelTest {
 
         // non-media filters for GET_CONTENT show all images and videos
         assertThat(mPickerViewModel.hasMimeTypeFilters()).isFalse();
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_localOnlyTrue() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"video/*"});
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_localOnlyFalse() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"video/*"});
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isFalse();
     }
 }

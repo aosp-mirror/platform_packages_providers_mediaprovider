@@ -50,8 +50,6 @@ import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
 import static com.android.providers.media.util.Metrics.translateReason;
 
-import static java.util.Objects.requireNonNull;
-
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
@@ -182,7 +180,6 @@ public class ModernMediaScanner implements MediaScanner {
     private static final Pattern PATTERN_ALBUM_ART = Pattern.compile(
             "(?i)(?:(?:^folder|(?:^AlbumArt(?:(?:_\\{.*\\}_)?(?:small|large))?))(?:\\.jpg$)|(?:\\._.*))");
 
-    @NonNull
     private final Context mContext;
     private final DrmManagerClient mDrmClient;
     @GuardedBy("mPendingCleanDirectories")
@@ -218,8 +215,8 @@ public class ModernMediaScanner implements MediaScanner {
      */
     private final Set<String> mDrmMimeTypes = new ArraySet<>();
 
-    public ModernMediaScanner(@NonNull Context context) {
-        mContext = requireNonNull(context);
+    public ModernMediaScanner(Context context) {
+        mContext = context;
         mDrmClient = new DrmManagerClient(context);
 
         // Dynamically collect the set of MIME types that should be considered
@@ -233,44 +230,40 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    @NonNull
     public Context getContext() {
         return mContext;
     }
 
     @Override
-    public void scanDirectory(@NonNull File file, @ScanReason int reason) {
-        requireNonNull(file);
-
-        try (Scan scan = new Scan(file, reason)) {
+    public void scanDirectory(File file, int reason) {
+        try (Scan scan = new Scan(file, reason, /*ownerPackage*/ null)) {
             scan.run();
-        } catch (FileNotFoundException e) {
-            Log.e(TAG, "Couldn't find directory to scan", e);
-            return;
         } catch (OperationCanceledException ignored) {
-            // No-op.
+        } catch (FileNotFoundException e) {
+           Log.e(TAG, "Couldn't find directory to scan", e) ;
         }
     }
 
     @Override
-    @Nullable
-    public Uri scanFile(@NonNull File file, @ScanReason int reason) {
-        requireNonNull(file);
+    public Uri scanFile(File file, int reason) {
+       return scanFile(file, reason, /*ownerPackage*/ null);
+    }
 
-        try (Scan scan = new Scan(file, reason)) {
+    @Override
+    public Uri scanFile(File file, int reason, @Nullable String ownerPackage) {
+        try (Scan scan = new Scan(file, reason, ownerPackage)) {
             scan.run();
             return scan.getFirstResult();
+        } catch (OperationCanceledException ignored) {
+            return null;
         } catch (FileNotFoundException e) {
             Log.e(TAG, "Couldn't find file to scan", e) ;
             return null;
-        } catch (OperationCanceledException ignored) {
-            // No-op.
-            return null;
         }
     }
 
     @Override
-    public void onDetachVolume(@NonNull MediaVolume volume) {
+    public void onDetachVolume(MediaVolume volume) {
         synchronized (mActiveScans) {
             for (Scan scan : mActiveScans) {
                 if (volume.equals(scan.mVolume)) {
@@ -326,14 +319,15 @@ public class ModernMediaScanner implements MediaScanner {
         private final String mVolumeName;
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
+        private final String mOwnerPackage;
         private final List<String> mExcludeDirs;
 
         private final long mStartGeneration;
         private final boolean mSingleFile;
         private final Set<Path> mAcquiredDirectoryLocks = new ArraySet<>();
         private final ArrayList<ContentProviderOperation> mPending = new ArrayList<>();
-        private final LongArray mScannedIds = new LongArray();
-        private final LongArray mUnknownIds = new LongArray();
+        private LongArray mScannedIds = new LongArray();
+        private LongArray mUnknownIds = new LongArray();
 
         private long mFirstId = -1;
 
@@ -354,7 +348,8 @@ public class ModernMediaScanner implements MediaScanner {
          */
         private boolean mIsDirectoryTreeDirty;
 
-        Scan(File root, int reason) throws FileNotFoundException {
+        public Scan(File root, int reason, @Nullable String ownerPackage)
+                throws FileNotFoundException {
             Trace.beginSection("Scanner.ctor");
 
             mClient = mContext.getContentResolver()
@@ -375,6 +370,7 @@ public class ModernMediaScanner implements MediaScanner {
 
             mStartGeneration = MediaStore.getGeneration(mResolver, mVolumeName);
             mSingleFile = mRoot.isFile();
+            mOwnerPackage = ownerPackage;
             mExcludeDirs = new ArrayList<>();
 
             Trace.endSection();
@@ -824,7 +820,10 @@ public class ModernMediaScanner implements MediaScanner {
             }
             if (op != null) {
                 op.withValue(FileColumns._MODIFIER, FileColumns._MODIFIER_MEDIA_SCAN);
-
+                // Add owner package name to new insertions when package name is provided.
+                if (op.build().isInsert() && !attrs.isDirectory() && mOwnerPackage != null) {
+                    op.withValue(MediaColumns.OWNER_PACKAGE_NAME, mOwnerPackage);
+                }
                 // Force DRM files to be marked as DRM, since the lower level
                 // stack may not set this correctly
                 if (isDrm) {
@@ -915,7 +914,7 @@ public class ModernMediaScanner implements MediaScanner {
             return FileVisitResult.CONTINUE;
         }
 
-        private void addPending(@NonNull ContentProviderOperation op) {
+        private void addPending(ContentProviderOperation op) {
             mPending.add(op);
 
             if (op.isInsert()) mInsertCount++;

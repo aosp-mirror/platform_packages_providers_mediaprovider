@@ -16,10 +16,8 @@
 
 package com.android.providers.media;
 
-import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
-import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
+import static com.android.providers.media.util.StringUtils.componentStateToString;
 
-import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.ComponentName;
 import android.content.Context;
@@ -27,9 +25,7 @@ import android.content.pm.PackageManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
-import com.android.internal.annotations.GuardedBy;
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.photopicker.PhotoPickerSettingsActivity;
 import com.android.providers.media.util.Logging;
@@ -38,15 +34,6 @@ import java.io.File;
 
 public class MediaApplication extends Application {
     private static final String TAG = "MediaApplication";
-
-    @SuppressLint("StaticFieldLeak")
-    @GuardedBy("MediaApplication.class")
-    @Nullable
-    private static volatile MediaApplication sInstance;
-
-    @GuardedBy("MediaApplication.class")
-    @Nullable
-    private static volatile ConfigStore sConfigStore;
 
     /**
      * MediaProvider's code runs in two processes: primary and UI (PhotoPicker).
@@ -63,73 +50,46 @@ public class MediaApplication extends Application {
      * ":PhotoPicker".
      */
     private static final boolean sIsUiProcess;
+    @NonNull
+    private static final ConfigStore sConfigStore;
 
     static {
-        final String processName = getProcessName();
-        sIsUiProcess = processName.endsWith(":PhotoPicker");
-
-        // We package some of our "production" source code in some of our case (for more details
-        // see MediaProviderTests build rule in packages/providers/MediaProvider/tests/Android.bp),
-        // and occasionally may need to know if we are running as a "real" MediaProvider or "in a
-        // test".
-        // For this - we may check the process. Since process names on Android usually match the
-        // package name of the corresponding package, and the package names of our test end with
-        // ".test" (e.g. "com.android.providers.media.tests") - that's what we are checking for.
-        final boolean isTestProcess = processName.endsWith(".tests");
+        sIsUiProcess = getProcessName().endsWith(":PhotoPicker");
+        sConfigStore = new ConfigStore.ConfigStoreImpl();
 
         // Only need to load fuse lib in the primary process.
         if (!sIsUiProcess) {
-            try {
-                System.loadLibrary("fuse_jni");
-            } catch (UnsatisfiedLinkError e) {
-
-                if (isTestProcess) {
-                    // We are "in a test", which does not ship out native lib - log a warning and
-                    // carry on.
-                    Log.w(TAG, "Could not load fuse_jni.so in a test (" + processName + ")", e);
-                } else {
-                    // We are not "in a test" - rethrow.
-                    throw e;
-                }
-            }
+            System.loadLibrary("fuse_jni");
         }
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        final ConfigStore configStore;
-        synchronized (MediaApplication.class) {
-            sInstance = this;
-            if (sConfigStore == null) {
-                sConfigStore = new ConfigStore.ConfigStoreImpl(getResources());
-            }
-            configStore = sConfigStore;
-        }
 
         final File persistentDir = this.getDir("logs", Context.MODE_PRIVATE);
         Logging.initPersistent(persistentDir);
 
         if (isPrimaryProcess()) {
-            maybeEnablePhotoPickerSettingsActivity();
-            configStore.addOnChangeListener(
-                    BackgroundThread.getExecutor(), this::maybeEnablePhotoPickerSettingsActivity);
+            readAndApplyDeviceConfig();
+            sConfigStore.addOnChangeListener(
+                    BackgroundThread.getExecutor(), this::readAndApplyDeviceConfig);
         }
     }
 
-    /** Provides access to the Application Context. */
-    public static synchronized Context getAppContext() {
-        // ContentProviders instances may get created before the Application instance
-        // (see javadoc to Application#onCreate())
-        if (sInstance != null) {
-            return sInstance.getApplicationContext();
-        }
-        final MediaProvider mediaProviderInstance = MediaProvider.getInstance();
-        if (mediaProviderInstance != null) {
-            return mediaProviderInstance.getContext().getApplicationContext();
-        }
-        throw new IllegalStateException("Neither a MediaApplication instance nor a MediaProvider "
-                + "instance has been created yet.");
+    private void readAndApplyDeviceConfig() {
+        final int newComponentState = sConfigStore.getAllowlistedCloudProviders().isEmpty()
+                ? PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                : PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
+
+        final ComponentName settingActivityComponentName = new ComponentName(/* context */ this,
+                PhotoPickerSettingsActivity.class);
+
+        getPackageManager().setComponentEnabledSetting(
+                settingActivityComponentName, newComponentState, PackageManager.DONT_KILL_APP);
+
+        Log.i(TAG, "Changed PhotoPickerSettingsActivity component state to "
+                + componentStateToString(newComponentState));
     }
 
     /** Check if this process is the primary MediaProvider's process. */
@@ -142,33 +102,8 @@ public class MediaApplication extends Application {
         return sIsUiProcess;
     }
 
-    /** Retrieve {@link ConfigStore} instance. */
     @NonNull
-    public static synchronized ConfigStore getConfigStore() {
-        if (sConfigStore == null) {
-            // Normally ConfigStore would be created in onCreate() above, but in some cases the
-            // framework may create ContentProvider-s *before* the Application#onCreate() is called.
-            // In this case we use the MediaProvider instance to create the ConfigStore.
-            sConfigStore = new ConfigStore.ConfigStoreImpl(getAppContext().getResources());
-        }
+    public static ConfigStore getConfigStore() {
         return sConfigStore;
-    }
-
-    /**
-     * Enable or disable {@link PhotoPickerSettingsActivity} depending on whether
-     * Cloud-Media-in-Photo-Picker feature is enabled or not.
-     */
-    private void maybeEnablePhotoPickerSettingsActivity() {
-        final boolean isCloudMediaEnabled =
-                !getConfigStore().getAllowedCloudProviderPackages().isEmpty();
-
-        getPackageManager().setComponentEnabledSetting(
-                new ComponentName(this, PhotoPickerSettingsActivity.class),
-                isCloudMediaEnabled
-                        ? COMPONENT_ENABLED_STATE_ENABLED : COMPONENT_ENABLED_STATE_DISABLED,
-                /* flags */ PackageManager.DONT_KILL_APP);
-
-        Log.i(TAG, "PhotoPickerSettingsActivity is now "
-                + (isCloudMediaEnabled ? "enabled" : "disabled" + "."));
     }
 }

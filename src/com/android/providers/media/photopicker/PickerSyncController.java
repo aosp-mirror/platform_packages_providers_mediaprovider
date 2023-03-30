@@ -60,6 +60,7 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.CloudProviderUtils;
 import com.android.providers.media.util.ForegroundThread;
+import com.android.providers.media.util.StringUtils;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -836,36 +837,34 @@ public class PickerSyncController {
      * Get the default {@link CloudProviderInfo} at {@link PickerSyncController} construction
      */
     @VisibleForTesting
-    CloudProviderInfo getDefaultCloudProviderInfo(@Nullable String lastProvider) {
-        final List<CloudProviderInfo> providers = getAvailableCloudProviders();
+    CloudProviderInfo getDefaultCloudProviderInfo(String cachedProvider) {
+        final List<CloudProviderInfo> infos = getAvailableCloudProviders();
 
-        if (providers.size() == 1) {
-            Log.i(TAG, "Only 1 cloud provider found, hence " + providers.get(0).authority
-                    + " is the default");
-            return providers.get(0);
+        if (infos.size() == 1) {
+            Log.i(TAG, "Only 1 cloud provider found, hence "
+                    + infos.get(0).authority + " is the default");
+            return infos.get(0);
         } else {
-            Log.i(TAG, "Found " + providers.size() + " available Cloud Media Providers.");
-        }
+            final String defaultCloudProviderAuthority = StringUtils.getStringConfig(
+                mContext, R.string.config_default_cloud_provider_authority);
+            Log.i(TAG, "Found multiple cloud providers but OEM default is: "
+                    + defaultCloudProviderAuthority);
 
-        if (lastProvider != null) {
-            for (CloudProviderInfo provider : providers) {
-                if (provider.authority.equals(lastProvider)) {
-                    return provider;
+            if (cachedProvider != null) {
+                for (CloudProviderInfo info : infos) {
+                    if (info.authority.equals(cachedProvider)) {
+                        return info;
+                    }
                 }
             }
-        }
 
-        final String defaultProviderPkg = mConfigStore.getDefaultCloudProviderPackage();
-        if (defaultProviderPkg != null) {
-            Log.i(TAG, "Default Cloud-Media-Provider package is " + defaultProviderPkg);
-
-            for (CloudProviderInfo provider : providers) {
-                if (provider.matches(defaultProviderPkg)) {
-                    return provider;
+            if (defaultCloudProviderAuthority != null) {
+                for (CloudProviderInfo info : infos) {
+                    if (info.authority.equals(defaultCloudProviderAuthority)) {
+                        return info;
+                    }
                 }
             }
-        } else {
-            Log.i(TAG, "Default Cloud-Media-Provider is not set.");
         }
 
         // No default set or default not installed

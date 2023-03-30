@@ -111,7 +111,7 @@ class MediaProviderShellCommand extends BasicShellCommandHandler {
     private int runCloudProviderList(@NonNull PrintWriter pw) {
         final String option = getNextOption();
         if ("--allowlist".equals(option)) {
-            final List<String> allowlist = mConfigStore.getAllowedCloudProviderPackages();
+            final List<String> allowlist = mConfigStore.getAllowlistedCloudProviders();
             if (allowlist.isEmpty()) {
                 pw.println("Allowlist is empty.");
             } else {

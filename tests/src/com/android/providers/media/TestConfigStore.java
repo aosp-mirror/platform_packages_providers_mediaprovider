@@ -16,8 +16,6 @@
 
 package com.android.providers.media;
 
-import static java.util.Objects.requireNonNull;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -31,38 +29,20 @@ import java.util.concurrent.Executor;
  * stored to {@link android.provider.DeviceConfig}) and instead simply returns default values.
  */
 public class TestConfigStore implements ConfigStore {
-    private @Nullable List<String> mAllowedCloudProviderPackages = null;
-    private @Nullable String mDefaultCloudProviderPackage = null;
+    private @Nullable List<String> mAllowedCloudProviders = null;
     private int mPickerSyncDelayMs = 0;
 
     @Override
-    public @NonNull List<String> getAllowedCloudProviderPackages() {
-        return mAllowedCloudProviderPackages != null ? mAllowedCloudProviderPackages
-                : Collections.emptyList();
+    public @NonNull List<String> getAllowlistedCloudProviders() {
+        return mAllowedCloudProviders != null ? mAllowedCloudProviders : Collections.emptyList();
     }
 
-    public void setAllowedCloudProviderPackages(String... packages) {
-        mAllowedCloudProviderPackages = Arrays.asList(packages);
+    public void setAllowedCloudProviders(String... providers) {
+        mAllowedCloudProviders = Arrays.asList(providers);
     }
 
     public void clearAllowedCloudProviders() {
-        mAllowedCloudProviderPackages = null;
-    }
-
-    public void setDefaultCloudProviderPackage(@NonNull String packageName) {
-        requireNonNull(packageName, "null packageName is not allowed. "
-                + "Consider clearDefaultCloudProviderPackage()");
-        mDefaultCloudProviderPackage = packageName;
-    }
-
-    public void clearDefaultCloudProviderPackage() {
-        mDefaultCloudProviderPackage = null;
-    }
-
-    @Nullable
-    @Override
-    public String getDefaultCloudProviderPackage() {
-        return mDefaultCloudProviderPackage;
+        mAllowedCloudProviders = null;
     }
 
     @Override

@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import static com.bumptech.glide.load.resource.bitmap.Downsampler.PREFERRED_COLOR_SPACE;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
@@ -35,6 +37,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.load.Option;
+import com.bumptech.glide.load.PreferredColorSpace;
 import com.bumptech.glide.load.resource.gif.GifDrawable;
 import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.signature.ObjectKey;
@@ -51,9 +54,15 @@ public class ImageLoader {
     private static final RequestOptions THUMBNAIL_OPTION =
             RequestOptions.option(THUMBNAIL_REQUEST, /* enableThumbnail */ true);
     private final Context mContext;
+    private final PreferredColorSpace mPreferredColorSpace;
 
     public ImageLoader(Context context) {
         mContext = context;
+
+        final boolean isScreenWideColorGamut =
+                mContext.getResources().getConfiguration().isScreenWideColorGamut();
+        mPreferredColorSpace =
+                isScreenWideColorGamut ? PreferredColorSpace.DISPLAY_P3 : PreferredColorSpace.SRGB;
     }
 
     /**
@@ -162,9 +171,15 @@ public class ImageLoader {
             ImageView imageView) {
         RequestBuilder<T> newRequestBuilder = requestBuilder.clone();
 
+        final RequestOptions requestOptionsWithPreferredColorSpace;
         if (requestOptions != null) {
-            newRequestBuilder = newRequestBuilder.apply(requestOptions);
+            requestOptionsWithPreferredColorSpace = requestOptions.clone();
+        } else {
+            requestOptionsWithPreferredColorSpace = new RequestOptions();
         }
+        requestOptionsWithPreferredColorSpace.set(PREFERRED_COLOR_SPACE, mPreferredColorSpace);
+
+        newRequestBuilder = newRequestBuilder.apply(requestOptionsWithPreferredColorSpace);
 
         if (signature != null) {
             newRequestBuilder = newRequestBuilder.signature(signature);

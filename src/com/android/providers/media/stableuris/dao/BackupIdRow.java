@@ -16,6 +16,10 @@
 
 package com.android.providers.media.stableuris.dao;
 
+import android.provider.MediaStore.MediaColumns;
+
+import com.android.providers.media.util.StringUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -38,11 +42,23 @@ public final class BackupIdRow implements Serializable {
     private int mIsPending;
     private int mIsTrashed;
     private boolean mIsDirty;
-    // This is not Owner Package name but a unique identifier to it
+
+    /**
+     * This is not Owner Package name but a unique identifier to it
+     */
     private int mOwnerPackageId;
-    private int mDateExpires;
-    // This is required to support cloned user data
+
+    /**
+     * Same as {@link MediaColumns#DATE_EXPIRES}. Will be null if media row does not have
+     * expiry time set.
+     */
+    private String mDateExpires;
+
+    /**
+     * This is required to support cloned user data.
+     */
     private int mUserId;
+    private int mMediaType;
 
     /**
      * Builder class for {@link BackupIdRow}
@@ -54,8 +70,9 @@ public final class BackupIdRow implements Serializable {
         private int mIsTrashed;
         private boolean mIsDirty;
         private int mOwnerPackageId;
-        private int mDateExpires;
+        private String mDateExpires;
         private int mUserId;
+        private int mMediaType;
 
         Builder(long id) {
             this.mId = id;
@@ -96,8 +113,14 @@ public final class BackupIdRow implements Serializable {
         /**
          * Sets the dateExpires value
          */
-        public Builder setDateExpires(int dateExpires) {
-            this.mDateExpires = dateExpires;
+        public Builder setDateExpires(String dateExpires) {
+            if (StringUtils.isNullOrEmpty(dateExpires)) {
+                this.mDateExpires = null;
+            } else {
+                long value = Long.parseLong(dateExpires);
+                this.mDateExpires = String.valueOf(value);
+            }
+
             return this;
         }
 
@@ -106,6 +129,14 @@ public final class BackupIdRow implements Serializable {
          */
         public Builder setUserId(int userId) {
             this.mUserId = userId;
+            return this;
+        }
+
+        /**
+         * Sets the mediatype value
+         */
+        public Builder setMediaType(int mediaType) {
+            this.mMediaType = mediaType;
             return this;
         }
 
@@ -129,6 +160,7 @@ public final class BackupIdRow implements Serializable {
             backupIdRow.mOwnerPackageId = this.mOwnerPackageId;
             backupIdRow.mDateExpires = this.mDateExpires;
             backupIdRow.mUserId = this.mUserId;
+            backupIdRow.mMediaType = this.mMediaType;
 
             return backupIdRow;
         }
@@ -166,7 +198,7 @@ public final class BackupIdRow implements Serializable {
         return mUserId;
     }
 
-    public int getDateExpires() {
+    public String getDateExpires() {
         return mDateExpires;
     }
 
@@ -174,41 +206,44 @@ public final class BackupIdRow implements Serializable {
         return mIsDirty;
     }
 
+    public int getMediaType() {
+        return mMediaType;
+    }
+
     /**
      * Returns human-readable form of {@link BackupIdRow} for easy debugging.
      */
+    @Override
     public String toString() {
-        return "id = " + getId()
-                + " is_favorite = " + getIsFavorite()
-                + " is_pending = " + getIsPending()
-                + " is_trashed = " + getIsTrashed()
-                + " is_dirty = " + getIsDirty()
-                + " owner_package_id = " + getOwnerPackageId()
-                + " user_id = " + getUserId()
-                + " date_expires = " + getDateExpires();
+        return "BackupIdRow{" +
+                "mId=" + mId +
+                ", mIsFavorite=" + mIsFavorite +
+                ", mIsPending=" + mIsPending +
+                ", mIsTrashed=" + mIsTrashed +
+                ", mIsDirty=" + mIsDirty +
+                ", mOwnerPackageId=" + mOwnerPackageId +
+                ", mDateExpires=" + mDateExpires +
+                ", mUserId=" + mUserId +
+                ", mMediaType=" + mMediaType +
+                '}';
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        BackupIdRow that = (BackupIdRow) obj;
-
-        return Objects.equals(getId(), that.getId())
-                && Objects.equals(getIsFavorite(), that.getIsFavorite())
-                && Objects.equals(getIsPending(), that.getIsPending())
-                && Objects.equals(getIsTrashed(), that.getIsTrashed())
-                && getOwnerPackageId() == that.getOwnerPackageId()
-                && getUserId() == that.getUserId()
-                && getDateExpires() == that.getDateExpires()
-                && getIsDirty() == that.getIsDirty();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof BackupIdRow)) return false;
+        BackupIdRow that = (BackupIdRow) o;
+        return mId == that.mId && mIsFavorite == that.mIsFavorite && mIsPending == that.mIsPending
+                && mIsTrashed == that.mIsTrashed && mIsDirty == that.mIsDirty
+                && mOwnerPackageId == that.mOwnerPackageId && mUserId == that.mUserId
+                && mMediaType == that.mMediaType && Objects.equals(mDateExpires,
+                that.mDateExpires);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getIsFavorite(), getIsPending(), getIsTrashed(),
-                getOwnerPackageId(), getUserId(), getDateExpires(), getIsDirty());
+        return Objects.hash(mId, mIsFavorite, mIsPending, mIsTrashed, mIsDirty, mOwnerPackageId,
+                mDateExpires, mUserId, mMediaType);
     }
 
     /**

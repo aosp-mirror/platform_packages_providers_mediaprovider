@@ -40,6 +40,7 @@ import com.android.providers.media.util.StringUtils;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.text.NumberFormat;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -75,37 +76,36 @@ public class PhotosTabFragment extends TabFragment {
 
         // We only show the Banners on the PhotosTabFragment with CATEGORY_DEFAULT (Main grid).
         final boolean shouldShowBanners = mCategory.isDefault();
+        final LiveData<Boolean> doNotShowBanner = new MutableLiveData<>(false);
         final LiveData<Boolean> showChooseAppBanner = shouldShowBanners
-                ? mPickerViewModel.shouldShowChooseAppBannerLiveData()
-                : new MutableLiveData<>(false);
+                ? mPickerViewModel.shouldShowChooseAppBannerLiveData() : doNotShowBanner;
+        final LiveData<Boolean> showCloudMediaAvailableBanner = shouldShowBanners
+                ? mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData() : doNotShowBanner;
+        final LiveData<Boolean> showAccountUpdatedBanner = shouldShowBanners
+                ? mPickerViewModel.shouldShowAccountUpdatedBannerLiveData() : doNotShowBanner;
+        final LiveData<Boolean> showChooseAccountBanner = shouldShowBanners
+                ? mPickerViewModel.shouldShowChooseAccountBannerLiveData() : doNotShowBanner;
 
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
                 mImageLoader, this::onItemClick, this::onItemLongClick, /* lifecycleOwner */ this,
                 mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
                 mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner,
-                mOnChooseAppBannerClickListener);
-
-        setEmptyMessage(R.string.picker_photos_empty_message);
+                showCloudMediaAvailableBanner, showAccountUpdatedBanner, showChooseAccountBanner,
+                mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
+                mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
 
         if (mCategory.isDefault()) {
+            setEmptyMessage(R.string.picker_photos_empty_message);
             // Set the pane title for A11y
             view.setAccessibilityPaneTitle(getString(R.string.picker_photos));
-            mPickerViewModel.getItems().observe(this, itemList -> {
-                adapter.setMediaItems(itemList);
-                // Handle emptyView's visibility
-                updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
-            });
+            mPickerViewModel.getItems()
+                    .observe(this, itemList -> onChangeMediaItems(itemList, adapter));
         } else {
+            setEmptyMessage(R.string.picker_album_media_empty_message);
             // Set the pane title for A11y
             view.setAccessibilityPaneTitle(mCategory.getDisplayName(context));
-            mPickerViewModel.getCategoryItems(mCategory).observe(this, itemList -> {
-                // If the item count of the albums is zero, albums are not shown on the Albums tab.
-                // The user can't launch the album items page when the album has zero items. So, we
-                // don't need to show emptyView in the case.
-                updateVisibilityForEmptyView(/* shouldShowEmptyView */ false);
-
-                adapter.setMediaItems(itemList);
-            });
+            mPickerViewModel.getCategoryItems(mCategory)
+                    .observe(this, itemList -> onChangeMediaItems(itemList, adapter));
         }
 
         final PhotosTabItemDecoration itemDecoration = new PhotosTabItemDecoration(context);
@@ -149,6 +149,13 @@ public class PhotosTabFragment extends TabFragment {
 
         getPickerActivity().updateCommonLayouts(layoutMode, title);
         hideProfileButton(shouldHideProfileButton);
+    }
+
+    private void onChangeMediaItems(@NonNull List<Item> itemList,
+            @NonNull PhotosTabAdapter adapter) {
+        adapter.setMediaItems(itemList);
+        // Handle emptyView's visibility
+        updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
     }
 
     private void onItemClick(@NonNull View view) {

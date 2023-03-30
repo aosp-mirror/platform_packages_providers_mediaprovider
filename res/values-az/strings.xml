@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Maksimum <xliff:g id="COUNT_0">^1</xliff:g> element seçin}other{Maksimum <xliff:g id="COUNT_1">^1</xliff:g> element seçin}}"</string>
     <string name="recent" msgid="6694613584743207874">"Son"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Foto və ya video yoxdur"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Dəstəklənən foto və ya video yoxdur"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Albom yoxdur"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Seçilənə baxın"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotolar"</string>
@@ -67,6 +68,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"İş tətbiqləri durdurulub"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"İş şəkillərini açmaq üçün iş tətbiqlərinizi aktiv edib yenidən cəhd edin"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Bu tətbiq yalnız seçdiyiniz fotolara giriş edə bilər"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Bu tətbiqin daxil olmasına icazə verdiyiniz foto və videolar seçin"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> element}other{<xliff:g id="COUNT_1">^1</xliff:g> element}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Əlavə edin (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"İcazə verin (<xliff:g id="COUNT">^1</xliff:g>)"</string>

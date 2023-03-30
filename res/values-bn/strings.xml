@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{সর্বাধিক <xliff:g id="COUNT_0">^1</xliff:g>টি আইটেম বেছে নিন}one{সর্বাধিক <xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম বেছে নিন}other{সর্বাধিক <xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম বেছে নিন}}"</string>
     <string name="recent" msgid="6694613584743207874">"সাম্প্রতিক"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"কোনও ফটো বা ভিডিও নেই"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"মানানসই কোনও ফটো বা ভিডিও নেই"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"কোনও অ্যালবাম নেই"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ভিউ বেছে নেওয়া হয়েছে"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ফটো"</string>
@@ -67,6 +68,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"অফিসের অ্যাপ পজ করা আছে"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"অফিস প্রোফাইলের ফটো দেখতে, অফিসের অ্যাপ চালু করে আবার চেষ্টা করুন"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"এই অ্যাপ শুধুমাত্র আপনার বেছে নেওয়া ছবি অ্যাক্সেস করতে পারবে"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"এই অ্যাপকে যেসব ফটো বা ভিডি অ্যাক্সেস করার জন্য অনুমতি দিতে চান তা বেছে নিন"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g>টি আইটেম}one{<xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম}other{<xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>)টি যোগ করুন"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"অনুমতি দিন (<xliff:g id="COUNT">^1</xliff:g>টি)"</string>

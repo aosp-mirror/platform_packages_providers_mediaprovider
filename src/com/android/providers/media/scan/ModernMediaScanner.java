@@ -50,6 +50,8 @@ import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
 import static com.android.providers.media.util.Metrics.translateReason;
 
+import static java.util.Objects.requireNonNull;
+
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
@@ -58,6 +60,7 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.content.OperationApplicationException;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteBlobTooBigException;
 import android.database.sqlite.SQLiteDatabase;
 import android.drm.DrmManagerClient;
 import android.drm.DrmSupportInfo;
@@ -179,6 +182,7 @@ public class ModernMediaScanner implements MediaScanner {
     private static final Pattern PATTERN_ALBUM_ART = Pattern.compile(
             "(?i)(?:(?:^folder|(?:^AlbumArt(?:(?:_\\{.*\\}_)?(?:small|large))?))(?:\\.jpg$)|(?:\\._.*))");
 
+    @NonNull
     private final Context mContext;
     private final DrmManagerClient mDrmClient;
     @GuardedBy("mPendingCleanDirectories")
@@ -214,8 +218,8 @@ public class ModernMediaScanner implements MediaScanner {
      */
     private final Set<String> mDrmMimeTypes = new ArraySet<>();
 
-    public ModernMediaScanner(Context context) {
-        mContext = context;
+    public ModernMediaScanner(@NonNull Context context) {
+        mContext = requireNonNull(context);
         mDrmClient = new DrmManagerClient(context);
 
         // Dynamically collect the set of MIME types that should be considered
@@ -229,40 +233,44 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
+    @NonNull
     public Context getContext() {
         return mContext;
     }
 
     @Override
-    public void scanDirectory(File file, int reason) {
-        try (Scan scan = new Scan(file, reason, /*ownerPackage*/ null)) {
+    public void scanDirectory(@NonNull File file, @ScanReason int reason) {
+        requireNonNull(file);
+
+        try (Scan scan = new Scan(file, reason)) {
             scan.run();
-        } catch (OperationCanceledException ignored) {
         } catch (FileNotFoundException e) {
-           Log.e(TAG, "Couldn't find directory to scan", e) ;
+            Log.e(TAG, "Couldn't find directory to scan", e);
+            return;
+        } catch (OperationCanceledException ignored) {
+            // No-op.
         }
     }
 
     @Override
-    public Uri scanFile(File file, int reason) {
-       return scanFile(file, reason, /*ownerPackage*/ null);
-    }
+    @Nullable
+    public Uri scanFile(@NonNull File file, @ScanReason int reason) {
+        requireNonNull(file);
 
-    @Override
-    public Uri scanFile(File file, int reason, @Nullable String ownerPackage) {
-        try (Scan scan = new Scan(file, reason, ownerPackage)) {
+        try (Scan scan = new Scan(file, reason)) {
             scan.run();
             return scan.getFirstResult();
-        } catch (OperationCanceledException ignored) {
-            return null;
         } catch (FileNotFoundException e) {
             Log.e(TAG, "Couldn't find file to scan", e) ;
             return null;
+        } catch (OperationCanceledException ignored) {
+            // No-op.
+            return null;
         }
     }
 
     @Override
-    public void onDetachVolume(MediaVolume volume) {
+    public void onDetachVolume(@NonNull MediaVolume volume) {
         synchronized (mActiveScans) {
             for (Scan scan : mActiveScans) {
                 if (volume.equals(scan.mVolume)) {
@@ -318,15 +326,14 @@ public class ModernMediaScanner implements MediaScanner {
         private final String mVolumeName;
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
-        private final String mOwnerPackage;
         private final List<String> mExcludeDirs;
 
         private final long mStartGeneration;
         private final boolean mSingleFile;
         private final Set<Path> mAcquiredDirectoryLocks = new ArraySet<>();
         private final ArrayList<ContentProviderOperation> mPending = new ArrayList<>();
-        private LongArray mScannedIds = new LongArray();
-        private LongArray mUnknownIds = new LongArray();
+        private final LongArray mScannedIds = new LongArray();
+        private final LongArray mUnknownIds = new LongArray();
 
         private long mFirstId = -1;
 
@@ -347,8 +354,7 @@ public class ModernMediaScanner implements MediaScanner {
          */
         private boolean mIsDirectoryTreeDirty;
 
-        public Scan(File root, int reason, @Nullable String ownerPackage)
-                throws FileNotFoundException {
+        Scan(File root, int reason) throws FileNotFoundException {
             Trace.beginSection("Scanner.ctor");
 
             mClient = mContext.getContentResolver()
@@ -369,7 +375,6 @@ public class ModernMediaScanner implements MediaScanner {
 
             mStartGeneration = MediaStore.getGeneration(mResolver, mVolumeName);
             mSingleFile = mRoot.isFile();
-            mOwnerPackage = ownerPackage;
             mExcludeDirs = new ArrayList<>();
 
             Trace.endSection();
@@ -515,31 +520,21 @@ public class ModernMediaScanner implements MediaScanner {
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
 
-            final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
-            try (Cursor c = mResolver.query(mFilesUri,
-                    new String[]{FileColumns._ID, FileColumns.MEDIA_TYPE, FileColumns.DATE_EXPIRES,
-                            FileColumns.IS_PENDING}, queryArgs, mSignal)) {
-                while (c.moveToNext()) {
-                    final long id = c.getLong(0);
-                    if (Arrays.binarySearch(scannedIds, id) < 0) {
-                        final long dateExpire = c.getLong(2);
-                        final boolean isPending = c.getInt(3) == 1;
-                        // Don't delete the pending item which is not expired.
-                        // If the scan is triggered between invoking
-                        // ContentResolver#insert() and ContentResolver#openFileDescriptor(),
-                        // it raises the FileNotFoundException b/166063754.
-                        if (isPending && dateExpire > System.currentTimeMillis() / 1000) {
-                            continue;
-                        }
-                        mUnknownIds.add(id);
-                        final int mediaType = c.getInt(1);
-                        // Avoid ArrayIndexOutOfBounds if more mediaTypes are added,
-                        // but mediaTypeSize is not updated
-                        if (mediaType < countPerMediaType.length) {
-                            countPerMediaType[mediaType]++;
-                        }
-                    }
-                }
+            int[] countPerMediaType;
+            try {
+                countPerMediaType = addUnknownIdsAndGetMediaTypeCount(queryArgs, scannedIds);
+            } catch (SQLiteBlobTooBigException e) {
+                // Catching SQLiteBlobTooBigException to avoid MP process crash. There can be two
+                // scenarios where SQLiteBlobTooBigException is thrown.
+                // First, where data read by cursor is more than 2MB size. In this case,
+                // next fill window request might try to read data which may not exist anymore due
+                // to a recent update after the last query.
+                // Second, when columns being read have total size of more than 2MB.
+                // We intend to solve for first scenario by querying MP again. If the initial
+                // failure was because of second scenario, a runtime exception will be thrown.
+                Log.e(TAG, "Encountered exception: ", e);
+                mUnknownIds.clear();
+                countPerMediaType = addUnknownIdsAndGetMediaTypeCount(queryArgs, scannedIds);
             } finally {
                 Trace.endSection();
             }
@@ -565,6 +560,37 @@ public class ModernMediaScanner implements MediaScanner {
                 }
                 Trace.endSection();
             }
+        }
+
+        private int[] addUnknownIdsAndGetMediaTypeCount(Bundle queryArgs, long[] scannedIds) {
+            int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
+            try (Cursor c = mResolver.query(mFilesUri,
+                    new String[]{FileColumns._ID, FileColumns.MEDIA_TYPE, FileColumns.DATE_EXPIRES,
+                            FileColumns.IS_PENDING}, queryArgs, mSignal)) {
+                while (c.moveToNext()) {
+                    final long id = c.getLong(0);
+                    if (Arrays.binarySearch(scannedIds, id) < 0) {
+                        final long dateExpire = c.getLong(2);
+                        final boolean isPending = c.getInt(3) == 1;
+                        // Don't delete the pending item which is not expired.
+                        // If the scan is triggered between invoking
+                        // ContentResolver#insert() and ContentResolver#openFileDescriptor(),
+                        // it raises the FileNotFoundException b/166063754.
+                        if (isPending && dateExpire > System.currentTimeMillis() / 1000) {
+                            continue;
+                        }
+                        mUnknownIds.add(id);
+                        final int mediaType = c.getInt(1);
+                        // Avoid ArrayIndexOutOfBounds if more mediaTypes are added,
+                        // but mediaTypeSize is not updated
+                        if (mediaType < countPerMediaType.length) {
+                            countPerMediaType[mediaType]++;
+                        }
+                    }
+                }
+            }
+
+            return countPerMediaType;
         }
 
         private void resolvePlaylists() {
@@ -798,10 +824,7 @@ public class ModernMediaScanner implements MediaScanner {
             }
             if (op != null) {
                 op.withValue(FileColumns._MODIFIER, FileColumns._MODIFIER_MEDIA_SCAN);
-                // Add owner package name to new insertions when package name is provided.
-                if (op.build().isInsert() && !attrs.isDirectory() && mOwnerPackage != null) {
-                    op.withValue(MediaColumns.OWNER_PACKAGE_NAME, mOwnerPackage);
-                }
+
                 // Force DRM files to be marked as DRM, since the lower level
                 // stack may not set this correctly
                 if (isDrm) {
@@ -892,7 +915,7 @@ public class ModernMediaScanner implements MediaScanner {
             return FileVisitResult.CONTINUE;
         }
 
-        private void addPending(ContentProviderOperation op) {
+        private void addPending(@NonNull ContentProviderOperation op) {
             mPending.add(op);
 
             if (op.isInsert()) mInsertCount++;

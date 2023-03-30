@@ -16,7 +16,7 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
+import static com.android.providers.media.MediaProvider.getFuseDaemonForFileWithWait;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
@@ -35,7 +35,6 @@ import android.system.Os;
 import android.util.Log;
 import android.util.Pair;
 
-import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
 import com.android.providers.media.dao.FileRow;
@@ -93,6 +92,16 @@ public class DatabaseBackupAndRecovery {
             "/storage/emulated/" + UserHandle.myUserId();
 
     /**
+     * Wait time of 5 seconds in millis.
+     */
+    private static final long WAIT_TIME_5_SECONDS_IN_MILLIS = 5000;
+
+    /**
+     * Wait time of 10 seconds in millis.
+     */
+    private static final long WAIT_TIME_10_SECONDS_IN_MILLIS = 10000;
+
+    /**
      * Number of records to read from leveldb in a JNI call.
      */
     protected static final int LEVEL_DB_READ_LIMIT = 1000;
@@ -102,14 +111,10 @@ public class DatabaseBackupAndRecovery {
      * row id less frequently in the external storage.
      */
     private AtomicInteger mNextOwnerId;
-
-    private final MediaProvider mMediaProvider;
     private final ConfigStore mConfigStore;
     private final VolumeCache mVolumeCache;
 
-    protected DatabaseBackupAndRecovery(MediaProvider mediaProvider, ConfigStore configStore,
-            VolumeCache volumeCache) {
-        mMediaProvider = mediaProvider;
+    protected DatabaseBackupAndRecovery(ConfigStore configStore, VolumeCache volumeCache) {
         mConfigStore = configStore;
         mVolumeCache = volumeCache;
     }
@@ -168,8 +173,9 @@ public class DatabaseBackupAndRecovery {
             if (!new File(sRecoveryDirectoryPath).exists()) {
                 new File(sRecoveryDirectoryPath).mkdirs();
             }
-            MediaProvider.getFuseDaemonForFile(volume.getPath(), mVolumeCache)
-                    .setupVolumeDbBackup();
+            FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(volume.getPath(),
+                    WAIT_TIME_5_SECONDS_IN_MILLIS);
+            fuseDaemon.setupVolumeDbBackup();
         } catch (IOException e) {
             Log.e(TAG, "Failure in setting up backup and recovery for volume: " + volume.getName(),
                     e);
@@ -179,9 +185,9 @@ public class DatabaseBackupAndRecovery {
     /**
      * Backs up databases to external storage to ensure stable URIs.
      */
-    public void backupDatabases(CancellationSignal signal) {
+    public void backupDatabases(DatabaseHelper internalDatabaseHelper, CancellationSignal signal) {
         Log.i(TAG, "Triggering database backup");
-        backupInternalDatabase(signal);
+        backupInternalDatabase(internalDatabaseHelper, signal);
     }
 
     protected Optional<BackupIdRow> readDataFromBackup(String volumeName, String filePath) {
@@ -199,21 +205,13 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    protected void backupInternalDatabase(CancellationSignal signal) {
-        final Optional<DatabaseHelper> dbHelper =
-                mMediaProvider.getDatabaseHelper(INTERNAL_DATABASE_NAME);
-
-        if (!dbHelper.isPresent()) {
-            Log.e(TAG, "Unable to backup internal db");
-            return;
-        }
-
-        final DatabaseHelper internalDbHelper = dbHelper.get();
-
+    protected void backupInternalDatabase(DatabaseHelper internalDbHelper,
+            CancellationSignal signal) {
         if (!isStableUrisEnabled(MediaStore.VOLUME_INTERNAL)
                 || internalDbHelper.isDatabaseRecovering()) {
             return;
         }
+
         setupVolumeDbBackupForInternalIfMissing();
         FuseDaemon fuseDaemon;
         try {
@@ -621,14 +619,10 @@ public class DatabaseBackupAndRecovery {
         final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
         // Wait for external primary to be attached as we use same thread for internal volume.
         // Maximum wait for 10s
-        while (!isFuseDaemonReadyForFilePath(fuseFilePath) && i < 1000) {
-            Log.d(TAG, "Waiting for fuse daemon to be ready.");
-            // Poll after every 10ms
-            SystemClock.sleep(10);
-            i++;
-        }
-        if (!isFuseDaemonReadyForFilePath(fuseFilePath)) {
-            Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.");
+        try {
+            getFuseDaemonForFileWithWait(new File(fuseFilePath), WAIT_TIME_10_SECONDS_IN_MILLIS);
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.", e);
             return;
         }
 
@@ -665,13 +659,18 @@ public class DatabaseBackupAndRecovery {
         }
         long recoveryTime = SystemClock.elapsedRealtime() - startTime;
         MediaProviderStatsLog.write(MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED,
-                getVolumeName(volumeName), recoveryTime, rowsRecovered, dirtyRowsCount);
+                getVolumeNameForStatsLog(volumeName), recoveryTime, rowsRecovered, dirtyRowsCount);
         Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
                 volumeName));
         Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms", recoveryTime));
     }
 
-    private int getVolumeName(String volumeName) {
+    protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath, long waitTime)
+            throws FileNotFoundException {
+        return MediaProvider.getFuseDaemonForFileWithWait(fuseFilePath, mVolumeCache, waitTime);
+    }
+
+    private int getVolumeNameForStatsLog(String volumeName) {
         if (volumeName.equalsIgnoreCase(MediaStore.VOLUME_INTERNAL)) {
             return MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
         } else if (volumeName.equalsIgnoreCase(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {

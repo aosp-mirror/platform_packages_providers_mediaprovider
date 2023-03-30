@@ -178,6 +178,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     long mScanStartTime;
     long mScanStopTime;
     private boolean mEnableNextRowIdRecovery;
+    private final DatabaseBackupAndRecovery mDatabaseBackupAndRecovery;
 
     /**
      * Unfortunately we can have multiple instances of DatabaseHelper, causing
@@ -244,10 +245,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
-            @Nullable UnaryOperator<String> idGenerator, boolean enableNextRowIdRecovery) {
+            @Nullable UnaryOperator<String> idGenerator, boolean enableNextRowIdRecovery,
+            DatabaseBackupAndRecovery databaseBackupAndRecovery) {
         this(context, name, getDatabaseVersion(context), earlyUpgrade, legacyProvider,
-               projectionHelper, schemaListener, filesListener,
-                migrationListener, idGenerator, enableNextRowIdRecovery);
+                projectionHelper, schemaListener, filesListener,
+                migrationListener, idGenerator, enableNextRowIdRecovery, databaseBackupAndRecovery);
     }
 
     public DatabaseHelper(Context context, String name, int version,
@@ -256,7 +258,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
             @NonNull OnLegacyMigrationListener migrationListener,
-            @Nullable UnaryOperator<String> idGenerator, boolean enableNextRowIdRecovery) {
+            @Nullable UnaryOperator<String> idGenerator, boolean enableNextRowIdRecovery,
+            DatabaseBackupAndRecovery databaseBackupAndRecovery) {
         super(context, name, null, version);
         mContext = context;
         mName = name;
@@ -277,6 +280,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mIdGenerator = idGenerator;
         mMigrationFileName = "." + mVolumeName;
         this.mEnableNextRowIdRecovery = enableNextRowIdRecovery;
+        this.mDatabaseBackupAndRecovery = databaseBackupAndRecovery;
 
         // Configure default filters until we hear differently
         if (isInternal()) {
@@ -544,18 +548,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private void tryRecoverDatabase(SQLiteDatabase db) {
-        MediaProvider mediaProvider;
-        try (ContentProviderClient cpc = mContext.getContentResolver()
-                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-            mediaProvider = ((MediaProvider) cpc.getLocalContentProvider());
-        } catch (Exception e) {
-            throw new RuntimeException("Could not retrieve local content provider", e);
-        }
-        DatabaseBackupAndRecovery databaseBackupAndRecovery =
-                mediaProvider.getDatabaseBackupAndRecovery();
         String volumeName =
                 isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
-        if (!isInternal() || !databaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
+        if (!isInternal() || !mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
             return;
         }
 
@@ -569,8 +564,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // StableUrisIdleMaintenanceService will be attempted to run only once in 7days.
                 // Any rollback before that will not recover DB rows.
                 BackgroundThread.getExecutor().execute(
-                        () -> databaseBackupAndRecovery.backupInternalDatabase(null));
-                // Set next row id in External Storage to handle rollback in the future.
+                        () -> mDatabaseBackupAndRecovery.backupInternalDatabase(this, null));
+                // Set next row id in External Storage to handle rollback in future.
                 backupNextRowId(NEXT_ROW_ID_DEFAULT_BILLION_VALUE);
                 updateSessionIdInDatabaseAndExternalStorage(db);
                 return;
@@ -593,7 +588,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             // Recover data from backup
             // Ensure we do not back up in case of recovery.
             mIsRecovering.set(true);
-            databaseBackupAndRecovery.recoverData(db, volumeName);
+            mDatabaseBackupAndRecovery.recoverData(db, volumeName);
             updateNextRowIdInDatabaseAndExternalStorage(db);
             mIsRecovering.set(false);
             updateSessionIdInDatabaseAndExternalStorage(db);

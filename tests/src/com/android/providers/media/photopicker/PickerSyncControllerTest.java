@@ -127,7 +127,7 @@ public class PickerSyncControllerTest {
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
 
         mConfigStore = new TestConfigStore();
-        mConfigStore.setAllowedCloudProviderPackages(PACKAGE_NAME);
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
         mConfigStore.setPickerSyncDelayMs(0);
 
         mController = new PickerSyncController(
@@ -643,7 +643,7 @@ public class PickerSyncControllerTest {
         final CloudProviderInfo secondaryInfo = new CloudProviderInfo(
                 CLOUD_SECONDARY_PROVIDER_AUTHORITY, PACKAGE_NAME, Process.myUid());
 
-        mConfigStore.setAllowedCloudProviderPackages(PACKAGE_NAME);
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
         final PickerSyncController controller = new PickerSyncController(
                 mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
         final List<CloudProviderInfo> providers = controller.getAvailableCloudProviders();
@@ -698,7 +698,7 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testNotifyMediaEvent() {
-        mConfigStore.clearAllowedCloudProviders();
+        mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
         mConfigStore.setPickerSyncDelayMs(SYNC_DELAY_MS);
 
         final PickerSyncController controller = new PickerSyncController(
@@ -723,7 +723,7 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testSyncAfterDbCreate() {
-        mConfigStore.clearAllowedCloudProviders();
+        mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
         mConfigStore.setPickerSyncDelayMs(0);
 
         final PickerDatabaseHelper dbHelper = new PickerDatabaseHelper(
@@ -769,7 +769,7 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testSyncAfterDbUpgrade() {
-        mConfigStore.clearAllowedCloudProviders();
+        mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
         mConfigStore.setPickerSyncDelayMs(SYNC_DELAY_MS);
 
         PickerDatabaseHelper dbHelperV1 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
@@ -811,7 +811,7 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testSyncAfterDbDowngrade() {
-        mConfigStore.clearAllowedCloudProviders();
+        mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
         mConfigStore.setPickerSyncDelayMs(SYNC_DELAY_MS);
 
         PickerDatabaseHelper dbHelperV2 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_2);
@@ -963,7 +963,7 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testUserPrefsAfterDbUpgrade() {
-        mConfigStore.setAllowedCloudProviderPackages(PACKAGE_NAME);
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
         mConfigStore.setPickerSyncDelayMs(SYNC_DELAY_MS);
 
         PickerDatabaseHelper dbHelperV1 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);

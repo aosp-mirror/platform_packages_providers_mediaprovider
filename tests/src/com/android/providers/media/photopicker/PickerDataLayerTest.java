@@ -123,7 +123,7 @@ public class PickerDataLayerTest {
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
 
         final TestConfigStore configStore = new TestConfigStore();
-        configStore.setAllowedCloudProviderPackages(PACKAGE_NAME);
+        configStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
         configStore.setPickerSyncDelayMs(0);
 
         mController = new PickerSyncController(

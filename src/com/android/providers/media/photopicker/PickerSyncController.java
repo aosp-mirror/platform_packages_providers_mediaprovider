@@ -311,6 +311,18 @@ public class PickerSyncController {
     }
 
     private boolean setCloudProviderInternal(@Nullable String authority, boolean ignoreAllowList) {
+        Log.d(TAG, "setCloudProviderInternal() auth=" + authority + ", "
+                + "ignoreAllowList=" + ignoreAllowList);
+        if (DEBUG) {
+            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
+        }
+
+        if (!mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
+            Log.w(TAG, "Ignoring a request to set the CloudMediaProvider (" + authority + ") "
+                    + "since the Cloud-Media-in-Photo-Picker feature is disabled");
+            return false;
+        }
+
         synchronized (mLock) {
             if (Objects.equals(mCloudProviderInfo.authority, authority)) {
                 Log.w(TAG, "Cloud provider already set: " + authority);

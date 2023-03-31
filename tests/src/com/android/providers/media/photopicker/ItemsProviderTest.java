@@ -33,6 +33,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import android.Manifest;
+import android.app.Instrumentation;
 import android.app.UiAutomation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -53,6 +54,7 @@ import androidx.test.InstrumentationRegistry;
 import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
+import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.cloudproviders.CloudProviderPrimary;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.model.Category;
@@ -74,7 +76,6 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class ItemsProviderTest {
-
     /**
      * To help avoid flaky tests, give ourselves a unique nonce to be used for
      * all filesystem paths, so that we don't risk conflicting with previous
@@ -86,31 +87,33 @@ public class ItemsProviderTest {
     private static final String IMAGE_FILE_NAME = TAG + "_file_" + NONCE + ".jpg";
     private static final String HIDDEN_DIR_NAME = TAG + "_hidden_dir_" + NONCE;
 
-    private Context mIsolatedContext;
+    private static final Instrumentation sInstrumentation =
+            InstrumentationRegistry.getInstrumentation();
+    private static final Context sTargetContext = sInstrumentation.getTargetContext();
+    // We are in a self-instrumentation test - MediaProviderTests - so "target" package name and
+    // "own" package are the same: com.android.providers.media.tests.
+    private static final String sTargetPackageName = sTargetContext.getPackageName();
     private ContentResolver mIsolatedResolver;
     private ItemsProvider mItemsProvider;
+    private TestConfigStore mConfigStore;
 
     @Before
     public void setUp() throws Exception {
-        final UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation()
-                .getUiAutomation();
-
+        final UiAutomation uiAutomation = sInstrumentation.getUiAutomation();
         uiAutomation.adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.READ_DEVICE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS,
                         Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
+        mConfigStore = new TestConfigStore();
         // Remove sync delay to avoid flaky tests
-        final String setSyncDelayCommand =
-                "device_config put storage pickerdb.default_sync_delay_ms 0";
-        executeShellCommand(setSyncDelayCommand);
+        mConfigStore.setPickerSyncDelayMs(0);
 
-        final Context context = InstrumentationRegistry.getTargetContext();
-        mIsolatedContext
-                = new IsolatedContext(context, "databases", /*asFuseThread*/ false);
-        mIsolatedResolver = mIsolatedContext.getContentResolver();
-        mItemsProvider = new ItemsProvider(mIsolatedContext);
+        final Context isolatedContext = new IsolatedContext(sTargetContext, /* tag */ "databases",
+                /* asFuseThread */ false, sTargetContext.getUser(), mConfigStore);
+        mIsolatedResolver = isolatedContext.getContentResolver();
+        mItemsProvider = new ItemsProvider(isolatedContext);
 
         // Wait for MediaStore to be Idle to reduce flakes caused by database updates
         MediaStore.waitForIdle(mIsolatedResolver);
@@ -629,6 +632,8 @@ public class ItemsProviderTest {
     public void testGetLocalItems_withCloud() throws Exception {
         File videoFile = assertCreateNewVideo();
         try {
+            mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
+                    sTargetPackageName);
             // Init cloud provider and add one item
             setupCloudProvider((cloudMediaGenerator) -> {
                 cloudMediaGenerator.addMedia(null, "cloud_id1");
@@ -664,6 +669,7 @@ public class ItemsProviderTest {
         } finally {
             videoFile.delete();
             setCloudProvider(null);
+            mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
         }
     }
 
@@ -673,6 +679,8 @@ public class ItemsProviderTest {
         Category videoAlbum = new Category(CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
                 LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 10, true);
         try {
+            mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
+                    sTargetPackageName);
             // Init cloud provider and add one item
             setupCloudProvider((cloudMediaGenerator) -> {
                 cloudMediaGenerator.addMedia(null, "cloud_id1", null, "video/mp4", 0, 1024, false);
@@ -706,6 +714,7 @@ public class ItemsProviderTest {
         } finally {
             videoFile.delete();
             setCloudProvider(null);
+            mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
         }
     }
 
@@ -716,6 +725,8 @@ public class ItemsProviderTest {
         final String cloudAlbum = "testAlbum";
 
         try {
+            mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
+                    sTargetPackageName);
             // Init cloud provider with 2 items and one cloud album
             setupCloudProvider((cloudMediaGenerator) -> {
                 cloudMediaGenerator.addMedia(null, "cloud_id1", null, "video/mp4", 0, 1024, false);
@@ -747,6 +758,7 @@ public class ItemsProviderTest {
             videoFile.delete();
             screenshotFile.delete();
             setCloudProvider(null);
+            mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
         }
     }
 

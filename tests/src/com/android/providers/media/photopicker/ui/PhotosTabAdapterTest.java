@@ -182,9 +182,15 @@ public class PhotosTabAdapterTest {
                 /* cloudMediaAccountName */ mock(LiveData.class),
                 /* shouldShowChooseAppBanner */ mock(LiveData.class),
                 /* shouldShowCloudMediaAvailableBanner */ mock(LiveData.class),
-                /* onChooseAppBannerClickListener */ mock(TabAdapter.OnBannerClickListener.class),
-                /* onCloudMediaAvailableBannerClickListener */
-                mock(TabAdapter.OnBannerClickListener.class));
+                /* shouldShowAccountUpdatedBanner */ mock(LiveData.class),
+                /* shouldShowChooseAccountBanner */ mock(LiveData.class),
+                /* onChooseAppBannerEventListener */ mock(TabAdapter.OnBannerEventListener.class),
+                /* onCloudMediaAvailableBannerEventListener */
+                mock(TabAdapter.OnBannerEventListener.class),
+                /* onAccountUpdatedBannerEventListener */
+                mock(TabAdapter.OnBannerEventListener.class),
+                /* onChooseAccountBannerEventListener */
+                mock(TabAdapter.OnBannerEventListener.class));
     }
 
     private static Item generateFakeImageItem(String id) {

@@ -1169,8 +1169,20 @@ public class MediaProvider extends ContentProvider {
         super.attachInfo(context, info);
     }
 
+    @Nullable
+    private static MediaProvider sInstance;
+
+    @Nullable
+    static synchronized MediaProvider getInstance() {
+        return sInstance;
+    }
+
     @Override
     public boolean onCreate() {
+        synchronized (MediaProvider.class) {
+            sInstance = this;
+        }
+
         final Context context = getContext();
 
         mUserCache = new UserCache(context);
@@ -6386,7 +6398,7 @@ public class MediaProvider extends ContentProvider {
                 final int caller = Binder.getCallingUid();
                 final int userId = uidToUserId(caller);
                 final List<Uri> uris;
-                final String packageName;
+                String packageName;
                 if (checkPermissionSelf(caller)) {
                     // If the caller is MediaProvider the accepted parameters are EXTRA_URI_LIST
                     // and EXTRA_UID.
@@ -6401,6 +6413,12 @@ public class MediaProvider extends ContentProvider {
                     final PackageManager pm = getContext().getPackageManager();
                     final int packageUid = extras.getInt(Intent.EXTRA_UID);
                     packageName = pm.getNameForUid(packageUid);
+                    if (packageName.contains(":")) {
+                        // Check if the package name includes the package uid. This is expected
+                        // for packages that are referencing a shared user. PackageManager will
+                        // return a string such as <packagename>:<uid> in this instance.
+                        packageName = packageName.split(":")[0];
+                    }
                 } else if (checkPermissionShell(caller)) {
                     // If the caller is the shell, the accepted parameters are EXTRA_URI (as string)
                     // and EXTRA_PACKAGE_NAME (as string).
@@ -6588,7 +6606,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void backupDatabases(CancellationSignal signal) {
-        mDatabaseBackupAndRecovery.backupDatabases(mInternalDatabase, signal);
+        mDatabaseBackupAndRecovery.backupDatabases(mInternalDatabase, mExternalDatabase, signal);
     }
 
     private void syncAllMedia() {
@@ -10373,7 +10391,8 @@ public class MediaProvider extends ContentProvider {
             mAttachedVolumes.add(volume);
         }
 
-        mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume);
+        mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
+                volume.getPath());
 
         final ContentResolver resolver = getContext().getContentResolver();
         final Uri uri = getBaseContentUri(volumeName);
@@ -10750,7 +10769,7 @@ public class MediaProvider extends ContentProvider {
         if (configStore == null) {
             // Tests did not provide an alternative implementation: create our regular "production"
             // ConfigStore.
-            configStore = new ConfigStore.ConfigStoreImpl();
+            configStore = MediaApplication.getConfigStore();
         }
         return configStore;
     }

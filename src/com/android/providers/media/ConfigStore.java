@@ -16,13 +16,19 @@
 
 package com.android.providers.media;
 
+import static android.os.Build.VERSION_CODES.TIRAMISU;
 import static android.provider.DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT;
 
+import static java.util.Objects.requireNonNull;
+
+import android.content.res.Resources;
 import android.os.Binder;
+import android.os.Build;
 import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.util.Supplier;
 
@@ -56,16 +62,50 @@ public interface ConfigStore {
     boolean DEFAULT_PICKER_PICK_IMAGES_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG = false;
 
+    boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = false;
+    boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
+
     /**
-     * @return non-null list of {@link android.provider.CloudMediaProvider}
-     * {@link android.content.pm.ProviderInfo#authority authorities}.
+     * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and
+     *         "plug-in" {@link android.provider.CloudMediaProvider}s.
+     */
+    default boolean isCloudMediaInPhotoPickerEnabled() {
+        return DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED;
+    }
+
+    /**
+     * @return package name of the pre-configured "system default"
+     *         {@link android.provider.CloudMediaProvider}.
+     * @see #isCloudMediaInPhotoPickerEnabled()
+     */
+    @Nullable
+    default String getDefaultCloudProviderPackage() {
+        return null;
+    }
+
+    /**
+     * @return a non-null list of names of packages that are allowed to serve as the system
+     *         Cloud Media Provider.
+     * @see #isCloudMediaInPhotoPickerEnabled()
+     * @see #shouldEnforceCloudProviderAllowlist()
      */
     @NonNull
-    List<String> getAllowlistedCloudProviders();
+    default List<String> getAllowedCloudProviderPackages() {
+        return Collections.emptyList();
+    }
+
+    /**
+     * @return if the Cloud Media Provider allowlist should be enforced.
+     * @see #isCloudMediaInPhotoPickerEnabled()
+     * @see #getAllowedCloudProviderPackages()
+     */
+    default boolean shouldEnforceCloudProviderAllowlist() {
+        return DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST;
+    }
 
     /**
      * @return a delay (in milliseconds) before executing PhotoPicker media sync on media events
-     * like inserts/updates/deletes to artificially throttle the burst notifications.
+     *         like inserts/updates/deletes to artificially throttle the burst notifications.
      */
     default int getPickerSyncDelayMs() {
         return DEFAULT_PICKER_SYNC_DELAY;
@@ -192,8 +232,6 @@ public interface ConfigStore {
         private static final String SYSPROP_TRANSCODE_MAX_DURATION =
             "persist.sys.fuse.transcode_max_file_duration_ms";
         private static final int TRANSCODE_MAX_DURATION_INVALID = 0;
-
-        private static final String KEY_PICKER_ALLOWED_CLOUD_PROVIDERS = "allowed_cloud_providers";
         private static final String KEY_PICKER_SYNC_DELAY = "default_sync_delay_ms";
         private static final String KEY_PICKER_GET_CONTENT_PRELOAD =
                 "picker_get_content_preload_selected";
@@ -202,12 +240,67 @@ public interface ConfigStore {
         private static final String KEY_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG =
                 "picker_pick_images_respect_preload_selected_arg";
 
+        private static final String KEY_CLOUD_MEDIA_FEATURE_ENABLED = "cloud_media_feature_enabled";
+        private static final String KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST = "allowed_cloud_providers";
+        private static final String KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST =
+                "cloud_media_enforce_provider_allowlist";
+
         private static final boolean sCanReadDeviceConfig = SdkLevel.isAtLeastS();
 
-        @Override
         @NonNull
-        public List<String> getAllowlistedCloudProviders() {
-            return getStringArrayDeviceConfig(KEY_PICKER_ALLOWED_CLOUD_PROVIDERS);
+        private final Resources mResources;
+
+        ConfigStoreImpl(@NonNull Resources resources) {
+            mResources = requireNonNull(resources);
+        }
+
+        @Override
+        public boolean isCloudMediaInPhotoPickerEnabled() {
+            return getBooleanDeviceConfig(KEY_CLOUD_MEDIA_FEATURE_ENABLED,
+                    DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED);
+        }
+
+        @Nullable
+        @Override
+        public String getDefaultCloudProviderPackage() {
+            String pkg = mResources.getString(R.string.config_default_cloud_media_provider_package);
+            if (pkg == null && Build.VERSION.SDK_INT <= TIRAMISU) {
+                // We are on Android T or below and do not have
+                // config_default_cloud_media_provider_package: let's see if we have now deprecated
+                // config_default_cloud_provider_authority.
+                final String authority =
+                        mResources.getString(R.string.config_default_cloud_provider_authority);
+                if (authority != null) {
+                    pkg = maybeExtractPackageNameFromCloudProviderAuthority(authority);
+                }
+            }
+            return pkg;
+        }
+
+        @NonNull
+        @Override
+        public List<String> getAllowedCloudProviderPackages() {
+            final List<String> allowlist =
+                    getStringArrayDeviceConfig(KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST);
+
+            // BACKWARD COMPATIBILITY WORKAROUND.
+            // See javadoc to maybeExtractPackageNameFromCloudProviderAuthority() below for more
+            // details.
+            for (int i = 0; i < allowlist.size(); i++) {
+                final String pkg =
+                        maybeExtractPackageNameFromCloudProviderAuthority(allowlist.get(i));
+                if (pkg != null) {
+                    allowlist.set(i, pkg);
+                }
+            }
+
+            return allowlist;
+        }
+
+        @Override
+        public boolean shouldEnforceCloudProviderAllowlist() {
+            return getBooleanDeviceConfig(KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST,
+                    DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST);
         }
 
         @Override
@@ -348,6 +441,27 @@ public interface ConfigStore {
             } finally {
                 Binder.restoreCallingIdentity(callingIdentity);
             }
+        }
+
+        /**
+         * BACKWARD COMPATIBILITY WORKAROUND
+         * Initially, instead of using package names when allow-listing and setting the system
+         * default CloudMediaProviders we used authorities.
+         * This, however, introduced a vulnerability, so we switched to using package names.
+         * But, by then, we had been allow-listing and setting default CMPs  using authorities.
+         * Luckily for us, all of those CMPs had authorities in the following format:
+         * "${package-name}.cloudprovider", e.g. "com.hooli.android.photos" package would implement
+         * a CMP with "com.hooli.android.photos.cloudprovider" authority.
+         * So in order for the old allow-listings and defaults to work now, we try to extract
+         * package names from authorities by removing the ".cloudprovider" suffixes.
+         */
+        @Nullable
+        private static String maybeExtractPackageNameFromCloudProviderAuthority(
+                @NonNull String authority) {
+            if (authority.endsWith(".cloudprovider")) {
+                return authority.substring(0, authority.length() - ".cloudprovider".length());
+            }
+            return null;
         }
     }
 }

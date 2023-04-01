@@ -30,16 +30,11 @@ import android.test.mock.MockContentProvider;
 import android.test.mock.MockContentResolver;
 
 import com.android.providers.media.cloudproviders.CloudProviderPrimary;
-import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
-import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.FileUtils;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -50,8 +45,6 @@ public class IsolatedContext extends ContextWrapper {
     private final MockContentResolver mResolver;
     private final MediaProvider mMediaProvider;
     private final UserHandle mUserHandle;
-
-    private Map<String, BackupIdRow> mBackedUpData = new HashMap<>();
 
     public IsolatedContext(Context base, String tag, boolean asFuseThread) {
         this(base, tag, asFuseThread, base.getUser());
@@ -120,49 +113,6 @@ public class IsolatedContext extends ContextWrapper {
         };
     }
 
-    private class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
-
-        TestDatabaseBackupAndRecovery(ConfigStore configStore, VolumeCache volumeCache) {
-            super(configStore, volumeCache);
-        }
-
-        @Override
-        protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
-            // Ignoring this as test app would not have access to update xattr.
-        }
-
-        @Override
-        protected boolean isStableUrisEnabled(String volumeName) {
-            if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue,
-                int limit) {
-            Object[] backedUpValues = mBackedUpData.keySet().toArray();
-            return Arrays.copyOf(backedUpValues, backedUpValues.length, String[].class);
-        }
-
-        @Override
-        protected Optional<BackupIdRow> readDataFromBackup(String volumeName,
-                String filePath) {
-            return Optional.ofNullable(mBackedUpData.get(filePath));
-        }
-
-        @Override
-        protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath, long waitTime) {
-            return null;
-        }
-
-        @Override
-        protected void setupVolumeDbBackupAndRecovery(MediaVolume volume) {
-
-        }
-    }
-
     @Override
     public File getDatabasePath(String name) {
         return new File(mDir, name);
@@ -180,10 +130,6 @@ public class IsolatedContext extends ContextWrapper {
 
     public void setPickerUriResolver(PickerUriResolver resolver) {
         mMediaProvider.setUriResolver(resolver);
-    }
-
-    public void setBackedUpData(Map<String, BackupIdRow> backedUpData) {
-        this.mBackedUpData = backedUpData;
     }
 
     private void attachInfoAndAddProvider(Context base, ContentProvider provider,
@@ -207,7 +153,4 @@ public class IsolatedContext extends ContextWrapper {
         }
     }
 
-    public MediaProvider getMediaProvider() {
-        return mMediaProvider;
-    }
 }

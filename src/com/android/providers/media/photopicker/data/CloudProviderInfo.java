@@ -54,11 +54,26 @@ public final class CloudProviderInfo {
      * Check if the {@link android.provider.CloudMediaProvider} belongs to the given package.
      * Note that this method will <b>always<b/> return {@code false} when {@param packageName} is
      * {@code null} and/or when {@code this} instance is {@link #EMPTY}.
+     *
      * @return {@code true} if {@param packageName} is not {@code null} and matches the
      *         {@link #packageName}, otherwise {@code false}.
      */
     public boolean matches(@Nullable String packageName) {
         return packageName != null && packageName.equals(this.packageName);
+    }
+
+    /**
+     * Check if the {@link android.provider.CloudMediaProvider} belongs to the given package and
+     * declares the given authority.
+     * Note that this method will <b>always<b/> return {@code false} if either {@code authority} or
+     * {@code packageName} is {@code null} and/or when {@code this} instance is {@link #EMPTY}.
+     *
+     * @return {@code true} if both {@code authority} and {@code packageName} are not {@code null}
+     *         and match the {@link #authority} and {@link #packageName} respectively, otherwise
+     *         {@code false}.
+     */
+    public boolean matches(@Nullable String authority, @Nullable String packageName) {
+        return authority != null && authority.equals(this.authority) && matches(packageName);
     }
 
     @Override

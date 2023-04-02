@@ -46,6 +46,7 @@ import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.MediaApplication;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
@@ -138,7 +139,7 @@ public class PickerViewModel extends AndroidViewModel {
         mMuteStatus = new MuteStatus();
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
-        mConfigStore = new ConfigStore.ConfigStoreImpl();
+        mConfigStore = MediaApplication.getConfigStore();
         mIsUserSelectForApp = false;
         mIsLocalOnly = false;
         maybeInitialiseAndSetBannersForCurrentUser();

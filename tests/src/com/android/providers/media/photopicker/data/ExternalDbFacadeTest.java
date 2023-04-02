@@ -52,7 +52,10 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.DatabaseHelper;
 import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.ProjectionHelper;
+import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.TestDatabaseBackupAndRecovery;
 import com.android.providers.media.VolumeCache;
+import com.android.providers.media.util.UserCache;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -930,7 +933,9 @@ public class ExternalDbFacadeTest {
     private static class TestDatabaseHelper extends DatabaseHelper {
         public TestDatabaseHelper(Context context) {
             super(context, TEST_CLEAN_DB, 1, false, false, new ProjectionHelper(null, null), null,
-                    null, null, null, false, null);
+                    null, null, null, false,
+                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
+                            new VolumeCache(context, new UserCache(context)), null));
         }
     }
 }

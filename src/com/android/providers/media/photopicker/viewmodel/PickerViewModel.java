@@ -428,7 +428,7 @@ public class PickerViewModel extends AndroidViewModel {
         mIsLocalOnly = intent.getBooleanExtra(EXTRA_LOCAL_ONLY, false);
 
         mIsUserSelectForApp =
-                intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+                MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intent.getAction());
         if (!SdkLevel.isAtLeastU() && mIsUserSelectForApp) {
             throw new IllegalArgumentException("ACTION_USER_SELECT_IMAGES_FOR_APP is not enabled "
                     + " for this OS version");

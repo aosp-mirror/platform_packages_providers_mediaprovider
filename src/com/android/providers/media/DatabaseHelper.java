@@ -549,8 +549,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private void tryRecoverDatabase(SQLiteDatabase db) {
         String volumeName =
-                isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
-        if (!isInternal() || !mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
+                isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL_PRIMARY;
+        if (!mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
             return;
         }
 
@@ -563,8 +563,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // Trigger database backup to external storage because
                 // StableUrisIdleMaintenanceService will be attempted to run only once in 7days.
                 // Any rollback before that will not recover DB rows.
-                BackgroundThread.getExecutor().execute(
-                        () -> mDatabaseBackupAndRecovery.backupInternalDatabase(this, null));
+                if (isInternal()) {
+                    BackgroundThread.getExecutor().execute(
+                            () -> mDatabaseBackupAndRecovery.backupInternalDatabase(this, null));
+                }
                 // Set next row id in External Storage to handle rollback in future.
                 backupNextRowId(NEXT_ROW_ID_DEFAULT_BILLION_VALUE);
                 updateSessionIdInDatabaseAndExternalStorage(db);
@@ -592,7 +594,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             updateNextRowIdInDatabaseAndExternalStorage(db);
             mIsRecovering.set(false);
             updateSessionIdInDatabaseAndExternalStorage(db);
-            Log.d(TAG, "Recovery completed for " + mName);
         }
     }
 
@@ -618,6 +619,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         if (!isNextRowIdBackupEnabled()) {
             Log.d(TAG, "Skipping row id recovery as backup is not enabled.");
+            return;
+        }
+
+        if (mDatabaseBackupAndRecovery.isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            // Row id change would have been taken care by tryRecoverDatabase method
             return;
         }
 

@@ -58,6 +58,7 @@ android_app {
         shrink: true,
         optimize: false,
         obfuscate: false,
+        shrink_resources: true,
         proguard_flags_files: ["proguard.flags"],
     },
 

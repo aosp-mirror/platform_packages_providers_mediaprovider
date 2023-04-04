@@ -16,7 +16,6 @@
 
 package com.android.providers.media;
 
-import android.annotation.NonNull;
 import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -33,13 +32,9 @@ import android.test.mock.MockContentResolver;
 import com.android.providers.media.cloudproviders.CloudProviderPrimary;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
-import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.FileUtils;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -50,8 +45,6 @@ public class IsolatedContext extends ContextWrapper {
     private final MockContentResolver mResolver;
     private final MediaProvider mMediaProvider;
     private final UserHandle mUserHandle;
-
-    private Map<String, BackupIdRow> mBackedUpData = new HashMap<>();
 
     public IsolatedContext(Context base, String tag, boolean asFuseThread) {
         this(base, tag, asFuseThread, base.getUser());
@@ -110,7 +103,7 @@ public class IsolatedContext extends ContextWrapper {
 
             @Override
             protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
-                return new TestDatabaseBackupAndRecovery(this, configStore, getVolumeCache());
+                return new TestDatabaseBackupAndRecovery(configStore, getVolumeCache());
             }
 
             @Override
@@ -118,45 +111,6 @@ public class IsolatedContext extends ContextWrapper {
                 // Ignore this as test app cannot read device config
             }
         };
-    }
-
-    private class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
-
-        TestDatabaseBackupAndRecovery(MediaProvider mediaProvider, ConfigStore configStore,
-                VolumeCache volumeCache) {
-            super(mediaProvider, configStore, volumeCache);
-        }
-
-        @Override
-        protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
-            // Ignoring this as test app would not have access to update xattr.
-        }
-
-        @Override
-        protected boolean isStableUrisEnabled(String volumeName) {
-            if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue,
-                int limit) {
-            Object[] backedUpValues = mBackedUpData.keySet().toArray();
-            return Arrays.copyOf(backedUpValues, backedUpValues.length, String[].class);
-        }
-
-        @Override
-        protected Optional<BackupIdRow> readDataFromBackup(String volumeName,
-                String filePath) {
-            return Optional.ofNullable(mBackedUpData.get(filePath));
-        }
-
-        @Override
-        protected boolean isFuseDaemonReadyForFilePath(@NonNull String filePath) {
-            return true;
-        }
     }
 
     @Override
@@ -176,10 +130,6 @@ public class IsolatedContext extends ContextWrapper {
 
     public void setPickerUriResolver(PickerUriResolver resolver) {
         mMediaProvider.setUriResolver(resolver);
-    }
-
-    public void setBackedUpData(Map<String, BackupIdRow> backedUpData) {
-        this.mBackedUpData = backedUpData;
     }
 
     private void attachInfoAndAddProvider(Context base, ContentProvider provider,
@@ -202,4 +152,5 @@ public class IsolatedContext extends ContextWrapper {
             throw new IllegalStateException("Failed to get Database helper");
         }
     }
+
 }

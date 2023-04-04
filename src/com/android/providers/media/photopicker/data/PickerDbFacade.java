@@ -831,7 +831,7 @@ public class PickerDbFacade {
             }
             addMimeTypesToQueryBuilderAndSelectionArgs(qb, selectionArgs, query.mMimeTypes);
 
-            Cursor cursor = qb.query(mDatabase, getAlbumProjection(), /* selection */ null,
+            Cursor cursor = qb.query(mDatabase, getMergedAlbumProjection(), /* selection */ null,
                     selectionArgs.toArray(new String[0]), /* groupBy */ null, /* having */ null,
                     /* orderBy */ null, /* limit */ null);
 
@@ -857,17 +857,20 @@ public class PickerDbFacade {
         return c;
     }
 
-    private String[] getAlbumProjection() {
+    private String[] getMergedAlbumProjection() {
         return new String[] {
                 "COUNT(" + KEY_ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
                 "MAX(" + KEY_DATE_TAKEN_MS + ") AS "
                         + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
                 String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
                         KEY_LOCAL_ID, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
-                // Note that we prefer local provider over cloud provider if a media item is present
-                // locally and on cloud.
+                // Note that we prefer cloud_id over local_id here. This logic is for computing the
+                // projection and doesn't affect the filtering of results which has already been
+                // done and ensures that only is_visible=true items are returned.
+                // Here, we need to distinguish between cloud+local and local-only items to
+                // determine the correct authority.
                 String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END AS %s",
-                        KEY_LOCAL_ID, mCloudProvider, mLocalProvider, AlbumColumns.AUTHORITY)
+                        KEY_CLOUD_ID, mLocalProvider, mCloudProvider, AlbumColumns.AUTHORITY)
         };
     }
 

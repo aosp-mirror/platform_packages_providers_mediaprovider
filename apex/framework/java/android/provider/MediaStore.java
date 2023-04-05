@@ -290,7 +290,14 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
-    public static final String READ_BACKED_UP_FILE_PATHS = "read_backed_up_file_paths";
+    public static final String READ_BACKUP = "read_backup";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String GET_OWNER_PACKAGE_NAME = "get_owner_package_name";
 
     /**
      * Only used for testing.
@@ -4720,10 +4727,23 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
-    public static String[] readBackedUpFilePaths(@NonNull ContentResolver resolver,
-            String volumeName) {
-        Bundle bundle = resolver.call(AUTHORITY, READ_BACKED_UP_FILE_PATHS, volumeName, null);
-        return bundle.getStringArray(READ_BACKED_UP_FILE_PATHS);
+    public static String readBackup(@NonNull ContentResolver resolver,
+            String volumeName, String filePath) {
+        Bundle extras = new Bundle();
+        extras.putString(Files.FileColumns.DATA, filePath);
+        Bundle bundle = resolver.call(AUTHORITY, READ_BACKUP, volumeName, extras);
+        return bundle.getString(READ_BACKUP);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String getOwnerPackageName(@NonNull ContentResolver resolver, int ownerId) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_OWNER_PACKAGE_NAME, String.valueOf(ownerId),
+                null);
+        return bundle.getString(GET_OWNER_PACKAGE_NAME);
     }
 
     /**

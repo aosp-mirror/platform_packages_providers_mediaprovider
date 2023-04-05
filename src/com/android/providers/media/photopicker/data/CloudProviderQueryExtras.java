@@ -23,6 +23,7 @@ import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryF
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_ARRAY_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
@@ -106,7 +107,7 @@ public class CloudProviderQueryExtras {
                 STRING_DEFAULT);
         final String albumAuthority = STRING_DEFAULT;
         final String[] mimeTypes = bundle.getStringArray(
-                CloudMediaProviderContract.EXTRA_MIME_TYPE);
+                Intent.EXTRA_MIME_TYPES);
         final long sizeBytes = bundle.getLong(CloudMediaProviderContract.EXTRA_SIZE_LIMIT_BYTES,
                 LONG_DEFAULT);
         final long generation = bundle.getLong(CloudMediaProviderContract.EXTRA_SYNC_GENERATION,
@@ -135,7 +136,7 @@ public class CloudProviderQueryExtras {
     public Bundle toCloudMediaBundle() {
         final Bundle extras = new Bundle();
         extras.putString(CloudMediaProviderContract.EXTRA_ALBUM_ID, mAlbumId);
-        extras.putStringArray(CloudMediaProviderContract.EXTRA_MIME_TYPE, mMimeTypes);
+        extras.putStringArray(Intent.EXTRA_MIME_TYPES, mMimeTypes);
         extras.putLong(CloudMediaProviderContract.EXTRA_SIZE_LIMIT_BYTES, mSizeBytes);
 
         return extras;

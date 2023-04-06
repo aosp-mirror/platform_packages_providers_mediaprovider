@@ -3322,11 +3322,18 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (isPickerUri(uri)) {
-            // Do not allow implicit access (by the virtue of ownership/permission) to picker uris.
-            // Picker uris should have explicit permission grants.
-            // If the calling app A has an explicit grant on picker uri, UriGrantsManagerService
-            // will check the grant status and allow app A to grant the uri to app B (without
-            // calling into MediaProvider)
+            // If the Uri for which the permission needs to be checked is a picker Uri then query
+            // PickerUriResolver and verify if the data represented by the Uri still exists and is
+            // accessible then grant the permission, else deny it.
+            // TODO(b/276948648): Remove flag once changes are tested and verified.
+            if (mConfigStore.isGetContentTakeOverEnabled()) {
+                try (Cursor c = mPickerUriResolver.query(uri, new String[]{BaseColumns._ID},
+                        mCallingIdentity.get().pid, uid, mCallingIdentity.get().getPackageName())) {
+                    if (c != null && c.getCount() == 1) {
+                        return PackageManager.PERMISSION_GRANTED;
+                    }
+                }
+            }
             return PackageManager.PERMISSION_DENIED;
         }
 

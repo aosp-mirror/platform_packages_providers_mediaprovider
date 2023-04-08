@@ -22,8 +22,8 @@ import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 public class PhotoPickerTestActivity extends PhotoPickerActivity {
     @Override
-    protected PickerViewModel createViewModel() {
-        PickerViewModel pickerViewModel = super.createViewModel();
+    protected PickerViewModel getOrCreateViewModel() {
+        PickerViewModel pickerViewModel = super.getOrCreateViewModel();
         pickerViewModel.setItemsProvider(new ItemsProvider(
                 PhotoPickerBaseTest.getIsolatedContext()));
         pickerViewModel.setUserIdManager(PhotoPickerBaseTest.getMockUserIdManager());

@@ -298,9 +298,6 @@ public class DatabaseBackupAndRecovery {
                 EXTERNAL_PRIMARY_VOLUME_BACKUP_PATH, LAST_BACKEDUP_GENERATION_XATTR_KEY);
         long lastBackedGenerationNumber = lastBackedUpGenNum.isPresent()
                 ? lastBackedUpGenNum.get() : 0;
-        if (lastBackedGenerationNumber > 0) {
-            Log.i(TAG, "Last backed up generation number is " + lastBackedGenerationNumber);
-        }
         final String generationClause = MediaStore.Files.FileColumns.GENERATION_MODIFIED + " > "
                 + lastBackedGenerationNumber;
         final String volumeClause = MediaStore.Files.FileColumns.VOLUME_NAME + " = '"
@@ -707,7 +704,7 @@ public class DatabaseBackupAndRecovery {
         return values;
     }
 
-    protected Pair<String, Integer> getOwnerPackageNameAndUidPair(int ownerPackageId) {
+    private Pair<String, Integer> getOwnerPackageNameAndUidPair(int ownerPackageId) {
         try {
             String ownerPackageIdentifier = getFuseDaemonForPath(
                     EXTERNAL_PRIMARY_ROOT_PATH).readFromOwnershipBackup(
@@ -772,11 +769,6 @@ public class DatabaseBackupAndRecovery {
                 getVolumeNameForStatsLog(volumeName), recoveryTime, rowsRecovered, dirtyRowsCount);
         Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
                 volumeName));
-        if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
-            // Resetting generation number
-            setXattr(EXTERNAL_PRIMARY_VOLUME_BACKUP_PATH, LAST_BACKEDUP_GENERATION_XATTR_KEY,
-                    String.valueOf(0));
-        }
         Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms", recoveryTime));
     }
 

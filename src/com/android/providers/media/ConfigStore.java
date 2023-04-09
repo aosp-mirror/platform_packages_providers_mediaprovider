@@ -221,9 +221,7 @@ public interface ConfigStore {
 
         @VisibleForTesting
         public static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
-
-        @VisibleForTesting
-        public static final String KEY_STABILIZE_VOLUME_EXTERNAL = "stabilize_volume_external";
+        private static final String KEY_STABILIZE_VOLUME_EXTERNAL = "stabilize_volume_external";
 
         private static final String KEY_TRANSCODE_ENABLED = "transcode_enabled";
         private static final String KEY_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = "transcode_default";

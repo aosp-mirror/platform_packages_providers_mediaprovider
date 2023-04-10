@@ -42,7 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Hodeiko multimedia-aplikazioa"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Hodeiko multimedia-aplikazioa"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Hodeiko multimedia-aplikazioa"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Partekatu beste zerbitzu batzuetako argazkien eta bideoen babeskopiak Android-en argazki-hautatzailean"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Atzitu hodeiko multimedia-edukia aplikazio edo webgune batek argazkiak edo bideoak hautatzeko eskatzen dizunean"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Atzitu honen bidez gordetako hodeiko multimedia-edukia:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Bat ere ez"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Ezin izan da aldatu hodeiko multimedia-aplikazioa."</string>
@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Hautatu <xliff:g id="COUNT_0">^1</xliff:g> elementu, gehienez}other{Hautatu <xliff:g id="COUNT_1">^1</xliff:g> elementu, gehienez}}"</string>
     <string name="recent" msgid="6694613584743207874">"Azkenak"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Ez dago argazki edo bideorik"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Ez dago onartutako argazkirik edo bideorik"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Ez dago albumik"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Ikusi hautatutakoak"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Argazkiak"</string>
@@ -67,6 +68,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Pausatuta daude laneko aplikazioak"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Laneko argazkiak irekitzeko, aktibatu laneko aplikazioak eta saiatu berriro"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Zuk hautatutako argazkiak bakarrik atzi ditzake aplikazio honek"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Hautatu aplikazioak atzi ditzakeen argazki eta bideoak"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> elementu}other{<xliff:g id="COUNT_1">^1</xliff:g> elementu}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Gehitu (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Eman baimena (<xliff:g id="COUNT">^1</xliff:g>)"</string>

@@ -290,7 +290,21 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
-    public static final String READ_BACKED_UP_FILE_PATHS = "read_backed_up_file_paths";
+    public static final String READ_BACKUP = "read_backup";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String GET_OWNER_PACKAGE_NAME = "get_owner_package_name";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String GET_BACKUP_FILES = "get_backup_files";
 
     /**
      * Only used for testing.
@@ -737,6 +751,9 @@ public final class MediaStore {
      * greater than 1 and less than or equal to
      * {@link MediaStore#getPickImagesMaxLimit}, otherwise
      * {@link Activity#RESULT_CANCELED} is returned.
+     * <p>
+     * Callers may use {@link Intent#EXTRA_LOCAL_ONLY} to limit content
+     * selection to local data.
      * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
      * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
@@ -1516,6 +1533,12 @@ public final class MediaStore {
         /**
          * Package name that contributed this media. The value may be
          * {@code NULL} if ownership cannot be reliably determined.
+         * <p>
+         * From Android {@link Build.VERSION_CODES#UPSIDE_DOWN_CAKE} onwards,
+         * visibility and query of this field will depend on
+         * <a href="/training/basics/intents/package-visibility">package visibility</a>.
+         * For {@link ContentResolver#query} operation, result set will
+         * be restricted to visible packages only.
          */
         @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
         public static final String OWNER_PACKAGE_NAME = "owner_package_name";
@@ -4704,10 +4727,23 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
-    public static String[] readBackedUpFilePaths(@NonNull ContentResolver resolver,
-            String volumeName) {
-        Bundle bundle = resolver.call(AUTHORITY, READ_BACKED_UP_FILE_PATHS, volumeName, null);
-        return bundle.getStringArray(READ_BACKED_UP_FILE_PATHS);
+    public static String readBackup(@NonNull ContentResolver resolver,
+            String volumeName, String filePath) {
+        Bundle extras = new Bundle();
+        extras.putString(Files.FileColumns.DATA, filePath);
+        Bundle bundle = resolver.call(AUTHORITY, READ_BACKUP, volumeName, extras);
+        return bundle.getString(READ_BACKUP);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String getOwnerPackageName(@NonNull ContentResolver resolver, int ownerId) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_OWNER_PACKAGE_NAME, String.valueOf(ownerId),
+                null);
+        return bundle.getString(GET_OWNER_PACKAGE_NAME);
     }
 
     /**
@@ -4718,6 +4754,16 @@ public final class MediaStore {
     public static void deleteBackedUpFilePaths(@NonNull ContentResolver resolver,
             String volumeName) {
         resolver.call(AUTHORITY, DELETE_BACKED_UP_FILE_PATHS, volumeName, null);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String[] getBackupFiles(@NonNull ContentResolver resolver) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_BACKUP_FILES, null, null);
+        return bundle.getStringArray(GET_BACKUP_FILES);
     }
 
     /**
@@ -4836,7 +4882,7 @@ public final class MediaStore {
      * {@link #isCurrentCloudMediaProviderAuthority(ContentResolver, String)}, the request will be
      * unsuccessful.
      *
-     * @return {@code true} if the notification was successful, {@code false} otherwise
+     * @throws SecurityException if the request was unsuccessful.
      */
     public static void notifyCloudMediaChangedEvent(@NonNull ContentResolver resolver,
             @NonNull String authority, @NonNull String currentMediaCollectionId)
@@ -4857,8 +4903,7 @@ public final class MediaStore {
     }
 
     /** {@hide} */
-    public static String getCurrentCloudProvider(@NonNull Context context) {
-        final ContentResolver resolver = context.getContentResolver();
+    public static String getCurrentCloudProvider(@NonNull ContentResolver resolver) {
         try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
             final Bundle out = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
                     /* extras */ null);
@@ -4871,6 +4916,7 @@ public final class MediaStore {
     /**
      * Grant {@link com.android.providers.media.MediaGrants} for the given package, for the
      * list of local (to the device) content uris. These must be valid picker uris.
+     *
      * @hide
      */
     public static void grantMediaReadForPackage(

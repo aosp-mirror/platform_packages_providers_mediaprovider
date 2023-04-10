@@ -50,9 +50,9 @@ import android.provider.MediaStore;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.scan.MediaScannerTest;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -333,9 +333,8 @@ public class PickerUriResolverTest {
         // For unit testing: IsolatedContext is the context of another User: user.
         // PickerUriResolver should correctly be able to call into other user's content resolver
         // from the current context.
-        final MediaScannerTest.IsolatedContext otherUserContext =
-                new MediaScannerTest.IsolatedContext(getTargetContext(), "databases",
-                        /* asFuseThread */ false, userHandle);
+        final IsolatedContext otherUserContext = new IsolatedContext(getTargetContext(),
+                "databases", /* asFuseThread */ false, userHandle);
         otherUserContext.setPickerUriResolver(new TestPickerUriResolver(otherUserContext));
 
         when(sCurrentContext.createPackageContextAsUser("android", /* flags= */ 0, userHandle)).
@@ -403,7 +402,8 @@ public class PickerUriResolverTest {
     }
 
     private void testGetType(Uri uri, String expectedMimeType) throws Exception {
-        String mimeType = sTestPickerUriResolver.getType(uri);
+        String mimeType = sTestPickerUriResolver.getType(uri,
+                /* callingPid */ -1, /* callingUid */ -1);
         assertThat(mimeType).isEqualTo(expectedMimeType);
     }
 
@@ -438,7 +438,7 @@ public class PickerUriResolverTest {
 
     private void testGetTypeInvalidUser(Uri uri) throws Exception {
         try {
-            sTestPickerUriResolver.getType(uri);
+            sTestPickerUriResolver.getType(uri, /* callingPid */ -1, /* callingUid */ -1);
             fail("Invalid user specified in the picker uri: " + uri);
         } catch (IllegalStateException expected) {
             // expected
@@ -487,7 +487,19 @@ public class PickerUriResolverTest {
     }
 
     private void testGetType_permissionDenied(Uri uri) throws Exception {
-        // getType is unaffected by uri permission grants
-        testGetType(uri, "image/jpeg");
+        if (SdkLevel.isAtLeastU()) {
+            try {
+                sTestPickerUriResolver.getType(uri, /* callingPid */ -1, /* callingUid */ -1);
+                fail("getType should fail if the caller does not have permission grant on"
+                        + " the picker uri: " + uri);
+            } catch (SecurityException expected) {
+                // expected
+                assertThat(expected.getMessage()).isEqualTo("Calling uid ( -1 ) does not have"
+                        + " permission to access picker uri: " + uri);
+            }
+        } else {
+            // getType is unaffected by uri permission grants for U- builds
+            testGetType(uri, "image/jpeg");
+        }
     }
 }

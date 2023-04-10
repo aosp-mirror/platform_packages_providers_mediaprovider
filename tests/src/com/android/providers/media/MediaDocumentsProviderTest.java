@@ -40,7 +40,6 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.scan.MediaScanner;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.MimeUtils;

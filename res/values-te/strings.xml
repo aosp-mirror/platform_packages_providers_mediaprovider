@@ -17,8 +17,8 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"మీడియా"</string>
-    <string name="storage_description" msgid="4081716890357580107">"స్థానిక నిల్వ"</string>
-    <string name="app_label" msgid="9035307001052716210">"మీడియా నిల్వ"</string>
+    <string name="storage_description" msgid="4081716890357580107">"స్థానిక స్టోరేజ్‌"</string>
+    <string name="app_label" msgid="9035307001052716210">"మీడియా స్టోరేజ్‌"</string>
     <string name="picker_app_label" msgid="4254039089502164761">"మీడియా"</string>
     <string name="artist_label" msgid="8105600993099120273">"కళాకారుడు"</string>
     <string name="unknown" msgid="2059049215682829375">"తెలియదు"</string>
@@ -42,7 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"క్లౌడ్ మీడియా యాప్"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"క్లౌడ్ మీడియా యాప్"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"క్లౌడ్ మీడియా యాప్"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Android ఫోటోపికర్‌లోని ఇతర సర్వీస్‌ల నుండి మీరు బ్యాకప్ చేసే ఫోటోలు, వీడియోలను షేర్ చేయండి"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"ఫోటోలు లేదా వీడియోలను ఎంచుకోమని యాప్ లేదా వెబ్‌సైట్ మిమ్మల్ని అడిగినప్పుడు మీ క్లౌడ్ మీడియాను యాక్సెస్ చేయండి"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"దాని నుండి క్లౌడ్ మీడియాను యాక్సెస్ చేయండి"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ఏవీ లేవు"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"ఈ సమయంలో క్లౌడ్ మీడియా యాప్ మార్చడం సాధ్యపడలేదు."</string>
@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{గరిష్ఠంగా <xliff:g id="COUNT_0">^1</xliff:g> ఐటెమ్‌ను ఎంచుకోండి}other{గరిష్ఠంగా <xliff:g id="COUNT_1">^1</xliff:g> ఐటెమ్‌లను ఎంచుకోండి}}"</string>
     <string name="recent" msgid="6694613584743207874">"ఇటీవలివి"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"ఫోటోలు లేదా వీడియోలు లేవు"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"సపోర్ట్ గల ఫోటోలు లేదా వీడియోలు లేవు"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ఆల్బమ్‌లు ఏవీ లేవు"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ఎంచుకున్న వాటిని చూడండి"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ఫోటోలు"</string>
@@ -67,6 +68,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"వర్క్ యాప్‌లు పాజ్ చేయబడ్డాయి"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"వర్క్ ఫోటోలను తెరవడానికి, మీ వర్క్ యాప్‌లను ఆన్ చేసి, ఆపై మళ్లీ ట్రై చేయండి"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"ఈ యాప్ మీరు ఎంచుకున్న ఫోటోలను మాత్రమే యాక్సెస్ చేయగలదు"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"మీరు ఈ యాప్‌ని యాక్సెస్ చేయడానికి అనుమతించే ఫోటోలు, వీడియోలను ఎంచుకోండి"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ఐటెమ్}other{<xliff:g id="COUNT_1">^1</xliff:g> ఐటెమ్‌లు}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"జోడించండి (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"అనుమతించండి (<xliff:g id="COUNT">^1</xliff:g>)"</string>

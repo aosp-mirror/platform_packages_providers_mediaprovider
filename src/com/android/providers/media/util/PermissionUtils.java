@@ -45,6 +45,7 @@ import android.annotation.UserIdInt;
 import android.app.AppOpsManager;
 import android.app.DownloadManager;
 import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.UserHandle;
 
@@ -80,7 +81,11 @@ public class PermissionUtils {
         return UserHandle.getAppId(android.os.Process.myUid()) == UserHandle.getAppId(uid);
     }
 
-    public static boolean checkPermissionShell(@NonNull Context context, int pid, int uid) {
+    /**
+     * Returns {@code true} if the given {@code uid} is a {@link android.os.Process.ROOT_UID} or
+     * {@link android.os.Process.SHELL_UID}. {@code false} otherwise.
+     */
+    public static boolean checkPermissionShell(int uid) {
         switch (uid) {
             case android.os.Process.ROOT_UID:
             case android.os.Process.SHELL_UID:
@@ -137,9 +142,48 @@ public class PermissionUtils {
      * android.Manifest.permission#ACCESS_MEDIA_LOCATION permission.
      */
     public static boolean checkPermissionAccessMediaLocation(@NonNull Context context, int pid,
-            int uid, @NonNull String packageName, @Nullable String attributionTag) {
+            int uid, @NonNull String packageName, @Nullable String attributionTag,
+            boolean isTargetSdkAtLeastT) {
         return checkPermissionForDataDelivery(context, ACCESS_MEDIA_LOCATION, pid, uid, packageName,
-                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()))
+                || checkPermissionAccessMediaCompatGrant(context, pid, uid, packageName,
+                attributionTag, isTargetSdkAtLeastT);
+    }
+
+    /**
+     *  Check if ACCESS_MEDIA_LOCATION is requested, and that READ_MEDIA_VISUAL_USER_SELECTED is
+     *  implicitly requested and fully granted
+     */
+    private static boolean checkPermissionAccessMediaCompatGrant(@NonNull Context context, int pid,
+            int uid, @NonNull String packageName, @Nullable String attributionTag,
+            boolean isTargetSdkAtLeastT) {
+        if (!SdkLevel.isAtLeastU() || !isTargetSdkAtLeastT) {
+            return false;
+        }
+        try {
+            PackageInfo pi = context.getPackageManager().getPackageInfo(packageName,
+                    PackageManager.GET_PERMISSIONS);
+            if (pi.requestedPermissions == null) {
+                return false;
+            }
+
+            boolean amlRequested = false;
+            boolean userSelectedImplicit = false;
+            for (int i = 0; i < pi.requestedPermissions.length; i++) {
+                if (ACCESS_MEDIA_LOCATION.equals(pi.requestedPermissions[i])) {
+                    amlRequested = true;
+                }
+                if (READ_MEDIA_VISUAL_USER_SELECTED.equals(pi.requestedPermissions[i])) {
+                    userSelectedImplicit = (pi.requestedPermissionsFlags[i]
+                            & PackageInfo.REQUESTED_PERMISSION_IMPLICIT) != 0;
+                }
+            }
+
+            return amlRequested && userSelectedImplicit && checkPermissionReadVisualUserSelected(
+                    context, pid, uid, packageName, attributionTag, isTargetSdkAtLeastT);
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
     }
 
     /**

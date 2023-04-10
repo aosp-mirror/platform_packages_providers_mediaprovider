@@ -107,4 +107,18 @@ public class MimeUtilsTest {
         assertEquals(MtpConstants.FORMAT_UNDEFINED,
                 MimeUtils.resolveFormatCode("application/x-does-not-exist"));
     }
+
+    @Test
+    public void testGetExtensionFromMimeType() {
+        assertEquals(".svg", MimeUtils.getExtensionFromMimeType("image/svg+xml"));
+        assertEquals(MimeUtils.DEFAULT_IMAGE_FILE_EXTENSION,
+                MimeUtils.getExtensionFromMimeType("image/foo"));
+
+        assertEquals(".mpeg", MimeUtils.getExtensionFromMimeType("video/mpeg"));
+        assertEquals(MimeUtils.DEFAULT_VIDEO_FILE_EXTENSION,
+                MimeUtils.getExtensionFromMimeType("video/foo"));
+
+        assertEquals("", MimeUtils.getExtensionFromMimeType("foo/bar"));
+        assertEquals("", MimeUtils.getExtensionFromMimeType(null));
+    }
 }

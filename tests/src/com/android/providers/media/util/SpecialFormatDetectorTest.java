@@ -32,8 +32,8 @@ import android.provider.MediaStore;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.R;
-import com.android.providers.media.scan.MediaScannerTest;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -56,8 +56,8 @@ public class SpecialFormatDetectorTest {
                         Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
         final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext
-                = new MediaScannerTest.IsolatedContext(context, "modern", /*asFuseThread*/ false);
+        final Context isolatedContext =
+                new IsolatedContext(context, "modern", /*asFuseThread*/ false);
         mIsolatedResolver = isolatedContext.getContentResolver();
     }
 

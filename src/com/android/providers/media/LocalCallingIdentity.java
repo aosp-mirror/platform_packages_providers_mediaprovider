@@ -16,15 +16,11 @@
 
 package com.android.providers.media;
 
-import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
-import static android.app.AppOpsManager.MODE_ALLOWED;
-import static android.app.AppOpsManager.permissionToOp;
-import static android.content.pm.PackageManager.PERMISSION_DENIED;
-
 import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkAppOpRequestInstallPackagesForSharedUid;
 import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStorageGranted;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaLocation;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMtp;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionDelegator;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionInstallPackages;
@@ -376,14 +372,14 @@ public class LocalCallingIdentity {
             case PERMISSION_IS_SELF:
                 return checkPermissionSelf(context, pid, uid);
             case PERMISSION_IS_SHELL:
-                return checkPermissionShell(context, pid, uid);
+                return checkPermissionShell(uid);
             case PERMISSION_IS_MANAGER:
                 return checkPermissionManager(context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_IS_DELEGATOR:
                 return checkPermissionDelegator(context, pid, uid);
 
             case PERMISSION_IS_REDACTION_NEEDED:
-                return isRedactionNeededInternal();
+                return isRedactionNeededInternal(targetSdkIsAtLeastT);
             case PERMISSION_IS_LEGACY_GRANTED:
                 return isLegacyStorageGranted();
             case PERMISSION_IS_LEGACY_READ:
@@ -549,19 +545,13 @@ public class LocalCallingIdentity {
     }
 
     /** System internals or callers holding permission have no redaction */
-    private boolean isRedactionNeededInternal() {
+    private boolean isRedactionNeededInternal(boolean isTargetSdkAtLeastT) {
         if (hasPermission(PERMISSION_IS_SELF) || hasPermission(PERMISSION_IS_SHELL)) {
             return false;
         }
 
-        if (context.checkPermission(ACCESS_MEDIA_LOCATION, pid, uid) == PERMISSION_DENIED
-                || context.getSystemService(AppOpsManager.class).noteProxyOpNoThrow(
-                permissionToOp(ACCESS_MEDIA_LOCATION), getPackageName(), uid, attributionTag, null)
-                != MODE_ALLOWED) {
-            return true;
-        }
-
-        return false;
+        return !checkPermissionAccessMediaLocation(context, pid, uid, getPackageName(),
+                attributionTag, isTargetSdkAtLeastT);
     }
 
     @GuardedBy("lock")
@@ -698,7 +688,10 @@ public class LocalCallingIdentity {
      * Return {@code true} if this package has user selected access on images/videos.
      */
     public boolean checkCallingPermissionUserSelected() {
-        return hasPermission(PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED);
+        // For user select mode READ_MEDIA_VISUAL_USER_SELECTED == true &&
+        // READ_MEDIA_IMAGES == false && READ_MEDIA_VIDEO == false
+        return hasPermission(PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED)
+                && !hasPermission(PERMISSION_READ_IMAGES) && !hasPermission(PERMISSION_READ_VIDEO);
     }
 
     protected void dump(PrintWriter writer) {

@@ -24,11 +24,9 @@ import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_WRI
 import android.Manifest;
 import android.app.UiAutomation;
 import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -38,9 +36,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
-
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
-import com.android.providers.media.util.FileUtils;
 
 import com.google.common.io.ByteStreams;
 import com.google.common.truth.Truth;
@@ -71,9 +66,6 @@ public class MediaProviderForFuseTest {
 
     private static int sTestUid;
     private static File sTestDir;
-
-    private static final int CLONED_USER_ID = 10;
-    private static final String PICTURES_DIR_FOR_CLONED_USER = "/storage/emulated/%d/Pictures/";
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -315,30 +307,5 @@ public class MediaProviderForFuseTest {
                 rootDirPath, sTestUid,
                 DIRECTORY_ACCESS_FOR_DELETE)).isEqualTo(OsConstants.EPERM);
 
-    }
-
-    @Test
-    public void testGetFilesInDirectoryForFuse_userIdModified() throws Exception {
-        // Add a new file for FUSE.
-        final File file = new File(sTestDir, "test_userid.png");
-        Truth.assertThat(sMediaProvider.insertFileIfNecessaryForFuse(
-                file.getPath(), sTestUid)).isEqualTo(0);
-        // Verify that querying with user 0's file path returns a single file.
-        Truth.assertThat(sMediaProvider.getFilesInDirectoryForFuse(sTestDir.getPath(),
-                sTestUid).length).isEqualTo(1);
-
-        // Modify the UserId field directly in MediaProvider DB.
-        final Uri uri = FileUtils.getContentUriForPath(file.getPath());
-        final ContentValues values = new ContentValues();
-        values.put(MediaStore.Files.FileColumns._USER_ID, CLONED_USER_ID);
-        sIsolatedResolver.update(uri, values, null);
-
-        // Verify that querying with user 10's file path returns a single file.
-        String picturesDir = String.format(PICTURES_DIR_FOR_CLONED_USER, CLONED_USER_ID);
-        Truth.assertThat(sMediaProvider.getFilesInDirectoryForFuse(picturesDir, sTestUid).length)
-                .isEqualTo(1);
-        // Verify that querying with user 0's file path returns no file.
-        Truth.assertThat(sMediaProvider.getFilesInDirectoryForFuse(sTestDir.getPath(),
-                sTestUid).length).isEqualTo(0);
     }
 }

@@ -87,11 +87,6 @@
         <item name="android:layout_height">@dimen/picker_profile_dialog_icon_height</item>
     </style>
 
-    <style name="LightActionBarNoBackground"
-           parent="Widget.AppCompat.Light.ActionBar.Solid">
-        <item name="background">@null</item>
-    </style>
-
     <style name="PickerDefaultTheme" parent="@android:style/Theme.DeviceDefault.DayNight">
         <!-- System | Widget section -->
         <item name="android:backgroundDimEnabled">true</item>
@@ -102,8 +97,10 @@
         <item name="android:windowNoTitle">true</item>
     </style>
 
-    <style name="PickerSettingsTheme" parent="@style/Theme.AppCompat.Light">
-        <item name="actionBarStyle">@style/LightActionBarNoBackground</item>
+    <style name="PickerSettingsDefaultTheme" parent="PickerDefaultTheme">
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:listPreferredItemHeightSmall">@dimen/picker_settings_list_item_height</item>
+        <item name="android:listPreferredItemPaddingEnd">@dimen/picker_settings_list_item_padding_end</item>
     </style>
 
     <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">

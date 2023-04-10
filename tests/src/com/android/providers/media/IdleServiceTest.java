@@ -209,7 +209,7 @@ public class IdleServiceTest {
     public void testDetectSpecialFormat() throws Exception {
         // Require isolated resolver to query hidden column _special_format
         final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext = new MediaScannerTest.IsolatedContext(context, "modern",
+        final Context isolatedContext = new IsolatedContext(context, "modern",
                 /*asFuseThread*/ false);
         final ContentResolver resolver = isolatedContext.getContentResolver();
 

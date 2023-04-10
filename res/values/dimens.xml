@@ -69,6 +69,7 @@
     <dimen name="picker_privacy_text_margin_top">8dp</dimen>
     <dimen name="picker_privacy_text_margin_bottom">16dp</dimen>
     <dimen name="picker_privacy_text_horizontal_gap">12dp</dimen>
+    <dimen name="picker_user_select_header_text_size">14sp</dimen>
     <dimen name="picker_privacy_text_size">11sp</dimen>
 
     <dimen name="picker_empty_text_margin">20dp</dimen>
@@ -107,7 +108,10 @@
     <!-- PhotoPicker Settings Activity -->
     <dimen name="picker_heading_text_size">40sp</dimen>
     <dimen name="picker_settings_title_margin_top">45dp</dimen>
+    <dimen name="picker_settings_cloud_select_title_margin">20dp</dimen>
     <dimen name="picker_settings_margin_default">15dp</dimen>
+    <dimen name="picker_settings_list_item_height">80dp</dimen>
+    <dimen name="picker_settings_list_item_padding_end">10dp</dimen>
     <dimen name="picker_body_text_size">16sp</dimen>
 
     <!-- PhotoPicker Banners -->

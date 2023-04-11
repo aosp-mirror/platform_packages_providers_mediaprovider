@@ -46,6 +46,7 @@ import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.MediaApplication;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
@@ -138,7 +139,7 @@ public class PickerViewModel extends AndroidViewModel {
         mMuteStatus = new MuteStatus();
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
-        mConfigStore = new ConfigStore.ConfigStoreImpl();
+        mConfigStore = MediaApplication.getConfigStore();
         mIsUserSelectForApp = false;
         mIsLocalOnly = false;
         maybeInitialiseAndSetBannersForCurrentUser();
@@ -427,7 +428,7 @@ public class PickerViewModel extends AndroidViewModel {
         mIsLocalOnly = intent.getBooleanExtra(EXTRA_LOCAL_ONLY, false);
 
         mIsUserSelectForApp =
-                intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+                MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intent.getAction());
         if (!SdkLevel.isAtLeastU() && mIsUserSelectForApp) {
             throw new IllegalArgumentException("ACTION_USER_SELECT_IMAGES_FOR_APP is not enabled "
                     + " for this OS version");

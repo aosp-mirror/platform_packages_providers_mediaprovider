@@ -81,8 +81,15 @@ public class SafetyProtectionUtilsTest {
         SystemUtil.runWithShellPermissionIdentity(() -> {
             DeviceConfig.setProperty(DeviceConfig.NAMESPACE_PRIVACY,
                     SAFETY_PROTECTION_RESOURCES_ENABLED, TRUE_STRING, false);
+            boolean resourceExists = false;
+            try {
+                resourceExists = mContext.getDrawable(
+                        android.R.drawable.ic_safety_protection) != null;
+            } catch (Resources.NotFoundException e) { }
+            boolean shouldShowSafetyProtection = resourceExists
+                    && isSafetyProtectionConfigEnabled();
             assertThat(SafetyProtectionUtils.shouldShowSafetyProtectionResources(mContext))
-                    .isEqualTo(isSafetyProtectionConfigEnabled());
+                    .isEqualTo(shouldShowSafetyProtection);
         });
     }
 

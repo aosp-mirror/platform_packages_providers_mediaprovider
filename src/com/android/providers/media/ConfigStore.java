@@ -448,20 +448,25 @@ public interface ConfigStore {
          * Initially, instead of using package names when allow-listing and setting the system
          * default CloudMediaProviders we used authorities.
          * This, however, introduced a vulnerability, so we switched to using package names.
-         * But, by then, we had been allow-listing and setting default CMPs  using authorities.
-         * Luckily for us, all of those CMPs had authorities in the following format:
-         * "${package-name}.cloudprovider", e.g. "com.hooli.android.photos" package would implement
-         * a CMP with "com.hooli.android.photos.cloudprovider" authority.
+         * But, by then, we had been allow-listing and setting default CMPs using authorities.
+         * Luckily for us, all of those CMPs had authorities in one the following formats:
+         * "${package-name}.cloudprovider" or "${package-name}.picker",
+         * e.g. "com.hooli.android.photos" package would implement a CMP with
+         * "com.hooli.android.photos.cloudpicker" authority.
          * So in order for the old allow-listings and defaults to work now, we try to extract
-         * package names from authorities by removing the ".cloudprovider" suffixes.
+         * package names from authorities by removing the ".cloudprovider" and ".cloudpicker"
+         * suffixes.
          */
         @Nullable
         private static String maybeExtractPackageNameFromCloudProviderAuthority(
                 @NonNull String authority) {
             if (authority.endsWith(".cloudprovider")) {
                 return authority.substring(0, authority.length() - ".cloudprovider".length());
+            } else if (authority.endsWith(".cloudpicker")) {
+                return authority.substring(0, authority.length() - ".cloudpicker".length());
+            } else {
+                return null;
             }
-            return null;
         }
     }
 }

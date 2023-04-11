@@ -4340,20 +4340,21 @@ public final class MediaStore {
     }
 
     /** {@hide} */
+    public static boolean isKnownVolume(@NonNull String volumeName) {
+        if (VOLUME_INTERNAL.equals(volumeName)) return true;
+        if (VOLUME_EXTERNAL.equals(volumeName)) return true;
+        if (VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) return true;
+        if (VOLUME_DEMO.equals(volumeName)) return true;
+        return false;
+    }
+
+    /** {@hide} */
     public static @NonNull String checkArgumentVolumeName(@NonNull String volumeName) {
         if (TextUtils.isEmpty(volumeName)) {
             throw new IllegalArgumentException();
         }
 
-        if (VOLUME_INTERNAL.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_EXTERNAL.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_DEMO.equals(volumeName)) {
-            return volumeName;
-        }
+        if (isKnownVolume(volumeName)) return volumeName;
 
         // When not one of the well-known values above, it must be a hex UUID
         for (int i = 0; i < volumeName.length(); i++) {

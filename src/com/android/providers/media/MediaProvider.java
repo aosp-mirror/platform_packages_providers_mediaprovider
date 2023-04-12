@@ -6647,13 +6647,8 @@ public class MediaProvider extends ContentProvider {
                     restoreLocalCallingIdentity(token);
                 }
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
-                // TODO(b/245746037): replace UID check with Permission(MANAGE_CLOUD_MEDIA_PROVIDER)
-                // PhotoPickerSettingsActivity will run as either the primary or the managed user.
-                // Since the activity shows both personal and work tabs, it will have to make get
-                // cloud provider IPC call to both instances of Media Provider - one running as
-                // primary profile and the other as managed profile. Hence, UID check will not be
-                // feasible here.
-                if (!checkPermissionSelf(Binder.getCallingUid())) {
+                if (!checkPermissionShell(Binder.getCallingUid())
+                        && !checkPermissionSelf(Binder.getCallingUid())) {
                     throw new SecurityException("Get cloud provider not allowed. "
                             + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
                             + " Calling UID:" + Binder.getCallingUid()
@@ -6666,20 +6661,28 @@ public class MediaProvider extends ContentProvider {
                 return bundle;
             }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
-                // TODO(b/267327327): Add permission check before updating cloud provider. Also
-                //  validate the new cloud provider before setting it by using
-                //  PickerSyncController#setCloudProvider instead of
-                //  PickerSyncController#forceSetCloudProvider.
                 final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);
                 Log.i(TAG, "Request received to set cloud provider to " + cloudProvider);
-                mPickerSyncController.forceSetCloudProvider(cloudProvider);
-                Log.i(TAG, "Completed request to set cloud provider to " + cloudProvider);
+                boolean isUpdateSuccessful = false;
+                if (checkPermissionSelf(Binder.getCallingUid())) {
+                    isUpdateSuccessful = mPickerSyncController.setCloudProvider(cloudProvider);
+                } else if (checkPermissionShell(Binder.getCallingUid())) {
+                    isUpdateSuccessful =
+                            mPickerSyncController.forceSetCloudProvider(cloudProvider);
+                } else {
+                    throw new SecurityException("Set cloud provider not allowed. "
+                            + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
+                            + " Calling UID:" + Binder.getCallingUid()
+                            + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
+                            + " Media Provider UID:" + MY_UID);
+                }
 
-                // Cannot start sync here yet because currently sync and other picker related
-                // queries like SET_CLOUD_PROVIDER_CALL and GET_CLOUD_PROVIDER use the same lock.
-                // If we start sync here and then user tries to return to the Picker or change the
-                // provider again, Picker will ANR and crash.
-                return new Bundle();
+                if (isUpdateSuccessful) {
+                    Log.i(TAG, "Completed request to set cloud provider to " + cloudProvider);
+                }
+                final Bundle bundle = new Bundle();
+                bundle.putBoolean(MediaStore.SET_CLOUD_PROVIDER_RESULT, isUpdateSuccessful);
+                return bundle;
             }
             case MediaStore.SYNC_PROVIDERS_CALL: {
                 syncAllMedia();

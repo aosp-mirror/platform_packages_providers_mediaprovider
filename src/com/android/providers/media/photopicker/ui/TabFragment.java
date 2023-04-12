@@ -462,7 +462,22 @@ public abstract class TabFragment extends Fragment {
 
         @Override
         public void onBannerAdded() {
-            mRecyclerView.scrollToPosition(/* position */ 0);
+            // Should scroll to the banner only if the first completely visible item is the one
+            // just below it. The possible adapter item positions of such an item are 0 and 1.
+            // During onViewCreated, before restoring the state, the first visible item position
+            // is -1, and we should not scroll to position 0 in such cases, else the previously
+            // saved recycler view position may get overridden.
+            int firstItemPosition = -1;
+
+            final RecyclerView.LayoutManager layoutManager = mRecyclerView.getLayoutManager();
+            if (layoutManager instanceof GridLayoutManager) {
+                firstItemPosition = ((GridLayoutManager) layoutManager)
+                        .findFirstCompletelyVisibleItemPosition();
+            }
+
+            if (firstItemPosition == 0 || firstItemPosition == 1) {
+                mRecyclerView.scrollToPosition(/* position */ 0);
+            }
         }
 
         abstract void dismissBanner();

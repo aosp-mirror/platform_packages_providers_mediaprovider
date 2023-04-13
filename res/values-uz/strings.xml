@@ -56,7 +56,7 @@
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Surat yoki video kiritilmagan"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Qabul qilinmaydigan rasm va videolar"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Albom kiritilmagan"</string>
-    <string name="picker_view_selected" msgid="2266031384396143883">"Tanlanganni koʻrish"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Belgilanganlarni ochish"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Suratlar"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albomlar"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Razm solish"</string>
@@ -68,7 +68,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ishga oid ilovalar pauza qilingan"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ishga oid suratlarni ochish uchun ishga oid ilovalarni yoqib, keyin qaytadan urining"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Bu ilova faqat siz tanlagan suratlar bilan ishlay oladi"</string>
-    <string name="picker_header_permissions" msgid="675872774407768495">"Bu ilova foydalanishi mumkin rasm va videolarni tanlang"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Bu ilova kira oladigan surat va videolarni tanlang"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ta narsa}other{<xliff:g id="COUNT_1">^1</xliff:g> ta narsa}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Kiritish (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Ruxsat (<xliff:g id="COUNT">^1</xliff:g>)"</string>

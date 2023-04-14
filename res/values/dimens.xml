@@ -62,6 +62,9 @@
     <dimen name="picker_tab_width">80dp</dimen>
     <dimen name="picker_tab_min_width">88dp</dimen>
     <dimen name="picker_tab_horizontal_gap">4dp</dimen>
+    <dimen name="picker_tab_loading_message_text_size">11sp</dimen>
+
+    <dimen name="picker_progress_bar_margin_top">15dp</dimen>
 
     <dimen name="picker_drag_margin_top">16dp</dimen>
     <dimen name="picker_drag_margin_bottom">16dp</dimen>

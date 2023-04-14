@@ -88,6 +88,8 @@ public class PickerSyncController {
     public static final String LOCAL_PICKER_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker";
 
+    private static final String PREFS_VALUE_CLOUD_PROVIDER_UNSET = "-";
+
     private static final int SYNC_TYPE_NONE = 0;
     private static final int SYNC_TYPE_MEDIA_INCREMENTAL = 1;
     private static final int SYNC_TYPE_MEDIA_FULL = 2;
@@ -141,21 +143,32 @@ public class PickerSyncController {
 
         mSyncDelayMs = configStore.getPickerSyncDelayMs();
 
+        if (isCloudProviderUnset(cachedAuthority)) {
+            Log.d(TAG, "Cloud provider state is unset during " + TAG + " construction.");
+            mCloudProviderInfo = CloudProviderInfo.EMPTY;
+            return;
+        }
+
+        initCloudProvider(cachedAuthority);
+    }
+
+    @VisibleForTesting
+    void initCloudProvider(@Nullable String cachedAuthority) {
         final CloudProviderInfo defaultInfo = getDefaultCloudProviderInfo(cachedAuthority);
 
         if (Objects.equals(defaultInfo.authority, cachedAuthority)) {
             // Just set it without persisting since it's not changing and persisting would
             // notify the user that cloud media is now available
-            // TODO(b/259247084): mCloudProviderInfo should be CloudProviderInfo.EMPTY when
-            //  Cloud Provider is in UNSET state.
-            mCloudProviderInfo = defaultInfo;
+            synchronized (mLock) {
+                mCloudProviderInfo = defaultInfo;
+            }
         } else {
             // Persist it so that we notify the user that cloud media is now available
-            persistCloudProviderInfo(defaultInfo);
+            persistCloudProviderInfo(defaultInfo, /* shouldUnset */ false);
             resetCachedMediaCollectionInfo(defaultInfo.authority, /* isLocal */ false);
         }
 
-        Log.d(TAG, "Initialized cloud provider to: " + mCloudProviderInfo.authority);
+        Log.d(TAG, "Initialized cloud provider to: " + defaultInfo.authority);
     }
 
     /**
@@ -334,7 +347,7 @@ public class PickerSyncController {
         if (authority == null || !newProviderInfo.isEmpty()) {
             synchronized (mLock) {
                 final String oldAuthority = mCloudProviderInfo.authority;
-                persistCloudProviderInfo(newProviderInfo);
+                persistCloudProviderInfo(newProviderInfo, /* shouldUnset */ true);
                 resetCachedMediaCollectionInfo(newProviderInfo.authority, /* isLocal */ false);
 
                 // Disable cloud provider queries on the db until next sync
@@ -457,9 +470,14 @@ public class PickerSyncController {
             if (mCloudProviderInfo.matches(packageName)) {
                 Log.i(TAG, "Package " + packageName
                         + " is the current cloud provider and got removed");
-                setCloudProvider(null);
+                resetCloudProvider();
             }
         }
+    }
+
+    private void resetCloudProvider() {
+        setCloudProvider(/* authority */ null);
+        initCloudProvider(/* cachedAuthority */ null);
     }
 
     // TODO(b/257887919): Build proper UI and remove this.
@@ -674,21 +692,25 @@ public class PickerSyncController {
         }
     }
 
-    private void persistCloudProviderInfo(CloudProviderInfo info) {
+    private void persistCloudProviderInfo(CloudProviderInfo info, boolean shouldUnset) {
         synchronized (mLock) {
             mCloudProviderInfo = info;
         }
 
         final String authority = info.authority;
         final SharedPreferences.Editor editor = mUserPrefs.edit();
+        final boolean isCloudProviderInfoNotEmpty = !info.isEmpty();
 
-        if (info.isEmpty()) {
-            editor.remove(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY);
-            editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, false);
-        } else {
+        if (isCloudProviderInfoNotEmpty) {
             editor.putString(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, authority);
-            editor.putBoolean(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, true);
+        } else if (shouldUnset) {
+            editor.putString(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, PREFS_VALUE_CLOUD_PROVIDER_UNSET);
+        } else {
+            editor.remove(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY);
         }
+
+        editor.putBoolean(
+                PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, isCloudProviderInfoNotEmpty);
 
         editor.apply();
 
@@ -994,5 +1016,9 @@ public class PickerSyncController {
             default:
                 return "Unknown";
         }
+    }
+
+    private static boolean isCloudProviderUnset(@Nullable String lastProviderAuthority) {
+        return Objects.equals(lastProviderAuthority, PREFS_VALUE_CLOUD_PROVIDER_UNSET);
     }
 }

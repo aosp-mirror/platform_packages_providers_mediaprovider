@@ -56,7 +56,7 @@
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Non hai fotos nin vídeos"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Non hai fotos nin vídeos compatibles"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Non hai álbums"</string>
-    <string name="picker_view_selected" msgid="2266031384396143883">"Ver elemento seleccionado"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Ver selección"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotos"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Álbums"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Vista previa"</string>
@@ -68,7 +68,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Puxéronse en pausa as aplicacións do traballo"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Para abrir fotos do perfil de traballo, activa as aplicacións do traballo e, a continuación, téntao de novo"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Esta aplicación só pode acceder ás fotos que selecciones"</string>
-    <string name="picker_header_permissions" msgid="675872774407768495">"Selecciona as fotos e os vídeos aos que lle permites acceder a esta aplicación"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Selecciona as fotos e os vídeos aos que permites que esta aplicación acceda"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> elemento}other{<xliff:g id="COUNT_1">^1</xliff:g> elementos}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Engadir (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Permitir (<xliff:g id="COUNT">^1</xliff:g>)"</string>

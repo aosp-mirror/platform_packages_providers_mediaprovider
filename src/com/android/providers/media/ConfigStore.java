@@ -62,8 +62,12 @@ public interface ConfigStore {
     boolean DEFAULT_PICKER_PICK_IMAGES_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG = false;
 
-    boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = false;
-    boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
+    // We *enable* the Cloud-Media-in-Photo-Picker feature and *disable* enforcing the CMP allowlist
+    // for dogfood (and other dev builds) only.
+    // For any builds intended for public (including DPs) the feature is disabled and enforcing the
+    // allowlist is enabled.
+    boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = isAtLeastUDroidfoodAndDevBuild();
+    boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = !isAtLeastUDroidfoodAndDevBuild();
 
     /**
      * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and
@@ -448,20 +452,46 @@ public interface ConfigStore {
          * Initially, instead of using package names when allow-listing and setting the system
          * default CloudMediaProviders we used authorities.
          * This, however, introduced a vulnerability, so we switched to using package names.
-         * But, by then, we had been allow-listing and setting default CMPs  using authorities.
-         * Luckily for us, all of those CMPs had authorities in the following format:
-         * "${package-name}.cloudprovider", e.g. "com.hooli.android.photos" package would implement
-         * a CMP with "com.hooli.android.photos.cloudprovider" authority.
+         * But, by then, we had been allow-listing and setting default CMPs using authorities.
+         * Luckily for us, all of those CMPs had authorities in one the following formats:
+         * "${package-name}.cloudprovider" or "${package-name}.picker",
+         * e.g. "com.hooli.android.photos" package would implement a CMP with
+         * "com.hooli.android.photos.cloudpicker" authority.
          * So in order for the old allow-listings and defaults to work now, we try to extract
-         * package names from authorities by removing the ".cloudprovider" suffixes.
+         * package names from authorities by removing the ".cloudprovider" and ".cloudpicker"
+         * suffixes.
          */
         @Nullable
         private static String maybeExtractPackageNameFromCloudProviderAuthority(
                 @NonNull String authority) {
             if (authority.endsWith(".cloudprovider")) {
                 return authority.substring(0, authority.length() - ".cloudprovider".length());
+            } else if (authority.endsWith(".cloudpicker")) {
+                return authority.substring(0, authority.length() - ".cloudpicker".length());
+            } else {
+                return null;
             }
-            return null;
         }
+    }
+
+    /**
+     * Should be used to <b>safely</b> tweak configs for development and droidfood builds.
+     * By "safely" we mean eliminating the risk that a value of a config intended for droidfood
+     * (or other similar builds) "leaks" to a public build.
+     * @return if running on the development build of a not-yet-released version of the platform.
+     */
+    private static boolean isAtLeastUDroidfoodAndDevBuild() {
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.CUR_DEVELOPMENT) {
+            return true;
+        }
+
+        if (!SdkLevel.isAtLeastU()) {
+            return false;
+        }
+
+        // Lastly, we only need to check if this is an 'Eng' or a 'Userdebug' build
+        // (i.e. NOT 'User').
+        // This will filter out Developer Preview (DP) builds, which are of type User.
+        return "eng".equals(Build.TYPE) || "userdebug".equals(Build.TYPE);
     }
 }

@@ -45,8 +45,6 @@ import androidx.lifecycle.Observer;
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
 import com.android.modules.utils.build.SdkLevel;
-import com.android.providers.media.ConfigStore;
-import com.android.providers.media.MediaApplication;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
@@ -126,7 +124,6 @@ public class PickerViewModel extends AndroidViewModel {
     private int mBottomSheetState;
 
     private Category mCurrentCategory;
-    private ConfigStore mConfigStore;
 
     private boolean mIsLocalOnly;
 
@@ -139,7 +136,6 @@ public class PickerViewModel extends AndroidViewModel {
         mMuteStatus = new MuteStatus();
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
-        mConfigStore = MediaApplication.getConfigStore();
         mIsUserSelectForApp = false;
         mIsLocalOnly = false;
         maybeInitialiseAndSetBannersForCurrentUser();
@@ -555,10 +551,6 @@ public class PickerViewModel extends AndroidViewModel {
 
     public void setInstanceId(InstanceId parcelable) {
         mInstanceId = parcelable;
-    }
-
-    public ConfigStore getConfigStore() {
-        return mConfigStore;
     }
 
     /**

@@ -37,6 +37,7 @@ import android.view.accessibility.AccessibilityManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
@@ -71,6 +72,8 @@ public abstract class TabFragment extends Fragment {
     protected Selection mSelection;
     protected ImageLoader mImageLoader;
     protected AutoFitRecyclerView mRecyclerView;
+    protected ProgressBar mProgressBar;
+    protected TextView mLoadingTextView;
 
     private ExtendedFloatingActionButton mProfileButton;
     private UserIdManager mUserIdManager;
@@ -128,6 +131,9 @@ public abstract class TabFragment extends Fragment {
 
         mEmptyView = view.findViewById(android.R.id.empty);
         mEmptyTextView = mEmptyView.findViewById(R.id.empty_text_view);
+
+        mLoadingTextView = view.findViewById(R.id.loading_text_view);
+        mProgressBar = view.findViewById(R.id.progress_bar);
 
         final int[] attrsDisabled =
                 new int[]{R.attr.pickerDisabledProfileButtonColor,
@@ -400,11 +406,20 @@ public abstract class TabFragment extends Fragment {
 
     /**
      * If we show the {@link #mEmptyView}, hide the {@link #mRecyclerView}. If we don't hide the
-     * {@link #mEmptyView}, show the {@link #mRecyclerView}
+     * {@link #mEmptyView}, show the {@link #mRecyclerView}. Also hide the progress bar.
      */
-    protected void updateVisibilityForEmptyView(boolean shouldShowEmptyView) {
+    protected void updateVisibility(boolean shouldShowEmptyView) {
         mEmptyView.setVisibility(shouldShowEmptyView ? View.VISIBLE : View.GONE);
         mRecyclerView.setVisibility(shouldShowEmptyView ? View.GONE : View.VISIBLE);
+        hideProgressBar();
+    }
+
+    /**
+     * Hides progress bar and the loading photos message.
+     */
+    protected void hideProgressBar() {
+        mProgressBar.setVisibility(View.GONE);
+        mLoadingTextView.setVisibility(View.GONE);
     }
 
     /**
@@ -462,7 +477,22 @@ public abstract class TabFragment extends Fragment {
 
         @Override
         public void onBannerAdded() {
-            mRecyclerView.scrollToPosition(/* position */ 0);
+            // Should scroll to the banner only if the first completely visible item is the one
+            // just below it. The possible adapter item positions of such an item are 0 and 1.
+            // During onViewCreated, before restoring the state, the first visible item position
+            // is -1, and we should not scroll to position 0 in such cases, else the previously
+            // saved recycler view position may get overridden.
+            int firstItemPosition = -1;
+
+            final RecyclerView.LayoutManager layoutManager = mRecyclerView.getLayoutManager();
+            if (layoutManager instanceof GridLayoutManager) {
+                firstItemPosition = ((GridLayoutManager) layoutManager)
+                        .findFirstCompletelyVisibleItemPosition();
+            }
+
+            if (firstItemPosition == 0 || firstItemPosition == 1) {
+                mRecyclerView.scrollToPosition(/* position */ 0);
+            }
         }
 
         abstract void dismissBanner();

@@ -57,8 +57,8 @@ public class AlbumsTabFragment extends TabFragment {
                 mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
         mPickerViewModel.getCategories().observe(this, categoryList -> {
             adapter.updateCategoryList(categoryList);
-            // Handle emptyView's visibility
-            updateVisibilityForEmptyView(/* shouldShowEmptyView */ categoryList.size() == 0);
+            // Handle emptyView's visibility and hide progress bar.
+            updateVisibility(/* shouldShowEmptyView */ categoryList.size() == 0);
         });
 
         final AlbumsTabItemDecoration itemDecoration = new AlbumsTabItemDecoration(context);

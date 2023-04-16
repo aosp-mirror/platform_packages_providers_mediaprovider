@@ -21,6 +21,7 @@ import static android.provider.MediaStore.ACTION_PICK_IMAGES;
 import static android.provider.MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP;
 import static android.provider.MediaStore.grantMediaReadForPackage;
 
+import static com.android.providers.media.MediaApplication.getConfigStore;
 import static com.android.providers.media.photopicker.PhotoPickerSettingsActivity.EXTRA_CURRENT_USER_ID;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
@@ -185,11 +186,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         am.addAccessibilityStateChangeListener(enabled -> mIsAccessibilityEnabled = enabled);
 
         initBottomSheetBehavior();
-        restoreState(savedInstanceState);
 
         final String intentAction = intent != null ? intent.getAction() : null;
-        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
-        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
@@ -201,6 +199,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
         if (mPreloaderInstanceHolder.preloader != null) {
             subscribeToSelectedMediaPreloader(mPreloaderInstanceHolder.preloader);
         }
+
+        // Don't add any logic after this line.
+        restoreState(savedInstanceState);
+
+        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
+        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
     }
 
     @Override
@@ -567,7 +571,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         final boolean isGetContent = isGetContentAction();
         final boolean isPickImages = isPickImagesAction();
-        final ConfigStore cs = mPickerViewModel.getConfigStore();
+        final ConfigStore cs = getConfigStore();
 
         if (getIntent().hasExtra(EXTRA_PRELOAD_SELECTED)) {
             if (Build.isDebuggable()

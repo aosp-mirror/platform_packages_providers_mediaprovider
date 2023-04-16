@@ -460,7 +460,7 @@ public class DatabaseBackupAndRecovery {
 
     private int getOwnerPackageId(FuseDaemon fuseDaemon, String ownerPackageName, int userId)
             throws IOException {
-        if (Strings.isNullOrEmpty(ownerPackageName)) {
+        if (Strings.isNullOrEmpty(ownerPackageName) || ownerPackageName.equalsIgnoreCase("null")) {
             // We store -1 in the backup if owner package name is null.
             return -1;
         }

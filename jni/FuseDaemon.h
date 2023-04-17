@@ -111,9 +111,15 @@ class FuseDaemon final {
     std::string ReadOwnership(const std::string& key);
 
     /**
-     * Create owner id to owner package identifier and vice versa relation in leveldb.
+     * Creates owner id to owner package identifier and vice versa relation in leveldb.
      */
     void CreateOwnerIdRelation(const std::string& ownerId,
+                               const std::string& ownerPackageIdentifier);
+
+    /**
+     * Removes owner id to owner package identifier and vice versa relation in leveldb.
+     */
+    void RemoveOwnerIdRelation(const std::string& ownerId,
                                const std::string& ownerPackageIdentifier);
 
     /**

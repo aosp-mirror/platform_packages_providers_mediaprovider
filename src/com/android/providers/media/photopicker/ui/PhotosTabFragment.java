@@ -154,8 +154,8 @@ public class PhotosTabFragment extends TabFragment {
     private void onChangeMediaItems(@NonNull List<Item> itemList,
             @NonNull PhotosTabAdapter adapter) {
         adapter.setMediaItems(itemList);
-        // Handle emptyView's visibility and hide progress bar.
-        updateVisibility(/* shouldShowEmptyView */ itemList.size() == 0);
+        // Handle emptyView's visibility
+        updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
     }
 
     private void onItemClick(@NonNull View view) {

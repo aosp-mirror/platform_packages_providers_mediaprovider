@@ -121,7 +121,12 @@ public class SettingsCloudMediaSelectFragment extends PreferenceFragmentCompat
                             .equals(mSettingsCloudMediaViewModel.getSelectedProviderAuthority())) {
                         final Preference selectedPref = findPreference(
                                 mSettingsCloudMediaViewModel.getSelectedPreferenceKey());
-                        selectedPref.setSummary(accountDetails.getCloudProviderAccountName());
+                        // TODO(b/262002538): {@code selectedPref} could be null if the selected
+                        //  cloud provider is not in the allowed list. This is not something a
+                        //  typical user will encounter.
+                        if (selectedPref != null) {
+                            selectedPref.setSummary(accountDetails.getCloudProviderAccountName());
+                        }
                     }
                 });
     }

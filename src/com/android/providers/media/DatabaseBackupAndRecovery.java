@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -145,6 +146,8 @@ public class DatabaseBackupAndRecovery {
     private AtomicInteger mNextOwnerIdBackup;
     private final ConfigStore mConfigStore;
     private final VolumeCache mVolumeCache;
+
+    private Map<String, String> mOwnerIdRelationMap;
 
     protected DatabaseBackupAndRecovery(ConfigStore configStore, VolumeCache volumeCache) {
         mConfigStore = configStore;
@@ -705,15 +708,21 @@ public class DatabaseBackupAndRecovery {
     }
 
     private Pair<String, Integer> getOwnerPackageNameAndUidPair(int ownerPackageId) {
-        try {
-            String ownerPackageIdentifier = getFuseDaemonForPath(
-                    EXTERNAL_PRIMARY_ROOT_PATH).readFromOwnershipBackup(
-                    String.valueOf(ownerPackageId));
-            return getPackageNameAndUserId(ownerPackageIdentifier);
-        } catch (IOException e) {
-            Log.e(TAG, "Failure in reading owner details for owner id:" + ownerPackageId, e);
-            return Pair.create(null, null);
+        if (mOwnerIdRelationMap == null) {
+            try {
+                mOwnerIdRelationMap = getFuseDaemonForPath(
+                        EXTERNAL_PRIMARY_ROOT_PATH).readOwnerIdRelations();
+                Log.i(TAG, "Cached owner id map");
+            } catch (IOException e) {
+                Log.e(TAG, "Failure in reading owner details for owner id:" + ownerPackageId, e);
+                return Pair.create(null, null);
+            }
         }
+
+        if (mOwnerIdRelationMap.containsKey(String.valueOf(ownerPackageId))) {
+            return getPackageNameAndUserId(mOwnerIdRelationMap.get(String.valueOf(ownerPackageId)));
+        }
+        return Pair.create(null, null);
     }
 
     protected void recoverData(SQLiteDatabase db, String volumeName) {

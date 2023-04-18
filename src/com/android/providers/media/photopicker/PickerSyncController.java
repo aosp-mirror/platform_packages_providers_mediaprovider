@@ -152,8 +152,7 @@ public class PickerSyncController {
         initCloudProvider(cachedAuthority);
     }
 
-    @VisibleForTesting
-    void initCloudProvider(@Nullable String cachedAuthority) {
+    private void initCloudProvider(@Nullable String cachedAuthority) {
         final CloudProviderInfo defaultInfo = getDefaultCloudProviderInfo(cachedAuthority);
 
         if (Objects.equals(defaultInfo.authority, cachedAuthority)) {
@@ -466,17 +465,23 @@ public class PickerSyncController {
      * Notifies about package removal
      */
     public void notifyPackageRemoval(String packageName) {
-        synchronized (mLock) {
-            if (mCloudProviderInfo.matches(packageName)) {
-                Log.i(TAG, "Package " + packageName
-                        + " is the current cloud provider and got removed");
-                resetCloudProvider();
-            }
+        final CloudProviderInfo currentCloudProviderInfo = getCurrentCloudProviderInfo();
+        if (currentCloudProviderInfo.matches(packageName)) {
+            Log.i(TAG, "Package " + packageName
+                    + " is the current cloud provider and got removed");
+            resetCloudProvider();
         }
     }
 
     private void resetCloudProvider() {
         setCloudProvider(/* authority */ null);
+
+        /**
+         * {@link #setCloudProvider(String null)} sets the cloud provider state to UNSET.
+         * Clearing the persisted cloud provider authority to set the state as NOT_SET instead.
+         */
+        clearPersistedCloudProviderAuthority();
+
         initCloudProvider(/* cachedAuthority */ null);
     }
 
@@ -726,6 +731,16 @@ public class PickerSyncController {
         }
 
         Log.d(TAG, "Updated cloud provider to: " + authority);
+    }
+
+    /**
+     * Clears the persisted cloud provider authority and sets the state to default (NOT_SET).
+     */
+    @VisibleForTesting
+    void clearPersistedCloudProviderAuthority() {
+        Log.d(TAG, "Setting the cloud provider state to default (NOT_SET) by clearing the "
+                + "persisted cloud provider authority");
+        mUserPrefs.edit().remove(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY).apply();
     }
 
     private void cacheMediaCollectionInfo(String authority, boolean isLocal, Bundle bundle) {

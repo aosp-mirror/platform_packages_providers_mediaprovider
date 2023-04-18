@@ -107,6 +107,8 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ເລືອກແອັບ"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ເລືອກບັນຊີ"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ປ່ຽນບັນຊີ"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_0">^1</xliff:g> ແກ້ໄຂໄຟລ໌ສຽງນີ້ບໍ?}other{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_1">^1</xliff:g> ແກ້ໄຂໄຟລ໌ສຽງ <xliff:g id="COUNT">^2</xliff:g> ໄຟລ໌ບໍ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ກຳລັງແກ້ໄຂໄຟລ໌ສຽງ…}other{ກຳລັງແກ້ໄຂໄຟລ໌ສຽງ <xliff:g id="COUNT">^1</xliff:g> ໄຟລ໌…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_0">^1</xliff:g> ແກ້ໄຂວິດີໂອນີ້ບໍ?}other{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_1">^1</xliff:g> ແກ້ໄຂວິດີໂອ <xliff:g id="COUNT">^2</xliff:g> ລາຍການບໍ?}}"</string>

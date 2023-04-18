@@ -269,6 +269,30 @@ void com_android_providers_media_FuseDaemon_create_owner_id_relation(JNIEnv* env
                                   utf_chars_owner_pkg_identifier.c_str());
 }
 
+jobject com_android_providers_media_FuseDaemon_read_owner_relations(JNIEnv* env, jobject self,
+                                                                    jlong java_daemon) {
+    fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
+    // Create a Java map object.
+    jobject map =
+            env->NewObject(env->FindClass("java/util/HashMap"),
+                           env->GetMethodID(env->FindClass("java/util/HashMap"), "<init>", "()V"));
+
+    // Get the key-value pairs from the native method.
+    std::map<std::string, std::string> myMap = daemon->GetOwnerRelationship();
+
+    // Iterate over the map and add the key-value pairs to the Java map.
+    for (auto it = myMap.begin(); it != myMap.end(); ++it) {
+        env->CallObjectMethod(
+                map,
+                env->GetMethodID(env->FindClass("java/util/HashMap"), "put",
+                                 "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+                env->NewStringUTF(it->first.c_str()), env->NewStringUTF(it->second.c_str()));
+    }
+
+    // Return the Java map object.
+    return map;
+}
+
 const JNINativeMethod methods[] = {
         {"native_new", "(Lcom/android/providers/media/MediaProvider;)J",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_new)},
@@ -305,7 +329,9 @@ const JNINativeMethod methods[] = {
         {"native_read_ownership", "(JLjava/lang/String;)Ljava/lang/String;",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_read_ownership)},
         {"native_create_owner_id_relation", "(JLjava/lang/String;Ljava/lang/String;)V",
-         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_create_owner_id_relation)}};
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_create_owner_id_relation)},
+        {"native_read_owner_relations", "(J)Ljava/util/HashMap;",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_read_owner_relations)}};
 }  // namespace
 
 void register_android_providers_media_FuseDaemon(JavaVM* vm, JNIEnv* env) {

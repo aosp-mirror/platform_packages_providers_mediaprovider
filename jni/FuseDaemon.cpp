@@ -2681,6 +2681,25 @@ void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
     }
 }
 
+std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
+    std::map<std::string, std::string> resultMap;
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "Failure in leveldb read for ownership relation.";
+        return resultMap;
+    }
+
+    leveldb::Status status;
+    // Get the key-value pairs from the database.
+    leveldb::Iterator* it =
+            fuse->level_db_connection_map[OWNERSHIP_RELATION]->NewIterator(leveldb::ReadOptions());
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+        std::string key = it->key().ToString();
+        std::string value = it->value().ToString();
+        resultMap.insert(std::pair<std::string, std::string>(key, value));
+    }
+    return resultMap;
+}
+
 bool FuseDaemon::CheckLevelDbConnection(const std::string& instance_name) {
     if (fuse->level_db_connection_map.find(instance_name) == fuse->level_db_connection_map.end()) {
         LOG(ERROR) << "Leveldb setup is missing for :" << instance_name;

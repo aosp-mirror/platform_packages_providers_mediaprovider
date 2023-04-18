@@ -77,7 +77,6 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Увімкнути звук у відео"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Відтворити відео"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Призупинити відео"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Тепер медіаконтент із хмари доступний у додатку <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не вибрано"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Дозволити додатку <xliff:g id="APP_NAME_0">^1</xliff:g> змінити цей аудіофайл?}one{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайл?}few{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайли?}many{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайлів?}other{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайлу?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Змінення аудіофайлу…}one{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлу…}few{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлів…}many{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлів…}other{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлу…}}"</string>

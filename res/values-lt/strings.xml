@@ -77,7 +77,6 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Įjungti vaizdo įrašo garsą"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"Leisti vaizdo įrašą"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"Pristabdyti vaizdo įrašą"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Debesyje esanti medija dabar pasiekiama iš „<xliff:g id="PKG_NAME">%1$s</xliff:g>“"</string>
     <string name="not_selected" msgid="2244008151669896758">"nepasirinkta"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Leisti programai „<xliff:g id="APP_NAME_0">^1</xliff:g>“ keisti šį garso failą?}one{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failą?}few{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failus?}many{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failo?}other{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failų?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Keičiamas garso failas…}one{Keičiamas <xliff:g id="COUNT">^1</xliff:g> garso failas…}few{Keičiami <xliff:g id="COUNT">^1</xliff:g> garso failai…}many{Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failo…}other{Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failų…}}"</string>

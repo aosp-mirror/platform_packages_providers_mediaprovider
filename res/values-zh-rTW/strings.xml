@@ -77,7 +77,6 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"將影片取消靜音"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"播放影片"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"暫停播放影片"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"現在可以透過「<xliff:g id="PKG_NAME">%1$s</xliff:g>」存取雲端媒體"</string>
     <string name="not_selected" msgid="2244008151669896758">"未選取"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{允許「<xliff:g id="APP_NAME_0">^1</xliff:g>」修改這個音訊檔案嗎？}other{允許「<xliff:g id="APP_NAME_1">^1</xliff:g>」修改這 <xliff:g id="COUNT">^2</xliff:g> 個音訊檔案嗎？}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{正在修改音訊檔案…}other{正在修改 <xliff:g id="COUNT">^1</xliff:g> 個音訊檔案…}}"</string>

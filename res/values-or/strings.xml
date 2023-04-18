@@ -77,7 +77,6 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"ଭିଡିଓକୁ ଅନମ୍ୟୁଟ କରନ୍ତୁ"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"ଭିଡିଓ ଚଲାନ୍ତୁ"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"ଭିଡିଓକୁ ବିରତ କରନ୍ତୁ"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ବର୍ତ୍ତମାନ <xliff:g id="PKG_NAME">%1$s</xliff:g>ରୁ କ୍ଲାଉଡ ମିଡିଆ ଉପଲବ୍ଧ ଅଛି"</string>
     <string name="not_selected" msgid="2244008151669896758">"ଚୟନ କରାଯାଇନାହିଁ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ଏହି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}other{<xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ଅଡିଓ ଫାଇଲ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…}other{<xliff:g id="COUNT">^1</xliff:g>ଟି ଅଡିଓ ଫାଇଲ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…}}"</string>
@@ -117,6 +116,6 @@
     <string name="transcode_processing_success" msgid="447288876429730122">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ସଫଳ ହୋଇଛି"</string>
     <string name="transcode_processing_started" msgid="7789086308155361523">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ଆରମ୍ଭ କରାଯାଇଛି"</string>
     <string name="transcode_processing" msgid="6753136468864077258">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ କରାଯାଉଛି…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"ବାତିଲ କରନ୍ତୁ"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"ବାତିଲ୍ କରନ୍ତୁ"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"ଅପେକ୍ଷା କରନ୍ତୁ"</string>
 </resources>

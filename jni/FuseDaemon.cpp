@@ -2360,21 +2360,40 @@ bool FuseDaemon::IsStarted() const {
     return active.load(std::memory_order_acquire);
 }
 
+static bool IsPropertySet(const char* name, bool& value) {
+    if (android::base::GetProperty(name, "") == "") return false;
+
+    value = android::base::GetBoolProperty(name, false);
+    LOG(INFO) << "fuse-bpf is " << (value ? "enabled" : "disabled") << " because of property "
+              << name;
+    return true;
+}
+
 bool IsFuseBpfEnabled() {
     // ro.fuse.bpf.is_running may not be set when first reading this property, so we have to
     // reproduce the vold/Utils.cpp:isFuseBpfEnabled() logic here
 
-    if (android::base::GetProperty("ro.fuse.bpf.is_running", "") != "") {
-        return android::base::GetBoolProperty("ro.fuse.bpf.is_running", false);
-    } else if (android::base::GetProperty("persist.sys.fuse.bpf.override", "") != "") {
-        return android::base::GetBoolProperty("persist.sys.fuse.bpf.override", false);
-    } else if (android::base::GetProperty("ro.fuse.bpf.enabled", "") != "") {
-        return android::base::GetBoolProperty("ro.fuse.bpf.enabled", false);
+    bool is_enabled;
+    if (IsPropertySet("ro.fuse.bpf.is_running", is_enabled)) return is_enabled;
+    if (IsPropertySet("persist.sys.fuse.bpf.override", is_enabled)) return is_enabled;
+    if (IsPropertySet("ro.fuse.bpf.enabled", is_enabled)) return is_enabled;
+
+    // If the kernel has fuse-bpf, /sys/fs/fuse/features/fuse_bpf will exist and have the contents
+    // 'supported\n' - see fs/fuse/inode.c in the kernel source
+    string contents;
+    const char* filename = "/sys/fs/fuse/features/fuse_bpf";
+    if (!android::base::ReadFileToString(filename, &contents)) {
+        LOG(INFO) << "fuse-bpf is disabled because " << filename << " cannot be read";
+        return false;
     }
 
-    string contents;
-    return android::base::ReadFileToString("/sys/fs/fuse/features/fuse_bpf", &contents) &&
-           contents == "supported\n";
+    if (contents == "supported\n") {
+        LOG(INFO) << "fuse-bpf is enabled because " << filename << " reads 'supported'";
+        return true;
+    } else {
+        LOG(INFO) << "fuse-bpf is disabled because " << filename << " does not read 'supported'";
+        return false;
+    }
 }
 
 void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,

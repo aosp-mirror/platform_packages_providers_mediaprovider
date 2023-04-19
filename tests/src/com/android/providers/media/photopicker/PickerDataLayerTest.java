@@ -44,6 +44,7 @@ import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -132,6 +133,13 @@ public class PickerDataLayerTest {
 
         // Set cloud provider to null to discard
         mFacade.setCloudProvider(null);
+    }
+
+    @After
+    public void tearDown() {
+        if (mFacade != null) {
+            mFacade.setCloudProvider(null);
+        }
     }
 
     @Test

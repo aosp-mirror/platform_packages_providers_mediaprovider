@@ -107,6 +107,8 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Válasszon alkalmazást"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Fiók kiválasztása"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Másik fiók választása"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a hangfájlnak a módosítását?}other{Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> hangfájl módosítását?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Az audiofájl módosítása folyamatban van…}other{<xliff:g id="COUNT">^1</xliff:g> audiofájl módosítása folyamatban van…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a videónak a módosítását?}other{Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> videó módosítását?}}"</string>

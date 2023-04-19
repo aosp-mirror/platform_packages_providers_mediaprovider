@@ -50,7 +50,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -398,12 +397,10 @@ public class DatabaseBackupAndRecovery {
         return MediaProvider.getFuseDaemonForFile(new File(path), mVolumeCache);
     }
 
-    protected void updateNextRowIdAndSetDirtyIfRequired(@NonNull DatabaseHelper helper,
+    protected void updateNextRowIdAndSetDirty(@NonNull DatabaseHelper helper,
             @NonNull FileRow oldRow, @NonNull FileRow newRow) {
         updateNextRowIdXattr(helper, newRow.getId());
-        if (backedUpValuesChanged(oldRow, newRow)) {
-            markBackupAsDirty(helper, oldRow);
-        }
+        markBackupAsDirty(helper, oldRow);
     }
 
     /**
@@ -534,6 +531,10 @@ public class DatabaseBackupAndRecovery {
         }
 
         String deletedFilePath = deletedRow.getPath();
+        if (deletedFilePath == null) {
+            return;
+        }
+
         // For all internal file paths, redirect to external primary fuse daemon.
         String fuseDaemonFilePath = getFuseDaemonFilePath(deletedFilePath);
         try {
@@ -577,16 +578,6 @@ public class DatabaseBackupAndRecovery {
         } catch (IOException e) {
             Log.e(TAG, "Failure in setting up backup and recovery for internal database.", e);
         }
-    }
-
-    private static boolean backedUpValuesChanged(FileRow oldRow, FileRow newRow) {
-        return oldRow.getId() != newRow.getId() || oldRow.isTrashed() != newRow.isTrashed()
-                || oldRow.isFavorite() != newRow.isFavorite()
-                || oldRow.isPending() != newRow.isPending()
-                || !Objects.equals(oldRow.getOwnerPackageName(), newRow.getOwnerPackageName())
-                || oldRow.getMediaType() != newRow.getMediaType()
-                || !Objects.equals(oldRow.getDateExpires(), newRow.getDateExpires())
-                || oldRow.getUserId() != newRow.getUserId();
     }
 
     private void markBackupAsDirty(DatabaseHelper databaseHelper, FileRow updatedRow) {
@@ -815,5 +806,46 @@ public class DatabaseBackupAndRecovery {
      */
     protected List<File> getBackupFiles() {
         return Arrays.asList(new File(RECOVERY_DIRECTORY_PATH).listFiles());
+    }
+
+    /**
+     * Updates backup in external storage to the latest values. Deletes backup of old file path if
+     * file path has changed.
+     */
+    public void updateBackup(DatabaseHelper helper, FileRow oldRow, FileRow newRow) {
+        if (!isStableUrisEnabled(newRow.getVolumeName()) || helper.isDatabaseRecovering()) {
+            return;
+        }
+
+        FuseDaemon fuseDaemon;
+        try {
+            fuseDaemon = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
+        } catch (FileNotFoundException e) {
+            Log.e(TAG,
+                    "Fuse Daemon not found for primary external storage, skipping update of "
+                            + "backup.",
+                    e);
+            return;
+        }
+
+        helper.runWithTransaction((db) -> {
+            try (Cursor c = db.query(true, "files", QUERY_COLUMNS, "_id=?",
+                    new String[]{String.valueOf(newRow.getId())}, null, null, null,
+                    null, null)) {
+                if (c.moveToFirst()) {
+                    backupDataValues(fuseDaemon, c);
+                    Log.v(TAG, "Updated backed up row in leveldb");
+                    String newPath = c.getString(1);
+                    if (oldRow.getPath() != null && !oldRow.getPath().equalsIgnoreCase(newPath)) {
+                        // If file path has changed, update leveldb backup to delete old path.
+                        deleteFromDbBackup(helper, oldRow);
+                        Log.v(TAG, "Deleted backup of old file path.");
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failure in updating row in external storage backup.", e);
+            }
+            return null;
+        });
     }
 }

@@ -934,7 +934,7 @@ public class MediaProvider extends ContentProvider {
             acceptWithExpansion(helper::notifyUpdate, oldRow.getVolumeName(), oldRow.getId(),
                     oldRow.getMediaType(), isDownload);
 
-            mDatabaseBackupAndRecovery.updateNextRowIdAndSetDirtyIfRequired(helper, oldRow, newRow);
+            mDatabaseBackupAndRecovery.updateNextRowIdAndSetDirty(helper, oldRow, newRow);
 
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
@@ -950,6 +950,8 @@ public class MediaProvider extends ContentProvider {
                         oldRow.getSpecialFormat(), newRow.getSpecialFormat())) {
                     mPickerSyncController.notifyMediaEvent();
                 }
+
+                mDatabaseBackupAndRecovery.updateBackup(helper, oldRow, newRow);
             });
 
             if (newRow.getMediaType() != oldRow.getMediaType()) {

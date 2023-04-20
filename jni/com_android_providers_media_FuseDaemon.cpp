@@ -293,6 +293,17 @@ jobject com_android_providers_media_FuseDaemon_read_owner_relations(JNIEnv* env,
     return map;
 }
 
+void com_android_providers_media_FuseDaemon_remove_owner_id_relation(JNIEnv* env, jobject self,
+                                                                     jlong java_daemon,
+                                                                     jstring owner_id,
+                                                                     jstring owner_pkg_identifier) {
+    fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
+    ScopedUtfChars utf_chars_owner_id(env, owner_id);
+    ScopedUtfChars utf_chars_owner_pkg_identifier(env, owner_pkg_identifier);
+    daemon->RemoveOwnerIdRelation(utf_chars_owner_id.c_str(),
+                                  utf_chars_owner_pkg_identifier.c_str());
+}
+
 const JNINativeMethod methods[] = {
         {"native_new", "(Lcom/android/providers/media/MediaProvider;)J",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_new)},
@@ -331,7 +342,9 @@ const JNINativeMethod methods[] = {
         {"native_create_owner_id_relation", "(JLjava/lang/String;Ljava/lang/String;)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_create_owner_id_relation)},
         {"native_read_owner_relations", "(J)Ljava/util/HashMap;",
-         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_read_owner_relations)}};
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_read_owner_relations)},
+        {"native_remove_owner_id_relation", "(JLjava/lang/String;Ljava/lang/String;)V",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_remove_owner_id_relation)}};
 }  // namespace
 
 void register_android_providers_media_FuseDaemon(JavaVM* vm, JNIEnv* env) {

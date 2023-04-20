@@ -60,10 +60,17 @@ import java.util.Objects;
 public class PickerDbFacade {
     private static final String VIDEO_MIME_TYPES = "video/%";
 
+    // TODO(b/278562157): If there is a dependency on
+    //  {@link PickerSyncController#mCloudProviderLock}, always acquire
+    //  {@link PickerSyncController#mCloudProviderLock} before {@link mLock} to avoid deadlock.
+    @NonNull
     private final Object mLock = new Object();
     private final Context mContext;
     private final SQLiteDatabase mDatabase;
     private final String mLocalProvider;
+    // This is the cloud provider the database is synced with. It can be set as null to disable
+    // cloud queries when database is not in sync with the current cloud provider.
+    @Nullable
     private String mCloudProvider;
 
     public PickerDbFacade(Context context) {
@@ -756,6 +763,9 @@ public class PickerDbFacade {
 
         final String cloudProvider;
         synchronized (mLock) {
+            // If the cloud sync is in progress or the cloud provider has changed but a sync has not
+            // been completed and committed, {@link PickerDBFacade.mCloudProvider} will be
+            // {@code null}.
             cloudProvider = mCloudProvider;
         }
 
@@ -797,15 +807,24 @@ public class PickerDbFacade {
             qb.appendWhereStandalone(WHERE_CLOUD_ID);
         }
 
+        if (authority.equals(mLocalProvider)) {
+            return queryMediaIdForAppsInternal(qb, projection, selectionArgs);
+        }
+
         synchronized (mLock) {
-            if (authority.equals(mLocalProvider) || authority.equals(mCloudProvider)) {
-                return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
-                        /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
-                        /* orderBy */ null, /* limitStr */ null);
+            if (authority.equals(mCloudProvider)) {
+                return queryMediaIdForAppsInternal(qb, projection, selectionArgs);
             }
         }
 
         return null;
+    }
+
+    private Cursor queryMediaIdForAppsInternal(@NonNull SQLiteQueryBuilder qb,
+            @NonNull String[] projection, @NonNull String[] selectionArgs) {
+        return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
+                /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
+                /* orderBy */ null, /* limitStr */ null);
     }
 
     /**
@@ -889,8 +908,8 @@ public class PickerDbFacade {
         // #setCloudProvider
         synchronized (mLock) {
             if (mCloudProvider == null || !Objects.equals(mCloudProvider, authority)) {
-                // If cloud provider is null or has changed from what we received from the UI,
-                // skip all cloud items in the picker db
+                // TODO(b/278086344): If cloud provider is null or has changed from what we received
+                //  from the UI, skip all cloud items in the picker db.
                 qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
             }
 

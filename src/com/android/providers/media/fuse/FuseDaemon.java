@@ -293,6 +293,19 @@ public final class FuseDaemon extends Thread {
     }
 
     /**
+     * Removes owner id to owner package identifier and vice versa relation in external storage.
+     */
+    public void removeOwnerIdRelation(String ownerId, String ownerPackageIdentifier)
+            throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_remove_owner_id_relation(mPtr, ownerId, ownerPackageIdentifier);
+        }
+    }
+
+    /**
      * Reads all owner id relations from external storage.
      */
     public HashMap<String, String> readOwnerIdRelations() throws IOException {
@@ -327,6 +340,8 @@ public final class FuseDaemon extends Thread {
     private native String native_read_backed_up_data(long daemon, String key);
     private native String native_read_ownership(long daemon, String ownerPackageIdentifier);
     private native void native_create_owner_id_relation(long daemon, String ownerId,
+            String ownerPackageIdentifier);
+    private native void native_remove_owner_id_relation(long daemon, String ownerId,
             String ownerPackageIdentifier);
     private native HashMap<String, String> native_read_owner_relations(long daemon);
     public static native boolean native_is_fuse_thread();

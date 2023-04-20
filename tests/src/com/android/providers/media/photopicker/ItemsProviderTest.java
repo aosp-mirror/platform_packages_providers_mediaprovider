@@ -62,6 +62,7 @@ import com.android.providers.media.photopicker.data.model.UserId;
 
 import com.google.common.io.ByteStreams;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -117,6 +118,11 @@ public class ItemsProviderTest {
 
         // Wait for MediaStore to be Idle to reduce flakes caused by database updates
         MediaStore.waitForIdle(mIsolatedResolver);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        setCloudProvider(null);
     }
 
     /**

@@ -40,6 +40,7 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.ProjectionHelper;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,6 +82,13 @@ public class PickerDbFacadeTest {
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER);
         mFacade.setCloudProvider(CLOUD_PROVIDER);
         mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
+    }
+
+    @After
+    public void tearDown() {
+        if (mFacade != null) {
+            mFacade.setCloudProvider(null);
+        }
     }
 
     @Test

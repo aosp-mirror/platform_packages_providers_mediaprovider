@@ -522,6 +522,24 @@ public class DatabaseBackupAndRecovery {
         Log.d(TAG, "Updated next owner id to: " + val);
     }
 
+    protected void removeOwnerIdToPackageRelation(String packageName, int userId) {
+        if (Strings.isNullOrEmpty(packageName) || packageName.equalsIgnoreCase("null")
+                || !isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                || !new File(OWNER_RELATION_BACKUP_PATH).exists()) {
+            return;
+        }
+
+        try {
+            FuseDaemon fuseDaemon = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
+            String ownerPackageIdentifier = createOwnerPackageIdentifier(packageName, userId);
+            String ownerId = fuseDaemon.readFromOwnershipBackup(ownerPackageIdentifier);
+
+            fuseDaemon.removeOwnerIdRelation(ownerId, ownerPackageIdentifier);
+        } catch (Exception e) {
+            Log.e(TAG, "Failure in removing owner id to package relation", e);
+        }
+    }
+
     /**
      * Deletes backed up data(needed for recovery) from external storage.
      */

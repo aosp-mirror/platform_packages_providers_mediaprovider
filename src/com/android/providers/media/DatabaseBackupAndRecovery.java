@@ -503,7 +503,7 @@ public class DatabaseBackupAndRecovery {
 
         int nextOwnerId = getAndIncrementNextOwnerId();
         fuseDaemon.createOwnerIdRelation(String.valueOf(nextOwnerId), ownerPackageIdentifier);
-        Log.i(TAG, "Created relation b/w " + nextOwnerId + " and " + ownerPackageIdentifier);
+        Log.v(TAG, "Created relation b/w " + nextOwnerId + " and " + ownerPackageIdentifier);
         return nextOwnerId;
     }
 
@@ -722,12 +722,12 @@ public class DatabaseBackupAndRecovery {
         return values;
     }
 
-    private Pair<String, Integer> getOwnerPackageNameAndUidPair(int ownerPackageId) {
+    protected Pair<String, Integer> getOwnerPackageNameAndUidPair(int ownerPackageId) {
         if (mOwnerIdRelationMap == null) {
             try {
                 mOwnerIdRelationMap = getFuseDaemonForPath(
                         EXTERNAL_PRIMARY_ROOT_PATH).readOwnerIdRelations();
-                Log.i(TAG, "Cached owner id map");
+                Log.v(TAG, "Cached owner id map");
             } catch (IOException e) {
                 Log.e(TAG, "Failure in reading owner details for owner id:" + ownerPackageId, e);
                 return Pair.create(null, null);
@@ -868,7 +868,7 @@ public class DatabaseBackupAndRecovery {
                     if (oldRow.getPath() != null && !oldRow.getPath().equalsIgnoreCase(newPath)) {
                         // If file path has changed, update leveldb backup to delete old path.
                         deleteFromDbBackup(helper, oldRow);
-                        Log.v(TAG, "Deleted backup of old file path.");
+                        Log.v(TAG, "Deleted backup of old file path: " + oldRow.getPath());
                     }
                 }
             } catch (Exception e) {

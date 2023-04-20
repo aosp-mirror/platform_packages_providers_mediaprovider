@@ -107,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"యాప్‌ను ఎంచుకోండి"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ఖాతాను ఎంచుకోండి"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ఖాతాను మార్చండి"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"మీ ఫోటోలన్నీ లోడ్ అవుతున్నాయి"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ఈ ఆడియో ఫైల్‌ను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>‌ను అనుమతించాలా?}other{<xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైళ్లను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>‌ను అనుమతించాలా?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ఆడియో ఫైల్‌ను సవరిస్తోంది…}other{<xliff:g id="COUNT">^1</xliff:g> ఆడియో ఫైళ్లను సవరిస్తోంది…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ఈ వీడియోను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>‌ను అనుమతించాలా?}other{<xliff:g id="COUNT">^2</xliff:g> వీడియోలను ఎడిట్ చేయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>‌ను అనుమతించాలా?}}"</string>

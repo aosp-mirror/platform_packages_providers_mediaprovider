@@ -62,12 +62,8 @@ public interface ConfigStore {
     boolean DEFAULT_PICKER_PICK_IMAGES_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG = false;
 
-    // We *enable* the Cloud-Media-in-Photo-Picker feature and *disable* enforcing the CMP allowlist
-    // for dogfood (and other dev builds) only.
-    // For any builds intended for public (including DPs) the feature is disabled and enforcing the
-    // allowlist is enabled.
-    boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = isAtLeastUDroidfoodAndDevBuild();
-    boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = !isAtLeastUDroidfoodAndDevBuild();
+    boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = false;
+    boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
 
     /**
      * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and
@@ -472,26 +468,5 @@ public interface ConfigStore {
                 return null;
             }
         }
-    }
-
-    /**
-     * Should be used to <b>safely</b> tweak configs for development and droidfood builds.
-     * By "safely" we mean eliminating the risk that a value of a config intended for droidfood
-     * (or other similar builds) "leaks" to a public build.
-     * @return if running on the development build of a not-yet-released version of the platform.
-     */
-    private static boolean isAtLeastUDroidfoodAndDevBuild() {
-        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.CUR_DEVELOPMENT) {
-            return true;
-        }
-
-        if (!SdkLevel.isAtLeastU()) {
-            return false;
-        }
-
-        // Lastly, we only need to check if this is an 'Eng' or a 'Userdebug' build
-        // (i.e. NOT 'User').
-        // This will filter out Developer Preview (DP) builds, which are of type User.
-        return "eng".equals(Build.TYPE) || "userdebug".equals(Build.TYPE);
     }
 }

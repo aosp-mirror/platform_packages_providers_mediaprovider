@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Maksimum <xliff:g id="COUNT_0">^1</xliff:g> element seçin}other{Maksimum <xliff:g id="COUNT_1">^1</xliff:g> element seçin}}"</string>
     <string name="recent" msgid="6694613584743207874">"Son"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Foto və ya video yoxdur"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Dəstəklənən foto və ya video yoxdur"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Albom yoxdur"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Seçilənə baxın"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotolar"</string>
@@ -106,6 +107,8 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Tətbiq seçin"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Hesab seçin"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Hesabı dəyişdirin"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu audio fayla dəyişiklik etmək icazəsi verilsin?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> audio fayla dəyişiklik etmək icazəsi verilsin?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Audio fayl dəyişdirilir…}other{<xliff:g id="COUNT">^1</xliff:g> audio fayl dəyişdirilir…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu videoya dəyişiklik etmək icazəsi verilsin?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> videoya dəyişiklik etmək icazəsi verilsin?}}"</string>

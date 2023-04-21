@@ -60,10 +60,17 @@ import java.util.Objects;
 public class PickerDbFacade {
     private static final String VIDEO_MIME_TYPES = "video/%";
 
+    // TODO(b/278562157): If there is a dependency on
+    //  {@link PickerSyncController#mCloudProviderLock}, always acquire
+    //  {@link PickerSyncController#mCloudProviderLock} before {@link mLock} to avoid deadlock.
+    @NonNull
     private final Object mLock = new Object();
     private final Context mContext;
     private final SQLiteDatabase mDatabase;
     private final String mLocalProvider;
+    // This is the cloud provider the database is synced with. It can be set as null to disable
+    // cloud queries when database is not in sync with the current cloud provider.
+    @Nullable
     private String mCloudProvider;
 
     public PickerDbFacade(Context context) {
@@ -124,11 +131,6 @@ public class PickerDbFacade {
     public static final String KEY_WIDTH = "width";
     @VisibleForTesting
     public static final String KEY_ORIENTATION = "orientation";
-
-    @VisibleForTesting
-    public static final String IMAGE_FILE_EXTENSION = ".jpg";
-    @VisibleForTesting
-    public static final String VIDEO_FILE_EXTENSION = ".mp4";
 
     private static final String WHERE_ID = KEY_ID + " = ?";
     private static final String WHERE_LOCAL_ID = KEY_LOCAL_ID + " = ?";
@@ -761,6 +763,9 @@ public class PickerDbFacade {
 
         final String cloudProvider;
         synchronized (mLock) {
+            // If the cloud sync is in progress or the cloud provider has changed but a sync has not
+            // been completed and committed, {@link PickerDBFacade.mCloudProvider} will be
+            // {@code null}.
             cloudProvider = mCloudProvider;
         }
 
@@ -802,15 +807,24 @@ public class PickerDbFacade {
             qb.appendWhereStandalone(WHERE_CLOUD_ID);
         }
 
+        if (authority.equals(mLocalProvider)) {
+            return queryMediaIdForAppsInternal(qb, projection, selectionArgs);
+        }
+
         synchronized (mLock) {
-            if (authority.equals(mLocalProvider) || authority.equals(mCloudProvider)) {
-                return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
-                        /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
-                        /* orderBy */ null, /* limitStr */ null);
+            if (authority.equals(mCloudProvider)) {
+                return queryMediaIdForAppsInternal(qb, projection, selectionArgs);
             }
         }
 
         return null;
+    }
+
+    private Cursor queryMediaIdForAppsInternal(@NonNull SQLiteQueryBuilder qb,
+            @NonNull String[] projection, @NonNull String[] selectionArgs) {
+        return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
+                /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
+                /* orderBy */ null, /* limitStr */ null);
     }
 
     /**
@@ -836,7 +850,7 @@ public class PickerDbFacade {
             }
             addMimeTypesToQueryBuilderAndSelectionArgs(qb, selectionArgs, query.mMimeTypes);
 
-            Cursor cursor = qb.query(mDatabase, getAlbumProjection(), /* selection */ null,
+            Cursor cursor = qb.query(mDatabase, getMergedAlbumProjection(), /* selection */ null,
                     selectionArgs.toArray(new String[0]), /* groupBy */ null, /* having */ null,
                     /* orderBy */ null, /* limit */ null);
 
@@ -862,17 +876,20 @@ public class PickerDbFacade {
         return c;
     }
 
-    private String[] getAlbumProjection() {
+    private String[] getMergedAlbumProjection() {
         return new String[] {
                 "COUNT(" + KEY_ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
                 "MAX(" + KEY_DATE_TAKEN_MS + ") AS "
                         + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
                 String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
                         KEY_LOCAL_ID, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
-                // Note that we prefer local provider over cloud provider if a media item is present
-                // locally and on cloud.
+                // Note that we prefer cloud_id over local_id here. This logic is for computing the
+                // projection and doesn't affect the filtering of results which has already been
+                // done and ensures that only is_visible=true items are returned.
+                // Here, we need to distinguish between cloud+local and local-only items to
+                // determine the correct authority.
                 String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END AS %s",
-                        KEY_LOCAL_ID, mCloudProvider, mLocalProvider, AlbumColumns.AUTHORITY)
+                        KEY_CLOUD_ID, mLocalProvider, mCloudProvider, AlbumColumns.AUTHORITY)
         };
     }
 
@@ -891,8 +908,8 @@ public class PickerDbFacade {
         // #setCloudProvider
         synchronized (mLock) {
             if (mCloudProvider == null || !Objects.equals(mCloudProvider, authority)) {
-                // If cloud provider is null or has changed from what we received from the UI,
-                // skip all cloud items in the picker db
+                // TODO(b/278086344): If cloud provider is null or has changed from what we received
+                //  from the UI, skip all cloud items in the picker db.
                 qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
             }
 
@@ -1013,10 +1030,7 @@ public class PickerDbFacade {
         // <media-id>.<file-extension>
         // See comment in #getProjectionAuthorityLocked for why cloud_id is preferred over local_id
         final String mediaId = String.format("IFNULL(%s, %s)", KEY_CLOUD_ID, KEY_LOCAL_ID);
-        // TODO(b/195009139): Add .gif fileextension support
-        final String fileExtension =
-                String.format("CASE WHEN %s LIKE 'image/%%' THEN '%s' ELSE '%s' END",
-                        KEY_MIME_TYPE, IMAGE_FILE_EXTENSION, VIDEO_FILE_EXTENSION);
+        final String fileExtension = String.format("_GET_EXTENSION(%s)", KEY_MIME_TYPE);
 
         return mediaId + "||" + fileExtension;
     }

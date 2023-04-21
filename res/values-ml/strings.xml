@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ഇനം വരെ തിരഞ്ഞെടുക്കുക}other{<xliff:g id="COUNT_1">^1</xliff:g> ഇനങ്ങൾ വരെ തിരഞ്ഞെടുക്കുക}}"</string>
     <string name="recent" msgid="6694613584743207874">"അടുത്തിടെയുള്ളത്"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"ഫോട്ടോകളോ വീഡിയോകളോ ഇല്ല"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"പിന്തുണയ്‌ക്കുന്ന ഫോട്ടോകളോ വീഡിയോകളോ ഇല്ല"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ആൽബങ്ങളൊന്നുമില്ല"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"തിരഞ്ഞെടുത്തത് കാണുക"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ഫോട്ടോകൾ"</string>
@@ -106,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ആപ്പ് തിരഞ്ഞെടുക്കുക"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"അക്കൗണ്ട് തിരഞ്ഞെടുക്കുക"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"അക്കൗണ്ട് മാറ്റുക"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"നിങ്ങളുടെ ഫോട്ടോകളെല്ലാം ലഭ്യമാക്കുന്നു"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ഈ ഓഡിയോ ഫയൽ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}other{<xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ഓഡിയോ ഫയൽ പരിഷ്‌ക്കരിക്കുന്നു…}other{<xliff:g id="COUNT">^1</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്‌ക്കരിക്കുന്നു…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ഈ വീഡിയോ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}other{<xliff:g id="COUNT">^2</xliff:g> വീഡിയോകൾ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}}"</string>

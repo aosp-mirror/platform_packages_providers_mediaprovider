@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ಐಟಂವರೆಗೆ ಆಯ್ಕೆಮಾಡಿ}one{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳವರೆಗೆ ಆಯ್ಕೆಮಾಡಿ}other{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳವರೆಗೆ ಆಯ್ಕೆಮಾಡಿ}}"</string>
     <string name="recent" msgid="6694613584743207874">"ಇತ್ತೀಚಿನದು"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"ಯಾವುದೇ ಫೋಟೋಗಳು ಅಥವಾ ವೀಡಿಯೊಗಳಿಲ್ಲ"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"ಯಾವುದೇ ಬೆಂಬಲಿತ ಫೋಟೋಗಳು ಅಥವಾ ವೀಡಿಯೊಗಳಿಲ್ಲ"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ಯಾವುದೇ ಆಲ್ಬಮ್‌ಗಳಿಲ್ಲ"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ಆಯ್ಕೆಮಾಡಿರುವುದನ್ನು ವೀಕ್ಷಿಸಿ"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ಫೋಟೋಗಳು"</string>
@@ -106,6 +107,8 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ಆ್ಯಪ್ ಅನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ಖಾತೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ಖಾತೆಯನ್ನು ಬದಲಾಯಿಸಿ"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ಈ ಆಡಿಯೋ ಫೈಲ್ ಅನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_0">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}one{ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}other{ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ಆಡಿಯೋ ಫೈಲ್ ಅನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}one{<xliff:g id="COUNT">^1</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}other{<xliff:g id="COUNT">^1</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ಈ ವೀಡಿಯೊವನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_0">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}one{ಈ <xliff:g id="COUNT">^2</xliff:g> ವೀಡಿಯೊಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}other{ಈ <xliff:g id="COUNT">^2</xliff:g> ವೀಡಿಯೊಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}}"</string>

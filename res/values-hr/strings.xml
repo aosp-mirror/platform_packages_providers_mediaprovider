@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Odaberite najviše <xliff:g id="COUNT_0">^1</xliff:g> stavku}one{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavku}few{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavke}other{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="recent" msgid="6694613584743207874">"Nedavno"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Nema fotografija i videozapisa"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Nema podržanih fotografija ili videozapisa"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nema albuma"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Prikaži odabrano"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotografije"</string>
@@ -106,6 +107,8 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Odaberite aplikaciju"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Odaberite račun"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Promijenite račun"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g> da izmijeni tu audiodatoteku?}one{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteku?}few{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteke?}other{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteka?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Mijenjanje audiodatoteke…}one{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteke…}few{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteke…}other{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteka…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g> da izmijeni taj videozapis?}one{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapis?}few{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}other{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}}"</string>

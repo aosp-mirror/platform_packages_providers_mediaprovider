@@ -21,6 +21,7 @@ import static android.provider.MediaStore.ACTION_PICK_IMAGES;
 import static android.provider.MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP;
 import static android.provider.MediaStore.grantMediaReadForPackage;
 
+import static com.android.providers.media.MediaApplication.getConfigStore;
 import static com.android.providers.media.photopicker.PhotoPickerSettingsActivity.EXTRA_CURRENT_USER_ID;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
@@ -276,7 +277,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         // TODO(b/195009187): Settings menu item is hidden by default till Settings page is
         // completely developed.
-        settingsMenuItem.setVisible(isSettingsScreenEnabled());
+        settingsMenuItem.setVisible(shouldShowSettingsScreen());
 
         // Browse menu item allows users to launch DocumentsUI. This item should only be shown if
         // PhotoPicker was opened via {@link #ACTION_GET_CONTENT}.
@@ -319,7 +320,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         //  app or account has changed. Currently, we'll reset picker each time it restarts when
         //  settings page is enabled to avoid the scenario where cloud provider app or account has
         //  changed but picker continues to show stale data from old provider app and account.
-        if (isSettingsScreenEnabled()) {
+        if (shouldShowSettingsScreen()) {
             reset(/* switchToPersonalProfile */ false);
         }
     }
@@ -561,13 +562,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private boolean shouldPreloadSelectedItems() {
         // Only preload if the cloud media may be shown in the PhotoPicker.
-        if (!isCloudMediaIntegrationEnabled()) {
+        if (!isCloudMediaAvailable()) {
             return false;
         }
 
         final boolean isGetContent = isGetContentAction();
         final boolean isPickImages = isPickImagesAction();
-        final ConfigStore cs = mPickerViewModel.getConfigStore();
+        final ConfigStore cs = getConfigStore();
 
         if (getIntent().hasExtra(EXTRA_PRELOAD_SELECTED)) {
             if (Build.isDebuggable()
@@ -597,8 +598,16 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 });
     }
 
-    private boolean isCloudMediaIntegrationEnabled() {
-        return mPickerViewModel.getCloudMediaProviderAuthority() != null;
+    /**
+     * NOTE: this may wrongly return {@code false} if called before {@link PickerViewModel} had a
+     * chance to fetch the authority and the account of the current
+     * {@link android.provider.CloudMediaProvider}. However, {@link PickerViewModel} initiates the
+     * "fetch" through {@link PickerViewModel#maybeInitialiseAndSetBannersForCurrentUser()} in its
+     * ctor, so this may only happen very early on in the lifecycle.
+     */
+    private boolean isCloudMediaAvailable() {
+        return mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue() != null
+                && mPickerViewModel.getCloudMediaAccountNameLiveData().getValue() != null;
     }
 
     /**
@@ -827,7 +836,16 @@ public class PhotoPickerActivity extends AppCompatActivity {
     /**
      * Returns {@code true} if settings page is enabled.
      */
-    private boolean isSettingsScreenEnabled() {
+    private boolean shouldShowSettingsScreen() {
+        if (mPickerViewModel.isUserSelectForApp() || mPickerViewModel.isLocalOnly()) {
+            // We only show local items in below cases.
+            // 1. Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+            // action for permission flow.
+            // 2. Photo Picker is launched with {@link EXTRA_LOCAL_ONLY} as true in
+            // {@link ACTION_GET_CONTENT} or {@link ACTION_PICK_IMAGES}.
+            return false;
+        }
+
         final ComponentName componentName = new ComponentName(this,
                 PhotoPickerSettingsActivity.class);
         return getPackageManager().getComponentEnabledSetting(componentName)

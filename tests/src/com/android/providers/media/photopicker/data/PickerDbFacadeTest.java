@@ -19,6 +19,8 @@ package com.android.providers.media.photopicker.data;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 
+import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeType;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
@@ -38,6 +40,7 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.ProjectionHelper;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,6 +60,7 @@ public class PickerDbFacadeTest {
     private static final String CLOUD_ID = "asdfghjkl;";
     private static final String ALBUM_ID = "testAlbum";
     private static final String VIDEO_MIME_TYPE = "video/mp4";
+    private static final String WEBM_VIDEO_MIME_TYPE = "video/webm";
     private static final String[] VIDEO_MIME_TYPES_QUERY = new String[]{"video/mp4"};
     private static final String IMAGE_MIME_TYPE = "image/jpeg";
     private static final String[] IMAGE_MIME_TYPES_QUERY = new String[]{"image/jpeg"};
@@ -78,6 +82,13 @@ public class PickerDbFacadeTest {
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER);
         mFacade.setCloudProvider(CLOUD_PROVIDER);
         mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
+    }
+
+    @After
+    public void tearDown() {
+        if (mFacade != null) {
+            mFacade.setCloudProvider(null);
+        }
     }
 
     @Test
@@ -660,7 +671,7 @@ public class PickerDbFacadeTest {
     @Test
     public void testQueryWithMimeTypesFilter() throws Exception {
         Cursor cursor1 = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
-                /* mediaStoreUri */ null, SIZE_BYTES, "video/webm",
+                /* mediaStoreUri */ null, SIZE_BYTES, WEBM_VIDEO_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
         Cursor cursor2 = getMediaCursor(CLOUD_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, SIZE_BYTES, "video/mp4",
@@ -695,12 +706,12 @@ public class PickerDbFacadeTest {
 
         qfbAfter.setDateTakenAfterMs(DATE_TAKEN_MS - 1);
         qfbAfter.setId(0);
-        qfbAfter.setMimeTypes(new String[]{"video/webm"});
+        qfbAfter.setMimeTypes(new String[]{WEBM_VIDEO_MIME_TYPE});
         try (Cursor cr = mFacade.queryMediaForUi(qfbAfter.build())) {
             assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertCloudMediaCursor(cr, LOCAL_ID, VIDEO_MIME_TYPE);
+            assertCloudMediaCursor(cr, LOCAL_ID, WEBM_VIDEO_MIME_TYPE);
         }
 
         // Verify before
@@ -726,7 +737,7 @@ public class PickerDbFacadeTest {
     @Test
     public void testQueryWithSizeAndMimeTypesFilter() throws Exception {
         Cursor cursor1 = getMediaCursor(LOCAL_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
-                /* mediaStoreUri */ null, /* sizeBytes */ 2, "video/webm",
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, WEBM_VIDEO_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
         Cursor cursor2 = getMediaCursor(CLOUD_ID, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, /* sizeBytes */ 1, "video/mp4",
@@ -744,7 +755,7 @@ public class PickerDbFacadeTest {
         }
 
         // mime_type and size filter matches none
-        qfbAll.setMimeTypes(new String[]{"video/webm"});
+        qfbAll.setMimeTypes(new String[]{WEBM_VIDEO_MIME_TYPE});
         qfbAll.setSizeBytes(1);
         try (Cursor cr = mFacade.queryMediaForUi(qfbAll.build())) {
             assertThat(cr.getCount()).isEqualTo(0);
@@ -1482,9 +1493,7 @@ public class PickerDbFacadeTest {
     }
 
     private static String getDisplayName(String mediaId, String mimeType) {
-        final String extension = mimeType.equals(IMAGE_MIME_TYPE)
-                ? PickerDbFacade.IMAGE_FILE_EXTENSION : PickerDbFacade.VIDEO_FILE_EXTENSION;
-        return mediaId + extension;
+        return mediaId + getExtensionFromMimeType(mimeType);
     }
 
     private static String getData(String authority, String displayName) {

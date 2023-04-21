@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{เลือกได้สูงสุด <xliff:g id="COUNT_0">^1</xliff:g> รายการ}other{เลือกได้สูงสุด <xliff:g id="COUNT_1">^1</xliff:g> รายการ}}"</string>
     <string name="recent" msgid="6694613584743207874">"ล่าสุด"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"ไม่มีรูปภาพหรือวิดีโอ"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"ไม่มีรูปภาพหรือวิดีโอที่รองรับ"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ไม่มีอัลบั้ม"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ดูรายการที่เลือก"</string>
     <string name="picker_photos" msgid="7415035516411087392">"รูปภาพ"</string>
@@ -106,6 +107,8 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"เลือกแอป"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"เลือกบัญชี"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"เปลี่ยนบัญชี"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{อนุญาตให้ <xliff:g id="APP_NAME_0">^1</xliff:g> แก้ไขไฟล์เสียงนี้ไหม}other{อนุญาตให้ <xliff:g id="APP_NAME_1">^1</xliff:g> แก้ไขไฟล์เสียง <xliff:g id="COUNT">^2</xliff:g> ไฟล์ไหม}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{กำลังแก้ไขไฟล์เสียง…}other{กำลังแก้ไขไฟล์เสียง <xliff:g id="COUNT">^1</xliff:g> ไฟล์…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{อนุญาตให้ <xliff:g id="APP_NAME_0">^1</xliff:g> แก้ไขวิดีโอนี้ไหม}other{อนุญาตให้ <xliff:g id="APP_NAME_1">^1</xliff:g> แก้ไขวิดีโอ <xliff:g id="COUNT">^2</xliff:g> รายการไหม}}"</string>

@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Chọn tối đa <xliff:g id="COUNT_0">^1</xliff:g> mục}other{Chọn tối đa <xliff:g id="COUNT_1">^1</xliff:g> mục}}"</string>
     <string name="recent" msgid="6694613584743207874">"Gần đây"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Không có ảnh hoặc video nào"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Không có ảnh hoặc video nào được hỗ trợ"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Không có đĩa nhạc nào"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Xem các mục được chọn"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Ảnh"</string>
@@ -106,6 +107,8 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Chọn ứng dụng"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Chọn tài khoản"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Thay đổi tài khoản"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> sửa đổi tệp âm thanh này?}other{Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> sửa đổi <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Đang sửa đổi tệp âm thanh…}other{Đang sửa đổi <xliff:g id="COUNT">^1</xliff:g> tệp âm thanh…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> sửa đổi video này?}other{Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> sửa đổi <xliff:g id="COUNT">^2</xliff:g> video?}}"</string>

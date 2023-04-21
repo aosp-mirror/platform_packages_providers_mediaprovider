@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -146,6 +147,8 @@ public class DatabaseBackupAndRecovery {
     private final ConfigStore mConfigStore;
     private final VolumeCache mVolumeCache;
 
+    private AtomicBoolean mIsBackupSetupComplete = new AtomicBoolean(false);
+
     private Map<String, String> mOwnerIdRelationMap;
 
     protected DatabaseBackupAndRecovery(ConfigStore configStore, VolumeCache volumeCache) {
@@ -173,13 +176,15 @@ public class DatabaseBackupAndRecovery {
     }
 
     protected void onConfigPropertyChangeListener() {
-        if (mConfigStore.isStableUrisForInternalVolumeEnabled()
+        if ((mConfigStore.isStableUrisForInternalVolumeEnabled()
+                || mConfigStore.isStableUrisForExternalVolumeEnabled())
                 && mVolumeCache.getExternalVolumeNames().contains(
                 MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
             Log.i(TAG,
                     "On device config change, found stable uri support enabled. Attempting backup"
                             + " and recovery setup.");
-            setupVolumeDbBackupForInternalIfMissing();
+            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
+                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
         }
     }
 
@@ -189,7 +194,7 @@ public class DatabaseBackupAndRecovery {
      * setup(no-op if connection already exists). So, we setup backup and recovery for internal
      * volume on Media mount signal of EXTERNAL_PRIMARY.
      */
-    protected void setupVolumeDbBackupAndRecovery(String volumeName, File volumePath) {
+    protected synchronized void setupVolumeDbBackupAndRecovery(String volumeName, File volumePath) {
         // We are setting up leveldb instance only for internal volume as of now. Since internal
         // volume does not have any fuse daemon thread, leveldb instance is created by fuse
         // daemon thread of EXTERNAL_PRIMARY.
@@ -203,6 +208,11 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
+        if (mIsBackupSetupComplete.get()) {
+            // Return if setup is already done
+            return;
+        }
+
         try {
             if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
                 new File(RECOVERY_DIRECTORY_PATH).mkdirs();
@@ -210,6 +220,7 @@ public class DatabaseBackupAndRecovery {
             FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(volumePath,
                     WAIT_TIME_5_SECONDS_IN_MILLIS);
             fuseDaemon.setupVolumeDbBackup();
+            mIsBackupSetupComplete = new AtomicBoolean(true);
         } catch (IOException e) {
             Log.e(TAG, "Failure in setting up backup and recovery for volume: " + volumeName, e);
         }
@@ -247,7 +258,11 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
-        setupVolumeDbBackupForInternalIfMissing();
+        if (!mIsBackupSetupComplete.get()) {
+            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL,
+                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
+        }
+
         FuseDaemon fuseDaemon;
         try {
             fuseDaemon = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
@@ -283,6 +298,11 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
+        if (!mIsBackupSetupComplete.get()) {
+            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL,
+                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
+        }
+
         FuseDaemon fuseDaemon;
         try {
             fuseDaemon = getFuseDaemonForFileWithWait(new File(EXTERNAL_PRIMARY_ROOT_PATH),
@@ -300,6 +320,9 @@ public class DatabaseBackupAndRecovery {
                 EXTERNAL_PRIMARY_VOLUME_BACKUP_PATH, LAST_BACKEDUP_GENERATION_XATTR_KEY);
         long lastBackedGenerationNumber = lastBackedUpGenNum.isPresent()
                 ? lastBackedUpGenNum.get() : 0;
+        if (lastBackedGenerationNumber > 0) {
+            Log.i(TAG, "Last backed up generation number is " + lastBackedGenerationNumber);
+        }
         final String generationClause = MediaStore.Files.FileColumns.GENERATION_MODIFIED + " > "
                 + lastBackedGenerationNumber;
         final String volumeClause = MediaStore.Files.FileColumns.VOLUME_NAME + " = '"
@@ -407,7 +430,7 @@ public class DatabaseBackupAndRecovery {
      * Backs up DB data in external storage to recover in case of DB rollback.
      */
     protected void backupVolumeDbData(DatabaseHelper databaseHelper, FileRow insertedRow) {
-        if (!isBackupUpdateRequired(databaseHelper, insertedRow)) {
+        if (!isBackupUpdateAllowed(databaseHelper, insertedRow.getVolumeName())) {
             return;
         }
 
@@ -544,7 +567,7 @@ public class DatabaseBackupAndRecovery {
      * Deletes backed up data(needed for recovery) from external storage.
      */
     protected void deleteFromDbBackup(DatabaseHelper databaseHelper, FileRow deletedRow) {
-        if (!isBackupUpdateRequired(databaseHelper, deletedRow)) {
+        if (!isBackupUpdateAllowed(databaseHelper, deletedRow.getVolumeName())) {
             return;
         }
 
@@ -562,12 +585,10 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    protected boolean isBackupUpdateRequired(DatabaseHelper databaseHelper, FileRow row) {
-        if (isStableUrisEnabled(row.getVolumeName()) && !databaseHelper.isDatabaseRecovering()) {
-            return true;
-        }
-
-        return false;
+    protected boolean isBackupUpdateAllowed(DatabaseHelper databaseHelper, String volumeName) {
+        // Backup only if stable uris is enabled, db is not recovering and backup setup is complete.
+        return isStableUrisEnabled(volumeName) && !databaseHelper.isDatabaseRecovering()
+                && mIsBackupSetupComplete.get();
     }
 
 
@@ -587,23 +608,8 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    private void setupVolumeDbBackupForInternalIfMissing() {
-        try {
-            if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
-                new File(RECOVERY_DIRECTORY_PATH).mkdirs();
-            }
-            getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH).setupVolumeDbBackup();
-        } catch (IOException e) {
-            Log.e(TAG, "Failure in setting up backup and recovery for internal database.", e);
-        }
-    }
-
     private void markBackupAsDirty(DatabaseHelper databaseHelper, FileRow updatedRow) {
-        if (!isStableUrisEnabled(updatedRow.getVolumeName())) {
-            return;
-        }
-
-        if (databaseHelper.isDatabaseRecovering()) {
+        if (!isBackupUpdateAllowed(databaseHelper, updatedRow.getVolumeName())) {
             return;
         }
 
@@ -787,6 +793,11 @@ public class DatabaseBackupAndRecovery {
                 getVolumeNameForStatsLog(volumeName), recoveryTime, rowsRecovered, dirtyRowsCount);
         Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
                 volumeName));
+        if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+            // Resetting generation number
+            setXattr(EXTERNAL_PRIMARY_VOLUME_BACKUP_PATH, LAST_BACKEDUP_GENERATION_XATTR_KEY,
+                    String.valueOf(0));
+        }
         Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms", recoveryTime));
     }
 
@@ -831,7 +842,7 @@ public class DatabaseBackupAndRecovery {
      * file path has changed.
      */
     public void updateBackup(DatabaseHelper helper, FileRow oldRow, FileRow newRow) {
-        if (!isStableUrisEnabled(newRow.getVolumeName()) || helper.isDatabaseRecovering()) {
+        if (!isBackupUpdateAllowed(helper, newRow.getVolumeName())) {
             return;
         }
 

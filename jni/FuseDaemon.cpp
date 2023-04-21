@@ -2696,7 +2696,33 @@ void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
         status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
                                                                             ownerPackageIdentifier);
         LOG(ERROR) << "Failure in leveldb insert for owner_id: " << ownerId
-                   << " and ownerPackageIdentifier:" << ownerPackageIdentifier;
+                   << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
+    }
+}
+
+void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
+                                       const std::string& ownerPackageIdentifier) {
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "Failure in leveldb delete for ownership relation.";
+        return;
+    }
+
+    leveldb::Status status1, status2;
+    status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                        ownerId);
+    status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                        ownerPackageIdentifier);
+    if (status1.ok() && status2.ok()) {
+        LOG(INFO) << "Successfully deleted rows in leveldb for owner_id: " << ownerId
+                  << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
+    } else {
+        // If both deletes did not go through, revert both.
+        status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+                leveldb::WriteOptions(), ownerId, ownerPackageIdentifier);
+        status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+                leveldb::WriteOptions(), ownerPackageIdentifier, ownerId);
+        LOG(ERROR) << "Failure in leveldb delete for owner_id: " << ownerId
+                   << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
     }
 }
 

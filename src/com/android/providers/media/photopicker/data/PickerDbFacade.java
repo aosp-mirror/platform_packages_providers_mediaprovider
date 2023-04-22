@@ -686,8 +686,8 @@ public class PickerDbFacade {
          * The {@code id} helps break ties with db rows having the same {@code dateTakenAfterMs} or
          * {@code dateTakenBeforeMs}.
          *
-         * If {@code dateTakenAfterMs} is specified, all returned items are either strictly more
-         * recent than {@code dateTakenAfterMs} or have a picker db id strictly greater than
+         * If {@code dateTakenAfterMs} is specified, all returned items are equal or more
+         * recent than {@code dateTakenAfterMs} and have a picker db id equal or greater than
          * {@code id} for ties.
          *
          * If {@code dateTakenBeforeMs} is specified, all returned items are either strictly older

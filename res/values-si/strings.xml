@@ -77,6 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"වීඩියෝව නිහඬ කිරීම ඉවත් කරන්න"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"වීඩියෝව ධාවනය කරන්න"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"විඩියෝව විරාම කරන්න"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"ක්ලවුඩ් මාධ්‍ය දැන් <xliff:g id="PKG_NAME">%1$s</xliff:g> වෙතින් ලබා ගත හැකිය"</string>
     <string name="not_selected" msgid="2244008151669896758">"තෝරා නොමැත"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> හට මෙම ශ්‍රව්‍ය ගොනුව වෙනස් කිරීමට ඉඩ දෙන්නද?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> හට ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> හට ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ශ්‍රව්‍ය ගොනුව වෙනස් කරමින්…}one{ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^1</xliff:g>ක් වෙනස් කරමින්…}other{ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^1</xliff:g>ක් වෙනස් කරමින්…}}"</string>

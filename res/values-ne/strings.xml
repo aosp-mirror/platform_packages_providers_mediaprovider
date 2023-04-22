@@ -47,7 +47,7 @@
     <string name="recent" msgid="6694613584743207874">"हालसालैका"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"कुनै पनि फोटो वा भिडियो छैन"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"कुनै पनि एल्बम छैन"</string>
-    <string name="picker_view_selected" msgid="2266031384396143883">"चयन गरिएका फोटो तथा भिडियोहरू हेर्नुहोस्"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"चयन गरिएका सामग्री हेर्नुहोस्"</string>
     <string name="picker_photos" msgid="7415035516411087392">"फोटोहरू"</string>
     <string name="picker_albums" msgid="4822511902115299142">"एल्बमहरू"</string>
     <string name="picker_preview" msgid="6257414886055861039">"प्रिभ्यू"</string>
@@ -77,6 +77,7 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"भिडियो अनम्युट गर्नुहोस्"</string>
     <string name="picker_play_video" msgid="5158816108935317185">"भिडियो प्ले गर्नुहोस्"</string>
     <string name="picker_pause_video" msgid="7239492902901477371">"भिडियो पज गर्नुहोस्"</string>
+    <string name="picker_cloud_sync" msgid="997251377538536319">"क्लाउड मिडिया अब <xliff:g id="PKG_NAME">%1$s</xliff:g> मा उपलब्ध छ"</string>
     <string name="not_selected" msgid="2244008151669896758">"चयन गरिएको छैन"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो अडियो फाइल परिमार्जन गर्न दिने हो?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> लाई <xliff:g id="COUNT">^2</xliff:g> वटा अडियो फाइल परिमार्जन गर्न दिने हो?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{अडियो फाइल परिमार्जन गरिँदै छ…}other{<xliff:g id="COUNT">^1</xliff:g> वटा अडियो फाइल परिमार्जन गरिँदै छन्…}}"</string>

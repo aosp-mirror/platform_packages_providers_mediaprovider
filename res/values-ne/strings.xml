@@ -107,6 +107,8 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"एप छनौट गर्नुहोस्"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"खाता छनौट गर्नुहोस्"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"खाता बदल्नुहोस्"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो अडियो फाइल परिमार्जन गर्न दिने हो?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> लाई <xliff:g id="COUNT">^2</xliff:g> वटा अडियो फाइल परिमार्जन गर्न दिने हो?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{अडियो फाइल परिमार्जन गरिँदै छ…}other{<xliff:g id="COUNT">^1</xliff:g> वटा अडियो फाइल परिमार्जन गरिँदै छन्…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो भिडियो परिमार्जन गर्न दिने हो?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> लाई <xliff:g id="COUNT">^2</xliff:g> वटा भिडियो परिमार्जन गर्न दिने हो?}}"</string>

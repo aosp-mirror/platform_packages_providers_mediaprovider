@@ -19,7 +19,7 @@ package com.android.providers.media.photopicker.ui.settings;
 import static android.provider.MediaStore.AUTHORITY;
 
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.fetchProviderAuthority;
-import static com.android.providers.media.photopicker.util.CloudProviderUtils.getAllAvailableCloudProviders;
+import static com.android.providers.media.photopicker.util.CloudProviderUtils.getAvailableCloudProviders;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.getCloudMediaAccountName;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.persistSelectedProvider;
 
@@ -208,7 +208,7 @@ public class SettingsCloudMediaViewModel extends ViewModel {
     @NonNull
     private List<CloudMediaProviderOption> fetchProviderOptions(@NonNull ConfigStore configStore) {
         // Get info of available cloud providers.
-        List<CloudProviderInfo> cloudProviders = getAllAvailableCloudProviders(
+        List<CloudProviderInfo> cloudProviders = getAvailableCloudProviders(
                         mContext, configStore, UserHandle.of(mUserId.getIdentifier()));
 
         return getProviderOptionsFromCloudProviderInfos(cloudProviders);

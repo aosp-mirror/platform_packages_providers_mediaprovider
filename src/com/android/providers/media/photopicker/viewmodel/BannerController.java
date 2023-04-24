@@ -95,6 +95,7 @@ class BannerController {
     private boolean mShowChooseAccountBanner;
 
     BannerController(@NonNull Context context, @NonNull UserHandle userHandle) {
+        Log.d(TAG, "Constructing the BannerController for user " + userHandle.getIdentifier());
         mContext = context;
         mUserHandle = userHandle;
 
@@ -110,6 +111,7 @@ class BannerController {
      * Same as {@link #initialise()}, renamed for readability.
      */
     void reset() {
+        Log.d(TAG, "Resetting the BannerController for user " + mUserHandle.getIdentifier());
         initialise();
     }
 
@@ -173,6 +175,8 @@ class BannerController {
         // 1. If the previous & new cloud provider infos are the same, No-op.
         final String lastCmpAuthority = mCloudProviderDataMap.get(AUTHORITY);
         final String lastCmpAccountName = mCloudProviderDataMap.get(ACCOUNT_NAME);
+
+        Log.d(TAG, "Last CloudMediaProvider authority: " + lastCmpAuthority);
 
         if (TextUtils.equals(lastCmpAuthority, cmpAuthority)
                 && TextUtils.equals(lastCmpAccountName, cmpAccountName)) {
@@ -291,7 +295,7 @@ class BannerController {
      */
     void onUserDismissedChooseAppBanner() {
         if (!mShowChooseAppBanner) {
-            Log.wtf(TAG, "Choose app banner visibility for current user is false on dismiss");
+            Log.d(TAG, "Choose app banner visibility for current user is false on dismiss");
         } else {
             mShowChooseAppBanner = false;
         }
@@ -305,7 +309,7 @@ class BannerController {
      */
     void onUserDismissedCloudMediaAvailableBanner() {
         if (!mShowCloudMediaAvailableBanner) {
-            Log.wtf(TAG, "Cloud media available banner visibility for current user is false on "
+            Log.d(TAG, "Cloud media available banner visibility for current user is false on "
                     + "dismiss");
         } else {
             mShowCloudMediaAvailableBanner = false;
@@ -320,7 +324,7 @@ class BannerController {
      */
     void onUserDismissedAccountUpdatedBanner() {
         if (!mShowAccountUpdatedBanner) {
-            Log.wtf(TAG, "Account Updated banner visibility for current user is false on dismiss");
+            Log.d(TAG, "Account Updated banner visibility for current user is false on dismiss");
         } else {
             mShowAccountUpdatedBanner = false;
         }
@@ -334,7 +338,7 @@ class BannerController {
      */
     void onUserDismissedChooseAccountBanner() {
         if (!mShowChooseAccountBanner) {
-            Log.wtf(TAG, "Choose Account banner visibility for current user is false on dismiss");
+            Log.d(TAG, "Choose Account banner visibility for current user is false on dismiss");
         } else {
             mShowChooseAccountBanner = false;
         }

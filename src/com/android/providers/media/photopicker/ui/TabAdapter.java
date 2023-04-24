@@ -26,6 +26,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.RecyclerView;
@@ -38,9 +39,11 @@ import java.util.List;
 /**
  * Adapts from model to something RecyclerView understands.
  */
-abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+@VisibleForTesting
+public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    static final int ITEM_TYPE_BANNER = 0;
+    @VisibleForTesting
+    public static final int ITEM_TYPE_BANNER = 0;
     // Date header sections for "Photos" tab
     static final int ITEM_TYPE_SECTION = 1;
     // Media items (a.k.a. Items) for "Photos" tab, Albums (a.k.a. Categories) for "Albums" tab

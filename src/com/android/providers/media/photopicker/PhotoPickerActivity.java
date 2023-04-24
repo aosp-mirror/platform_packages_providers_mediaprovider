@@ -601,9 +601,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     /**
      * NOTE: this may wrongly return {@code false} if called before {@link PickerViewModel} had a
      * chance to fetch the authority and the account of the current
-     * {@link android.provider.CloudMediaProvider}. However, {@link PickerViewModel} initiates the
-     * "fetch" through {@link PickerViewModel#maybeInitialiseAndSetBannersForCurrentUser()} in its
-     * ctor, so this may only happen very early on in the lifecycle.
+     * {@link android.provider.CloudMediaProvider}.
+     * However, this may only happen very early on in the lifecycle.
      */
     private boolean isCloudMediaAvailable() {
         return mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue() != null

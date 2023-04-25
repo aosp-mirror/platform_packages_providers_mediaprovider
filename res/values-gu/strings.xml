@@ -107,8 +107,6 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ઍપ પસંદ કરો"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"એકાઉન્ટ પસંદ કરો"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"એકાઉન્ટ બદલો"</string>
-    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
-    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ને આ ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}one{<xliff:g id="COUNT">^1</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}other{<xliff:g id="COUNT">^1</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ને આ વીડિયોમાં ફેરફાર કરવાની મંજૂરી આપીએ?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોમાં ફેરફાર કરવાની મંજૂરી આપીએ?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોમાં ફેરફાર કરવાની મંજૂરી આપીએ?}}"</string>

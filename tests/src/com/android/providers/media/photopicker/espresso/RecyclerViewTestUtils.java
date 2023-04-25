@@ -28,6 +28,14 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewMatch
 
 import static org.hamcrest.Matchers.not;
 
+import android.view.View;
+
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.test.espresso.matcher.BoundedMatcher;
+
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+
 class RecyclerViewTestUtils {
     public static void assertItemDisplayed(int recyclerViewId, int position, int targetViewId) {
         onView(withRecyclerView(recyclerViewId)
@@ -63,5 +71,26 @@ class RecyclerViewTestUtils {
         onView(withRecyclerView(recyclerViewId)
                 .atPositionOnView(position, targetViewId))
                 .perform(longClick());
+    }
+
+    static Matcher<View> atPositionOnItemViewType(int position, int itemViewType) {
+        return new BoundedMatcher<View, RecyclerView>(RecyclerView.class) {
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("has item at position " + position + " with itemViewType "
+                        + itemViewType);
+            }
+
+            @Override
+            protected boolean matchesSafely(RecyclerView view) {
+                RecyclerView.ViewHolder viewHolder =
+                        view.findViewHolderForAdapterPosition(position);
+                if (viewHolder == null) {
+                    // has no item at given position
+                    return false;
+                }
+                return viewHolder.getItemViewType() == itemViewType;
+            }
+        };
     }
 }

@@ -31,7 +31,6 @@ import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import android.annotation.IntDef;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -44,7 +43,6 @@ import android.provider.CloudMediaProviderContract;
 import android.text.TextUtils;
 import android.util.ArraySet;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
@@ -54,13 +52,11 @@ import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
-import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.CloudProviderUtils;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
-import com.android.providers.media.util.ForegroundThread;
 
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
@@ -80,8 +76,6 @@ public class PickerSyncController {
     private static final boolean DEBUG = false;
 
     private static final String PREFS_KEY_CLOUD_PROVIDER_AUTHORITY = "cloud_provider_authority";
-    private static final String PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION =
-            "cloud_provider_pending_notification";
     private static final String PREFS_KEY_CLOUD_PREFIX = "cloud_provider:";
     private static final String PREFS_KEY_LOCAL_PREFIX = "local_provider:";
 
@@ -534,44 +528,6 @@ public class PickerSyncController {
         }
     }
 
-    // TODO(b/257887919): Build proper UI and remove this.
-    /**
-     * Notifies about picker UI launched
-     */
-    public void notifyPickerLaunch() {
-        final String authority = getCloudProvider();
-
-        final boolean hasPendingNotification = mUserPrefs.getBoolean(
-                PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, /* defaultValue */ false);
-
-        if (!hasPendingNotification || (authority == null)) {
-            Log.d(TAG, "No pending UI notification");
-            return;
-        }
-
-        // Offload showing the UI on a fg thread to avoid the expensive binder request
-        // to fetch the app name blocking the picker launch
-        ForegroundThread.getHandler().post(() -> {
-            Log.i(TAG, "Cloud media now available in the picker");
-
-            final PackageManager pm = mContext.getPackageManager();
-            final String appName = CloudProviderUtils.getProviderLabel(pm, authority);
-
-            final String message = mContext.getResources().getString(R.string.picker_cloud_sync,
-                    appName);
-            Toast.makeText(mContext, message, Toast.LENGTH_LONG).show();
-        });
-
-        // Clear the notification
-        updateBooleanUserPref(PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, false);
-    }
-
-    private void updateBooleanUserPref(String key, boolean value) {
-        final SharedPreferences.Editor editor = mUserPrefs.edit();
-        editor.putBoolean(key, value);
-        editor.apply();
-    }
-
     private void syncAlbumMediaFromProvider(String authority, boolean isLocal, String albumId) {
         final Bundle queryArgs = new Bundle();
         queryArgs.putString(EXTRA_ALBUM_ID, albumId);
@@ -769,9 +725,6 @@ public class PickerSyncController {
             } else {
                 editor.remove(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY);
             }
-
-            editor.putBoolean(
-                    PREFS_KEY_CLOUD_PROVIDER_PENDING_NOTIFICATION, isCloudProviderInfoNotEmpty);
 
             editor.apply();
 

@@ -107,7 +107,6 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ជ្រើសរើស​កម្មវិធី"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ជ្រើសរើស​គណនី"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ប្ដូរ​គណនី"</string>
-    <string name="picker_loading_photos_message" msgid="6449180084857178949">"កំពុងផ្ទុករូបថតទាំងអស់របស់អ្នក"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> កែ​ឯកសារសំឡេង​នេះ​ឬ?}other{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> កែ​ឯកសារសំឡេង <xliff:g id="COUNT">^2</xliff:g> ឬ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{កំពុងកែ​ឯកសារសំឡេង…}other{កំពុងកែ​ឯកសារសំឡេង <xliff:g id="COUNT">^1</xliff:g>…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> កែ​វីដេអូ​នេះ​ឬ?}other{អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> កែ​វីដេអូ <xliff:g id="COUNT">^2</xliff:g> ឬ?}}"</string>

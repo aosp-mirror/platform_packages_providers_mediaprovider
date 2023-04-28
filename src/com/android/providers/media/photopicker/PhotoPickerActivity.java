@@ -21,6 +21,7 @@ import static android.provider.MediaStore.ACTION_PICK_IMAGES;
 import static android.provider.MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP;
 import static android.provider.MediaStore.grantMediaReadForPackage;
 
+import static com.android.providers.media.MediaApplication.getConfigStore;
 import static com.android.providers.media.photopicker.PhotoPickerSettingsActivity.EXTRA_CURRENT_USER_ID;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
@@ -130,7 +131,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // This is required as GET_CONTENT with type "*/*" is also received by PhotoPicker due
         // to higher priority than DocumentsUi. "*/*" mime type filter is caught as it is a superset
         // of "image/*" and "video/*".
-        rerouteGetContentRequestIfRequired();
+        if (rerouteGetContentRequestIfRequired()) {
+            // This activity is finishing now: we should not run the setup below,
+            // BUT before we return we have to call super.onCreate() (otherwise we are we will get
+            // SuperNotCalledException: Activity did not call through to super.onCreate())
+            super.onCreate(savedInstanceState);
+            return;
+        }
 
         // We use the device default theme as the base theme. Apply the material them for the
         // material components. We use force "false" here, only values that are not already defined
@@ -153,9 +160,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         ta.recycle();
 
         mDefaultBackgroundColor = getColor(R.color.picker_background_color);
+
         mViewModelProvider = new ViewModelProvider(this);
-        mPickerViewModel = createViewModel();
-        mSelection = mPickerViewModel.getSelection();
+        mPickerViewModel = getOrCreateViewModel();
 
         final Intent intent = getIntent();
         try {
@@ -163,7 +170,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Finish activity due to an exception while parsing extras", e);
             finishWithoutLoggingCancelledResult();
+            return;
         }
+        mSelection = mPickerViewModel.getSelection();
 
         mDragBar = findViewById(R.id.drag_bar);
         mPrivacyText = findViewById(R.id.privacy_text);
@@ -172,15 +181,14 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mTabLayout = findViewById(R.id.tab_layout);
 
-        AccessibilityManager accessibilityManager = getSystemService(AccessibilityManager.class);
-        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
-        accessibilityManager.addAccessibilityStateChangeListener(
-                enabled -> mIsAccessibilityEnabled = enabled);
+        final AccessibilityManager am = getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = am.isEnabled();
+        am.addAccessibilityStateChangeListener(enabled -> mIsAccessibilityEnabled = enabled);
 
         initBottomSheetBehavior();
         restoreState(savedInstanceState);
 
-        String intentAction = intent != null ? intent.getAction() : null;
+        final String intentAction = intent != null ? intent.getAction() : null;
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
         mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
 
@@ -199,8 +207,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        // This is required to unregister any broadcast receivers.
-        mCrossProfileListeners.onDestroy();
+        if (mCrossProfileListeners != null) {
+            // This is required to unregister any broadcast receivers.
+            mCrossProfileListeners.onDestroy();
+        }
     }
 
     /**
@@ -209,7 +219,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
      */
     @VisibleForTesting
     @NonNull
-    protected PickerViewModel createViewModel() {
+    protected PickerViewModel getOrCreateViewModel() {
         return mViewModelProvider.get(PickerViewModel.class);
     }
 
@@ -315,10 +325,14 @@ public class PhotoPickerActivity extends AppCompatActivity {
         }
     }
 
-    private void rerouteGetContentRequestIfRequired() {
+    /**
+     * @return {@code true} if the intent was re-routed to the DocumentsUI (and this
+     *  {@code PhotoPickerActivity} is {@link #isFinishing()} now). {@code false} - otherwise.
+     */
+    private boolean rerouteGetContentRequestIfRequired() {
         final Intent intent = getIntent();
         if (!ACTION_GET_CONTENT.equals(intent.getAction())) {
-            return;
+            return false;
         }
 
         // TODO(b/232775643): Workaround to support PhotoPicker invoked from DocumentsUi.
@@ -328,12 +342,15 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // Make sure Photo Picker is opened when the intent is explicitly forwarded by documentsUi
         if (isIntentReferredByDocumentsUi(getReferrer())) {
             Log.i(TAG, "Open PhotoPicker when a forwarded ACTION_GET_CONTENT intent is received");
-            return;
+            return false;
         }
 
-        if (MimeFilterUtils.requiresUnsupportedFilters(intent)) {
-            launchDocumentsUiAndFinishPicker();
-        }
+        // Check if we can handle the specified MIME types.
+        // If we can - do not reroute and thus return false.
+        if (!MimeFilterUtils.requiresUnsupportedFilters(intent)) return false;
+
+        launchDocumentsUiAndFinishPicker();
+        return true;
     }
 
     private boolean isIntentReferredByDocumentsUi(Uri referrerAppUri) {
@@ -551,7 +568,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         final boolean isGetContent = isGetContentAction();
         final boolean isPickImages = isPickImagesAction();
-        final ConfigStore cs = mPickerViewModel.getConfigStore();
+        final ConfigStore cs = getConfigStore();
 
         if (getIntent().hasExtra(EXTRA_PRELOAD_SELECTED)) {
             if (Build.isDebuggable()
@@ -584,9 +601,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     /**
      * NOTE: this may wrongly return {@code false} if called before {@link PickerViewModel} had a
      * chance to fetch the authority and the account of the current
-     * {@link android.provider.CloudMediaProvider}. However, {@link PickerViewModel} initiates the
-     * "fetch" through {@link PickerViewModel#maybeInitialiseAndSetBannersForCurrentUser()} in its
-     * ctor, so this may only happen very early on in the lifecycle.
+     * {@link android.provider.CloudMediaProvider}.
+     * However, this may only happen very early on in the lifecycle.
      */
     private boolean isCloudMediaAvailable() {
         return mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue() != null

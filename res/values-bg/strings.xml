@@ -107,8 +107,6 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Избиране на приложение"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Избиране на профил"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Промяна на профила"</string>
-    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
-    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Да се разреши ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този аудиофайл?}other{Да се разреши ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> аудиофайла?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Аудиофайлът се променя…}other{<xliff:g id="COUNT">^1</xliff:g> аудиофайла се променят…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Да се разреши ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този видеоклип?}other{Да се разреши ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> видеоклипа?}}"</string>

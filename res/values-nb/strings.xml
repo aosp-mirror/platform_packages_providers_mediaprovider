@@ -107,8 +107,6 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Velg app"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Velg konto"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Bytt konto"</string>
-    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
-    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> endrer denne lydfilen?}other{Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> endrer <xliff:g id="COUNT">^2</xliff:g> lydfiler?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Endrer lydfilen …}other{Endrer <xliff:g id="COUNT">^1</xliff:g> lydfiler …}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> endrer denne videoen?}other{Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> endrer <xliff:g id="COUNT">^2</xliff:g> videoer?}}"</string>

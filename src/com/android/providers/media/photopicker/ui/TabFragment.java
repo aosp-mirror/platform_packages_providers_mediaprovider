@@ -308,11 +308,7 @@ public abstract class TabFragment extends Fragment {
 
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
 
-        mPickerViewModel.updateItems();
-        mPickerViewModel.updateCategories();
-        // Note - Banners should always be updated after the items & categories to ensure a
-        // consistent UI.
-        mPickerViewModel.maybeInitialiseAndSetBannersForCurrentUser();
+        mPickerViewModel.onUserSwitchedProfile();
     }
 
     private void updateProfileButtonContent(boolean isManagedUserSelected) {

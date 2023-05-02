@@ -89,6 +89,8 @@ public class SettingsCloudMediaViewModelTest {
         doReturn(mContentProviderClient).when(mCloudMediaViewModel).getContentProviderClient();
         doAnswer(i -> createProviderInfo(i.getArgument(/* index */ 0)))
                 .when(mPackageManager).resolveContentProvider(any(), anyInt());
+
+        doReturn(true).when(mConfigStore).isCloudMediaInPhotoPickerEnabled();
     }
 
     @Test

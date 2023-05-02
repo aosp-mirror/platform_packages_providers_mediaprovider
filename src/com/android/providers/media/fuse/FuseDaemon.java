@@ -28,6 +28,7 @@ import com.android.providers.media.util.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Objects;
 
 /**
@@ -291,6 +292,31 @@ public final class FuseDaemon extends Thread {
         }
     }
 
+    /**
+     * Removes owner id to owner package identifier and vice versa relation in external storage.
+     */
+    public void removeOwnerIdRelation(String ownerId, String ownerPackageIdentifier)
+            throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_remove_owner_id_relation(mPtr, ownerId, ownerPackageIdentifier);
+        }
+    }
+
+    /**
+     * Reads all owner id relations from external storage.
+     */
+    public HashMap<String, String> readOwnerIdRelations() throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            return native_read_owner_relations(mPtr);
+        }
+    }
+
     private native long native_new(MediaProvider mediaProvider);
 
     // Takes ownership of the passed in file descriptor!
@@ -315,5 +341,8 @@ public final class FuseDaemon extends Thread {
     private native String native_read_ownership(long daemon, String ownerPackageIdentifier);
     private native void native_create_owner_id_relation(long daemon, String ownerId,
             String ownerPackageIdentifier);
+    private native void native_remove_owner_id_relation(long daemon, String ownerId,
+            String ownerPackageIdentifier);
+    private native HashMap<String, String> native_read_owner_relations(long daemon);
     public static native boolean native_is_fuse_thread();
 }

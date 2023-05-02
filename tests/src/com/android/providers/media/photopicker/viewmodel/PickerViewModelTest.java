@@ -38,6 +38,8 @@ import androidx.annotation.Nullable;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.ConfigStore;
+import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.UserIdManager;
@@ -70,6 +72,7 @@ public class PickerViewModelTest {
 
     private PickerViewModel mPickerViewModel;
     private TestItemsProvider mItemsProvider;
+    private TestConfigStore mConfigStore;
 
     @Before
     public void setUp() {
@@ -77,8 +80,15 @@ public class PickerViewModelTest {
 
         final Context context = InstrumentationRegistry.getTargetContext();
         when(mApplication.getApplicationContext()).thenReturn(context);
+        mConfigStore = new TestConfigStore();
+        mConfigStore.enableCloudMediaFeature();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
-            mPickerViewModel = new PickerViewModel(mApplication);
+            mPickerViewModel = new PickerViewModel(mApplication) {
+                @Override
+                protected ConfigStore getConfigStore() {
+                    return mConfigStore;
+                }
+            };
         });
         mItemsProvider = new TestItemsProvider(context);
         mPickerViewModel.setItemsProvider(mItemsProvider);
@@ -332,5 +342,24 @@ public class PickerViewModelTest {
         mPickerViewModel.parseValuesFromIntent(intent);
 
         assertThat(mPickerViewModel.isLocalOnly()).isFalse();
+    }
+
+    @Test
+    public void testShouldShowOnlyLocalFeatures() {
+        mConfigStore.enableCloudMediaFeature();
+
+        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+        mPickerViewModel.parseValuesFromIntent(intent);
+        assertThat(mPickerViewModel.isLocalOnly()).isTrue();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isTrue();
+
+        intent.removeExtra(Intent.EXTRA_LOCAL_ONLY);
+        mPickerViewModel.parseValuesFromIntent(intent);
+        assertThat(mPickerViewModel.isLocalOnly()).isFalse();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isFalse();
+
+        mConfigStore.disableCloudMediaFeature();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isTrue();
     }
 }

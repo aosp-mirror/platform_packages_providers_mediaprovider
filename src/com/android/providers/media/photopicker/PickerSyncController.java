@@ -148,6 +148,13 @@ public class PickerSyncController {
 
     private void initCloudProvider() {
         synchronized (mCloudProviderLock) {
+            if (!mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
+                Log.d(TAG, "Cloud-Media-in-Photo-Picker feature is disabled during " + TAG
+                        + " construction.");
+                persistCloudProviderInfo(CloudProviderInfo.EMPTY, /* shouldUnset */ false);
+                return;
+            }
+
             final String cachedAuthority = mUserPrefs.getString(
                     PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, null);
 

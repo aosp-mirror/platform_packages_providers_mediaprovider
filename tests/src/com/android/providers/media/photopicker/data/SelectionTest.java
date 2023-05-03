@@ -21,25 +21,17 @@ import static com.android.providers.media.photopicker.data.model.ModelTestUtils.
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.when;
 
-import android.app.Application;
-import android.content.Context;
 import android.content.Intent;
 import android.provider.MediaStore;
 import android.text.format.DateUtils;
 
-import androidx.test.InstrumentationRegistry;
-
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.viewmodel.InstantTaskExecutorRule;
-import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 
@@ -49,18 +41,9 @@ public class SelectionTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    @Mock
-    private Application mApplication;
-
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
-        final Context context = InstrumentationRegistry.getTargetContext();
-        when(mApplication.getApplicationContext()).thenReturn(context);
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
-            mSelection = new PickerViewModel(mApplication).getSelection();
-        });
+        mSelection = new Selection();
     }
 
     @Test

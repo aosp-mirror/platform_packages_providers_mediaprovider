@@ -1110,16 +1110,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
                     + "play_order INTEGER NOT NULL)");
-            db.execSQL(
-                    "CREATE TABLE media_grants ("
-                            + "owner_package_name TEXT,"
-                            + "file_id INTEGER,"
-                            + "package_user_id INTEGER,"
-                            + "UNIQUE(owner_package_name, file_id) ON CONFLICT IGNORE "
-                            + "FOREIGN KEY (file_id)"
-                            + "  REFERENCES files(_id)"
-                            + "  ON DELETE CASCADE"
-                            + ")");
+            updateAddMediaGrantsTable(db);
         }
 
         createLatestViews(db);
@@ -1888,7 +1879,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "owner_package_name TEXT,"
                         + "file_id INTEGER,"
                         + "package_user_id INTEGER,"
-                        + "UNIQUE(owner_package_name, file_id) ON CONFLICT IGNORE "
+                        + "UNIQUE(owner_package_name, file_id, package_user_id)"
+                        + "  ON CONFLICT IGNORE "
                         + "FOREIGN KEY (file_id)"
                         + "  REFERENCES files(_id)"
                         + "  ON DELETE CASCADE"
@@ -1965,7 +1957,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1406;
+    static final int VERSION_U = 1407;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2172,14 +2164,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // Empty version bump to ensure triggers are recreated
             }
 
-            if (fromVersion < 1405) {
+            if (fromVersion < 1406) {
+                // Empty version bump to ensure triggers are recreated
+            }
+
+            if (fromVersion < 1407) {
                 if (isExternal()) {
                     updateAddMediaGrantsTable(db);
                 }
-            }
-
-            if (fromVersion < 1406) {
-                // Empty version bump to ensure triggers are recreated
             }
 
             // If this is the legacy database, it's not worth recomputing data

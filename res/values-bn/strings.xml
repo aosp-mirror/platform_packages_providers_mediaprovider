@@ -56,7 +56,7 @@
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"কোনও ফটো বা ভিডিও নেই"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"মানানসই কোনও ফটো বা ভিডিও নেই"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"কোনও অ্যালবাম নেই"</string>
-    <string name="picker_view_selected" msgid="2266031384396143883">"ভিউ বেছে নেওয়া হয়েছে"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"কোনগুলি বাছা হয়েছে দেখুন"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ফটো"</string>
     <string name="picker_albums" msgid="4822511902115299142">"অ্যালবাম"</string>
     <string name="picker_preview" msgid="6257414886055861039">"প্রিভিউ"</string>

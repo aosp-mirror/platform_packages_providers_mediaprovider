@@ -56,7 +56,7 @@
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"कुनै पनि फोटो वा भिडियो छैन"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"प्रयोग गर्न मिल्ने कुनै पनि फोटो वा भिडियो छैन"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"कुनै पनि एल्बम छैन"</string>
-    <string name="picker_view_selected" msgid="2266031384396143883">"चयन गरिएका फोटो तथा भिडियोहरू हेर्नुहोस्"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"चयन गरिएका सामग्री हेर्नुहोस्"</string>
     <string name="picker_photos" msgid="7415035516411087392">"फोटोहरू"</string>
     <string name="picker_albums" msgid="4822511902115299142">"एल्बमहरू"</string>
     <string name="picker_preview" msgid="6257414886055861039">"प्रिभ्यू"</string>

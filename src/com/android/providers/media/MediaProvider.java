@@ -876,6 +876,11 @@ public class MediaProvider extends ContentProvider {
     private final OnFilesChangeListener mFilesListener = new OnFilesChangeListener() {
         @Override
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull FileRow insertedRow) {
+            if (helper.isDatabaseRecovering()) {
+                // Do not perform any trigger operation if database is recovering
+                return;
+            }
+
             handleInsertedRowForFuse(insertedRow.getId());
             acceptWithExpansion(helper::notifyInsert, insertedRow.getVolumeName(),
                     insertedRow.getId(), insertedRow.getMediaType(), insertedRow.isDownload());
@@ -907,6 +912,11 @@ public class MediaProvider extends ContentProvider {
         @Override
         public void onUpdate(@NonNull DatabaseHelper helper, @NonNull FileRow oldRow,
                 @NonNull FileRow newRow) {
+            if (helper.isDatabaseRecovering()) {
+                // Do not perform any trigger operation if database is recovering
+                return;
+            }
+
             final boolean isDownload = oldRow.isDownload() || newRow.isDownload();
             final Uri fileUri = MediaStore.Files.getContentUri(oldRow.getVolumeName(),
                     oldRow.getId());
@@ -917,7 +927,7 @@ public class MediaProvider extends ContentProvider {
             acceptWithExpansion(helper::notifyUpdate, oldRow.getVolumeName(), oldRow.getId(),
                     oldRow.getMediaType(), isDownload);
 
-            mDatabaseBackupAndRecovery.updateNextRowIdAndSetDirtyIfRequired(helper, oldRow, newRow);
+            mDatabaseBackupAndRecovery.updateNextRowIdAndSetDirty(helper, oldRow, newRow);
 
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
@@ -933,6 +943,8 @@ public class MediaProvider extends ContentProvider {
                         oldRow.getSpecialFormat(), newRow.getSpecialFormat())) {
                     mPickerSyncController.notifyMediaEvent();
                 }
+
+                mDatabaseBackupAndRecovery.updateBackup(helper, oldRow, newRow);
             });
 
             if (newRow.getMediaType() != oldRow.getMediaType()) {
@@ -948,6 +960,11 @@ public class MediaProvider extends ContentProvider {
 
         @Override
         public void onDelete(@NonNull DatabaseHelper helper, @NonNull FileRow deletedRow) {
+            if (helper.isDatabaseRecovering()) {
+                // Do not perform any trigger operation if database is recovering
+                return;
+            }
+
             handleDeletedRowForFuse(deletedRow.getPath(), deletedRow.getOwnerPackageName(),
                     deletedRow.getId());
             acceptWithExpansion(helper::notifyDelete, deletedRow.getVolumeName(),
@@ -1339,8 +1356,13 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     protected void storageNativeBootPropertyChangeListener() {
-        setComponentEnabledSetting("PhotoPickerGetContentActivity",
-                mConfigStore.isGetContentTakeOverEnabled());
+        boolean isGetContentTakeoverEnabled;
+        if (SdkLevel.isAtLeastT()) {
+            isGetContentTakeoverEnabled = true;
+        } else {
+            isGetContentTakeoverEnabled = mConfigStore.isGetContentTakeOverEnabled();
+        }
+        setComponentEnabledSetting("PhotoPickerGetContentActivity", isGetContentTakeoverEnabled);
 
         setComponentEnabledSetting("PhotoPickerUserSelectActivity",
                 mConfigStore.isUserSelectForAppEnabled());
@@ -1829,7 +1851,7 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * Orphan any content of the given package from the given database. This will delete
-     * Android/media files from the database if the underlying file no longe exists.
+     * Android/media files from the database if the underlying file no longer exists.
      */
     public void onPackageOrphaned(@NonNull SQLiteDatabase db,
             @NonNull String packageName, int userId) {
@@ -1837,6 +1859,7 @@ public class MediaProvider extends ContentProvider {
         deleteAndroidMediaEntries(db, packageName, userId);
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
+        mDatabaseBackupAndRecovery.removeOwnerIdToPackageRelation(packageName, userId);
         // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package is removed.
         mMediaGrants.removeAllMediaGrantsForPackage(packageName, /* reason */ "Package orphaned",
                 userId);
@@ -6396,7 +6419,7 @@ public class MediaProvider extends ContentProvider {
             }
             case MediaStore.GRANT_MEDIA_READ_FOR_PACKAGE_CALL: {
                 final int caller = Binder.getCallingUid();
-                final int userId = uidToUserId(caller);
+                int userId;
                 final List<Uri> uris;
                 String packageName;
                 if (checkPermissionSelf(caller)) {
@@ -6413,6 +6436,10 @@ public class MediaProvider extends ContentProvider {
                     final PackageManager pm = getContext().getPackageManager();
                     final int packageUid = extras.getInt(Intent.EXTRA_UID);
                     packageName = pm.getNameForUid(packageUid);
+                    // Get the userId from packageUid as the initiator could be a cloned app, which
+                    // accesses Media via MP of its parent user and Binder's callingUid reflects
+                    // the latter.
+                    userId = uidToUserId(packageUid);
                     if (packageName.contains(":")) {
                         // Check if the package name includes the package uid. This is expected
                         // for packages that are referencing a shared user. PackageManager will
@@ -6430,6 +6457,7 @@ public class MediaProvider extends ContentProvider {
                     }
                     packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
                     uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+                    userId = uidToUserId(caller);
                 } else {
                     // All other callers are unauthorized.
                     throw new SecurityException("Create media grants not allowed. "
@@ -6606,7 +6634,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void backupDatabases(CancellationSignal signal) {
-        mDatabaseBackupAndRecovery.backupDatabases(mInternalDatabase, signal);
+        mDatabaseBackupAndRecovery.backupDatabases(mInternalDatabase, mExternalDatabase, signal);
     }
 
     private void syncAllMedia() {
@@ -10391,7 +10419,8 @@ public class MediaProvider extends ContentProvider {
             mAttachedVolumes.add(volume);
         }
 
-        mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume);
+        mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
+                volume.getPath());
 
         final ContentResolver resolver = getContext().getContentResolver();
         final Uri uri = getBaseContentUri(volumeName);

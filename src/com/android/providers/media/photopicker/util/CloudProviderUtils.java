@@ -24,6 +24,8 @@ import static android.provider.MediaStore.GET_CLOUD_PROVIDER_CALL;
 import static android.provider.MediaStore.GET_CLOUD_PROVIDER_RESULT;
 import static android.provider.MediaStore.SET_CLOUD_PROVIDER_CALL;
 
+import static java.util.Collections.emptyList;
+
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -101,6 +103,12 @@ public class CloudProviderUtils {
     private static List<CloudProviderInfo> getAvailableCloudProvidersInternal(
             @NonNull Context context, @NonNull ConfigStore configStore, boolean ignoreAllowlist,
             @NonNull UserHandle userHandle) {
+        if (!configStore.isCloudMediaInPhotoPickerEnabled()) {
+            Log.i(TAG, "Returning an empty list of available cloud providers since the "
+                    + "Cloud-Media-in-Photo-Picker feature is disabled.");
+            return emptyList();
+        }
+
         Objects.requireNonNull(context);
 
         ignoreAllowlist = ignoreAllowlist || !configStore.shouldEnforceCloudProviderAllowlist();

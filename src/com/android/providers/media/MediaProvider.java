@@ -32,7 +32,6 @@ import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 import static android.provider.MediaStore.GET_BACKUP_FILES;
-import static android.provider.MediaStore.GET_OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
@@ -46,7 +45,7 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
-import static android.provider.MediaStore.READ_BACKUP;
+import static android.provider.MediaStore.READ_BACKED_UP_FILE_PATHS;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
@@ -55,6 +54,7 @@ import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageM
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
+import static com.android.providers.media.DatabaseBackupAndRecovery.LEVEL_DB_READ_LIMIT;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
@@ -282,7 +282,6 @@ import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
 import com.android.providers.media.scan.ModernMediaScanner;
-import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -877,6 +876,11 @@ public class MediaProvider extends ContentProvider {
     private final OnFilesChangeListener mFilesListener = new OnFilesChangeListener() {
         @Override
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull FileRow insertedRow) {
+            if (helper.isDatabaseRecovering()) {
+                // Do not perform any trigger operation if database is recovering
+                return;
+            }
+
             handleInsertedRowForFuse(insertedRow.getId());
             acceptWithExpansion(helper::notifyInsert, insertedRow.getVolumeName(),
                     insertedRow.getId(), insertedRow.getMediaType(), insertedRow.isDownload());
@@ -908,6 +912,11 @@ public class MediaProvider extends ContentProvider {
         @Override
         public void onUpdate(@NonNull DatabaseHelper helper, @NonNull FileRow oldRow,
                 @NonNull FileRow newRow) {
+            if (helper.isDatabaseRecovering()) {
+                // Do not perform any trigger operation if database is recovering
+                return;
+            }
+
             final boolean isDownload = oldRow.isDownload() || newRow.isDownload();
             final Uri fileUri = MediaStore.Files.getContentUri(oldRow.getVolumeName(),
                     oldRow.getId());
@@ -918,7 +927,7 @@ public class MediaProvider extends ContentProvider {
             acceptWithExpansion(helper::notifyUpdate, oldRow.getVolumeName(), oldRow.getId(),
                     oldRow.getMediaType(), isDownload);
 
-            mDatabaseBackupAndRecovery.updateNextRowIdAndSetDirtyIfRequired(helper, oldRow, newRow);
+            mDatabaseBackupAndRecovery.updateNextRowIdAndSetDirty(helper, oldRow, newRow);
 
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
@@ -934,6 +943,8 @@ public class MediaProvider extends ContentProvider {
                         oldRow.getSpecialFormat(), newRow.getSpecialFormat())) {
                     mPickerSyncController.notifyMediaEvent();
                 }
+
+                mDatabaseBackupAndRecovery.updateBackup(helper, oldRow, newRow);
             });
 
             if (newRow.getMediaType() != oldRow.getMediaType()) {
@@ -949,6 +960,11 @@ public class MediaProvider extends ContentProvider {
 
         @Override
         public void onDelete(@NonNull DatabaseHelper helper, @NonNull FileRow deletedRow) {
+            if (helper.isDatabaseRecovering()) {
+                // Do not perform any trigger operation if database is recovering
+                return;
+            }
+
             handleDeletedRowForFuse(deletedRow.getPath(), deletedRow.getOwnerPackageName(),
                     deletedRow.getId());
             acceptWithExpansion(helper::notifyDelete, deletedRow.getVolumeName(),
@@ -1340,8 +1356,13 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     protected void storageNativeBootPropertyChangeListener() {
-        setComponentEnabledSetting("PhotoPickerGetContentActivity",
-                mConfigStore.isGetContentTakeOverEnabled());
+        boolean isGetContentTakeoverEnabled;
+        if (SdkLevel.isAtLeastT()) {
+            isGetContentTakeoverEnabled = true;
+        } else {
+            isGetContentTakeoverEnabled = mConfigStore.isGetContentTakeOverEnabled();
+        }
+        setComponentEnabledSetting("PhotoPickerGetContentActivity", isGetContentTakeoverEnabled);
 
         setComponentEnabledSetting("PhotoPickerUserSelectActivity",
                 mConfigStore.isUserSelectForAppEnabled());
@@ -1830,7 +1851,7 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * Orphan any content of the given package from the given database. This will delete
-     * Android/media files from the database if the underlying file no longe exists.
+     * Android/media files from the database if the underlying file no longer exists.
      */
     public void onPackageOrphaned(@NonNull SQLiteDatabase db,
             @NonNull String packageName, int userId) {
@@ -1838,6 +1859,7 @@ public class MediaProvider extends ContentProvider {
         deleteAndroidMediaEntries(db, packageName, userId);
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
+        mDatabaseBackupAndRecovery.removeOwnerIdToPackageRelation(packageName, userId);
         // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package is removed.
         mMediaGrants.removeAllMediaGrantsForPackage(packageName, /* reason */ "Package orphaned",
                 userId);
@@ -3317,18 +3339,11 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (isPickerUri(uri)) {
-            // If the Uri for which the permission needs to be checked is a picker Uri then query
-            // PickerUriResolver and verify if the data represented by the Uri still exists and is
-            // accessible then grant the permission, else deny it.
-            // TODO(b/276948648): Remove flag once changes are tested and verified.
-            if (mConfigStore.isGetContentTakeOverEnabled()) {
-                try (Cursor c = mPickerUriResolver.query(uri, new String[]{BaseColumns._ID},
-                        mCallingIdentity.get().pid, uid, mCallingIdentity.get().getPackageName())) {
-                    if (c != null && c.getCount() == 1) {
-                        return PackageManager.PERMISSION_GRANTED;
-                    }
-                }
-            }
+            // Do not allow implicit access (by the virtue of ownership/permission) to picker uris.
+            // Picker uris should have explicit permission grants.
+            // If the calling app A has an explicit grant on picker uri, UriGrantsManagerService
+            // will check the grant status and allow app A to grant the uri to app B (without
+            // calling into MediaProvider)
             return PackageManager.PERMISSION_DENIED;
         }
 
@@ -6404,7 +6419,7 @@ public class MediaProvider extends ContentProvider {
             }
             case MediaStore.GRANT_MEDIA_READ_FOR_PACKAGE_CALL: {
                 final int caller = Binder.getCallingUid();
-                final int userId = uidToUserId(caller);
+                int userId;
                 final List<Uri> uris;
                 String packageName;
                 if (checkPermissionSelf(caller)) {
@@ -6421,6 +6436,10 @@ public class MediaProvider extends ContentProvider {
                     final PackageManager pm = getContext().getPackageManager();
                     final int packageUid = extras.getInt(Intent.EXTRA_UID);
                     packageName = pm.getNameForUid(packageUid);
+                    // Get the userId from packageUid as the initiator could be a cloned app, which
+                    // accesses Media via MP of its parent user and Binder's callingUid reflects
+                    // the latter.
+                    userId = uidToUserId(packageUid);
                     if (packageName.contains(":")) {
                         // Check if the package name includes the package uid. This is expected
                         // for packages that are referencing a shared user. PackageManager will
@@ -6438,6 +6457,7 @@ public class MediaProvider extends ContentProvider {
                     }
                     packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
                     uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+                    userId = uidToUserId(caller);
                 } else {
                     // All other callers are unauthorized.
                     throw new SecurityException("Create media grants not allowed. "
@@ -6562,33 +6582,32 @@ public class MediaProvider extends ContentProvider {
                 backupDatabases(null);
                 return new Bundle();
             }
-            case MediaStore.READ_BACKUP: {
+            case MediaStore.READ_BACKED_UP_FILE_PATHS: {
                 getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
-                        "Permission missing to call READ_BACKUP by uid:" + Binder.getCallingUid());
-                Bundle bundle = new Bundle();
-                Optional<BackupIdRow> backupIdRowOptional =
-                        mDatabaseBackupAndRecovery.readDataFromBackup(arg, extras.getString(
-                                FileColumns.DATA));
-                String data = null;
-                try {
-                    data = backupIdRowOptional.isPresent() ? BackupIdRow.serialize(
-                            backupIdRowOptional.get()) : null;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+                        "Permission missing to call READ_BACKED_UP_FILE_PATHS by "
+                                + "uid:" + Binder.getCallingUid());
+                List<String> cumulatedValues = new ArrayList<String>();
+                String[] backedUpFilePaths;
+                String lastReadValue = "";
+                while (true) {
+                    backedUpFilePaths = mDatabaseBackupAndRecovery.readBackedUpFilePaths(arg,
+                            lastReadValue, LEVEL_DB_READ_LIMIT);
+                    if (backedUpFilePaths.length <= 0) {
+                        break;
+                    }
+                    cumulatedValues.addAll(Arrays.asList(backedUpFilePaths));
+                    if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
+                        break;
+                    }
+                    lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
                 }
-                bundle.putString(READ_BACKUP, data);
+
+                Bundle bundle = new Bundle();
+                Object[] values =  cumulatedValues.toArray();
+                String[] resultArray =  Arrays.copyOf(values, values.length, String[].class);
+                bundle.putStringArray(READ_BACKED_UP_FILE_PATHS, resultArray);
                 return bundle;
             }
-            case GET_OWNER_PACKAGE_NAME:
-                getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
-                        "Permission missing to call GET_OWNER_PACKAGE_NAME by "
-                                + "uid:" + Binder.getCallingUid());
-                Pair<String, Integer> packageNameAndUidPair =
-                        mDatabaseBackupAndRecovery.getOwnerPackageNameAndUidPair(
-                                Integer.parseInt(arg));
-                Bundle result = new Bundle();
-                result.putString(GET_OWNER_PACKAGE_NAME, packageNameAndUidPair.first);
-                return result;
             case MediaStore.DELETE_BACKED_UP_FILE_PATHS:
                 getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
                         "Permission missing to call DELETE_BACKED_UP_FILE_PATHS by "

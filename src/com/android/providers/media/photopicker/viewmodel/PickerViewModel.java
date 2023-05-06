@@ -43,6 +43,8 @@ import androidx.lifecycle.Observer;
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.ConfigStore;
+import com.android.providers.media.MediaApplication;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
@@ -250,12 +252,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private Cursor fetchItems(Category category, UserId userId) {
-        if (isUserSelectForApp() || isLocalOnly()) {
-            // We only show local items in below cases.
-            // 1. Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
-            // action for permission flow.
-            // 2. Photo Picker is launched with {@link EXTRA_LOCAL_ONLY} as true in
-            // {@link ACTION_GET_CONTENT} or {@link ACTION_PICK_IMAGES}.
+        if (shouldShowOnlyLocalFeatures()) {
             return mItemsProvider.getLocalItems(category, /* limit */ -1, mMimeTypeFilters, userId);
         } else {
             return mItemsProvider.getAllItems(category, /* limit */ -1, mMimeTypeFilters, userId);
@@ -353,12 +350,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private Cursor fetchCategories(UserId userId) {
-        if (isUserSelectForApp() || isLocalOnly()) {
-            // We only show local items in below cases.
-            // 1. Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
-            // action for permission flow.
-            // 2. Photo Picker is launched with {@link EXTRA_LOCAL_ONLY} as true in
-            // {@link ACTION_GET_CONTENT} or {@link ACTION_PICK_IMAGES}.
+        if (shouldShowOnlyLocalFeatures()) {
             return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId);
         } else {
             return mItemsProvider.getAllCategories(mMimeTypeFilters, userId);
@@ -433,7 +425,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private void initBannerManager() {
-        mBannerManager = (isUserSelectForApp() || isLocalOnly())
+        mBannerManager = shouldShowOnlyLocalFeatures()
                 ? new BannerManager(mAppContext, mUserIdManager)
                 : new BannerManager.CloudBannerManager(mAppContext, mUserIdManager);
     }
@@ -495,7 +487,7 @@ public class PickerViewModel extends AndroidViewModel {
     // TODO(b/245745412): Fix log params (uid & package name)
     // TODO(b/245745424): Solve for active cloud provider without a logged in account
     private void maybeLogPickerOpenedWithCloudProvider() {
-        if ((isUserSelectForApp() || isLocalOnly())) {
+        if (shouldShowOnlyLocalFeatures()) {
             return;
         }
 
@@ -558,8 +550,33 @@ public class PickerViewModel extends AndroidViewModel {
 
     // Return whether hotopicker's launch intent has extra {@link EXTRA_LOCAL_ONLY} set to true
     // or not.
-    public boolean isLocalOnly() {
+    @VisibleForTesting
+    boolean isLocalOnly() {
         return mIsLocalOnly;
+    }
+
+    /**
+     * Return whether only the local features should be shown (the cloud features should be hidden).
+     *
+     * Show only the local features in the following cases -
+     * 1. Photo Picker is launched by the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+     *    action for the permission flow.
+     * 2. Photo Picker is launched with the {@link Intent#EXTRA_LOCAL_ONLY} as {@code true} in the
+     *    {@link Intent#ACTION_GET_CONTENT} or {@link MediaStore#ACTION_PICK_IMAGES} action.
+     * 3. Cloud Media in Photo picker is disabled, i.e.,
+     *    {@link ConfigStore#isCloudMediaInPhotoPickerEnabled()} is {@code false}.
+     *
+     * @return {@code true} iff either {@link #isUserSelectForApp()} or {@link #isLocalOnly()} is
+     * {@code true}, OR if {@link ConfigStore#isCloudMediaInPhotoPickerEnabled()} is {@code false}.
+     */
+    public boolean shouldShowOnlyLocalFeatures() {
+        return isUserSelectForApp() || isLocalOnly()
+                || !getConfigStore().isCloudMediaInPhotoPickerEnabled();
+    }
+
+    @VisibleForTesting
+    protected ConfigStore getConfigStore() {
+        return MediaApplication.getConfigStore();
     }
 
     /**

@@ -142,6 +142,9 @@ public class PickerSyncControllerTest {
 
     @After
     public void tearDown() {
+        if (mConfigStore != null) {
+            mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
+        }
         if (mController != null) {
             // Reset the cloud provider state to default
             mController.setCloudProvider(/* authority */ null);
@@ -1036,6 +1039,13 @@ public class PickerSyncControllerTest {
                 new PickerSyncController(mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
 
         assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+    }
+
+    @Test
+    public void testAvailableCloudProviders_CloudFeatureDisabled() {
+        assertThat(mController.getAvailableCloudProviders()).isNotEmpty();
+        mConfigStore.disableCloudMediaFeature();
+        assertThat(mController.getAvailableCloudProviders()).isEmpty();
     }
 
     private static void waitForIdle() {

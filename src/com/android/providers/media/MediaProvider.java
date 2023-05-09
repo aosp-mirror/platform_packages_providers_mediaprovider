@@ -6716,9 +6716,6 @@ public class MediaProvider extends ContentProvider {
                 return bundle;
             }
             case MediaStore.RUN_IDLE_MAINTENANCE_FOR_STABLE_URIS: {
-                getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
-                        "Permission missing to call RUN_IDLE_MAINTENANCE_FOR_STABLE_URIS by "
-                                + "uid:" + Binder.getCallingUid());
                 backupDatabases(null);
                 return new Bundle();
             }

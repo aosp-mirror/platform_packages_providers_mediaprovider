@@ -38,6 +38,8 @@ import androidx.annotation.Nullable;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.ConfigStore;
+import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.UserIdManager;
@@ -70,6 +72,7 @@ public class PickerViewModelTest {
 
     private PickerViewModel mPickerViewModel;
     private TestItemsProvider mItemsProvider;
+    private TestConfigStore mConfigStore;
 
     @Before
     public void setUp() {
@@ -77,8 +80,15 @@ public class PickerViewModelTest {
 
         final Context context = InstrumentationRegistry.getTargetContext();
         when(mApplication.getApplicationContext()).thenReturn(context);
+        mConfigStore = new TestConfigStore();
+        mConfigStore.enableCloudMediaFeature();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
-            mPickerViewModel = new PickerViewModel(mApplication);
+            mPickerViewModel = new PickerViewModel(mApplication) {
+                @Override
+                protected ConfigStore getConfigStore() {
+                    return mConfigStore;
+                }
+            };
         });
         mItemsProvider = new TestItemsProvider(context);
         mPickerViewModel.setItemsProvider(mItemsProvider);
@@ -178,8 +188,8 @@ public class PickerViewModelTest {
         }
 
         @Override
-        public Cursor getItems(Category category, int offset,
-                int limit, @Nullable String[] mimeType, @Nullable UserId userId) throws
+        public Cursor getAllItems(Category category, int limit, @Nullable String[] mimeType,
+                @Nullable UserId userId) throws
                 IllegalArgumentException, IllegalStateException {
             final MatrixCursor c = new MatrixCursor(MediaColumns.ALL_PROJECTION);
 
@@ -203,7 +213,7 @@ public class PickerViewModelTest {
         }
 
         @Nullable
-        public Cursor getCategories(@Nullable String[] mimeType, @Nullable UserId userId) {
+        public Cursor getAllCategories(@Nullable String[] mimeType, @Nullable UserId userId) {
             if (mCategoriesCursor != null) {
                 return mCategoriesCursor;
             }
@@ -274,6 +284,25 @@ public class PickerViewModelTest {
     }
 
     @Test
+    public void testParseValuesFromPickImagesIntent_localOnlyTrue() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_localOnlyFalse() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isFalse();
+    }
+
+    @Test
     public void testParseValuesFromGetContentIntent_validExtraMimeType() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/gif", "video/*"});
@@ -292,5 +321,45 @@ public class PickerViewModelTest {
 
         // non-media filters for GET_CONTENT show all images and videos
         assertThat(mPickerViewModel.hasMimeTypeFilters()).isFalse();
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_localOnlyTrue() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"video/*"});
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_localOnlyFalse() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"video/*"});
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isFalse();
+    }
+
+    @Test
+    public void testShouldShowOnlyLocalFeatures() {
+        mConfigStore.enableCloudMediaFeature();
+
+        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+        mPickerViewModel.parseValuesFromIntent(intent);
+        assertThat(mPickerViewModel.isLocalOnly()).isTrue();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isTrue();
+
+        intent.removeExtra(Intent.EXTRA_LOCAL_ONLY);
+        mPickerViewModel.parseValuesFromIntent(intent);
+        assertThat(mPickerViewModel.isLocalOnly()).isFalse();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isFalse();
+
+        mConfigStore.disableCloudMediaFeature();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isTrue();
     }
 }

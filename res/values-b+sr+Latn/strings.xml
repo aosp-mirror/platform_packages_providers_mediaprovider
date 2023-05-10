@@ -39,11 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"Dozvoli"</string>
     <string name="deny" msgid="6040983710442068936">"Odbij"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Pregledaj…"</string>
-    <string name="picker_settings" msgid="7388913035769329672">"Podešavanja"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Aplikacija za medije u klaudu"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikacija za medije u klaudu"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikacija za medije u klaudu"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"Delite slike i video snimke za koje pravite rezervne kopije iz drugih usluga u Android biraču slika"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Pristup medijima u klaudu kada aplikacija ili veb-sajt zatraži da izaberete slike ili video snimke"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Pristupajte medijima u klaudu iz"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Ništa"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Promena aplikacije za medije u klaudu nije uspela."</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Opozovi izbor"</string>
     <string name="deselected" msgid="8488133193326208475">"Opozvan je izbor"</string>
@@ -52,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Izaberite najviše <xliff:g id="COUNT_0">^1</xliff:g> stavku}one{Izaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavku}few{Izaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavke}other{Izaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="recent" msgid="6694613584743207874">"Nedavno"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Nema slika niti video snimaka"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Nema podržanih slika niti video snimaka"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nema albuma"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Prikaži izabrano"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Slike"</string>
@@ -65,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Poslovne aplikacije su pauzirane"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Da biste otvorili poslovne slike, uključite poslovne aplikacije, pa probajte ponovo"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ova aplikacija može da pristupa samo slikama koje izaberete"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Izaberite slike i video snimke za koje ovoj aplikaciji omogućavate pristup"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> stavka}one{<xliff:g id="COUNT_1">^1</xliff:g> stavka}few{<xliff:g id="COUNT_1">^1</xliff:g> stavke}other{<xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Dodaj (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Dozvoli (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Preuzeto"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Omiljeno"</string>
@@ -89,6 +94,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Probaj ponovo"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"<xliff:g id="PKG_NAME">%1$s</xliff:g> sada nudi medijski sadržaj u klaudu"</string>
     <string name="not_selected" msgid="2244008151669896758">"nije izabrano"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"Spremno:<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> od <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Sada su uvrštene rezervne kopije slika"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Možete da izaberete slike sa naloga <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> za <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Nalog za <xliff:g id="APP_NAME">%1$s</xliff:g> je ažuriran"</string>

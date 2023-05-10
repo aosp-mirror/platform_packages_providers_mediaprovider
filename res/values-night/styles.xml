@@ -53,6 +53,12 @@
         <item name="pickerProfileDialogTitleColor">#F1F3F4</item>
         <item name="pickerProfileDialogBodyColor">#DADCE0</item>
         <item name="pickerProfileDialogBackgroundColor">@android:color/black</item>
+        <!-- TODO(b/195009152): Final banner colors to be updated once received -->
+        <item name="pickerBannerBackgroundColor">@color/picker_background_color</item>
+        <item name="pickerBannerStrokeColor">#444746</item>
+        <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
+        <item name="pickerBannerSecondaryTextColor">?android:attr/textColorSecondary</item>
+        <item name="pickerBannerButtonTextColor">?android:attr/colorAccent</item>
     </style>
 
 </resources>

@@ -23,38 +23,22 @@ import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static org.junit.Assert.assertEquals;
 
 import android.Manifest;
-import android.content.ContentResolver;
 import android.content.Context;
-import android.content.ContextWrapper;
-import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Environment;
 import android.os.SystemClock;
-import android.os.UserHandle;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
-import android.provider.Settings;
-import android.test.mock.MockContentProvider;
-import android.test.mock.MockContentResolver;
 import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.ConfigStore;
-import com.android.providers.media.DatabaseHelper;
-import com.android.providers.media.MediaDocumentsProvider;
-import com.android.providers.media.MediaProvider;
-import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.R;
-import com.android.providers.media.TestConfigStore;
-import com.android.providers.media.photopicker.PhotoPickerProvider;
-import com.android.providers.media.photopicker.PickerSyncController;
-import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.FileUtils;
 
 import org.junit.Before;
@@ -68,137 +52,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
 public class MediaScannerTest {
     private static final String TAG = "MediaScannerTest";
-
-    public static class IsolatedContext extends ContextWrapper {
-        private final File mDir;
-        private final MockContentResolver mResolver;
-        private final MediaProvider mProvider;
-        private final MediaDocumentsProvider mDocumentsProvider;
-        private final PhotoPickerProvider mPhotoPickerProvider;
-        private final UserHandle mUserHandle;
-        private Map<String, BackupIdRow> mBackedUpData = new HashMap<>();
-
-        public IsolatedContext(Context base, String tag, boolean asFuseThread) {
-            this(base, tag, asFuseThread, base.getUser());
-        }
-
-        public IsolatedContext(Context base, String tag, boolean asFuseThread,
-                UserHandle userHandle) {
-            this(base, tag, asFuseThread, userHandle, new TestConfigStore());
-        }
-
-        public IsolatedContext(Context base, String tag, boolean asFuseThread,
-                UserHandle userHandle, ConfigStore configStore) {
-            super(base);
-            mDir = new File(base.getFilesDir(), tag);
-            mDir.mkdirs();
-            FileUtils.deleteContents(mDir);
-
-            mResolver = new MockContentResolver(this);
-            mUserHandle = userHandle;
-
-            final ProviderInfo info = base.getPackageManager()
-                    .resolveContentProvider(MediaStore.AUTHORITY, 0);
-            mProvider = new MediaProvider() {
-                @Override
-                public boolean isFuseThread() {
-                    return asFuseThread;
-                }
-
-                @Override
-                protected ConfigStore provideConfigStore() {
-                    return configStore;
-                }
-
-                @Override
-                protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
-                    // Ignoring this as test app would not have access to update xattr.
-                }
-
-                @Override
-                protected void storageNativeBootPropertyChangeListener() {
-                    // Ignore this as test app cannot read device config
-                }
-
-                @Override
-                protected boolean isStableUrisEnabled(String volumeName) {
-                    if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
-                        return true;
-                    }
-                    return false;
-                }
-
-                @Override
-                protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue,
-                        int limit) {
-                    Object[] backedUpValues =  mBackedUpData.keySet().toArray();
-                    return Arrays.copyOf(backedUpValues, backedUpValues.length, String[].class);
-                }
-
-                @Override
-                protected Optional<BackupIdRow> readDataFromBackup(String volumeName,
-                        String filePath) {
-                    return Optional.ofNullable(mBackedUpData.get(filePath));
-                }
-            };
-            mProvider.attachInfo(this, info);
-            mResolver.addProvider(MediaStore.AUTHORITY, mProvider);
-
-            final ProviderInfo documentsInfo = base.getPackageManager()
-                    .resolveContentProvider(MediaDocumentsProvider.AUTHORITY, 0);
-            mDocumentsProvider = new MediaDocumentsProvider();
-            mDocumentsProvider.attachInfo(this, documentsInfo);
-            mResolver.addProvider(MediaDocumentsProvider.AUTHORITY, mDocumentsProvider);
-
-            mResolver.addProvider(Settings.AUTHORITY, new MockContentProvider() {
-                @Override
-                public Bundle call(String method, String request, Bundle args) {
-                    return Bundle.EMPTY;
-                }
-            });
-
-            final ProviderInfo photoPickerProviderInfo = base.getPackageManager()
-                    .resolveContentProvider(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
-                            0);
-            mPhotoPickerProvider = new PhotoPickerProvider();
-            mPhotoPickerProvider.attachInfo(this, photoPickerProviderInfo);
-            mResolver.addProvider(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
-                    mPhotoPickerProvider);
-
-            MediaStore.waitForIdle(mResolver);
-        }
-
-        @Override
-        public File getDatabasePath(String name) {
-            return new File(mDir, name);
-        }
-
-        @Override
-        public ContentResolver getContentResolver() {
-            return mResolver;
-        }
-
-        @Override
-        public UserHandle getUser() {
-            return mUserHandle;
-        }
-
-        public void setPickerUriResolver(PickerUriResolver resolver) {
-            mProvider.setUriResolver(resolver);
-        }
-
-        public void setBackedUpData(Map<String, BackupIdRow> backedUpData) {
-            this.mBackedUpData = backedUpData;
-        }
-    }
-
     private MediaScanner mLegacy;
     private MediaScanner mModern;
 

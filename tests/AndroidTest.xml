@@ -14,15 +14,20 @@
      limitations under the License.
 -->
 <configuration description="Runs Tests for MediaProvder.">
-    <target_preparer class="com.android.tradefed.targetprep.TestAppInstallSetup">
+    <target_preparer class="com.android.tradefed.targetprep.suite.SuiteApkInstaller">
         <option name="test-file-name" value="MediaProviderTests.apk" />
         <option name="test-file-name" value="MediaProviderTestAppForPermissionActivity.apk" />
         <option name="test-file-name" value="MediaProviderTestAppForPermissionActivity33.apk" />
         <option name="test-file-name" value="MediaProviderTestAppWithStoragePerms.apk" />
         <option name="test-file-name" value="MediaProviderTestAppWithMediaPerms.apk" />
+        <option name="test-file-name" value="MediaProviderTestAppWithUserSelectedPerms.apk" />
         <option name="test-file-name" value="MediaProviderTestAppWithoutPerms.apk" />
         <option name="test-file-name" value="LegacyMediaProviderTestApp.apk" />
         <option name="install-arg" value="-g" />
+    </target_preparer>
+
+    <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer">
+        <option name="force-root" value="true" />
     </target_preparer>
 
     <option
@@ -38,6 +43,7 @@
         <option name="runner" value="androidx.test.runner.AndroidJUnitRunner" />
         <option name="hidden-api-checks" value="false"/>
         <option name="instrumentation-arg" key="thisisignored" value="thisisignored --no-window-animation" />
+        <option name="test-filter-dir" value="/data/data/com.android.providers.media.tests"/>
     </test>
 
     <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">

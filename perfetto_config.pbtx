@@ -37,7 +37,9 @@ data_sources: {
 
             # Trace MediaProviders' events.
             atrace_apps: "com.android.providers.media.module"
+            atrace_apps: "com.android.providers.media.module:PhotoPicker"
             atrace_apps: "com.google.android.providers.media.module"
+            atrace_apps: "com.google.android.providers.media.module:PhotoPicker"
 
             # Trace Google Photos' events.
             # Uncomment to enable.

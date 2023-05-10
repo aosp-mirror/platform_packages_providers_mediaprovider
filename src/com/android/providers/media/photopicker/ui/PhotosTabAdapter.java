@@ -16,15 +16,14 @@
 
 package com.android.providers.media.photopicker.ui;
 
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
-import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
@@ -39,19 +38,11 @@ import java.util.List;
 /**
  * Adapts from model to something RecyclerView understands.
  */
-class PhotosTabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-    static final int ITEM_TYPE_DATE_HEADER = 0;
-    static final int ITEM_TYPE_PHOTO = 1;
+class PhotosTabAdapter extends TabAdapter {
 
     private static final int RECENT_MINIMUM_COUNT = 12;
 
     private final boolean mShowRecentSection;
-    /**
-     * List of {@link com.android.providers.media.photopicker.data.model.Item Item} and
-     * {@link DateHeader} objects.
-     */
-    private List<Object> mItems = new ArrayList<>();
-    private final ImageLoader mImageLoader;
     private final View.OnClickListener mOnMediaItemClickListener;
     private final View.OnLongClickListener mOnMediaItemLongClickListener;
     private final Selection mSelection;
@@ -60,9 +51,24 @@ class PhotosTabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             @NonNull Selection selection,
             @NonNull ImageLoader imageLoader,
             @NonNull View.OnClickListener onMediaItemClickListener,
-            @NonNull View.OnLongClickListener onMediaItemLongClickListener) {
+            @NonNull View.OnLongClickListener onMediaItemLongClickListener,
+            @NonNull LifecycleOwner lifecycleOwner,
+            @NonNull LiveData<String> cloudMediaProviderAppTitle,
+            @NonNull LiveData<String> cloudMediaAccountName,
+            @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
+            @NonNull LiveData<Boolean> shouldShowCloudMediaAvailableBanner,
+            @NonNull LiveData<Boolean> shouldShowAccountUpdatedBanner,
+            @NonNull LiveData<Boolean> shouldShowChooseAccountBanner,
+            @NonNull OnBannerEventListener onChooseAppBannerEventListener,
+            @NonNull OnBannerEventListener onCloudMediaAvailableBannerEventListener,
+            @NonNull OnBannerEventListener onAccountUpdatedBannerEventListener,
+            @NonNull OnBannerEventListener onChooseAccountBannerEventListener) {
+        super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
+                shouldShowChooseAppBanner, shouldShowCloudMediaAvailableBanner,
+                shouldShowAccountUpdatedBanner, shouldShowChooseAccountBanner,
+                onChooseAppBannerEventListener, onCloudMediaAvailableBannerEventListener,
+                onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener);
         mShowRecentSection = showRecentSection;
-        mImageLoader = imageLoader;
         mSelection = selection;
         mOnMediaItemClickListener = onMediaItemClickListener;
         mOnMediaItemLongClickListener = onMediaItemLongClickListener;
@@ -70,62 +76,62 @@ class PhotosTabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
-        final LayoutInflater inflater = LayoutInflater.from(viewGroup.getContext());
-        if (viewType == ITEM_TYPE_DATE_HEADER) {
-            final View view = inflater.inflate(R.layout.item_date_header, viewGroup, false);
-            return new DateHeaderViewHolder(view);
-        } else /* viewType == ITEM_TYPE_PHOTO */ {
-            final View view = inflater.inflate(R.layout.item_photo_grid, viewGroup, false);
-            view.setOnClickListener(mOnMediaItemClickListener);
-            view.setOnLongClickListener(mOnMediaItemLongClickListener);
+    RecyclerView.ViewHolder createSectionViewHolder(@NonNull ViewGroup viewGroup) {
+        final View view = getView(viewGroup, R.layout.item_date_header);
+        return new DateHeaderViewHolder(view);
+    }
 
-            return new MediaItemGridViewHolder(view, mImageLoader, mSelection.canSelectMultiple());
-        }
+    @NonNull
+    @Override
+    RecyclerView.ViewHolder createMediaItemViewHolder(@NonNull ViewGroup viewGroup) {
+        final View view = getView(viewGroup, R.layout.item_photo_grid);
+        view.setOnClickListener(mOnMediaItemClickListener);
+        view.setOnLongClickListener(mOnMediaItemLongClickListener);
+
+        return new MediaItemGridViewHolder(view, mImageLoader, mSelection.canSelectMultiple());
     }
 
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder viewHolder, int position) {
-        if (viewHolder instanceof DateHeaderViewHolder) {
-            final DateHeader dateHeader = (DateHeader) getAdapterItem(position);
-            final DateHeaderViewHolder dateHeaderVH = (DateHeaderViewHolder) viewHolder;
+    void onBindSectionViewHolder(@NonNull RecyclerView.ViewHolder viewHolder, int position) {
+        final DateHeader dateHeader = (DateHeader) getAdapterItem(position);
+        final DateHeaderViewHolder dateHeaderVH = (DateHeaderViewHolder) viewHolder;
 
-            dateHeaderVH.bind(dateHeader);
-        } else /* viewHolder instanceof MediaItemGridViewHolder */ {
-            final Item item = (Item) getAdapterItem(position);
-            final MediaItemGridViewHolder mediaItemVH  = (MediaItemGridViewHolder) viewHolder;
-
-            final boolean isSelected = mSelection.canSelectMultiple()
-                    && mSelection.isItemSelected(item);
-            mediaItemVH.bind(item, isSelected);
-
-            // We also need to set Item as a tag so that OnClick/OnLongClickListeners can then
-            // retrieve it.
-            mediaItemVH.itemView.setTag(item);
-        }
+        dateHeaderVH.bind(dateHeader);
     }
 
     @Override
-    public int getItemCount() {
-        return mItems.size();
+    void onBindMediaItemViewHolder(@NonNull RecyclerView.ViewHolder viewHolder, int position) {
+        final Item item = (Item) getAdapterItem(position);
+        final MediaItemGridViewHolder mediaItemVH  = (MediaItemGridViewHolder) viewHolder;
+
+        final boolean isSelected = mSelection.canSelectMultiple()
+                && mSelection.isItemSelected(item);
+        mediaItemVH.bind(item, isSelected);
+
+        // We also need to set Item as a tag so that OnClick/OnLongClickListeners can then
+        // retrieve it.
+        mediaItemVH.itemView.setTag(item);
     }
 
     @Override
-    public int getItemViewType(int position) {
-        if (getAdapterItem(position) instanceof Item) {
-            return ITEM_TYPE_PHOTO;
-        } else /* instanceof DateHeader */ {
-            return ITEM_TYPE_DATE_HEADER;
-        }
+    boolean isItemTypeSection(int position) {
+        return getAdapterItem(position) instanceof DateHeader;
+    }
+
+    @Override
+    boolean isItemTypeMediaItem(int position) {
+        return getAdapterItem(position) instanceof Item;
     }
 
     void setMediaItems(@NonNull List<Item> mediaItems) {
+        final List<Object> mediaItemsWithDateHeaders;
         if (!mediaItems.isEmpty()) {
-            mItems = new ArrayList<>(mediaItems.size() + 1); // We'll have at least one section
+            // We'll have at least one section
+            mediaItemsWithDateHeaders = new ArrayList<>(mediaItems.size() + 1);
 
             // First: show "Recent" section header if needed.
             if (mShowRecentSection) {
-                mItems.add(new DateHeader(DateHeader.RECENT));
+                mediaItemsWithDateHeaders.add(new DateHeader(DateHeader.RECENT));
             }
 
             int recentItemsCount = 0;
@@ -139,42 +145,19 @@ class PhotosTabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 } else if (!DateTimeUtils.isSameDate(prevItemDate, itemDate)) {
                     // The dateTaken of these two images are not on the same day: add a new date
                     // header
-                    mItems.add(new DateHeader(itemDate));
+                    mediaItemsWithDateHeaders.add(new DateHeader(itemDate));
                 }
 
-                mItems.add(mediaItem);
+                mediaItemsWithDateHeaders.add(mediaItem);
 
                 prevItemDate = itemDate;
             }
         } else {
-            mItems = Collections.emptyList();
+            mediaItemsWithDateHeaders = Collections.emptyList();
         }
+        setAllItems(mediaItemsWithDateHeaders);
 
         notifyDataSetChanged();
-    }
-
-    @Nullable
-    @VisibleForTesting
-    Object getAdapterItem(int position) {
-        return mItems.get(position);
-    }
-
-    @NonNull
-    public GridLayoutManager.SpanSizeLookup createSpanSizeLookup(
-            @NonNull GridLayoutManager layoutManager) {
-        return new GridLayoutManager.SpanSizeLookup() {
-            @Override
-            public int getSpanSize(int position) {
-                final int itemViewType = getItemViewType(position);
-                // For the item view type is ITEM_TYPE_DATE_HEADER, it is full
-                // span, return the span count of the layoutManager.
-                if (itemViewType == ITEM_TYPE_DATE_HEADER ) {
-                    return layoutManager.getSpanCount();
-                } else {
-                    return 1;
-                }
-            }
-        };
     }
 
     @VisibleForTesting

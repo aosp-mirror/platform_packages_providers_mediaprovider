@@ -696,7 +696,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         // If we are here then the file supports HEVC, so we only check if the package is in the
         // mAppCompatCapabilities.  If it's there, we will respect that value.
         LocalCallingIdentity identity = mMediaProvider.getCachedCallingIdentityForTranscoding(uid);
-        final String[] callingPackages = identity.getSharedPackageNames();
+        final String[] callingPackages = identity.getSharedPackageNamesArray();
 
         // Check app manifest support
         for (String callingPackage : callingPackages) {
@@ -1310,7 +1310,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     private boolean updateTranscodeStatus(String path, int transcodeStatus) {
         final Uri uri = FileUtils.getContentUriForPath(path);
         // TODO(b/170465810): Replace this with matchUri when the code is refactored.
-        final int match = MediaProvider.FILES;
+        final int match = LocalUriMatcher.FILES;
         final SQLiteQueryBuilder qb = mMediaProvider.getQueryBuilderForTranscoding(TYPE_UPDATE,
                 match, uri, Bundle.EMPTY, null);
         final String[] selectionArgs = new String[]{path};
@@ -1349,7 +1349,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     private Cursor queryFileForTranscode(String path, String[] projection) {
         final Uri uri = FileUtils.getContentUriForPath(path);
         // TODO(b/170465810): Replace this with matchUri when the code is refactored.
-        final int match = MediaProvider.FILES;
+        final int match = LocalUriMatcher.FILES;
         final SQLiteQueryBuilder qb = mMediaProvider.getQueryBuilderForTranscoding(TYPE_QUERY,
                 match, uri, Bundle.EMPTY, null);
         final String[] selectionArgs = new String[]{path};

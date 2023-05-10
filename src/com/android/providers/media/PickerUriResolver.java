@@ -17,6 +17,7 @@
 package com.android.providers.media;
 
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.os.Process.SYSTEM_UID;
 
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
@@ -40,6 +41,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
@@ -158,9 +160,17 @@ public class PickerUriResolver {
                 /* cancellationSignal */ null);
     }
 
-    public String getType(@NonNull Uri uri) {
-        // There's no permission check because ContentProviders allow anyone to check the mimetype
-        // of a URI
+    /**
+     * getType for Picker Uris
+     */
+    public String getType(@NonNull Uri uri, int callingPid, int callingUid) {
+        // TODO (b/272265676): Remove system uid check if found unnecessary
+        if (SdkLevel.isAtLeastU() && UserHandle.getAppId(callingUid) != SYSTEM_UID) {
+            // Starting Android 14, there is permission check for getting types requiring query.
+            // System Uid (1000) is allowed to get the types.
+            checkUriPermission(uri, callingPid, callingUid);
+        }
+
         try (Cursor cursor = queryInternal(uri, new String[]{MediaStore.MediaColumns.MIME_TYPE})) {
             if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
                 return getCursorString(cursor,

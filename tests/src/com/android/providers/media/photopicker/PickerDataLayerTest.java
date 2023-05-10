@@ -44,6 +44,7 @@ import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,6 +57,7 @@ import java.util.concurrent.TimeUnit;
 public class PickerDataLayerTest {
     private static final String TAG = "PickerDataLayerTest";
 
+    private static final String PACKAGE_NAME = "com.android.providers.media.tests";
     private static final String LOCAL_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker.tests.local";
     private static final String CLOUD_PRIMARY_PROVIDER_AUTHORITY =
@@ -122,8 +124,7 @@ public class PickerDataLayerTest {
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
 
         final TestConfigStore configStore = new TestConfigStore();
-        configStore.setAllowedCloudProviders(
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY, CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        configStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
         configStore.setPickerSyncDelayMs(0);
 
         mController = new PickerSyncController(
@@ -132,6 +133,13 @@ public class PickerDataLayerTest {
 
         // Set cloud provider to null to discard
         mFacade.setCloudProvider(null);
+    }
+
+    @After
+    public void tearDown() {
+        if (mFacade != null) {
+            mFacade.setCloudProvider(null);
+        }
     }
 
     @Test

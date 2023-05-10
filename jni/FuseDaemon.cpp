@@ -18,6 +18,7 @@
 
 #include "FuseDaemon.h"
 
+#include <android-base/file.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <android-base/strings.h>
@@ -2359,18 +2360,39 @@ bool FuseDaemon::IsStarted() const {
     return active.load(std::memory_order_acquire);
 }
 
-bool IsFuseBpfEnabled() {
-    // TODO b/262887267 Once kernel supports flag, trigger off kernel flag unless
-    //      ro.fuse.bpf.enabled is explicitly set to false
+static bool IsPropertySet(const char* name, bool& value) {
+    if (android::base::GetProperty(name, "") == "") return false;
 
+    value = android::base::GetBoolProperty(name, false);
+    LOG(INFO) << "fuse-bpf is " << (value ? "enabled" : "disabled") << " because of property "
+              << name;
+    return true;
+}
+
+bool IsFuseBpfEnabled() {
     // ro.fuse.bpf.is_running may not be set when first reading this property, so we have to
     // reproduce the vold/Utils.cpp:isFuseBpfEnabled() logic here
-    if (android::base::GetProperty("ro.fuse.bpf.is_running", "") != "") {
-        return android::base::GetBoolProperty("ro.fuse.bpf.is_running", false);
-    } else if (android::base::GetProperty("persist.sys.fuse.bpf.override", "") != "") {
-        return android::base::GetBoolProperty("persist.sys.fuse.bpf.override", false);
+
+    bool is_enabled;
+    if (IsPropertySet("ro.fuse.bpf.is_running", is_enabled)) return is_enabled;
+    if (IsPropertySet("persist.sys.fuse.bpf.override", is_enabled)) return is_enabled;
+    if (IsPropertySet("ro.fuse.bpf.enabled", is_enabled)) return is_enabled;
+
+    // If the kernel has fuse-bpf, /sys/fs/fuse/features/fuse_bpf will exist and have the contents
+    // 'supported\n' - see fs/fuse/inode.c in the kernel source
+    string contents;
+    const char* filename = "/sys/fs/fuse/features/fuse_bpf";
+    if (!android::base::ReadFileToString(filename, &contents)) {
+        LOG(INFO) << "fuse-bpf is disabled because " << filename << " cannot be read";
+        return false;
+    }
+
+    if (contents == "supported\n") {
+        LOG(INFO) << "fuse-bpf is enabled because " << filename << " reads 'supported'";
+        return true;
     } else {
-        return android::base::GetBoolProperty("ro.fuse.bpf.enabled", false);
+        LOG(INFO) << "fuse-bpf is disabled because " << filename << " does not read 'supported'";
+        return false;
     }
 }
 
@@ -2674,8 +2696,53 @@ void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
         status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
                                                                             ownerPackageIdentifier);
         LOG(ERROR) << "Failure in leveldb insert for owner_id: " << ownerId
-                   << " and ownerPackageIdentifier:" << ownerPackageIdentifier;
+                   << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
     }
+}
+
+void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
+                                       const std::string& ownerPackageIdentifier) {
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "Failure in leveldb delete for ownership relation.";
+        return;
+    }
+
+    leveldb::Status status1, status2;
+    status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                        ownerId);
+    status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                        ownerPackageIdentifier);
+    if (status1.ok() && status2.ok()) {
+        LOG(INFO) << "Successfully deleted rows in leveldb for owner_id: " << ownerId
+                  << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
+    } else {
+        // If both deletes did not go through, revert both.
+        status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+                leveldb::WriteOptions(), ownerId, ownerPackageIdentifier);
+        status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+                leveldb::WriteOptions(), ownerPackageIdentifier, ownerId);
+        LOG(ERROR) << "Failure in leveldb delete for owner_id: " << ownerId
+                   << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
+    }
+}
+
+std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
+    std::map<std::string, std::string> resultMap;
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "Failure in leveldb read for ownership relation.";
+        return resultMap;
+    }
+
+    leveldb::Status status;
+    // Get the key-value pairs from the database.
+    leveldb::Iterator* it =
+            fuse->level_db_connection_map[OWNERSHIP_RELATION]->NewIterator(leveldb::ReadOptions());
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+        std::string key = it->key().ToString();
+        std::string value = it->value().ToString();
+        resultMap.insert(std::pair<std::string, std::string>(key, value));
+    }
+    return resultMap;
 }
 
 bool FuseDaemon::CheckLevelDbConnection(const std::string& instance_name) {

@@ -56,7 +56,7 @@
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Сүрөттөр же видеолор жок"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Колдоого алынган сүрөттөр же видеолор жок"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Альбомдор жок"</string>
-    <string name="picker_view_selected" msgid="2266031384396143883">"Тандалганды карап көрүү"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Тандалганды көрүү"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Сүрөттөр"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Альбомдор"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Алдын ала көрүү"</string>

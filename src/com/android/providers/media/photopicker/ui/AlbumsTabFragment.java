@@ -46,8 +46,15 @@ public class AlbumsTabFragment extends TabFragment {
         setEmptyMessage(R.string.picker_albums_empty_message);
 
         final AlbumsTabAdapter adapter = new AlbumsTabAdapter(mImageLoader, mOnAlbumClickListener,
-                mPickerViewModel.hasMimeTypeFilters());
-        observeAndUpdateBannerVisibility(adapter);
+                mPickerViewModel.hasMimeTypeFilters(), /* lifecycleOwner */ this,
+                mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
+                mPickerViewModel.getCloudMediaAccountNameLiveData(),
+                mPickerViewModel.shouldShowChooseAppBannerLiveData(),
+                mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData(),
+                mPickerViewModel.shouldShowAccountUpdatedBannerLiveData(),
+                mPickerViewModel.shouldShowChooseAccountBannerLiveData(),
+                mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
+                mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
         mPickerViewModel.getCategories().observe(this, categoryList -> {
             adapter.updateCategoryList(categoryList);
             // Handle emptyView's visibility

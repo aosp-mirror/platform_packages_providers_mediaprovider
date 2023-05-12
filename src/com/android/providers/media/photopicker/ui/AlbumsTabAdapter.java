@@ -20,6 +20,8 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
@@ -37,8 +39,23 @@ class AlbumsTabAdapter extends TabAdapter {
 
     AlbumsTabAdapter(@NonNull ImageLoader imageLoader,
             @NonNull OnAlbumClickListener onAlbumClickListener,
-            boolean hasMimeTypeFilter) {
-        super(imageLoader);
+            boolean hasMimeTypeFilter,
+            @NonNull LifecycleOwner lifecycleOwner,
+            @NonNull LiveData<String> cloudMediaProviderAppTitle,
+            @NonNull LiveData<String> cloudMediaAccountName,
+            @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
+            @NonNull LiveData<Boolean> shouldShowCloudMediaAvailableBanner,
+            @NonNull LiveData<Boolean> shouldShowAccountUpdatedBanner,
+            @NonNull LiveData<Boolean> shouldShowChooseAccountBanner,
+            @NonNull OnBannerEventListener onChooseAppBannerEventListener,
+            @NonNull OnBannerEventListener onCloudMediaAvailableBannerEventListener,
+            @NonNull OnBannerEventListener onAccountUpdatedBannerEventListener,
+            @NonNull OnBannerEventListener onChooseAccountBannerEventListener) {
+        super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
+                shouldShowChooseAppBanner, shouldShowCloudMediaAvailableBanner,
+                shouldShowAccountUpdatedBanner, shouldShowChooseAccountBanner,
+                onChooseAppBannerEventListener, onCloudMediaAvailableBannerEventListener,
+                onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener);
         mOnAlbumClickListener = onAlbumClickListener;
         mHasMimeTypeFilter = hasMimeTypeFilter;
     }

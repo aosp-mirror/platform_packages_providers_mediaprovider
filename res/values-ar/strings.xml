@@ -42,7 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"تطبيق وسائط في السحابة الإلكترونية"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"تطبيق وسائط في السحابة الإلكترونية"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"تطبيق الوسائط في السحابة الإلكترونية"</string>
-    <string name="picker_settings_description" msgid="7486394662725656081">"‏يمكنك استخدام Android Photopicker لمشاركة الصور والفيديوهات التي تحتفظ بنسخة احتياطية منها من الخدمات الأخرى."</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"يمكنك الوصول إلى الوسائط في السحابة الإلكترونية عندما يطلب منك تطبيق أو موقع إلكتروني اختيار صور أو فيديوهات."</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"الوصول إلى الوسائط في السحابة الإلكترونية من"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"بلا تطبيق"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"تعذر تغيير تطبيق وسائط في السحابة الإلكترونية حاليًا"</string>
@@ -54,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{اختَر ما يصل إلى عنصر واحد (<xliff:g id="COUNT_0">^1</xliff:g>).}zero{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصر.}two{اختَر ما يصل إلى عنصرين (<xliff:g id="COUNT_1">^1</xliff:g>).}few{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عناصر.}many{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصرًا.}other{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصر.}}"</string>
     <string name="recent" msgid="6694613584743207874">"الأحدث"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"ما مِن صور أو فيديوهات"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"ما مِن صور أو فيديوهات متوافقة."</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ما مِن ألبومات"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"عرض ما تم اختياره"</string>
     <string name="picker_photos" msgid="7415035516411087392">"الصور"</string>
@@ -67,6 +68,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"تطبيقات العمل متوقفة مؤقتًا"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"لفتح صور العمل، عليك تفعيل تطبيقات العمل ثم إعادة المحاولة."</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"يمكن لهذا التطبيق الوصول إلى الصور التي تختارها فقط."</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"اختَر الصور والفيديوهات التي تريد السماح لهذا التطبيق بالوصول إليها"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{عنصر واحد (<xliff:g id="COUNT_0">^1</xliff:g>)}zero{<xliff:g id="COUNT_1">^1</xliff:g> عنصر}two{عنصران (<xliff:g id="COUNT_1">^1</xliff:g>)}few{<xliff:g id="COUNT_1">^1</xliff:g> عناصر}many{<xliff:g id="COUNT_1">^1</xliff:g> عنصرًا}other{<xliff:g id="COUNT_1">^1</xliff:g> عنصر}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"إضافة (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"السماح (<xliff:g id="COUNT">^1</xliff:g>)"</string>

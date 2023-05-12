@@ -19,6 +19,7 @@
 
 #include <android-base/unique_fd.h>
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -103,6 +104,28 @@ class FuseDaemon final {
      * Reads backed up data from leveldb.
      */
     std::string ReadBackedUpDataFromLevelDb(const std::string& filePath);
+
+    /**
+     * Reads value for given key, returns empty string if not found.
+     */
+    std::string ReadOwnership(const std::string& key);
+
+    /**
+     * Creates owner id to owner package identifier and vice versa relation in leveldb.
+     */
+    void CreateOwnerIdRelation(const std::string& ownerId,
+                               const std::string& ownerPackageIdentifier);
+
+    /**
+     * Removes owner id to owner package identifier and vice versa relation in leveldb.
+     */
+    void RemoveOwnerIdRelation(const std::string& ownerId,
+                               const std::string& ownerPackageIdentifier);
+
+    /**
+     * Reads owner relationships from leveldb.
+     */
+    std::map<std::string, std::string> GetOwnerRelationship();
 
     /**
      * Returns true if level db setup exists for given instance.

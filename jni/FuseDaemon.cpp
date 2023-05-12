@@ -2453,29 +2453,45 @@ void FuseDaemon::SetupLevelDbInstances() {
     }
 }
 
+std::string deriveVolumeName(const std::string& path) {
+    std::string volume_name;
+    if (!android::base::StartsWith(path, STORAGE_PREFIX)) {
+        volume_name = VOLUME_INTERNAL;
+    } else if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
+        volume_name = VOLUME_EXTERNAL_PRIMARY;
+    } else {
+        size_t size = sizeof(STORAGE_PREFIX) / sizeof(STORAGE_PREFIX[0]);
+        volume_name = volume_name.substr(size);
+    }
+    return volume_name;
+}
+
 void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
-    if (!android::base::StartsWith(key, STORAGE_PREFIX) &&
-        CheckLevelDbConnection(VOLUME_INTERNAL)) {
-        leveldb::Status status;
-        status = fuse->level_db_connection_map[VOLUME_INTERNAL]->Delete(leveldb::WriteOptions(),
-                                                                        key);
-        if (!status.ok()) {
-            LOG(INFO) << "Failure in leveldb delete for key: " << key;
-        }
+    std::string volume_name = deriveVolumeName(key);
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb delete in volume:" << volume_name << " for key:" << key;
+        return;
+    }
+
+    leveldb::Status status;
+    status = fuse->level_db_connection_map[volume_name]->Delete(leveldb::WriteOptions(), key);
+    if (!status.ok()) {
+        LOG(ERROR) << "Failure in leveldb delete for key: " << key <<
+            " from volume:" << volume_name;
     }
 }
 
 void FuseDaemon::InsertInLevelDb(const std::string& key, const std::string& value) {
-    if (!android::base::StartsWith(key, STORAGE_PREFIX) &&
-        CheckLevelDbConnection(VOLUME_INTERNAL)) {
-        leveldb::Status status;
-        status = fuse->level_db_connection_map[VOLUME_INTERNAL]->Put(leveldb::WriteOptions(), key,
-                                                                     value);
-        if (!status.ok()) {
-            LOG(ERROR) << "Failure in leveldb insert for key: " << key << status.ToString();
-        } else {
-            LOG(INFO) << "Insert successful for key:" << key;
-        }
+    std::string volume_name = deriveVolumeName(key);
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb insert in volume:" << volume_name << " for key:" << key;
+        return;
+    }
+
+    leveldb::Status status;
+    status = fuse->level_db_connection_map[volume_name]->Put(leveldb::WriteOptions(), key, value);
+    if (!status.ok()) {
+        LOG(ERROR) << "Failure in leveldb insert for key: " << key << " in volume:" << volume_name;
     }
 }
 
@@ -2485,40 +2501,127 @@ std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string&
     int counter = 0;
     std::vector<std::string> file_paths;
 
-    if (android::base::EqualsIgnoreCase(volume_name, VOLUME_INTERNAL) &&
-        CheckLevelDbConnection(VOLUME_INTERNAL)) {
-        leveldb::Iterator* it =
-                fuse->level_db_connection_map[VOLUME_INTERNAL]->NewIterator(leveldb::ReadOptions());
-        if (android::base::EqualsIgnoreCase(last_read_value, "")) {
-            it->SeekToFirst();
-        } else {
-            // Start after last read value
-            leveldb::Slice slice = last_read_value;
-            it->Seek(slice);
-            it->Next();
-        }
-        for (; it->Valid() && counter < limit; it->Next()) {
-            file_paths.push_back(it->key().ToString());
-            counter++;
-        }
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb file paths read for volume:" << volume_name;
+        return file_paths;
     }
 
+    leveldb::Iterator* it =
+            fuse->level_db_connection_map[volume_name]->NewIterator(leveldb::ReadOptions());
+    if (android::base::EqualsIgnoreCase(last_read_value, "")) {
+        it->SeekToFirst();
+    } else {
+        // Start after last read value
+        leveldb::Slice slice = last_read_value;
+        it->Seek(slice);
+        it->Next();
+    }
+    for (; it->Valid() && counter < limit; it->Next()) {
+        file_paths.push_back(it->key().ToString());
+        counter++;
+    }
     return file_paths;
 }
 
 std::string FuseDaemon::ReadBackedUpDataFromLevelDb(const std::string& filePath) {
     std::string data = "";
-    if (!android::base::StartsWithIgnoreCase(filePath, STORAGE_PREFIX) &&
-        CheckLevelDbConnection(VOLUME_INTERNAL)) {
-        leveldb::Status status = fuse->level_db_connection_map[VOLUME_INTERNAL]->Get(
-                leveldb::ReadOptions(), filePath, &data);
+    std::string volume_name = deriveVolumeName(filePath);
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb data read for key:" << filePath;
+        return data;
+    }
+
+    leveldb::Status status = fuse->level_db_connection_map[volume_name]->Get(leveldb::ReadOptions(),
+                                                                             filePath, &data);
+    if (!status.ok()) {
+        LOG(WARNING) << "Failure in leveldb read for key: " << filePath << status.ToString();
+    } else {
+        LOG(DEBUG) << "Read successful for key: " << filePath;
+    }
+    return data;
+}
+
+std::string FuseDaemon::ReadOwnership(const std::string& key) {
+    // Return empty string if key not found
+    std::string data = "";
+    if (CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        leveldb::Status status = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Get(
+                leveldb::ReadOptions(), key, &data);
         if (!status.ok()) {
-            LOG(WARNING) << "Failure in leveldb read for key: " << filePath << status.ToString();
+            LOG(WARNING) << "Failure in leveldb read for key: " << key << status.ToString();
         } else {
-            LOG(DEBUG) << "Read successful for key: " << filePath;
+            LOG(DEBUG) << "Read successful for key: " << key;
         }
     }
     return data;
+}
+
+void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
+                                       const std::string& ownerPackageIdentifier) {
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "Failure in leveldb insert for ownership relation.";
+        return;
+    }
+
+    leveldb::Status status1, status2;
+    status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+            leveldb::WriteOptions(), ownerId, ownerPackageIdentifier);
+    status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+            leveldb::WriteOptions(), ownerPackageIdentifier, ownerId);
+    if (!status1.ok() || !status2.ok()) {
+        // If both inserts did not go through, remove both.
+        status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                            ownerId);
+        status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                            ownerPackageIdentifier);
+        LOG(ERROR) << "Failure in leveldb insert for owner_id: " << ownerId
+                   << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
+    }
+}
+
+void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
+                                       const std::string& ownerPackageIdentifier) {
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "Failure in leveldb delete for ownership relation.";
+        return;
+    }
+
+    leveldb::Status status1, status2;
+    status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                        ownerId);
+    status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                        ownerPackageIdentifier);
+    if (status1.ok() && status2.ok()) {
+        LOG(INFO) << "Successfully deleted rows in leveldb for owner_id: " << ownerId
+                  << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
+    } else {
+        // If both deletes did not go through, revert both.
+        status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+                leveldb::WriteOptions(), ownerId, ownerPackageIdentifier);
+        status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+                leveldb::WriteOptions(), ownerPackageIdentifier, ownerId);
+        LOG(ERROR) << "Failure in leveldb delete for owner_id: " << ownerId
+                   << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
+    }
+}
+
+std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
+    std::map<std::string, std::string> resultMap;
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "Failure in leveldb read for ownership relation.";
+        return resultMap;
+    }
+
+    leveldb::Status status;
+    // Get the key-value pairs from the database.
+    leveldb::Iterator* it =
+            fuse->level_db_connection_map[OWNERSHIP_RELATION]->NewIterator(leveldb::ReadOptions());
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+        std::string key = it->key().ToString();
+        std::string value = it->value().ToString();
+        resultMap.insert(std::pair<std::string, std::string>(key, value));
+    }
+    return resultMap;
 }
 
 bool FuseDaemon::CheckLevelDbConnection(const std::string& instance_name) {

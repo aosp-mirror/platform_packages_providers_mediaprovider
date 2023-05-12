@@ -297,6 +297,13 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
+    public static final String GET_BACKUP_FILES = "get_backup_files";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
     public static final String DELETE_BACKED_UP_FILE_PATHS = "delete_backed_up_file_paths";
 
     /** {@hide} */
@@ -737,6 +744,9 @@ public final class MediaStore {
      * greater than 1 and less than or equal to
      * {@link MediaStore#getPickImagesMaxLimit}, otherwise
      * {@link Activity#RESULT_CANCELED} is returned.
+     * <p>
+     * Callers may use {@link Intent#EXTRA_LOCAL_ONLY} to limit content
+     * selection to local data.
      * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
      * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
@@ -2661,7 +2671,8 @@ public final class MediaStore {
              * @param name The name of the image
              * @param description The description of the image
              * @return The URL to the newly created image
-             * @deprecated inserting of images should be performed using
+             * @deprecated inserting of images should be performed using 
+             *             {@link ContentResolver#insert} and
              *             {@link MediaColumns#IS_PENDING}, which offers richer
              *             control over lifecycle.
              */
@@ -2688,6 +2699,7 @@ public final class MediaStore {
              * @return The URL to the newly created image, or <code>null</code> if the image failed to be stored
              *              for any reason.
              * @deprecated inserting of images should be performed using
+             *             {@link ContentResolver#insert} and
              *             {@link MediaColumns#IS_PENDING}, which offers richer
              *             control over lifecycle.
              */
@@ -4721,6 +4733,16 @@ public final class MediaStore {
     }
 
     /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String[] getBackupFiles(@NonNull ContentResolver resolver) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_BACKUP_FILES, null, null);
+        return bundle.getStringArray(GET_BACKUP_FILES);
+    }
+
+    /**
      * Block until any pending operations have finished, such as
      * {@link #scanFile} or {@link #scanVolume} requests.
      *
@@ -4836,7 +4858,7 @@ public final class MediaStore {
      * {@link #isCurrentCloudMediaProviderAuthority(ContentResolver, String)}, the request will be
      * unsuccessful.
      *
-     * @return {@code true} if the notification was successful, {@code false} otherwise
+     * @throws SecurityException if the request was unsuccessful.
      */
     public static void notifyCloudMediaChangedEvent(@NonNull ContentResolver resolver,
             @NonNull String authority, @NonNull String currentMediaCollectionId)
@@ -4857,8 +4879,7 @@ public final class MediaStore {
     }
 
     /** {@hide} */
-    public static String getCurrentCloudProvider(@NonNull Context context) {
-        final ContentResolver resolver = context.getContentResolver();
+    public static String getCurrentCloudProvider(@NonNull ContentResolver resolver) {
         try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
             final Bundle out = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
                     /* extras */ null);
@@ -4871,6 +4892,7 @@ public final class MediaStore {
     /**
      * Grant {@link com.android.providers.media.MediaGrants} for the given package, for the
      * list of local (to the device) content uris. These must be valid picker uris.
+     *
      * @hide
      */
     public static void grantMediaReadForPackage(

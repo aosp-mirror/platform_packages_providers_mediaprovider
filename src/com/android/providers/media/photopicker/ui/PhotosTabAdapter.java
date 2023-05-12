@@ -22,6 +22,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
@@ -49,8 +51,23 @@ class PhotosTabAdapter extends TabAdapter {
             @NonNull Selection selection,
             @NonNull ImageLoader imageLoader,
             @NonNull View.OnClickListener onMediaItemClickListener,
-            @NonNull View.OnLongClickListener onMediaItemLongClickListener) {
-        super(imageLoader);
+            @NonNull View.OnLongClickListener onMediaItemLongClickListener,
+            @NonNull LifecycleOwner lifecycleOwner,
+            @NonNull LiveData<String> cloudMediaProviderAppTitle,
+            @NonNull LiveData<String> cloudMediaAccountName,
+            @NonNull LiveData<Boolean> shouldShowChooseAppBanner,
+            @NonNull LiveData<Boolean> shouldShowCloudMediaAvailableBanner,
+            @NonNull LiveData<Boolean> shouldShowAccountUpdatedBanner,
+            @NonNull LiveData<Boolean> shouldShowChooseAccountBanner,
+            @NonNull OnBannerEventListener onChooseAppBannerEventListener,
+            @NonNull OnBannerEventListener onCloudMediaAvailableBannerEventListener,
+            @NonNull OnBannerEventListener onAccountUpdatedBannerEventListener,
+            @NonNull OnBannerEventListener onChooseAccountBannerEventListener) {
+        super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
+                shouldShowChooseAppBanner, shouldShowCloudMediaAvailableBanner,
+                shouldShowAccountUpdatedBanner, shouldShowChooseAccountBanner,
+                onChooseAppBannerEventListener, onCloudMediaAvailableBannerEventListener,
+                onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener);
         mShowRecentSection = showRecentSection;
         mSelection = selection;
         mOnMediaItemClickListener = onMediaItemClickListener;

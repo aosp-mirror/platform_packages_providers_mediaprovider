@@ -21,6 +21,7 @@ import static android.provider.MediaStore.ACTION_PICK_IMAGES;
 import static android.provider.MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP;
 import static android.provider.MediaStore.grantMediaReadForPackage;
 
+import static com.android.providers.media.MediaApplication.getConfigStore;
 import static com.android.providers.media.photopicker.PhotoPickerSettingsActivity.EXTRA_CURRENT_USER_ID;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
@@ -47,6 +48,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.UserHandle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -55,6 +57,7 @@ import android.view.ViewOutlineProvider;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityManager;
+import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
@@ -107,8 +110,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private View mBottomSheetView;
     private View mFragmentContainerView;
     private View mDragBar;
-    private View mPrivacyText;
     private View mProfileButton;
+    private TextView mPrivacyText;
     private TabLayout mTabLayout;
     private Toolbar mToolbar;
     private CrossProfileListeners mCrossProfileListeners;
@@ -128,7 +131,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // This is required as GET_CONTENT with type "*/*" is also received by PhotoPicker due
         // to higher priority than DocumentsUi. "*/*" mime type filter is caught as it is a superset
         // of "image/*" and "video/*".
-        rerouteGetContentRequestIfRequired();
+        if (rerouteGetContentRequestIfRequired()) {
+            // This activity is finishing now: we should not run the setup below,
+            // BUT before we return we have to call super.onCreate() (otherwise we are we will get
+            // SuperNotCalledException: Activity did not call through to super.onCreate())
+            super.onCreate(savedInstanceState);
+            return;
+        }
 
         // We use the device default theme as the base theme. Apply the material them for the
         // material components. We use force "false" here, only values that are not already defined
@@ -151,9 +160,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         ta.recycle();
 
         mDefaultBackgroundColor = getColor(R.color.picker_background_color);
+
         mViewModelProvider = new ViewModelProvider(this);
-        mPickerViewModel = createViewModel();
-        mSelection = mPickerViewModel.getSelection();
+        mPickerViewModel = getOrCreateViewModel();
 
         final Intent intent = getIntent();
         try {
@@ -161,7 +170,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Finish activity due to an exception while parsing extras", e);
             finishWithoutLoggingCancelledResult();
+            return;
         }
+        mSelection = mPickerViewModel.getSelection();
 
         mDragBar = findViewById(R.id.drag_bar);
         mPrivacyText = findViewById(R.id.privacy_text);
@@ -170,18 +181,16 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mTabLayout = findViewById(R.id.tab_layout);
 
-        AccessibilityManager accessibilityManager = getSystemService(AccessibilityManager.class);
-        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
-        accessibilityManager.addAccessibilityStateChangeListener(
-                enabled -> mIsAccessibilityEnabled = enabled);
+        final AccessibilityManager am = getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = am.isEnabled();
+        am.addAccessibilityStateChangeListener(enabled -> mIsAccessibilityEnabled = enabled);
 
         initBottomSheetBehavior();
         restoreState(savedInstanceState);
 
-        String intentAction = intent != null ? intent.getAction() : null;
+        final String intentAction = intent != null ? intent.getAction() : null;
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
-        mPickerViewModel.logPickerOpened(getApplicationContext(), Binder.getCallingUid(),
-                getCallingPackage(), intentAction);
+        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
@@ -198,8 +207,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        // This is required to unregister any broadcast receivers.
-        mCrossProfileListeners.onDestroy();
+        if (mCrossProfileListeners != null) {
+            // This is required to unregister any broadcast receivers.
+            mCrossProfileListeners.onDestroy();
+        }
     }
 
     /**
@@ -208,7 +219,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
      */
     @VisibleForTesting
     @NonNull
-    protected PickerViewModel createViewModel() {
+    protected PickerViewModel getOrCreateViewModel() {
         return mViewModelProvider.get(PickerViewModel.class);
     }
 
@@ -266,7 +277,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         // TODO(b/195009187): Settings menu item is hidden by default till Settings page is
         // completely developed.
-        settingsMenuItem.setVisible(isSettingsScreenEnabled());
+        settingsMenuItem.setVisible(shouldShowSettingsScreen());
 
         // Browse menu item allows users to launch DocumentsUI. This item should only be shown if
         // PhotoPicker was opened via {@link #ACTION_GET_CONTENT}.
@@ -292,7 +303,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void startSettingsActivity() {
+    /**
+     * Launch the Photo Picker settings page where user can view/edit current cloud media provider.
+     */
+    public void startSettingsActivity() {
         final Intent intent = new Intent(this, PhotoPickerSettingsActivity.class);
         intent.putExtra(EXTRA_CURRENT_USER_ID, getCurrentUserId());
         startActivity(intent);
@@ -302,19 +316,23 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void onRestart() {
         super.onRestart();
 
-        // TODO(b/195009187): Conditionally reset PhotoPicker when current profile's cloud
-        // provider has changed. Currently, we'll reset picker each time it restarts when settings
-        // page is enabled to avoid the scenario where cloud provider has changed from the settings
-        // page but picker continues to show stale data from old provider.
-        if (isSettingsScreenEnabled()) {
+        // TODO(b/262001857): For each profile, conditionally reset PhotoPicker when cloud provider
+        //  app or account has changed. Currently, we'll reset picker each time it restarts when
+        //  settings page is enabled to avoid the scenario where cloud provider app or account has
+        //  changed but picker continues to show stale data from old provider app and account.
+        if (shouldShowSettingsScreen()) {
             reset(/* switchToPersonalProfile */ false);
         }
     }
 
-    private void rerouteGetContentRequestIfRequired() {
+    /**
+     * @return {@code true} if the intent was re-routed to the DocumentsUI (and this
+     *  {@code PhotoPickerActivity} is {@link #isFinishing()} now). {@code false} - otherwise.
+     */
+    private boolean rerouteGetContentRequestIfRequired() {
         final Intent intent = getIntent();
         if (!ACTION_GET_CONTENT.equals(intent.getAction())) {
-            return;
+            return false;
         }
 
         // TODO(b/232775643): Workaround to support PhotoPicker invoked from DocumentsUi.
@@ -324,12 +342,15 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // Make sure Photo Picker is opened when the intent is explicitly forwarded by documentsUi
         if (isIntentReferredByDocumentsUi(getReferrer())) {
             Log.i(TAG, "Open PhotoPicker when a forwarded ACTION_GET_CONTENT intent is received");
-            return;
+            return false;
         }
 
-        if (MimeFilterUtils.requiresUnsupportedFilters(intent)) {
-            launchDocumentsUiAndFinishPicker();
-        }
+        // Check if we can handle the specified MIME types.
+        // If we can - do not reroute and thus return false.
+        if (!MimeFilterUtils.requiresUnsupportedFilters(intent)) return false;
+
+        launchDocumentsUiAndFinishPicker();
+        return true;
     }
 
     private boolean isIntentReferredByDocumentsUi(Uri referrerAppUri) {
@@ -541,13 +562,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private boolean shouldPreloadSelectedItems() {
         // Only preload if the cloud media may be shown in the PhotoPicker.
-        if (!isCloudMediaIntegrationEnabled()) {
+        if (!isCloudMediaAvailable()) {
             return false;
         }
 
         final boolean isGetContent = isGetContentAction();
         final boolean isPickImages = isPickImagesAction();
-        final ConfigStore cs = mPickerViewModel.getConfigStore();
+        final ConfigStore cs = getConfigStore();
 
         if (getIntent().hasExtra(EXTRA_PRELOAD_SELECTED)) {
             if (Build.isDebuggable()
@@ -579,12 +600,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     /**
      * NOTE: this may wrongly return {@code false} if called before {@link PickerViewModel} had a
-     * chance to fetch the authority of the current {@link android.provider.CloudMediaProvider}.
-     * However, {@link PickerViewModel} initiates the "fetch" in its ctor, so this may only happen
-     * very early on in the lifecycle.
+     * chance to fetch the authority and the account of the current
+     * {@link android.provider.CloudMediaProvider}.
+     * However, this may only happen very early on in the lifecycle.
      */
-    private boolean isCloudMediaIntegrationEnabled() {
-        return mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue() != null;
+    private boolean isCloudMediaAvailable() {
+        return mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue() != null
+                && mPickerViewModel.getCloudMediaAccountNameLiveData().getValue() != null;
     }
 
     /**
@@ -635,7 +657,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         updateBottomSheetBehavior(mode);
         updateFragmentContainerViewPadding(mode);
         updateDragBarVisibility(mode);
-        updatePrivacyTextVisibility(mode);
+        updateHeaderTextVisibility(mode);
         // The bottom bar and profile button are not shown on preview, hide them in preview. We
         // handle the visibility of them in TabFragment. We don't need to make them shown in
         // non-preview page here.
@@ -776,10 +798,29 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mDragBar.setVisibility(shouldShowDragBar ? View.VISIBLE : View.GONE);
     }
 
-    private void updatePrivacyTextVisibility(@NonNull LayoutModeUtils.Mode mode) {
-        // The privacy text is only shown on the Photos tab and Albums tab
+    private void updateHeaderTextVisibility(@NonNull LayoutModeUtils.Mode mode) {
+        // The privacy text is only shown on the Photos tab and Albums tab when not in
+        // permission select mode.
         final boolean shouldShowPrivacyMessage = mode.isPhotosTabOrAlbumsTab;
-        mPrivacyText.setVisibility(shouldShowPrivacyMessage ? View.VISIBLE : View.GONE);
+
+        if (!shouldShowPrivacyMessage) {
+            mPrivacyText.setVisibility(View.GONE);
+            return;
+        }
+
+        if (mPickerViewModel.isUserSelectForApp()) {
+            mPrivacyText.setText(R.string.picker_header_permissions);
+            mPrivacyText.setTextSize(
+                    TypedValue.COMPLEX_UNIT_PX,
+                    getResources().getDimension(R.dimen.picker_user_select_header_text_size));
+        } else {
+            mPrivacyText.setText(R.string.picker_privacy_message);
+            mPrivacyText.setTextSize(
+                    TypedValue.COMPLEX_UNIT_PX,
+                    getResources().getDimension(R.dimen.picker_privacy_text_size));
+        }
+
+        mPrivacyText.setVisibility(View.VISIBLE);
     }
 
     /**
@@ -794,7 +835,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
     /**
      * Returns {@code true} if settings page is enabled.
      */
-    private boolean isSettingsScreenEnabled() {
+    private boolean shouldShowSettingsScreen() {
+        if (mPickerViewModel.shouldShowOnlyLocalFeatures()) {
+            return false;
+        }
+
         final ComponentName componentName = new ComponentName(this,
                 PhotoPickerSettingsActivity.class);
         return getPackageManager().getComponentEnabledSetting(componentName)

@@ -1,5 +1,67 @@
+# Shell utility functions for mediaprovider developers.
 # sudo apt-get install rlwrap to have a more fully featured sqlite CLI
-set -x
+set -x # enable debugging
+
+function add-media-grant () {
+# add a media grant to -p package for -id file_id
+
+  function usage() {
+
+    cat <<EOF
+
+    Usage: $(basename "$BASH_SOURCE[0]") [-i] id value [-p] package value
+
+    Adds a media grant for specified package and file._id
+
+    Available Options:
+
+    -i, --id         The files._id in mediaprovider database
+    -p, --package    Package name i.e. com.android.package
+
+EOF
+
+
+  }
+
+  # If we don't have any params, just print the documentation.
+  if [ -z "$1" ]
+  then
+
+    usage
+
+  else
+
+      # parse incoming arguments
+      while [[ "$#" -gt 0 ]]
+      do case $1 in
+        -i|--id) id="$2"
+        shift;;
+      -p|--package) packagename="$2"
+        shift;;
+      *) usage; return
+      esac
+      shift
+    done
+
+  echo "Adding media_grant for id=$id to package $packagename"
+
+  uri='content\\://media/picker/0/com.android.providers.media.photopicker/media/'
+  uriWithId="${uri}$id"
+
+  if [ -z "$id" ] || [ -z "$packagename" ]
+  then
+    usage; return
+  fi
+
+
+  adb wait-for-device
+  adb shell content call --method 'grant_media_read_for_package' \
+    --uri 'content://media' \
+    --extra 'uri':s:"$uriWithId" \
+    --extra 'android.intent.extra.PACKAGE_NAME':s:"$packagename"
+
+  fi
+}
 
 function sqlite3-pull () {
     adb root
@@ -11,8 +73,12 @@ function sqlite3-pull () {
     fi
     package=$(get-package)
 
-    rm $dir/external.db
-    rm $dir/external.db-wal
+    if [ -f "$dir/external.db" ]; then
+      rm "$dir/external.db"
+    fi
+    if [ -f "$dir/external.db-wal" ]; then
+      rm "$dir/external.db-wal"
+    fi
 
     adb pull /data/user/0/$package/databases/external.db $dir/external.db
     adb pull /data/user/0/$package/databases/external.db-wal "$dir/external.db-wal"
@@ -87,3 +153,5 @@ function get-package() {
         echo "com.android.providers.media.module"
     fi
 }
+
+set +x  # disable debugging

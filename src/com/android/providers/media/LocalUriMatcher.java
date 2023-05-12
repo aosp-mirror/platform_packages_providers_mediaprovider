@@ -77,7 +77,6 @@ class LocalUriMatcher {
     static final int PICKER_INTERNAL_MEDIA_LOCAL = 903;
     static final int PICKER_INTERNAL_ALBUMS_ALL = 904;
     static final int PICKER_INTERNAL_ALBUMS_LOCAL = 905;
-    static final int PICKER_UNRELIABLE_VOLUME = 906;
 
     // MediaProvider Command Line Interface
     static final int CLI = 100_000;
@@ -119,8 +118,6 @@ class LocalUriMatcher {
         mPublic.addURI(auth, "picker/#/#", PICKER_ID);
         // content://media/picker/<user-id>/<authority>/media/<media-id>
         mPublic.addURI(auth, "picker/#/*/media/*", PICKER_ID);
-        // content://media/picker/unreliable/<media_id>
-        mPublic.addURI(auth, "picker/unreliable/#", PICKER_UNRELIABLE_VOLUME);
 
         mPublic.addURI(auth, "cli", CLI);
 

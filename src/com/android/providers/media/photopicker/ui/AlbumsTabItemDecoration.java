@@ -47,11 +47,16 @@ public class AlbumsTabItemDecoration extends RecyclerView.ItemDecoration {
     public void getItemOffsets(Rect outRect, View view, RecyclerView parent,
             RecyclerView.State state) {
         final int adapterPosition = parent.getChildAdapterPosition(view);
+        if (adapterPosition == RecyclerView.NO_POSITION) {
+            outRect.setEmpty();
+            return;
+        }
+
         final int itemViewType = parent.getAdapter().getItemViewType(adapterPosition);
 
         // The banners don't have spacing
         if (itemViewType == ITEM_TYPE_BANNER) {
-            outRect.set(0, 0, 0, 0);
+            outRect.setEmpty();
             return;
         }
 
@@ -62,7 +67,17 @@ public class AlbumsTabItemDecoration extends RecyclerView.ItemDecoration {
         final int spanCount = layoutManager.getSpanCount();
 
         // the top gap of the album items on the first row is mSpacing
-        if (adapterPosition <= spanCount) {
+        /**
+         * {@link adapterPosition} for album items =
+         *         {@link TabAdapter#getBannerCount()} + {@link column}
+         *         + ((album item row index) * {@link spanCount}).
+         *
+         * Since {@link TabAdapter#getBannerCount()} only returns a 1 or 0,
+         * and {@link spanCount} > 1,
+         * for the first row of album items, {@link adapterPosition} <= {@link column} + 1,
+         * whereas for the further rows, {@link adapterPosition} > {@link column} + 1.
+         */
+        if (adapterPosition <= column + 1) {
             outRect.top = mSpacing;
         } else {
             outRect.top = mTopSpacing;

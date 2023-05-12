@@ -22,7 +22,6 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.PickerMediaColumns;
 
-import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
@@ -61,10 +60,17 @@ import java.util.Objects;
 public class PickerDbFacade {
     private static final String VIDEO_MIME_TYPES = "video/%";
 
+    // TODO(b/278562157): If there is a dependency on
+    //  {@link PickerSyncController#mCloudProviderLock}, always acquire
+    //  {@link PickerSyncController#mCloudProviderLock} before {@link mLock} to avoid deadlock.
+    @NonNull
     private final Object mLock = new Object();
     private final Context mContext;
     private final SQLiteDatabase mDatabase;
     private final String mLocalProvider;
+    // This is the cloud provider the database is synced with. It can be set as null to disable
+    // cloud queries when database is not in sync with the current cloud provider.
+    @Nullable
     private String mCloudProvider;
 
     public PickerDbFacade(Context context) {
@@ -125,11 +131,6 @@ public class PickerDbFacade {
     public static final String KEY_WIDTH = "width";
     @VisibleForTesting
     public static final String KEY_ORIENTATION = "orientation";
-
-    @VisibleForTesting
-    public static final String IMAGE_FILE_EXTENSION = ".jpg";
-    @VisibleForTesting
-    public static final String VIDEO_FILE_EXTENSION = ".mp4";
 
     private static final String WHERE_ID = KEY_ID + " = ?";
     private static final String WHERE_LOCAL_ID = KEY_LOCAL_ID + " = ?";
@@ -685,8 +686,8 @@ public class PickerDbFacade {
          * The {@code id} helps break ties with db rows having the same {@code dateTakenAfterMs} or
          * {@code dateTakenBeforeMs}.
          *
-         * If {@code dateTakenAfterMs} is specified, all returned items are either strictly more
-         * recent than {@code dateTakenAfterMs} or have a picker db id strictly greater than
+         * If {@code dateTakenAfterMs} is specified, all returned items are equal or more
+         * recent than {@code dateTakenAfterMs} and have a picker db id equal or greater than
          * {@code id} for ties.
          *
          * If {@code dateTakenBeforeMs} is specified, all returned items are either strictly older
@@ -762,6 +763,9 @@ public class PickerDbFacade {
 
         final String cloudProvider;
         synchronized (mLock) {
+            // If the cloud sync is in progress or the cloud provider has changed but a sync has not
+            // been completed and committed, {@link PickerDBFacade.mCloudProvider} will be
+            // {@code null}.
             cloudProvider = mCloudProvider;
         }
 
@@ -803,16 +807,24 @@ public class PickerDbFacade {
             qb.appendWhereStandalone(WHERE_CLOUD_ID);
         }
 
+        if (authority.equals(mLocalProvider)) {
+            return queryMediaIdForAppsInternal(qb, projection, selectionArgs);
+        }
+
         synchronized (mLock) {
-            if (authority.equals(mLocalProvider) || authority.equals(mCloudProvider)) {
-                return qb.query(mDatabase, getMediaStoreProjectionLocked(authority, mediaId,
-                                projection),
-                        /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
-                        /* orderBy */ null, /* limitStr */ null);
+            if (authority.equals(mCloudProvider)) {
+                return queryMediaIdForAppsInternal(qb, projection, selectionArgs);
             }
         }
 
         return null;
+    }
+
+    private Cursor queryMediaIdForAppsInternal(@NonNull SQLiteQueryBuilder qb,
+            @NonNull String[] projection, @NonNull String[] selectionArgs) {
+        return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
+                /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
+                /* orderBy */ null, /* limitStr */ null);
     }
 
     /**
@@ -838,7 +850,7 @@ public class PickerDbFacade {
             }
             addMimeTypesToQueryBuilderAndSelectionArgs(qb, selectionArgs, query.mMimeTypes);
 
-            Cursor cursor = qb.query(mDatabase, getAlbumProjection(), /* selection */ null,
+            Cursor cursor = qb.query(mDatabase, getMergedAlbumProjection(), /* selection */ null,
                     selectionArgs.toArray(new String[0]), /* groupBy */ null, /* having */ null,
                     /* orderBy */ null, /* limit */ null);
 
@@ -864,17 +876,20 @@ public class PickerDbFacade {
         return c;
     }
 
-    private String[] getAlbumProjection() {
+    private String[] getMergedAlbumProjection() {
         return new String[] {
                 "COUNT(" + KEY_ID + ") AS " + CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
                 "MAX(" + KEY_DATE_TAKEN_MS + ") AS "
                         + CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
                 String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
                         KEY_LOCAL_ID, CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID),
-                // Note that we prefer local provider over cloud provider if a media item is present
-                // locally and on cloud.
+                // Note that we prefer cloud_id over local_id here. This logic is for computing the
+                // projection and doesn't affect the filtering of results which has already been
+                // done and ensures that only is_visible=true items are returned.
+                // Here, we need to distinguish between cloud+local and local-only items to
+                // determine the correct authority.
                 String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END AS %s",
-                        KEY_LOCAL_ID, mCloudProvider, mLocalProvider, AlbumColumns.AUTHORITY)
+                        KEY_CLOUD_ID, mLocalProvider, mCloudProvider, AlbumColumns.AUTHORITY)
         };
     }
 
@@ -893,8 +908,8 @@ public class PickerDbFacade {
         // #setCloudProvider
         synchronized (mLock) {
             if (mCloudProvider == null || !Objects.equals(mCloudProvider, authority)) {
-                // If cloud provider is null or has changed from what we received from the UI,
-                // skip all cloud items in the picker db
+                // TODO(b/278086344): If cloud provider is null or has changed from what we received
+                //  from the UI, skip all cloud items in the picker db.
                 qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
             }
 
@@ -922,8 +937,7 @@ public class PickerDbFacade {
         };
     }
 
-    private String[] getMediaStoreProjectionLocked(String authority, String mediaId,
-            String[] columns) {
+    private String[] getMediaStoreProjectionLocked(String[] columns) {
         final String[] projection = new String[columns.length];
 
         for (int i = 0; i < projection.length; i++) {
@@ -963,12 +977,10 @@ public class PickerDbFacade {
                             getProjectionSimple(KEY_ORIENTATION, PickerMediaColumns.ORIENTATION);
                     break;
                 default:
-                    Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
-                    throw new IllegalArgumentException(
-                            "Unexpected picker URI projection. Uri:"
-                                    + uri
-                                    + ". Column: "
-                                    + columns[i]);
+                    projection[i] = getProjectionSimple("NULL", columns[i]);
+                    // Ignore unsupported columns; we do not throw error here to support
+                    // backward compatibility
+                    Log.w(TAG, "Unexpected Picker column: " + columns[i]);
             }
         }
 
@@ -1018,10 +1030,7 @@ public class PickerDbFacade {
         // <media-id>.<file-extension>
         // See comment in #getProjectionAuthorityLocked for why cloud_id is preferred over local_id
         final String mediaId = String.format("IFNULL(%s, %s)", KEY_CLOUD_ID, KEY_LOCAL_ID);
-        // TODO(b/195009139): Add .gif fileextension support
-        final String fileExtension =
-                String.format("CASE WHEN %s LIKE 'image/%%' THEN '%s' ELSE '%s' END",
-                        KEY_MIME_TYPE, IMAGE_FILE_EXTENSION, VIDEO_FILE_EXTENSION);
+        final String fileExtension = String.format("_GET_EXTENSION(%s)", KEY_MIME_TYPE);
 
         return mediaId + "||" + fileExtension;
     }
@@ -1225,10 +1234,13 @@ public class PickerDbFacade {
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         qb.setTables(TABLE_ALBUM_MEDIA);
 
+        // In case of local albums, local_id cannot be null.
+        // In case of cloud albums, there can be 2 types of media items:
+        // 1. Cloud-only - Only cloud_id will be populated and local_id will be null.
+        // 2. Local + Cloud - Only local_id will be populated and cloud_id will be null as showing
+        // local copy is preferred over cloud copy.
         if (isLocal) {
             qb.appendWhereStandalone(WHERE_NOT_NULL_LOCAL_ID);
-        } else {
-            qb.appendWhereStandalone(WHERE_NOT_NULL_CLOUD_ID);
         }
 
         return qb;
@@ -1315,6 +1327,14 @@ public class PickerDbFacade {
     }
 
     private static final class AddAlbumMediaOperation extends AlbumWriteOperation {
+        private static final String[] sLocalMediaProjection = new String[] {
+                KEY_DATE_TAKEN_MS,
+                KEY_SYNC_GENERATION,
+                KEY_SIZE_BYTES,
+                KEY_DURATION_MS,
+                KEY_MIME_TYPE,
+                KEY_STANDARD_MIME_TYPE_EXTENSION
+        };
 
         private AddAlbumMediaOperation(SQLiteDatabase database, boolean isLocal, String albumId) {
             super(database, isLocal, albumId);
@@ -1333,6 +1353,32 @@ public class PickerDbFacade {
 
             while (cursor.moveToNext()) {
                 ContentValues values = cursorToContentValue(cursor, isLocal, albumId);
+
+                // In case of cloud albums, cloud provider returns both local and cloud ids.
+                // We give preference to inserting media data for the local copy of an item instead
+                // of the cloud copy. Hence, if local copy is available, fetch metadata from media
+                // table and update the album_media row accordingly.
+                if (!isLocal) {
+                    final String localId = values.getAsString(KEY_LOCAL_ID);
+                    final String cloudId = values.getAsString(KEY_CLOUD_ID);
+                    if (!TextUtils.isEmpty(localId) && !TextUtils.isEmpty(cloudId)) {
+                        // Fetch local media item details from media table.
+                        try (Cursor cursorLocalMedia = getLocalMediaMetadata(localId)) {
+                            if (cursorLocalMedia != null && cursorLocalMedia.getCount() == 1) {
+                                // If local media item details are present in the media table,
+                                // update content values and remove cloud id.
+                                values.putNull(KEY_CLOUD_ID);
+                                updateContentValues(values, cursorLocalMedia);
+                            } else {
+                                // If local media item details are NOT present in the media table,
+                                // insert cloud row after removing local_id. This will only happen
+                                // when local id points to a deleted item.
+                                values.putNull(KEY_LOCAL_ID);
+                            }
+                        }
+                    }
+                }
+
                 try {
                     if (qb.insert(getDatabase(), values) > 0) {
                         counter++;
@@ -1345,6 +1391,39 @@ public class PickerDbFacade {
             }
 
             return counter;
+        }
+
+        private void updateContentValues(ContentValues values, Cursor cursor) {
+            if (cursor.moveToFirst()) {
+                for (int columnIndex = 0; columnIndex < cursor.getColumnCount(); columnIndex++) {
+                    String column = cursor.getColumnName(columnIndex);
+                    switch (column) {
+                        case KEY_DATE_TAKEN_MS:
+                        case KEY_SYNC_GENERATION:
+                        case KEY_SIZE_BYTES:
+                        case KEY_DURATION_MS:
+                        case KEY_STANDARD_MIME_TYPE_EXTENSION:
+                            values.put(column, cursor.getLong(columnIndex));
+                            break;
+                        case KEY_MIME_TYPE:
+                            values.put(column, cursor.getString(columnIndex));
+                            break;
+                        default:
+                            throw new IllegalArgumentException(
+                                    "Column " + column + " not recognized.");
+                    }
+                }
+            }
+        }
+
+        private Cursor getLocalMediaMetadata(String localId) {
+            final SQLiteQueryBuilder qb = createVisibleLocalMediaQueryBuilder();
+            final String[] selectionArgs = new String[] {localId};
+            qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
+
+            return qb.query(getDatabase(), sLocalMediaProjection, /* selection */ null,
+                    selectionArgs, /* groupBy */ null, /* having */ null,
+                    /* orderBy */ null);
         }
     }
 }

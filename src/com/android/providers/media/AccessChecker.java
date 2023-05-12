@@ -54,6 +54,7 @@ import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA_ID;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS_ID;
+import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
 import static com.android.providers.media.MediaProvider.INCLUDED_DEFAULT_DIRECTORIES;
 import static com.android.providers.media.util.DatabaseUtils.bindSelection;
 
@@ -351,6 +352,17 @@ public class AccessChecker {
         return OWNER_PACKAGE_NAME + " IN " + callingIdentity.getSharedPackagesAsString();
     }
 
+    /**
+     * Generates the where clause for a user_id media grant match.
+     *
+     * @param callingIdentity - the current caller.
+     * @return where clause to match {@link MediaGrants#PACKAGE_USER_ID_COLUMN} with user id of the
+     *         given {@code callingIdentity}
+     */
+    public static String getWhereForUserIdMatch(LocalCallingIdentity callingIdentity) {
+        return PACKAGE_USER_ID_COLUMN + "=" + callingIdentity.uid / MediaStore.PER_USER_RANGE;
+    }
+
     @VisibleForTesting
     static String getWhereForMediaTypeMatch(int mediaType) {
         return bindSelection("media_type=?", mediaType);
@@ -364,8 +376,11 @@ public class AccessChecker {
     private static String getWhereForUserSelectedMatch(
             @NonNull LocalCallingIdentity callingIdentity, String id) {
 
-        return String.format("%s IN (SELECT file_id from media_grants WHERE %s)", id,
-                getWhereForOwnerPackageMatch(callingIdentity));
+        return String.format(
+                "%s IN (SELECT file_id from media_grants WHERE %s AND %s)",
+                id,
+                getWhereForOwnerPackageMatch(callingIdentity),
+                getWhereForUserIdMatch(callingIdentity));
     }
 
     /**

@@ -26,6 +26,8 @@ import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import com.android.providers.media.photopicker.PickerSyncController;
 
 import java.util.List;
@@ -41,6 +43,7 @@ class MediaGrants {
     public static final String TAG = "MediaGrants";
     public static final String MEDIA_GRANTS_TABLE = "media_grants";
     public static final String FILE_ID_COLUMN = "file_id";
+    public static final String PACKAGE_USER_ID_COLUMN = "package_user_id";
     public static final String OWNER_PACKAGE_NAME_COLUMN =
             MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 
@@ -57,11 +60,16 @@ class MediaGrants {
     /**
      * Adds media_grants for the provided URIs for the provided package name.
      *
-     * @param packageName the package name that will receive access.
-     * @param uris list of content {@link android.net.Uri} that are recognized by media provider.
+     * @param packageName     the package name that will receive access.
+     * @param uris            list of content {@link android.net.Uri} that are recognized by
+     *                        mediaprovider.
+     * @param packageUserId   the user_id of the package
      */
-    void addMediaGrantsForPackage(String packageName, List<Uri> uris)
+    void addMediaGrantsForPackage(String packageName, List<Uri> uris, int packageUserId)
             throws IllegalArgumentException {
+
+        Objects.requireNonNull(packageName);
+        Objects.requireNonNull(uris);
 
         mExternalDatabase.runWithTransaction(
                 (db) -> {
@@ -77,6 +85,7 @@ class MediaGrants {
                         final ContentValues values = new ContentValues();
                         values.put(OWNER_PACKAGE_NAME_COLUMN, packageName);
                         values.put(FILE_ID_COLUMN, id);
+                        values.put(PACKAGE_USER_ID_COLUMN, packageUserId);
 
                         mQueryBuilder.insert(db, values);
                     }
@@ -100,28 +109,35 @@ class MediaGrants {
      * database entry in files table. Any deletion in files table will automatically delete
      * corresponding media_grants.
      *
-     * @return the number of grants removed.
+     * <p>The action is performed for only specific {@code user}.</p>
+     *
+     * @param packageName   the package name to clear media grants for.
+     * @param reason        a logged reason why the grants are being cleared.
+     * @param user          the user for which the grants need to be modified.
+     *
+     * @return              the number of grants removed.
      */
-    int removeAllMediaGrantsForPackage(String packageName) throws IllegalArgumentException {
-
+    int removeAllMediaGrantsForPackage(String packageName, String reason,
+            @NonNull Integer user)
+            throws IllegalArgumentException {
         Objects.requireNonNull(packageName);
         if (TextUtils.isEmpty(packageName)) {
             throw new IllegalArgumentException(
                     "Removing grants requires a non empty package name.");
         }
-
         return mExternalDatabase.runWithTransaction(
                 (db) -> {
                     int grantsRemoved =
                             mQueryBuilder.delete(
-                                    db,
-                                    /* selection= */ String.format(
-                                            "%s = ?", OWNER_PACKAGE_NAME_COLUMN),
-                                    /* selectionArgs= */ new String[] {packageName});
-                    Log.d(
-                            TAG,
-                            String.format(
-                                    "Removed %s media_grants for %s", grantsRemoved, packageName));
+                                    db, String.format(
+                                            "%s = ? AND %s = ?", OWNER_PACKAGE_NAME_COLUMN,
+                                            PACKAGE_USER_ID_COLUMN),
+                                    new String[]{packageName, String.valueOf(user)});
+                    Log.d(TAG,
+                            String.format("Removed %s media_grants for %s user for %s. Reason: %s",
+                                    grantsRemoved, String.valueOf(user),
+                                    packageName,
+                                    reason));
                     return grantsRemoved;
                 });
     }

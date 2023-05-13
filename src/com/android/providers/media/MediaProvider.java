@@ -599,31 +599,47 @@ public class MediaProvider extends ContentProvider {
     private final SparseArray<LocalCallingIdentity> mCachedCallingIdentityForFuse =
             new SparseArray<>();
 
-    private final OnOpChangedListener mModeListener =
-            (op, packageName) -> onModeChanged(packageName, op);
+    private final OnOpChangedListener mModeListener = new OnOpChangedListener() {
+
+        /**
+         * Callback method called as part of {@link OnOpChangedListener}.
+         * Calls {@link #onOpChanged(String, String, int)} with cached userId(s).
+         *
+         * @param packageName - package for which AppOp changed
+         * @param op - AppOp for which the mode changed.
+         */
+        public void onOpChanged(String op, String packageName) {
+            // In case no userId is supplied, we drop grants for all cached users.
+            List<UserHandle> userHandles = mUserCache.getUsersCached();
+            for (UserHandle user : userHandles) {
+                onOpChanged(op, packageName, user.getIdentifier());
+            }
+        }
+
+        /**
+         * Callback method called as part of {@link OnOpChangedListener}.
+         * When an AppOp is written -
+         * 1. We invalidate saved LocalCallingIdentity object for the package. This
+         *    is needed to ensure we read the new permission state
+         * 2. If the AppOp change was on the read media appOps, we clear any stale
+         *    grants,
+         *
+         * @param packageName - package for which AppOp changed
+         * @param op - AppOp for which the mode changed.
+         * @param userId - userSpace where the package is located
+         */
+        public void onOpChanged(String op, String packageName, int userId) {
+            invalidateLocalCallingIdentityCache(packageName, "op " + op /* reason */);
+            removeMediaGrantsOnModeChange(packageName, op, userId);
+        }
+    };
 
     /**
-     * Callback method called as part of {@link OnOpChangedListener}.
-     * When an AppOp is written -
-     * 1. We invalidate saved LocalCallingIdentity object for the package. This
-     *    is needed to ensure we read the new permission state
-     * 2. If the AppOp change was on the read media appOps, we clear any stale
-     *    grants,
-     *
-     * @param packageName - package for which AppOp changed
-     * @param op - AppOp for which the mode changed.
-     */
-    private void onModeChanged(String packageName, String op) {
-        invalidateLocalCallingIdentityCache(packageName, "op " + op /* reason */);
-        removeMediaGrantsOnModeChange(packageName, op);
-    }
-
-    /**
-     * Removes media_grants for the given {@code packageName} if the AppOp
+     * Removes media_grants for the given {@code packageName} and {@code userId} if the AppOp
      * change resulted in a state of "Allow All" or "Deny All" for read
      * permission.
      */
-    private void removeMediaGrantsOnModeChange(String packageName, String op) {
+    private void removeMediaGrantsOnModeChange(String packageName, String op, int userId) {
         // b/265963379: onModeChanged is always called with op=OPSTR_READ_EXTERNAL_STORAGE even if
         // the appOp mode changed for other read media app ops. Handle all read media app op changes
         // until the bug is fixed.
@@ -632,22 +648,20 @@ public class MediaProvider extends ContentProvider {
         }
         Context context = getContext();
         PackageManager packageManager = context.getPackageManager();
-        List<UserHandle> userHandles = mUserCache.getUsersCached();
-        for (UserHandle user : userHandles) {
-            try {
-                int uid = packageManager.getPackageUid(packageName, user.getIdentifier());
-                if (!LocalCallingIdentity.fromExternal(context, mUserCache, uid)
-                        .checkCallingPermissionUserSelected()) {
-                    // If for any user profile containing the package, the UserSelected permission
-                    // has been removed then remove all media grants for that package.
-                    // Revoke media grants if permission state is not "Select flow".
-                    mMediaGrants.removeAllMediaGrantsForPackage(packageName, "op "
-                            + op /* reason */, user.getIdentifier());
-                }
-            } catch (NameNotFoundException e) {
-                Log.d(TAG, "Unable to resolve uid. Ignoring the AppOp change for "
-                        + packageName + ", User : " + user.getIdentifier());
+        try {
+            int uid = packageManager.getPackageUidAsUser(packageName,
+                    PackageManager.PackageInfoFlags.of(0), userId);
+            if (!LocalCallingIdentity.fromExternal(context, mUserCache, uid)
+                    .checkCallingPermissionUserSelected()) {
+                // Revoke media grants if permission state is not "Select flow".
+                mMediaGrants.removeAllMediaGrantsForPackage(
+                        packageName,
+                        /*reason=*/ "Mode changed: " + op,
+                        userId);
             }
+        } catch (NameNotFoundException e) {
+            Log.d(TAG, "Unable to resolve uid. Ignoring the AppOp change for "
+                    + packageName + ", User : " + userId);
         }
     }
 

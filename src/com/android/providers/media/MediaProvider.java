@@ -51,7 +51,7 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
-import static android.provider.MediaStore.READ_BACKED_UP_FILE_PATHS;
+import static android.provider.MediaStore.READ_BACKUP;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
@@ -60,7 +60,6 @@ import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageM
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
-import static com.android.providers.media.DatabaseBackupAndRecovery.LEVEL_DB_READ_LIMIT;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
@@ -288,6 +287,7 @@ import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
 import com.android.providers.media.scan.ModernMediaScanner;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -6733,30 +6733,21 @@ public class MediaProvider extends ContentProvider {
                 backupDatabases(null);
                 return new Bundle();
             }
-            case MediaStore.READ_BACKED_UP_FILE_PATHS: {
+            case READ_BACKUP: {
                 getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
-                        "Permission missing to call READ_BACKED_UP_FILE_PATHS by "
-                                + "uid:" + Binder.getCallingUid());
-                List<String> cumulatedValues = new ArrayList<String>();
-                String[] backedUpFilePaths;
-                String lastReadValue = "";
-                while (true) {
-                    backedUpFilePaths = mDatabaseBackupAndRecovery.readBackedUpFilePaths(arg,
-                            lastReadValue, LEVEL_DB_READ_LIMIT);
-                    if (backedUpFilePaths.length <= 0) {
-                        break;
-                    }
-                    cumulatedValues.addAll(Arrays.asList(backedUpFilePaths));
-                    if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
-                        break;
-                    }
-                    lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
-                }
-
+                        "Permission missing to call READ_BACKUP by uid:" + Binder.getCallingUid());
                 Bundle bundle = new Bundle();
-                Object[] values =  cumulatedValues.toArray();
-                String[] resultArray =  Arrays.copyOf(values, values.length, String[].class);
-                bundle.putStringArray(READ_BACKED_UP_FILE_PATHS, resultArray);
+                Optional<BackupIdRow> backupIdRowOptional =
+                        mDatabaseBackupAndRecovery.readDataFromBackup(arg, extras.getString(
+                                FileColumns.DATA));
+                String data = null;
+                try {
+                    data = backupIdRowOptional.isPresent() ? BackupIdRow.serialize(
+                            backupIdRowOptional.get()) : null;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                bundle.putString(READ_BACKUP, data);
                 return bundle;
             }
             case MediaStore.DELETE_BACKED_UP_FILE_PATHS:

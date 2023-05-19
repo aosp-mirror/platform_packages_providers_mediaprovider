@@ -16,102 +16,184 @@
 
 package com.android.providers.media.stableuris.job;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
+import android.os.Environment;
+import android.os.SystemClock;
+import android.os.UserHandle;
 import android.provider.DeviceConfig;
 import android.provider.MediaStore;
-import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
+@SdkSuppress(minSdkVersion = 31, codeName = "S")
 public class StableUriIdleMaintenanceServiceTest {
     private static final String TAG = "StableUriIdleMaintenanceServiceTest";
 
     private static final String INTERNAL_BACKUP_NAME = "leveldb-internal";
 
-    private boolean mInitialDeviceConfigValue = false;
+    private static final String EXTERNAL_BACKUP_NAME = "leveldb-external_primary";
 
-    @Before
-    public void setUp() throws IOException {
-        InstrumentationRegistry.getInstrumentation().getUiAutomation()
-                .adoptShellPermissionIdentity(android.Manifest.permission.LOG_COMPAT_CHANGE,
-                        android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
-                        android.Manifest.permission.READ_DEVICE_CONFIG,
-                        android.Manifest.permission.WRITE_DEVICE_CONFIG,
+    private static final String OWNERSHIP_BACKUP_NAME = "leveldb-ownership";
+
+    private static boolean sInitialDeviceConfigValueForInternal = false;
+
+    private static boolean sInitialDeviceConfigValueForExternal = false;
+
+    @BeforeClass
+    public static void setUpClass() {
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation()
+                .adoptShellPermissionIdentity(
+                        Manifest.permission.READ_DEVICE_CONFIG,
+                        Manifest.permission.WRITE_DEVICE_CONFIG,
                         Manifest.permission.WRITE_MEDIA_STORAGE);
+        SystemClock.sleep(200);
+
         // Read existing value of the flag
-        mInitialDeviceConfigValue = Boolean.parseBoolean(
+        sInitialDeviceConfigValueForInternal = Boolean.parseBoolean(
                 DeviceConfig.getProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                         ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL));
         DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL, Boolean.TRUE.toString(),
                 false);
+        sInitialDeviceConfigValueForExternal = Boolean.parseBoolean(
+                DeviceConfig.getProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                        ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL));
+        DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL, Boolean.TRUE.toString(),
+                false);
     }
 
-    @After
-    public void tearDown() throws IOException {
+    @AfterClass
+    public static void tearDownClass() throws IOException {
         // Restore previous value of the flag
         DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL,
-                String.valueOf(mInitialDeviceConfigValue), false);
+                String.valueOf(sInitialDeviceConfigValueForInternal), false);
+        DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL,
+                String.valueOf(sInitialDeviceConfigValueForExternal), false);
+        SystemClock.sleep(2000);
         InstrumentationRegistry.getInstrumentation()
                 .getUiAutomation().dropShellPermissionIdentity();
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 31, codeName = "S")
-    public void testDataMigrationForInternalVolume() {
+    public void testDataMigrationForInternalVolume() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
         final ContentResolver resolver = context.getContentResolver();
-        Set<String> internalFiles = new HashSet<>();
+        Set<String> internalFilePaths = new HashSet<>();
+        Map<String, Long> pathToIdMap = new HashMap<>();
         MediaStore.waitForIdle(resolver);
         try (Cursor c = resolver.query(MediaStore.Files.getContentUri(MediaStore.VOLUME_INTERNAL),
-                new String[]{MediaStore.Files.FileColumns.DATA}, null, null)) {
+                new String[]{MediaStore.Files.FileColumns.DATA, MediaStore.Files.FileColumns._ID},
+                null, null)) {
             assertNotNull(c);
             while (c.moveToNext()) {
                 String path = c.getString(0);
-                internalFiles.add(path);
+                internalFilePaths.add(path);
+                pathToIdMap.put(path, c.getLong(1));
             }
         }
-        assertFalse(internalFiles.isEmpty());
-        // Delete any existing backup to confirm that backup created is by idle maintenance job
-        MediaStore.deleteBackedUpFilePaths(resolver, MediaStore.VOLUME_INTERNAL);
+        assertFalse(internalFilePaths.isEmpty());
 
         MediaStore.waitForIdle(resolver);
         // Creates backup
         MediaStore.runIdleMaintenanceForStableUris(resolver);
 
-        List<String> backedUpFiles = Arrays.asList(MediaStore.getBackupFiles(resolver));
-        assertTrue(backedUpFiles.contains(INTERNAL_BACKUP_NAME));
-        // Read all backed up paths
-        List<String> backedUpPaths = Arrays.asList(
-                MediaStore.readBackedUpFilePaths(resolver, MediaStore.VOLUME_INTERNAL));
-        Log.i(TAG, "BackedUpPaths count:" + backedUpPaths.size());
+        verifyLevelDbPresence(resolver, INTERNAL_BACKUP_NAME);
         // Verify that all internal files are backed up
-        for (String path : internalFiles) {
-            assertTrue(backedUpPaths.contains(path));
+        for (String path : internalFilePaths) {
+            BackupIdRow backupIdRow = BackupIdRow.deserialize(MediaStore.readBackup(resolver,
+                    MediaStore.VOLUME_EXTERNAL_PRIMARY, path));
+            assertNotNull(backupIdRow);
+            assertEquals(pathToIdMap.get(path).longValue(), backupIdRow.getId());
+            assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());
         }
+    }
+
+    @Test
+    public void testDataMigrationForExternalVolume() throws Exception {
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final ContentResolver resolver = context.getContentResolver();
+        Set<String> newFilePaths = new HashSet<String>();
+        Map<String, Long> pathToIdMap = new HashMap<>();
+        MediaStore.waitForIdle(resolver);
+
+        try {
+            for (int i = 0; i < 10; i++) {
+                final File dir =
+                        Environment.getExternalStoragePublicDirectory(
+                                Environment.DIRECTORY_DOWNLOADS);
+                final File file = new File(dir, System.nanoTime() + ".png");
+
+                // Write 1 byte because 0 byte files are not valid in the db
+                try (FileOutputStream fos = new FileOutputStream(file)) {
+                    fos.write(1);
+                }
+
+                Uri uri = MediaStore.scanFile(resolver, file);
+                long id = ContentUris.parseId(uri);
+                newFilePaths.add(file.getAbsolutePath());
+                pathToIdMap.put(file.getAbsolutePath(), id);
+            }
+
+            assertFalse(newFilePaths.isEmpty());
+            MediaStore.waitForIdle(resolver);
+            // Creates backup
+            MediaStore.runIdleMaintenanceForStableUris(resolver);
+
+            verifyLevelDbPresence(resolver, EXTERNAL_BACKUP_NAME);
+            verifyLevelDbPresence(resolver, OWNERSHIP_BACKUP_NAME);
+            // Verify that all internal files are backed up
+            for (String filePath : newFilePaths) {
+                BackupIdRow backupIdRow = BackupIdRow.deserialize(
+                        MediaStore.readBackup(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY,
+                                filePath));
+                assertNotNull(backupIdRow);
+                assertEquals(pathToIdMap.get(filePath).longValue(), backupIdRow.getId());
+                assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());
+            }
+        } finally {
+            for (String path : newFilePaths) {
+                new File(path).delete();
+            }
+        }
+    }
+
+    private void verifyLevelDbPresence(ContentResolver resolver, String backupName) {
+        List<String> backedUpFiles = Arrays.asList(MediaStore.getBackupFiles(resolver));
+        assertTrue(backedUpFiles.contains(backupName));
     }
 }

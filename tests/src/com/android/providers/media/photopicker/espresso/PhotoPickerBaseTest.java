@@ -86,6 +86,11 @@ public class PhotoPickerBaseTest {
      */
     protected static final int VIDEO_POSITION = 3;
 
+    /**
+     * The default position of a banner in the Photos & Albums tab recycler view adapters
+     */
+    static final int DEFAULT_BANNER_POSITION = 0;
+
 
     private static final Intent sSingleSelectIntent;
     static {

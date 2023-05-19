@@ -357,7 +357,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_INSERT", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":", 10);
+                final String[] split = arg.split(":", 11);
                 final String volumeName = split[0];
                 final long id = Long.parseLong(split[1]);
                 final int mediaType = Integer.parseInt(split[2]);
@@ -367,7 +367,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final boolean isFavorite = Integer.parseInt(split[6]) != 0;
                 final int userId = Integer.parseInt(split[7]);
                 final String dateExpires = split[8];
-                final String path = split[9];
+                final String ownerPackageName = split[9];
+                final String path = split[10];
 
                 FileRow insertedRow = FileRow.newBuilder(id)
                         .setVolumeName(volumeName)
@@ -378,6 +379,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         .setIsFavorite(isFavorite)
                         .setUserId(userId)
                         .setDateExpires(dateExpires)
+                        .setOwnerPackageName(ownerPackageName)
                         .setPath(path)
                         .build();
                 Trace.beginSection(traceSectionName("_INSERT"));
@@ -549,8 +551,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private void tryRecoverDatabase(SQLiteDatabase db) {
         String volumeName =
-                isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
-        if (!isInternal() || !mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
+                isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL_PRIMARY;
+        if (!mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
             return;
         }
 
@@ -563,8 +565,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // Trigger database backup to external storage because
                 // StableUrisIdleMaintenanceService will be attempted to run only once in 7days.
                 // Any rollback before that will not recover DB rows.
-                BackgroundThread.getExecutor().execute(
-                        () -> mDatabaseBackupAndRecovery.backupInternalDatabase(this, null));
+                if (isInternal()) {
+                    BackgroundThread.getExecutor().execute(
+                            () -> mDatabaseBackupAndRecovery.backupInternalDatabase(this, null));
+                }
                 // Set next row id in External Storage to handle rollback in future.
                 backupNextRowId(NEXT_ROW_ID_DEFAULT_BILLION_VALUE);
                 updateSessionIdInDatabaseAndExternalStorage(db);
@@ -592,7 +596,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             updateNextRowIdInDatabaseAndExternalStorage(db);
             mIsRecovering.set(false);
             updateSessionIdInDatabaseAndExternalStorage(db);
-            Log.d(TAG, "Recovery completed for " + mName);
         }
     }
 
@@ -618,6 +621,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         if (!isNextRowIdBackupEnabled()) {
             Log.d(TAG, "Skipping row id recovery as backup is not enabled.");
+            return;
+        }
+
+        if (mDatabaseBackupAndRecovery.isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            // Row id change would have been taken care by tryRecoverDatabase method
             return;
         }
 
@@ -1582,7 +1590,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 "new.volume_name||':'||new._id||':'||new.media_type||':'||new"
                         + ".is_download||':'||new.is_pending||':'||new.is_trashed||':'||new"
                         + ".is_favorite||':'||new._user_id||':'||ifnull(new.date_expires,'null')"
-                        + "||':'||new._data";
+                        + "||':'||ifnull(new.owner_package_name,'null')||':'||new._data";
         final String updateArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
@@ -1957,7 +1965,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1405;
+    static final int VERSION_U = 1406;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2168,6 +2176,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 if (isExternal()) {
                     updateAddMediaGrantsTable(db);
                 }
+            }
+
+            if (fromVersion < 1406) {
+                // Empty version bump to ensure triggers are recreated
             }
 
             // If this is the legacy database, it's not worth recomputing data

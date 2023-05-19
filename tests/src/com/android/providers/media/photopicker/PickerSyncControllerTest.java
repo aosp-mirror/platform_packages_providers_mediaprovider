@@ -34,17 +34,19 @@ import android.os.storage.StorageManager;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.util.Pair;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
-import com.android.providers.media.R;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,8 +58,6 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerSyncControllerTest {
-    private static final String TAG = "PickerSyncControllerTest";
-
     private static final String LOCAL_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker.tests.local";
     private static final String CLOUD_PRIMARY_PROVIDER_AUTHORITY =
@@ -102,7 +102,6 @@ public class PickerSyncControllerTest {
 
     private Context mContext;
     private TestConfigStore mConfigStore;
-    private PickerDatabaseHelper mDbHelper;
     private PickerDbFacade mFacade;
     private PickerSyncController mController;
 
@@ -122,12 +121,11 @@ public class PickerSyncControllerTest {
         final File dbPath = mContext.getDatabasePath(DB_NAME);
         dbPath.delete();
 
-        mDbHelper = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
-        mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
+        PickerDatabaseHelper dbHelper = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
+        mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, dbHelper);
 
         mConfigStore = new TestConfigStore();
-        mConfigStore.setAllowedCloudProviders(
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY, CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
         mConfigStore.setPickerSyncDelayMs(0);
 
         mController = new PickerSyncController(
@@ -136,6 +134,22 @@ public class PickerSyncControllerTest {
         // Set cloud provider to null to avoid trying to sync it during other tests
         // that might be using an IsolatedContext
         setCloudProviderAndSyncAllMedia(null);
+
+        // The above method sets the cloud provider state as UNSET.
+        // Set the state as NOT_SET instead by clearing the persisted cloud provider authority.
+        mController.clearPersistedCloudProviderAuthority();
+    }
+
+    @After
+    public void tearDown() {
+        if (mConfigStore != null) {
+            mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
+        }
+        if (mController != null) {
+            // Reset the cloud provider state to default
+            mController.setCloudProvider(/* authority */ null);
+            mController.clearPersistedCloudProviderAuthority();
+        }
     }
 
     @Test
@@ -643,32 +657,17 @@ public class PickerSyncControllerTest {
         final CloudProviderInfo secondaryInfo = new CloudProviderInfo(
                 CLOUD_SECONDARY_PROVIDER_AUTHORITY, PACKAGE_NAME, Process.myUid());
 
-        // 1. Allow list is subset of existing providers list
-        mConfigStore.setAllowedCloudProviders(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
-        PickerSyncController controller = new PickerSyncController(
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
+        final PickerSyncController controller = new PickerSyncController(
                 mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
-        List<CloudProviderInfo> providers = controller.getAvailableCloudProviders();
-        assertThat(providers).containsExactly(primaryInfo);
-
-        mConfigStore.setAllowedCloudProviders(
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY, CLOUD_SECONDARY_PROVIDER_AUTHORITY);
-        controller = new PickerSyncController(
-                mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
-        providers = controller.getAvailableCloudProviders();
-        assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
-
-        mConfigStore.setAllowedCloudProviders(
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY,
-                CLOUD_SECONDARY_PROVIDER_AUTHORITY,
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY + "invalid");
-        controller = new PickerSyncController(
-                mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
-        providers = controller.getAvailableCloudProviders();
+        final List<CloudProviderInfo> providers = controller.getAvailableCloudProviders();
         assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
     }
 
     @Test
-    public void testNotifyPackageRemoval() {
+    public void testNotifyPackageRemoval_NoDefaultCloudProviderPackage() {
+        mConfigStore.clearDefaultCloudProviderPackage();
+
         assertThat(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
         assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -679,19 +678,29 @@ public class PickerSyncControllerTest {
         // Assert passing the current cloud provider package name clears the current cloud provider
         mController.notifyPackageRemoval(PACKAGE_NAME);
         assertThat(mController.getCloudProvider()).isNull();
+
+        // Assert that the cloud provider state was not UNSET after the last cloud provider removal
+        mConfigStore.setDefaultCloudProviderPackage(PACKAGE_NAME);
+
+        mController =
+                new PickerSyncController(mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+
+        assertThat(mController.getCurrentCloudProviderInfo().packageName).isEqualTo(PACKAGE_NAME);
     }
+
+    // TODO(b/278687585): Add test for PickerSyncController#notifyPackageRemoval with a different
+    //  non-null default cloud provider package
 
     @Test
     public void testSelectDefaultCloudProvider_NoDefaultAuthority() {
-        PickerSyncController controller = createControllerWithDefaultProvider("");
+        PickerSyncController controller = createControllerWithDefaultProvider(null);
         assertThat(controller.getCloudProvider()).isNull();
     }
 
     @Test
     public void testSelectDefaultCloudProvider_defaultAuthoritySet() {
-        PickerSyncController controller = createControllerWithDefaultProvider(
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY);
-        assertThat(controller.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        PickerSyncController controller = createControllerWithDefaultProvider(PACKAGE_NAME);
+        assertThat(controller.getCurrentCloudProviderInfo().packageName).isEqualTo(PACKAGE_NAME);
     }
 
     @Test
@@ -716,7 +725,7 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testNotifyMediaEvent() {
-        mConfigStore.clearAllowedCloudProviders();
+        mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
         mConfigStore.setPickerSyncDelayMs(SYNC_DELAY_MS);
 
         final PickerSyncController controller = new PickerSyncController(
@@ -741,7 +750,7 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testSyncAfterDbCreate() {
-        mConfigStore.clearAllowedCloudProviders();
+        mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
         mConfigStore.setPickerSyncDelayMs(0);
 
         final PickerDatabaseHelper dbHelper = new PickerDatabaseHelper(
@@ -787,7 +796,7 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testSyncAfterDbUpgrade() {
-        mConfigStore.clearAllowedCloudProviders();
+        mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
         mConfigStore.setPickerSyncDelayMs(SYNC_DELAY_MS);
 
         PickerDatabaseHelper dbHelperV1 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
@@ -829,7 +838,7 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testSyncAfterDbDowngrade() {
-        mConfigStore.clearAllowedCloudProviders();
+        mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
         mConfigStore.setPickerSyncDelayMs(SYNC_DELAY_MS);
 
         PickerDatabaseHelper dbHelperV2 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_2);
@@ -981,7 +990,7 @@ public class PickerSyncControllerTest {
 
     @Test
     public void testUserPrefsAfterDbUpgrade() {
-        mConfigStore.setAllowedCloudProviders(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
         mConfigStore.setPickerSyncDelayMs(SYNC_DELAY_MS);
 
         PickerDatabaseHelper dbHelperV1 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
@@ -1002,6 +1011,41 @@ public class PickerSyncControllerTest {
                 mContext, facade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
 
         assertThat(controller.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+    }
+
+    @Test
+    public void testCloudProviderUnset() {
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
+        mConfigStore.setDefaultCloudProviderPackage(PACKAGE_NAME);
+
+        // Test the default NOT_SET state
+        mController =
+                new PickerSyncController(mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+
+        assertThat(mController.getCurrentCloudProviderInfo().packageName).isEqualTo(PACKAGE_NAME);
+
+        // Set and test the UNSET state
+        mController.setCloudProvider(/* authority */ null);
+
+        mController =
+                new PickerSyncController(mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+
+        assertThat(mController.getCloudProvider()).isNull();
+
+        // Set and test the SET state
+        mController.setCloudProvider(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+
+        mController =
+                new PickerSyncController(mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+
+        assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+    }
+
+    @Test
+    public void testAvailableCloudProviders_CloudFeatureDisabled() {
+        assertThat(mController.getAvailableCloudProviders()).isNotEmpty();
+        mConfigStore.disableCloudMediaFeature();
+        assertThat(mController.getAvailableCloudProviders()).isEmpty();
     }
 
     private static void waitForIdle() {
@@ -1064,7 +1108,8 @@ public class PickerSyncControllerTest {
         }
     }
 
-    private PickerSyncController createControllerWithDefaultProvider(String defaultProvider) {
+    private @NonNull PickerSyncController createControllerWithDefaultProvider(
+            @Nullable String defaultProviderPackage) {
         Context mockContext = mock(Context.class);
         Resources mockResources = mock(Resources.class);
 
@@ -1074,14 +1119,14 @@ public class PickerSyncControllerTest {
                 mContext.getSystemServiceName(StorageManager.class));
         when(mockContext.getSystemService(StorageManager.class)).thenReturn(
                 mContext.getSystemService(StorageManager.class));
-        when(mockContext.getSharedPreferences(anyString(), anyInt())).thenAnswer(i -> {
-            return mContext.getSharedPreferences((String)i.getArgument(0), (int)i.getArgument(1));
-        });
-        when(mockResources.getString(R.string.config_default_cloud_provider_authority))
-                .thenReturn(defaultProvider);
+        when(mockContext.getSharedPreferences(anyString(), anyInt())).thenAnswer(
+                i -> mContext.getSharedPreferences((String) i.getArgument(0), i.getArgument(1)));
 
-        mConfigStore.setAllowedCloudProviders(
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY, CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        if (defaultProviderPackage != null) {
+            mConfigStore.setDefaultCloudProviderPackage(defaultProviderPackage);
+        } else {
+            mConfigStore.clearDefaultCloudProviderPackage();
+        }
         mConfigStore.setPickerSyncDelayMs(SYNC_DELAY_MS);
 
         return new PickerSyncController(

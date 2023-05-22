@@ -35,6 +35,7 @@ import androidx.core.util.Supplier;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.StringUtils;
 
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -210,6 +211,34 @@ public interface ConfigStore {
      * Add a listener for changes.
      */
     void addOnChangeListener(@NonNull Executor executor, @NonNull Runnable listener);
+
+    /**
+     * Print the {@link ConfigStore} state into the given stream.
+     */
+    default void dump(PrintWriter writer) {
+        writer.println("Config store state:");
+        writer.println("  isCloudMediaInPhotoPickerEnabled=" + isCloudMediaInPhotoPickerEnabled());
+        writer.println("  defaultCloudProviderPackage=" + getDefaultCloudProviderPackage());
+        writer.println("  allowedCloudProviderPackages=" + getAllowedCloudProviderPackages());
+        writer.println("  shouldEnforceCloudProviderAllowlist="
+                + shouldEnforceCloudProviderAllowlist());
+        writer.println("  pickerSyncDelayMs=" + getPickerSyncDelayMs());
+        writer.println("  shouldPickerPreloadForGetContent=" + shouldPickerPreloadForGetContent());
+        writer.println("  shouldPickerPreloadForPickImages=" + shouldPickerPreloadForPickImages());
+        writer.println("  shouldPickerRespectPreloadArgumentForPickImages="
+                + shouldPickerRespectPreloadArgumentForPickImages());
+        writer.println("  isGetContentTakeOverEnabled=" + isGetContentTakeOverEnabled());
+        writer.println("  isUserSelectForAppEnabled=" + isUserSelectForAppEnabled());
+        writer.println("  isStableUrisForInternalVolumeEnabled="
+                + isStableUrisForInternalVolumeEnabled());
+        writer.println("  isStableUrisForExternalVolumeEnabled="
+                + isStableUrisForExternalVolumeEnabled());
+        writer.println("  isTranscodeEnabled=" + isTranscodeEnabled());
+        writer.println("  shouldTranscodeDefault=" + shouldTranscodeDefault());
+        writer.println("  transcodeMaxDurationMs=" + getTranscodeMaxDurationMs());
+        writer.println("  transcodeCompatManifest=" + getTranscodeCompatManifest());
+        writer.println("  transcodeCompatStale=" + getTranscodeCompatStale());
+    }
 
     /**
      * Implementation of the {@link ConfigStore} that reads "real" configs from

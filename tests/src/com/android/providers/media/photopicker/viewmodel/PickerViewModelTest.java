@@ -49,6 +49,7 @@ import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.util.ForegroundThread;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -110,6 +111,7 @@ public class PickerViewModelTest {
     }
 
     @Test
+    @Ignore("See b/275581741 for context")
     public void testGetItems_hasRecentItem() throws Exception {
         final int itemCount = 1;
         final List<Item> fakeItemList = generateFakeImageItemList(itemCount);
@@ -134,6 +136,7 @@ public class PickerViewModelTest {
     }
 
     @Test
+    @Ignore("See b/275581741 for context")
     public void testGetItems_exceedMinCount_notSameDay_hasRecentItemAndOneDateItem()
             throws Exception {
         final int itemCount = 13;

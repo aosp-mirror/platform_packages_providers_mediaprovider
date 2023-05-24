@@ -62,6 +62,7 @@ import com.android.providers.media.photopicker.util.CloudProviderUtils;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 import com.android.providers.media.util.ForegroundThread;
 
+import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
@@ -1142,5 +1143,24 @@ public class PickerSyncController {
 
     private static boolean isCloudProviderUnset(@Nullable String lastProviderAuthority) {
         return Objects.equals(lastProviderAuthority, PREFS_VALUE_CLOUD_PROVIDER_UNSET);
+    }
+
+    /**
+     * Print the {@link PickerSyncController} state into the given stream.
+     */
+    public void dump(PrintWriter writer) {
+        writer.println("Picker sync controller state:");
+
+        writer.println("  mLocalProvider=" + getLocalProvider());
+        writer.println("  mCloudProviderInfo=" + getCurrentCloudProviderInfo());
+        writer.println("  allAvailableCloudProviders="
+                + CloudProviderUtils.getAllAvailableCloudProviders(mContext, mConfigStore));
+
+        writer.println("  cachedAuthority="
+                + mUserPrefs.getString(PREFS_KEY_CLOUD_PROVIDER_AUTHORITY, /* defValue */ null));
+        writer.println("  cachedLocalMediaCollectionInfo="
+                + getCachedMediaCollectionInfo(/* isLocal */ true));
+        writer.println("  cachedCloudMediaCollectionInfo="
+                + getCachedMediaCollectionInfo(/* isLocal */ false));
     }
 }

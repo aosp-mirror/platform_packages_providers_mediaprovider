@@ -48,6 +48,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -1425,5 +1426,14 @@ public class PickerDbFacade {
                     selectionArgs, /* groupBy */ null, /* having */ null,
                     /* orderBy */ null);
         }
+    }
+
+    /**
+     * Print the {@link PickerDbFacade} state into the given stream.
+     */
+    public void dump(PrintWriter writer) {
+        writer.println("Picker db facade state:");
+        writer.println("  mLocalProvider=" + getLocalProvider());
+        writer.println("  mCloudProvider=" + getCloudProvider());
     }
 }

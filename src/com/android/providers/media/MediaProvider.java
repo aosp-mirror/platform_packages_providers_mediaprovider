@@ -10913,6 +10913,15 @@ public class MediaProvider extends ContentProvider {
         mTranscodeHelper.dump(writer);
         writer.println();
 
+        mConfigStore.dump(writer);
+        writer.println();
+
+        mPickerDbFacade.dump(writer);
+        writer.println();
+
+        mPickerSyncController.dump(writer);
+        writer.println();
+
         dumpAccessLogs(writer);
         writer.println();
 

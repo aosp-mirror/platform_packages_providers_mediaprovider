@@ -308,9 +308,7 @@ public abstract class TabFragment extends Fragment {
 
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
 
-        mPickerViewModel.updateItems();
-        mPickerViewModel.updateCategories();
-        mPickerViewModel.setBannersForCurrentUser();
+        mPickerViewModel.onUserSwitchedProfile();
     }
 
     private void updateProfileButtonContent(boolean isManagedUserSelected) {
@@ -446,21 +444,70 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setLayoutManager(layoutManager);
     }
 
-    protected final TabAdapter.OnBannerClickListener mOnChooseAppBannerClickListener =
-            new TabAdapter.OnBannerClickListener() {
-                @Override
-                public void onActionButtonClick() {
-                    dismissBanner();
-                    getPickerActivity().startSettingsActivity();
-                }
+    private abstract class OnBannerEventListener implements TabAdapter.OnBannerEventListener {
+        @Override
+        public void onActionButtonClick() {
+            dismissBanner();
+            getPickerActivity().startSettingsActivity();
+        }
 
-                @Override
-                public void onDismissButtonClick() {
-                    dismissBanner();
-                }
+        @Override
+        public void onDismissButtonClick() {
+            dismissBanner();
+        }
 
-                private void dismissBanner() {
+        @Override
+        public void onBannerAdded() {
+            // Should scroll to the banner only if the first completely visible item is the one
+            // just below it. The possible adapter item positions of such an item are 0 and 1.
+            // During onViewCreated, before restoring the state, the first visible item position
+            // is -1, and we should not scroll to position 0 in such cases, else the previously
+            // saved recycler view position may get overridden.
+            int firstItemPosition = -1;
+
+            final RecyclerView.LayoutManager layoutManager = mRecyclerView.getLayoutManager();
+            if (layoutManager instanceof GridLayoutManager) {
+                firstItemPosition = ((GridLayoutManager) layoutManager)
+                        .findFirstCompletelyVisibleItemPosition();
+            }
+
+            if (firstItemPosition == 0 || firstItemPosition == 1) {
+                mRecyclerView.scrollToPosition(/* position */ 0);
+            }
+        }
+
+        abstract void dismissBanner();
+    }
+
+    protected final OnBannerEventListener mOnChooseAppBannerEventListener =
+            new OnBannerEventListener() {
+                @Override
+                void dismissBanner() {
                     mPickerViewModel.onUserDismissedChooseAppBanner();
+                }
+            };
+
+    protected final OnBannerEventListener mOnCloudMediaAvailableBannerEventListener =
+            new OnBannerEventListener() {
+                @Override
+                void dismissBanner() {
+                    mPickerViewModel.onUserDismissedCloudMediaAvailableBanner();
+                }
+            };
+
+    protected final OnBannerEventListener mOnAccountUpdatedBannerEventListener =
+            new OnBannerEventListener() {
+                @Override
+                void dismissBanner() {
+                    mPickerViewModel.onUserDismissedAccountUpdatedBanner();
+                }
+            };
+
+    protected final OnBannerEventListener mOnChooseAccountBannerEventListener =
+            new OnBannerEventListener() {
+                @Override
+                void dismissBanner() {
+                    mPickerViewModel.onUserDismissedChooseAccountBanner();
                 }
             };
 }

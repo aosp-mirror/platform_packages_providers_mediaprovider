@@ -745,6 +745,9 @@ public final class MediaStore {
      * {@link MediaStore#getPickImagesMaxLimit}, otherwise
      * {@link Activity#RESULT_CANCELED} is returned.
      * <p>
+     * Callers may use {@link Intent#EXTRA_LOCAL_ONLY} to limit content
+     * selection to local data.
+     * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
      * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
      * expose a limited set of read-only operations. Specifically, picker URIs
@@ -4337,20 +4340,21 @@ public final class MediaStore {
     }
 
     /** {@hide} */
+    public static boolean isKnownVolume(@NonNull String volumeName) {
+        if (VOLUME_INTERNAL.equals(volumeName)) return true;
+        if (VOLUME_EXTERNAL.equals(volumeName)) return true;
+        if (VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) return true;
+        if (VOLUME_DEMO.equals(volumeName)) return true;
+        return false;
+    }
+
+    /** {@hide} */
     public static @NonNull String checkArgumentVolumeName(@NonNull String volumeName) {
         if (TextUtils.isEmpty(volumeName)) {
             throw new IllegalArgumentException();
         }
 
-        if (VOLUME_INTERNAL.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_EXTERNAL.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_DEMO.equals(volumeName)) {
-            return volumeName;
-        }
+        if (isKnownVolume(volumeName)) return volumeName;
 
         // When not one of the well-known values above, it must be a hex UUID
         for (int i = 0; i < volumeName.length(); i++) {
@@ -4859,7 +4863,7 @@ public final class MediaStore {
      * {@link #isCurrentCloudMediaProviderAuthority(ContentResolver, String)}, the request will be
      * unsuccessful.
      *
-     * @return {@code true} if the notification was successful, {@code false} otherwise
+     * @throws SecurityException if the request was unsuccessful.
      */
     public static void notifyCloudMediaChangedEvent(@NonNull ContentResolver resolver,
             @NonNull String authority, @NonNull String currentMediaCollectionId)

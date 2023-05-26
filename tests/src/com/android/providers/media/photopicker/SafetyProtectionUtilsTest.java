@@ -34,6 +34,7 @@ import com.android.providers.media.photopicker.util.SafetyProtectionUtils;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -73,14 +74,22 @@ public class SafetyProtectionUtilsTest {
         });
     }
 
+    @Ignore("Enable once b/269874157 is fixed")
     @Test
     public void testWhetherShouldUseSafetyProtectionResourcesWhenTOrAboveAndFeatureFlagOn() {
         assumeTrue(SdkLevel.isAtLeastT());
         SystemUtil.runWithShellPermissionIdentity(() -> {
             DeviceConfig.setProperty(DeviceConfig.NAMESPACE_PRIVACY,
                     SAFETY_PROTECTION_RESOURCES_ENABLED, TRUE_STRING, false);
+            boolean resourceExists = false;
+            try {
+                resourceExists = mContext.getDrawable(
+                        android.R.drawable.ic_safety_protection) != null;
+            } catch (Resources.NotFoundException e) { }
+            boolean shouldShowSafetyProtection = resourceExists
+                    && isSafetyProtectionConfigEnabled();
             assertThat(SafetyProtectionUtils.shouldShowSafetyProtectionResources(mContext))
-                    .isEqualTo(isSafetyProtectionConfigEnabled());
+                    .isEqualTo(shouldShowSafetyProtection);
         });
     }
 

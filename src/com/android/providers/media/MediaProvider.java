@@ -37,6 +37,7 @@ import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 import static android.provider.MediaStore.GET_BACKUP_FILES;
+import static android.provider.MediaStore.GET_OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
@@ -6767,6 +6768,16 @@ public class MediaProvider extends ContentProvider {
                 bundle.putString(READ_BACKUP, data);
                 return bundle;
             }
+            case GET_OWNER_PACKAGE_NAME:
+                getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
+                        "Permission missing to call GET_OWNER_PACKAGE_NAME by "
+                                + "uid:" + Binder.getCallingUid());
+                Pair<String, Integer> packageNameAndUidPair =
+                        mDatabaseBackupAndRecovery.getOwnerPackageNameAndUidPair(
+                                Integer.parseInt(arg));
+                Bundle result = new Bundle();
+                result.putString(GET_OWNER_PACKAGE_NAME, packageNameAndUidPair.first);
+                return result;
             case MediaStore.DELETE_BACKED_UP_FILE_PATHS:
                 getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
                         "Permission missing to call DELETE_BACKED_UP_FILE_PATHS by "

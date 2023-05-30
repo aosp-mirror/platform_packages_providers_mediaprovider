@@ -299,6 +299,13 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
+    public static final String GET_OWNER_PACKAGE_NAME = "get_owner_package_name";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
     public static final String GET_BACKUP_FILES = "get_backup_files";
 
     /**
@@ -4729,6 +4736,17 @@ public final class MediaStore {
         extras.putString(Files.FileColumns.DATA, filePath);
         Bundle bundle = resolver.call(AUTHORITY, READ_BACKUP, volumeName, extras);
         return bundle.getString(READ_BACKUP);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String getOwnerPackageName(@NonNull ContentResolver resolver, int ownerId) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_OWNER_PACKAGE_NAME, String.valueOf(ownerId),
+                null);
+        return bundle.getString(GET_OWNER_PACKAGE_NAME);
     }
 
     /**

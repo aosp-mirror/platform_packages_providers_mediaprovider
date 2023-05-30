@@ -111,7 +111,6 @@ filegroup {
 java_library {
     name: "mediaprovider-database",
     srcs: [
-        "src/com/android/providers/media/LegacyDatabaseHelper.java",
         "src/com/android/providers/media/util/DatabaseUtils.java",
         "src/com/android/providers/media/util/FileUtils.java",
         "src/com/android/providers/media/util/ForegroundThread.java",

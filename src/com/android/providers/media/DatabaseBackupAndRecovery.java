@@ -16,6 +16,11 @@
 
 package com.android.providers.media;
 
+import static com.android.providers.media.DatabaseHelper.DATA_MEDIA_XATTR_DIRECTORY_PATH;
+import static com.android.providers.media.DatabaseHelper.EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX;
+import static com.android.providers.media.DatabaseHelper.EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX;
+import static com.android.providers.media.DatabaseHelper.INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX;
+import static com.android.providers.media.DatabaseHelper.INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
@@ -30,7 +35,9 @@ import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.provider.MediaStore;
+import android.system.ErrnoException;
 import android.system.Os;
+import android.system.OsConstants;
 import android.util.Log;
 import android.util.Pair;
 
@@ -46,13 +53,17 @@ import com.google.common.base.Strings;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * To ensure that the ids of MediaStore database uris are stable and reliable.
@@ -629,7 +640,7 @@ public class DatabaseBackupAndRecovery {
     /**
      * Reads value corresponding to given key from xattr on given path.
      */
-    public static Optional<String> getXattr(String path, String key) {
+    static Optional<String> getXattr(String path, String key) {
         try {
             return Optional.of(Arrays.toString(Os.getxattr(path, key)));
         } catch (Exception e) {
@@ -642,7 +653,7 @@ public class DatabaseBackupAndRecovery {
     /**
      * Reads long value corresponding to given key from xattr on given path.
      */
-    public static Optional<Long> getXattrOfLongValue(String path, String key) {
+    static Optional<Long> getXattrOfLongValue(String path, String key) {
         try {
             return Optional.of(Long.parseLong(new String(Os.getxattr(path, key))));
         } catch (Exception e) {
@@ -655,7 +666,7 @@ public class DatabaseBackupAndRecovery {
     /**
      * Reads integer value corresponding to given key from xattr on given path.
      */
-    public static Optional<Integer> getXattrOfIntegerValue(String path, String key) {
+    static Optional<Integer> getXattrOfIntegerValue(String path, String key) {
         try {
             return Optional.of(Integer.parseInt(new String(Os.getxattr(path, key))));
         } catch (Exception e) {
@@ -668,7 +679,7 @@ public class DatabaseBackupAndRecovery {
     /**
      * Sets key and value as xattr on given path.
      */
-    public static boolean setXattr(String path, String key, String value) {
+    static boolean setXattr(String path, String key, String value) {
         try (ParcelFileDescriptor pfd = ParcelFileDescriptor.open(new File(path),
                 ParcelFileDescriptor.MODE_READ_ONLY)) {
             // Map id value to xattr key
@@ -680,6 +691,44 @@ public class DatabaseBackupAndRecovery {
             Log.e(TAG, String.format(Locale.ROOT, "Failed to set xattr:%s to %s for path: %s.", key,
                     value, path), e);
             return false;
+        }
+    }
+
+    /**
+     * Deletes xattr with given key on given path. Becomes a no-op when xattr is not present.
+     */
+    static boolean removeXattr(String path, String key) {
+        try (ParcelFileDescriptor pfd = ParcelFileDescriptor.open(new File(path),
+                ParcelFileDescriptor.MODE_READ_ONLY)) {
+            Os.removexattr(path, key);
+            Os.fsync(pfd.getFileDescriptor());
+            Log.d(TAG, String.format("xattr key:%s removed on path: %s.", key, path));
+            return true;
+        } catch (Exception e) {
+            if (e instanceof ErrnoException) {
+                ErrnoException exception = (ErrnoException) e;
+                if (exception.errno == OsConstants.ENODATA) {
+                    Log.w(TAG, String.format(Locale.ROOT,
+                            "xattr:%s is not removed as it is not found on path: %s.", key, path));
+                    return true;
+                }
+            }
+
+            Log.e(TAG, String.format(Locale.ROOT, "Failed to remove xattr:%s for path: %s.", key,
+                    path), e);
+            return false;
+        }
+    }
+
+    /**
+     * Lists xattrs of given path.
+     */
+    static List<String> listXattr(String path) {
+        try {
+            return Arrays.asList(Os.listxattr(path));
+        } catch (Exception e) {
+            Log.e(TAG, "Exception in reading xattrs on path: " + path, e);
+            return new ArrayList<>();
         }
     }
 
@@ -876,5 +925,63 @@ public class DatabaseBackupAndRecovery {
             }
             return null;
         });
+    }
+
+    /**
+     * Removes database recovery data for given user id. This is done when a user is removed.
+     */
+    protected void removeRecoveryDataForUserId(int removedUserId) {
+        String removeduserIdString = String.valueOf(removedUserId);
+        removeXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
+                INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.concat(
+                        removeduserIdString));
+        removeXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
+                EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.concat(
+                        removeduserIdString));
+        removeXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
+                INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.concat(removeduserIdString));
+        removeXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
+                EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.concat(removeduserIdString));
+        Log.v(TAG, "Removed recovery data for user id: " + removedUserId);
+    }
+
+    /**
+     * Removes database recovery data for obsolete user id. It accepts list of valid/active users
+     * and removes the recovery data for ones not present in this list.
+     * This is done during an idle maintenance.
+     */
+    protected void removeRecoveryDataExceptValidUsers(List<String> validUsers) {
+        List<String> xattrList = listXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH);
+        if (xattrList.isEmpty()) {
+            return;
+        }
+
+        List<String> invalidUsers = getInvalidUsersList(xattrList, validUsers);
+        for (String userIdToBeRemoved : invalidUsers) {
+            removeRecoveryDataForUserId(Integer.parseInt(userIdToBeRemoved));
+        }
+    }
+
+    protected static List<String> getInvalidUsersList(List<String> recoveryData,
+            List<String> validUsers) {
+        Set<String> presentUserIdsAsXattr = new HashSet<>();
+        for (String xattr : recoveryData) {
+            if (xattr.startsWith(INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX)) {
+                presentUserIdsAsXattr.add(
+                        xattr.substring(INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.length()));
+            } else if (xattr.startsWith(EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX)) {
+                presentUserIdsAsXattr.add(
+                        xattr.substring(EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.length()));
+            } else if (xattr.startsWith(INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX)) {
+                presentUserIdsAsXattr.add(
+                        xattr.substring(INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.length()));
+            } else if (xattr.startsWith(EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX)) {
+                presentUserIdsAsXattr.add(
+                        xattr.substring(EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.length()));
+            }
+        }
+        // Remove valid users
+        validUsers.forEach(presentUserIdsAsXattr::remove);
+        return presentUserIdsAsXattr.stream().collect(Collectors.toList());
     }
 }

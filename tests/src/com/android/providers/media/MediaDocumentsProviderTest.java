@@ -64,8 +64,7 @@ public class MediaDocumentsProviderTest {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
-                        Manifest.permission.INTERACT_ACROSS_USERS,
-                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+                        Manifest.permission.INTERACT_ACROSS_USERS);
     }
 
     @After

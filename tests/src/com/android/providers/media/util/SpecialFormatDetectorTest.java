@@ -52,8 +52,7 @@ public class SpecialFormatDetectorTest {
                 .adoptShellPermissionIdentity(android.Manifest.permission.LOG_COMPAT_CHANGE,
                         android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         android.Manifest.permission.READ_DEVICE_CONFIG,
-                        Manifest.permission.INTERACT_ACROSS_USERS,
-                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+                        Manifest.permission.INTERACT_ACROSS_USERS);
 
         final Context context = InstrumentationRegistry.getTargetContext();
         final Context isolatedContext =

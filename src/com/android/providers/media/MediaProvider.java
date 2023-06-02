@@ -4155,6 +4155,20 @@ public class MediaProvider extends ContentProvider {
             // DATA column.
             File volumePath;
             UserHandle userHandle = mCallingIdentity.get().getUser();
+            Integer userIdFromPathObject = values.getAsInteger(FileColumns._USER_ID);
+            int userIdFromPath = (userIdFromPathObject == null ? userHandle.getIdentifier() :
+                    userIdFromPathObject);
+            // In case if the _user_id column is set, and is different from the userHandle
+            // determined from mCallingIdentity, we prefer the former, as it comes from the original
+            // path provided to MP process.
+            // Normally this does not create any issues, but when cloned profile is active, an app
+            // in root user can try to create an image file in lower file system, by specifying
+            // the file directory as /storage/emulated/<cloneUserId>/DCIM. For such cases, we
+            // would want <cloneUserId> to be used to determine path in MP entry.
+            if (userHandle.getIdentifier() != userIdFromPath
+                    && isAppCloneUserPair(userHandle.getIdentifier(), userIdFromPath)) {
+                userHandle = UserHandle.of(userIdFromPath);
+            }
             if (currentPath != null) {
                 int userId = FileUtils.extractUserId(currentPath);
                 if (userId != -1) {
@@ -9662,12 +9676,21 @@ public class MediaProvider extends ContentProvider {
         values.put(MediaColumns.MIME_TYPE, mimeType);
         values.put(FileColumns.IS_PENDING, 1);
 
+        int userIdFromPath = FileUtils.extractUserId(path);
+
         if (useData) {
             values.put(FileColumns.DATA, path);
         } else {
             values.put(FileColumns.VOLUME_NAME, extractVolumeName(path));
             values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
             values.put(FileColumns.DISPLAY_NAME, extractDisplayName(path));
+            // In some cases when clone profile is active, this userId can be used to determine
+            // the path to be saved in MP database.
+            // We do this only if the path contains a valid user-id and any such value set is
+            // only a hint, the actual userId set will be determined later.
+            if (userIdFromPath != -1) {
+                values.put(FileColumns._USER_ID, userIdFromPath);
+            }
         }
         return insert(uri, values, Bundle.EMPTY);
     }

@@ -95,7 +95,12 @@
             android:name=
                 "com.android.providers.media.stableuris.job.StableUriIdleMaintenanceService"
             android:exported="true"
-            android:permission="android.permission.BIND_JOB_SERVICE"/>
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <service
+            android:name="com.android.providers.media.IdleService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

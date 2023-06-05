@@ -19,9 +19,11 @@ package com.android.providers.media.stableuris.job;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
+import android.app.job.JobScheduler;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -37,6 +39,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.compatibility.common.util.SystemUtil;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
 
@@ -69,6 +72,8 @@ public class StableUriIdleMaintenanceServiceTest {
     private static boolean sInitialDeviceConfigValueForInternal = false;
 
     private static boolean sInitialDeviceConfigValueForExternal = false;
+
+    private static final int IDLE_JOB_ID = -500;
 
     @BeforeClass
     public static void setUpClass() {
@@ -192,8 +197,39 @@ public class StableUriIdleMaintenanceServiceTest {
         }
     }
 
+    @Test
+    public void testJobScheduling() throws Exception {
+        try {
+            final Context context = InstrumentationRegistry.getTargetContext();
+            final JobScheduler scheduler = InstrumentationRegistry.getTargetContext()
+                    .getSystemService(JobScheduler.class);
+            cancelJob();
+            assertNull(scheduler.getPendingJob(IDLE_JOB_ID));
+
+            StableUriIdleMaintenanceService.scheduleIdlePass(context);
+            assertNotNull(scheduler.getPendingJob(IDLE_JOB_ID));
+
+            String forceRunCommand = "cmd jobscheduler run "
+                    + "-f com.google.android.providers.media.module " + IDLE_JOB_ID;
+            String result = SystemUtil.runShellCommand(InstrumentationRegistry.getInstrumentation(),
+                    forceRunCommand).trim();
+
+            assertEquals("Running job [FORCED]", result);
+        } finally {
+            cancelJob();
+        }
+    }
+
     private void verifyLevelDbPresence(ContentResolver resolver, String backupName) {
         List<String> backedUpFiles = Arrays.asList(MediaStore.getBackupFiles(resolver));
         assertTrue(backedUpFiles.contains(backupName));
+    }
+
+    private void cancelJob() {
+        final JobScheduler scheduler = InstrumentationRegistry.getTargetContext()
+                .getSystemService(JobScheduler.class);
+        if (scheduler.getPendingJob(IDLE_JOB_ID) != null) {
+            scheduler.cancel(IDLE_JOB_ID);
+        }
     }
 }

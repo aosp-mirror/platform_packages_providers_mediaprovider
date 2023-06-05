@@ -90,6 +90,17 @@
                   android:authorities="com.android.providers.media.photopicker.tests.cloud_no_intent_filter"
                   android:exported="true">
         </provider>
+
+        <service
+            android:name=
+                "com.android.providers.media.stableuris.job.StableUriIdleMaintenanceService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <service
+            android:name="com.android.providers.media.IdleService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

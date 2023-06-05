@@ -332,7 +332,7 @@ public class DatabaseBackupAndRecovery {
         externalDbHelper.runWithTransaction((db) -> {
             long maxGeneration = lastBackedGenerationNumber;
             try (Cursor c = db.query(true, "files", QUERY_COLUMNS, selectionClause, null, null,
-                    null, null, null, signal)) {
+                    null, MediaStore.MediaColumns._ID + " ASC", null, signal)) {
                 while (c.moveToNext()) {
                     if (signal != null && signal.isCanceled()) {
                         break;
@@ -341,7 +341,7 @@ public class DatabaseBackupAndRecovery {
                     maxGeneration = Math.max(maxGeneration, c.getLong(9));
                 }
                 setXattr(EXTERNAL_PRIMARY_VOLUME_BACKUP_PATH, LAST_BACKEDUP_GENERATION_XATTR_KEY,
-                        String.valueOf(maxGeneration));
+                        String.valueOf(maxGeneration - 1));
                 Log.d(TAG, String.format(Locale.ROOT,
                         "Backed up %d rows of external database to external storage on idle "
                                 + "maintenance.",

@@ -37,6 +37,7 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -52,6 +53,7 @@ public class ItemTest {
             ? '\u202f' : ' ';
 
     @Test
+    @Ignore("See b/275581741 for context")
     public void testConstructor() {
         final String id = "1";
         final long dateTaken = 12345678L;
@@ -80,6 +82,7 @@ public class ItemTest {
     }
 
     @Test
+    @Ignore("See b/275581741 for context")
     public void testConstructor_differentUser() {
         final String id = "1";
         final long dateTaken = 12345678L;

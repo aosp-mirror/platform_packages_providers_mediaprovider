@@ -270,7 +270,9 @@ public abstract class CloudMediaProvider extends ContentProvider {
     }
 
     /**
-     * Returns a thumbnail of {@code size} for a media item identified by {@code mediaId}.
+     * Returns a thumbnail of {@code size} for a media item identified by {@code mediaId}
+     * <p>The cloud media provider should strictly return thumbnail in the original
+     * {@link CloudMediaProviderContract.MediaColumns#MIME_TYPE} of the item.
      * <p>
      * This is expected to be a much lower resolution version than the item returned by
      * {@link #onOpenMedia}.

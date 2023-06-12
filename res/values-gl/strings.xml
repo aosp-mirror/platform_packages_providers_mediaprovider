@@ -47,7 +47,7 @@
     <string name="recent" msgid="6694613584743207874">"Recentes"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Non hai fotos nin vídeos"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Non hai álbums"</string>
-    <string name="picker_view_selected" msgid="2266031384396143883">"Ver elemento seleccionado"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Ver selección"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotos"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Álbums"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Vista previa"</string>

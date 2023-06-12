@@ -77,13 +77,7 @@ public class StableUriIdleMaintenanceServiceTest {
 
     @BeforeClass
     public static void setUpClass() {
-        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
-                .getUiAutomation()
-                .adoptShellPermissionIdentity(
-                        Manifest.permission.READ_DEVICE_CONFIG,
-                        Manifest.permission.WRITE_DEVICE_CONFIG,
-                        Manifest.permission.WRITE_MEDIA_STORAGE);
-        SystemClock.sleep(200);
+        adoptShellPermission();
 
         // Read existing value of the flag
         sInitialDeviceConfigValueForInternal = Boolean.parseBoolean(
@@ -98,10 +92,12 @@ public class StableUriIdleMaintenanceServiceTest {
         DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL, Boolean.TRUE.toString(),
                 false);
+        dropShellPermission();
     }
 
     @AfterClass
     public static void tearDownClass() throws IOException {
+        adoptShellPermission();
         // Restore previous value of the flag
         DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL,
@@ -110,8 +106,7 @@ public class StableUriIdleMaintenanceServiceTest {
                 ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL,
                 String.valueOf(sInitialDeviceConfigValueForExternal), false);
         SystemClock.sleep(2000);
-        InstrumentationRegistry.getInstrumentation()
-                .getUiAutomation().dropShellPermissionIdentity();
+        dropShellPermission();
     }
 
     @Test
@@ -135,6 +130,7 @@ public class StableUriIdleMaintenanceServiceTest {
 
         MediaStore.waitForIdle(resolver);
         // Creates backup
+        adoptShellPermission();
         MediaStore.runIdleMaintenanceForStableUris(resolver);
 
         verifyLevelDbPresence(resolver, INTERNAL_BACKUP_NAME);
@@ -146,6 +142,7 @@ public class StableUriIdleMaintenanceServiceTest {
             assertEquals(pathToIdMap.get(path).longValue(), backupIdRow.getId());
             assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());
         }
+        dropShellPermission();
     }
 
     @Test
@@ -177,6 +174,7 @@ public class StableUriIdleMaintenanceServiceTest {
             assertFalse(newFilePaths.isEmpty());
             MediaStore.waitForIdle(resolver);
             // Creates backup
+            adoptShellPermission();
             MediaStore.runIdleMaintenanceForStableUris(resolver);
 
             verifyLevelDbPresence(resolver, EXTERNAL_BACKUP_NAME);
@@ -189,11 +187,14 @@ public class StableUriIdleMaintenanceServiceTest {
                 assertNotNull(backupIdRow);
                 assertEquals(pathToIdMap.get(filePath).longValue(), backupIdRow.getId());
                 assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());
+                assertEquals(context.getPackageName(),
+                        MediaStore.getOwnerPackageName(resolver, backupIdRow.getOwnerPackageId()));
             }
         } finally {
             for (String path : newFilePaths) {
                 new File(path).delete();
             }
+            dropShellPermission();
         }
     }
 
@@ -223,6 +224,22 @@ public class StableUriIdleMaintenanceServiceTest {
     private void verifyLevelDbPresence(ContentResolver resolver, String backupName) {
         List<String> backedUpFiles = Arrays.asList(MediaStore.getBackupFiles(resolver));
         assertTrue(backedUpFiles.contains(backupName));
+    }
+
+    private static void adoptShellPermission() {
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation()
+                .adoptShellPermissionIdentity(
+                        Manifest.permission.READ_DEVICE_CONFIG,
+                        Manifest.permission.WRITE_DEVICE_CONFIG,
+                        Manifest.permission.WRITE_MEDIA_STORAGE);
+        SystemClock.sleep(1000);
+    }
+
+    private static void dropShellPermission() {
+        InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation().dropShellPermissionIdentity();
+        SystemClock.sleep(1000);
     }
 
     private void cancelJob() {

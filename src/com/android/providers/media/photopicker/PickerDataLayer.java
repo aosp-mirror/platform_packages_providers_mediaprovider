@@ -61,6 +61,10 @@ public class PickerDataLayer {
 
     public static final String QUERY_ARG_LOCAL_ONLY = "android:query-arg-local-only";
 
+    public static final String QUERY_DATE_TAKEN_BEFORE_MS = "android:query-date-taken-before-ms";
+
+    public static final String QUERY_ROW_ID = "android:query-row-id";
+
     private final Context mContext;
     private final PickerDbFacade mDbFacade;
     private final PickerSyncController mSyncController;

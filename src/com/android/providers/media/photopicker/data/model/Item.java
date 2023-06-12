@@ -45,7 +45,12 @@ import com.android.providers.media.util.MimeUtils;
  */
 public class Item {
     public static final Item EMPTY_VIEW = new Item("EMPTY_VIEW");
+    public static final String ROW_ID = "row_id";
 
+    /**
+     * This id represents the cloud id or the local id of the media, with priority given to cloud id
+     * if present.
+     */
     private String mId;
     private long mDateTaken;
     private long mGenerationModified;
@@ -55,6 +60,11 @@ public class Item {
     private boolean mIsImage;
     private boolean mIsVideo;
     private int mSpecialFormat;
+
+    /**
+     * This is the row id for the item in the db.
+     */
+    private int mRowId;
 
     public Item(@NonNull Cursor cursor, @NonNull UserId userId) {
         updateFromCursor(cursor, userId);
@@ -130,6 +140,10 @@ public class Item {
         return mSpecialFormat;
     }
 
+    public int getRowId() {
+        return mRowId;
+    }
+
     public static Item fromCursor(@NonNull Cursor cursor, UserId userId) {
         return new Item(requireNonNull(cursor), userId);
     }
@@ -149,6 +163,7 @@ public class Item {
         mDuration = getCursorLong(cursor, MediaColumns.DURATION_MILLIS);
         mSpecialFormat = getCursorInt(cursor, MediaColumns.STANDARD_MIME_TYPE_EXTENSION);
         mUri = ItemsProvider.getItemsUri(mId, authority, userId);
+        mRowId = getCursorInt(cursor, ROW_ID);
 
         parseMimeType();
     }

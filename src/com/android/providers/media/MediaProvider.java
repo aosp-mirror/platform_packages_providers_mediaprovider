@@ -814,6 +814,12 @@ public class MediaProvider extends ContentProvider {
                             return null ;
                         });
                     }
+
+                    // Only default system user 0 has permission to update xattrs on /data/media/0
+                    if (sUserId == UserHandle.SYSTEM.getIdentifier()) {
+                        mDatabaseBackupAndRecovery.removeRecoveryDataForUserId(
+                                userToBeRemoved.getIdentifier());
+                    }
                     break;
             }
         }
@@ -1559,11 +1565,13 @@ public class MediaProvider extends ContentProvider {
 
         // removing calling userId
         userIds.remove(String.valueOf(sUserId));
+
+        List<String> validUsers = mUserManager.getEnabledProfiles().stream()
+                .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
+                        Collectors.toList());
         // removing all the valid/existing user, remaining userIds would be users who would have
         // been removed
-        userIds.removeAll(mUserManager.getEnabledProfiles().stream()
-                .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
-                        Collectors.toList()));
+        userIds.removeAll(validUsers);
 
         // Cleaning media files of users who have been removed
         mExternalDatabase.runWithTransaction((db) -> {
@@ -1574,6 +1582,8 @@ public class MediaProvider extends ContentProvider {
             });
             return null ;
         });
+
+        mDatabaseBackupAndRecovery.removeRecoveryDataExceptValidUsers(validUsers);
     }
 
     private void pruneStalePackages(CancellationSignal signal) {

@@ -112,28 +112,52 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public static final String TEST_CLEAN_DB = "test_clean";
 
     /**
+     * Prefix of key name of xattr used to set next row id for internal DB.
+     */
+    static final String INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX = "user.intdbnextrowid";
+
+    /**
      * Key name of xattr used to set next row id for internal DB.
      */
-    private static final String INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY = "user.intdbnextrowid".concat(
-            String.valueOf(UserHandle.myUserId()));
+    static final String INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY =
+            INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.concat(
+                    String.valueOf(UserHandle.myUserId()));
+
+    /**
+     * Prefix of key name of xattr used to set next row id for external DB.
+     */
+    static final String EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX = "user.extdbnextrowid";
 
     /**
      * Key name of xattr used to set next row id for external DB.
      */
-    private static final String EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY = "user.extdbnextrowid".concat(
-            String.valueOf(UserHandle.myUserId()));
+    static final String EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY =
+            EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.concat(
+                    String.valueOf(UserHandle.myUserId()));
+
+    /**
+     * Prefix of key name of xattr used to set session id for internal DB.
+     */
+    static final String INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX = "user.intdbsessionid";
 
     /**
      * Key name of xattr used to set session id for internal DB.
      */
-    private static final String INTERNAL_DB_SESSION_ID_XATTR_KEY = "user.intdbsessionid".concat(
-            String.valueOf(UserHandle.myUserId()));
+    static final String INTERNAL_DB_SESSION_ID_XATTR_KEY =
+            INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.concat(
+                    String.valueOf(UserHandle.myUserId()));
+
+    /**
+     * Prefix of key name of xattr used to set session id for external DB.
+     */
+    static final String EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX = "user.extdbsessionid";
 
     /**
      * Key name of xattr used to set session id for external DB.
      */
-    private static final String EXTERNAL_DB_SESSION_ID_XATTR_KEY = "user.extdbsessionid".concat(
-            String.valueOf(UserHandle.myUserId()));
+    static final String EXTERNAL_DB_SESSION_ID_XATTR_KEY =
+            EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.concat(
+                    String.valueOf(UserHandle.myUserId()));
 
     /** Indicates a billion value used when next row id is not present in respective xattr. */
     private static final Long NEXT_ROW_ID_DEFAULT_BILLION_VALUE = Double.valueOf(
@@ -148,7 +172,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * For devices with adoptable storage support, opting for adoptable storage will not delete
      * /data/media/0 directory.
      */
-    private static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
+    static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
 
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";

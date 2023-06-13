@@ -7607,7 +7607,7 @@ public class MediaProvider extends ContentProvider {
             final String probePath = initialValues.getAsString(MediaColumns.DATA);
             final String probeVolume = extractVolumeName(probePath);
             final String probeOwner = extractPathOwnerPackageName(probePath);
-            if (Objects.equals(beforePath, probePath)) {
+            if (StringUtils.equalIgnoreCase(beforePath, probePath)) {
                 Log.d(TAG, "Identical paths " + beforePath + "; not moving");
             } else if (!Objects.equals(beforeVolume, probeVolume)) {
                 throw new IllegalArgumentException("Changing volume from " + beforePath + " to "

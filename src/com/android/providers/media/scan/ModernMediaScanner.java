@@ -121,6 +121,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -210,7 +211,7 @@ public class ModernMediaScanner implements MediaScanner {
      * overlap and confuse each other.
      */
     @GuardedBy("mDirectoryLocks")
-    private final Map<Path, DirectoryLock> mDirectoryLocks = new ArrayMap<>();
+    private final Map<String, DirectoryLock> mDirectoryLocks = new ArrayMap<>();
 
     /**
      * Set of MIME types that should be considered to be DRM, meaning we need to
@@ -294,7 +295,7 @@ public class ModernMediaScanner implements MediaScanner {
     @Override
     public void onDirectoryDirty(File dir) {
         synchronized (mPendingCleanDirectories) {
-            mPendingCleanDirectories.remove(dir.getPath());
+            mPendingCleanDirectories.remove(dir.getPath().toLowerCase(Locale.ROOT));
             FileUtils.setDirectoryDirty(dir, /*isDirty*/ true);
         }
     }
@@ -330,7 +331,7 @@ public class ModernMediaScanner implements MediaScanner {
 
         private final long mStartGeneration;
         private final boolean mSingleFile;
-        private final Set<Path> mAcquiredDirectoryLocks = new ArraySet<>();
+        private final Set<String> mAcquiredDirectoryLocks = new ArraySet<>();
         private final ArrayList<ContentProviderOperation> mPending = new ArrayList<>();
         private final LongArray mScannedIds = new LongArray();
         private final LongArray mUnknownIds = new LongArray();
@@ -429,7 +430,7 @@ public class ModernMediaScanner implements MediaScanner {
                     mHiddenDirCount++;
                 }
                 if (mSingleFile) {
-                    acquireDirectoryLock(mRoot.getParentFile().toPath());
+                    acquireDirectoryLock(mRoot.getParentFile().toPath().toString());
                 }
                 try {
                     Files.walkFileTree(mRoot.toPath(), this);
@@ -439,7 +440,7 @@ public class ModernMediaScanner implements MediaScanner {
                     throw new IllegalStateException(e);
                 } finally {
                     if (mSingleFile) {
-                        releaseDirectoryLock(mRoot.getParentFile().toPath());
+                        releaseDirectoryLock(mRoot.getParentFile().toPath().toString());
                     }
                     Trace.endSection();
                 }
@@ -620,19 +621,20 @@ public class ModernMediaScanner implements MediaScanner {
          * thread exclusive access to ensure that parallel scans don't overlap
          * and confuse each other.
          */
-        private void acquireDirectoryLock(@NonNull Path dir) {
+        private void acquireDirectoryLock(@NonNull String dirPath) {
             Trace.beginSection("Scanner.acquireDirectoryLock");
             DirectoryLock lock;
+            final String dirLower = dirPath.toLowerCase(Locale.ROOT);
             synchronized (mDirectoryLocks) {
-                lock = mDirectoryLocks.get(dir);
+                lock = mDirectoryLocks.get(dirLower);
                 if (lock == null) {
                     lock = new DirectoryLock();
-                    mDirectoryLocks.put(dir, lock);
+                    mDirectoryLocks.put(dirLower, lock);
                 }
                 lock.count++;
             }
             lock.lock.lock();
-            mAcquiredDirectoryLocks.add(dir);
+            mAcquiredDirectoryLocks.add(dirLower);
             Trace.endSection();
         }
 
@@ -641,20 +643,21 @@ public class ModernMediaScanner implements MediaScanner {
          * other waiting parallel scans to proceed, and cleaning up data
          * structures if no other threads are waiting.
          */
-        private void releaseDirectoryLock(@NonNull Path dir) {
+        private void releaseDirectoryLock(@NonNull String dirPath) {
             Trace.beginSection("Scanner.releaseDirectoryLock");
             DirectoryLock lock;
+            final String dirLower = dirPath.toLowerCase(Locale.ROOT);
             synchronized (mDirectoryLocks) {
-                lock = mDirectoryLocks.get(dir);
+                lock = mDirectoryLocks.get(dirLower);
                 if (lock == null) {
                     throw new IllegalStateException();
                 }
                 if (--lock.count == 0) {
-                    mDirectoryLocks.remove(dir);
+                    mDirectoryLocks.remove(dirLower);
                 }
             }
             lock.lock.unlock();
-            mAcquiredDirectoryLocks.remove(dir);
+            mAcquiredDirectoryLocks.remove(dirLower);
             Trace.endSection();
         }
 
@@ -663,8 +666,8 @@ public class ModernMediaScanner implements MediaScanner {
             // Release any locks we're still holding, typically when we
             // encountered an exception; we snapshot the original list so we're
             // not confused as it's mutated by release operations
-            for (Path dir : new ArraySet<>(mAcquiredDirectoryLocks)) {
-                releaseDirectoryLock(dir);
+            for (String dirPath : new ArraySet<>(mAcquiredDirectoryLocks)) {
+                releaseDirectoryLock(dirPath);
             }
 
             mClient.close();
@@ -690,11 +693,11 @@ public class ModernMediaScanner implements MediaScanner {
                     // This removes additional dirty state check for subdirectories of nomedia
                     // directory.
                     mIsDirectoryTreeDirty = true;
-                    mPendingCleanDirectories.add(dir.toFile().getPath());
+                    mPendingCleanDirectories.add(dir.toFile().getPath().toLowerCase(Locale.ROOT));
                 } else {
                     Log.d(TAG, "Skipping preVisitDirectory " + dir.toFile());
                     if (mExcludeDirs.size() <= MAX_EXCLUDE_DIRS) {
-                        mExcludeDirs.add(dir.toFile().getPath());
+                        mExcludeDirs.add(dir.toFile().getPath().toLowerCase(Locale.ROOT));
                         return FileVisitResult.SKIP_SUBTREE;
                     } else {
                         Log.w(TAG, "ExcludeDir size exceeded, not skipping preVisitDirectory "
@@ -705,7 +708,7 @@ public class ModernMediaScanner implements MediaScanner {
 
             // Acquire lock on this directory to ensure parallel scans don't
             // overlap and confuse each other
-            acquireDirectoryLock(dir);
+            acquireDirectoryLock(dir.toString());
 
             if (FileUtils.isDirectoryHidden(dir.toFile())) {
                 mHiddenDirCount++;
@@ -901,11 +904,12 @@ public class ModernMediaScanner implements MediaScanner {
 
             // Now that we're finished scanning this directory, release lock to
             // allow other parallel scans to proceed
-            releaseDirectoryLock(dir);
+            releaseDirectoryLock(dir.toString());
 
             if (mIsDirectoryTreeDirty) {
                 synchronized (mPendingCleanDirectories) {
-                    if (mPendingCleanDirectories.remove(dir.toFile().getPath())) {
+                    if (mPendingCleanDirectories.remove(
+                            dir.toFile().getPath().toLowerCase(Locale.ROOT))) {
                         // If |dir| is still clean, then persist
                         FileUtils.setDirectoryDirty(dir.toFile(), false /* isDirty */);
                         mIsDirectoryTreeDirty = false;

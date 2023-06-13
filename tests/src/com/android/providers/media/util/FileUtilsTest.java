@@ -1006,6 +1006,10 @@ public class FileUtilsTest {
         // Marking as dirty with a .nomedia file works
         FileUtils.setDirectoryDirty(dirInDownload, true);
         assertTrue(FileUtils.isDirectoryDirty(dirInDownload));
+
+        // Test case-insensitivity
+        File dirInDownloadDifferentCase = new File(mTestDownloadDir, "TeStDirEctoRYdirTy");
+        assertTrue(FileUtils.isDirectoryDirty(dirInDownloadDifferentCase));
     }
 
     @Test

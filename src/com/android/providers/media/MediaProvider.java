@@ -1459,10 +1459,25 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Second, is the app pending, probably from a backup/restore operation?
-        for (SessionInfo si : pm.getPackageInstaller().getAllSessions()) {
-            if (Objects.equals(packageName, si.getAppPackageName())) {
+        // Cloned app installations do not have a linked install session, so skipping the check in
+        // case the user-id is a clone profile.
+        if (!isAppCloneUserForFuse(userId)) {
+            if (sUserId != userId) {
+                // Skip the package check and ensure media provider doesn't crash
+                // Returning true since we are unsure what caused the cross-user entries to be in
+                // the database and want to avoid deleting data that might be required.
+                Log.e(TAG, "Skip pruning cross-user entries stored in database for package: "
+                        + packageName + " userId: " + userId + " processUserId: " + sUserId);
                 return true;
             }
+            for (SessionInfo si : pm.getPackageInstaller().getAllSessions()) {
+                if (Objects.equals(packageName, si.getAppPackageName())) {
+                    return true;
+                }
+            }
+        } else {
+            Log.e(TAG, "Cross-user entries found in database for package " + packageName
+                    + " userId: " + userId + " processUserId: " + sUserId);
         }
 
         // I've never met this package in my life

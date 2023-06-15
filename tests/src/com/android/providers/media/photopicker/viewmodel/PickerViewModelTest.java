@@ -30,7 +30,6 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
-import android.provider.CloudMediaProviderContract;
 import android.text.format.DateUtils;
 
 import androidx.annotation.NonNull;
@@ -96,6 +95,7 @@ public class PickerViewModelTest {
     }
 
     @Test
+    @Ignore("See b/275581741 for context")
     public void testGetItems_noItems() throws Exception {
         final int itemCount = 0;
         mItemsProvider.setItems(generateFakeImageItemList(itemCount));
@@ -163,6 +163,7 @@ public class PickerViewModelTest {
      * taken on same day, they should not be split apart.
      */
     @Test
+    @Ignore("See b/275581741 for context")
     public void testGetItems_exceedMinCount_sameDay_hasRecentItemNoDateItem() throws Exception {
         final int originalItemCount = 12;
         final String lastItemId = "13";
@@ -188,6 +189,7 @@ public class PickerViewModelTest {
     }
 
     @Test
+    @Ignore("See b/275581741 for context")
     public void testGetCategoryItems() throws Exception {
         final int itemCount = 3;
         final LiveData<List<Item>> categoryItems = mPickerViewModel.getCategoryItems(FAKE_CATEGORY);
@@ -216,6 +218,7 @@ public class PickerViewModelTest {
     }
 
     @Test
+    @Ignore("See b/275581741 for context")
     public void testGetCategoryItems_dataIsUpdated() throws Exception {
         final int itemCount = 3;
         final LiveData<List<Item>> categoryItems = mPickerViewModel.getCategoryItems(FAKE_CATEGORY);

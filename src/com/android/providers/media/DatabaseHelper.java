@@ -853,17 +853,21 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      */
     public void notifyChange(@NonNull Uri uri, int flags) {
         if (LOGV) Log.v(TAG, "Notifying " + uri);
+
+        // Also sync change to the network.
+        final int notifyFlags = flags | ContentResolver.NOTIFY_SYNC_TO_NETWORK;
+
         final TransactionState state = mTransactionState.get();
         if (state != null) {
-            ArraySet<Uri> set = state.notifyChanges.get(flags);
+            ArraySet<Uri> set = state.notifyChanges.get(notifyFlags);
             if (set == null) {
                 set = new ArraySet<>();
-                state.notifyChanges.put(flags, set);
+                state.notifyChanges.put(notifyFlags, set);
             }
             set.add(uri);
         } else {
             ForegroundThread.getExecutor().execute(() -> {
-                notifySingleChangeInternal(uri, flags);
+                notifySingleChangeInternal(uri, notifyFlags);
             });
         }
     }

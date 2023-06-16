@@ -396,7 +396,7 @@ public class ClientPlaylistTest {
         public void onChange(boolean selfChange, Uri uri, int flags) {
             Log.v(TAG, String.format("onChange(%b, %s, %d)", selfChange, uri.toString(), flags));
 
-            if (flags == this.flags) {
+            if ((flags & this.flags) == this.flags) {
                 latch.countDown();
             }
         }

@@ -127,8 +127,9 @@ public class DatabaseUtils {
                             res.append(((Boolean) arg).booleanValue() ? 1 : 0);
                         } else {
                             res.append('\'');
-                            // Escape single quote character while appending the string.
-                            res.append(arg.toString().replace("'", "''"));
+                            // Escape single quote character while appending the string and reject
+                            // invalid unicode.
+                            res.append(escapeSingleQuoteAndRejectInvalidUnicode(arg.toString()));
                             res.append('\'');
                         }
                         break;
@@ -139,6 +140,37 @@ public class DatabaseUtils {
                 before = c;
             }
         }
+        return res.toString();
+    }
+
+    private static String escapeSingleQuoteAndRejectInvalidUnicode(@NonNull String target) {
+        final int len = target.length();
+        final StringBuilder res = new StringBuilder(len);
+        boolean lastHigh = false;
+
+        for (int i = 0; i < len; ) {
+            final char c = target.charAt(i++);
+
+            if (lastHigh != Character.isLowSurrogate(c)) {
+                Log.e(TAG, "Invalid surrogate in string " + target);
+                throw new IllegalArgumentException("Invalid surrogate in string " + target);
+            }
+
+            lastHigh = Character.isHighSurrogate(c);
+
+            // Escape the single quotes by duplicating them
+            if (c == '\'') {
+                res.append(c);
+            }
+
+            res.append(c);
+        }
+
+        if (lastHigh) {
+            Log.e(TAG, "Invalid surrogate in string " + target);
+            throw new IllegalArgumentException("Invalid surrogate in string " + target);
+        }
+
         return res.toString();
     }
 

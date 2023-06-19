@@ -127,6 +127,29 @@ public class DatabaseUtilsTest {
     }
 
     @Test
+    public void testBindSelection_RejectInvalidUnicode() {
+        try {
+            bindSelection("DATA=?", "Fo\uD83Do");
+            fail();
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        try {
+            bindSelection("DATA=?", "Fo\uDE00o");
+            fail();
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        assertEquals("DATA='Fo\uD83D\uDE00o'", bindSelection("DATA=?", "Fo\uD83D\uDE00o"));
+
+        try {
+            bindSelection("DATA=?", "Fo\uDE00\uD83Do");
+            fail();
+        } catch (IllegalArgumentException ignored) {
+        }
+    }
+
+    @Test
     public void testResolveQueryArgs_GroupBy() throws Exception {
         args.putStringArray(QUERY_ARG_GROUP_COLUMNS, new String[] { "foo", "bar" });
         args.putString(QUERY_ARG_SQL_GROUP_BY, "raw");

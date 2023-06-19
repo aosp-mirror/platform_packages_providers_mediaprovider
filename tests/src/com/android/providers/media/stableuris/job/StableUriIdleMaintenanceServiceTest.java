@@ -92,12 +92,10 @@ public class StableUriIdleMaintenanceServiceTest {
         DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL, Boolean.TRUE.toString(),
                 false);
-        dropShellPermission();
     }
 
     @AfterClass
     public static void tearDownClass() throws IOException {
-        adoptShellPermission();
         // Restore previous value of the flag
         DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL,
@@ -105,7 +103,7 @@ public class StableUriIdleMaintenanceServiceTest {
         DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL,
                 String.valueOf(sInitialDeviceConfigValueForExternal), false);
-        SystemClock.sleep(2000);
+        SystemClock.sleep(3000);
         dropShellPermission();
     }
 
@@ -130,7 +128,6 @@ public class StableUriIdleMaintenanceServiceTest {
 
         MediaStore.waitForIdle(resolver);
         // Creates backup
-        adoptShellPermission();
         MediaStore.runIdleMaintenanceForStableUris(resolver);
 
         verifyLevelDbPresence(resolver, INTERNAL_BACKUP_NAME);
@@ -142,7 +139,6 @@ public class StableUriIdleMaintenanceServiceTest {
             assertEquals(pathToIdMap.get(path).longValue(), backupIdRow.getId());
             assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());
         }
-        dropShellPermission();
     }
 
     @Test
@@ -174,7 +170,6 @@ public class StableUriIdleMaintenanceServiceTest {
             assertFalse(newFilePaths.isEmpty());
             MediaStore.waitForIdle(resolver);
             // Creates backup
-            adoptShellPermission();
             MediaStore.runIdleMaintenanceForStableUris(resolver);
 
             verifyLevelDbPresence(resolver, EXTERNAL_BACKUP_NAME);
@@ -194,7 +189,6 @@ public class StableUriIdleMaintenanceServiceTest {
             for (String path : newFilePaths) {
                 new File(path).delete();
             }
-            dropShellPermission();
         }
     }
 
@@ -232,14 +226,17 @@ public class StableUriIdleMaintenanceServiceTest {
                 .adoptShellPermissionIdentity(
                         Manifest.permission.READ_DEVICE_CONFIG,
                         Manifest.permission.WRITE_DEVICE_CONFIG,
-                        Manifest.permission.WRITE_MEDIA_STORAGE);
-        SystemClock.sleep(1000);
+                        Manifest.permission.WRITE_MEDIA_STORAGE,
+                        android.Manifest.permission.LOG_COMPAT_CHANGE,
+                        android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        android.Manifest.permission.DUMP);
+        SystemClock.sleep(3000);
     }
 
     private static void dropShellPermission() {
         InstrumentationRegistry.getInstrumentation()
                 .getUiAutomation().dropShellPermissionIdentity();
-        SystemClock.sleep(1000);
     }
 
     private void cancelJob() {

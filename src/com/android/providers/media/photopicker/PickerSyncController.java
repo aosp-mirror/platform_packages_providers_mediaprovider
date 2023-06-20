@@ -19,6 +19,7 @@ package com.android.providers.media.photopicker;
 import static android.content.ContentResolver.EXTRA_HONORED_ARGS;
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_SIZE;
 import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION;
@@ -90,6 +91,7 @@ public class PickerSyncController {
     private static final int SYNC_TYPE_MEDIA_INCREMENTAL = 1;
     private static final int SYNC_TYPE_MEDIA_FULL = 2;
     private static final int SYNC_TYPE_MEDIA_RESET = 3;
+    public static final int PAGE_SIZE = 3000;
     @NonNull
     private static final Handler sBgThreadHandler = BackgroundThread.getHandler();
     @IntDef(flag = false, prefix = { "SYNC_TYPE_" }, value = {
@@ -198,7 +200,8 @@ public class PickerSyncController {
      * Syncs the local media
      */
     public void syncAllMediaFromLocalProvider() {
-        syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true);
+        syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true,
+                /* enforcePagedSync*/ false);
     }
 
     private void syncAllMediaFromCloudProvider() {
@@ -212,7 +215,7 @@ public class PickerSyncController {
 
             // Trigger a sync.
             final boolean isSyncCommitted = syncAllMediaFromProvider(cloudProvider,
-                    /* isLocal */ false, /* retryOnFailure */ true);
+                    /* isLocal */ false, /* retryOnFailure */ true, /* enforcePagedSync*/ false);
 
             // Check if sync was committed i.e. the latest collection info was persisted.
             if (!isSyncCommitted) {
@@ -251,12 +254,14 @@ public class PickerSyncController {
     }
 
     private void syncAlbumMediaFromLocalProvider(@NonNull String albumId) {
-        syncAlbumMediaFromProvider(mLocalProvider, /* isLocal */ true, albumId);
+        syncAlbumMediaFromProvider(mLocalProvider, /* isLocal */ true, albumId,
+                /* enforcePagedSync*/ false);
     }
 
     private void syncAlbumMediaFromCloudProvider(@NonNull String albumId) {
         synchronized (mCloudSyncLock) {
-            syncAlbumMediaFromProvider(getCloudProvider(), /* isLocal */ false, albumId);
+            syncAlbumMediaFromProvider(getCloudProvider(), /* isLocal */ false, albumId,
+                    /* enforcePagedSync*/ false);
         }
     }
 
@@ -528,9 +533,20 @@ public class PickerSyncController {
         }
     }
 
-    private void syncAlbumMediaFromProvider(String authority, boolean isLocal, String albumId) {
+    /**
+     * Syncs album media.
+     *
+     * @param enforcePagedSync Set to true data from provider needs to be synced in batches.
+     *                         If true, {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE
+     *                         is passed during query to the provider.
+     */
+    private void syncAlbumMediaFromProvider(String authority, boolean isLocal, String albumId,
+            boolean enforcePagedSync) {
         final Bundle queryArgs = new Bundle();
         queryArgs.putString(EXTRA_ALBUM_ID, albumId);
+        if (enforcePagedSync) {
+            queryArgs.putInt(EXTRA_PAGE_SIZE, PAGE_SIZE);
+        }
 
         Trace.beginSection(traceSectionName("syncAlbumMediaFromProvider", isLocal));
         try {
@@ -551,9 +567,13 @@ public class PickerSyncController {
 
     /**
      * Returns true if the sync was successful and the latest collection info was persisted.
+     *
+     * @param enforcePagedSync Set to true data from provider needs to be synced in batches.
+     *                         If true, {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE} is passed
+     *                         during query to the provider.
      */
     private boolean syncAllMediaFromProvider(@Nullable String authority, boolean isLocal,
-            boolean retryOnFailure) {
+            boolean retryOnFailure, boolean enforcePagedSync) {
         Log.d(TAG, "syncAllMediaFromProvider() " + (isLocal ? "LOCAL" : "CLOUD")
                 + ", auth=" + authority
                 + ", retry=" + retryOnFailure);
@@ -564,7 +584,6 @@ public class PickerSyncController {
         Trace.beginSection(traceSectionName("syncAllMediaFromProvider", isLocal));
         try {
             final SyncRequestParams params = getSyncRequestParams(authority, isLocal);
-
             switch (params.syncType) {
                 case SYNC_TYPE_MEDIA_RESET:
                     // Can only happen when |authority| has been set to null and we need to clean up
@@ -573,12 +592,15 @@ public class PickerSyncController {
                     if (!resetAllMedia(authority, isLocal)) {
                         return false;
                     }
-
+                    final Bundle fullSyncQueryArgs = new Bundle();
+                    if (enforcePagedSync) {
+                        fullSyncQueryArgs.putInt(EXTRA_PAGE_SIZE, params.mPageSize);
+                    }
                     // Pass a mutable empty bundle intentionally because it might be populated with
                     // the next page token as part of a query to a cloud provider supporting
                     // pagination
                     executeSyncAdd(authority, isLocal, params.getMediaCollectionId(),
-                            /* isIncrementalSync */ false, /* queryArgs */ new Bundle());
+                            /* isIncrementalSync */ false, enforcePagedSync, fullSyncQueryArgs);
 
                     // Commit sync position
                     return cacheMediaCollectionInfo(
@@ -586,9 +608,12 @@ public class PickerSyncController {
                 case SYNC_TYPE_MEDIA_INCREMENTAL:
                     final Bundle queryArgs = new Bundle();
                     queryArgs.putLong(EXTRA_SYNC_GENERATION, params.syncGeneration);
+                    if (enforcePagedSync) {
+                        queryArgs.putInt(EXTRA_PAGE_SIZE, params.mPageSize);
+                    }
 
                     executeSyncAdd(authority, isLocal, params.getMediaCollectionId(),
-                            /* isIncrementalSync */ true, queryArgs);
+                            /* isIncrementalSync */ true, enforcePagedSync, queryArgs);
                     executeSyncRemove(authority, isLocal, params.getMediaCollectionId(), queryArgs);
 
                     // Commit sync position
@@ -609,7 +634,8 @@ public class PickerSyncController {
             // flushing all old content and leaving the picker UI empty.
             Log.e(TAG, "Failed to sync all media. Reset media and retry: " + retryOnFailure, e);
             if (retryOnFailure) {
-                return syncAllMediaFromProvider(authority, isLocal, /* retryOnFailure */ false);
+                return syncAllMediaFromProvider(authority, isLocal, /* retryOnFailure */ false,
+                        /* enforcePagedSync*/ false);
             }
         } finally {
             Trace.endSection();
@@ -650,13 +676,27 @@ public class PickerSyncController {
         }
     }
 
+    /**
+     * Queries the provider and writes the data returned to the db.
+     *
+     * <p> Also validates the cursor returned from provider has expected extras of not.
+     *
+     * @param isIncrementalSync If true, {@link CloudMediaProviderContract#EXTRA_SYNC_GENERATION}
+     *                          should be honoured by the provider.
+     * @param enforcePagedSync If true, {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE} should
+     *                         be honoured by the provider.
+     */
     private void executeSyncAdd(String authority, boolean isLocal,
-            String expectedMediaCollectionId, boolean isIncrementalSync, Bundle queryArgs) {
+            String expectedMediaCollectionId, boolean isIncrementalSync, boolean enforcePagedSync,
+            Bundle queryArgs) {
         final Uri uri = getMediaUri(authority);
         final List<String> expectedHonoredArgs = new ArrayList<>();
         if (isIncrementalSync) {
             expectedHonoredArgs.add(EXTRA_SYNC_GENERATION);
         }
+
+        //TODO(b/287003817): add pagesize extra when enforcePagedSync is true in expectedHonoredArgs
+        // later when ready.
 
         Log.i(TAG, "Executing SyncAdd. isLocal: " + isLocal + ". authority: " + authority);
 
@@ -1038,16 +1078,21 @@ public class PickerSyncController {
         final long syncGeneration;
         // Only valid for SYNC_TYPE_[INCREMENTAL|FULL]
         final Bundle latestMediaCollectionInfo;
+        // Only valid for sync triggered by opening photopicker activity.
+        // Not valid for proactive syncs.
+        final int mPageSize;
 
         SyncRequestParams(@SyncType int syncType) {
-            this(syncType, /* syncGeneration */ 0, /* latestMediaCollectionInfo */ null);
+            this(syncType, /* syncGeneration */ 0, /* latestMediaCollectionInfo */ null,
+                    /*pageSize */ PAGE_SIZE);
         }
 
         SyncRequestParams(@SyncType int syncType, long syncGeneration,
-                Bundle latestMediaCollectionInfo) {
+                Bundle latestMediaCollectionInfo, int pageSize) {
             this.syncType = syncType;
             this.syncGeneration = syncGeneration;
             this.latestMediaCollectionInfo = latestMediaCollectionInfo;
+            this.mPageSize = pageSize;
         }
 
         String getMediaCollectionId() {
@@ -1064,18 +1109,19 @@ public class PickerSyncController {
 
         static SyncRequestParams forFullMedia(Bundle latestMediaCollectionInfo) {
             return new SyncRequestParams(SYNC_TYPE_MEDIA_FULL, /* generation */ 0,
-                    latestMediaCollectionInfo);
+                    latestMediaCollectionInfo, /*pageSize */ PAGE_SIZE);
         }
 
         static SyncRequestParams forIncremental(long generation, Bundle latestMediaCollectionInfo) {
             return new SyncRequestParams(SYNC_TYPE_MEDIA_INCREMENTAL, generation,
-                    latestMediaCollectionInfo);
+                    latestMediaCollectionInfo, /*pageSize */ PAGE_SIZE);
         }
 
         @Override
         public String toString() {
             return "SyncRequestParams{type=" + syncTypeToString(syncType)
-                    + ", gen=" + syncGeneration + ", latest=" + latestMediaCollectionInfo + '}';
+                    + ", gen=" + syncGeneration + ", latest=" + latestMediaCollectionInfo
+                    + ", pageSize=" + mPageSize + '}';
         }
     }
 

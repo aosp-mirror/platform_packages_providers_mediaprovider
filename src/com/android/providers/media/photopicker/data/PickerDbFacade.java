@@ -651,6 +651,7 @@ public class PickerDbFacade {
 
     /** Builder for {@link Query} filter. */
     public static class QueryFilterBuilder {
+        public static final int INT_DEFAULT = -1;
         public static final long LONG_DEFAULT = -1;
         public static final String STRING_DEFAULT = null;
         public static final String[] STRING_ARRAY_DEFAULT = null;

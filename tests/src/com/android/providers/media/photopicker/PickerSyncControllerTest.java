@@ -60,6 +60,8 @@ import java.util.concurrent.TimeUnit;
 public class PickerSyncControllerTest {
     private static final String LOCAL_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker.tests.local";
+    private static final String FLAKY_CLOUD_PROVIDER_AUTHORITY =
+            "com.android.providers.media.photopicker.tests.cloud_flaky";
     private static final String CLOUD_PRIMARY_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker.tests.cloud_primary";
     private static final String CLOUD_SECONDARY_PROVIDER_AUTHORITY =
@@ -72,6 +74,8 @@ public class PickerSyncControllerTest {
             PickerProviderMediaGenerator.getMediaGenerator(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
     private final MediaGenerator mCloudSecondaryMediaGenerator =
             PickerProviderMediaGenerator.getMediaGenerator(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+    private final MediaGenerator mCloudFlakyMediaGenerator =
+            PickerProviderMediaGenerator.getMediaGenerator(FLAKY_CLOUD_PROVIDER_AUTHORITY);
 
     private static final String LOCAL_ID_1 = "1";
     private static final String LOCAL_ID_2 = "2";
@@ -79,6 +83,17 @@ public class PickerSyncControllerTest {
     private static final String CLOUD_ID_1 = "1";
     private static final String CLOUD_ID_2 = "2";
     private static final String CLOUD_ID_3 = "3";
+    private static final String CLOUD_ID_4 = "4";
+    private static final String CLOUD_ID_5 = "5";
+    private static final String CLOUD_ID_6 = "6";
+    private static final String CLOUD_ID_7 = "7";
+    private static final String CLOUD_ID_8 = "8";
+    private static final String CLOUD_ID_9 = "9";
+    private static final String CLOUD_ID_10 = "10";
+    private static final String CLOUD_ID_11 = "11";
+    private static final String CLOUD_ID_12 = "12";
+    private static final String CLOUD_ID_13 = "13";
+    private static final String CLOUD_ID_14 = "14";
 
     private static final String ALBUM_ID_1 = "1";
     private static final String ALBUM_ID_2 = "2";
@@ -88,6 +103,17 @@ public class PickerSyncControllerTest {
     private static final Pair<String, String> CLOUD_ONLY_1 = Pair.create(null, CLOUD_ID_1);
     private static final Pair<String, String> CLOUD_ONLY_2 = Pair.create(null, CLOUD_ID_2);
     private static final Pair<String, String> CLOUD_ONLY_3 = Pair.create(null, CLOUD_ID_3);
+    private static final Pair<String, String> CLOUD_ONLY_4 = Pair.create(null, CLOUD_ID_4);
+    private static final Pair<String, String> CLOUD_ONLY_5 = Pair.create(null, CLOUD_ID_5);
+    private static final Pair<String, String> CLOUD_ONLY_6 = Pair.create(null, CLOUD_ID_6);
+    private static final Pair<String, String> CLOUD_ONLY_7 = Pair.create(null, CLOUD_ID_7);
+    private static final Pair<String, String> CLOUD_ONLY_8 = Pair.create(null, CLOUD_ID_8);
+    private static final Pair<String, String> CLOUD_ONLY_9 = Pair.create(null, CLOUD_ID_9);
+    private static final Pair<String, String> CLOUD_ONLY_10 = Pair.create(null, CLOUD_ID_10);
+    private static final Pair<String, String> CLOUD_ONLY_11 = Pair.create(null, CLOUD_ID_11);
+    private static final Pair<String, String> CLOUD_ONLY_12 = Pair.create(null, CLOUD_ID_12);
+    private static final Pair<String, String> CLOUD_ONLY_13 = Pair.create(null, CLOUD_ID_13);
+    private static final Pair<String, String> CLOUD_ONLY_14 = Pair.create(null, CLOUD_ID_14);
     private static final Pair<String, String> CLOUD_AND_LOCAL_1
             = Pair.create(LOCAL_ID_1, CLOUD_ID_1);
 
@@ -110,10 +136,12 @@ public class PickerSyncControllerTest {
         mLocalMediaGenerator.resetAll();
         mCloudPrimaryMediaGenerator.resetAll();
         mCloudSecondaryMediaGenerator.resetAll();
+        mCloudFlakyMediaGenerator.resetAll();
 
         mLocalMediaGenerator.setMediaCollectionId(COLLECTION_1);
         mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
         mCloudSecondaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
+        mCloudFlakyMediaGenerator.setMediaCollectionId(COLLECTION_1);
 
         mContext = InstrumentationRegistry.getTargetContext();
 
@@ -640,14 +668,17 @@ public class PickerSyncControllerTest {
     public void testGetSupportedCloudProviders() {
         List<CloudProviderInfo> providers = mController.getAvailableCloudProviders();
 
-        CloudProviderInfo primaryInfo = new CloudProviderInfo(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
-                PACKAGE_NAME,
-                Process.myUid());
-        CloudProviderInfo secondaryInfo = new CloudProviderInfo(CLOUD_SECONDARY_PROVIDER_AUTHORITY,
-                PACKAGE_NAME,
-                Process.myUid());
+        final CloudProviderInfo primaryInfo =
+                new CloudProviderInfo(
+                        CLOUD_PRIMARY_PROVIDER_AUTHORITY, PACKAGE_NAME, Process.myUid());
+        final CloudProviderInfo secondaryInfo =
+                new CloudProviderInfo(
+                        CLOUD_SECONDARY_PROVIDER_AUTHORITY, PACKAGE_NAME, Process.myUid());
+        final CloudProviderInfo flakyInfo =
+                new CloudProviderInfo(
+                        FLAKY_CLOUD_PROVIDER_AUTHORITY, PACKAGE_NAME, Process.myUid());
 
-        assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
+        assertThat(providers).containsExactly(primaryInfo, secondaryInfo, flakyInfo);
     }
 
     @Test
@@ -656,12 +687,15 @@ public class PickerSyncControllerTest {
                 CLOUD_PRIMARY_PROVIDER_AUTHORITY, PACKAGE_NAME, Process.myUid());
         final CloudProviderInfo secondaryInfo = new CloudProviderInfo(
                 CLOUD_SECONDARY_PROVIDER_AUTHORITY, PACKAGE_NAME, Process.myUid());
+        final CloudProviderInfo flakyInfo = new CloudProviderInfo(FLAKY_CLOUD_PROVIDER_AUTHORITY,
+                PACKAGE_NAME,
+                Process.myUid());
 
         mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
         final PickerSyncController controller = new PickerSyncController(
                 mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
         final List<CloudProviderInfo> providers = controller.getAvailableCloudProviders();
-        assertThat(providers).containsExactly(primaryInfo, secondaryInfo);
+        assertThat(providers).containsExactly(primaryInfo, secondaryInfo, flakyInfo);
     }
 
     @Test
@@ -1046,6 +1080,144 @@ public class PickerSyncControllerTest {
         assertThat(mController.getAvailableCloudProviders()).isNotEmpty();
         mConfigStore.disableCloudMediaFeature();
         assertThat(mController.getAvailableCloudProviders()).isEmpty();
+    }
+
+    @Test
+    public void testSyncWithMultiplePages() {
+
+        // First Page
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_3);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_4);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_5);
+        // Second Page
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_6);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_7);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_8);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_9);
+
+        setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        try (Cursor cr = queryMedia()) {
+            assertThat(cr.getCount()).isEqualTo(9);
+            assertCursor(cr, CLOUD_ID_9, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_8, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_7, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_6, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_5, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_4, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_3, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
+    public void testSyncDeletedItemsWithMultiplePages() {
+
+        // First Page
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_3);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_4);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_5);
+        // Second Page
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_6);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_7);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_8);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_9);
+
+        setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        try (Cursor cr = queryMedia()) {
+            assertThat(cr.getCount()).isEqualTo(9);
+            assertCursor(cr, CLOUD_ID_9, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_8, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_7, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_6, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_5, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_4, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_3, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+
+        deleteMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        deleteMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
+        deleteMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_3);
+        deleteMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_4);
+        deleteMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_5);
+        deleteMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_6);
+        deleteMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_7);
+        deleteMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_8);
+
+        mController.syncAllMedia();
+
+        try (Cursor cr = queryMedia()) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            assertCursor(cr, CLOUD_ID_9, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+
+    }
+
+    @Test
+    public void testResumableSyncOperation() {
+        // First Page
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_1);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_2);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_3);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_4);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_5);
+
+        // Complete a full sync since it hasn't synced before.
+        setCloudProviderAndSyncAllMedia(FLAKY_CLOUD_PROVIDER_AUTHORITY);
+
+        try (Cursor cr = queryMedia()) {
+            // Should only have the first page since the sync is flaky
+            assertThat(cr.getCount()).isEqualTo(5);
+            assertCursor(cr, CLOUD_ID_5, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_4, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_3, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_2, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_1, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+        }
+
+        // Add some more data
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_6);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_7);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_8);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_9);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_10);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_11);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_12);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_13);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_14);
+
+        // FlakyCloudMediaProvider will throw errors on 2 out of 3 requests, so we need to sync
+        // a few times to ensure we resume the mid-sync failure.
+        mController.syncAllMedia();
+        mController.syncAllMedia();
+        mController.syncAllMedia();
+
+        try (Cursor cr = queryMedia()) {
+            // Should have all pages now
+            assertThat(cr.getCount()).isEqualTo(14);
+            assertCursor(cr, CLOUD_ID_14, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_13, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_12, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_11, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_10, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_9, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_8, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_7, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_6, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_5, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_4, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_3, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_2, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_1, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+        }
     }
 
     private static void waitForIdle() {

@@ -338,8 +338,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         // Recreate all views to apply this filter
         final SQLiteDatabase db = super.getWritableDatabase();
         mSchemaLock.writeLock().lock();
+        db.beginTransaction();
         try {
-            db.beginTransaction();
             createLatestViews(db);
             db.setTransactionSuccessful();
         } finally {

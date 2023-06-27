@@ -42,8 +42,11 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.android.internal.annotations.VisibleForTesting;
+import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.sync.PickerSyncManager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,17 +68,32 @@ public class PickerDataLayer {
 
     public static final String QUERY_ROW_ID = "android:query-row-id";
 
+    @NonNull
     private final Context mContext;
+    @NonNull
     private final PickerDbFacade mDbFacade;
+    @NonNull
     private final PickerSyncController mSyncController;
+    @NonNull
+    private final PickerSyncManager mSyncManager;
+    @NonNull
     private final String mLocalProvider;
 
-    public PickerDataLayer(Context context, PickerDbFacade dbFacade,
-            PickerSyncController syncController) {
-        mContext = context;
-        mDbFacade = dbFacade;
-        mSyncController = syncController;
-        mLocalProvider = dbFacade.getLocalProvider();
+    public PickerDataLayer(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
+            @NonNull PickerSyncController syncController, @NonNull ConfigStore configStore) {
+        this(context, dbFacade, syncController, configStore, /* schedulePeriodicSyncs */ true);
+    }
+
+    @VisibleForTesting
+    public PickerDataLayer(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
+            @NonNull PickerSyncController syncController, @NonNull ConfigStore configStore,
+            boolean schedulePeriodicSyncs) {
+        mContext = requireNonNull(context);
+        mDbFacade = requireNonNull(dbFacade);
+        mSyncController = requireNonNull(syncController);
+        mLocalProvider = requireNonNull(dbFacade.getLocalProvider());
+        mSyncManager = new PickerSyncManager(
+                mContext, requireNonNull(configStore), schedulePeriodicSyncs);
     }
 
     /**
@@ -339,6 +357,14 @@ public class PickerDataLayer {
             sb.append('[').append(isLocal(authority) ? "local" : "cloud").append(']');
         }
         return sb.toString();
+    }
+
+    /**
+     * Handles notification about media events like inserts/updates/deletes received from cloud or
+     * local providers.
+     */
+    public void handleMediaEventNotification() {
+        mSyncManager.syncAllMediaProactively();
     }
 
     public static class AccountInfo {

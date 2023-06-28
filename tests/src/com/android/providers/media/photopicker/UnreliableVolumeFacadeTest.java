@@ -63,9 +63,9 @@ public class UnreliableVolumeFacadeTest {
         try (Cursor cr = mFacade.queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(counter);
             cr.moveToFirst();
-            assertThat(cr.getString(1)).isEqualTo(DATA_PREFIX + "0");
-            cr.moveToNext();
             assertThat(cr.getString(1)).isEqualTo(DATA_PREFIX + "1");
+            cr.moveToNext();
+            assertThat(cr.getString(1)).isEqualTo(DATA_PREFIX + "2");
         }
     }
 
@@ -110,13 +110,14 @@ public class UnreliableVolumeFacadeTest {
         values.put(UnreliableVolumeDatabaseHelper.MediaColumns.DISPLAY_NAME, DISPLAY_NAME);
         values.put(UnreliableVolumeDatabaseHelper.MediaColumns._DATA, DATA_PREFIX + index);
         values.put(UnreliableVolumeDatabaseHelper.MediaColumns.MIME_TYPE, MIME_TYPE);
+        values.put(UnreliableVolumeDatabaseHelper.MediaColumns._ID, index);
 
         return values;
     }
 
     public List<ContentValues> generateContentDb() {
         List<ContentValues> list = new ArrayList<>();
-        for (int i = 0; i < BATCH_SIZE; i++) {
+        for (int i = 1; i <= BATCH_SIZE; i++) {
             list.add(generateAndGetContentValues(i));
         }
         return list;

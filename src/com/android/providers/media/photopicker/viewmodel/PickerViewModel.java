@@ -58,6 +58,7 @@ import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -198,6 +199,7 @@ public class PickerViewModel extends AndroidViewModel {
             mUserIdManager.setPersonalAsCurrentUserProfile();
         }
         // 3. Update Item and Category lists
+        clearUiGrid();
         updateItems();
         updateCategories();
         // 4. Update Banners
@@ -212,11 +214,28 @@ public class PickerViewModel extends AndroidViewModel {
      */
     @UiThread
     public void onUserSwitchedProfile() {
+        clearUiGrid();
         updateItems();
         updateCategories();
         // Note - Banners should always be updated after the items & categories to ensure a
         // consistent UI.
         mBannerManager.maybeUpdateBannerLiveDatas();
+    }
+
+    private void clearUiGrid() {
+        // clear photos grid
+        if (mItemList != null) {
+            ForegroundThread.getExecutor().execute(() -> {
+                mItemList.postValue(Arrays.asList(Item.EMPTY_VIEW));
+            });
+        }
+
+        //clear Albums Grid
+        if (mCategoryList != null) {
+            ForegroundThread.getExecutor().execute(() -> {
+                mCategoryList.postValue(Arrays.asList(Category.EMPTY_VIEW));
+            });
+        }
     }
 
     /**

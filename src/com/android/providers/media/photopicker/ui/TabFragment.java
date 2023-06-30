@@ -397,6 +397,8 @@ public abstract class TabFragment extends Fragment {
     /**
      * If we show the {@link #mEmptyView}, hide the {@link #mRecyclerView}. If we don't hide the
      * {@link #mEmptyView}, show the {@link #mRecyclerView}
+     * when user switches the profile ,till the time when updated profile data is loading,
+     * on the UI we hide {@link #mEmptyView} and show Empty {@link #mRecyclerView}
      */
     protected void updateVisibilityForEmptyView(boolean shouldShowEmptyView) {
         mEmptyView.setVisibility(shouldShowEmptyView ? View.VISIBLE : View.GONE);

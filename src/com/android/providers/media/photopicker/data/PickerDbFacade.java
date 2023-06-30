@@ -22,6 +22,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.PickerMediaColumns;
 
+import static com.android.providers.media.photopicker.PickerSyncController.PAGE_SIZE;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
@@ -442,6 +443,12 @@ public class PickerDbFacade {
             final boolean isLocal = isLocal();
             final SQLiteQueryBuilder qb = isLocal ? QB_MATCH_LOCAL_ONLY : QB_MATCH_CLOUD;
             int counter = 0;
+
+            if (cursor.getCount() > PAGE_SIZE) {
+                Log.w(TAG,
+                        String.format("Expected a cursor page size of %d, but received a cursor "
+                            + "with %d rows instead.", PAGE_SIZE, cursor.getCount()));
+            }
 
             while (cursor.moveToNext()) {
                 ContentValues values = cursorToContentValue(cursor, isLocal);
@@ -1352,6 +1359,12 @@ public class PickerDbFacade {
             final String albumId = getAlbumId();
             final SQLiteQueryBuilder qb = createAlbumMediaQueryBuilder(isLocal);
             int counter = 0;
+
+            if (cursor.getCount() > PAGE_SIZE) {
+                Log.w(TAG,
+                        String.format("Expected a cursor page size of %d, but received a cursor "
+                            + "with %d rows instead.", PAGE_SIZE, cursor.getCount()));
+            }
 
             while (cursor.moveToNext()) {
                 ContentValues values = cursorToContentValue(cursor, isLocal, albumId);

@@ -22,6 +22,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.PickerMediaColumns;
 
+import static com.android.providers.media.photopicker.PickerSyncController.PAGE_SIZE;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
@@ -48,6 +49,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -442,6 +444,12 @@ public class PickerDbFacade {
             final SQLiteQueryBuilder qb = isLocal ? QB_MATCH_LOCAL_ONLY : QB_MATCH_CLOUD;
             int counter = 0;
 
+            if (cursor.getCount() > PAGE_SIZE) {
+                Log.w(TAG,
+                        String.format("Expected a cursor page size of %d, but received a cursor "
+                            + "with %d rows instead.", PAGE_SIZE, cursor.getCount()));
+            }
+
             while (cursor.moveToNext()) {
                 ContentValues values = cursorToContentValue(cursor, isLocal);
 
@@ -650,6 +658,7 @@ public class PickerDbFacade {
 
     /** Builder for {@link Query} filter. */
     public static class QueryFilterBuilder {
+        public static final int INT_DEFAULT = -1;
         public static final long LONG_DEFAULT = -1;
         public static final String STRING_DEFAULT = null;
         public static final String[] STRING_ARRAY_DEFAULT = null;
@@ -1351,6 +1360,12 @@ public class PickerDbFacade {
             final SQLiteQueryBuilder qb = createAlbumMediaQueryBuilder(isLocal);
             int counter = 0;
 
+            if (cursor.getCount() > PAGE_SIZE) {
+                Log.w(TAG,
+                        String.format("Expected a cursor page size of %d, but received a cursor "
+                            + "with %d rows instead.", PAGE_SIZE, cursor.getCount()));
+            }
+
             while (cursor.moveToNext()) {
                 ContentValues values = cursorToContentValue(cursor, isLocal, albumId);
 
@@ -1425,5 +1440,14 @@ public class PickerDbFacade {
                     selectionArgs, /* groupBy */ null, /* having */ null,
                     /* orderBy */ null);
         }
+    }
+
+    /**
+     * Print the {@link PickerDbFacade} state into the given stream.
+     */
+    public void dump(PrintWriter writer) {
+        writer.println("Picker db facade state:");
+        writer.println("  mLocalProvider=" + getLocalProvider());
+        writer.println("  mCloudProvider=" + getCloudProvider());
     }
 }

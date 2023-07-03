@@ -59,6 +59,15 @@
             android:authorities="com.android.providers.media.photopicker.tests.local"
             android:exported="false" />
 
+        <provider android:name="com.android.providers.media.cloudproviders.FlakyCloudProvider"
+                  android:authorities="com.android.providers.media.photopicker.tests.cloud_flaky"
+                  android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+                  android:exported="true">
+          <intent-filter>
+            <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
+          </intent-filter>
+        </provider>
+
         <provider android:name="com.android.providers.media.cloudproviders.CloudProviderPrimary"
                   android:authorities="com.android.providers.media.photopicker.tests.cloud_primary"
                   android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
@@ -90,6 +99,17 @@
                   android:authorities="com.android.providers.media.photopicker.tests.cloud_no_intent_filter"
                   android:exported="true">
         </provider>
+
+        <service
+            android:name=
+                "com.android.providers.media.stableuris.job.StableUriIdleMaintenanceService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <service
+            android:name="com.android.providers.media.IdleService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

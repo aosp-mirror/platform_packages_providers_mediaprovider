@@ -44,6 +44,8 @@ import com.android.providers.media.util.MimeUtils;
  * Base class for representing a single media item (a picture, a video, etc.) in the PhotoPicker.
  */
 public class Item {
+    public static final Item EMPTY_VIEW = new Item("EMPTY_VIEW");
+
     private String mId;
     private long mDateTaken;
     private long mGenerationModified;
@@ -69,6 +71,10 @@ public class Item {
         mUri = uri;
         mSpecialFormat = specialFormat;
         parseMimeType();
+    }
+
+    private Item(String id) {
+        this(id, null, 0, 0, 0, null, 0);
     }
 
     public String getId() {

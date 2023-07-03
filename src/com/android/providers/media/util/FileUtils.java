@@ -1725,7 +1725,7 @@ public class FileUtils {
             // Returns true If .nomedia file is empty or content doesn't match |dir|
             // Returns false otherwise
             return !expectedPath.isPresent()
-                    || !expectedPath.get().equals(dir.getPath());
+                    || !expectedPath.get().equalsIgnoreCase(dir.getPath());
         } catch (IOException e) {
             Log.w(TAG, "Failed to read directory dirty" + dir);
             return true;

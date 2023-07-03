@@ -16,10 +16,26 @@
 
 package com.android.providers.media.photopicker;
 
-public class TestableContentObserverCallback implements
-        NotificationContentObserver.ContentObserverCallback {
+import androidx.annotation.Nullable;
+
+import java.util.concurrent.CountDownLatch;
+
+public class TestableContentObserverCallback
+        implements NotificationContentObserver.ContentObserverCallback {
+
+    @Nullable private CountDownLatch mLatch;
+
+    public TestableContentObserverCallback() {}
+
+    public TestableContentObserverCallback(CountDownLatch latch) {
+        this.mLatch = latch;
+    }
+
     @Override
     public void onNotificationReceived(String dateTakenMs, String albumId) {
         // do nothing
+        if (mLatch != null) {
+            mLatch.countDown();
+        }
     }
 }

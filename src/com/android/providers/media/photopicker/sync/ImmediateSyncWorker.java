@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.sync;
 
+
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
@@ -34,11 +35,10 @@ import androidx.work.WorkerParameters;
 import com.android.providers.media.photopicker.PickerSyncController;
 
 /**
- * This is a {@link Worker} class responsible for proactively syncing media with the correct sync
- * source.
+ * This is a {@link Worker} class responsible for syncing with the correct sync source.
  */
-public class ProactiveSyncWorker extends Worker {
-    private static final String TAG = "PSyncWorker";
+public class ImmediateSyncWorker extends Worker {
+    private static final String TAG = "ISyncWorker";
 
     /**
      * Creates an instance of the {@link Worker}.
@@ -46,7 +46,7 @@ public class ProactiveSyncWorker extends Worker {
      * @param context the application {@link Context}
      * @param workerParams the set of {@link WorkerParameters}
      */
-    public ProactiveSyncWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
+    public ImmediateSyncWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
     }
 
@@ -57,32 +57,26 @@ public class ProactiveSyncWorker extends Worker {
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
 
         Log.i(TAG,
-                String.format("Starting proactive picker sync from sync source: %s", syncSource));
+                String.format("Starting immediate picker sync from sync source: %s", syncSource));
 
         try {
+            // No need to instantiate a work request tracker for immediate syncs in the worker.
+            // For immediate syncs, the work request tracker is initiated before enqueueing the
+            // request in WorkManager.
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_LOCAL_ONLY) {
-                // Instantiate sync state tracker.
-                final SyncTracker localSyncTracker = getLocalSyncTracker();
-                localSyncTracker.createSyncFuture(getId());
-
-                // Complete sync and mark work tracker as finished.
                 PickerSyncController.getInstanceOrThrow().syncAllMediaFromLocalProvider();
-                localSyncTracker.markSyncCompleted(getId());
-                Log.i(TAG, "Completed picker proactive sync complete from local provider.");
+                getLocalSyncTracker().markSyncCompleted(getId());
+                Log.i(TAG, "Completed immediate picker sync from local provider.");
             }
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_CLOUD_ONLY) {
-                // Instantiate sync state tracker.
-                final SyncTracker cloudSyncTracker = getCloudSyncTracker();
-                cloudSyncTracker.createSyncFuture(getId());
-
-                // Complete sync and mark work tracker as finished.
                 PickerSyncController.getInstanceOrThrow().syncAllMediaFromCloudProvider();
-                cloudSyncTracker.markSyncCompleted(getId());
-                Log.i(TAG, "Completed picker proactive sync complete from cloud provider.");
+                getCloudSyncTracker().markSyncCompleted(getId());
+                Log.i(TAG, "Completed immediate picker sync from cloud provider.");
             }
             return ListenableWorker.Result.success();
         } catch (IllegalStateException e) {
-            Log.e(TAG, "Could not complete proactive sync for sync source: " + syncSource, e);
+            Log.i(TAG, String.format(
+                    "Could not complete immediate sync from sync source: %s", syncSource), e);
 
             // Mark all pending syncs as finished and set failure result.
             getLocalSyncTracker().markSyncCompleted(getId());

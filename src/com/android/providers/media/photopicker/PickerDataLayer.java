@@ -49,12 +49,17 @@ import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.sync.PickerSyncManager;
+import com.android.providers.media.photopicker.sync.SyncTracker;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Fetches data for the picker UI from the db and cloud/local providers
@@ -182,6 +187,27 @@ public class PickerDataLayer {
             mSyncController.syncAllMediaFromLocalProvider();
         } else {
             mSyncController.syncAllMedia();
+        }
+    }
+
+    private void waitForSync(@NonNull SyncTracker syncTracker) {
+        waitForSyncWithTimeout(syncTracker, /* timeout */ null);
+    }
+
+    private void waitForSyncWithTimeout(
+            @NonNull SyncTracker syncTracker,
+            @Nullable Long timeoutInMillis) {
+        try {
+            final CompletableFuture<Void> completableFuture =
+                    CompletableFuture.allOf(
+                            syncTracker.pendingSyncFutures().toArray(new CompletableFuture[0]));
+            if (timeoutInMillis == null) {
+                completableFuture.get();
+            } else {
+                completableFuture.get(timeoutInMillis, TimeUnit.MILLISECONDS);
+            }
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            Log.e(TAG, "Could not wait for the sync to finish", e);
         }
     }
 

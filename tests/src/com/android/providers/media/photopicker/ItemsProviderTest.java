@@ -57,7 +57,9 @@ import com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.cloudproviders.CloudProviderPrimary;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 
 import com.google.common.io.ByteStreams;
@@ -405,7 +407,9 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} to return all
+     * Tests
+     * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId)}
+     * (Category, int, String[], UserId)} to return all
      * images and videos.
      */
     @Test
@@ -415,7 +419,8 @@ public class ItemsProviderTest {
         File imageFile = assertCreateNewImage();
         File videoFile = assertCreateNewVideo();
         try {
-            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(),
                     /* mimeType */ null, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(2);
@@ -431,6 +436,158 @@ public class ItemsProviderTest {
         }
     }
 
+    /**
+     * Tests
+     * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId)}
+     * (Category, int, String[], UserId)} to return all
+     * images and videos.
+     */
+    @Test
+    public void testGetItems_withLimit() throws Exception {
+        // Create 10 new files.
+        List<File> imageFiles = assertCreateNewImagesWithDifferentDateModifiedTimes(10);
+        try {
+            // Set the limit and ensure that only that number of items are returned.
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(/* limit */ 5, -1, -1),
+                    /* mimeType */ null, /* userId */ null);
+            assertThat(res).isNotNull();
+
+            // Since the limit was set to 5 only 5 items should be returned.
+            assertThat(res.getCount()).isEqualTo(5);
+            assertThatOnlyImagesVideos(res);
+            // Reset the cursor back. Cursor#moveToPosition(-1) will reset the position to -1,
+            // but since there is no such valid cursor position, it returns false.
+            assertThat(res.moveToPosition(-1)).isFalse();
+        } finally {
+            for (File file : imageFiles) {
+                file.delete();
+            }
+        }
+    }
+
+    /**
+     * Tests {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId)}
+     * (Category, int, String[], UserId)} to return paginated items.
+     */
+    @Test
+    public void testGetItems_withPagination_sameDateModified() throws Exception {
+        // Create 10 new files, all with same time stamp.
+        List<File> imageFiles = assertCreateNewImagesWithSameDateModifiedTimes(
+                /* number of images */ 10);
+        try {
+            // all files should be returned.
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(),
+                    /* mimeType */ null, /* userId */ null);
+            assertThat(res).isNotNull();
+            assertThat(res.getCount()).isEqualTo(10);
+            // create a list from the cursor.
+            List<Item> itemList = new ArrayList<>(10);
+            while (res.moveToNext()) {
+                Item item = Item.fromCursor(res, UserId.CURRENT_USER);
+                itemList.add(item);
+            }
+            res.moveToPosition(0);
+            assertThatOnlyImagesVideos(res);
+
+            // For this test, paginate the above list by returning second half of the items using
+            // the pagingParameters created by the middle item of the above list.
+            PaginationParameters paginationParameters = new PaginationParameters(
+                    /* pageSize */ 5,
+                    /* dateTaken for the last item of the previous page */
+                    itemList.get(4).getDateTaken(),
+                    /* rowId for the last item of the previous page */ itemList.get(4).getRowId());
+
+            // Now set pagination parameters and get items. Since all items have the same time
+            // taken
+            // the pagination would be based on rowIDs.
+            // Files after the middle item should be returned.
+            final Cursor res2 = mItemsProvider.getAllItems(Category.DEFAULT,
+                    paginationParameters, /* mimeType */ null, /* userId */ null);
+            assertThat(res2).isNotNull();
+            // Only 5 items should be returned.
+            assertThat(res2.getCount()).isEqualTo(5);
+
+            // Verify that the second half of the expected list has been returned.
+            int itr = 5;
+            while (res2.moveToNext()) {
+                assertThat(Item.fromCursor(res2, UserId.CURRENT_USER).compareTo(
+                        itemList.get(itr))).isEqualTo(0);
+                itr++;
+            }
+            // Ensure all items were verified.
+            assertThat(itr).isEqualTo(10);
+
+            res2.moveToPosition(0);
+            assertThatOnlyImagesVideos(res2);
+        } finally {
+            for (File file : imageFiles) {
+                file.delete();
+            }
+        }
+    }
+
+    /**
+     * Tests {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId)}
+     * (Category, int, String[], UserId)} to return paginated items.
+     */
+    @Test
+    public void testGetItems_withPagination_differentTimeModified() throws Exception {
+        // Create 10 new files, all with different time taken.
+        List<File> imageFiles = assertCreateNewImagesWithDifferentDateModifiedTimes(
+                /* number of images */ 10);
+        try {
+            // all files should be returned.
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(),
+                    /* mimeType */ null, /* userId */ null);
+            assertThat(res).isNotNull();
+            assertThat(res.getCount()).isEqualTo(10);
+            // create a list from the cursor.
+            List<Item> itemList = new ArrayList<>(10);
+            while (res.moveToNext()) {
+                Item item = Item.fromCursor(res, UserId.CURRENT_USER);
+                itemList.add(item);
+            }
+            res.moveToPosition(0);
+            assertThatOnlyImagesVideos(res);
+
+            // For this test, paginate the above list by returning second half of the items using
+            // the pagingParameters created by the middle item of the above list.
+            PaginationParameters paginationParameters = new PaginationParameters(
+                    /* pageSize */ 5,
+                    /* dateTaken for the last item of the previous page */
+                    itemList.get(4).getDateTaken(),
+                    /* rowId for the last item of the previous page */ itemList.get(4).getRowId());
+
+            // Now set pagination parameters and get items.
+            // Files after the middle item should be returned.
+            final Cursor res2 = mItemsProvider.getAllItems(Category.DEFAULT,
+                    paginationParameters, /* mimeType */ null, /* userId */ null);
+            assertThat(res2).isNotNull();
+            // Only 5 items should be returned.
+            assertThat(res2.getCount()).isEqualTo(5);
+
+            // Verify that the second half of the expected list has been returned.
+            int itr = 5;
+            while (res2.moveToNext()) {
+                assertThat(Item.fromCursor(res2, UserId.CURRENT_USER).compareTo(
+                        itemList.get(itr))).isEqualTo(0);
+                itr++;
+            }
+            // Ensure all items were verified.
+            assertThat(itr).isEqualTo(10);
+
+            res2.moveToPosition(0);
+            assertThatOnlyImagesVideos(res2);
+        } finally {
+            for (File file : imageFiles) {
+                file.delete();
+            }
+        }
+    }
+
     @Test
     public void testGetItems_sortOrder() throws Exception {
         try {
@@ -443,7 +600,10 @@ public class ItemsProviderTest {
                     = prepareFileAndGetUri(new File(getCameraDir(), VIDEO_FILE_NAME), timeNow);
 
             // This is the list of uris based on the expected sort order of items returned by
-            // ItemsProvider#getAllItems
+            // ItemsProvider#getAllItems(com.android.providers.media.photopicker.data.model
+            // .Category, com.android.providers.media.photopicker.data
+            // .PaginationParameters, java.lang.String[], com.android.providers.media
+            // .photopicker.data.model.UserId)
             List<Uri> uris = new ArrayList<>();
             // This is the latest image file
             uris.add(imageFileDateNowPlus1Uri);
@@ -451,7 +611,8 @@ public class ItemsProviderTest {
             uris.add(videoFileDateNowUri);
             uris.add(imageFileDateNowUri);
 
-            try (Cursor cursor = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+            try (Cursor cursor = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(),
                     /* mimeType */ null, /* userId */ null)) {
                 assertThat(cursor).isNotNull();
 
@@ -476,7 +637,10 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link {@link ItemsProvider#getAllItems(Category, int, String[], UserId)}} does not
+     * Tests
+     * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[],
+     * UserId)} (Category, PaginationParameters, String[], UserId)} (Category, int, String[],
+     * UserId)}} does not
      * return hidden images/videos.
      */
     @Test
@@ -487,7 +651,8 @@ public class ItemsProviderTest {
         File imageFileHidden = assertCreateNewImage(hiddenDir);
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
-            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(),
                     /* mimeType */ null, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
@@ -499,7 +664,10 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} to return all
+     * Tests
+     * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId)}
+     * (Category, PaginationParameters, String[], UserId)} (Category, int, String[], UserId)}
+     * to return all
      * images and videos based on the mimeType. Image mimeType should only return images.
      */
     @Test
@@ -509,8 +677,9 @@ public class ItemsProviderTest {
         File imageFile = assertCreateNewImage();
         File videoFile = assertCreateNewVideo();
         try {
-            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
-                    /* mimeType */ new String[]{ "image/*"}, /* userId */ null);
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(),
+                    /* mimeType */ new String[]{"image/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
 
@@ -523,7 +692,10 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} to return all
+     * Tests
+     * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId)}
+     * (Category, PaginationParameters, String[], UserId)} (Category, int, String[], UserId)}
+     * to return all
      * images and videos based on the mimeType. Image mimeType should only return images.
      */
     @Test
@@ -531,7 +703,8 @@ public class ItemsProviderTest {
         // Create a jpg file image. Tests negative use case, this should not be returned below.
         File imageFile = assertCreateNewImage();
         try {
-            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(),
                     /* mimeType */ new String[]{"image/png"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
@@ -541,7 +714,10 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} does not return
+     * Tests
+     * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId)}
+     * (Category, PaginationParameters, String[], UserId)} (Category, int, String[], UserId)}
+     * does not return
      * hidden images/videos.
      */
     @Test
@@ -552,7 +728,8 @@ public class ItemsProviderTest {
         File imageFileHidden = assertCreateNewImage(hiddenDir);
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
-            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(),
                     /* mimeType */ new String[]{"image/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
@@ -564,7 +741,10 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} to return all
+     * Tests
+     * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId)}
+     * (Category, PaginationParameters, String[], UserId)} (Category, int, String[], UserId)}
+     * to return all
      * images and videos based on the mimeType. Video mimeType should only return videos.
      */
     @Test
@@ -574,7 +754,8 @@ public class ItemsProviderTest {
         File imageFile = assertCreateNewImage();
         File videoFile = assertCreateNewVideo();
         try {
-            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(),
                     /* mimeType */ new String[]{"video/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
@@ -588,7 +769,10 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} to return all
+     * Tests
+     * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId)}
+     * (Category, PaginationParameters, String[], UserId)} (Category, int, String[], UserId)}
+     * to return all
      * images and videos based on the mimeType. Image mimeType should only return images.
      */
     @Test
@@ -596,7 +780,8 @@ public class ItemsProviderTest {
         // Create a mp4 video file. Tests positive use case, this should be returned below.
         File videoFile = assertCreateNewVideo();
         try {
-            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(),
                     /* mimeType */ new String[]{"video/mp4"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
@@ -606,7 +791,9 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} does not return
+     * Tests
+     * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId)}
+     * (Category, PaginationParameters, String[], UserId)} does not return
      * hidden images/videos.
      */
     @Test
@@ -617,7 +804,8 @@ public class ItemsProviderTest {
         File imageFileHidden = assertCreateNewImage(hiddenDir);
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
-            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(),
                     /* mimeType */ new String[]{"video/*"}, /* userId */ null);
 
             assertThat(res).isNotNull();
@@ -630,7 +818,9 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getLocalItems(Category, int, String[], UserId)} to returns only
+     * Tests
+     * {@link ItemsProvider#getLocalItems(Category, PaginationParameters, String[], UserId)}
+     * to returns only
      * local content.
      */
     @Test
@@ -645,7 +835,8 @@ public class ItemsProviderTest {
             });
 
             // Verify that getLocalItems includes only local contents
-            try (Cursor c = mItemsProvider.getLocalItems(Category.DEFAULT, -1, new String[]{},
+            try (Cursor c = mItemsProvider.getLocalItems(Category.DEFAULT,
+                    new PaginationParameters(), new String[]{},
                     UserId.CURRENT_USER)) {
                 assertThat(c.getCount()).isEqualTo(1);
 
@@ -655,7 +846,8 @@ public class ItemsProviderTest {
             }
 
             // Verify that getAllItems includes cloud items
-            try (Cursor c = mItemsProvider.getAllItems(Category.DEFAULT, -1, new String[]{},
+            try (Cursor c = mItemsProvider.getAllItems(Category.DEFAULT,
+                    new PaginationParameters(), new String[]{},
                     UserId.CURRENT_USER)) {
                 assertThat(c.getCount()).isEqualTo(2);
 
@@ -692,7 +884,8 @@ public class ItemsProviderTest {
             });
 
             // Verify that getLocalItems for merged album "Video" includes only local contents
-            try (Cursor c = mItemsProvider.getLocalItems(videoAlbum, -1, new String[]{},
+            try (Cursor c = mItemsProvider.getLocalItems(videoAlbum,
+                    new PaginationParameters(), new String[]{},
                     UserId.CURRENT_USER)) {
                 assertThat(c.getCount()).isEqualTo(1);
                 assertThat(c.moveToFirst()).isTrue();
@@ -701,7 +894,8 @@ public class ItemsProviderTest {
             }
 
             // Verify that getAllItems for merged album "Video" also includes cloud contents
-            try (Cursor c = mItemsProvider.getAllItems(videoAlbum, -1, new String[]{},
+            try (Cursor c = mItemsProvider.getAllItems(videoAlbum, new PaginationParameters(),
+                    new String[]{},
                     UserId.CURRENT_USER)) {
                 assertThat(c.getCount()).isEqualTo(2);
                 // Verify that the first item is cloud item
@@ -960,6 +1154,28 @@ public class ItemsProviderTest {
         }
     }
 
+    private List<File> assertCreateNewImagesWithDifferentDateModifiedTimes(int numberOfImages)
+            throws Exception {
+        List<File> imageFiles = new ArrayList<>();
+        for (int itr = 0; itr < numberOfImages; itr++) {
+            String fileName = TAG + "_file_" + String.valueOf(System.nanoTime()) + ".jpg";
+            imageFiles.add(assertCreateNewFileWithLastModifiedTime(getDownloadsDir(), fileName,
+                    System.nanoTime() / 1000));
+        }
+        return imageFiles;
+    }
+
+    private List<File> assertCreateNewImagesWithSameDateModifiedTimes(int numberOfImages)
+            throws Exception {
+        List<File> imageFiles = new ArrayList<>();
+        long currentTime = System.nanoTime() / 1000;
+        for (int itr = 0; itr < numberOfImages; itr++) {
+            String fileName = TAG + "_file_" + String.valueOf(System.nanoTime()) + ".jpg";
+            imageFiles.add(assertCreateNewFileWithLastModifiedTime(getDownloadsDir(), fileName,
+                    currentTime));
+        }
+        return imageFiles;
+    }
     private File assertCreateNewVideo(File dir) throws Exception {
         return assertCreateNewFile(dir, VIDEO_FILE_NAME);
     }
@@ -982,6 +1198,15 @@ public class ItemsProviderTest {
 
         return file;
     }
+
+    private File assertCreateNewFileWithLastModifiedTime(File parentDir, String fileName,
+            long lastModifiedTime) throws Exception {
+        final File file = new File(parentDir, fileName);
+        prepareFileAndGetUri(file, lastModifiedTime);
+        return file;
+    }
+
+
 
     private Uri prepareFileAndGetUri(File file, long lastModifiedTime) throws IOException {
         ensureParentExists(file.getParentFile());

@@ -97,7 +97,7 @@ public class NotificationContentObserver extends ContentObserver {
     public NotificationContentObserver(Handler handler) {
         super(handler);
         mKeys = Arrays.asList(MEDIA, ALBUM_CONTENT);
-        mUris = Arrays.asList(URI_UPDATE, URI_UPDATE_MEDIA, URI_UPDATE_ALBUM_CONTENT);
+        mUris = Arrays.asList(URI_UPDATE_MEDIA, URI_UPDATE_ALBUM_CONTENT);
     }
 
     /**

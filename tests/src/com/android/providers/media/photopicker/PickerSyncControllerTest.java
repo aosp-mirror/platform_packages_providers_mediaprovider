@@ -17,12 +17,15 @@
 package com.android.providers.media.photopicker;
 
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
+import static com.android.providers.media.photopicker.NotificationContentObserver.MEDIA;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
@@ -52,6 +55,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -1217,6 +1221,41 @@ public class PickerSyncControllerTest {
             assertCursor(cr, CLOUD_ID_3, FLAKY_CLOUD_PROVIDER_AUTHORITY);
             assertCursor(cr, CLOUD_ID_2, FLAKY_CLOUD_PROVIDER_AUTHORITY);
             assertCursor(cr, CLOUD_ID_1, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
+    public void testContentNotifications() throws Exception {
+        NotificationContentObserver observer = new NotificationContentObserver(null);
+        observer.register(mContext.getContentResolver());
+
+        setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final NotificationContentObserver.ContentObserverCallback callback =
+                spy(new TestableContentObserverCallback(latch));
+        observer.registerKeysToObserverCallback(Arrays.asList(MEDIA), callback);
+
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_3);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_4);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_5);
+        mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_2);
+
+        mController.syncAllMedia();
+
+        // Wait until the callback has received the notification.
+        latch.await(5, TimeUnit.SECONDS);
+
+        try (Cursor cr = queryMedia()) {
+            cr.moveToFirst();
+            verify(callback)
+                    .onNotificationReceived(
+                            cr.getString(cr.getColumnIndex(MediaColumns.DATE_TAKEN_MILLIS)), null);
+        } finally {
+            observer.unregister(mContext.getContentResolver());
         }
     }
 

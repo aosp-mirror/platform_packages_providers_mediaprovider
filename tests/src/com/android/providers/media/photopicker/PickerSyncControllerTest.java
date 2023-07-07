@@ -924,7 +924,7 @@ public class PickerSyncControllerTest {
 
         // 2. Force the next 2 syncs (including retry) to have correct extra_media_collection_id
         mCloudPrimaryMediaGenerator.setNextCursorExtras(2, COLLECTION_1,
-                /* honoredSyncGeneration */ true, /* honoredAlbumId */ false);
+                /* honoredSyncGeneration */ true, /* honoredAlbumId */ false, true);
 
         // 4. Add cloud media
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
@@ -939,7 +939,7 @@ public class PickerSyncControllerTest {
 
         // 6. Force the next sync (without retry) to have incorrect extra_media_collection_id
         mCloudPrimaryMediaGenerator.setNextCursorExtras(1, COLLECTION_2,
-                /* honoredSyncGeneration */ true, /* honoredAlbumId */ false);
+                /* honoredSyncGeneration */ true, /* honoredAlbumId */ false, true);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
 
         // 7. Sync and verify media after retry succeeded
@@ -953,7 +953,7 @@ public class PickerSyncControllerTest {
 
         // 8. Force the next 2 syncs (including retry) to have incorrect extra_media_collection_id
         mCloudPrimaryMediaGenerator.setNextCursorExtras(2, COLLECTION_2,
-                /* honoredSyncGeneration */ true, /* honoredAlbumId */ false);
+                /* honoredSyncGeneration */ true, /* honoredAlbumId */ false, true);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_3);
 
         // 9. Sync and verify media was reset
@@ -968,7 +968,7 @@ public class PickerSyncControllerTest {
 
         // 2. Force the next 2 syncs (including retry) to have correct extra_media_collection_id
         mCloudPrimaryMediaGenerator.setNextCursorExtras(2, COLLECTION_1,
-                /* honoredSyncGeneration */ true, /* honoredAlbumId */ false);
+                /* honoredSyncGeneration */ true, /* honoredAlbumId */ false, true);
 
         // 3. Add cloud media
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
@@ -983,7 +983,7 @@ public class PickerSyncControllerTest {
 
         // 5. Force the next sync (without retry) to have incorrect extra_honored_args
         mCloudPrimaryMediaGenerator.setNextCursorExtras(1, COLLECTION_1,
-                /* honoredSyncGeneration */ false, /* honoredAlbumId */ false);
+                /* honoredSyncGeneration */ false, /* honoredAlbumId */ false, true);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
 
         // 6. Sync and verify media after retry succeeded
@@ -997,13 +997,31 @@ public class PickerSyncControllerTest {
     }
 
     @Test
+    public void testSyncAllMedia_missingHonouredArgs_doesNotDisplayCloud() {
+        // 1. Set cloud provider
+        setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // 2. Add media before setting primary cloud provider
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
+
+        // 3. Force next sync to not honour page size
+        mCloudPrimaryMediaGenerator.setNextCursorExtras(2, COLLECTION_1,
+                /* honoredSyncGeneration */ true, /* honoredAlbumId */ false, false);
+
+        // 4. Sync and verify media
+        mController.syncAllMedia();
+        assertEmptyCursorFromMediaQuery();
+    }
+
+    @Test
     public void testAlbumMediaSyncValidationFailure_missingAlbumIdHonoredArg() {
         // 1. Set cloud provider
         setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         // 2. Force the next sync to have correct extra_media_collection_id
         mCloudPrimaryMediaGenerator.setNextCursorExtras(1, COLLECTION_1,
-                /* honoredSyncGeneration */ false, /* honoredAlbumId */ true);
+                /* honoredSyncGeneration */ false, /* honoredAlbumId */ true, true);
 
         // 3. Add cloud album_media
         addAlbumMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1.first, CLOUD_ONLY_1.second,
@@ -1019,7 +1037,7 @@ public class PickerSyncControllerTest {
 
         // 5. Force the next sync to have incorrect extra_album_id
         mCloudPrimaryMediaGenerator.setNextCursorExtras(1, COLLECTION_1,
-                /* honoredSyncGeneration */ false, /* honoredAlbumId */ false);
+                /* honoredSyncGeneration */ false, /* honoredAlbumId */ false, true);
 
         // 6. Sync and verify album_media is empty
         mController.syncAlbumMedia(ALBUM_ID_1, false);

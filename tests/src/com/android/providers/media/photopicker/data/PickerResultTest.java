@@ -58,7 +58,7 @@ public class PickerResultTest {
     }
 
     /**
-     * Tests {@link PickerResult#getPickerResponseIntent(boolean, List)} with single item
+     * Tests {@link PickerResult#getPickerResponseIntent(String, boolean, List)} with single item
      * @throws Exception
      */
     @Test
@@ -68,6 +68,7 @@ public class PickerResultTest {
             items = createItemSelection(1);
             final Uri expectedPickerUri = PickerResult.getPickerUri(items.get(0).getContentUri());
             final Intent intent = PickerResult.getPickerResponseIntent(
+                    MediaStore.ACTION_PICK_IMAGES,
                     /* canSelectMultiple */ false, items);
 
             final Uri result = intent.getData();
@@ -85,7 +86,7 @@ public class PickerResultTest {
     }
 
     /**
-     * Tests {@link PickerResult#getPickerResponseIntent(boolean, List)} with multiple items
+     * Tests {@link PickerResult#getPickerResponseIntent(String, boolean, List)} with multiple items
      * @throws Exception
      */
     @Test
@@ -95,10 +96,11 @@ public class PickerResultTest {
             final int itemCount = 3;
             items = createItemSelection(itemCount);
             List<Uri> expectedPickerUris = new ArrayList<>();
-            for (Item item: items) {
+            for (Item item : items) {
                 expectedPickerUris.add(PickerResult.getPickerUri(item.getContentUri()));
             }
-            final Intent intent = PickerResult.getPickerResponseIntent(/* canSelectMultiple */ true,
+            final Intent intent = PickerResult.getPickerResponseIntent(
+                    MediaStore.ACTION_PICK_IMAGES, /* canSelectMultiple */ true,
                     items);
 
             final ClipData clipData = intent.getClipData();
@@ -115,7 +117,8 @@ public class PickerResultTest {
     }
 
     /**
-     * Tests {@link PickerResult#getPickerResponseIntent(boolean, List)} when the user selected
+     * Tests {@link PickerResult#getPickerResponseIntent(String, boolean, List)} when the user
+     * selected
      * only one item in multi-select mode
      * @throws Exception
      */
@@ -126,7 +129,8 @@ public class PickerResultTest {
             final int itemCount = 1;
             items = createItemSelection(itemCount);
             final Uri expectedPickerUri = PickerResult.getPickerUri(items.get(0).getContentUri());
-            final Intent intent = PickerResult.getPickerResponseIntent(/* canSelectMultiple */ true,
+            final Intent intent = PickerResult.getPickerResponseIntent(
+                    MediaStore.ACTION_PICK_IMAGES, /* canSelectMultiple */ true,
                     items);
 
             final ClipData clipData = intent.getClipData();

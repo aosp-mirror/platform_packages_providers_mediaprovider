@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.espresso;
 
+import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.espresso.IdlingResource;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
@@ -64,16 +65,17 @@ public class ViewPager2IdlingResource implements IdlingResource, AutoCloseable {
     }
 
     /**
-     * @return {@link ViewPager2IdlingResource} that is registered to the activity
-     * related to the given {@link ActivityScenarioRule} and the resource ID of the ViewPager2.
+     * @return {@link ViewPager2IdlingResource} that is registered to the activity related to the
+     *     given {@link ActivityScenarioRule} and the resource ID of the ViewPager2.
      */
     public static ViewPager2IdlingResource register(
-            ActivityScenarioRule<PhotoPickerTestActivity> rule, int viewPager2Id) {
+            ActivityScenario<PhotoPickerTestActivity> scenario, int viewPager2Id) {
         final ViewPager2IdlingResource[] idlingResources = new ViewPager2IdlingResource[1];
-        rule.getScenario().onActivity((activity -> {
-            idlingResources[0] = new ViewPager2IdlingResource(
-                    activity.findViewById(viewPager2Id));
-        }));
+        scenario.onActivity(
+                (activity -> {
+                    idlingResources[0] =
+                            new ViewPager2IdlingResource(activity.findViewById(viewPager2Id));
+                }));
         IdlingRegistry.getInstance().register(idlingResources[0]);
         return idlingResources[0];
     }

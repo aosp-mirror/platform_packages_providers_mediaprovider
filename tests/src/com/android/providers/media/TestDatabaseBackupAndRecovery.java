@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -86,5 +87,13 @@ public class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
 
     public void setBackedUpData(Map<String, BackupIdRow> backedUpData) {
         this.mBackedUpData = backedUpData;
+    }
+
+    @Override
+    protected void removeRecoveryDataForUserId(int removedUserId) {
+    }
+
+    @Override
+    public void removeRecoveryDataExceptValidUsers(List<String> validUsers) {
     }
 }

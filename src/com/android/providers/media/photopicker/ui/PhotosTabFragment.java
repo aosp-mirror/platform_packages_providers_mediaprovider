@@ -32,6 +32,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
@@ -40,6 +41,7 @@ import com.android.providers.media.util.StringUtils;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -98,13 +100,16 @@ public class PhotosTabFragment extends TabFragment {
             setEmptyMessage(R.string.picker_photos_empty_message);
             // Set the pane title for A11y
             view.setAccessibilityPaneTitle(getString(R.string.picker_photos));
-            mPickerViewModel.getItems()
+            // Pagination is no-op for now and the existing flow has not been modified with this.
+            mPickerViewModel.getPaginatedItems(
+                            new PaginationParameters())
                     .observe(this, itemList -> onChangeMediaItems(itemList, adapter));
         } else {
             setEmptyMessage(R.string.picker_album_media_empty_message);
             // Set the pane title for A11y
             view.setAccessibilityPaneTitle(mCategory.getDisplayName(context));
-            mPickerViewModel.getCategoryItems(mCategory)
+            // Pagination is no-op for now and the existing flow has not been modified with this.
+            mPickerViewModel.getPaginatedCategoryItems(mCategory, new PaginationParameters())
                     .observe(this, itemList -> onChangeMediaItems(itemList, adapter));
         }
 
@@ -153,9 +158,14 @@ public class PhotosTabFragment extends TabFragment {
 
     private void onChangeMediaItems(@NonNull List<Item> itemList,
             @NonNull PhotosTabAdapter adapter) {
-        adapter.setMediaItems(itemList);
-        // Handle emptyView's visibility
-        updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
+        if (itemList.size() == 1 && itemList.get(0).getId().equals("EMPTY_VIEW")) {
+            adapter.setMediaItems(new ArrayList<>());
+            updateVisibilityForEmptyView(false);
+        } else {
+            adapter.setMediaItems(itemList);
+            // Handle emptyView's visibility
+            updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
+        }
     }
 
     private void onItemClick(@NonNull View view) {

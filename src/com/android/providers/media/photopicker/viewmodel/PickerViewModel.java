@@ -47,6 +47,7 @@ import com.android.providers.media.ConfigStore;
 import com.android.providers.media.MediaApplication;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
+import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
@@ -58,6 +59,7 @@ import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -198,6 +200,7 @@ public class PickerViewModel extends AndroidViewModel {
             mUserIdManager.setPersonalAsCurrentUserProfile();
         }
         // 3. Update Item and Category lists
+        clearUiGrid();
         updateItems();
         updateCategories();
         // 4. Update Banners
@@ -212,6 +215,7 @@ public class PickerViewModel extends AndroidViewModel {
      */
     @UiThread
     public void onUserSwitchedProfile() {
+        clearUiGrid();
         updateItems();
         updateCategories();
         // Note - Banners should always be updated after the items & categories to ensure a
@@ -219,20 +223,41 @@ public class PickerViewModel extends AndroidViewModel {
         mBannerManager.maybeUpdateBannerLiveDatas();
     }
 
+    private void clearUiGrid() {
+        // clear photos grid
+        if (mItemList != null) {
+            ForegroundThread.getExecutor().execute(() -> {
+                mItemList.postValue(Arrays.asList(Item.EMPTY_VIEW));
+            });
+        }
+
+        //clear Albums Grid
+        if (mCategoryList != null) {
+            ForegroundThread.getExecutor().execute(() -> {
+                mCategoryList.postValue(Arrays.asList(Category.EMPTY_VIEW));
+            });
+        }
+    }
+
     /**
-     * @return the list of Items with all photos and videos {@link #mItemList} on the device.
+     * @return the list of Items with all photos and videos {@link #mItemList} on the device for a
+     * page represented by the {@code pagingParameters}.
+     *
+     * <p>Pass an object of {@link PaginationParameters} created using the default constructor
+     * to obtain the complete list of items present.</p>
      */
-    public LiveData<List<Item>> getItems() {
+    public LiveData<List<Item>> getPaginatedItems(PaginationParameters pagingParameters) {
         if (mItemList == null) {
-            updateItems();
+            updateItems(pagingParameters);
         }
         return mItemList;
     }
 
-    private List<Item> loadItems(Category category, UserId userId) {
+    private List<Item> loadItems(Category category, UserId userId,
+            PaginationParameters pagingParameters) {
         final List<Item> items = new ArrayList<>();
 
-        try (Cursor cursor = fetchItems(category, userId)) {
+        try (Cursor cursor = fetchItems(category, userId, pagingParameters)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any items for " + category
                         + ", either cursor is null or cursor count is zero");
@@ -251,29 +276,45 @@ public class PickerViewModel extends AndroidViewModel {
         return items;
     }
 
-    private Cursor fetchItems(Category category, UserId userId) {
+    private Cursor fetchItems(Category category, UserId userId,
+            PaginationParameters pagingParameters) {
         if (shouldShowOnlyLocalFeatures()) {
-            return mItemsProvider.getLocalItems(category, /* limit */ -1, mMimeTypeFilters, userId);
+            return mItemsProvider.getLocalItems(category, pagingParameters,
+                    mMimeTypeFilters, userId);
         } else {
-            return mItemsProvider.getAllItems(category, /* limit */ -1, mMimeTypeFilters, userId);
+            return mItemsProvider.getAllItems(category, pagingParameters,
+                    mMimeTypeFilters, userId);
         }
     }
 
-    private void loadItemsAsync() {
+    private void loadItemsAsync(@Nullable PaginationParameters pagingParameters) {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-                    mItemList.postValue(loadItems(Category.DEFAULT, userId));
+            mItemList.postValue(loadItems(Category.DEFAULT, userId, pagingParameters));
         });
     }
 
     /**
-     * Update the item List {@link #mItemList}
+     * Update the item List {@link #mItemList} for a page represented by the
+     * {@code pagingParameters}.
+     *
+     * <p>Use {@link PickerViewModel#updateItems()} to update the complete list.</p>
+     */
+    public void updateItems(PaginationParameters pagingParameters) {
+        if (mItemList == null) {
+            mItemList = new MutableLiveData<>();
+        }
+        loadItemsAsync(pagingParameters);
+    }
+
+    /**
+     * Update the complete item List {@link #mItemList}.
      */
     public void updateItems() {
         if (mItemList == null) {
             mItemList = new MutableLiveData<>();
         }
-        loadItemsAsync();
+        loadItemsAsync(new PaginationParameters());
     }
 
     /**
@@ -287,20 +328,21 @@ public class PickerViewModel extends AndroidViewModel {
      * @return the list of all photos and videos with the specific {@code category}
      *         {@link #mCategoryItemList}
      */
-    public LiveData<List<Item>> getCategoryItems(@NonNull Category category) {
+    public LiveData<List<Item>> getPaginatedCategoryItems(@NonNull Category category,
+            PaginationParameters pagingParameters) {
         if (mCategoryItemList == null || !TextUtils.equals(mCurrentCategory.getId(),
                 category.getId())) {
             mCategoryItemList = new MutableLiveData<>();
             mCurrentCategory = category;
         }
-        updateCategoryItems();
+        updateCategoryItems(pagingParameters);
         return mCategoryItemList;
     }
 
-    private void loadCategoryItemsAsync() {
+    private void loadCategoryItemsAsync(PaginationParameters pagingParameters) {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mCategoryItemList.postValue(loadItems(mCurrentCategory, userId));
+            mCategoryItemList.postValue(loadItems(mCurrentCategory, userId, pagingParameters));
         });
     }
 
@@ -311,12 +353,12 @@ public class PickerViewModel extends AndroidViewModel {
      *     this method
      */
     @VisibleForTesting
-    public void updateCategoryItems() {
+    public void updateCategoryItems(PaginationParameters pagingParameters) {
         if (mCategoryItemList == null || mCurrentCategory == null) {
             throw new IllegalStateException("mCurrentCategory and mCategoryItemList are not"
                     + " initiated. Please call getCategoryItems before calling this method");
         }
-        loadCategoryItemsAsync();
+        loadCategoryItemsAsync(pagingParameters);
     }
 
     /**

@@ -94,17 +94,36 @@ public class PickerProviderMediaGenerator {
         private Intent mAccountConfigurationIntent;
         private int mCursorExtraQueryCount;
         private Bundle mCursorExtra;
+        private Integer mNextPageToken;
 
-        // TODO(b/214592293): Add pagination support for testing purposes.
-        public Cursor getMedia(long generation, String albumId, String[] mimeTypes,
-                long sizeBytes) {
-            final Cursor cursor = getCursor(mMedia, generation, albumId, mimeTypes, sizeBytes,
-                    /* isDeleted */ false);
+        public Cursor getMedia(
+                long generation, String albumId, String[] mimeTypes, long sizeBytes) {
+            return getMedia(generation, albumId, mimeTypes, sizeBytes, null);
+        }
+
+        public Cursor getMedia(
+                long generation,
+                String albumId,
+                String[] mimeTypes,
+                long sizeBytes,
+                String pageToken) {
+            final Cursor cursor =
+                    getCursor(
+                            mMedia,
+                            generation,
+                            albumId,
+                            mimeTypes,
+                            sizeBytes,
+                            /* isDeleted */ false,
+                            pageToken);
 
             if (mCursorExtra != null) {
                 cursor.setExtras(mCursorExtra);
             } else {
-                cursor.setExtras(buildCursorExtras(mCollectionId, generation > 0, albumId != null));
+                cursor.setExtras(
+                        buildCursorExtras(
+                                mCollectionId, generation > 0, albumId != null, mNextPageToken));
+                mNextPageToken = null;
             }
 
             if (--mCursorExtraQueryCount == 0) {
@@ -114,12 +133,18 @@ public class PickerProviderMediaGenerator {
         }
 
         public Cursor getAlbums(String[] mimeTypes, long sizeBytes, boolean isLocal) {
-            final Cursor cursor = getCursor(mAlbums, mimeTypes, sizeBytes, isLocal);
+            return getAlbums(mimeTypes, sizeBytes, isLocal, /* pageToken= */ null);
+        }
+
+        public Cursor getAlbums(
+                String[] mimeTypes, long sizeBytes, boolean isLocal, String pageToken) {
+            final Cursor cursor = getCursor(mAlbums, mimeTypes, sizeBytes, isLocal, pageToken);
 
             if (mCursorExtra != null) {
                 cursor.setExtras(mCursorExtra);
             } else {
-                cursor.setExtras(buildCursorExtras(mCollectionId, false, false));
+                cursor.setExtras(buildCursorExtras(mCollectionId, false, false, mNextPageToken));
+                mNextPageToken = null;
             }
 
             if (--mCursorExtraQueryCount == 0) {
@@ -128,16 +153,20 @@ public class PickerProviderMediaGenerator {
             return cursor;
         }
 
-        // TODO(b/214592293): Add pagination support for testing purposes.
         public Cursor getDeletedMedia(long generation) {
+            return getDeletedMedia(generation, /* pageToken= */ null);
+        }
+        public Cursor getDeletedMedia(long generation, String pageToken) {
             final Cursor cursor = getCursor(mDeletedMedia, generation, /* albumId */ STRING_DEFAULT,
                     STRING_ARRAY_DEFAULT, /* sizeBytes */ LONG_DEFAULT,
-                    /* isDeleted */ true);
+                    /* isDeleted */ true, pageToken);
 
             if (mCursorExtra != null) {
                 cursor.setExtras(mCursorExtra);
             } else {
-                cursor.setExtras(buildCursorExtras(mCollectionId, generation > 0, false));
+                cursor.setExtras(
+                        buildCursorExtras(mCollectionId, generation > 0, false, mNextPageToken));
+                mNextPageToken = null;
             }
 
             if (--mCursorExtraQueryCount == 0) {
@@ -169,12 +198,19 @@ public class PickerProviderMediaGenerator {
         public void setNextCursorExtras(int queryCount, String mediaCollectionId,
                 boolean honoredSyncGeneration, boolean honoredAlbumId) {
             mCursorExtraQueryCount = queryCount;
-            mCursorExtra = buildCursorExtras(mediaCollectionId, honoredSyncGeneration,
-                    honoredAlbumId);
+            mCursorExtra =
+                    buildCursorExtras(
+                            mediaCollectionId,
+                            honoredSyncGeneration,
+                            honoredAlbumId,
+                            mNextPageToken);
         }
 
-        public Bundle buildCursorExtras(String mediaCollectionId, boolean honoredSyncGeneration,
-                boolean honoredAlbumdId) {
+        public Bundle buildCursorExtras(
+                String mediaCollectionId,
+                boolean honoredSyncGeneration,
+                boolean honoredAlbumdId,
+                Integer pageToken) {
             final ArrayList<String> honoredArgs = new ArrayList<>();
             if (honoredSyncGeneration) {
                 honoredArgs.add(EXTRA_SYNC_GENERATION);
@@ -184,9 +220,12 @@ public class PickerProviderMediaGenerator {
             }
 
             final Bundle bundle = new Bundle();
-            bundle.putString(CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID,
-                    mediaCollectionId);
+            bundle.putString(
+                    CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID, mediaCollectionId);
             bundle.putStringArrayList(ContentResolver.EXTRA_HONORED_ARGS, honoredArgs);
+            if (pageToken != null) {
+                bundle.putString(CloudMediaProviderContract.EXTRA_PAGE_TOKEN, pageToken.toString());
+            }
 
             return bundle;
         }
@@ -223,6 +262,7 @@ public class PickerProviderMediaGenerator {
             mDeletedMedia.clear();
             mAlbums.clear();
             clearCursorExtras();
+            mNextPageToken = null;
         }
 
         public void setMediaCollectionId(String id) {
@@ -241,6 +281,7 @@ public class PickerProviderMediaGenerator {
             // Increase generation
             return new TestMedia(localId, cloudId, ++mLastSyncGeneration);
         }
+
         private TestMedia createTestAlbumMedia(String localId, String cloudId, String albumId) {
             // Increase generation
             return new TestMedia(localId, cloudId, albumId);
@@ -260,37 +301,90 @@ public class PickerProviderMediaGenerator {
             return new TestMedia(localId, cloudId, 0);
         }
 
-        private static Cursor getCursor(List<TestMedia> mediaList, long generation,
-                String albumId, String[] mimeTypes, long sizeBytes, boolean isDeleted) {
+        private Cursor getCursor(
+                List<TestMedia> mediaList,
+                long generation,
+                String albumId,
+                String[] mimeTypes,
+                long sizeBytes,
+                boolean isDeleted,
+                String pageToken) {
             final MatrixCursor matrix;
+            final int pageSize = 5;
+
             if (isDeleted) {
                 matrix = new MatrixCursor(DELETED_MEDIA_PROJECTION);
-            } else if(!TextUtils.isEmpty(albumId)) {
+            } else if (!TextUtils.isEmpty(albumId)) {
                 matrix = new MatrixCursor(ALBUM_MEDIA_PROJECTION);
             } else {
                 matrix = new MatrixCursor(MEDIA_PROJECTION);
             }
 
-            for (TestMedia media : mediaList) {
-                if (!TextUtils.isEmpty(albumId) && matchesFilter(media,
-                        albumId, mimeTypes, sizeBytes)) {
-                    matrix.addRow(media.toAlbumMediaArray());
-                } else if (media.generation > generation
-                        && matchesFilter(media, albumId, mimeTypes, sizeBytes)) {
-                    matrix.addRow(media.toArray(isDeleted));
+            int page = 0;
+            if (pageToken != null) {
+                page = Integer.parseInt(pageToken);
+            }
+
+            // Calculate the starting position: pageSize * pageNumber
+            int startPosition = (pageSize * page);
+            // Calculate the end of the page
+            int endPosition = startPosition + pageSize;
+
+            for (int i = startPosition; i < endPosition; i++) {
+
+                try {
+                    TestMedia media = mediaList.get(i);
+                    if (!TextUtils.isEmpty(albumId)
+                            && matchesFilter(media, albumId, mimeTypes, sizeBytes)) {
+                        matrix.addRow(media.toAlbumMediaArray());
+                    } else if (media.generation > generation
+                            && matchesFilter(media, albumId, mimeTypes, sizeBytes)) {
+                        matrix.addRow(media.toArray(isDeleted));
+                    }
+
+                } catch (IndexOutOfBoundsException e) {
+                    // We're at the end of the list, before the end of the page so break the loop.
+                    break;
                 }
             }
+
+            // Set next page token if there is another page.
+            if (mediaList.size() > endPosition) {
+                mNextPageToken = Integer.valueOf(++page);
+            } else {
+                mNextPageToken = null;
+            }
+
             return matrix;
         }
 
         private static Cursor getCursor(List<TestAlbum> albumList, String[] mimeTypes,
-                long sizeBytes, boolean isLocal) {
+                long sizeBytes, boolean isLocal, String pageToken) {
             final MatrixCursor matrix = new MatrixCursor(ALBUM_PROJECTION);
+            final int pageSize = 5;
 
-            for (TestAlbum album : albumList) {
-                final String[] res = album.toArray(mimeTypes, sizeBytes, isLocal);
-                if (res != null) {
-                    matrix.addRow(res);
+            int page = 0;
+            if (pageToken != null) {
+                page = Integer.parseInt(pageToken);
+            }
+
+            // Calculate the starting position: pageSize * pageNumber
+            int startPosition = (pageSize * page);
+            // Calculate the end of the page
+            int endPosition = startPosition + pageSize;
+
+
+            for (int i = startPosition; i < endPosition; i++) {
+
+                try {
+                    TestAlbum album = albumList.get(i);
+                    final String[] res = album.toArray(mimeTypes, sizeBytes, isLocal);
+                    if (res != null) {
+                        matrix.addRow(res);
+                    }
+                } catch (IndexOutOfBoundsException e) {
+                    // We're at the end of the list, before the end of the page so break the loop.
+                    break;
                 }
             }
             return matrix;

@@ -42,6 +42,7 @@ import com.android.providers.media.ConfigStore;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -106,7 +107,8 @@ public class PickerViewModelTest {
         // idle
         ForegroundThread.waitForIdle();
 
-        final List<Item> itemList = mPickerViewModel.getItems().getValue();
+        final List<Item> itemList = mPickerViewModel.getPaginatedItems(
+                new PaginationParameters()).getValue();
 
         // No date headers, the size should be 0
         assertThat(itemList.size()).isEqualTo(itemCount);
@@ -188,7 +190,8 @@ public class PickerViewModelTest {
         }
 
         @Override
-        public Cursor getAllItems(Category category, int limit, @Nullable String[] mimeType,
+        public Cursor getAllItems(Category category,
+                PaginationParameters paginationParameters, @Nullable String[] mimeType,
                 @Nullable UserId userId) throws
                 IllegalArgumentException, IllegalStateException {
             final MatrixCursor c = new MatrixCursor(MediaColumns.ALL_PROJECTION);

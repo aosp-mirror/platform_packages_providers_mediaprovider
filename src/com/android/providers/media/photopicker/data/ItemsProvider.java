@@ -20,6 +20,8 @@ import static android.content.ContentResolver.QUERY_ARG_LIMIT;
 import static android.database.DatabaseUtils.dumpCursorToString;
 
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_DATE_TAKEN_BEFORE_MS;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ROW_ID;
 
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -85,9 +87,10 @@ public class ItemsProvider {
      * <p>
      * By default, the returned {@link Cursor} sorts by latest date taken.
      *
-     * @param category the category of items to return. May be cloud, local or merged albums like
-     * favorites or videos.
-     * @param limit the limit of number of items to return.
+     * @param category  the category of items to return. May be cloud, local or merged albums like
+     *                  favorites or videos.
+     * @param pagingParameters parameters to represent the page for which the items need to be
+     *                            returned.
      * @param mimeTypes the mime type of item. {@code null} returns all images/videos that are
      *                 scanned by {@link MediaStore}.
      * @param userId the {@link UserId} of the user to get items as.
@@ -99,17 +102,20 @@ public class ItemsProvider {
      * contains {@link android.provider.CloudMediaProviderContract.MediaColumns}
      */
     @Nullable
-    public Cursor getAllItems(Category category, int limit, @Nullable String[] mimeTypes,
+    public Cursor getAllItems(Category category, PaginationParameters pagingParameters,
+            @Nullable String[] mimeTypes,
             @Nullable UserId userId) throws IllegalArgumentException {
         if (DEBUG) {
             Log.d(TAG, "getAllItems() userId=" + userId + " cat=" + category
-                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit=" + limit);
+                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit="
+                    + pagingParameters.getPageSize() + " dateTakenBeforeMs="
+                    + pagingParameters.getDateBeforeMs() + " rowId=" + pagingParameters.getRowId());
             Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         Trace.beginSection("ItemsProvider.getAllItems");
         try {
-            return queryMedia(URI_MEDIA_ALL, limit, mimeTypes, category, userId);
+            return queryMedia(URI_MEDIA_ALL, pagingParameters, mimeTypes, category, userId);
         } finally {
             Trace.endSection();
         }
@@ -122,9 +128,10 @@ public class ItemsProvider {
      * <p>
      * By default, the returned {@link Cursor} sorts by latest date taken.
      *
-     * @param category the category of items to return. May be local or merged albums like
-     * favorites or videos.
-     * @param limit the limit of number of items to return.
+     * @param category  the category of items to return. May be local or merged albums like
+     *                  favorites or videos.
+     * @param pagingParameters parameters to represent the page for which the items need to be
+     *                            returned.
      * @param mimeTypes the mime type of item. {@code null} returns all images/videos that are
      *                 scanned by {@link MediaStore}.
      * @param userId the {@link UserId} of the user to get items as.
@@ -139,17 +146,20 @@ public class ItemsProvider {
      * this method is called with a non-local album.
      */
     @Nullable
-    public Cursor getLocalItems(Category category, int limit, @Nullable String[] mimeTypes,
+    public Cursor getLocalItems(Category category, PaginationParameters pagingParameters,
+            @Nullable String[] mimeTypes,
             @Nullable UserId userId) throws IllegalArgumentException {
         if (DEBUG) {
             Log.d(TAG, "getLocalItems() userId=" + userId + " cat=" + category
-                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit=" + limit);
+                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit="
+                    + pagingParameters.getPageSize() + " dateTakenBeforeMs="
+                    + pagingParameters.getDateBeforeMs() + " rowId=" + pagingParameters.getRowId());
             Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
         Trace.beginSection("ItemsProvider.getLocalItems");
         try {
-            return queryMedia(URI_MEDIA_LOCAL, limit, mimeTypes, category, userId);
+            return queryMedia(URI_MEDIA_LOCAL, pagingParameters, mimeTypes, category, userId);
         } finally {
             Trace.endSection();
         }
@@ -214,15 +224,19 @@ public class ItemsProvider {
     }
 
     @Nullable
-    private Cursor queryMedia(@NonNull Uri uri, int limit, String[] mimeTypes,
-            @NonNull Category category, @Nullable UserId userId) throws IllegalStateException {
+    private Cursor queryMedia(@NonNull Uri uri, PaginationParameters paginationParameters,
+            String[] mimeTypes, @NonNull Category category, @Nullable UserId userId)
+            throws IllegalStateException {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
 
         if (DEBUG) {
             Log.d(TAG, "queryMedia() userId=" + userId + " uri=" + uri + " cat=" + category
-                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit=" + limit);
+                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit="
+                    + paginationParameters.getPageSize() + " date_taken_before_ms = "
+                    + paginationParameters.getDateBeforeMs() + " row_id = "
+                    + paginationParameters.getRowId());
             Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
         Trace.beginSection("ItemsProvider.queryMedia");
@@ -236,12 +250,17 @@ public class ItemsProvider {
                         + MediaStore.AUTHORITY);
                 return null;
             }
-            extras.putInt(QUERY_ARG_LIMIT, limit);
+            extras.putInt(QUERY_ARG_LIMIT, paginationParameters.getPageSize());
             if (mimeTypes != null) {
                 extras.putStringArray(MediaStore.QUERY_ARG_MIME_TYPE, mimeTypes);
             }
             extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category.getId());
             extras.putString(MediaStore.QUERY_ARG_ALBUM_AUTHORITY, category.getAuthority());
+            if (paginationParameters.getRowId() >= 0
+                    && paginationParameters.getDateBeforeMs() >= 0) {
+                extras.putInt(QUERY_ROW_ID, paginationParameters.getRowId());
+                extras.putLong(QUERY_DATE_TAKEN_BEFORE_MS, paginationParameters.getDateBeforeMs());
+            }
 
             result = client.query(uri, /* projection */ null, extras,
                     /* cancellationSignal */ null);

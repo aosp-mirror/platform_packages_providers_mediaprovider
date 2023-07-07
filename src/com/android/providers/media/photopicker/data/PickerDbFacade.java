@@ -48,6 +48,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.data.model.Item;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -936,6 +937,8 @@ public class PickerDbFacade {
             getProjectionAuthorityLocked(),
             getProjectionDataLocked(MediaColumns.DATA),
             getProjectionId(MediaColumns.ID),
+            // The id in the picker.db table represents the row id. This is used in UI pagination.
+            getProjectionSimple(KEY_ID, Item.ROW_ID),
             getProjectionSimple(KEY_DATE_TAKEN_MS, MediaColumns.DATE_TAKEN_MILLIS),
             getProjectionSimple(KEY_SYNC_GENERATION, MediaColumns.SYNC_GENERATION),
             getProjectionSimple(KEY_SIZE_BYTES, MediaColumns.SIZE_BYTES),

@@ -25,9 +25,14 @@ import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.MEDIA_COLLECTION_ID;
 
+import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
 import static com.android.providers.media.PickerUriResolver.getDeletedMediaUri;
 import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
+import static com.android.providers.media.photopicker.NotificationContentObserver.ALBUM_CONTENT;
+import static com.android.providers.media.photopicker.NotificationContentObserver.MEDIA;
+import static com.android.providers.media.photopicker.NotificationContentObserver.UPDATE;
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 
 import android.annotation.IntDef;
 import android.content.Context;
@@ -41,6 +46,7 @@ import android.os.Trace;
 import android.os.storage.StorageManager;
 import android.provider.CloudMediaProvider;
 import android.provider.CloudMediaProviderContract;
+import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.text.TextUtils;
 import android.util.ArraySet;
 import android.util.Log;
@@ -67,12 +73,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Syncs the local and currently enabled cloud {@link CloudMediaProvider} instances on the device
  * into the picker db.
  */
 public class PickerSyncController {
+
+    public static final ReentrantLock sIdleMaintenanceSyncLock = new ReentrantLock();
     private static final String TAG = "PickerSyncController";
     private static final boolean DEBUG = false;
 
@@ -214,8 +223,15 @@ public class PickerSyncController {
      * Syncs the local media
      */
     public void syncAllMediaFromLocalProvider() {
-        syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true,
-                /* enforcePagedSync*/ false);
+        // Picker sync and special format update can execute concurrently and run into a deadlock.
+        // Acquiring a lock before execution of each flow to avoid this.
+        sIdleMaintenanceSyncLock.lock();
+        try {
+            syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true,
+                    /* enforcePagedSync*/ false);
+        } finally {
+            sIdleMaintenanceSyncLock.unlock();
+        }
     }
 
     private void syncAllMediaFromCloudProvider() {
@@ -1124,6 +1140,7 @@ public class PickerSyncController {
             }
 
             do {
+                String updateDateTakenMs = null;
                 try (PickerDbFacade.DbWriteOperation operation =
                         beginPagedOperation(op, authority, albumId)) {
 
@@ -1143,6 +1160,9 @@ public class PickerSyncController {
                         int writeCount = operation.execute(cursor);
 
                         totalRowcount += writeCount;
+
+                        // Before the cursor is closed pull the date taken ms for the first row.
+                        updateDateTakenMs = getFirstDateTakenMsInCursor(cursor);
                     }
                     operation.setSuccess();
 
@@ -1155,6 +1175,16 @@ public class PickerSyncController {
                 // later resumed.
                 rememberNextPageToken(nextPageToken, resumeKey);
 
+                // Emit notification that new data has arrived in the database.
+                if (updateDateTakenMs != null) {
+                    Uri notification = buildNotificationUri(op, albumId, updateDateTakenMs);
+
+                    if (notification != null) {
+                        mContext.getContentResolver()
+                                .notifyChange(/* itemUri= */ notification, /* observer= */ null);
+                    }
+                }
+
             } while (nextPageToken != null);
 
             Log.i(
@@ -1166,6 +1196,75 @@ public class PickerSyncController {
         } finally {
             Trace.endSection();
         }
+    }
+
+    /**
+     * Extracts the {@link MediaColumns.DATE_TAKEN_MILLIS} from the first row in the cursor.
+     *
+     * @param cursor The cursor to read from.
+     * @return Either the column value if it exists, or {@code null} if it doesn't.
+     */
+    @Nullable
+    private String getFirstDateTakenMsInCursor(Cursor cursor) {
+        if (cursor.getCount() > 0) {
+            cursor.moveToFirst();
+            return getCursorString(cursor, MediaColumns.DATE_TAKEN_MILLIS);
+        }
+        return null;
+    }
+
+    /**
+     * Assembles a ContentObserver notification uri for the given operation.
+     *
+     * @param op {@link OperationType} the operation to notify has completed.
+     * @param albumId An optional album id if this is an album based operation.
+     * @param dateTakenMs The notification data; the {@link MediaColumns.DATE_TAKEN_MILLIS} of the
+     *     first row updated.
+     * @return the assembled notification uri.
+     */
+    @Nullable
+    private Uri buildNotificationUri(
+            @NonNull @OperationType int op,
+            @Nullable String albumId,
+            @Nullable String dateTakenMs) {
+
+        Objects.requireNonNull(
+                dateTakenMs, "Cannot notify subscribers without a date taken timestamp.");
+
+        // base: content://media/picker_internal/
+        Uri.Builder builder = PICKER_INTERNAL_URI.buildUpon().appendPath(UPDATE);
+
+        switch (op) {
+            case OPERATION_ADD_MEDIA:
+                // content://media/picker_internal/update/media
+                builder.appendPath(MEDIA);
+                break;
+            case OPERATION_ADD_ALBUM:
+                // content://media/picker_internal/update/album_content/${albumId}
+                builder.appendPath(ALBUM_CONTENT);
+                builder.appendPath(albumId);
+                break;
+            case OPERATION_REMOVE_MEDIA:
+                if (albumId != null) {
+                    // content://media/picker_internal/update/album_content/${albumId}
+                    builder.appendPath(ALBUM_CONTENT);
+                    builder.appendPath(albumId);
+                } else {
+                    // content://media/picker_internal/update/media
+                    builder.appendPath(MEDIA);
+                }
+                break;
+            default:
+                Log.w(
+                        TAG,
+                        String.format(
+                                "Requested operation (%d) is not supported for notifications.",
+                                op));
+                return null;
+        }
+
+        builder.appendPath(dateTakenMs);
+        return builder.build();
     }
 
     /**

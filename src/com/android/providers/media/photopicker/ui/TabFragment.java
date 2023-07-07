@@ -98,6 +98,8 @@ public abstract class TabFragment extends Fragment {
 
     private int mRecyclerViewBottomPadding;
 
+    private RecyclerView.OnScrollListener mOnScrollListenerForMultiProfileButton;
+
     private final MutableLiveData<Boolean> mIsBottomBarVisible = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> mIsProfileButtonVisible = new MutableLiveData<>(false);
 
@@ -172,9 +174,6 @@ public abstract class TabFragment extends Fragment {
             });
         }
 
-        // Initial setup
-        setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
-
         // Observe for cross profile access changes.
         final LiveData<Boolean> crossProfileAllowed = mUserIdManager.getCrossProfileAllowed();
         if (crossProfileAllowed != null) {
@@ -183,19 +182,23 @@ public abstract class TabFragment extends Fragment {
             });
         }
 
-        // Observe for multi-user changes.
-        final LiveData<Boolean> isMultiUserProfiles = mUserIdManager.getIsMultiUserProfiles();
-        if (isMultiUserProfiles != null) {
-            isMultiUserProfiles.observe(this, this::setUpProfileButtonWithListeners);
-        }
 
         final AccessibilityManager accessibilityManager =
                 context.getSystemService(AccessibilityManager.class);
         mIsAccessibilityEnabled = accessibilityManager.isEnabled();
         accessibilityManager.addAccessibilityStateChangeListener(enabled -> {
             mIsAccessibilityEnabled = enabled;
-            updateProfileButtonVisibility();
+            setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
         });
+
+        // Observe for multi-user changes.
+        final LiveData<Boolean> isMultiUserProfiles = mUserIdManager.getIsMultiUserProfiles();
+        if (isMultiUserProfiles != null) {
+            isMultiUserProfiles.observe(this, this::setUpProfileButtonWithListeners);
+        }
+
+        // Initial setup
+        setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
     }
 
     private void updateRecyclerViewBottomPadding() {
@@ -231,7 +234,7 @@ public abstract class TabFragment extends Fragment {
 
     private void setUpListenersForProfileButton() {
         mProfileButton.setOnClickListener(v -> onClickProfileButton());
-        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        mOnScrollListenerForMultiProfileButton = new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
@@ -248,7 +251,8 @@ public abstract class TabFragment extends Fragment {
                     updateProfileButtonVisibility();
                 }
             }
-        });
+        };
+        mRecyclerView.addOnScrollListener(mOnScrollListenerForMultiProfileButton);
     }
 
     @Override
@@ -260,10 +264,11 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void setUpProfileButtonWithListeners(boolean isMultiUserProfile) {
+        if (mOnScrollListenerForMultiProfileButton != null) {
+            mRecyclerView.removeOnScrollListener(mOnScrollListenerForMultiProfileButton);
+        }
         if (isMultiUserProfile) {
             setUpListenersForProfileButton();
-        } else {
-            mRecyclerView.clearOnScrollListeners();
         }
         setUpProfileButton();
     }

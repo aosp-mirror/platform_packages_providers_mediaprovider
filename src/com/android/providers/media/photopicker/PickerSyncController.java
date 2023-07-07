@@ -172,6 +172,15 @@ public class PickerSyncController {
     }
 
     /**
+     * This method is available for injecting a mock instance from tests. PickerSyncController is
+     * used in Worker classes. They cannot directly be injected with a mock controller instance.
+     */
+    @VisibleForTesting
+    public static void setInstance(PickerSyncController controller) {
+        sInstance = controller;
+    }
+
+    /**
      * @return a PickerSyncController object. The object may not the initialized and the
      * return value could be null.
      */

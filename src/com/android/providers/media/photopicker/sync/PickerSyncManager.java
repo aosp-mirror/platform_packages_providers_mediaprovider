@@ -16,12 +16,10 @@
 
 package com.android.providers.media.photopicker.sync;
 
-import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
-import androidx.work.Configuration;
 import androidx.work.Constraints;
 import androidx.work.Data;
 import androidx.work.ExistingPeriodicWorkPolicy;
@@ -69,12 +67,13 @@ public class PickerSyncManager {
     private static final String SYNC_MEDIA_PERIODIC_SYNC_PREFIX = "SYNC_MEDIA_PERIODIC_";
     private static final String SYNC_MEDIA_PROACTIVE_WORK_PREFIX = "SYNC_MEDIA_PROACTIVE_";
     private static final String SYNC_ALL_WORK_SUFFIX = "ALL";
-    private final Context mContext;
+    private final WorkManager mWorkManager;
 
-    public PickerSyncManager(@NonNull Context context,
+    public PickerSyncManager(@NonNull WorkManager workManager,
             @NonNull ConfigStore configStore,
             boolean schedulePeriodicSyncs) {
-        mContext = context;
+        mWorkManager = workManager;
+
         if (schedulePeriodicSyncs && configStore.isCloudMediaInPhotoPickerEnabled()) {
             schedulePeriodicSyncs();
         }
@@ -88,7 +87,9 @@ public class PickerSyncManager {
         final PeriodicWorkRequest periodicSyncRequest = getPeriodicProactiveSyncRequest(inputData);
 
         try {
-            Operation enqueueOperation = getWorkManager()
+            // Note that the first execution of periodic work happens immediately or as soon as the
+            // given Constraints are met.
+            Operation enqueueOperation = mWorkManager
                     .enqueueUniquePeriodicWork(
                             SYNC_MEDIA_PERIODIC_SYNC_PREFIX + SYNC_ALL_WORK_SUFFIX,
                             ExistingPeriodicWorkPolicy.KEEP,
@@ -112,9 +113,8 @@ public class PickerSyncManager {
 
         String workName = SYNC_MEDIA_PROACTIVE_WORK_PREFIX + SYNC_ALL_WORK_SUFFIX;
         try {
-            Operation enqueueOperation = getWorkManager()
-                    .beginUniqueWork(workName, ExistingWorkPolicy.KEEP, syncRequest)
-                    .enqueue();
+            Operation enqueueOperation = mWorkManager
+                    .enqueueUniqueWork(workName, ExistingWorkPolicy.KEEP, syncRequest);
 
             // Check that the request has been successfully enqueued.
             enqueueOperation.getResult().get();
@@ -150,33 +150,12 @@ public class PickerSyncManager {
                 "syncAlbumMediaForProviderImmediately is not supported.");
     }
 
-
-    /**
-     * Initialize the {@link WorkManager} if it is not initialized already.
-     *
-     * @return a {@link WorkManager} object that can be used to run work requests.
-     */
-    @NotNull
-    private WorkManager getWorkManager() {
-        if (!WorkManager.isInitialized()) {
-            Log.i(TAG, "Work manager not initialised. Attempting to initialise.");
-            WorkManager.initialize(mContext, getWorkManagerConfiguration());
-        }
-        return WorkManager.getInstance(mContext);
-    }
-
-    @NotNull
-    private static Configuration getWorkManagerConfiguration() {
-        return new Configuration.Builder()
-                .setMinimumLoggingLevel(android.util.Log.INFO)
-                .build();
-    }
-
     @NotNull
     private PeriodicWorkRequest getPeriodicProactiveSyncRequest(@NotNull Data inputData) {
         return new PeriodicWorkRequest.Builder(
                 ProactiveSyncWorker.class, SYNC_MEDIA_PERIODIC_WORK_INTERVAL, TimeUnit.HOURS)
                 .setInputData(inputData)
+                .setConstraints(getProactiveSyncConstraints())
                 .build();
     }
 

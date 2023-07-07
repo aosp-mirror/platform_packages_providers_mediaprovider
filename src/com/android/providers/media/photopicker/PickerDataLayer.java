@@ -41,6 +41,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.work.Configuration;
+import androidx.work.WorkManager;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.providers.media.ConfigStore;
@@ -93,7 +95,7 @@ public class PickerDataLayer {
         mSyncController = requireNonNull(syncController);
         mLocalProvider = requireNonNull(dbFacade.getLocalProvider());
         mSyncManager = new PickerSyncManager(
-                mContext, requireNonNull(configStore), schedulePeriodicSyncs);
+                getWorkManager(), requireNonNull(configStore), schedulePeriodicSyncs);
     }
 
     /**
@@ -472,5 +474,26 @@ public class PickerDataLayer {
             // is stored in the cursor.
             return mAuthority;
         }
+    }
+
+    /**
+     * Initialize the {@link WorkManager} if it is not initialized already.
+     *
+     * @return a {@link WorkManager} object that can be used to run work requests.
+     */
+    @NonNull
+    private WorkManager getWorkManager() {
+        if (!WorkManager.isInitialized()) {
+            Log.i(TAG, "Work manager not initialised. Attempting to initialise.");
+            WorkManager.initialize(mContext, getWorkManagerConfiguration());
+        }
+        return WorkManager.getInstance(mContext);
+    }
+
+    @NonNull
+    private static Configuration getWorkManagerConfiguration() {
+        return new Configuration.Builder()
+                .setMinimumLoggingLevel(Log.INFO)
+                .build();
     }
 }

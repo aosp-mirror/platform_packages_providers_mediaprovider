@@ -16,6 +16,11 @@
 
 package com.android.providers.media;
 
+import static com.android.providers.media.DatabaseHelper.DATA_MEDIA_XATTR_DIRECTORY_PATH;
+import static com.android.providers.media.DatabaseHelper.EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX;
+import static com.android.providers.media.DatabaseHelper.EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX;
+import static com.android.providers.media.DatabaseHelper.INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX;
+import static com.android.providers.media.DatabaseHelper.INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
@@ -30,7 +35,9 @@ import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.provider.MediaStore;
+import android.system.ErrnoException;
 import android.system.Os;
+import android.system.OsConstants;
 import android.util.Log;
 import android.util.Pair;
 
@@ -46,12 +53,17 @@ import com.google.common.base.Strings;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * To ensure that the ids of MediaStore database uris are stable and reliable.
@@ -146,6 +158,10 @@ public class DatabaseBackupAndRecovery {
     private final ConfigStore mConfigStore;
     private final VolumeCache mVolumeCache;
 
+    private AtomicBoolean mIsBackupSetupComplete = new AtomicBoolean(false);
+
+    private Map<String, String> mOwnerIdRelationMap;
+
     protected DatabaseBackupAndRecovery(ConfigStore configStore, VolumeCache volumeCache) {
         mConfigStore = configStore;
         mVolumeCache = volumeCache;
@@ -171,13 +187,15 @@ public class DatabaseBackupAndRecovery {
     }
 
     protected void onConfigPropertyChangeListener() {
-        if (mConfigStore.isStableUrisForInternalVolumeEnabled()
+        if ((mConfigStore.isStableUrisForInternalVolumeEnabled()
+                || mConfigStore.isStableUrisForExternalVolumeEnabled())
                 && mVolumeCache.getExternalVolumeNames().contains(
                 MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
             Log.i(TAG,
                     "On device config change, found stable uri support enabled. Attempting backup"
                             + " and recovery setup.");
-            setupVolumeDbBackupForInternalIfMissing();
+            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
+                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
         }
     }
 
@@ -187,7 +205,7 @@ public class DatabaseBackupAndRecovery {
      * setup(no-op if connection already exists). So, we setup backup and recovery for internal
      * volume on Media mount signal of EXTERNAL_PRIMARY.
      */
-    protected void setupVolumeDbBackupAndRecovery(String volumeName, File volumePath) {
+    protected synchronized void setupVolumeDbBackupAndRecovery(String volumeName, File volumePath) {
         // We are setting up leveldb instance only for internal volume as of now. Since internal
         // volume does not have any fuse daemon thread, leveldb instance is created by fuse
         // daemon thread of EXTERNAL_PRIMARY.
@@ -201,6 +219,11 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
+        if (mIsBackupSetupComplete.get()) {
+            // Return if setup is already done
+            return;
+        }
+
         try {
             if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
                 new File(RECOVERY_DIRECTORY_PATH).mkdirs();
@@ -208,6 +231,7 @@ public class DatabaseBackupAndRecovery {
             FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(volumePath,
                     WAIT_TIME_5_SECONDS_IN_MILLIS);
             fuseDaemon.setupVolumeDbBackup();
+            mIsBackupSetupComplete = new AtomicBoolean(true);
         } catch (IOException e) {
             Log.e(TAG, "Failure in setting up backup and recovery for volume: " + volumeName, e);
         }
@@ -245,7 +269,11 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
-        setupVolumeDbBackupForInternalIfMissing();
+        if (!mIsBackupSetupComplete.get()) {
+            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL,
+                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
+        }
+
         FuseDaemon fuseDaemon;
         try {
             fuseDaemon = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
@@ -281,6 +309,11 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
+        if (!mIsBackupSetupComplete.get()) {
+            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL,
+                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
+        }
+
         FuseDaemon fuseDaemon;
         try {
             fuseDaemon = getFuseDaemonForFileWithWait(new File(EXTERNAL_PRIMARY_ROOT_PATH),
@@ -310,7 +343,7 @@ public class DatabaseBackupAndRecovery {
         externalDbHelper.runWithTransaction((db) -> {
             long maxGeneration = lastBackedGenerationNumber;
             try (Cursor c = db.query(true, "files", QUERY_COLUMNS, selectionClause, null, null,
-                    null, null, null, signal)) {
+                    null, MediaStore.MediaColumns._ID + " ASC", null, signal)) {
                 while (c.moveToNext()) {
                     if (signal != null && signal.isCanceled()) {
                         break;
@@ -319,7 +352,7 @@ public class DatabaseBackupAndRecovery {
                     maxGeneration = Math.max(maxGeneration, c.getLong(9));
                 }
                 setXattr(EXTERNAL_PRIMARY_VOLUME_BACKUP_PATH, LAST_BACKEDUP_GENERATION_XATTR_KEY,
-                        String.valueOf(maxGeneration));
+                        String.valueOf(maxGeneration - 1));
                 Log.d(TAG, String.format(Locale.ROOT,
                         "Backed up %d rows of external database to external storage on idle "
                                 + "maintenance.",
@@ -398,19 +431,17 @@ public class DatabaseBackupAndRecovery {
         return MediaProvider.getFuseDaemonForFile(new File(path), mVolumeCache);
     }
 
-    protected void updateNextRowIdAndSetDirtyIfRequired(@NonNull DatabaseHelper helper,
+    protected void updateNextRowIdAndSetDirty(@NonNull DatabaseHelper helper,
             @NonNull FileRow oldRow, @NonNull FileRow newRow) {
         updateNextRowIdXattr(helper, newRow.getId());
-        if (backedUpValuesChanged(oldRow, newRow)) {
-            markBackupAsDirty(helper, oldRow);
-        }
+        markBackupAsDirty(helper, oldRow);
     }
 
     /**
      * Backs up DB data in external storage to recover in case of DB rollback.
      */
     protected void backupVolumeDbData(DatabaseHelper databaseHelper, FileRow insertedRow) {
-        if (!isBackupUpdateRequired(databaseHelper, insertedRow)) {
+        if (!isBackupUpdateAllowed(databaseHelper, insertedRow.getVolumeName())) {
             return;
         }
 
@@ -463,7 +494,7 @@ public class DatabaseBackupAndRecovery {
 
     private int getOwnerPackageId(FuseDaemon fuseDaemon, String ownerPackageName, int userId)
             throws IOException {
-        if (Strings.isNullOrEmpty(ownerPackageName)) {
+        if (Strings.isNullOrEmpty(ownerPackageName) || ownerPackageName.equalsIgnoreCase("null")) {
             // We store -1 in the backup if owner package name is null.
             return -1;
         }
@@ -483,7 +514,7 @@ public class DatabaseBackupAndRecovery {
 
         int nextOwnerId = getAndIncrementNextOwnerId();
         fuseDaemon.createOwnerIdRelation(String.valueOf(nextOwnerId), ownerPackageIdentifier);
-        Log.i(TAG, "Created relation b/w " + nextOwnerId + " and " + ownerPackageIdentifier);
+        Log.v(TAG, "Created relation b/w " + nextOwnerId + " and " + ownerPackageIdentifier);
         return nextOwnerId;
     }
 
@@ -525,15 +556,37 @@ public class DatabaseBackupAndRecovery {
         Log.d(TAG, "Updated next owner id to: " + val);
     }
 
+    protected void removeOwnerIdToPackageRelation(String packageName, int userId) {
+        if (Strings.isNullOrEmpty(packageName) || packageName.equalsIgnoreCase("null")
+                || !isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                || !new File(OWNER_RELATION_BACKUP_PATH).exists()) {
+            return;
+        }
+
+        try {
+            FuseDaemon fuseDaemon = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
+            String ownerPackageIdentifier = createOwnerPackageIdentifier(packageName, userId);
+            String ownerId = fuseDaemon.readFromOwnershipBackup(ownerPackageIdentifier);
+
+            fuseDaemon.removeOwnerIdRelation(ownerId, ownerPackageIdentifier);
+        } catch (Exception e) {
+            Log.e(TAG, "Failure in removing owner id to package relation", e);
+        }
+    }
+
     /**
      * Deletes backed up data(needed for recovery) from external storage.
      */
     protected void deleteFromDbBackup(DatabaseHelper databaseHelper, FileRow deletedRow) {
-        if (!isBackupUpdateRequired(databaseHelper, deletedRow)) {
+        if (!isBackupUpdateAllowed(databaseHelper, deletedRow.getVolumeName())) {
             return;
         }
 
         String deletedFilePath = deletedRow.getPath();
+        if (deletedFilePath == null) {
+            return;
+        }
+
         // For all internal file paths, redirect to external primary fuse daemon.
         String fuseDaemonFilePath = getFuseDaemonFilePath(deletedFilePath);
         try {
@@ -543,12 +596,10 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    protected boolean isBackupUpdateRequired(DatabaseHelper databaseHelper, FileRow row) {
-        if (isStableUrisEnabled(row.getVolumeName()) && !databaseHelper.isDatabaseRecovering()) {
-            return true;
-        }
-
-        return false;
+    protected boolean isBackupUpdateAllowed(DatabaseHelper databaseHelper, String volumeName) {
+        // Backup only if stable uris is enabled, db is not recovering and backup setup is complete.
+        return isStableUrisEnabled(volumeName) && !databaseHelper.isDatabaseRecovering()
+                && mIsBackupSetupComplete.get();
     }
 
 
@@ -568,33 +619,8 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    private void setupVolumeDbBackupForInternalIfMissing() {
-        try {
-            if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
-                new File(RECOVERY_DIRECTORY_PATH).mkdirs();
-            }
-            getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH).setupVolumeDbBackup();
-        } catch (IOException e) {
-            Log.e(TAG, "Failure in setting up backup and recovery for internal database.", e);
-        }
-    }
-
-    private static boolean backedUpValuesChanged(FileRow oldRow, FileRow newRow) {
-        return oldRow.getId() != newRow.getId() || oldRow.isTrashed() != newRow.isTrashed()
-                || oldRow.isFavorite() != newRow.isFavorite()
-                || oldRow.isPending() != newRow.isPending()
-                || !Objects.equals(oldRow.getOwnerPackageName(), newRow.getOwnerPackageName())
-                || oldRow.getMediaType() != newRow.getMediaType()
-                || !Objects.equals(oldRow.getDateExpires(), newRow.getDateExpires())
-                || oldRow.getUserId() != newRow.getUserId();
-    }
-
     private void markBackupAsDirty(DatabaseHelper databaseHelper, FileRow updatedRow) {
-        if (!isStableUrisEnabled(updatedRow.getVolumeName())) {
-            return;
-        }
-
-        if (databaseHelper.isDatabaseRecovering()) {
+        if (!isBackupUpdateAllowed(databaseHelper, updatedRow.getVolumeName())) {
             return;
         }
 
@@ -614,7 +640,7 @@ public class DatabaseBackupAndRecovery {
     /**
      * Reads value corresponding to given key from xattr on given path.
      */
-    public static Optional<String> getXattr(String path, String key) {
+    static Optional<String> getXattr(String path, String key) {
         try {
             return Optional.of(Arrays.toString(Os.getxattr(path, key)));
         } catch (Exception e) {
@@ -627,7 +653,7 @@ public class DatabaseBackupAndRecovery {
     /**
      * Reads long value corresponding to given key from xattr on given path.
      */
-    public static Optional<Long> getXattrOfLongValue(String path, String key) {
+    static Optional<Long> getXattrOfLongValue(String path, String key) {
         try {
             return Optional.of(Long.parseLong(new String(Os.getxattr(path, key))));
         } catch (Exception e) {
@@ -640,7 +666,7 @@ public class DatabaseBackupAndRecovery {
     /**
      * Reads integer value corresponding to given key from xattr on given path.
      */
-    public static Optional<Integer> getXattrOfIntegerValue(String path, String key) {
+    static Optional<Integer> getXattrOfIntegerValue(String path, String key) {
         try {
             return Optional.of(Integer.parseInt(new String(Os.getxattr(path, key))));
         } catch (Exception e) {
@@ -653,7 +679,7 @@ public class DatabaseBackupAndRecovery {
     /**
      * Sets key and value as xattr on given path.
      */
-    public static boolean setXattr(String path, String key, String value) {
+    static boolean setXattr(String path, String key, String value) {
         try (ParcelFileDescriptor pfd = ParcelFileDescriptor.open(new File(path),
                 ParcelFileDescriptor.MODE_READ_ONLY)) {
             // Map id value to xattr key
@@ -665,6 +691,44 @@ public class DatabaseBackupAndRecovery {
             Log.e(TAG, String.format(Locale.ROOT, "Failed to set xattr:%s to %s for path: %s.", key,
                     value, path), e);
             return false;
+        }
+    }
+
+    /**
+     * Deletes xattr with given key on given path. Becomes a no-op when xattr is not present.
+     */
+    static boolean removeXattr(String path, String key) {
+        try (ParcelFileDescriptor pfd = ParcelFileDescriptor.open(new File(path),
+                ParcelFileDescriptor.MODE_READ_ONLY)) {
+            Os.removexattr(path, key);
+            Os.fsync(pfd.getFileDescriptor());
+            Log.d(TAG, String.format("xattr key:%s removed on path: %s.", key, path));
+            return true;
+        } catch (Exception e) {
+            if (e instanceof ErrnoException) {
+                ErrnoException exception = (ErrnoException) e;
+                if (exception.errno == OsConstants.ENODATA) {
+                    Log.w(TAG, String.format(Locale.ROOT,
+                            "xattr:%s is not removed as it is not found on path: %s.", key, path));
+                    return true;
+                }
+            }
+
+            Log.e(TAG, String.format(Locale.ROOT, "Failed to remove xattr:%s for path: %s.", key,
+                    path), e);
+            return false;
+        }
+    }
+
+    /**
+     * Lists xattrs of given path.
+     */
+    static List<String> listXattr(String path) {
+        try {
+            return Arrays.asList(Os.listxattr(path));
+        } catch (Exception e) {
+            Log.e(TAG, "Exception in reading xattrs on path: " + path, e);
+            return new ArrayList<>();
         }
     }
 
@@ -708,15 +772,21 @@ public class DatabaseBackupAndRecovery {
     }
 
     protected Pair<String, Integer> getOwnerPackageNameAndUidPair(int ownerPackageId) {
-        try {
-            String ownerPackageIdentifier = getFuseDaemonForPath(
-                    EXTERNAL_PRIMARY_ROOT_PATH).readFromOwnershipBackup(
-                    String.valueOf(ownerPackageId));
-            return getPackageNameAndUserId(ownerPackageIdentifier);
-        } catch (IOException e) {
-            Log.e(TAG, "Failure in reading owner details for owner id:" + ownerPackageId, e);
-            return Pair.create(null, null);
+        if (mOwnerIdRelationMap == null) {
+            try {
+                mOwnerIdRelationMap = getFuseDaemonForPath(
+                        EXTERNAL_PRIMARY_ROOT_PATH).readOwnerIdRelations();
+                Log.v(TAG, "Cached owner id map");
+            } catch (IOException e) {
+                Log.e(TAG, "Failure in reading owner details for owner id:" + ownerPackageId, e);
+                return Pair.create(null, null);
+            }
         }
+
+        if (mOwnerIdRelationMap.containsKey(String.valueOf(ownerPackageId))) {
+            return getPackageNameAndUserId(mOwnerIdRelationMap.get(String.valueOf(ownerPackageId)));
+        }
+        return Pair.create(null, null);
     }
 
     protected void recoverData(SQLiteDatabase db, String volumeName) {
@@ -814,5 +884,104 @@ public class DatabaseBackupAndRecovery {
      */
     protected List<File> getBackupFiles() {
         return Arrays.asList(new File(RECOVERY_DIRECTORY_PATH).listFiles());
+    }
+
+    /**
+     * Updates backup in external storage to the latest values. Deletes backup of old file path if
+     * file path has changed.
+     */
+    public void updateBackup(DatabaseHelper helper, FileRow oldRow, FileRow newRow) {
+        if (!isBackupUpdateAllowed(helper, newRow.getVolumeName())) {
+            return;
+        }
+
+        FuseDaemon fuseDaemon;
+        try {
+            fuseDaemon = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
+        } catch (FileNotFoundException e) {
+            Log.e(TAG,
+                    "Fuse Daemon not found for primary external storage, skipping update of "
+                            + "backup.",
+                    e);
+            return;
+        }
+
+        helper.runWithTransaction((db) -> {
+            try (Cursor c = db.query(true, "files", QUERY_COLUMNS, "_id=?",
+                    new String[]{String.valueOf(newRow.getId())}, null, null, null,
+                    null, null)) {
+                if (c.moveToFirst()) {
+                    backupDataValues(fuseDaemon, c);
+                    Log.v(TAG, "Updated backed up row in leveldb");
+                    String newPath = c.getString(1);
+                    if (oldRow.getPath() != null && !oldRow.getPath().equalsIgnoreCase(newPath)) {
+                        // If file path has changed, update leveldb backup to delete old path.
+                        deleteFromDbBackup(helper, oldRow);
+                        Log.v(TAG, "Deleted backup of old file path: " + oldRow.getPath());
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failure in updating row in external storage backup.", e);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Removes database recovery data for given user id. This is done when a user is removed.
+     */
+    protected void removeRecoveryDataForUserId(int removedUserId) {
+        String removeduserIdString = String.valueOf(removedUserId);
+        removeXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
+                INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.concat(
+                        removeduserIdString));
+        removeXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
+                EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.concat(
+                        removeduserIdString));
+        removeXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
+                INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.concat(removeduserIdString));
+        removeXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH,
+                EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.concat(removeduserIdString));
+        Log.v(TAG, "Removed recovery data for user id: " + removedUserId);
+    }
+
+    /**
+     * Removes database recovery data for obsolete user id. It accepts list of valid/active users
+     * and removes the recovery data for ones not present in this list.
+     * This is done during an idle maintenance.
+     */
+    protected void removeRecoveryDataExceptValidUsers(List<String> validUsers) {
+        List<String> xattrList = listXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH);
+        if (xattrList.isEmpty()) {
+            return;
+        }
+
+        List<String> invalidUsers = getInvalidUsersList(xattrList, validUsers);
+        for (String userIdToBeRemoved : invalidUsers) {
+            removeRecoveryDataForUserId(Integer.parseInt(userIdToBeRemoved));
+        }
+    }
+
+    protected static List<String> getInvalidUsersList(List<String> recoveryData,
+            List<String> validUsers) {
+        Set<String> presentUserIdsAsXattr = new HashSet<>();
+        for (String xattr : recoveryData) {
+            if (xattr.startsWith(INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX)) {
+                presentUserIdsAsXattr.add(
+                        xattr.substring(INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.length()));
+            } else if (xattr.startsWith(EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX)) {
+                presentUserIdsAsXattr.add(
+                        xattr.substring(EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.length()));
+            } else if (xattr.startsWith(INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX)) {
+                presentUserIdsAsXattr.add(
+                        xattr.substring(INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.length()));
+            } else if (xattr.startsWith(EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX)) {
+                presentUserIdsAsXattr.add(
+                        xattr.substring(EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.length()));
+            }
+        }
+        // Remove valid users
+        validUsers.forEach(presentUserIdsAsXattr::remove);
+        return presentUserIdsAsXattr.stream().collect(Collectors.toList());
     }
 }

@@ -229,7 +229,7 @@
             android:permission="android.permission.GRANT_RUNTIME_PERMISSIONS"
             android:exported="true"
             android:excludeFromRecents="true"
-            android:enabled="false">
+            android:enabled="true">
             <intent-filter android:priority="100">
                <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -247,7 +247,7 @@
             android:targetActivity="com.android.providers.media.photopicker.PhotoPickerActivity"
             android:exported="true"
             android:excludeFromRecents="true"
-            android:enabled="false">
+            android:enabled="true">
             <intent-filter android:priority="101" >
                 <action android:name="android.intent.action.GET_CONTENT" />
                 <category android:name="android.intent.category.OPENABLE" />

@@ -18,10 +18,7 @@ apex_defaults {
         // MediaProvider CLI (cli/media_provider_cli_wrapper.sh)
         "media_provider"
     ],
-    prebuilts: [
-        "current_sdkinfo",
-        "privapp_allowlist_com.android.providers.media.module.xml"
-    ],
+    prebuilts: ["current_sdkinfo"],
     key: "com.android.mediaprovider.key",
     certificate: ":com.android.mediaprovider.certificate",
     file_contexts: ":com.android.mediaprovider-file_contexts",

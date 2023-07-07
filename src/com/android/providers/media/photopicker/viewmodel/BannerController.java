@@ -34,6 +34,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.util.XmlUtils;
@@ -94,6 +95,7 @@ class BannerController {
     private boolean mShowChooseAccountBanner;
 
     BannerController(@NonNull Context context, @NonNull UserHandle userHandle) {
+        Log.d(TAG, "Constructing the BannerController for user " + userHandle.getIdentifier());
         mContext = context;
         mUserHandle = userHandle;
 
@@ -109,6 +111,7 @@ class BannerController {
      * Same as {@link #initialise()}, renamed for readability.
      */
     void reset() {
+        Log.d(TAG, "Resetting the BannerController for user " + mUserHandle.getIdentifier());
         initialise();
     }
 
@@ -167,11 +170,13 @@ class BannerController {
      * 2. Reset should show banners.
      * 3. Update the saved and cached cloud provider info with the latest info.
      */
-    private void onChangeCloudMediaInfo(@Nullable String cmpAuthority,
-            @Nullable String cmpAccountName) {
+    @VisibleForTesting
+    void onChangeCloudMediaInfo(@Nullable String cmpAuthority, @Nullable String cmpAccountName) {
         // 1. If the previous & new cloud provider infos are the same, No-op.
         final String lastCmpAuthority = mCloudProviderDataMap.get(AUTHORITY);
         final String lastCmpAccountName = mCloudProviderDataMap.get(ACCOUNT_NAME);
+
+        Log.d(TAG, "Last CloudMediaProvider authority: " + lastCmpAuthority);
 
         if (TextUtils.equals(lastCmpAuthority, cmpAuthority)
                 && TextUtils.equals(lastCmpAccountName, cmpAccountName)) {
@@ -185,8 +190,7 @@ class BannerController {
         if (cmpAuthority == null) {
             // mShowChooseAppBanner is true iff the new authority is null and the available cloud
             // providers list is not empty.
-            mShowChooseAppBanner =
-                    !getAvailableCloudProviders(mContext, getConfigStore(), mUserHandle).isEmpty();
+            mShowChooseAppBanner = areCloudProviderOptionsAvailable();
         } else if (cmpAccountName == null) {
             // mShowChooseAccountBanner is true iff the new account name is null while the new
             // authority is NOT null.
@@ -224,6 +228,11 @@ class BannerController {
         mShowCloudMediaAvailableBanner = false;
         mShowAccountUpdatedBanner = false;
         mShowChooseAccountBanner = false;
+    }
+
+    @VisibleForTesting
+    boolean areCloudProviderOptionsAvailable() {
+        return !getAvailableCloudProviders(mContext, getConfigStore(), mUserHandle).isEmpty();
     }
 
     /**
@@ -286,7 +295,7 @@ class BannerController {
      */
     void onUserDismissedChooseAppBanner() {
         if (!mShowChooseAppBanner) {
-            Log.wtf(TAG, "Choose app banner visibility for current user is false on dismiss");
+            Log.d(TAG, "Choose app banner visibility for current user is false on dismiss");
         } else {
             mShowChooseAppBanner = false;
         }
@@ -300,7 +309,7 @@ class BannerController {
      */
     void onUserDismissedCloudMediaAvailableBanner() {
         if (!mShowCloudMediaAvailableBanner) {
-            Log.wtf(TAG, "Cloud media available banner visibility for current user is false on "
+            Log.d(TAG, "Cloud media available banner visibility for current user is false on "
                     + "dismiss");
         } else {
             mShowCloudMediaAvailableBanner = false;
@@ -315,7 +324,7 @@ class BannerController {
      */
     void onUserDismissedAccountUpdatedBanner() {
         if (!mShowAccountUpdatedBanner) {
-            Log.wtf(TAG, "Account Updated banner visibility for current user is false on dismiss");
+            Log.d(TAG, "Account Updated banner visibility for current user is false on dismiss");
         } else {
             mShowAccountUpdatedBanner = false;
         }
@@ -329,7 +338,7 @@ class BannerController {
      */
     void onUserDismissedChooseAccountBanner() {
         if (!mShowChooseAccountBanner) {
-            Log.wtf(TAG, "Choose Account banner visibility for current user is false on dismiss");
+            Log.d(TAG, "Choose Account banner visibility for current user is false on dismiss");
         } else {
             mShowChooseAccountBanner = false;
         }
@@ -381,6 +390,11 @@ class BannerController {
             mCloudProviderDataMap.put(ACCOUNT_NAME, cmpAccountName);
         }
 
+        updateCloudProviderDataFile();
+    }
+
+    @VisibleForTesting
+    void updateCloudProviderDataFile() {
         FileOutputStream fos = null;
         final AtomicFile atomicLastCloudProviderDataFile = new AtomicFile(
                 mLastCloudProviderDataFile);

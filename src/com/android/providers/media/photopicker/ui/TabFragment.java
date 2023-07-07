@@ -98,6 +98,8 @@ public abstract class TabFragment extends Fragment {
 
     private int mRecyclerViewBottomPadding;
 
+    private RecyclerView.OnScrollListener mOnScrollListenerForMultiProfileButton;
+
     private final MutableLiveData<Boolean> mIsBottomBarVisible = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> mIsProfileButtonVisible = new MutableLiveData<>(false);
 
@@ -172,9 +174,6 @@ public abstract class TabFragment extends Fragment {
             });
         }
 
-        // Initial setup
-        setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
-
         // Observe for cross profile access changes.
         final LiveData<Boolean> crossProfileAllowed = mUserIdManager.getCrossProfileAllowed();
         if (crossProfileAllowed != null) {
@@ -183,19 +182,23 @@ public abstract class TabFragment extends Fragment {
             });
         }
 
-        // Observe for multi-user changes.
-        final LiveData<Boolean> isMultiUserProfiles = mUserIdManager.getIsMultiUserProfiles();
-        if (isMultiUserProfiles != null) {
-            isMultiUserProfiles.observe(this, this::setUpProfileButtonWithListeners);
-        }
 
         final AccessibilityManager accessibilityManager =
                 context.getSystemService(AccessibilityManager.class);
         mIsAccessibilityEnabled = accessibilityManager.isEnabled();
         accessibilityManager.addAccessibilityStateChangeListener(enabled -> {
             mIsAccessibilityEnabled = enabled;
-            updateProfileButtonVisibility();
+            setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
         });
+
+        // Observe for multi-user changes.
+        final LiveData<Boolean> isMultiUserProfiles = mUserIdManager.getIsMultiUserProfiles();
+        if (isMultiUserProfiles != null) {
+            isMultiUserProfiles.observe(this, this::setUpProfileButtonWithListeners);
+        }
+
+        // Initial setup
+        setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
     }
 
     private void updateRecyclerViewBottomPadding() {
@@ -231,7 +234,7 @@ public abstract class TabFragment extends Fragment {
 
     private void setUpListenersForProfileButton() {
         mProfileButton.setOnClickListener(v -> onClickProfileButton());
-        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        mOnScrollListenerForMultiProfileButton = new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
@@ -248,7 +251,8 @@ public abstract class TabFragment extends Fragment {
                     updateProfileButtonVisibility();
                 }
             }
-        });
+        };
+        mRecyclerView.addOnScrollListener(mOnScrollListenerForMultiProfileButton);
     }
 
     @Override
@@ -260,10 +264,11 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void setUpProfileButtonWithListeners(boolean isMultiUserProfile) {
+        if (mOnScrollListenerForMultiProfileButton != null) {
+            mRecyclerView.removeOnScrollListener(mOnScrollListenerForMultiProfileButton);
+        }
         if (isMultiUserProfile) {
             setUpListenersForProfileButton();
-        } else {
-            mRecyclerView.clearOnScrollListeners();
         }
         setUpProfileButton();
     }
@@ -308,11 +313,7 @@ public abstract class TabFragment extends Fragment {
 
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
 
-        mPickerViewModel.updateItems();
-        mPickerViewModel.updateCategories();
-        // Note - Banners should always be updated after the items & categories to ensure a
-        // consistent UI.
-        mPickerViewModel.maybeInitialiseAndSetBannersForCurrentUser();
+        mPickerViewModel.onUserSwitchedProfile();
     }
 
     private void updateProfileButtonContent(boolean isManagedUserSelected) {
@@ -401,6 +402,8 @@ public abstract class TabFragment extends Fragment {
     /**
      * If we show the {@link #mEmptyView}, hide the {@link #mRecyclerView}. If we don't hide the
      * {@link #mEmptyView}, show the {@link #mRecyclerView}
+     * when user switches the profile ,till the time when updated profile data is loading,
+     * on the UI we hide {@link #mEmptyView} and show Empty {@link #mRecyclerView}
      */
     protected void updateVisibilityForEmptyView(boolean shouldShowEmptyView) {
         mEmptyView.setVisibility(shouldShowEmptyView ? View.VISIBLE : View.GONE);
@@ -462,7 +465,22 @@ public abstract class TabFragment extends Fragment {
 
         @Override
         public void onBannerAdded() {
-            mRecyclerView.scrollToPosition(/* position */ 0);
+            // Should scroll to the banner only if the first completely visible item is the one
+            // just below it. The possible adapter item positions of such an item are 0 and 1.
+            // During onViewCreated, before restoring the state, the first visible item position
+            // is -1, and we should not scroll to position 0 in such cases, else the previously
+            // saved recycler view position may get overridden.
+            int firstItemPosition = -1;
+
+            final RecyclerView.LayoutManager layoutManager = mRecyclerView.getLayoutManager();
+            if (layoutManager instanceof GridLayoutManager) {
+                firstItemPosition = ((GridLayoutManager) layoutManager)
+                        .findFirstCompletelyVisibleItemPosition();
+            }
+
+            if (firstItemPosition == 0 || firstItemPosition == 1) {
+                mRecyclerView.scrollToPosition(/* position */ 0);
+            }
         }
 
         abstract void dismissBanner();

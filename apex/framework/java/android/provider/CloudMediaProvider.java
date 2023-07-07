@@ -206,6 +206,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * <li> {@link CloudMediaProviderContract#EXTRA_SYNC_GENERATION}
      * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      * <li> {@link CloudMediaProviderContract#EXTRA_ALBUM_ID}
+     * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
      * </ul>
      * @return cursor representing media items containing all
      * {@link CloudMediaProviderContract.MediaColumns} columns
@@ -259,6 +260,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * <ul>
      * <li> {@link CloudMediaProviderContract#EXTRA_SYNC_GENERATION}
      * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
+     * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
      * </ul>
      * @return cursor representing album items containing all
      * {@link CloudMediaProviderContract.AlbumColumns} columns
@@ -270,7 +272,9 @@ public abstract class CloudMediaProvider extends ContentProvider {
     }
 
     /**
-     * Returns a thumbnail of {@code size} for a media item identified by {@code mediaId}.
+     * Returns a thumbnail of {@code size} for a media item identified by {@code mediaId}
+     * <p>The cloud media provider should strictly return thumbnail in the original
+     * {@link CloudMediaProviderContract.MediaColumns#MIME_TYPE} of the item.
      * <p>
      * This is expected to be a much lower resolution version than the item returned by
      * {@link #onOpenMedia}.

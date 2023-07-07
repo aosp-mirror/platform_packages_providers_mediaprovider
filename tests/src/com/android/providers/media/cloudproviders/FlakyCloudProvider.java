@@ -34,15 +34,35 @@ import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import java.io.FileNotFoundException;
 
 /**
- * Implements a cloud {@link CloudMediaProvider} interface over items generated with
- * {@link MediaGenerator}
+ * Implements a cloud {@link CloudMediaProvider} interface over items generated with {@link
+ * MediaGenerator}
+ *
+ * <p>This provider is intentionally very flaky and will throw a {@link RuntimeException} for two
+ * out of every three requests.
  */
-public class CloudProviderSecondary extends CloudMediaProvider {
-    private static final String AUTHORITY =
-            "com.android.providers.media.photopicker.tests.cloud_secondary";
+public class FlakyCloudProvider extends CloudMediaProvider {
+    public static final String AUTHORITY =
+            "com.android.providers.media.photopicker.tests.cloud_flaky";
 
     private final MediaGenerator mMediaGenerator =
             PickerProviderMediaGenerator.getMediaGenerator(AUTHORITY);
+
+    private int mRequestCount = 0;
+
+    /** Determines if the current request should flake. */
+    private boolean shouldFlake() {
+
+        // Always succeed on the first request.
+        if (++mRequestCount < 2) {
+            return false;
+        }
+
+        if (mRequestCount >= 3) {
+            mRequestCount = 0;
+        }
+
+        return true;
+    }
 
     @Override
     public boolean onCreate() {
@@ -54,10 +74,18 @@ public class CloudProviderSecondary extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
+        if (shouldFlake()) {
+            throw new RuntimeException("Simulating a crash in FlakyCloudProvider onQueryMedia");
+        }
+
         String pageToken = extras.getString(EXTRA_PAGE_TOKEN, null);
 
-        return mMediaGenerator.getMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
-                queryExtras.getMimeTypes(), queryExtras.getSizeBytes(), pageToken);
+        return mMediaGenerator.getMedia(
+                queryExtras.getGeneration(),
+                queryExtras.getAlbumId(),
+                queryExtras.getMimeTypes(),
+                queryExtras.getSizeBytes(),
+                pageToken);
     }
 
     @Override
@@ -65,7 +93,13 @@ public class CloudProviderSecondary extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
+        if (shouldFlake()) {
+            throw new RuntimeException(
+                    "Simulating a crash in FlakyCloudProvider onQueryDeletedMedia");
+        }
+
         String pageToken = extras.getString(EXTRA_PAGE_TOKEN, null);
+
         return mMediaGenerator.getDeletedMedia(queryExtras.getGeneration(), pageToken);
     }
 
@@ -74,20 +108,29 @@ public class CloudProviderSecondary extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
+        if (shouldFlake()) {
+            throw new RuntimeException("Simulating a crash in FlakyCloudProvider onQueryAlbums");
+        }
+
         String pageToken = extras.getString(EXTRA_PAGE_TOKEN, null);
-        return mMediaGenerator.getAlbums(queryExtras.getMimeTypes(), queryExtras.getSizeBytes(),
-                /* isLocal */ false, pageToken);
+
+        return mMediaGenerator.getAlbums(
+                queryExtras.getMimeTypes(),
+                queryExtras.getSizeBytes(), /* isLocal */
+                false,
+                pageToken);
     }
 
     @Override
-    public AssetFileDescriptor onOpenPreview(String mediaId, Point size, Bundle extras,
-            CancellationSignal signal) throws FileNotFoundException {
+    public AssetFileDescriptor onOpenPreview(
+            String mediaId, Point size, Bundle extras, CancellationSignal signal)
+            throws FileNotFoundException {
         throw new UnsupportedOperationException("onOpenPreview not supported");
     }
 
     @Override
-    public ParcelFileDescriptor onOpenMedia(String mediaId, Bundle extras,
-            CancellationSignal signal) throws FileNotFoundException {
+    public ParcelFileDescriptor onOpenMedia(
+            String mediaId, Bundle extras, CancellationSignal signal) throws FileNotFoundException {
         throw new UnsupportedOperationException("onOpenMedia not supported");
     }
 

@@ -23,9 +23,11 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_SIZE;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.INT_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.addMimeTypesToQueryBuilderAndSelectionArgs;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
@@ -275,7 +277,7 @@ public class ExternalDbFacade {
                     /* having */ null, /* orderBy */ null);
          });
 
-        cursor.setExtras(getCursorExtras(generation, /* albumId */ null));
+        cursor.setExtras(getCursorExtras(generation, /* albumId */ null, /*pageSize*/ -1));
         return cursor;
     }
 
@@ -283,7 +285,7 @@ public class ExternalDbFacade {
      * Returns all items from the files table where {@link MediaColumns#GENERATION_MODIFIED}
      * is greater than {@code generation}.
      */
-    public Cursor queryMedia(long generation, String albumId, String[] mimeTypes) {
+    public Cursor queryMedia(long generation, String albumId, String[] mimeTypes, int pageSize) {
         final List<String> selectionArgs = new ArrayList<>();
         final String orderBy = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS + " DESC";
 
@@ -299,11 +301,11 @@ public class ExternalDbFacade {
                         /* having */ null, orderBy);
             });
 
-        cursor.setExtras(getCursorExtras(generation, albumId));
+        cursor.setExtras(getCursorExtras(generation, albumId, pageSize));
         return cursor;
     }
 
-    private Bundle getCursorExtras(long generation, String albumId) {
+    private Bundle getCursorExtras(long generation, String albumId, int pageSize) {
         final Bundle bundle = new Bundle();
         final ArrayList<String> honoredArgs = new ArrayList<>();
 
@@ -312,6 +314,10 @@ public class ExternalDbFacade {
         }
         if (!TextUtils.isEmpty(albumId)) {
             honoredArgs.add(EXTRA_ALBUM_ID);
+        }
+
+        if (pageSize > INT_DEFAULT) {
+            honoredArgs.add(EXTRA_PAGE_SIZE);
         }
 
         bundle.putString(EXTRA_MEDIA_COLLECTION_ID, getMediaCollectionId());

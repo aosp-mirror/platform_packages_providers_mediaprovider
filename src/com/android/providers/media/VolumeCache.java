@@ -107,7 +107,9 @@ public class VolumeCache {
                 MediaVolume volume = findVolume(volumeName, user);
                 return volume.getPath();
             } catch (FileNotFoundException e) {
-                Log.w(TAG, "getVolumePath for unknown volume: " + volumeName);
+                if (!MediaStore.isKnownVolume(volumeName)) {
+                    Log.w(TAG, "getVolumePath for unknown volume: " + volumeName);
+                }
                 // Try again by using FileUtils below
             }
 

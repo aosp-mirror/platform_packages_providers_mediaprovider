@@ -28,10 +28,14 @@ import static android.provider.MediaStore.MediaColumns.RELATIVE_PATH;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
+import android.app.job.JobScheduler;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -70,6 +74,7 @@ import java.util.Locale;
 @RunWith(AndroidJUnit4.class)
 public class IdleServiceTest {
     private static final String TAG = MediaProviderTest.TAG;
+    private static final int IDLE_JOB_ID = -200;
 
     private File mDir;
 
@@ -257,6 +262,36 @@ public class IdleServiceTest {
         }
     }
 
+    @Test
+    public void testJobScheduling() throws Exception {
+        try {
+            final Context context = InstrumentationRegistry.getTargetContext();
+            final JobScheduler scheduler = InstrumentationRegistry.getTargetContext()
+                    .getSystemService(JobScheduler.class);
+            cancelJob();
+            assertNull(scheduler.getPendingJob(IDLE_JOB_ID));
+
+            IdleService.scheduleIdlePass(context);
+            assertNotNull(scheduler.getPendingJob(IDLE_JOB_ID));
+
+            String forceRunCommand = "cmd jobscheduler run "
+                    + "-f com.google.android.providers.media.module " + IDLE_JOB_ID;
+            String result = executeShellCommand(forceRunCommand).trim();
+
+            assertEquals("Running job [FORCED]", result);
+        } finally {
+            cancelJob();
+        }
+    }
+
+    private void cancelJob() {
+        final JobScheduler scheduler = InstrumentationRegistry.getTargetContext()
+                .getSystemService(JobScheduler.class);
+        if (scheduler.getPendingJob(IDLE_JOB_ID) != null) {
+            scheduler.cancel(IDLE_JOB_ID);
+        }
+    }
+
     private void assertExpiredItemIsExtended(ContentResolver resolver, Uri uri) throws Exception {
         final long expectedExtendedTimestamp =
                 (System.currentTimeMillis() + FileUtils.DEFAULT_DURATION_EXTENDED) / 1000 - 1;
@@ -319,7 +354,7 @@ public class IdleServiceTest {
     private static String executeShellCommand(String command) throws IOException {
         Log.v(TAG, "$ " + command);
         ParcelFileDescriptor pfd = InstrumentationRegistry.getInstrumentation().getUiAutomation()
-                .executeShellCommand(command.toString());
+                .executeShellCommand(command);
         BufferedReader br = null;
         try (InputStream in = new FileInputStream(pfd.getFileDescriptor());) {
             br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));

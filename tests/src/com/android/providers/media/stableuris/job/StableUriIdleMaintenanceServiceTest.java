@@ -16,20 +16,21 @@
 
 package com.android.providers.media.stableuris.job;
 
-import static com.android.providers.media.scan.MediaScannerTest.stage;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
+import android.app.job.JobScheduler;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.DeviceConfig;
 import android.provider.MediaStore;
@@ -38,16 +39,17 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.compatibility.common.util.SystemUtil;
 import com.android.providers.media.ConfigStore;
-import com.android.providers.media.R;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -57,6 +59,7 @@ import java.util.Map;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
+@SdkSuppress(minSdkVersion = 31, codeName = "S")
 public class StableUriIdleMaintenanceServiceTest {
     private static final String TAG = "StableUriIdleMaintenanceServiceTest";
 
@@ -66,26 +69,24 @@ public class StableUriIdleMaintenanceServiceTest {
 
     private static final String OWNERSHIP_BACKUP_NAME = "leveldb-ownership";
 
-    private boolean mInitialDeviceConfigValueForInternal = false;
+    private static boolean sInitialDeviceConfigValueForInternal = false;
 
-    private boolean mInitialDeviceConfigValueForExternal = false;
+    private static boolean sInitialDeviceConfigValueForExternal = false;
 
-    @Before
-    public void setUp() throws IOException {
-        InstrumentationRegistry.getInstrumentation().getUiAutomation()
-                .adoptShellPermissionIdentity(android.Manifest.permission.LOG_COMPAT_CHANGE,
-                        android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
-                        android.Manifest.permission.READ_DEVICE_CONFIG,
-                        android.Manifest.permission.WRITE_DEVICE_CONFIG,
-                        Manifest.permission.WRITE_MEDIA_STORAGE);
+    private static final int IDLE_JOB_ID = -500;
+
+    @BeforeClass
+    public static void setUpClass() {
+        adoptShellPermission();
+
         // Read existing value of the flag
-        mInitialDeviceConfigValueForInternal = Boolean.parseBoolean(
+        sInitialDeviceConfigValueForInternal = Boolean.parseBoolean(
                 DeviceConfig.getProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                         ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL));
         DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL, Boolean.TRUE.toString(),
                 false);
-        mInitialDeviceConfigValueForExternal = Boolean.parseBoolean(
+        sInitialDeviceConfigValueForExternal = Boolean.parseBoolean(
                 DeviceConfig.getProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                         ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL));
         DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
@@ -93,21 +94,20 @@ public class StableUriIdleMaintenanceServiceTest {
                 false);
     }
 
-    @After
-    public void tearDown() throws IOException {
+    @AfterClass
+    public static void tearDownClass() throws IOException {
         // Restore previous value of the flag
         DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL,
-                String.valueOf(mInitialDeviceConfigValueForInternal), false);
+                String.valueOf(sInitialDeviceConfigValueForInternal), false);
         DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL,
-                String.valueOf(mInitialDeviceConfigValueForExternal), false);
-        InstrumentationRegistry.getInstrumentation()
-                .getUiAutomation().dropShellPermissionIdentity();
+                String.valueOf(sInitialDeviceConfigValueForExternal), false);
+        SystemClock.sleep(3000);
+        dropShellPermission();
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 31, codeName = "S")
     public void testDataMigrationForInternalVolume() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
         final ContentResolver resolver = context.getContentResolver();
@@ -142,7 +142,6 @@ public class StableUriIdleMaintenanceServiceTest {
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 31, codeName = "S")
     public void testDataMigrationForExternalVolume() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
         final ContentResolver resolver = context.getContentResolver();
@@ -152,15 +151,20 @@ public class StableUriIdleMaintenanceServiceTest {
 
         try {
             for (int i = 0; i < 10; i++) {
-                final File dir = Environment.getExternalStoragePublicDirectory(
-                        Environment.DIRECTORY_DOWNLOADS);
-                final String displayName = "test" + System.nanoTime() + ".jpg";
-                final File image = new File(dir, displayName);
-                stage(R.raw.test_image, image);
-                newFilePaths.add(image.getAbsolutePath());
-                Uri uri = MediaStore.scanFile(resolver, image);
+                final File dir =
+                        Environment.getExternalStoragePublicDirectory(
+                                Environment.DIRECTORY_DOWNLOADS);
+                final File file = new File(dir, System.nanoTime() + ".png");
+
+                // Write 1 byte because 0 byte files are not valid in the db
+                try (FileOutputStream fos = new FileOutputStream(file)) {
+                    fos.write(1);
+                }
+
+                Uri uri = MediaStore.scanFile(resolver, file);
                 long id = ContentUris.parseId(uri);
-                pathToIdMap.put(image.getAbsolutePath(), id);
+                newFilePaths.add(file.getAbsolutePath());
+                pathToIdMap.put(file.getAbsolutePath(), id);
             }
 
             assertFalse(newFilePaths.isEmpty());
@@ -177,9 +181,9 @@ public class StableUriIdleMaintenanceServiceTest {
                                 filePath));
                 assertNotNull(backupIdRow);
                 assertEquals(pathToIdMap.get(filePath).longValue(), backupIdRow.getId());
+                assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());
                 assertEquals(context.getPackageName(),
                         MediaStore.getOwnerPackageName(resolver, backupIdRow.getOwnerPackageId()));
-                assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());
             }
         } finally {
             for (String path : newFilePaths) {
@@ -188,8 +192,58 @@ public class StableUriIdleMaintenanceServiceTest {
         }
     }
 
+    @Test
+    public void testJobScheduling() throws Exception {
+        try {
+            final Context context = InstrumentationRegistry.getTargetContext();
+            final JobScheduler scheduler = InstrumentationRegistry.getTargetContext()
+                    .getSystemService(JobScheduler.class);
+            cancelJob();
+            assertNull(scheduler.getPendingJob(IDLE_JOB_ID));
+
+            StableUriIdleMaintenanceService.scheduleIdlePass(context);
+            assertNotNull(scheduler.getPendingJob(IDLE_JOB_ID));
+
+            String forceRunCommand = "cmd jobscheduler run "
+                    + "-f com.google.android.providers.media.module " + IDLE_JOB_ID;
+            String result = SystemUtil.runShellCommand(InstrumentationRegistry.getInstrumentation(),
+                    forceRunCommand).trim();
+
+            assertEquals("Running job [FORCED]", result);
+        } finally {
+            cancelJob();
+        }
+    }
+
     private void verifyLevelDbPresence(ContentResolver resolver, String backupName) {
         List<String> backedUpFiles = Arrays.asList(MediaStore.getBackupFiles(resolver));
         assertTrue(backedUpFiles.contains(backupName));
+    }
+
+    private static void adoptShellPermission() {
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation()
+                .adoptShellPermissionIdentity(
+                        Manifest.permission.READ_DEVICE_CONFIG,
+                        Manifest.permission.WRITE_DEVICE_CONFIG,
+                        Manifest.permission.WRITE_MEDIA_STORAGE,
+                        android.Manifest.permission.LOG_COMPAT_CHANGE,
+                        android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        android.Manifest.permission.DUMP);
+        SystemClock.sleep(3000);
+    }
+
+    private static void dropShellPermission() {
+        InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation().dropShellPermissionIdentity();
+    }
+
+    private void cancelJob() {
+        final JobScheduler scheduler = InstrumentationRegistry.getTargetContext()
+                .getSystemService(JobScheduler.class);
+        if (scheduler.getPendingJob(IDLE_JOB_ID) != null) {
+            scheduler.cancel(IDLE_JOB_ID);
+        }
     }
 }

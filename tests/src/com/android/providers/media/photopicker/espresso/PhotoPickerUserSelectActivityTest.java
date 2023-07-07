@@ -26,7 +26,9 @@ import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.atPositionOnItemViewType;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -39,15 +41,16 @@ import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.core.app.ActivityScenario;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
 
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@SdkSuppress(minSdkVersion = 34, codeName = "UpsideDownCake")
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
 
@@ -58,20 +61,16 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         mScenario.close();
     }
 
-    @Ignore
     @Test
     public void testMissingUidExtraReturnsCancelled() {
 
         Intent intent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
         intent.addCategory(Intent.CATEGORY_FRAMEWORK_INSTRUMENTATION_TEST);
-        // TODO(b/258182087): {@link ActivityScenario#launchActivityForResult} does not exist in
-        // tm-mainline-prod and requires an androidx.test upgrade.
-        // mScenario = ActivityScenario.launchActivityForResult(intent);
+        mScenario = ActivityScenario.launchActivityForResult(intent);
 
         assertThat(mScenario.getResult().getResultCode()).isEqualTo(Activity.RESULT_CANCELED);
     }
 
-    @Ignore
     @Test
     public void testActivityCancelledByUser() {
         launchValidActivity();
@@ -83,7 +82,6 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         assertThat(mScenario.getResult().getResultCode()).isEqualTo(Activity.RESULT_CANCELED);
     }
 
-    @Ignore
     @Test
     public void testActivityProfileButtonNotShown() {
         launchValidActivity();
@@ -110,7 +108,6 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
     }
 
-    @Ignore
     @Test
     public void testAddButtonIsShownWithCorrectTextWhenItemsSelected() {
         launchValidActivity();
@@ -132,15 +129,18 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         onView(withId(addButtonId)).check(matches(withText("Allow (1)")));
     }
 
-    @Ignore
     @Test
-    public void testNoCloudSettings() {
+    public void testNoCloudSettingsAndBanners() {
         launchValidActivity();
 
         OverflowMenuUtils.assertOverflowMenuNotShown();
+
+        // Assert no banners shown
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID))
+                .check(matches(not(atPositionOnItemViewType(
+                        DEFAULT_BANNER_POSITION, ITEM_TYPE_BANNER))));
     }
 
-    @Ignore
     @Test
     public void testUserSelectCorrectHeaderTextIsShown() {
         launchValidActivity();
@@ -149,10 +149,8 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
 
     /** Test helper to launch a valid test activity. */
     private void launchValidActivity() {
-        // TODO(b/258182087): {@link ActivityScenario#launchActivityForResult} does not exist in
-        // tm-mainline-prod and requires an androidx.test upgrade.
-        // mScenario =
-        //         ActivityScenario.launchActivityForResult(
-        //                 PhotoPickerBaseTest.getUserSelectImagesForAppIntent());
+        mScenario =
+                ActivityScenario.launchActivityForResult(
+                        PhotoPickerBaseTest.getUserSelectImagesForAppIntent());
     }
 }

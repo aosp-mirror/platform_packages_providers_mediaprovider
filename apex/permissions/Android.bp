@@ -19,8 +19,7 @@ package {
     default_visibility: ["//packages/providers/MediaProvider:__subpackages__"],
 }
 
-prebuilt_etc {
+filegroup {
     name: "privapp_allowlist_com.android.providers.media.module.xml",
-    sub_dir: "permissions",
-    src: "com.android.providers.media.module.xml",
+    srcs: ["com.android.providers.media.module.xml"],
 }

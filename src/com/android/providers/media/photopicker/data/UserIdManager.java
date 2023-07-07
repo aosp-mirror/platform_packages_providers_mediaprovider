@@ -170,6 +170,8 @@ public interface UserIdManager {
         private static final long PROVIDER_AVAILABILITY_CHECK_DELAY = 4000;
 
         private final Context mContext;
+        // This is the user profile that started the photo picker activity. That's why it cannot
+        // change in a UserIdManager instance.
         private final UserId mCurrentUser;
         private final Handler mHandler;
 
@@ -178,6 +180,8 @@ public interface UserIdManager {
         private UserId mPersonalUser = null;
         private UserId mManagedUser = null;
 
+        // This is the user profile selected in the photo picker. Photo picker will display media
+        // for this user. It could be different from mCurrentUser.
         private UserId mCurrentUserProfile = null;
 
         // Set default values to negative case, only set as false if checks pass.

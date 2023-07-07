@@ -45,8 +45,6 @@ import com.android.providers.media.MediaProvider;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
-import com.android.providers.media.photopicker.ui.remotepreview.RemotePreviewHandler;
-
 
 import java.io.FileNotFoundException;
 
@@ -72,7 +70,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
         return mDbFacade.queryMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
-                queryExtras.getMimeTypes());
+                queryExtras.getMimeTypes(), queryExtras.getPageSize());
     }
 
     @Override
@@ -137,10 +135,6 @@ public class PhotoPickerProvider extends CloudMediaProvider {
     @Nullable
     public CloudMediaSurfaceController onCreateCloudMediaSurfaceController(@NonNull Bundle config,
             CloudMediaSurfaceStateChangedCallback callback) {
-        if (!RemotePreviewHandler.isRemotePreviewEnabled()) {
-            return null;
-        }
-
         // The config has all parameters except the |callback|, so marshall that into the config
         config.putBinder(EXTRA_SURFACE_STATE_CALLBACK, callback.getIBinder());
         // Add the local provider authority so the RemoteVideoPreviewProvider knows who to forward

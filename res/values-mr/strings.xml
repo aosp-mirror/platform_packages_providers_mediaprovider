@@ -39,6 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"अनुमती द्या"</string>
     <string name="deny" msgid="6040983710442068936">"नकार द्या"</string>
     <string name="picker_browse" msgid="5554477454636075934">"ब्राउझ करा…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"क्लाउड मीडिया अ‍ॅप"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"क्लाउड मीडिया अ‍ॅप"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"क्लाउड मीडिया अ‍ॅप"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"एखादे ॲप किंवा वेबसाइट तुम्हाला फोटो किंवा व्हिडिओ निवडण्यास सांगते, तेव्हा तुमचा क्लाउड मीडिया अ‍ॅक्सेस करा"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"येथून क्लाउड मीडिया अ‍ॅक्सेस करा"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"काहीही नाही"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"क्लाउड मीडिया अ‍ॅप या क्षणी बदलू शकत नाही."</string>
     <string name="add" msgid="2894574044585549298">"जोडा"</string>
     <string name="deselect" msgid="4297825044827769490">"निवड रद्द करा"</string>
     <string name="deselected" msgid="8488133193326208475">"निवड रद्द केली आहे"</string>
@@ -47,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{कमाल <xliff:g id="COUNT_0">^1</xliff:g> आयटम निवडा}other{कमाल <xliff:g id="COUNT_1">^1</xliff:g> आयटम निवडा}}"</string>
     <string name="recent" msgid="6694613584743207874">"अलीकडील"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"कोणतेही फोटो किंवा व्हिडिओ नाहीत"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"कोणतेही सपोर्ट असलेले फोटो किंवा व्हिडिओ नाहीत"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"कोणतेही अल्बम नाहीत"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"निवडलेले पहा"</string>
     <string name="picker_photos" msgid="7415035516411087392">"फोटो"</string>
@@ -60,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"कामाशी संबंधित अ‍ॅप्स थांबवली आहेत"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"कामाशी संबंधित फोटो उघडण्यासाठी, कामाशी संबंधित अ‍ॅप्स सुरू करा त्यानंतर पुन्हा प्रयत्न करा"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"हे ॲप फक्त तुम्ही निवडलेले फोटो अ‍ॅक्सेस करू शकते"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"तुम्ही या ॲपला अ‍ॅक्सेस करण्याची अनुमती दिलेले फोटो आणि व्हिडिओ निवडा"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> आयटम}other{<xliff:g id="COUNT_1">^1</xliff:g> आयटम}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) जोडा"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"(<xliff:g id="COUNT">^1</xliff:g>) ला अनुमती द्या"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"कॅमेरा"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"डाउनलोड"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"आवडते"</string>
@@ -78,8 +88,25 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"व्हिडिओ अनम्यूट करा"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"प्ले करा"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"थांबवा"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"व्हिडिओ प्ले करू शकत नाही"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"व्हिडिओ प्ले करण्यात समस्या आली"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"तुमचे इंटरनेट कनेक्शन तपासा आणि पुन्हा प्रयत्न करा"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"पुन्हा प्रयत्न करा"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"आता <xliff:g id="PKG_NAME">%1$s</xliff:g> कडून क्लाउड मीडिया उपलब्ध आहे"</string>
     <string name="not_selected" msgid="2244008151669896758">"निवडला नाही"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> पैकी <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> तयार"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"बॅकअप घेतलेल्या फोटोचा आता समावेश केला आहे"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"तुम्ही <xliff:g id="APP_NAME">%1$s</xliff:g> खात्याच्या <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> वरून फोटो निवडू शकता"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> खाते अपडेट केले"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> मधील फोटोचा आता येथे समावेश केला आहे"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"क्लाउड मीडिया अ‍ॅप निवडा"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"येथे बॅकअप घेतलेल्या फोटोचा समावेश करण्यासाठी, सेटिंग्ज मध्ये क्लाउड मीडिया अ‍ॅप निवडा"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"<xliff:g id="APP_NAME">%1$s</xliff:g> खाते निवडा"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"येथे <xliff:g id="APP_NAME">%1$s</xliff:g> मधील फोटोचा समावेश करण्यासाठी, ॲपमधील खाते निवडा"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"डिसमिस करा"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ॲप निवडा"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"खाते निवडा"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"खाते बदला"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला या ऑडिओ फाइलमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> ऑडिओ फाइलमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ऑडिओ फाइलमध्ये फेरबदल करत आहे…}other{<xliff:g id="COUNT">^1</xliff:g> ऑडिओ फाइलमध्ये फेरबदल करत आहे…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ला या व्हिडिओमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ला <xliff:g id="COUNT">^2</xliff:g> व्हिडिओमध्ये फेरबदल करण्याची अनुमती द्यायची आहे का?}}"</string>

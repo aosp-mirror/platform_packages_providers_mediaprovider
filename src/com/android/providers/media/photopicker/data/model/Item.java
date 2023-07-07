@@ -25,12 +25,11 @@ import static com.android.providers.media.photopicker.util.CursorUtils.getCursor
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 
+import static java.util.Objects.requireNonNull;
+
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Bundle;
-import android.provider.CloudMediaProviderContract;
-import android.provider.MediaStore;
 import android.text.format.DateUtils;
 
 import androidx.annotation.NonNull;
@@ -42,9 +41,16 @@ import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.util.MimeUtils;
 
 /**
- * Base class representing one single entity/item in the PhotoPicker.
+ * Base class for representing a single media item (a picture, a video, etc.) in the PhotoPicker.
  */
 public class Item {
+    public static final Item EMPTY_VIEW = new Item("EMPTY_VIEW");
+    public static final String ROW_ID = "row_id";
+
+    /**
+     * This id represents the cloud id or the local id of the media, with priority given to cloud id
+     * if present.
+     */
     private String mId;
     private long mDateTaken;
     private long mGenerationModified;
@@ -54,9 +60,11 @@ public class Item {
     private boolean mIsImage;
     private boolean mIsVideo;
     private int mSpecialFormat;
-    private boolean mIsDate;
 
-    private Item() {}
+    /**
+     * This is the row id for the item in the db.
+     */
+    private int mRowId;
 
     public Item(@NonNull Cursor cursor, @NonNull UserId userId) {
         updateFromCursor(cursor, userId);
@@ -73,6 +81,10 @@ public class Item {
         mUri = uri;
         mSpecialFormat = specialFormat;
         parseMimeType();
+    }
+
+    private Item(String id) {
+        this(id, null, 0, 0, 0, null, 0);
     }
 
     public String getId() {
@@ -103,10 +115,6 @@ public class Item {
         return mSpecialFormat == _SPECIAL_FORMAT_MOTION_PHOTO;
     }
 
-    public boolean isDate() {
-        return mIsDate;
-    }
-
     public Uri getContentUri() {
         return mUri;
     }
@@ -132,23 +140,12 @@ public class Item {
         return mSpecialFormat;
     }
 
-    public static Item fromCursor(Cursor cursor, UserId userId) {
-        assert(cursor != null);
-        final Item item = new Item(cursor, userId);
-        return item;
+    public int getRowId() {
+        return mRowId;
     }
 
-    /**
-     * Return the date item. If dateTaken is 0, it is a recent item.
-     * @param dateTaken the time of date taken. The unit is in milliseconds
-     *                  since January 1, 1970 00:00:00.0 UTC.
-     * @return the item with date type
-     */
-    public static Item createDateItem(long dateTaken) {
-        final Item item = new Item();
-        item.mIsDate = true;
-        item.mDateTaken = dateTaken;
-        return item;
+    public static Item fromCursor(@NonNull Cursor cursor, UserId userId) {
+        return new Item(requireNonNull(cursor), userId);
     }
 
     /**
@@ -166,6 +163,7 @@ public class Item {
         mDuration = getCursorLong(cursor, MediaColumns.DURATION_MILLIS);
         mSpecialFormat = getCursorInt(cursor, MediaColumns.STANDARD_MIME_TYPE_EXTENSION);
         mUri = ItemsProvider.getItemsUri(mId, authority, userId);
+        mRowId = getCursorInt(cursor, ROW_ID);
 
         parseMimeType();
     }

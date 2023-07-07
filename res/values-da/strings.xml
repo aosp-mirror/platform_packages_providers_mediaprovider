@@ -39,6 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"Tillad"</string>
     <string name="deny" msgid="6040983710442068936">"Afvis"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Gennemse…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Skymedieapp"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Skymedieapp"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Skymedieapp"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Tilgå dine medier i skyen, når en app eller et website beder dig om at vælge billeder eller videoer"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Få adgang til medier i skyen via"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Ingen"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Skymedieappen kunne ikke ændres"</string>
     <string name="add" msgid="2894574044585549298">"Tilføj"</string>
     <string name="deselect" msgid="4297825044827769490">"Fravælg"</string>
     <string name="deselected" msgid="8488133193326208475">"Fravalgt"</string>
@@ -47,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Vælg op til <xliff:g id="COUNT_0">^1</xliff:g> element}one{Vælg op til <xliff:g id="COUNT_1">^1</xliff:g> element}other{Vælg op til <xliff:g id="COUNT_1">^1</xliff:g> elementer}}"</string>
     <string name="recent" msgid="6694613584743207874">"Seneste"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Ingen billeder eller videoer"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Der er ingen understøttede billeder eller videoer"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Ingen album"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Se valgte"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Billeder"</string>
@@ -60,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Dine arbejdsapps er sat på pause"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Hvis du vil åbne billeder fra arbejdsprofilen, skal du aktivere dine arbejdsapps og derefter prøve igen"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Denne app kan kun tilgå de billeder, du vælger"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Vælg de billeder og videoer, du vil give denne app adgang til"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> element}one{<xliff:g id="COUNT_1">^1</xliff:g> element}other{<xliff:g id="COUNT_1">^1</xliff:g> elementer}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Tilføj (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Tillad (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Downloads"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Favoritter"</string>
@@ -78,8 +88,25 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Slå videolyden til"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Afspil"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Sæt på pause"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Videoen kan ikke afspilles"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Problemer med at afspille video"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Tjek din internetforbindelse, og prøv igen"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Prøv igen"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Medier i skyen er nu tilgængelige fra <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"ikke valgt"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> af <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> er klar"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Sikkerhedskopierede billeder er nu inkluderet"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Du kan vælge billeder fra <xliff:g id="APP_NAME">%1$s</xliff:g>-kontoen <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g>-kontoen er opdateret"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Billeder fra <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> er nu inkluderet her"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Vælg skymedieapp"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Du kan inkludere sikkerhedskopierede billeder her ved at vælge en skymedieapp i Indstillinger"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Vælg <xliff:g id="APP_NAME">%1$s</xliff:g>-konto"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Du kan inkludere billeder fra <xliff:g id="APP_NAME">%1$s</xliff:g> her ved at vælge en konto i appen"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Luk"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Vælg app"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Vælg en konto"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Skift konto"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vil du give <xliff:g id="APP_NAME_0">^1</xliff:g> tilladelse til at ændre denne lydfil?}one{Vil du give <xliff:g id="APP_NAME_1">^1</xliff:g> tilladelse til at ændre <xliff:g id="COUNT">^2</xliff:g> lydfil?}other{Vil du give <xliff:g id="APP_NAME_1">^1</xliff:g> tilladelse til at ændre <xliff:g id="COUNT">^2</xliff:g> lydfiler?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Ændrer lydfilen…}one{Ændrer <xliff:g id="COUNT">^1</xliff:g> lydfil…}other{Ændrer <xliff:g id="COUNT">^1</xliff:g> lydfiler…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Vil du give <xliff:g id="APP_NAME_0">^1</xliff:g> tilladelse til at ændre denne video?}one{Vil du give <xliff:g id="APP_NAME_1">^1</xliff:g> tilladelse til at ændre <xliff:g id="COUNT">^2</xliff:g> video?}other{Vil du give <xliff:g id="APP_NAME_1">^1</xliff:g> tilladelse til at ændre <xliff:g id="COUNT">^2</xliff:g> videoer?}}"</string>

@@ -36,10 +36,10 @@ import android.system.Os;
 import androidx.core.util.Supplier;
 import androidx.test.InstrumentationRegistry;
 
+import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.UserId;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -86,6 +86,11 @@ public class PhotoPickerBaseTest {
      */
     protected static final int VIDEO_POSITION = 3;
 
+    /**
+     * The default position of a banner in the Photos & Albums tab recycler view adapters
+     */
+    static final int DEFAULT_BANNER_POSITION = 0;
+
 
     private static final Intent sSingleSelectIntent;
     static {
@@ -100,6 +105,15 @@ public class PhotoPickerBaseTest {
         extras.putInt(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit());
         sMultiSelectionIntent.addCategory(Intent.CATEGORY_FRAMEWORK_INSTRUMENTATION_TEST);
         sMultiSelectionIntent.putExtras(extras);
+    }
+
+    private static final Intent sUserSelectImagesForAppIntent;
+    static {
+        sUserSelectImagesForAppIntent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+        sUserSelectImagesForAppIntent.addCategory(Intent.CATEGORY_FRAMEWORK_INSTRUMENTATION_TEST);
+        Bundle extras = new Bundle();
+        extras.putInt(Intent.EXTRA_UID, 1234);
+        sUserSelectImagesForAppIntent.putExtras(extras);
     }
 
     private static final File IMAGE_1_FILE = new File(Environment.getExternalStorageDirectory(),
@@ -128,6 +142,10 @@ public class PhotoPickerBaseTest {
 
     public static Intent getMultiSelectionIntent() {
         return sMultiSelectionIntent;
+    }
+
+    public static Intent getUserSelectImagesForAppIntent() {
+        return sUserSelectImagesForAppIntent;
     }
 
     public static Intent getMultiSelectionIntent(int max) {

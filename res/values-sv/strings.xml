@@ -39,6 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"Tillåt"</string>
     <string name="deny" msgid="6040983710442068936">"Neka"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Bläddra bland …"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Molnmedieapp"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Molnmedieapp"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Molnmedieapp"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Få tillgång till molnmedia när en app eller webbplats ber dig att välja foton eller videor"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Få tillgång till media i molnet från"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Inga"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Det går inte att byta molnmedieapp just nu."</string>
     <string name="add" msgid="2894574044585549298">"Lägg till"</string>
     <string name="deselect" msgid="4297825044827769490">"Avmarkera"</string>
     <string name="deselected" msgid="8488133193326208475">"Avmarkerad"</string>
@@ -47,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Välj upp till <xliff:g id="COUNT_0">^1</xliff:g> objekt}other{Välj upp till <xliff:g id="COUNT_1">^1</xliff:g> objekt}}"</string>
     <string name="recent" msgid="6694613584743207874">"Senaste"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Inga foton eller videor"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Det finns inga foton eller videor som stöds"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Inga album"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Visa valda"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Foton"</string>
@@ -60,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Jobbappar har pausats"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Om du vill öppna jobbfoton aktiverar du jobbappar och försöker igen"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Denna app får bara tillgång till foton du väljer"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Välj vilka foton och videor du vill ge appen åtkomst till"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> objekt}other{<xliff:g id="COUNT_1">^1</xliff:g> objekt}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Lägg till (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Tillåt (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Nedladdningar"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Favoriter"</string>
@@ -78,8 +88,25 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"Slå på ljudet för videon"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"Spela upp"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pausa"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Det går inte att spela upp videon"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Det gick inte att spela upp videon"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Kontrollera internetanslutningen och försök igen"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Försök igen"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Molnmedia är nu tillgänglig från <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"inte valt"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> av <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> är redo"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Säkerhetskopierade foton tas nu med"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Du kan välja foton från <xliff:g id="APP_NAME">%1$s</xliff:g>-kontot <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g>-kontot har uppdaterats"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Foton från <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> tas nu med nu här"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Välj molnmedieapp"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Om du vill ta med säkerhetskopierade foton här väljer du en molnmedieapp i inställningarna"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Välj <xliff:g id="APP_NAME">%1$s</xliff:g>-konto"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Om du vill ta med foton från <xliff:g id="APP_NAME">%1$s</xliff:g> här väljer du ett konto i appen"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Ignorera"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Välj app"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Välj konto"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Byt konto"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vill du tillåta att <xliff:g id="APP_NAME_0">^1</xliff:g> ändrar den här ljudfilen?}other{Vill du tillåta att <xliff:g id="APP_NAME_1">^1</xliff:g> ändrar <xliff:g id="COUNT">^2</xliff:g> ljudfiler?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Ljudfilen ändras …}other{<xliff:g id="COUNT">^1</xliff:g> ljudfiler ändras …}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Vill du tillåta att <xliff:g id="APP_NAME_0">^1</xliff:g> ändrar den här videon?}other{Vill du tillåta att <xliff:g id="APP_NAME_1">^1</xliff:g> ändrar <xliff:g id="COUNT">^2</xliff:g> videor?}}"</string>

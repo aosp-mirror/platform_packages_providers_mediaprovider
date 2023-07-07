@@ -38,11 +38,19 @@ public class TestConfigStore implements ConfigStore {
 
     public void enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(String... providers) {
         mAllowedCloudProviderPackages = Arrays.asList(providers);
+        enableCloudMediaFeature();
+    }
+
+    public void enableCloudMediaFeature() {
         mCloudMediaInPhotoPickerEnabled = true;
     }
 
     public void clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature() {
         mAllowedCloudProviderPackages = null;
+        disableCloudMediaFeature();
+    }
+
+    public void disableCloudMediaFeature() {
         mCloudMediaInPhotoPickerEnabled = false;
     }
 

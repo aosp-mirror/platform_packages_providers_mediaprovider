@@ -107,8 +107,6 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Chagua programu"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Chagua akaunti"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Badilisha akaunti"</string>
-    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
-    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Ungependa kuruhusu <xliff:g id="APP_NAME_0">^1</xliff:g> ibadilishe faili hii ya sauti?}other{Ungependa kuruhusu <xliff:g id="APP_NAME_1">^1</xliff:g> ibadilishe faili <xliff:g id="COUNT">^2</xliff:g> za sauti?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Inarekebisha faili ya sauti…}other{Inarekebisha faili <xliff:g id="COUNT">^1</xliff:g> za sauti…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Ungependa kuruhusu <xliff:g id="APP_NAME_0">^1</xliff:g> ibadilishe video hii?}other{Ungependa kuruhusu <xliff:g id="APP_NAME_1">^1</xliff:g> ibadilishe video <xliff:g id="COUNT">^2</xliff:g>?}}"</string>

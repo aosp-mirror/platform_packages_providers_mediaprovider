@@ -65,7 +65,7 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Kuvinjwe ngumphathi wakho"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Ukufinyelela idatha evela ku-app yomuntu siqu akuvunyelwe"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Ukufinyelela idatha yomuntu siqu evela ku-app yomsebenzi akuvunyelwe"</string>
-    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ama-app okusebenza aphunyuziwe"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ama-app okusebenza amisiwe"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ukuze uvule izithombe zomsebenzi, vula ama-app wakho womsebenzi bese uzama futhi"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Le app ingafinyelela izithombe ozikhethayo kuphela"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Khetha izithombe namavidiyo ovumela le app ukuthi iwafinyelele"</string>
@@ -107,8 +107,6 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Khetha i-app"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Khetha i-akhawunti"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Shintsha i-akhawunti"</string>
-    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
-    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vumela i-<xliff:g id="APP_NAME_0">^1</xliff:g> ukuguqula leli fayela lomsindo?}one{Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amafayela omsindo angu-<xliff:g id="COUNT">^2</xliff:g>?}other{Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amafayela omsindo angu-<xliff:g id="COUNT">^2</xliff:g>?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Ilungisa ifayela lomsindo…}one{Ilungisa amafayela womsindo angu-<xliff:g id="COUNT">^1</xliff:g>…}other{Ilungisa amafayela womsindo angu-<xliff:g id="COUNT">^1</xliff:g>…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Vumela i-<xliff:g id="APP_NAME_0">^1</xliff:g> ukuguqula le vidiyo?}one{Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amavidiyo angu-<xliff:g id="COUNT">^2</xliff:g>?}other{Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amavidiyo angu-<xliff:g id="COUNT">^2</xliff:g>?}}"</string>

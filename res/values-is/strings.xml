@@ -107,8 +107,6 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Velja forrit"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Veldu reikning"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Skipta um reikning"</string>
-    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
-    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Leyfa <xliff:g id="APP_NAME_0">^1</xliff:g> að breyta þessari hljóðskrá?}one{Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> hljóðskrá?}other{Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> hljóðskrám?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Breytir hljóðskrá…}one{Breytir <xliff:g id="COUNT">^1</xliff:g> hljóðskrá…}other{Breytir <xliff:g id="COUNT">^1</xliff:g> hljóðskrám…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Leyfa <xliff:g id="APP_NAME_0">^1</xliff:g> að breyta þessu myndskeiði?}one{Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> myndskeiði?}other{Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> myndskeiðum?}}"</string>

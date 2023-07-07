@@ -28,10 +28,14 @@ import static android.provider.MediaStore.MediaColumns.RELATIVE_PATH;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
+import android.app.job.JobScheduler;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -70,6 +74,7 @@ import java.util.Locale;
 @RunWith(AndroidJUnit4.class)
 public class IdleServiceTest {
     private static final String TAG = MediaProviderTest.TAG;
+    private static final int IDLE_JOB_ID = -200;
 
     private File mDir;
 
@@ -121,6 +126,7 @@ public class IdleServiceTest {
         final File b = touch(buildPath(dir, DIRECTORY_MOVIES, ".thumbnails", "7654321.jpg"));
         final File c = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", id + ".jpg"));
         final File d = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", "random.bin"));
+        final File e = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", ".nomedia"));
 
         // Idle maintenance pass should clean up unknown files
         MediaStore.runIdleMaintenance(resolver);
@@ -128,6 +134,7 @@ public class IdleServiceTest {
         assertFalse(exists(b));
         assertTrue(exists(c));
         assertFalse(exists(d));
+        assertTrue(exists(e));
 
         // And change the UUID, which emulates ejecting and mounting a different
         // storage device; all thumbnails should then be invalidated
@@ -136,12 +143,13 @@ public class IdleServiceTest {
         delete(uuidFile);
         touch(uuidFile);
 
-        // Idle maintenance pass should clean up all files
+        // Idle maintenance pass should clean up all files except .nomedia file
         MediaStore.runIdleMaintenance(resolver);
         assertFalse(exists(a));
         assertFalse(exists(b));
         assertFalse(exists(c));
         assertFalse(exists(d));
+        assertTrue(exists(e));
     }
 
     /**
@@ -205,7 +213,7 @@ public class IdleServiceTest {
     public void testDetectSpecialFormat() throws Exception {
         // Require isolated resolver to query hidden column _special_format
         final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext = new MediaScannerTest.IsolatedContext(context, "modern",
+        final Context isolatedContext = new IsolatedContext(context, "modern",
                 /*asFuseThread*/ false);
         final ContentResolver resolver = isolatedContext.getContentResolver();
 
@@ -246,12 +254,41 @@ public class IdleServiceTest {
                 assertThat(cr.getCount()).isEqualTo(1);
                 assertThat(cr.moveToFirst()).isNotNull();
                 assertThat(cr.getInt(0)).isEqualTo(_SPECIAL_FORMAT_NONE);
-                // Make sure updating special format column updates GENERATION_MODIFIED;
-                // This is essential for picker db to know which rows were modified.
-                assertThat(cr.getInt(1)).isGreaterThan(initialGenerationModified);
+                // Make sure that updating special format column doesn't update GENERATION_MODIFIED
+                assertThat(cr.getInt(1)).isEqualTo(initialGenerationModified);
             }
         } finally {
             file.delete();
+        }
+    }
+
+    @Test
+    public void testJobScheduling() throws Exception {
+        try {
+            final Context context = InstrumentationRegistry.getTargetContext();
+            final JobScheduler scheduler = InstrumentationRegistry.getTargetContext()
+                    .getSystemService(JobScheduler.class);
+            cancelJob();
+            assertNull(scheduler.getPendingJob(IDLE_JOB_ID));
+
+            IdleService.scheduleIdlePass(context);
+            assertNotNull(scheduler.getPendingJob(IDLE_JOB_ID));
+
+            String forceRunCommand = "cmd jobscheduler run "
+                    + "-f com.google.android.providers.media.module " + IDLE_JOB_ID;
+            String result = executeShellCommand(forceRunCommand).trim();
+
+            assertEquals("Running job [FORCED]", result);
+        } finally {
+            cancelJob();
+        }
+    }
+
+    private void cancelJob() {
+        final JobScheduler scheduler = InstrumentationRegistry.getTargetContext()
+                .getSystemService(JobScheduler.class);
+        if (scheduler.getPendingJob(IDLE_JOB_ID) != null) {
+            scheduler.cancel(IDLE_JOB_ID);
         }
     }
 
@@ -317,7 +354,7 @@ public class IdleServiceTest {
     private static String executeShellCommand(String command) throws IOException {
         Log.v(TAG, "$ " + command);
         ParcelFileDescriptor pfd = InstrumentationRegistry.getInstrumentation().getUiAutomation()
-                .executeShellCommand(command.toString());
+                .executeShellCommand(command);
         BufferedReader br = null;
         try (InputStream in = new FileInputStream(pfd.getFileDescriptor());) {
             br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));

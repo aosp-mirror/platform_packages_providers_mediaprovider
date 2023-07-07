@@ -56,6 +56,7 @@ package android.provider {
     field public static final String EXTRA_ALBUM_ID = "android.provider.extra.ALBUM_ID";
     field public static final String EXTRA_LOOPING_PLAYBACK_ENABLED = "android.provider.extra.LOOPING_PLAYBACK_ENABLED";
     field public static final String EXTRA_MEDIA_COLLECTION_ID = "android.provider.extra.MEDIA_COLLECTION_ID";
+    field public static final String EXTRA_PAGE_SIZE = "android.provider.extra.PAGE_SIZE";
     field public static final String EXTRA_PAGE_TOKEN = "android.provider.extra.PAGE_TOKEN";
     field public static final String EXTRA_PREVIEW_THUMBNAIL = "android.provider.extra.PREVIEW_THUMBNAIL";
     field public static final String EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED = "android.provider.extra.SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED";
@@ -82,10 +83,12 @@ package android.provider {
   public static final class CloudMediaProviderContract.MediaColumns {
     field public static final String DATE_TAKEN_MILLIS = "date_taken_millis";
     field public static final String DURATION_MILLIS = "duration_millis";
+    field public static final String HEIGHT = "height";
     field public static final String ID = "id";
     field public static final String IS_FAVORITE = "is_favorite";
     field public static final String MEDIA_STORE_URI = "media_store_uri";
     field public static final String MIME_TYPE = "mime_type";
+    field public static final String ORIENTATION = "orientation";
     field public static final String SIZE_BYTES = "size_bytes";
     field public static final String STANDARD_MIME_TYPE_EXTENSION = "standard_mime_type_extension";
     field public static final int STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP = 3; // 0x3
@@ -93,6 +96,7 @@ package android.provider {
     field public static final int STANDARD_MIME_TYPE_EXTENSION_MOTION_PHOTO = 2; // 0x2
     field public static final int STANDARD_MIME_TYPE_EXTENSION_NONE = 0; // 0x0
     field public static final String SYNC_GENERATION = "sync_generation";
+    field public static final String WIDTH = "width";
   }
 
   public final class MediaStore {
@@ -464,8 +468,11 @@ package android.provider {
     field public static final String DATE_TAKEN = "datetaken";
     field public static final String DISPLAY_NAME = "_display_name";
     field public static final String DURATION_MILLIS = "duration";
+    field public static final String HEIGHT = "height";
     field public static final String MIME_TYPE = "mime_type";
+    field public static final String ORIENTATION = "orientation";
     field public static final String SIZE = "_size";
+    field public static final String WIDTH = "width";
   }
 
   public static final class MediaStore.Video {

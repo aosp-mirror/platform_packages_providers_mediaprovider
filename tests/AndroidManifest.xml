@@ -4,11 +4,22 @@
 
     <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="30" />
 
+    <queries>
+        <package android:name="com.android.providers.media.testapp.withoutperms" />
+        <package android:name="com.android.providers.media.testapp.permission" />
+        <package android:name="com.android.providers.media.testapp.permissionmedia" />
+        <package android:name="com.android.providers.media.testapp.withstorageperms" />
+        <package android:name="com.android.providers.media.testapp.withmediaperms" />
+        <package android:name="com.android.providers.media.testapp.withuserselectedperms" />
+        <package android:name="com.android.providers.media.testapp.legacy" />
+    </queries>
+
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.UPDATE_APP_OPS_STATS" />
     <uses-permission android:name="android.permission.MANAGE_USERS" />
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
+    <uses-permission android:name="android.permission.READ_DEVICE_CONFIG" />
     <application android:label="MediaProvider Tests">
         <uses-library android:name="android.test.runner" />
 
@@ -30,11 +41,32 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.FRAMEWORK_INSTRUMENTATION_TEST" />
             </intent-filter>
+            <intent-filter>
+               <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.FRAMEWORK_INSTRUMENTATION_TEST" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.FRAMEWORK_INSTRUMENTATION_TEST" />
+            </intent-filter>
         </activity>
 
         <provider android:name="com.android.providers.media.photopicker.LocalProvider"
             android:authorities="com.android.providers.media.photopicker.tests.local"
             android:exported="false" />
+
+        <provider android:name="com.android.providers.media.cloudproviders.FlakyCloudProvider"
+                  android:authorities="com.android.providers.media.photopicker.tests.cloud_flaky"
+                  android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+                  android:exported="true">
+          <intent-filter>
+            <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
+          </intent-filter>
+        </provider>
 
         <provider android:name="com.android.providers.media.cloudproviders.CloudProviderPrimary"
                   android:authorities="com.android.providers.media.photopicker.tests.cloud_primary"
@@ -67,6 +99,17 @@
                   android:authorities="com.android.providers.media.photopicker.tests.cloud_no_intent_filter"
                   android:exported="true">
         </provider>
+
+        <service
+            android:name=
+                "com.android.providers.media.stableuris.job.StableUriIdleMaintenanceService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <service
+            android:name="com.android.providers.media.IdleService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

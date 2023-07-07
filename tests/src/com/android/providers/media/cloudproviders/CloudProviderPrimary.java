@@ -16,7 +16,8 @@
 
 package com.android.providers.media.cloudproviders;
 
-import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
+import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
+
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
 import android.content.res.AssetFileDescriptor;
@@ -37,7 +38,7 @@ import java.io.FileNotFoundException;
  * {@link MediaGenerator}
  */
 public class CloudProviderPrimary extends CloudMediaProvider {
-    private static final String AUTHORITY =
+    public static final String AUTHORITY =
             "com.android.providers.media.photopicker.tests.cloud_primary";
 
     private final MediaGenerator mMediaGenerator =
@@ -53,8 +54,10 @@ public class CloudProviderPrimary extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
+        String pageToken = extras.getString(EXTRA_PAGE_TOKEN, null);
+
         return mMediaGenerator.getMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
-                queryExtras.getMimeTypes(), queryExtras.getSizeBytes());
+                queryExtras.getMimeTypes(), queryExtras.getSizeBytes(), pageToken);
     }
 
     @Override
@@ -62,7 +65,8 @@ public class CloudProviderPrimary extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        return mMediaGenerator.getDeletedMedia(queryExtras.getGeneration());
+        String pageToken = extras.getString(EXTRA_PAGE_TOKEN, null);
+        return mMediaGenerator.getDeletedMedia(queryExtras.getGeneration(), pageToken);
     }
 
     @Override
@@ -70,8 +74,9 @@ public class CloudProviderPrimary extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
+        String pageToken = extras.getString(EXTRA_PAGE_TOKEN, null);
         return mMediaGenerator.getAlbums(queryExtras.getMimeTypes(), queryExtras.getSizeBytes(),
-                /* isLocal */ false);
+                /* isLocal */ false, pageToken);
     }
 
     @Override

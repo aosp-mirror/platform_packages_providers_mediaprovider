@@ -73,6 +73,19 @@ public class IsoInterfaceTest {
     }
 
     @Test
+    public void testGpsInIlst() throws Exception {
+        final File file = stageFile(R.raw.test_video_gps_ilst_tag);
+        final IsoInterface mp4 = IsoInterface.fromFile(file);
+
+        final long[] ranges = mp4.getBoxRanges(0xa978797a); // ?xyz
+        assertEquals(4, ranges.length);
+        assertEquals(2267, ranges[0]);
+        assertEquals(2267, ranges[1]);
+        assertEquals(2275, ranges[2]);
+        assertEquals(2309, ranges[3]);
+    }
+
+    @Test
     public void testXmp() throws Exception {
         final File file = stageFile(R.raw.test_video_xmp);
         final IsoInterface mp4 = IsoInterface.fromFile(file);

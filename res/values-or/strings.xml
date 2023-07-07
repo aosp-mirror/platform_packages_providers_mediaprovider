@@ -39,6 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"ଅନୁମତି ଦିଅନ୍ତୁ"</string>
     <string name="deny" msgid="6040983710442068936">"ଅଗ୍ରାହ୍ୟ କରନ୍ତୁ"</string>
     <string name="picker_browse" msgid="5554477454636075934">"ବ୍ରାଉଜ କରନ୍ତୁ…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"କ୍ଲାଉଡ ମିଡିଆ ଆପ"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"କ୍ଲାଉଡ ମିଡିଆ ଆପ"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"କ୍ଲାଉଡ ମିଡିଆ ଆପ"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"ଏକ ଆପ କିମ୍ବା ୱେବସାଇଟ ଆପଣଙ୍କୁ ଫଟୋ ବା ଭିଡିଓଗୁଡ଼ିକୁ ଚୟନ କରିବା ପାଇଁ କହିଲେ ଆପଣଙ୍କ କ୍ଲାଉଡ ମିଡିଆକୁ ଆକ୍ସେସ କରନ୍ତୁ"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"ଏଠାରୁ କ୍ଲାଉଡ ମିଡିଆକୁ ଆକ୍ସେସ କରନ୍ତୁ"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"କିଛି ନାହିଁ"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"ଏହି ସମୟରେ କ୍ଲାଉଡ ମିଡିଆ ଆପ ପରିବର୍ତ୍ତନ ହେଲା ନାହିଁ।"</string>
     <string name="add" msgid="2894574044585549298">"ଯୋଗ କରନ୍ତୁ"</string>
     <string name="deselect" msgid="4297825044827769490">"ଅଚୟନ କରନ୍ତୁ"</string>
     <string name="deselected" msgid="8488133193326208475">"ଅଚୟନ କରାଯାଇଛି"</string>
@@ -47,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g>ଟି ପର୍ଯ୍ୟନ୍ତ ଆଇଟମ ଚୟନ କରନ୍ତୁ}other{<xliff:g id="COUNT_1">^1</xliff:g>ଟି ପର୍ଯ୍ୟନ୍ତ ଆଇଟମ ଚୟନ କରନ୍ତୁ}}"</string>
     <string name="recent" msgid="6694613584743207874">"ବର୍ତ୍ତମାନର"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"କୌଣସି ଫଟୋ କିମ୍ବା ଭିଡିଓ ନାହିଁ"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"କୌଣସି ସମର୍ଥିତ ଫଟୋ କିମ୍ବା ଭିଡିଓ ନାହିଁ"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"କୌଣସି ଆଲବମ ନାହିଁ"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ଚୟନିତଗୁଡ଼ିକୁ ଦେଖନ୍ତୁ"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ଫଟୋ"</string>
@@ -60,9 +68,11 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ୱାର୍କ ଆପଗୁଡ଼ିକୁ ବିରତ କରାଯାଇଛି"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ୱାର୍କ ଫଟୋଗୁଡ଼ିକୁ ଖୋଲିବାକୁ, ଆପଣଙ୍କ ୱାର୍କ ଆପଗୁଡ଼ିକୁ ଚାଲୁ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"ଏହି ଆପ କେବଳ ଆପଣ ଚୟନ କରିଥିବା ଫଟୋଗୁଡ଼ିକୁ ଆକ୍ସେସ କରିପାରିବ"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"ଆପଣ ଏହି ଆପକୁ ଆକ୍ସେସ କରିବା ପାଇଁ ଅନୁମତି ଦେଉଥିବା ଫଟୋ ଏବଂ ଭିଡିଓଗୁଡ଼ିକୁ ଚୟନ କରନ୍ତୁ"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g>ଟି ଆଇଟମ}other{<xliff:g id="COUNT_1">^1</xliff:g>ଟି ଆଇଟମ}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>)ଟି ଯୋଗ କରନ୍ତୁ"</string>
-    <string name="picker_category_camera" msgid="4857367052026843664">"କ୍ୟାମେରା"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"ଅନୁମତି ଦିଅନ୍ତୁ (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"କେମେରା"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"ଡାଉନଲୋଡଗୁଡ଼ିକ"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"ପସନ୍ଦଗୁଡ଼ିକ"</string>
     <string name="picker_category_screenshots" msgid="7216102327587644284">"ସ୍କ୍ରିନସଟଗୁଡ଼ିକ"</string>
@@ -78,8 +88,25 @@
     <string name="picker_unmute_video" msgid="6611741290641963568">"ଭିଡିଓକୁ ଅନମ୍ୟୁଟ କରନ୍ତୁ"</string>
     <string name="picker_play_video" msgid="7106025944628666250">"ପ୍ଲେ କରନ୍ତୁ"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"ବିରତ କରନ୍ତୁ"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"ଭିଡିଓ ପ୍ଲେ କରାଯାଇପାରିବ ନାହିଁ"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"ଭିଡିଓ ପ୍ଲେ କରିବାରେ ସମସ୍ୟା"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"ଆପଣଙ୍କ ଇଣ୍ଟରନେଟ କନେକ୍ସନ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"ବର୍ତ୍ତମାନ <xliff:g id="PKG_NAME">%1$s</xliff:g>ରୁ କ୍ଲାଉଡ ମିଡିଆ ଉପଲବ୍ଧ ଅଛି"</string>
     <string name="not_selected" msgid="2244008151669896758">"ଚୟନ କରାଯାଇନାହିଁ"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>ରୁ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>ଟି ପ୍ରସ୍ତୁତ ଅଛି"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ବ୍ୟାକଅପ ନିଆଯାଇଥିବା ଫଟୋଗୁଡ଼ିକୁ ବର୍ତ୍ତମାନ ଅନ୍ତର୍ଭୁକ୍ତ କରାଯାଇଛି"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ଆପଣ <xliff:g id="APP_NAME">%1$s</xliff:g> ଆକାଉଣ୍ଟ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>ରୁ ଫଟୋଗୁଡ଼ିକୁ ଚୟନ କରିପାରିବେ"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> ଆକାଉଣ୍ଟକୁ ଅପଡେଟ କରାଯାଇଛି"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g>ରୁ ଫଟୋଗୁଡ଼ିକୁ ବର୍ତ୍ତମାନ ଏଠାରେ ଅନ୍ତର୍ଭୁକ୍ତ କରାଯାଇଛି"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"କ୍ଲାଉଡ ମିଡିଆ ଆପ ବାଛନ୍ତୁ"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"ବ୍ୟାକଅପ ନିଆଯାଇଥିବା ଫଟୋଗୁଡ଼ିକୁ ଏଠାରେ ଅନ୍ତର୍ଭୁକ୍ତ କରିବା ପାଇଁ ସେଟିଂସରେ ଏକ କ୍ଲାଉଡ ମିଡିଆ ଆପ ବାଛନ୍ତୁ"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"<xliff:g id="APP_NAME">%1$s</xliff:g> ଆକାଉଣ୍ଟ ବାଛନ୍ତୁ"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"<xliff:g id="APP_NAME">%1$s</xliff:g>ରୁ ଫଟୋଗୁଡ଼ିକୁ ଏଠାରେ ଅନ୍ତର୍ଭୁକ୍ତ କରିବା ପାଇଁ ଆପରେ ଏକ ଆକାଉଣ୍ଟ ବାଛନ୍ତୁ"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"ଖାରଜ କରନ୍ତୁ"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ଆପ ବାଛନ୍ତୁ"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ଆକାଉଣ୍ଟ ବାଛନ୍ତୁ"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ଆକାଉଣ୍ଟ ବଦଳାନ୍ତୁ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ଏହି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}other{<xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ଅଡିଓ ଫାଇଲ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…}other{<xliff:g id="COUNT">^1</xliff:g>ଟି ଅଡିଓ ଫାଇଲ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ଏହି ଭିଡିଓକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}other{<xliff:g id="COUNT">^2</xliff:g>ଟି ଭିଡିଓକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}}"</string>
@@ -118,6 +145,9 @@
     <string name="transcode_processing_success" msgid="447288876429730122">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ସଫଳ ହୋଇଛି"</string>
     <string name="transcode_processing_started" msgid="7789086308155361523">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ ଆରମ୍ଭ କରାଯାଇଛି"</string>
     <string name="transcode_processing" msgid="6753136468864077258">"ମିଡିଆ ପ୍ରକ୍ରିୟାକରଣ କରାଯାଉଛି…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"ବାତିଲ୍ କରନ୍ତୁ"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"ବାତିଲ କରନ୍ତୁ"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"ଅପେକ୍ଷା କରନ୍ତୁ"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"ସୁରକ୍ଷିତ ସୁରକ୍ଷା"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"ନେଟିଭ ଟ୍ରାନ୍ସକୋଡ ଆଲର୍ଟ"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"ନେଟିଭ ଟ୍ରାନ୍ସକୋଡ ପ୍ରୋଗ୍ରେସ"</string>
 </resources>

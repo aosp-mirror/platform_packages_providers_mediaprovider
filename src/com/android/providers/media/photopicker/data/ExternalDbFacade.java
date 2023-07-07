@@ -23,9 +23,11 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_SIZE;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.INT_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.addMimeTypesToQueryBuilderAndSelectionArgs;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
@@ -88,7 +90,10 @@ public class ExternalDbFacade {
         FileColumns._SPECIAL_FORMAT + " AS " +
                 CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
         MediaColumns.DURATION + " AS " + CloudMediaProviderContract.MediaColumns.DURATION_MILLIS,
-        MediaColumns.IS_FAVORITE + " AS " + CloudMediaProviderContract.MediaColumns.IS_FAVORITE
+        MediaColumns.IS_FAVORITE + " AS " + CloudMediaProviderContract.MediaColumns.IS_FAVORITE,
+        MediaColumns.WIDTH + " AS " + CloudMediaProviderContract.MediaColumns.WIDTH,
+        MediaColumns.HEIGHT + " AS " + CloudMediaProviderContract.MediaColumns.HEIGHT,
+        MediaColumns.ORIENTATION + " AS " + CloudMediaProviderContract.MediaColumns.ORIENTATION,
     };
     private static final String[] PROJECTION_MEDIA_INFO = new String[] {
         "MAX(" + MediaColumns.GENERATION_MODIFIED + ") AS "
@@ -113,13 +118,21 @@ public class ExternalDbFacade {
             MediaColumns.GENERATION_MODIFIED + " > ?";
     private static final String WHERE_RELATIVE_PATH = MediaStore.MediaColumns.RELATIVE_PATH
             + " LIKE ?";
-    private static final String WHERE_MIME_TYPE = MediaStore.MediaColumns.MIME_TYPE
-            + " LIKE ?";
-    private static final String WHERE_VOLUME_IN_PREFIX = MediaStore.MediaColumns.VOLUME_NAME
-            + " IN %s";
 
-    public static final String RELATIVE_PATH_SCREENSHOTS =
-            "%/" + Environment.DIRECTORY_SCREENSHOTS + "/%";
+    /* Include any directory named exactly {@link Environment.DIRECTORY_SCREENSHOTS}
+     * and its child directories. */
+    private static final String WHERE_RELATIVE_PATH_IS_SCREENSHOT_DIR =
+            MediaStore.MediaColumns.RELATIVE_PATH
+                    + " LIKE '%/"
+                    + Environment.DIRECTORY_SCREENSHOTS
+                    + "/%' OR "
+                    + MediaStore.MediaColumns.RELATIVE_PATH
+                    + " LIKE '"
+                    + Environment.DIRECTORY_SCREENSHOTS
+                    + "/%'";
+
+    private static final String WHERE_VOLUME_IN_PREFIX =
+            MediaStore.MediaColumns.VOLUME_NAME + " IN %s";
 
     public static final String RELATIVE_PATH_CAMERA = Environment.DIRECTORY_DCIM + "/Camera/%";
 
@@ -264,7 +277,7 @@ public class ExternalDbFacade {
                     /* having */ null, /* orderBy */ null);
          });
 
-        cursor.setExtras(getCursorExtras(generation, /* albumId */ null));
+        cursor.setExtras(getCursorExtras(generation, /* albumId */ null, /*pageSize*/ -1));
         return cursor;
     }
 
@@ -272,7 +285,7 @@ public class ExternalDbFacade {
      * Returns all items from the files table where {@link MediaColumns#GENERATION_MODIFIED}
      * is greater than {@code generation}.
      */
-    public Cursor queryMedia(long generation, String albumId, String[] mimeTypes) {
+    public Cursor queryMedia(long generation, String albumId, String[] mimeTypes, int pageSize) {
         final List<String> selectionArgs = new ArrayList<>();
         final String orderBy = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS + " DESC";
 
@@ -288,11 +301,11 @@ public class ExternalDbFacade {
                         /* having */ null, orderBy);
             });
 
-        cursor.setExtras(getCursorExtras(generation, albumId));
+        cursor.setExtras(getCursorExtras(generation, albumId, pageSize));
         return cursor;
     }
 
-    private Bundle getCursorExtras(long generation, String albumId) {
+    private Bundle getCursorExtras(long generation, String albumId, int pageSize) {
         final Bundle bundle = new Bundle();
         final ArrayList<String> honoredArgs = new ArrayList<>();
 
@@ -301,6 +314,10 @@ public class ExternalDbFacade {
         }
         if (!TextUtils.isEmpty(albumId)) {
             honoredArgs.add(EXTRA_ALBUM_ID);
+        }
+
+        if (pageSize > INT_DEFAULT) {
+            honoredArgs.add(EXTRA_PAGE_SIZE);
         }
 
         bundle.putString(EXTRA_MEDIA_COLLECTION_ID, getMediaCollectionId());
@@ -434,8 +451,7 @@ public class ExternalDbFacade {
                 selectionArgs.add(RELATIVE_PATH_CAMERA);
                 break;
             case ALBUM_ID_SCREENSHOTS:
-                qb.appendWhereStandalone(WHERE_RELATIVE_PATH);
-                selectionArgs.add(RELATIVE_PATH_SCREENSHOTS);
+                qb.appendWhereStandalone(WHERE_RELATIVE_PATH_IS_SCREENSHOT_DIR);
                 break;
             case ALBUM_ID_DOWNLOADS:
                 qb.appendWhereStandalone(WHERE_IS_DOWNLOAD);

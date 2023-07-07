@@ -54,12 +54,14 @@ import android.os.UserHandle;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.util.ArrayMap;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -91,6 +93,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.ObjIntConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -417,8 +420,8 @@ public class FileUtils {
             // When file size exceeds MAX_READ_STRING_SIZE, file is either
             // corrupted or doesn't the contain expected data. Hence we return
             // Optional.empty() which will be interpreted as empty file.
-            Logging.logPersistent(String.format("Ignored reading %s, file size exceeds %d", file,
-                    MAX_READ_STRING_SIZE));
+            Logging.logPersistent(String.format(Locale.ROOT,
+                    "Ignored reading %s, file size exceeds %d", file, MAX_READ_STRING_SIZE));
         } catch (NoSuchFileException ignored) {
         }
         return Optional.empty();
@@ -1111,15 +1114,24 @@ public class FileUtils {
 
     public static @Nullable String extractRelativePath(@Nullable String data) {
         if (data == null) return null;
-        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(data);
+
+        final String path;
+        try {
+            path = getCanonicalPath(data);
+        } catch (IOException e) {
+            Log.d(TAG, "Unable to get canonical path from invalid data path: " + data, e);
+            return null;
+        }
+
+        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(path);
         if (matcher.find()) {
-            final int lastSlash = data.lastIndexOf('/');
+            final int lastSlash = path.lastIndexOf('/');
             if (lastSlash == -1 || lastSlash < matcher.end()) {
                 // This is a file in the top-level directory, so relative path is "/"
                 // which is different than null, which means unknown path
                 return "/";
             } else {
-                return data.substring(matcher.end(), lastSlash + 1);
+                return path.substring(matcher.end(), lastSlash + 1);
             }
         } else {
             return null;
@@ -1400,9 +1412,53 @@ public class FileUtils {
             resolvedDisplayName = displayName;
         }
 
-        final File filePath = buildPath(volumePath,
-                values.getAsString(MediaColumns.RELATIVE_PATH), resolvedDisplayName);
-        values.put(MediaColumns.DATA, filePath.getAbsolutePath());
+        String relativePath = values.getAsString(MediaColumns.RELATIVE_PATH);
+        if (relativePath == null) {
+          relativePath = "";
+        }
+        try {
+            final File filePath = buildPath(volumePath, relativePath, resolvedDisplayName);
+            values.put(MediaColumns.DATA, filePath.getCanonicalPath());
+        } catch (IOException e) {
+            throw new IllegalArgumentException(
+                    String.format("Failure in conversion to canonical file path. Failure path: %s.",
+                            relativePath.concat(resolvedDisplayName)), e);
+        }
+    }
+
+    @VisibleForTesting
+    static ArrayMap<String, String> sAudioTypes = new ArrayMap<>();
+
+    static {
+        sAudioTypes.put(Environment.DIRECTORY_RINGTONES, AudioColumns.IS_RINGTONE);
+        sAudioTypes.put(Environment.DIRECTORY_NOTIFICATIONS, AudioColumns.IS_NOTIFICATION);
+        sAudioTypes.put(Environment.DIRECTORY_ALARMS, AudioColumns.IS_ALARM);
+        sAudioTypes.put(Environment.DIRECTORY_PODCASTS, AudioColumns.IS_PODCAST);
+        sAudioTypes.put(Environment.DIRECTORY_AUDIOBOOKS, AudioColumns.IS_AUDIOBOOK);
+        sAudioTypes.put(Environment.DIRECTORY_MUSIC, AudioColumns.IS_MUSIC);
+        if (SdkLevel.isAtLeastS()) {
+            sAudioTypes.put(Environment.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
+        } else {
+            sAudioTypes.put(FileUtils.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
+        }
+    }
+
+    /**
+     * Compute values for columns in {@code sAudioTypes} based on the given {@code filePath}.
+     */
+    public static void computeAudioTypeValuesFromData(@NonNull String filePath,
+            @NonNull ObjIntConsumer<String> consumer) {
+        final String lowPath = filePath.toLowerCase(Locale.ROOT);
+        boolean anyMatch = false;
+        for (int i = 0; i < sAudioTypes.size(); i++) {
+            final boolean match = lowPath
+                    .contains('/' + sAudioTypes.keyAt(i).toLowerCase(Locale.ROOT) + '/');
+            consumer.accept(sAudioTypes.valueAt(i), match ? 1 : 0);
+            anyMatch |= match;
+        }
+        if (!anyMatch) {
+            consumer.accept(AudioColumns.IS_MUSIC, 1);
+        }
     }
 
     public static void sanitizeValues(@NonNull ContentValues values,
@@ -1676,7 +1732,7 @@ public class FileUtils {
             // Returns true If .nomedia file is empty or content doesn't match |dir|
             // Returns false otherwise
             return !expectedPath.isPresent()
-                    || !expectedPath.get().equals(dir.getPath());
+                    || !expectedPath.get().equalsIgnoreCase(dir.getPath());
         } catch (IOException e) {
             Log.w(TAG, "Failed to read directory dirty" + dir);
             return true;
@@ -1758,5 +1814,43 @@ public class FileUtils {
 
     public static File fromFuseFile(File file) {
         return new File(file.getPath().replaceFirst(FUSE_FS_PREFIX, LOWER_FS_PREFIX));
+    }
+
+    /**
+     * Returns the canonical {@link File} for the provided abstract pathname.
+     *
+     * @return The canonical pathname string denoting the same file or directory as this abstract
+     *         pathname
+     * @see File#getCanonicalFile()
+     */
+    @NonNull
+    public static File getCanonicalFile(@NonNull String path) throws IOException {
+        Objects.requireNonNull(path);
+        return new File(path).getCanonicalFile();
+    }
+
+    /**
+     * Returns the canonical pathname string of the provided abstract pathname.
+     *
+     * @return The canonical pathname string denoting the same file or directory as this abstract
+     *         pathname.
+     * @see File#getCanonicalPath()
+     */
+    @NonNull
+    public static String getCanonicalPath(@NonNull String path) throws IOException {
+        Objects.requireNonNull(path);
+        return new File(path).getCanonicalPath();
+    }
+
+    /**
+     * A wrapper for {@link File#getCanonicalFile()} that catches {@link IOException}-s and
+     * re-throws them as {@link RuntimeException}-s.
+     *
+     * @see File#getCanonicalFile()
+     */
+    @NonNull
+    public static File canonicalize(@NonNull File file) throws IOException {
+        Objects.requireNonNull(file);
+        return file.getCanonicalFile();
     }
 }

@@ -19,6 +19,7 @@ package com.android.providers.media.photopicker.data;
 import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 
 import androidx.annotation.NonNull;
 
@@ -40,7 +41,7 @@ public class PickerResult {
      * @return {@code Intent} which contains Uri that has been granted access on.
      */
     @NonNull
-    public static Intent getPickerResponseIntent(boolean canSelectMultiple,
+    public static Intent getPickerResponseIntent(String action, boolean canSelectMultiple,
             @NonNull List<Item> selectedItems) {
         // 1. Get Picker Uris corresponding to the selected items
         List<Uri> selectedUris = getPickerUrisForItems(selectedItems);
@@ -65,6 +66,15 @@ public class PickerResult {
         }
         intent.setClipData(clipData);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        if (Intent.ACTION_GET_CONTENT.equalsIgnoreCase(action)
+                && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            // Adding write grants for base sdk version < T. This fixes Samsung messaging app
+            // problem which tries to share URI with its image editor activity and crashes for
+            // ACTION_GET_CONTENT takeover by PhotoPicker because of missing write grants.
+            // No app should expect write grants on PhotoPicker uri apart from this specific
+            // scenario.
+            intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        }
         intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
 
         return intent;
@@ -80,12 +90,12 @@ public class PickerResult {
     /**
      * Returns list of PhotoPicker Uris corresponding to each {@link Item}
      *
-     * @param ItemList list of Item for which we return uri list.
+     * @param items list of Item for which we return uri list.
      */
     @NonNull
-    private static List<Uri> getPickerUrisForItems(@NonNull List<Item> ItemList) {
+    public static List<Uri> getPickerUrisForItems(@NonNull List<Item> items) {
         List<Uri> uris = new ArrayList<>();
-        for (Item item : ItemList) {
+        for (Item item : items) {
             uris.add(getPickerUri(item.getContentUri()));
         }
 

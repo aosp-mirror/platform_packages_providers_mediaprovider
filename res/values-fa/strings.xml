@@ -39,6 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"اجازه دادن"</string>
     <string name="deny" msgid="6040983710442068936">"مجاز نبودن"</string>
     <string name="picker_browse" msgid="5554477454636075934">"مرور کردن…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"برنامه رسانه ابری"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"برنامه رسانه ابری"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"برنامه رسانه ابری"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"وقتی برنامه یا وب‌سایتی از شما می‌خواهد عکس یا ویدیو انتخاب کنید، به رسانه‌های ابری‌تان دسترسی پیدا کنید"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"دسترسی به رسانه ابری از"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"هیچ‌کدام"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"اکنون نمی‌توانید برنامه رسانه ابری را تغییر دهید."</string>
     <string name="add" msgid="2894574044585549298">"افزودن"</string>
     <string name="deselect" msgid="4297825044827769490">"لغو انتخاب"</string>
     <string name="deselected" msgid="8488133193326208475">"لغو انتخاب‌شده"</string>
@@ -47,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{حداکثر <xliff:g id="COUNT_0">^1</xliff:g> مورد را انتخاب کنید}one{حداکثر <xliff:g id="COUNT_1">^1</xliff:g> مورد را انتخاب کنید}other{حداکثر <xliff:g id="COUNT_1">^1</xliff:g> مورد را انتخاب کنید}}"</string>
     <string name="recent" msgid="6694613584743207874">"اخیر"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"عکس یا ویدیویی موجود نیست"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"عکس یا ویدیو پشتیبانی‌شده‌ای وجود ندارد"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"آلبومی موجود نیست"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"مشاهده موارد انتخاب‌شده"</string>
     <string name="picker_photos" msgid="7415035516411087392">"عکس‌ها"</string>
@@ -60,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"برنامه‌های کاری موقتاً متوقف شده‌اند."</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"برای باز کردن عکس‌های کاری، برنامه‌های کاری را روشن کنید و سپس دوباره امتحان کنید"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"این برنامه فقط می‌تواند به عکس‌های انتخابی شما دسترسی پیدا کند"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"عکس‌ها و ویدیوهایی را که اجازه می‌دهید این برنامه به آن‌ها دسترسی داشته باشد انتخاب کنید"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> مورد}one{<xliff:g id="COUNT_1">^1</xliff:g> مورد}other{<xliff:g id="COUNT_1">^1</xliff:g> مورد}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"افزودن (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"اجازه دادن (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"دوربین"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"بارگیری‌ها"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"موارد دلخواه"</string>
@@ -84,6 +94,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"امتحان مجدد"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"رسانه ابری اکنون از <xliff:g id="PKG_NAME">%1$s</xliff:g> دردسترس است"</string>
     <string name="not_selected" msgid="2244008151669896758">"انتخاب نشده است"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> مورد از <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> مورد آماده است"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"عکس‌های پشتیبان‌گیری‌شده اکنون اضافه می‌شود"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"می‌توانید عکس‌های حساب <xliff:g id="APP_NAME">%1$s</xliff:g>‏ (<xliff:g id="USER_ACCOUNT">%2$s</xliff:g>) را انتخاب کنید"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"حساب <xliff:g id="APP_NAME">%1$s</xliff:g> به‌روز شد"</string>

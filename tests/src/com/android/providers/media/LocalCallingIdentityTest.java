@@ -65,7 +65,7 @@ public class LocalCallingIdentityTest {
         assertEquals(context.getPackageName(),
                 ident.getPackageName());
         assertEquals(Arrays.asList(pm.getPackagesForUid(android.os.Process.myUid())),
-                Arrays.asList(ident.getSharedPackageNames()));
+                Arrays.asList(ident.getSharedPackageNamesArray()));
 
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_SELF));
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_SHELL));
@@ -96,7 +96,7 @@ public class LocalCallingIdentityTest {
         assertEquals(MediaProviderTest.PERMISSIONLESS_APP,
                 ident.getPackageName());
         assertEquals(Arrays.asList(MediaProviderTest.PERMISSIONLESS_APP),
-                Arrays.asList(ident.getSharedPackageNames()));
+                Arrays.asList(ident.getSharedPackageNamesArray()));
 
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_SELF));
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_SHELL));

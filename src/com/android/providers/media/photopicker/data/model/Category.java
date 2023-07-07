@@ -48,6 +48,7 @@ import java.util.Locale;
 public class Category {
     public static final String TAG = "PhotoPicker";
     public static final Category DEFAULT = new Category();
+    public static final Category EMPTY_VIEW = new Category("EMPTY_VIEW");
 
     private final String mId;
     private final String mAuthority;
@@ -60,6 +61,9 @@ public class Category {
         this(null, null, null, null, 0, false);
     }
 
+    private Category(String id) {
+        this(id, null, null, null, 0, false);
+    }
     @VisibleForTesting
     public Category(String id, String authority, String displayName, Uri coverUri, int itemCount,
             boolean isLocal) {
@@ -74,7 +78,7 @@ public class Category {
     @Override
     public String toString() {
         return String.format(Locale.ROOT, "Category: {mId: %s, mAuthority: %s, mDisplayName: %s, " +
-                "mCoverUri: %s, mItemCount: %d, mIsLocal: %b",
+                        "mCoverUri: %s, mItemCount: %d, mIsLocal: %b",
                 mId, mAuthority, mDisplayName, mCoverUri, mItemCount, mIsLocal);
     }
 

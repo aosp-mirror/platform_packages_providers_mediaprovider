@@ -25,28 +25,32 @@ import static androidx.test.espresso.Espresso.onIdle;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import androidx.test.ext.junit.rules.ActivityScenarioRule;
+import androidx.test.core.app.ActivityScenario;
 
 class OrientationUtils {
-    public static void setLandscapeOrientation(ActivityScenarioRule<PhotoPickerTestActivity> rule) {
-        changeOrientation(rule, SCREEN_ORIENTATION_LANDSCAPE, ORIENTATION_LANDSCAPE);
+    public static void setLandscapeOrientation(ActivityScenario<PhotoPickerTestActivity> scenario) {
+        changeOrientation(scenario, SCREEN_ORIENTATION_LANDSCAPE, ORIENTATION_LANDSCAPE);
     }
 
-    public static void setPortraitOrientation(ActivityScenarioRule<PhotoPickerTestActivity> rule) {
-        changeOrientation(rule, SCREEN_ORIENTATION_PORTRAIT, ORIENTATION_PORTRAIT);
+    public static void setPortraitOrientation(ActivityScenario<PhotoPickerTestActivity> scenario) {
+        changeOrientation(scenario, SCREEN_ORIENTATION_PORTRAIT, ORIENTATION_PORTRAIT);
     }
 
-    private static void changeOrientation(ActivityScenarioRule<PhotoPickerTestActivity> rule,
-            int screenOrientation, int configOrientation) {
-        rule.getScenario().onActivity(activity -> {
-            activity.setRequestedOrientation(screenOrientation);
-        });
+    private static void changeOrientation(
+            ActivityScenario<PhotoPickerTestActivity> scenario,
+            int screenOrientation,
+            int configOrientation) {
+        scenario.onActivity(
+                activity -> {
+                    activity.setRequestedOrientation(screenOrientation);
+                });
 
         onIdle();
 
-        rule.getScenario().onActivity(activity -> {
-            assertThat(activity.getResources().getConfiguration().orientation)
-                    .isEqualTo(configOrientation);
-        });
+        scenario.onActivity(
+                activity -> {
+                    assertThat(activity.getResources().getConfiguration().orientation)
+                            .isEqualTo(configOrientation);
+                });
     }
 }

@@ -51,7 +51,8 @@ import androidx.collection.ArraySet;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
+import com.android.providers.media.util.UserCache;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -59,6 +60,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
@@ -68,6 +71,7 @@ public class DatabaseHelperTest {
 
     private static Context sIsolatedContext;
     private static ContentResolver sIsolatedResolver;
+    private static ProjectionHelper sProjectionHelper;
 
     @Before
     public void setUp() {
@@ -76,6 +80,7 @@ public class DatabaseHelperTest {
         final Context context = InstrumentationRegistry.getTargetContext();
         sIsolatedContext = new IsolatedContext(context, TAG, /*asFuseThread*/ false);
         sIsolatedResolver = sIsolatedContext.getContentResolver();
+        sProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
     }
 
     @Test
@@ -282,6 +287,83 @@ public class DatabaseHelperTest {
                 assertEquals(0, c.getCount());
             }
         }
+    }
+
+    @Test
+    public void testUtoTDowngradeWithStableUrisEnabledRecoversData() throws Exception {
+        assertDowngradeWithStableUrisEnabledRecoversData(DatabaseHelperU.class,
+                DatabaseHelperT.class);
+    }
+
+    private void assertDowngradeWithStableUrisEnabledRecoversData(
+            Class<? extends DatabaseHelper> before,
+            Class<? extends DatabaseHelper> after) throws Exception {
+        Map<String, BackupIdRow> backedUpData = new HashMap<>();
+        backedUpData.put("/product/media/audio/alarms/a.ogg", BackupIdRow.newBuilder(1).setIsDirty(
+                false).build());
+        backedUpData.put("/product/media/audio/alarms/b.ogg",
+                BackupIdRow.newBuilder(2).setIsDirty(false).build());
+        backedUpData.put("/product/media/audio/alarms/c.ogg", BackupIdRow.newBuilder(3).setIsDirty(
+                false).build());
+        backedUpData.put("/product/media/audio/alarms/d.ogg", BackupIdRow.newBuilder(4).setIsDirty(
+                false).build());
+        backedUpData.put("/product/media/audio/alarms/e.ogg", BackupIdRow.newBuilder(5).setIsDirty(
+                true).build());
+        sIsolatedContext = new IsolatedContext(
+                InstrumentationRegistry.getTargetContext(), TAG, /*asFuseThread*/ false);
+        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        Map<String, Long> pathToIdMap = new HashMap<>();
+        DatabaseBackupAndRecovery testDatabaseBackupAndRecovery = new TestDatabaseBackupAndRecovery(
+                new TestConfigStore(),
+                new VolumeCache(sIsolatedContext, new UserCache(sIsolatedContext)), backedUpData);
+        try (DatabaseHelper helper = before.getConstructor(Context.class, String.class,
+                        DatabaseBackupAndRecovery.class)
+                .newInstance(sIsolatedContext, "internal.db", testDatabaseBackupAndRecovery)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            assertThat(sIsolatedContext.getDatabasePath("internal.db").exists()).isTrue();
+
+            // Insert 5 files
+            pathToIdMap.put("/product/media/audio/alarms/a.ogg",
+                    insertInInternal(db, "/product/media/audio/alarms/a.ogg", "a.ogg"));
+            pathToIdMap.put("/product/media/audio/alarms/b.ogg",
+                    insertInInternal(db, "/product/media/audio/alarms/b.ogg", "b.ogg"));
+            pathToIdMap.put("/product/media/audio/alarms/c.ogg",
+                    insertInInternal(db, "/product/media/audio/alarms/c.ogg", "c.ogg"));
+            pathToIdMap.put("/product/media/audio/alarms/d.ogg",
+                    insertInInternal(db, "/product/media/audio/alarms/d.ogg", "d.ogg"));
+            pathToIdMap.put("/product/media/audio/alarms/e.ogg",
+                    insertInInternal(db, "/product/media/audio/alarms/e.ogg", "e.ogg"));
+
+            try (Cursor c = db.query("files", null, null, null, null, null, null, null)) {
+                assertEquals(5, c.getCount());
+            }
+        }
+
+        // Downgrade will wipe data, and recover non-dirty rows from backup
+        try (DatabaseHelper helper = after.getConstructor(Context.class, String.class,
+                        DatabaseBackupAndRecovery.class)
+                .newInstance(sIsolatedContext, "internal.db", testDatabaseBackupAndRecovery)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            assertThat(sIsolatedContext.getDatabasePath("internal.db").exists()).isTrue();
+            try (Cursor c = db.query("files", new String[]{FileColumns._ID, FileColumns.DATA}, null,
+                    null, null, null, null, null)) {
+                assertEquals(4, c.getCount());
+                while (c.moveToNext()) {
+                    assertThat(c.getLong(0)).isEqualTo(pathToIdMap.get(c.getString(1)));
+                }
+            }
+        }
+    }
+
+    private long insertInInternal(SQLiteDatabase db, String path, String displayName) {
+        final ContentValues values = new ContentValues();
+        values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
+        values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
+        values.put(FileColumns.DISPLAY_NAME, displayName);
+        values.put(FileColumns.VOLUME_NAME, "internal");
+        long id = db.insert("files", FileColumns.DATA, values);
+        assertFalse(id == -1);
+        return id;
     }
 
     @Test
@@ -599,7 +681,7 @@ public class DatabaseHelperTest {
     private static Set<String> queryValues(@NonNull DatabaseHelper helper, @NonNull String table,
             @NonNull String columnName) {
         try (Cursor c = helper.getWritableDatabaseForTest().query(table,
-                new String[] { columnName }, null, null, null, null, null)) {
+                new String[]{columnName}, null, null, null, null, null)) {
             final ArraySet<String> res = new ArraySet<>();
             while (c.moveToNext()) {
                 res.add(c.getString(0));
@@ -610,8 +692,10 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperO extends DatabaseHelper {
         public DatabaseHelperO(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_O, false, false, Column.class,
-                    ExportedSince.class, null, null, null, null, false);
+            super(context, name, DatabaseHelper.VERSION_O, false, false, sProjectionHelper, null,
+                    null, null, null, false,
+                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
+                            new VolumeCache(context, new UserCache(context))));
         }
 
         @Override
@@ -622,8 +706,10 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperP extends DatabaseHelper {
         public DatabaseHelperP(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_P, false, false, Column.class,
-                    ExportedSince.class, null, null, null, null, false);
+            super(context, name, DatabaseHelper.VERSION_P, false, false, sProjectionHelper, null,
+                    null, null, null, false,
+                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
+                            new VolumeCache(context, new UserCache(context))));
         }
 
         @Override
@@ -634,8 +720,10 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperQ extends DatabaseHelper {
         public DatabaseHelperQ(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_Q, false, false, Column.class,
-                    ExportedSince.class, null, null, null, null, false);
+            super(context, name, DatabaseHelper.VERSION_Q, false, false, sProjectionHelper, null,
+                    null, null, null, false,
+                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
+                            new VolumeCache(context, new UserCache(context))));
         }
 
         @Override
@@ -646,8 +734,10 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperR extends DatabaseHelper {
         public DatabaseHelperR(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_R, false, false, Column.class,
-                    ExportedSince.class, null, null, MediaProvider.MIGRATION_LISTENER, null, false);
+            super(context, name, DatabaseHelper.VERSION_R, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false,
+                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
+                            new VolumeCache(context, new UserCache(context))));
         }
 
         @Override
@@ -658,10 +748,11 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperS extends DatabaseHelper {
         public DatabaseHelperS(Context context, String name) {
-            super(context, name, VERSION_S, false, false, Column.class, ExportedSince.class, null,
-                    null, MediaProvider.MIGRATION_LISTENER, null, false);
+            super(context, name, VERSION_S, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false,
+                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
+                            new VolumeCache(context, new UserCache(context))));
         }
-
 
         @Override
         public void onCreate(SQLiteDatabase db) {
@@ -671,20 +762,46 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperT extends DatabaseHelper {
         public DatabaseHelperT(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_T, false, false, Column.class,
-                    ExportedSince.class, null, null, MediaProvider.MIGRATION_LISTENER, null, false);
+            super(context, name, DatabaseHelper.VERSION_T, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false,
+                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
+                            new VolumeCache(context, new UserCache(context))));
+        }
+
+        public DatabaseHelperT(Context context, String name,
+                DatabaseBackupAndRecovery databaseBackupAndRecovery) {
+            super(context, name, DatabaseHelper.VERSION_T, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false, databaseBackupAndRecovery);
         }
 
         @Override
         public void onCreate(SQLiteDatabase db) {
             createTSchema(db, false);
         }
+
+        @Override
+        protected String getExternalStorageDbXattrPath() {
+            return mContext.getFilesDir().getPath();
+        }
     }
 
     private static class DatabaseHelperU extends DatabaseHelper {
         public DatabaseHelperU(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_U, false, false, Column.class,
-                    ExportedSince.class, null, null, MediaProvider.MIGRATION_LISTENER, null, false);
+            super(context, name, DatabaseHelper.VERSION_U, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false,
+                    new DatabaseBackupAndRecovery(new TestConfigStore(),
+                            new VolumeCache(context, new UserCache(context))));
+        }
+
+        public DatabaseHelperU(Context context, String name,
+                DatabaseBackupAndRecovery databaseBackupAndRecovery) {
+            super(context, name, DatabaseHelper.VERSION_U, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false, databaseBackupAndRecovery);
+        }
+
+        @Override
+        protected String getExternalStorageDbXattrPath() {
+            return mContext.getFilesDir().getPath();
         }
     }
 

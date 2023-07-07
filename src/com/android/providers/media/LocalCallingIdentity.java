@@ -16,14 +16,11 @@
 
 package com.android.providers.media;
 
-import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
-import static android.app.AppOpsManager.MODE_ALLOWED;
-import static android.app.AppOpsManager.permissionToOp;
-import static android.content.pm.PackageManager.PERMISSION_DENIED;
-
+import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkAppOpRequestInstallPackagesForSharedUid;
 import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStorageGranted;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaLocation;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMtp;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionDelegator;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionInstallPackages;
@@ -32,6 +29,7 @@ import static com.android.providers.media.util.PermissionUtils.checkPermissionRe
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVideo;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVisualUserSelected;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionShell;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteAudio;
@@ -61,6 +59,7 @@ import android.util.Log;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.Logging;
@@ -71,6 +70,7 @@ import java.io.PrintWriter;
 import java.util.Locale;
 
 public class LocalCallingIdentity {
+
     public final int pid;
     public final int uid;
     private final UserHandle user;
@@ -110,13 +110,14 @@ public class LocalCallingIdentity {
         String callingPackage = provider.getCallingPackageUnchecked();
         int binderUid = Binder.getCallingUid();
         if (callingPackage == null) {
-            if (binderUid == Process.SYSTEM_UID) {
+            if (binderUid == Process.SYSTEM_UID || binderUid == Process.myUid()) {
                 // If UID is system assume we are running as ourself and not handling IPC
                 // Otherwise, we'd crash when we attempt AppOpsManager#checkPackage
                 // in LocalCallingIdentity#getPackageName
                 return fromSelf(context);
             }
-            callingPackage = context.getOpPackageName();
+            // Package will be resolved during getPackageNameInternal()
+            callingPackage = null;
         }
         String callingAttributionTag = provider.getCallingAttributionTag();
         if (callingAttributionTag == null) {
@@ -207,6 +208,28 @@ public class LocalCallingIdentity {
         return ident;
     }
 
+    /**
+     * Returns mocked {@link LocalCallingIdentity} for testing
+     */
+    @VisibleForTesting
+    public static LocalCallingIdentity forTest(Context context, int uid, int permission) {
+        final String[] sharedPackageNames = context.getPackageManager().getPackagesForUid(uid);
+        if (sharedPackageNames == null || sharedPackageNames.length == 0) {
+            throw new IllegalArgumentException("UID " + uid + " has no associated package");
+        }
+        LocalCallingIdentity ident = new LocalCallingIdentity(context, -1, uid,
+                Process.myUserHandle(), sharedPackageNames[0], null);
+        ident.sharedPackageNames = sharedPackageNames;
+        ident.sharedPackageNamesResolved = true;
+        ident.targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT;
+        ident.targetSdkVersionResolved = true;
+        ident.shouldBypass = false;
+        ident.shouldBypassResolved = true;
+        ident.hasPermission = permission;
+        ident.hasPermissionResolved = ~0;
+        return ident;
+    }
+
     private volatile String packageName;
     private volatile boolean packageNameResolved;
 
@@ -218,7 +241,19 @@ public class LocalCallingIdentity {
         return packageName;
     }
 
+    public boolean isValidProviderOrFuseCallingIdentity() {
+        return packageNameUnchecked != null;
+    }
+
     private String getPackageNameInternal() {
+        // TODO(b/263480773): The packageNameUnchecked can be null when
+        //  ContentProvider#getCallingPackageUnchecked returns null and the binder UID is not system
+        //  or MediaProvider. In such scenarios, previously an exception was thrown in the
+        //  checkPackage() call below. This was fixed for b/261444895 however, we still need to
+        //  investigate if we should explicitly throw an exception in such cases.
+        if (packageNameUnchecked == null) {
+            return context.getPackageManager().getNameForUid(uid);
+        }
         // Verify that package name is actually owned by UID
         context.getSystemService(AppOpsManager.class)
                 .checkPackage(uid, packageNameUnchecked);
@@ -228,15 +263,26 @@ public class LocalCallingIdentity {
     private volatile String[] sharedPackageNames;
     private volatile boolean sharedPackageNamesResolved;
 
-    public String[] getSharedPackageNames() {
+    /**
+     * Returns an array of package names that share the {@code uid}
+     */
+    public String[] getSharedPackageNamesArray() {
         if (!sharedPackageNamesResolved) {
-            sharedPackageNames = getSharedPackageNamesInternal();
+            sharedPackageNames = getSharedPackageNamesListInternal();
             sharedPackageNamesResolved = true;
         }
         return sharedPackageNames;
     }
 
-    private String[] getSharedPackageNamesInternal() {
+    /**
+     * Returns comma separated string of package names that share the {@code uid}
+     */
+    public String getSharedPackagesAsString() {
+        final String[] sharedPackageNames = getSharedPackageNamesArray();
+        return bindList((Object[]) sharedPackageNames);
+    }
+
+    private String[] getSharedPackageNamesListInternal() {
         final String[] packageNames = context.getPackageManager().getPackagesForUid(uid);
         return (packageNames != null) ? packageNames : new String[0];
     }
@@ -298,6 +344,8 @@ public class LocalCallingIdentity {
     public static final int APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID = 1 << 25;
     public static final int PERMISSION_ACCESS_MTP = 1 << 26;
 
+    public static final int PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED = 1 << 27;
+
     private volatile int hasPermission;
     private volatile int hasPermissionResolved;
 
@@ -324,14 +372,14 @@ public class LocalCallingIdentity {
             case PERMISSION_IS_SELF:
                 return checkPermissionSelf(context, pid, uid);
             case PERMISSION_IS_SHELL:
-                return checkPermissionShell(context, pid, uid);
+                return checkPermissionShell(uid);
             case PERMISSION_IS_MANAGER:
                 return checkPermissionManager(context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_IS_DELEGATOR:
                 return checkPermissionDelegator(context, pid, uid);
 
             case PERMISSION_IS_REDACTION_NEEDED:
-                return isRedactionNeededInternal();
+                return isRedactionNeededInternal(targetSdkIsAtLeastT);
             case PERMISSION_IS_LEGACY_GRANTED:
                 return isLegacyStorageGranted();
             case PERMISSION_IS_LEGACY_READ:
@@ -369,10 +417,13 @@ public class LocalCallingIdentity {
                         context, pid, uid, getPackageName(), attributionTag);
             case APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID:
                 return checkAppOpRequestInstallPackagesForSharedUid(
-                        context, uid, getSharedPackageNames(), attributionTag);
+                        context, uid, getSharedPackageNamesArray(), attributionTag);
             case PERMISSION_ACCESS_MTP:
                 return checkPermissionAccessMtp(
                         context, pid, uid, getPackageName(), attributionTag);
+            case PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED:
+                return checkPermissionReadVisualUserSelected(context, pid, uid, getPackageName(),
+                        attributionTag, targetSdkIsAtLeastT);
             default:
                 return false;
         }
@@ -494,19 +545,13 @@ public class LocalCallingIdentity {
     }
 
     /** System internals or callers holding permission have no redaction */
-    private boolean isRedactionNeededInternal() {
+    private boolean isRedactionNeededInternal(boolean isTargetSdkAtLeastT) {
         if (hasPermission(PERMISSION_IS_SELF) || hasPermission(PERMISSION_IS_SHELL)) {
             return false;
         }
 
-        if (context.checkPermission(ACCESS_MEDIA_LOCATION, pid, uid) == PERMISSION_DENIED
-                || context.getSystemService(AppOpsManager.class).noteProxyOpNoThrow(
-                permissionToOp(ACCESS_MEDIA_LOCATION), getPackageName(), uid, attributionTag, null)
-                != MODE_ALLOWED) {
-            return true;
-        }
-
-        return false;
+        return !checkPermissionAccessMediaLocation(context, pid, uid, getPackageName(),
+                attributionTag, isTargetSdkAtLeastT);
     }
 
     @GuardedBy("lock")
@@ -586,6 +631,67 @@ public class LocalCallingIdentity {
     public void setApplicationMediaCapabilitiesFlags(int supportedFlags, int unsupportedFlags) {
         applicationMediaCapabilitiesSupportedFlags = supportedFlags;
         applicationMediaCapabilitiesUnsupportedFlags = unsupportedFlags;
+    }
+
+    /**
+     * Returns {@code true} if this package has Audio read/write permissions.
+     */
+    public boolean checkCallingPermissionAudio(boolean forWrite) {
+        if (forWrite) {
+            return hasPermission(PERMISSION_WRITE_AUDIO);
+        } else {
+            // write permission should be enough for reading as well
+            return hasPermission(PERMISSION_READ_AUDIO)
+                    || hasPermission(PERMISSION_WRITE_AUDIO);
+        }
+    }
+
+    /**
+     * Returns {@code true} if this package has Video read/write permissions.
+     */
+    public boolean checkCallingPermissionVideo(boolean forWrite) {
+        if (forWrite) {
+            return hasPermission(PERMISSION_WRITE_VIDEO);
+        } else {
+            // write permission should be enough for reading as well
+            return hasPermission(PERMISSION_READ_VIDEO) || hasPermission(PERMISSION_WRITE_VIDEO);
+        }
+    }
+
+    /**
+     * Returns {@code true} if this package has Image read/write permissions.
+     */
+    public boolean checkCallingPermissionImages(boolean forWrite) {
+        if (forWrite) {
+            return hasPermission(PERMISSION_WRITE_IMAGES);
+        } else {
+            // write permission should be enough for reading as well
+            return hasPermission(PERMISSION_READ_IMAGES) || hasPermission(PERMISSION_WRITE_IMAGES);
+        }
+    }
+
+    /**
+     * Returns {@code true} if this package is a legacy app and has read permission
+     */
+    public boolean isCallingPackageLegacyRead() {
+        return hasPermission(PERMISSION_IS_LEGACY_READ);
+    }
+
+    /**
+     * Returns {@code true} if this package is a legacy app and has write permission
+     */
+    public boolean isCallingPackageLegacyWrite() {
+        return hasPermission(PERMISSION_IS_LEGACY_WRITE);
+    }
+
+    /**
+     * Return {@code true} if this package has user selected access on images/videos.
+     */
+    public boolean checkCallingPermissionUserSelected() {
+        // For user select mode READ_MEDIA_VISUAL_USER_SELECTED == true &&
+        // READ_MEDIA_IMAGES == false && READ_MEDIA_VIDEO == false
+        return hasPermission(PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED)
+                && !hasPermission(PERMISSION_READ_IMAGES) && !hasPermission(PERMISSION_READ_VIDEO);
     }
 
     protected void dump(PrintWriter writer) {

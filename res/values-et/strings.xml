@@ -39,6 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"Luba"</string>
     <string name="deny" msgid="6040983710442068936">"Keela"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Sirvimine …"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Pilvemeediarakendus"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Pilvemeediarakendus"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Pilvemeediarakendus"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Juurdepääs teie pilves olevale meediale, kui rakendus või veebisait palub teil fotosid või videoid valida"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Pilvemeediarakendus:"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Pole"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Pilvepõhist meediarakendust ei saanud muuta."</string>
     <string name="add" msgid="2894574044585549298">"Lisa"</string>
     <string name="deselect" msgid="4297825044827769490">"Tühista valik"</string>
     <string name="deselected" msgid="8488133193326208475">"Valik on tühistatud"</string>
@@ -47,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Valige kuni <xliff:g id="COUNT_0">^1</xliff:g> üksus}other{Valige kuni <xliff:g id="COUNT_1">^1</xliff:g> üksust}}"</string>
     <string name="recent" msgid="6694613584743207874">"Hiljutised"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Fotosid ega videoid pole"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Toetatud fotosid ega videoid pole"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Albumeid pole"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Kuva valitud"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotod"</string>
@@ -60,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Töörakendused on peatatud"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Tööfotode avamiseks lülitage töörakendused sisse ja proovige uuesti"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"See rakendus pääseb juurde vaid teie valitud fotodele"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Valige fotod ja videod, millele lubate sellel rakendusel juurde pääseda"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> üksus}other{<xliff:g id="COUNT_1">^1</xliff:g> üksust}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Lisa (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Luba (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kaamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Allalaadimised"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Lemmikud"</string>
@@ -84,6 +94,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Proovi uuesti"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Pilvemeedia on nüüd rakenduse <xliff:g id="PKG_NAME">%1$s</xliff:g> kaudu saadaval"</string>
     <string name="not_selected" msgid="2244008151669896758">"pole valitud"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>-st on valmis"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Varundatud fotod on nüüd kaasatud"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Saate valida fotosid rakendusest <xliff:g id="APP_NAME">%1$s</xliff:g> konto <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> kaudu"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Rakenduse <xliff:g id="APP_NAME">%1$s</xliff:g> kontot värskendati"</string>

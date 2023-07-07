@@ -15,10 +15,11 @@
  */
 package com.android.providers.media.photopicker.ui;
 
-import static com.android.providers.media.photopicker.ui.PhotosTabAdapter.COLUMN_COUNT;
+import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB;
+import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
+import android.content.Context;
 import android.os.Bundle;
-import android.provider.CloudMediaProviderContract;
 import android.text.TextUtils;
 import android.view.View;
 
@@ -27,11 +28,11 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.android.providers.media.R;
-
-import com.android.providers.media.photopicker.PhotoPickerActivity;
+import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
@@ -40,14 +41,16 @@ import com.android.providers.media.util.StringUtils;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
  * Photos tab fragment for showing the photos
  */
 public class PhotosTabFragment extends TabFragment {
-
     private static final int MINIMUM_SPAN_COUNT = 3;
+    private static final int GRID_COLUMN_COUNT = 3;
     private static final String FRAGMENT_TAG = "PhotosTabFragment";
 
     private Category mCategory = Category.DEFAULT;
@@ -66,45 +69,58 @@ public class PhotosTabFragment extends TabFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        final Context context = getContext();
 
-        final PhotosTabAdapter adapter = new PhotosTabAdapter(mSelection, mImageLoader,
-                this::onItemClick, this::onItemLongClick);
-        setEmptyMessage(R.string.picker_photos_empty_message);
+        // We only add the RECENT header on the PhotosTabFragment with CATEGORY_DEFAULT. In this
+        // case, we call this method {loadItems} with null category. When the category is not
+        // empty, we don't show the RECENT header.
+        final boolean showRecentSection = mCategory.isDefault();
+
+        // We only show the Banners on the PhotosTabFragment with CATEGORY_DEFAULT (Main grid).
+        final boolean shouldShowBanners = mCategory.isDefault();
+        final LiveData<Boolean> doNotShowBanner = new MutableLiveData<>(false);
+        final LiveData<Boolean> showChooseAppBanner = shouldShowBanners
+                ? mPickerViewModel.shouldShowChooseAppBannerLiveData() : doNotShowBanner;
+        final LiveData<Boolean> showCloudMediaAvailableBanner = shouldShowBanners
+                ? mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData() : doNotShowBanner;
+        final LiveData<Boolean> showAccountUpdatedBanner = shouldShowBanners
+                ? mPickerViewModel.shouldShowAccountUpdatedBannerLiveData() : doNotShowBanner;
+        final LiveData<Boolean> showChooseAccountBanner = shouldShowBanners
+                ? mPickerViewModel.shouldShowChooseAccountBannerLiveData() : doNotShowBanner;
+
+        final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
+                mImageLoader, this::onItemClick, this::onItemLongClick, /* lifecycleOwner */ this,
+                mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
+                mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner,
+                showCloudMediaAvailableBanner, showAccountUpdatedBanner, showChooseAccountBanner,
+                mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
+                mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
 
         if (mCategory.isDefault()) {
+            setEmptyMessage(R.string.picker_photos_empty_message);
             // Set the pane title for A11y
             view.setAccessibilityPaneTitle(getString(R.string.picker_photos));
-            mPickerViewModel.getItems().observe(this, itemList -> {
-                adapter.updateItemList(itemList);
-                // Handle emptyView's visibility
-                updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
-            });
+            // Pagination is no-op for now and the existing flow has not been modified with this.
+            mPickerViewModel.getPaginatedItems(
+                            new PaginationParameters())
+                    .observe(this, itemList -> onChangeMediaItems(itemList, adapter));
         } else {
+            setEmptyMessage(R.string.picker_album_media_empty_message);
             // Set the pane title for A11y
-            view.setAccessibilityPaneTitle(mCategory.getDisplayName(getContext()));
-            mPickerViewModel.getCategoryItems(mCategory).observe(this, itemList -> {
-                // If the item count of the albums is zero, albums are not shown on the Albums tab.
-                // The user can't launch the album items page when the album has zero items. So, we
-                // don't need to show emptyView in the case.
-                updateVisibilityForEmptyView(/* shouldShowEmptyView */ false);
-
-                adapter.updateItemList(itemList);
-            });
+            view.setAccessibilityPaneTitle(mCategory.getDisplayName(context));
+            // Pagination is no-op for now and the existing flow has not been modified with this.
+            mPickerViewModel.getPaginatedCategoryItems(mCategory, new PaginationParameters())
+                    .observe(this, itemList -> onChangeMediaItems(itemList, adapter));
         }
 
-        final GridLayoutManager layoutManager = new GridLayoutManager(getContext(), COLUMN_COUNT);
-        final GridLayoutManager.SpanSizeLookup lookup = adapter.createSpanSizeLookup(layoutManager);
-        layoutManager.setSpanSizeLookup(lookup);
-
-        final PhotosTabItemDecoration itemDecoration = new PhotosTabItemDecoration(
-                view.getContext());
+        final PhotosTabItemDecoration itemDecoration = new PhotosTabItemDecoration(context);
 
         final int spacing = getResources().getDimensionPixelSize(R.dimen.picker_photo_item_spacing);
         final int photoSize = getResources().getDimensionPixelSize(R.dimen.picker_photo_size);
         mRecyclerView.setColumnWidth(photoSize + spacing);
         mRecyclerView.setMinimumSpanCount(MINIMUM_SPAN_COUNT);
 
-        mRecyclerView.setLayoutManager(layoutManager);
+        setLayoutManager(adapter, GRID_COLUMN_COUNT);
         mRecyclerView.setAdapter(adapter);
         mRecyclerView.addItemDecoration(itemDecoration);
     }
@@ -123,14 +139,32 @@ public class PhotosTabFragment extends TabFragment {
     public void onResume() {
         super.onResume();
 
+        final String title;
+        final LayoutModeUtils.Mode layoutMode;
+        final boolean shouldHideProfileButton;
         if (mCategory.isDefault()) {
-            ((PhotoPickerActivity) getActivity()).updateCommonLayouts(
-                    LayoutModeUtils.MODE_PHOTOS_TAB, /* title */ "");
-            hideProfileButton(/* hide */ false);
+            title = "";
+            layoutMode = MODE_PHOTOS_TAB;
+            shouldHideProfileButton = false;
         } else {
-            hideProfileButton(/* hide */ true);
-            ((PhotoPickerActivity) getActivity()).updateCommonLayouts(
-                    LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB, mCategory.getDisplayName(getContext()));
+            title = mCategory.getDisplayName(getContext());
+            layoutMode = MODE_ALBUM_PHOTOS_TAB;
+            shouldHideProfileButton = true;
+        }
+
+        getPickerActivity().updateCommonLayouts(layoutMode, title);
+        hideProfileButton(shouldHideProfileButton);
+    }
+
+    private void onChangeMediaItems(@NonNull List<Item> itemList,
+            @NonNull PhotosTabAdapter adapter) {
+        if (itemList.size() == 1 && itemList.get(0).getId().equals("EMPTY_VIEW")) {
+            adapter.setMediaItems(new ArrayList<>());
+            updateVisibilityForEmptyView(false);
+        } else {
+            adapter.setMediaItems(itemList);
+            // Handle emptyView's visibility
+            updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
         }
     }
 
@@ -153,7 +187,8 @@ public class PhotosTabFragment extends TabFragment {
                     Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
                     return;
                 } else {
-                    mSelection.addSelectedItem((Item) view.getTag());
+                    final Item item = (Item) view.getTag();
+                    mSelection.addSelectedItem(item);
                 }
             }
             view.setSelected(!isSelectedBefore);
@@ -162,14 +197,14 @@ public class PhotosTabFragment extends TabFragment {
             // avoid that it says selected twice.
             view.setStateDescription(isSelectedBefore ? getString(R.string.not_selected) : null);
         } else {
-            Item item = (Item) view.getTag();
+            final Item item = (Item) view.getTag();
             mSelection.setSelectedItem(item);
-            ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
+            getPickerActivity().setResultAndFinishSelf();
         }
     }
 
     private boolean onItemLongClick(@NonNull View view) {
-        Item item = (Item) view.getTag();
+        final Item item = (Item) view.getTag();
         if (!mSelection.canSelectMultiple()) {
             // In single select mode, if the item is previewed, we set it as selected item. This is
             // will assist in "Add" button click to return all selected items.

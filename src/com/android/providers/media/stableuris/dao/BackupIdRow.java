@@ -16,6 +16,10 @@
 
 package com.android.providers.media.stableuris.dao;
 
+import android.provider.MediaStore.MediaColumns;
+
+import com.android.providers.media.util.StringUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -35,15 +39,40 @@ public final class BackupIdRow implements Serializable {
 
     private long mId;
     private int mIsFavorite;
+    private int mIsPending;
+    private int mIsTrashed;
     private boolean mIsDirty;
+
+    /**
+     * This is not Owner Package name but a unique identifier to it
+     */
+    private int mOwnerPackageId;
+
+    /**
+     * Same as {@link MediaColumns#DATE_EXPIRES}. Will be null if media row does not have
+     * expiry time set.
+     */
+    private String mDateExpires;
+
+    /**
+     * This is required to support cloned user data.
+     */
+    private int mUserId;
+    private int mMediaType;
 
     /**
      * Builder class for {@link BackupIdRow}
      */
     public static class Builder {
         private long mId;
-        private int mIsFavorite = 0;
+        private int mIsFavorite;
+        private int mIsPending;
+        private int mIsTrashed;
         private boolean mIsDirty;
+        private int mOwnerPackageId;
+        private String mDateExpires;
+        private int mUserId;
+        private int mMediaType;
 
         Builder(long id) {
             this.mId = id;
@@ -54,6 +83,60 @@ public final class BackupIdRow implements Serializable {
          */
         public Builder setIsFavorite(int isFavorite) {
             this.mIsFavorite = isFavorite;
+            return this;
+        }
+
+        /**
+         * Sets the isPending value
+         */
+        public Builder setIsPending(int isPending) {
+            this.mIsPending = isPending;
+            return this;
+        }
+
+        /**
+         * Sets the isTrashed value
+         */
+        public Builder setIsTrashed(int isTrashed) {
+            this.mIsTrashed = isTrashed;
+            return this;
+        }
+
+        /**
+         * Sets the ownerPackagedId value
+         */
+        public Builder setOwnerPackagedId(int ownerPackagedId) {
+            this.mOwnerPackageId = ownerPackagedId;
+            return this;
+        }
+
+        /**
+         * Sets the dateExpires value
+         */
+        public Builder setDateExpires(String dateExpires) {
+            if (StringUtils.isNullOrEmpty(dateExpires)) {
+                this.mDateExpires = null;
+            } else {
+                long value = Long.parseLong(dateExpires);
+                this.mDateExpires = String.valueOf(value);
+            }
+
+            return this;
+        }
+
+        /**
+         * Sets the userId value
+         */
+        public Builder setUserId(int userId) {
+            this.mUserId = userId;
+            return this;
+        }
+
+        /**
+         * Sets the mediatype value
+         */
+        public Builder setMediaType(int mediaType) {
+            this.mMediaType = mediaType;
             return this;
         }
 
@@ -71,7 +154,13 @@ public final class BackupIdRow implements Serializable {
         public BackupIdRow build() {
             BackupIdRow backupIdRow = new BackupIdRow(this.mId);
             backupIdRow.mIsFavorite = this.mIsFavorite;
+            backupIdRow.mIsPending = this.mIsPending;
+            backupIdRow.mIsTrashed = this.mIsTrashed;
             backupIdRow.mIsDirty = this.mIsDirty;
+            backupIdRow.mOwnerPackageId = this.mOwnerPackageId;
+            backupIdRow.mDateExpires = this.mDateExpires;
+            backupIdRow.mUserId = this.mUserId;
+            backupIdRow.mMediaType = this.mMediaType;
 
             return backupIdRow;
         }
@@ -93,34 +182,68 @@ public final class BackupIdRow implements Serializable {
         return mIsFavorite;
     }
 
+    public int getIsPending() {
+        return mIsPending;
+    }
+
+    public int getIsTrashed() {
+        return mIsTrashed;
+    }
+
+    public int getOwnerPackageId() {
+        return mOwnerPackageId;
+    }
+
+    public int getUserId() {
+        return mUserId;
+    }
+
+    public String getDateExpires() {
+        return mDateExpires;
+    }
+
     public boolean getIsDirty() {
         return mIsDirty;
+    }
+
+    public int getMediaType() {
+        return mMediaType;
     }
 
     /**
      * Returns human-readable form of {@link BackupIdRow} for easy debugging.
      */
+    @Override
     public String toString() {
-        return "id = " + getId()
-                + " is_favorite = " + getIsFavorite()
-                + " is_dirty = " + getIsDirty();
+        return "BackupIdRow{" +
+                "mId=" + mId +
+                ", mIsFavorite=" + mIsFavorite +
+                ", mIsPending=" + mIsPending +
+                ", mIsTrashed=" + mIsTrashed +
+                ", mIsDirty=" + mIsDirty +
+                ", mOwnerPackageId=" + mOwnerPackageId +
+                ", mDateExpires=" + mDateExpires +
+                ", mUserId=" + mUserId +
+                ", mMediaType=" + mMediaType +
+                '}';
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        BackupIdRow that = (BackupIdRow) obj;
-
-        return Objects.equals(getId(), that.getId())
-                && Objects.equals(getIsFavorite(), that.getIsFavorite())
-                && Objects.equals(getIsDirty(), that.getIsDirty());
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof BackupIdRow)) return false;
+        BackupIdRow that = (BackupIdRow) o;
+        return mId == that.mId && mIsFavorite == that.mIsFavorite && mIsPending == that.mIsPending
+                && mIsTrashed == that.mIsTrashed && mIsDirty == that.mIsDirty
+                && mOwnerPackageId == that.mOwnerPackageId && mUserId == that.mUserId
+                && mMediaType == that.mMediaType && Objects.equals(mDateExpires,
+                that.mDateExpires);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getIsFavorite(), getIsDirty());
+        return Objects.hash(mId, mIsFavorite, mIsPending, mIsTrashed, mIsDirty, mOwnerPackageId,
+                mDateExpires, mUserId, mMediaType);
     }
 
     /**

@@ -14,10 +14,11 @@ apex {
 apex_defaults {
     name: "com.android.mediaprovider-defaults",
     bootclasspath_fragments: ["com.android.mediaprovider-bootclasspath-fragment"],
-    prebuilts: [
-        "current_sdkinfo",
-        "privapp_allowlist_com.android.providers.media.module.xml"
+    sh_binaries: [
+        // MediaProvider CLI (cli/media_provider_cli_wrapper.sh)
+        "media_provider"
     ],
+    prebuilts: ["current_sdkinfo"],
     key: "com.android.mediaprovider.key",
     certificate: ":com.android.mediaprovider.certificate",
     file_contexts: ":com.android.mediaprovider-file_contexts",

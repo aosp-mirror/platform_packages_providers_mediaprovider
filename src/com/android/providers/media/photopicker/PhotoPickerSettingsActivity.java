@@ -16,19 +16,39 @@
 
 package com.android.providers.media.photopicker;
 
+import static com.android.settingslib.widget.ProfileSelectFragment.PERSONAL_TAB;
+import static com.android.settingslib.widget.ProfileSelectFragment.WORK_TAB;
+
 import android.annotation.NonNull;
+import android.annotation.UserIdInt;
 import android.os.Bundle;
+import android.os.UserManager;
+import android.util.Log;
 import android.view.MenuItem;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.ui.settings.SettingsProfileSelectFragment;
+import com.android.providers.media.photopicker.ui.settings.SettingsViewModel;
 
 /**
  * Photo Picker settings page where user can view/edit current cloud media provider.
  */
 public class PhotoPickerSettingsActivity extends AppCompatActivity {
+    private static final String TAG = "PickerSettings";
+    static final String EXTRA_CURRENT_USER_ID = "user_id";
+    private static final int DEFAULT_EXTRA_USER_ID = -1;
+    private static final int DEFAULT_TAB = PERSONAL_TAB;
+
+    @NonNull
+    private SettingsViewModel mSettingsViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,13 +58,25 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
 
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_photo_picker_settings);
 
+        mSettingsViewModel =
+                new ViewModelProvider(this).get(SettingsViewModel.class);
+        final Bundle extras = getIntent().getExtras();
+        final int callingUserId;
+        if (extras != null) {
+            callingUserId = extras.getInt(EXTRA_CURRENT_USER_ID, DEFAULT_EXTRA_USER_ID);
+        } else {
+            callingUserId = DEFAULT_EXTRA_USER_ID;
+        }
+
+        setContentView(R.layout.activity_photo_picker_settings);
         displayActionBar();
-        switchToFragment();
+        createAndShowFragmentIfNeeded(callingUserId);
     }
 
     private void displayActionBar() {
+        final Toolbar toolbar = findViewById(R.id.picker_settings_toolbar);
+        setSupportActionBar(toolbar);
         final ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setDisplayShowTitleEnabled(false);
@@ -52,19 +84,65 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                // Stop PhotoPickerSettingsActivity when back button is pressed.
-                this.finish();
-                return true;
-            default:
+        if (item.getItemId() == android.R.id.home) {
+            // Stop PhotoPickerSettingsActivity when back button is pressed.
+            finish();
+            return true;
         }
         return false;
     }
 
-    private void switchToFragment() {
-        // TODO(b/195009187): implement this method.
-        return;
+    private void createAndShowFragmentIfNeeded(@UserIdInt int callingUserId) {
+        final FragmentManager fragmentManager = getSupportFragmentManager();
+        if (fragmentManager.findFragmentById(R.id.settings_fragment_container) != null) {
+            // Fragment already exists and is attached to this Activity.
+            // Nothing further needs to be done.
+            Log.d(TAG, "An instance of target fragment is already attached to the "
+                    + "PhotoPickerSettingsActivity. Not creating a new fragment.");
+            return;
+        }
+
+        // Create a new fragment and attach it to this Activity. The new fragment could be of type
+        // SettingsProfileSelectFragment or SettingsCloudMediaSelectFragment.
+        final Fragment targetFragment = getTargetFragment(callingUserId);
+        fragmentManager.beginTransaction()
+                .replace(R.id.settings_fragment_container, targetFragment)
+                .commitAllowingStateLoss();
+        fragmentManager.executePendingTransactions();
     }
 
+    @NonNull
+    private Fragment getTargetFragment(@UserIdInt int callingUserId) {
+        // Target fragment is SettingsProfileSelectFragment if there exists more than one
+        // UserHandles for profiles associated with the context user, including the user itself.
+        // Else target fragment is SettingsCloudMediaSelectFragment
+        final UserIdManager userIdManager = mSettingsViewModel.getUserIdManager();
+        if (userIdManager.isMultiUserProfiles()) {
+            // In case work profile exists and is turned off, do not show the work tab.
+            userIdManager.updateWorkProfileOffValue();
+            if (!userIdManager.isWorkProfileOff()) {
+                final int selectedProfileTab = getInitialProfileTab(callingUserId);
+                return SettingsProfileSelectFragment.getProfileSelectFragment(selectedProfileTab);
+            }
+        }
+        return getCloudMediaSelectFragment();
+    }
+
+    @NonNull
+    private Fragment getCloudMediaSelectFragment() {
+        final UserIdManager userIdManager = mSettingsViewModel.getUserIdManager();
+        final int userId = userIdManager.getCurrentUserProfileId().getIdentifier();
+        return SettingsProfileSelectFragment.getCloudMediaSelectFragment(userId);
+    }
+
+    /**
+     * @return the tab position that should be open when user initially lands on the Settings page.
+     */
+    private int getInitialProfileTab(@UserIdInt int callingUserId) {
+        final UserManager userManager = getApplicationContext().getSystemService(UserManager.class);
+        if (userManager == null || callingUserId == DEFAULT_EXTRA_USER_ID) {
+            return DEFAULT_TAB;
+        }
+        return userManager.isManagedProfile(callingUserId) ? WORK_TAB : PERSONAL_TAB;
+    }
 }

@@ -555,6 +555,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private void setResultForPickImagesOrGetContentAction() {
         final Intent resultData = getPickerResponseIntent(
+                getIntent().getAction(),
                 mSelection.canSelectMultiple(),
                 mSelection.getSelectedItems());
         setResult(RESULT_OK, resultData);

@@ -27,6 +27,8 @@ import androidx.fragment.app.FragmentTransaction;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 
+import java.util.ArrayList;
+
 /**
  * Albums tab fragment for showing the albums
  */
@@ -56,9 +58,14 @@ public class AlbumsTabFragment extends TabFragment {
                 mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
                 mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
         mPickerViewModel.getCategories().observe(this, categoryList -> {
-            adapter.updateCategoryList(categoryList);
-            // Handle emptyView's visibility
-            updateVisibilityForEmptyView(/* shouldShowEmptyView */ categoryList.size() == 0);
+            if (categoryList.size() == 1 && categoryList.get(0).getId().equals("EMPTY_VIEW")) {
+                adapter.updateCategoryList(new ArrayList<>());
+                updateVisibilityForEmptyView(false);
+            } else {
+                adapter.updateCategoryList(categoryList);
+                // Handle emptyView's visibility
+                updateVisibilityForEmptyView(/* shouldShowEmptyView */ categoryList.size() == 0);
+            }
         });
 
         final AlbumsTabItemDecoration itemDecoration = new AlbumsTabItemDecoration(context);

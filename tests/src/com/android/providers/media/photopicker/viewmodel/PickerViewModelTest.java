@@ -38,8 +38,11 @@ import androidx.annotation.Nullable;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.ConfigStore;
+import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -70,6 +73,7 @@ public class PickerViewModelTest {
 
     private PickerViewModel mPickerViewModel;
     private TestItemsProvider mItemsProvider;
+    private TestConfigStore mConfigStore;
 
     @Before
     public void setUp() {
@@ -77,8 +81,15 @@ public class PickerViewModelTest {
 
         final Context context = InstrumentationRegistry.getTargetContext();
         when(mApplication.getApplicationContext()).thenReturn(context);
+        mConfigStore = new TestConfigStore();
+        mConfigStore.enableCloudMediaFeature();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
-            mPickerViewModel = new PickerViewModel(mApplication);
+            mPickerViewModel = new PickerViewModel(mApplication) {
+                @Override
+                protected ConfigStore getConfigStore() {
+                    return mConfigStore;
+                }
+            };
         });
         mItemsProvider = new TestItemsProvider(context);
         mPickerViewModel.setItemsProvider(mItemsProvider);
@@ -96,7 +107,8 @@ public class PickerViewModelTest {
         // idle
         ForegroundThread.waitForIdle();
 
-        final List<Item> itemList = mPickerViewModel.getItems().getValue();
+        final List<Item> itemList = mPickerViewModel.getPaginatedItems(
+                new PaginationParameters()).getValue();
 
         // No date headers, the size should be 0
         assertThat(itemList.size()).isEqualTo(itemCount);
@@ -178,7 +190,8 @@ public class PickerViewModelTest {
         }
 
         @Override
-        public Cursor getAllItems(Category category, int limit, @Nullable String[] mimeType,
+        public Cursor getAllItems(Category category,
+                PaginationParameters paginationParameters, @Nullable String[] mimeType,
                 @Nullable UserId userId) throws
                 IllegalArgumentException, IllegalStateException {
             final MatrixCursor c = new MatrixCursor(MediaColumns.ALL_PROJECTION);
@@ -332,5 +345,24 @@ public class PickerViewModelTest {
         mPickerViewModel.parseValuesFromIntent(intent);
 
         assertThat(mPickerViewModel.isLocalOnly()).isFalse();
+    }
+
+    @Test
+    public void testShouldShowOnlyLocalFeatures() {
+        mConfigStore.enableCloudMediaFeature();
+
+        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+        mPickerViewModel.parseValuesFromIntent(intent);
+        assertThat(mPickerViewModel.isLocalOnly()).isTrue();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isTrue();
+
+        intent.removeExtra(Intent.EXTRA_LOCAL_ONLY);
+        mPickerViewModel.parseValuesFromIntent(intent);
+        assertThat(mPickerViewModel.isLocalOnly()).isFalse();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isFalse();
+
+        mConfigStore.disableCloudMediaFeature();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isTrue();
     }
 }

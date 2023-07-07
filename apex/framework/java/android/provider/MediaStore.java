@@ -260,6 +260,8 @@ public final class MediaStore {
     /** {@hide} */
     public static final String GET_CLOUD_PROVIDER_RESULT = "get_cloud_provider_result";
     /** {@hide} */
+    public static final String SET_CLOUD_PROVIDER_RESULT = "set_cloud_provider_result";
+    /** {@hide} */
     public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";
     /** {@hide} */
     public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
@@ -290,7 +292,14 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
-    public static final String READ_BACKED_UP_FILE_PATHS = "read_backed_up_file_paths";
+    public static final String READ_BACKUP = "read_backup";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String GET_OWNER_PACKAGE_NAME = "get_owner_package_name";
 
     /**
      * Only used for testing.
@@ -784,7 +793,7 @@ public final class MediaStore {
      *
      * @hide
      */
-    // @SystemApi - this is commented out for tm-mainline-prod only.
+    @SystemApi
     public static final String ACTION_USER_SELECT_IMAGES_FOR_APP =
             "android.provider.action.USER_SELECT_IMAGES_FOR_APP";
 
@@ -1526,6 +1535,12 @@ public final class MediaStore {
         /**
          * Package name that contributed this media. The value may be
          * {@code NULL} if ownership cannot be reliably determined.
+         * <p>
+         * From Android {@link Build.VERSION_CODES#UPSIDE_DOWN_CAKE} onwards,
+         * visibility and query of this field will depend on
+         * <a href="/training/basics/intents/package-visibility">package visibility</a>.
+         * For {@link ContentResolver#query} operation, result set will
+         * be restricted to visible packages only.
          */
         @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
         public static final String OWNER_PACKAGE_NAME = "owner_package_name";
@@ -2671,8 +2686,7 @@ public final class MediaStore {
              * @param name The name of the image
              * @param description The description of the image
              * @return The URL to the newly created image
-             * @deprecated inserting of images should be performed using 
-             *             {@link ContentResolver#insert} and
+             * @deprecated inserting of images should be performed using
              *             {@link MediaColumns#IS_PENDING}, which offers richer
              *             control over lifecycle.
              */
@@ -2699,7 +2713,6 @@ public final class MediaStore {
              * @return The URL to the newly created image, or <code>null</code> if the image failed to be stored
              *              for any reason.
              * @deprecated inserting of images should be performed using
-             *             {@link ContentResolver#insert} and
              *             {@link MediaColumns#IS_PENDING}, which offers richer
              *             control over lifecycle.
              */
@@ -4336,20 +4349,21 @@ public final class MediaStore {
     }
 
     /** {@hide} */
+    public static boolean isKnownVolume(@NonNull String volumeName) {
+        if (VOLUME_INTERNAL.equals(volumeName)) return true;
+        if (VOLUME_EXTERNAL.equals(volumeName)) return true;
+        if (VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) return true;
+        if (VOLUME_DEMO.equals(volumeName)) return true;
+        return false;
+    }
+
+    /** {@hide} */
     public static @NonNull String checkArgumentVolumeName(@NonNull String volumeName) {
         if (TextUtils.isEmpty(volumeName)) {
             throw new IllegalArgumentException();
         }
 
-        if (VOLUME_INTERNAL.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_EXTERNAL.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_DEMO.equals(volumeName)) {
-            return volumeName;
-        }
+        if (isKnownVolume(volumeName)) return volumeName;
 
         // When not one of the well-known values above, it must be a hex UUID
         for (int i = 0; i < volumeName.length(); i++) {
@@ -4716,10 +4730,23 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
-    public static String[] readBackedUpFilePaths(@NonNull ContentResolver resolver,
-            String volumeName) {
-        Bundle bundle = resolver.call(AUTHORITY, READ_BACKED_UP_FILE_PATHS, volumeName, null);
-        return bundle.getStringArray(READ_BACKED_UP_FILE_PATHS);
+    public static String readBackup(@NonNull ContentResolver resolver,
+            String volumeName, String filePath) {
+        Bundle extras = new Bundle();
+        extras.putString(Files.FileColumns.DATA, filePath);
+        Bundle bundle = resolver.call(AUTHORITY, READ_BACKUP, volumeName, extras);
+        return bundle.getString(READ_BACKUP);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String getOwnerPackageName(@NonNull ContentResolver resolver, int ownerId) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_OWNER_PACKAGE_NAME, String.valueOf(ownerId),
+                null);
+        return bundle.getString(GET_OWNER_PACKAGE_NAME);
     }
 
     /**

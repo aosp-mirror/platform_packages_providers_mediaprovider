@@ -18,6 +18,8 @@ package com.android.providers.media.photopicker.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import android.icu.util.VersionInfo;
+
 import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Test;
@@ -36,6 +38,11 @@ public class DateTimeUtilsTest {
             LocalDate.of(2020 /* year */, 7 /* month */, 7 /* dayOfMonth */);
     private static long FAKE_TIME =
             FAKE_DATE.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
+    /**
+     * ICU 72 started to use '\u202f' instead of ' ' before AM/PM.
+     */
+    private static final char AM_PM_SPACE_CHAR = VersionInfo.ICU_VERSION.getMajor() >= 72
+            ? '\u202f' : ' ';
 
     @Test
     public void testGetDateHeaderString_today() throws Exception {
@@ -122,7 +129,7 @@ public class DateTimeUtilsTest {
 
         String result = DateTimeUtils.getDateTimeStringForContentDesc(when);
 
-        assertThat(result).isEqualTo("Jul 7, 2020, 12:00:00 AM");
+        assertThat(result).isEqualTo("Jul 7, 2020, 12:00:00" + AM_PM_SPACE_CHAR + "AM");
     }
 
     @Test
@@ -132,7 +139,7 @@ public class DateTimeUtilsTest {
 
         final String result = DateTimeUtils.getDateTimeStringForContentDesc(when);
 
-        assertThat(result).isEqualTo("Jul 7, 2020, 10:10:10 AM");
+        assertThat(result).isEqualTo("Jul 7, 2020, 10:10:10" + AM_PM_SPACE_CHAR + "AM");
     }
 
     @Test
@@ -142,7 +149,7 @@ public class DateTimeUtilsTest {
 
         final String result = DateTimeUtils.getDateTimeStringForContentDesc(when);
 
-        assertThat(result).isEqualTo("Jul 7, 2020, 1:00:00 AM");
+        assertThat(result).isEqualTo("Jul 7, 2020, 1:00:00" + AM_PM_SPACE_CHAR + "AM");
     }
 
     @Test
@@ -152,7 +159,7 @@ public class DateTimeUtilsTest {
 
         final String result = DateTimeUtils.getDateTimeStringForContentDesc(when);
 
-        assertThat(result).isEqualTo("Jul 7, 2020, 10:00:00 PM");
+        assertThat(result).isEqualTo("Jul 7, 2020, 10:00:00" + AM_PM_SPACE_CHAR + "PM");
     }
 
     @Test

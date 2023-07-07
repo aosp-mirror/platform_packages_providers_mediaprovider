@@ -39,6 +39,13 @@
     <string name="allow" msgid="8885707816848569619">"Leisti"</string>
     <string name="deny" msgid="6040983710442068936">"Atmesti"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Naršyti…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Medijos debesyje programa"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Medijos debesyje programa"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Medijos debesyje programa"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Pasiekite debesies mediją, kai programa ar svetainė paprašys pasirinkti nuotraukas ar vaizdo įrašus"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Pasiekti mediją debesyje iš"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nėra"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Šiuo metu nepavyko pakeisti debesies medijos programos."</string>
     <string name="add" msgid="2894574044585549298">"Pridėti"</string>
     <string name="deselect" msgid="4297825044827769490">"Panaikinti pasirinkimą"</string>
     <string name="deselected" msgid="8488133193326208475">"Pasirinkimas panaikintas"</string>
@@ -47,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Pasirinkite iki <xliff:g id="COUNT_0">^1</xliff:g> elemento}one{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elemento}few{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elementų}many{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elemento}other{Pasirinkite iki <xliff:g id="COUNT_1">^1</xliff:g> elementų}}"</string>
     <string name="recent" msgid="6694613584743207874">"Naujausios"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Nėra jokių nuotraukų ar vaizdo įrašų"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Nėra palaikomų nuotraukų ar vaizdo įrašų"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nėra jokių albumų"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Žiūrėti pasirinktus"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Nuotraukos"</string>
@@ -60,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Darbo programos pristabdytos"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Norėdami atidaryti darbo nuotraukas, įjunkite darbo programas ir bandykite dar kartą"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ši programa gali pasiekti tik jūsų pasirinktas nuotraukas"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Pasirinkite nuotraukas ir vaizdo įrašus, kuriuos leisite pasiekti šiai programai"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> elementas}one{<xliff:g id="COUNT_1">^1</xliff:g> elementas}few{<xliff:g id="COUNT_1">^1</xliff:g> elementai}many{<xliff:g id="COUNT_1">^1</xliff:g> elemento}other{<xliff:g id="COUNT_1">^1</xliff:g> elementų}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Pridėti (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Leisti (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Vaizdo kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Atsisiuntimai"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Mėgstamiausi"</string>
@@ -84,6 +94,19 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Bandyti dar kartą"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Debesyje esanti medija dabar pasiekiama iš „<xliff:g id="PKG_NAME">%1$s</xliff:g>“"</string>
     <string name="not_selected" msgid="2244008151669896758">"nepasirinkta"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"Paruošta: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> iš <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Dabar įtraukiamos atsarginės nuotraukų kopijos"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Galite pasirinkti nuotraukas iš „<xliff:g id="APP_NAME">%1$s</xliff:g>“ paskyros <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"„<xliff:g id="APP_NAME">%1$s</xliff:g>“ paskyra atnaujinta"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Dabar čia įtraukiamos nuotraukos iš <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Debesies medijos programos pasirinkimas"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Jei norite čia įtraukti atsarginių nuotraukų kopijų, pasirinkite debesies medijos programą skiltyje „Nustatymai“"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"„<xliff:g id="APP_NAME">%1$s</xliff:g>“ paskyros pasirinkimas"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Jei norite čia įtraukti nuotraukas iš „<xliff:g id="APP_NAME">%1$s</xliff:g>“, pasirinkite paskyrą programoje"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Atsisakyti"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Pasirinkti programą"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Pasirinkti paskyrą"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Pakeisti paskyrą"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Leisti programai „<xliff:g id="APP_NAME_0">^1</xliff:g>“ keisti šį garso failą?}one{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failą?}few{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failus?}many{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failo?}other{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failų?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Keičiamas garso failas…}one{Keičiamas <xliff:g id="COUNT">^1</xliff:g> garso failas…}few{Keičiami <xliff:g id="COUNT">^1</xliff:g> garso failai…}many{Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failo…}other{Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failų…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Leisti programai „<xliff:g id="APP_NAME_0">^1</xliff:g>“ keisti šį vaizdo įrašą?}one{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašą?}few{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašus?}many{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašo?}other{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašų?}}"</string>

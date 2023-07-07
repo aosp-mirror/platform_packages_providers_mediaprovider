@@ -69,6 +69,7 @@
     <dimen name="picker_privacy_text_margin_top">8dp</dimen>
     <dimen name="picker_privacy_text_margin_bottom">16dp</dimen>
     <dimen name="picker_privacy_text_horizontal_gap">12dp</dimen>
+    <dimen name="picker_user_select_header_text_size">14sp</dimen>
     <dimen name="picker_privacy_text_size">11sp</dimen>
 
     <dimen name="picker_empty_text_margin">20dp</dimen>
@@ -103,4 +104,31 @@
     <dimen name="picker_profile_dialog_title_text_size">14sp</dimen>
     <dimen name="picker_profile_dialog_icon_height">24dp</dimen>
     <dimen name="picker_profile_dialog_icon_width">24dp</dimen>
+
+    <!-- PhotoPicker Settings Activity -->
+    <dimen name="picker_heading_text_size">40sp</dimen>
+    <dimen name="picker_settings_title_margin_top">45dp</dimen>
+    <dimen name="picker_settings_cloud_select_title_margin">20dp</dimen>
+    <dimen name="picker_settings_margin_default">15dp</dimen>
+    <dimen name="picker_settings_list_item_height">80dp</dimen>
+    <dimen name="picker_settings_list_item_padding_end">10dp</dimen>
+    <dimen name="picker_body_text_size">16sp</dimen>
+
+    <!-- PhotoPicker Banners -->
+    <!-- TODO(b/195009152): Final banner dimensions to be updated once received -->
+    <dimen name="picker_banner_margin_top">21dp</dimen>
+    <dimen name="picker_banner_margin_bottom">9dp</dimen>
+    <dimen name="picker_banner_margin_horizontal">40dp</dimen>
+    <dimen name="picker_banner_stroke_width">1dp</dimen>
+    <dimen name="picker_banner_internal_padding_top">16dp</dimen>
+    <dimen name="picker_banner_internal_padding_horizontal">16dp</dimen>
+    <dimen name="picker_banner_icon_padding_end">16dp</dimen>
+    <dimen name="picker_banner_primary_text_size">14sp</dimen>
+    <dimen name="picker_banner_primary_text_letter_spacing">0.02</dimen>
+    <dimen name="picker_banner_secondary_text_size">14sp</dimen>
+    <dimen name="picker_banner_secondary_text_letter_spacing">0.01</dimen>
+    <dimen name="picker_banner_layout_buttons_padding_top">4dp</dimen>
+    <dimen name="picker_banner_layout_buttons_padding_horizontal">6dp</dimen>
+    <dimen name="picker_banner_button_text_size">14sp</dimen>
+    <dimen name="picker_banner_button_text_letter_spacing">0.02</dimen>
 </resources>

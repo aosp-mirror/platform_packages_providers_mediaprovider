@@ -15,16 +15,24 @@
  */
 package com.android.providers.media.photopicker.data;
 
+import static android.content.ContentResolver.QUERY_ARG_LIMIT;
+
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_DATE_TAKEN_BEFORE_MS;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ROW_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.BOOLEAN_DEFAULT;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.INT_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LIMIT_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_ARRAY_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.MediaStore;
+
+import com.android.providers.media.photopicker.PickerDataLayer;
 
 /**
  * Represents the {@link CloudMediaProviderContract} extra filters from a {@link Bundle}.
@@ -38,6 +46,10 @@ public class CloudProviderQueryExtras {
     private final int mLimit;
     private final boolean mIsFavorite;
     private final boolean mIsVideo;
+    private final boolean mIsLocalOnly;
+    private final int mPageSize;
+    private final long mDateTakenBeforeMs;
+    private final int mRowId;
 
     private CloudProviderQueryExtras() {
         mAlbumId = STRING_DEFAULT;
@@ -48,10 +60,15 @@ public class CloudProviderQueryExtras {
         mLimit = LIMIT_DEFAULT;
         mIsFavorite = BOOLEAN_DEFAULT;
         mIsVideo = BOOLEAN_DEFAULT;
+        mIsLocalOnly = BOOLEAN_DEFAULT;
+        mPageSize = INT_DEFAULT;
+        mDateTakenBeforeMs = LONG_DEFAULT;
+        mRowId = INT_DEFAULT;
     }
 
     private CloudProviderQueryExtras(String albumId, String albumAuthority, String[] mimeTypes,
-            long sizeBytes, long generation, int limit, boolean isFavorite, boolean isVideo) {
+            long sizeBytes, long generation, int limit, boolean isFavorite, boolean isVideo,
+            boolean isLocalOnly, int pageSize, long dateTakenBeforeMs, int rowId) {
         mAlbumId = albumId;
         mAlbumAuthority = albumAuthority;
         mMimeTypes = mimeTypes;
@@ -60,10 +77,16 @@ public class CloudProviderQueryExtras {
         mLimit = limit;
         mIsFavorite = isFavorite;
         mIsVideo = isVideo;
+        mIsLocalOnly = isLocalOnly;
+        mPageSize = pageSize;
+        mDateTakenBeforeMs = dateTakenBeforeMs;
+        mRowId = rowId;
     }
 
-    public static CloudProviderQueryExtras fromMediaStoreBundle(Bundle bundle,
-            String localProvider) {
+    /**
+     * Builds {@link CloudProviderQueryExtras} from {@link Bundle} queryExtras from MediaProvider
+     */
+    public static CloudProviderQueryExtras fromMediaStoreBundle(Bundle bundle) {
         if (bundle == null) {
             return new CloudProviderQueryExtras();
         }
@@ -75,13 +98,20 @@ public class CloudProviderQueryExtras {
 
         final long sizeBytes = bundle.getLong(MediaStore.QUERY_ARG_SIZE_BYTES, LONG_DEFAULT);
         final long generation = LONG_DEFAULT;
-        final int limit = bundle.getInt(MediaStore.QUERY_ARG_LIMIT, LIMIT_DEFAULT);
+        final int limit = bundle.getInt(QUERY_ARG_LIMIT, LIMIT_DEFAULT);
 
         final boolean isFavorite = AlbumColumns.ALBUM_ID_FAVORITES.equals(albumId);
         final boolean isVideo = AlbumColumns.ALBUM_ID_VIDEOS.equals(albumId);
 
+        final boolean isLocalOnly = bundle.getBoolean(PickerDataLayer.QUERY_ARG_LOCAL_ONLY,
+                BOOLEAN_DEFAULT);
+        final int pageSize = INT_DEFAULT;
+        final Long dateTakenBeforeMs = bundle.getLong(QUERY_DATE_TAKEN_BEFORE_MS, LONG_DEFAULT);
+        final int rowId = bundle.getInt(QUERY_ROW_ID, INT_DEFAULT);
+
         return new CloudProviderQueryExtras(albumId, albumAuthority, mimeTypes, sizeBytes,
-                generation, limit, isFavorite, isVideo);
+                generation, limit, isFavorite, isVideo, isLocalOnly, pageSize, dateTakenBeforeMs,
+                rowId);
     }
 
     public static CloudProviderQueryExtras fromCloudMediaBundle(Bundle bundle) {
@@ -93,7 +123,7 @@ public class CloudProviderQueryExtras {
                 STRING_DEFAULT);
         final String albumAuthority = STRING_DEFAULT;
         final String[] mimeTypes = bundle.getStringArray(
-                CloudMediaProviderContract.EXTRA_MIME_TYPE);
+                Intent.EXTRA_MIME_TYPES);
         final long sizeBytes = bundle.getLong(CloudMediaProviderContract.EXTRA_SIZE_LIMIT_BYTES,
                 LONG_DEFAULT);
         final long generation = bundle.getLong(CloudMediaProviderContract.EXTRA_SYNC_GENERATION,
@@ -102,9 +132,15 @@ public class CloudProviderQueryExtras {
 
         final boolean isFavorite = BOOLEAN_DEFAULT;
         final boolean isVideo = BOOLEAN_DEFAULT;
+        final boolean isLocalOnly = BOOLEAN_DEFAULT;
+        final Long dateTakenBeforeMs = bundle.getLong(QUERY_DATE_TAKEN_BEFORE_MS, LONG_DEFAULT);
+        final int rowId = bundle.getInt(QUERY_ROW_ID, INT_DEFAULT);
+
+        final int pageSize = bundle.getInt(CloudMediaProviderContract.EXTRA_PAGE_SIZE, INT_DEFAULT);
 
         return new CloudProviderQueryExtras(albumId, albumAuthority, mimeTypes, sizeBytes,
-                generation, limit, isFavorite, isVideo);
+                generation, limit, isFavorite, isVideo, isLocalOnly, pageSize, dateTakenBeforeMs,
+                rowId);
     }
 
     public PickerDbFacade.QueryFilter toQueryFilter() {
@@ -114,13 +150,16 @@ public class CloudProviderQueryExtras {
         qfb.setIsFavorite(mIsFavorite);
         qfb.setIsVideo(mIsVideo);
         qfb.setAlbumId(mAlbumId);
+        qfb.setIsLocalOnly(mIsLocalOnly);
+        qfb.setDateTakenBeforeMs(mDateTakenBeforeMs);
+        qfb.setId(mRowId);
         return qfb.build();
     }
 
     public Bundle toCloudMediaBundle() {
         final Bundle extras = new Bundle();
         extras.putString(CloudMediaProviderContract.EXTRA_ALBUM_ID, mAlbumId);
-        extras.putStringArray(CloudMediaProviderContract.EXTRA_MIME_TYPE, mMimeTypes);
+        extras.putStringArray(Intent.EXTRA_MIME_TYPES, mMimeTypes);
         extras.putLong(CloudMediaProviderContract.EXTRA_SIZE_LIMIT_BYTES, mSizeBytes);
 
         return extras;
@@ -152,5 +191,13 @@ public class CloudProviderQueryExtras {
 
     public boolean isVideo() {
         return mIsVideo;
+    }
+
+    public boolean isLocalOnly() {
+        return mIsLocalOnly;
+    }
+
+    public int getPageSize() {
+        return mPageSize;
     }
 }

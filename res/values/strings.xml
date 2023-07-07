@@ -86,6 +86,27 @@
     <!-- Add browse menu item in Photo Picker to browse items in DocumentsUI. [CHAR LIMIT=30] -->
     <string name="picker_browse">Browse\u2026</string>
 
+    <!-- Settings menu item in Photo Picker menu which allows users to change the cloud media provider app. [CHAR LIMIT=30] -->
+    <string name="picker_settings">Cloud media app</string>
+
+    <!-- PhotoPicker Settings item title in the System Settings menu. [CHAR LIMIT=40] -->
+    <string name="picker_settings_system_settings_menu_title">Cloud media app</string>
+
+    <!-- Settings page title in Photo Picker. [CHAR LIMIT=NONE] -->
+    <string name="picker_settings_title">Cloud media app</string>
+
+    <!-- Settings page description in Photo Picker. [CHAR LIMIT=NONE] -->
+    <string name="picker_settings_description">Access your cloud media when an app or website asks you to select photos or videos</string>
+
+    <!-- Settings page select cloud provider message in Photo Picker. [CHAR LIMIT=NONE] -->
+    <string name="picker_settings_selection_message">Access cloud media from</string>
+
+    <!-- A label for an option in a single-select choice list that lets user select a Cloud media provider application. [CHAR LIMIT=NONE] -->
+    <string name="picker_settings_no_provider">None</string>
+
+    <!-- Error message displayed to the user when the user is not able to change cloud media app preference in Picker Settings. [CHAR LIMIT=50] -->
+    <string name="picker_settings_toast_error">Could not change cloud media app at this time.</string>
+
     <!-- Add button for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="add">Add</string>
 
@@ -112,6 +133,8 @@
 
     <!-- The message for empty message on Photos tab in PhotoPicker when the item count is zero. [CHAR LIMIT=NONE] -->
     <string name="picker_photos_empty_message">No photos or videos</string>
+    <!-- The empty message for an album in PhotoPicker when the item count is zero. [CHAR LIMIT=NONE] -->
+    <string name="picker_album_media_empty_message">No supported photos or videos</string>
     <!-- The message for empty message on Albums tab in PhotoPicker when the item count is zero. [CHAR LIMIT=NONE] -->
     <string name="picker_albums_empty_message">No albums</string>
 
@@ -149,6 +172,8 @@
 
     <!-- PhotoPicker privacy message. [CHAR LIMIT=80] -->
     <string name="picker_privacy_message">This app can only access the photos you select</string>
+    <!-- PhotoPicker header message in permission select mode -->
+    <string name="picker_header_permissions">"Select photos and videos you allow this app to access"</string>
 
     <!-- Text shown on the album item in PhotoPicker. [CHAR LIMIT=30]  -->
     <string name="picker_album_item_count"> {count, plural,
@@ -158,6 +183,10 @@
 
     <!-- Text shown on the add button for multi-select in PhotoPicker. [CHAR LIMIT=30]  -->
     <string name="picker_add_button_multi_select">Add (<xliff:g id="count" example="42">^1</xliff:g>)</string>
+
+    <!-- Text shown on the add button for multi-select in PhotoPicker when granting photo access to apps. [CHAR LIMIT=30]  -->
+    <!-- TODO(b/257208235): Update with finalized UX string. !-->
+    <string name="picker_add_button_multi_select_permissions">Allow (<xliff:g id="count" example="42">^1</xliff:g>)</string>
 
     <!-- Title for the category in the picker that offers items in Camera folder. [CHAR LIMIT=24] -->
     <string name="picker_category_camera">Camera</string>
@@ -217,6 +246,9 @@
 
     <!-- Default not selected text used by accessibility for an element that can be unselected. [CHAR LIMIT=NONE] -->
     <string name="not_selected">not selected</string>
+
+    <!-- A message for the Progress Dialog shown while preloading selected items before "closing" Photo Picker. [CHAR LIMIT=NONE] -->
+    <string name="preloading_progress_message"><xliff:g id="number_preloaded">%1$d</xliff:g> of <xliff:g id="number_total">%2$d</xliff:g> ready</string>
 
     <!-- ========================= PHOTO PICKER CLOUD EDUCATION BANNERS ========================= -->
 

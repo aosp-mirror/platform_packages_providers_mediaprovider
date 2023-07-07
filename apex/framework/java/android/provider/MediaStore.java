@@ -72,6 +72,8 @@ import android.util.Size;
 
 import androidx.annotation.RequiresApi;
 
+import com.android.internal.annotations.VisibleForTesting;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -258,6 +260,8 @@ public final class MediaStore {
     /** {@hide} */
     public static final String GET_CLOUD_PROVIDER_RESULT = "get_cloud_provider_result";
     /** {@hide} */
+    public static final String SET_CLOUD_PROVIDER_RESULT = "set_cloud_provider_result";
+    /** {@hide} */
     public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";
     /** {@hide} */
     public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
@@ -266,13 +270,51 @@ public final class MediaStore {
     /** {@hide} */
     public static final String CREATE_SURFACE_CONTROLLER = "create_surface_controller";
 
+    /** @hide */
+    public static final String GRANT_MEDIA_READ_FOR_PACKAGE_CALL =
+            "grant_media_read_for_package";
+
     /** {@hide} */
     public static final String USES_FUSE_PASSTHROUGH = "uses_fuse_passthrough";
     /** {@hide} */
     public static final String USES_FUSE_PASSTHROUGH_RESULT = "uses_fuse_passthrough_result";
 
-    /** {@hide} */
-    public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String RUN_IDLE_MAINTENANCE_FOR_STABLE_URIS =
+            "idle_maintenance_for_stable_uris";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String READ_BACKUP = "read_backup";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String GET_OWNER_PACKAGE_NAME = "get_owner_package_name";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String GET_BACKUP_FILES = "get_backup_files";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String DELETE_BACKED_UP_FILE_PATHS = "delete_backed_up_file_paths";
+
     /** {@hide} */
     public static final String QUERY_ARG_MIME_TYPE = "android:query-arg-mime_type";
     /** {@hide} */
@@ -712,6 +754,9 @@ public final class MediaStore {
      * {@link MediaStore#getPickImagesMaxLimit}, otherwise
      * {@link Activity#RESULT_CANCELED} is returned.
      * <p>
+     * Callers may use {@link Intent#EXTRA_LOCAL_ONLY} to limit content
+     * selection to local data.
+     * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
      * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
      * expose a limited set of read-only operations. Specifically, picker URIs
@@ -719,10 +764,38 @@ public final class MediaStore {
      * <p>
      * Before this API, apps could use {@link Intent#ACTION_GET_CONTENT}. However,
      * {@link #ACTION_PICK_IMAGES} is now the recommended option for images and videos,
-     * since it ofers a better user experience.
+     * since it offers a better user experience.
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
+
+    /**
+     * Activity Action: This is a system action for when users choose to select media to share with
+     * an app rather than granting allow all visual media.
+     *
+     * <p>
+     * Callers must specify the intent-extra integer
+     * {@link Intent#EXTRA_UID} with the uid of the app that
+     * will receive the MediaProvider grants for the selected files.
+     * <p>
+     * Callers can optionally specify MIME type (such as {@code image/*} or {@code video/*}),
+     * resulting in a range of content selection that the caller is interested in. The optional MIME
+     * type can be requested with {@link Intent#setType(String)}.
+     * <p>
+     * This action does not alter any permission state for the app, and does not check any
+     * permission state for the app in the underlying media provider file access grants.
+     *
+     * <p>If images/videos were successfully picked this will return {@link Activity#RESULT_OK}
+     * otherwise {@link Activity#RESULT_CANCELED} is returned.
+     *
+     * <p><strong>NOTE:</strong> You should probably not use this. This action requires the {@link
+     * Manifest.permission#GRANT_RUNTIME_PERMISSIONS } permission.
+     *
+     * @hide
+     */
+    @SystemApi
+    public static final String ACTION_USER_SELECT_IMAGES_FOR_APP =
+            "android.provider.action.USER_SELECT_IMAGES_FOR_APP";
 
     /**
      * Activity Action: Launch settings controlling images or videos selection with
@@ -1148,7 +1221,7 @@ public final class MediaStore {
      * The displayed prompt will reflect all the media items you're requesting,
      * including those for which you already hold write access. If you want to
      * determine if you already hold write access before requesting access, use
-     * {@code ContentResolver#checkUriPermission(Uri, int, int)} with
+     * {@link Context#checkUriPermission(Uri, int, int, int)} with
      * {@link Intent#FLAG_GRANT_WRITE_URI_PERMISSION}.
      * <p>
      * For security and performance reasons this method does not support
@@ -1189,7 +1262,7 @@ public final class MediaStore {
      * The displayed prompt will reflect all the media items you're requesting,
      * including those for which you already hold write access. If you want to
      * determine if you already hold write access before requesting access, use
-     * {@code ContentResolver#checkUriPermission(Uri, int, int)} with
+     * {@link Context#checkUriPermission(Uri, int, int, int)} with
      * {@link Intent#FLAG_GRANT_WRITE_URI_PERMISSION}.
      *
      * @param resolver Used to connect with {@link MediaStore#AUTHORITY}.
@@ -1230,7 +1303,7 @@ public final class MediaStore {
      * The displayed prompt will reflect all the media items you're requesting,
      * including those for which you already hold write access. If you want to
      * determine if you already hold write access before requesting access, use
-     * {@code ContentResolver#checkUriPermission(Uri, int, int)} with
+     * {@link Context#checkUriPermission(Uri, int, int, int)} with
      * {@link Intent#FLAG_GRANT_WRITE_URI_PERMISSION}.
      *
      * @param resolver Used to connect with {@link MediaStore#AUTHORITY}.
@@ -1271,7 +1344,7 @@ public final class MediaStore {
      * The displayed prompt will reflect all the media items you're requesting,
      * including those for which you already hold write access. If you want to
      * determine if you already hold write access before requesting access, use
-     * {@code ContentResolver#checkUriPermission(Uri, int, int)} with
+     * {@link Context#checkUriPermission(Uri, int, int, int)} with
      * {@link Intent#FLAG_GRANT_WRITE_URI_PERMISSION}.
      *
      * @param resolver Used to connect with {@link MediaStore#AUTHORITY}.
@@ -1434,6 +1507,8 @@ public final class MediaStore {
          * {@link MediaMetadataRetriever#METADATA_KEY_VIDEO_WIDTH},
          * {@link MediaMetadataRetriever#METADATA_KEY_IMAGE_WIDTH} or
          * {@link ExifInterface#TAG_IMAGE_WIDTH} extracted from this media item.
+         * <p>
+         * Type: INTEGER
          */
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String WIDTH = "width";
@@ -1444,6 +1519,8 @@ public final class MediaStore {
          * {@link MediaMetadataRetriever#METADATA_KEY_IMAGE_HEIGHT} or
          * {@link ExifInterface#TAG_IMAGE_LENGTH} extracted from this media
          * item.
+         * <p>
+         * Type: INTEGER
          */
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String HEIGHT = "height";
@@ -1458,6 +1535,12 @@ public final class MediaStore {
         /**
          * Package name that contributed this media. The value may be
          * {@code NULL} if ownership cannot be reliably determined.
+         * <p>
+         * From Android {@link Build.VERSION_CODES#UPSIDE_DOWN_CAKE} onwards,
+         * visibility and query of this field will depend on
+         * <a href="/training/basics/intents/package-visibility">package visibility</a>.
+         * For {@link ContentResolver#query} operation, result set will
+         * be restricted to visible packages only.
          */
         @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
         public static final String OWNER_PACKAGE_NAME = "owner_package_name";
@@ -1580,6 +1663,8 @@ public final class MediaStore {
          * <p>
          * For consistency the indexed value is expressed in degrees, such as 0,
          * 90, 180, or 270.
+         * <p>
+         * Type: INTEGER
          */
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String ORIENTATION = "orientation";
@@ -1878,6 +1963,30 @@ public final class MediaStore {
         @DurationMillisLong
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String DURATION_MILLIS = MediaColumns.DURATION;
+
+        /**
+         * This is identical to {@link MediaColumns#WIDTH}.
+         *
+         * @see MediaColumns#WIDTH
+         */
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String WIDTH = "width";
+
+        /**
+         * This is identical to {@link MediaColumns#HEIGHT}.
+         *
+         * @see MediaColumns#HEIGHT
+         */
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String HEIGHT = "height";
+
+        /**
+         * This is identical to {@link MediaColumns#ORIENTATION}.
+         *
+         * @see MediaColumns#ORIENTATION
+         */
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String ORIENTATION = "orientation";
     }
 
     /**
@@ -4240,20 +4349,21 @@ public final class MediaStore {
     }
 
     /** {@hide} */
+    public static boolean isKnownVolume(@NonNull String volumeName) {
+        if (VOLUME_INTERNAL.equals(volumeName)) return true;
+        if (VOLUME_EXTERNAL.equals(volumeName)) return true;
+        if (VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) return true;
+        if (VOLUME_DEMO.equals(volumeName)) return true;
+        return false;
+    }
+
+    /** {@hide} */
     public static @NonNull String checkArgumentVolumeName(@NonNull String volumeName) {
         if (TextUtils.isEmpty(volumeName)) {
             throw new IllegalArgumentException();
         }
 
-        if (VOLUME_INTERNAL.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_EXTERNAL.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_DEMO.equals(volumeName)) {
-            return volumeName;
-        }
+        if (isKnownVolume(volumeName)) return volumeName;
 
         // When not one of the well-known values above, it must be a hex UUID
         for (int i = 0; i < volumeName.length(); i++) {
@@ -4607,6 +4717,59 @@ public final class MediaStore {
     }
 
     /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static void runIdleMaintenanceForStableUris(@NonNull ContentResolver resolver) {
+        resolver.call(AUTHORITY, RUN_IDLE_MAINTENANCE_FOR_STABLE_URIS, null, null);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String readBackup(@NonNull ContentResolver resolver,
+            String volumeName, String filePath) {
+        Bundle extras = new Bundle();
+        extras.putString(Files.FileColumns.DATA, filePath);
+        Bundle bundle = resolver.call(AUTHORITY, READ_BACKUP, volumeName, extras);
+        return bundle.getString(READ_BACKUP);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String getOwnerPackageName(@NonNull ContentResolver resolver, int ownerId) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_OWNER_PACKAGE_NAME, String.valueOf(ownerId),
+                null);
+        return bundle.getString(GET_OWNER_PACKAGE_NAME);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static void deleteBackedUpFilePaths(@NonNull ContentResolver resolver,
+            String volumeName) {
+        resolver.call(AUTHORITY, DELETE_BACKED_UP_FILE_PATHS, volumeName, null);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String[] getBackupFiles(@NonNull ContentResolver resolver) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_BACKUP_FILES, null, null);
+        return bundle.getStringArray(GET_BACKUP_FILES);
+    }
+
+    /**
      * Block until any pending operations have finished, such as
      * {@link #scanFile} or {@link #scanVolume} requests.
      *
@@ -4722,7 +4885,7 @@ public final class MediaStore {
      * {@link #isCurrentCloudMediaProviderAuthority(ContentResolver, String)}, the request will be
      * unsuccessful.
      *
-     * @return {@code true} if the notification was successful, {@code false} otherwise
+     * @throws SecurityException if the request was unsuccessful.
      */
     public static void notifyCloudMediaChangedEvent(@NonNull ContentResolver resolver,
             @NonNull String authority, @NonNull String currentMediaCollectionId)
@@ -4743,12 +4906,32 @@ public final class MediaStore {
     }
 
     /** {@hide} */
-    public static String getCurrentCloudProvider(@NonNull Context context) {
-        final ContentResolver resolver = context.getContentResolver();
+    public static String getCurrentCloudProvider(@NonNull ContentResolver resolver) {
         try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
             final Bundle out = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
                     /* extras */ null);
             return out.getString(GET_CLOUD_PROVIDER_RESULT);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    /**
+     * Grant {@link com.android.providers.media.MediaGrants} for the given package, for the
+     * list of local (to the device) content uris. These must be valid picker uris.
+     *
+     * @hide
+     */
+    public static void grantMediaReadForPackage(
+            @NonNull Context context, int packageUid, List<Uri> uris) {
+        final ContentResolver resolver = context.getContentResolver();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle extras = new Bundle();
+            extras.putInt(Intent.EXTRA_UID, packageUid);
+            extras.putParcelableArrayList(EXTRA_URI_LIST, new ArrayList<Uri>(uris));
+            client.call(GRANT_MEDIA_READ_FOR_PACKAGE_CALL,
+                    /* arg= */ null,
+                    /* extras= */ extras);
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
         }

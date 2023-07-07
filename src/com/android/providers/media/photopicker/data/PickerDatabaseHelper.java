@@ -16,12 +16,16 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeType;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Trace;
 import android.util.Log;
+
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
@@ -34,11 +38,10 @@ import com.android.providers.media.photopicker.PickerSyncController;
  */
 public class PickerDatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "PickerDatabaseHelper";
-    @VisibleForTesting
-    static final String PICKER_DATABASE_NAME = "picker.db";
 
-    private static final int VERSION_T = 7;
-    private static final int VERSION_LATEST = VERSION_T;
+    public static final String PICKER_DATABASE_NAME = "picker.db";
+    private static final int VERSION_U = 10;
+    public static final int VERSION_LATEST = VERSION_U;
 
     final Context mContext;
     final String mName;
@@ -76,6 +79,20 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
         Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
 
         resetData(db);
+    }
+
+    @Override
+    public void onConfigure(SQLiteDatabase db) {
+        Log.v(TAG, "onConfigure() for " + mName);
+
+        db.setCustomScalarFunction("_GET_EXTENSION", (arg) -> {
+            Trace.beginSection("_GET_EXTENSION");
+            try {
+                return getExtensionFromMimeType(arg);
+            } finally {
+                Trace.endSection();
+            }
+        });
     }
 
     private void resetData(SQLiteDatabase db) {
@@ -117,6 +134,9 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "is_visible INTEGER CHECK(is_visible == 1),"
                 + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
                 + "sync_generation INTEGER NOT NULL CHECK(sync_generation >= 0),"
+                + "width INTEGER,"
+                + "height INTEGER,"
+                + "orientation INTEGER,"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "duration_ms INTEGER CHECK(duration_ms >= 0),"
                 + "mime_type TEXT NOT NULL,"
@@ -147,16 +167,16 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX local_id_index on media(local_id)");
         db.execSQL("CREATE INDEX cloud_id_index on media(cloud_id)");
         db.execSQL("CREATE INDEX is_visible_index on media(is_visible)");
-        db.execSQL("CREATE INDEX date_taken_index on media(date_taken_ms)");
         db.execSQL("CREATE INDEX size_index on media(size_bytes)");
         db.execSQL("CREATE INDEX mime_type_index on media(mime_type)");
         db.execSQL("CREATE INDEX is_favorite_index on media(is_favorite)");
+        db.execSQL("CREATE INDEX date_taken_row_id_index on media(date_taken_ms, _id)");
 
         db.execSQL("CREATE INDEX local_id_album_index on album_media(local_id)");
         db.execSQL("CREATE INDEX cloud_id_album_index on album_media(cloud_id)");
-        db.execSQL("CREATE INDEX date_taken_album_index on album_media(date_taken_ms)");
         db.execSQL("CREATE INDEX size_album_index on album_media(size_bytes)");
         db.execSQL("CREATE INDEX mime_type_album_index on album_media(mime_type)");
+        db.execSQL("CREATE INDEX date_taken_album_row_id_index on album_media(date_taken_ms,_id)");
     }
 
     private static void clearPickerPrefs(Context context) {

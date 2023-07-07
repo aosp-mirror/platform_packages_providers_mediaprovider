@@ -29,9 +29,9 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.File;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 
@@ -143,7 +143,7 @@ public class SpecialFormatDetector {
             return false;
         }
 
-        Trace.beginSection("motionPhotoDetectionUsingXpp");
+        Trace.beginSection("FormatDetector.motionPhotoDetectionUsingXpp");
         try {
             return isMotionPhoto(xpp);
         } finally {

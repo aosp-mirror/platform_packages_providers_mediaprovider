@@ -40,9 +40,8 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "PickerDatabaseHelper";
 
     public static final String PICKER_DATABASE_NAME = "picker.db";
-
-    private static final int VERSION_T = 9;
-    public static final int VERSION_LATEST = VERSION_T;
+    private static final int VERSION_U = 10;
+    public static final int VERSION_LATEST = VERSION_U;
 
     final Context mContext;
     final String mName;
@@ -168,16 +167,16 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX local_id_index on media(local_id)");
         db.execSQL("CREATE INDEX cloud_id_index on media(cloud_id)");
         db.execSQL("CREATE INDEX is_visible_index on media(is_visible)");
-        db.execSQL("CREATE INDEX date_taken_index on media(date_taken_ms)");
         db.execSQL("CREATE INDEX size_index on media(size_bytes)");
         db.execSQL("CREATE INDEX mime_type_index on media(mime_type)");
         db.execSQL("CREATE INDEX is_favorite_index on media(is_favorite)");
+        db.execSQL("CREATE INDEX date_taken_row_id_index on media(date_taken_ms, _id)");
 
         db.execSQL("CREATE INDEX local_id_album_index on album_media(local_id)");
         db.execSQL("CREATE INDEX cloud_id_album_index on album_media(cloud_id)");
-        db.execSQL("CREATE INDEX date_taken_album_index on album_media(date_taken_ms)");
         db.execSQL("CREATE INDEX size_album_index on album_media(size_bytes)");
         db.execSQL("CREATE INDEX mime_type_album_index on album_media(mime_type)");
+        db.execSQL("CREATE INDEX date_taken_album_row_id_index on album_media(date_taken_ms,_id)");
     }
 
     private static void clearPickerPrefs(Context context) {

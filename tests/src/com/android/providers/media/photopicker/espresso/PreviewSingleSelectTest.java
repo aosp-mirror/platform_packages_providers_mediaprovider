@@ -67,10 +67,10 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Bottomsheet assertions are different for landscape mode
-        setPortraitOrientation(mRule);
+        setPortraitOrientation(mRule.getScenario());
 
         final BottomSheetIdlingResource bottomSheetIdlingResource =
-                BottomSheetIdlingResource.register(mRule);
+                BottomSheetIdlingResource.register(mRule.getScenario());
 
         try {
             // TODO(b/226318844): When accessibility is enabled, we always launch the photo picker
@@ -86,8 +86,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
             // Navigate to preview
             longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
-            try (ViewPager2IdlingResource idlingResource
-                         = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+            try (ViewPager2IdlingResource idlingResource =
+                    ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
                 // No dragBar in preview
                 bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
                 onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
@@ -133,8 +133,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             assertSingleSelectCommonLayoutMatches();
             // Verify thumbnail view is displayed
             onView(withId(R.id.preview_video_image)).check(matches(isDisplayed()));
@@ -166,8 +166,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Verify image is previewed
             assertSingleSelectCommonLayoutMatches();
             onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
@@ -183,14 +183,14 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
     @Test
     public void testPreview_noScrimLayerAndHasSolidColorInPortrait() throws Exception {
-        setPortraitOrientation(mRule);
+        setPortraitOrientation(mRule.getScenario());
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             onView(withId(R.id.preview_top_scrim)).check(matches(not(isDisplayed())));
             onView(withId(R.id.preview_bottom_scrim)).check(matches(not(isDisplayed())));
 
@@ -203,15 +203,15 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
     @Test
     public void testPreview_showScrimLayerInLandscape() throws Exception {
-        setLandscapeOrientation(mRule);
+        setLandscapeOrientation(mRule.getScenario());
 
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             onView(withId(R.id.preview_top_scrim)).check(matches(isDisplayed()));
             onView(withId(R.id.preview_bottom_scrim)).check(matches(isDisplayed()));
 
@@ -227,8 +227,8 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Check that Add button is visible
             onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
             onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(withText(R.string.add)));

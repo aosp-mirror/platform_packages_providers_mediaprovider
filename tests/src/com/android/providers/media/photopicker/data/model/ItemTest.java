@@ -31,6 +31,7 @@ import static com.google.common.truth.Truth.assertThat;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.icu.util.VersionInfo;
 import android.net.Uri;
 import android.os.UserHandle;
 
@@ -47,6 +48,11 @@ import java.time.ZoneId;
 
 @RunWith(AndroidJUnit4.class)
 public class ItemTest {
+    /**
+     * ICU 72 started to use '\u202f' instead of ' ' before AM/PM.
+     */
+    private static final char AM_PM_SPACE_CHAR = VersionInfo.ICU_VERSION.getMajor() >= 72
+            ? '\u202f' : ' ';
 
     @Test
     public void testConstructor() {
@@ -248,26 +254,27 @@ public class ItemTest {
 
         Item item = generateItem(id, "image/jpeg", dateTaken, generationModified, duration);
         assertThat(item.getContentDescription(context))
-                .isEqualTo("Photo taken on Jul 7, 2020, 12:00:00 AM");
+                .isEqualTo("Photo taken on Jul 7, 2020, 12:00:00" + AM_PM_SPACE_CHAR + "AM");
 
         item = generateItem(id, "video/mp4", dateTaken, generationModified, duration);
         assertThat(item.getContentDescription(context)).isEqualTo(
-                "Video taken on Jul 7, 2020, 12:00:00 AM with duration " + item.getDurationText());
+                "Video taken on Jul 7, 2020, 12:00:00" + AM_PM_SPACE_CHAR + "AM with duration "
+                        + item.getDurationText());
 
         item = generateSpecialFormatItem(id, "image/gif", dateTaken, generationModified, duration,
                 _SPECIAL_FORMAT_GIF);
         assertThat(item.getContentDescription(context))
-                .isEqualTo("GIF taken on Jul 7, 2020, 12:00:00 AM");
+                .isEqualTo("GIF taken on Jul 7, 2020, 12:00:00" + AM_PM_SPACE_CHAR + "AM");
 
         item = generateSpecialFormatItem(id, "image/webp", dateTaken, generationModified, duration,
                 _SPECIAL_FORMAT_ANIMATED_WEBP);
         assertThat(item.getContentDescription(context))
-                .isEqualTo("GIF taken on Jul 7, 2020, 12:00:00 AM");
+                .isEqualTo("GIF taken on Jul 7, 2020, 12:00:00" + AM_PM_SPACE_CHAR + "AM");
 
         item = generateSpecialFormatItem(id, "image/jpeg", dateTaken, generationModified, duration,
                 _SPECIAL_FORMAT_MOTION_PHOTO);
         assertThat(item.getContentDescription(context))
-                .isEqualTo("Motion Photo taken on Jul 7, 2020, 12:00:00 AM");
+                .isEqualTo("Motion Photo taken on Jul 7, 2020, 12:00:00" + AM_PM_SPACE_CHAR + "AM");
     }
 
     @Test

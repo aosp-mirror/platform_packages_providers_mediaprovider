@@ -61,6 +61,10 @@ public class PickerDataLayer {
 
     public static final String QUERY_ARG_LOCAL_ONLY = "android:query-arg-local-only";
 
+    public static final String QUERY_DATE_TAKEN_BEFORE_MS = "android:query-date-taken-before-ms";
+
+    public static final String QUERY_ROW_ID = "android:query-row-id";
+
     private final Context mContext;
     private final PickerDbFacade mDbFacade;
     private final PickerSyncController mSyncController;
@@ -115,13 +119,6 @@ public class PickerDataLayer {
             if (TextUtils.isEmpty(albumId) || isMergedAlbum(queryExtras)) {
                 // Refresh the 'media' table
                 syncAllMedia(isLocalOnly);
-
-                if (!isLocalOnly && TextUtils.isEmpty(albumId)) {
-                    // TODO(b/257887919): Build proper UI and remove this.
-                    // Notify that the picker is launched in case there's any pending UI
-                    // notification
-                    mSyncController.notifyPickerLaunch();
-                }
 
                 // Fetch all merged and deduped cloud and local media from 'media' table
                 // This also matches 'merged' albums like Favorites because |authority| will

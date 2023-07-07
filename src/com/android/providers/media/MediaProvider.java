@@ -17,12 +17,17 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
+import static android.Manifest.permission.QUERY_ALL_PACKAGES;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
+import static android.content.ContentResolver.QUERY_ARG_SQL_GROUP_BY;
+import static android.content.ContentResolver.QUERY_ARG_SQL_HAVING;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
+import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
+import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
@@ -32,12 +37,14 @@ import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 import static android.provider.MediaStore.GET_BACKUP_FILES;
+import static android.provider.MediaStore.GET_OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
 import static android.provider.MediaStore.MEDIA_IGNORE_FILENAME;
 import static android.provider.MediaStore.MY_UID;
+import static android.provider.MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
@@ -45,7 +52,7 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
-import static android.provider.MediaStore.READ_BACKED_UP_FILE_PATHS;
+import static android.provider.MediaStore.READ_BACKUP;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
@@ -54,7 +61,6 @@ import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageM
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
-import static com.android.providers.media.DatabaseBackupAndRecovery.LEVEL_DB_READ_LIMIT;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
@@ -282,6 +288,7 @@ import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
 import com.android.providers.media.scan.ModernMediaScanner;
+import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -300,6 +307,7 @@ import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XAttrUtils;
 import com.android.providers.media.util.XmpInterface;
 
+import com.google.common.base.Strings;
 import com.google.common.hash.Hashing;
 
 import java.io.File;
@@ -592,31 +600,47 @@ public class MediaProvider extends ContentProvider {
     private final SparseArray<LocalCallingIdentity> mCachedCallingIdentityForFuse =
             new SparseArray<>();
 
-    private final OnOpChangedListener mModeListener =
-            (op, packageName) -> onModeChanged(packageName, op);
+    private final OnOpChangedListener mModeListener = new OnOpChangedListener() {
+
+        /**
+         * Callback method called as part of {@link OnOpChangedListener}.
+         * Calls {@link #onOpChanged(String, String, int)} with cached userId(s).
+         *
+         * @param packageName - package for which AppOp changed
+         * @param op - AppOp for which the mode changed.
+         */
+        public void onOpChanged(String op, String packageName) {
+            // In case no userId is supplied, we drop grants for all cached users.
+            List<UserHandle> userHandles = mUserCache.getUsersCached();
+            for (UserHandle user : userHandles) {
+                onOpChanged(op, packageName, user.getIdentifier());
+            }
+        }
+
+        /**
+         * Callback method called as part of {@link OnOpChangedListener}.
+         * When an AppOp is written -
+         * 1. We invalidate saved LocalCallingIdentity object for the package. This
+         *    is needed to ensure we read the new permission state
+         * 2. If the AppOp change was on the read media appOps, we clear any stale
+         *    grants,
+         *
+         * @param packageName - package for which AppOp changed
+         * @param op - AppOp for which the mode changed.
+         * @param userId - userSpace where the package is located
+         */
+        public void onOpChanged(String op, String packageName, int userId) {
+            invalidateLocalCallingIdentityCache(packageName, "op " + op /* reason */);
+            removeMediaGrantsOnModeChange(packageName, op, userId);
+        }
+    };
 
     /**
-     * Callback method called as part of {@link OnOpChangedListener}.
-     * When an AppOp is written -
-     * 1. We invalidate saved LocalCallingIdentity object for the package. This
-     *    is needed to ensure we read the new permission state
-     * 2. If the AppOp change was on the read media appOps, we clear any stale
-     *    grants,
-     *
-     * @param packageName - package for which AppOp changed
-     * @param op - AppOp for which the mode changed.
-     */
-    private void onModeChanged(String packageName, String op) {
-        invalidateLocalCallingIdentityCache(packageName, "op " + op /* reason */);
-        removeMediaGrantsOnModeChange(packageName, op);
-    }
-
-    /**
-     * Removes media_grants for the given {@code packageName} if the AppOp
+     * Removes media_grants for the given {@code packageName} and {@code userId} if the AppOp
      * change resulted in a state of "Allow All" or "Deny All" for read
      * permission.
      */
-    private void removeMediaGrantsOnModeChange(String packageName, String op) {
+    private void removeMediaGrantsOnModeChange(String packageName, String op, int userId) {
         // b/265963379: onModeChanged is always called with op=OPSTR_READ_EXTERNAL_STORAGE even if
         // the appOp mode changed for other read media app ops. Handle all read media app op changes
         // until the bug is fixed.
@@ -625,22 +649,20 @@ public class MediaProvider extends ContentProvider {
         }
         Context context = getContext();
         PackageManager packageManager = context.getPackageManager();
-        List<UserHandle> userHandles = mUserCache.getUsersCached();
-        for (UserHandle user : userHandles) {
-            try {
-                int uid = packageManager.getPackageUid(packageName, user.getIdentifier());
-                if (!LocalCallingIdentity.fromExternal(context, mUserCache, uid)
-                        .checkCallingPermissionUserSelected()) {
-                    // If for any user profile containing the package, the UserSelected permission
-                    // has been removed then remove all media grants for that package.
-                    // Revoke media grants if permission state is not "Select flow".
-                    mMediaGrants.removeAllMediaGrantsForPackage(packageName, "op "
-                            + op /* reason */, user.getIdentifier());
-                }
-            } catch (NameNotFoundException e) {
-                Log.d(TAG, "Unable to resolve uid. Ignoring the AppOp change for "
-                        + packageName + ", User : " + user.getIdentifier());
+        try {
+            int uid = packageManager.getPackageUidAsUser(packageName,
+                    PackageManager.PackageInfoFlags.of(0), userId);
+            if (!LocalCallingIdentity.fromExternal(context, mUserCache, uid)
+                    .checkCallingPermissionUserSelected()) {
+                // Revoke media grants if permission state is not "Select flow".
+                mMediaGrants.removeAllMediaGrantsForPackage(
+                        packageName,
+                        /*reason=*/ "Mode changed: " + op,
+                        userId);
             }
+        } catch (NameNotFoundException e) {
+            Log.d(TAG, "Unable to resolve uid. Ignoring the AppOp change for "
+                    + packageName + ", User : " + userId);
         }
     }
 
@@ -791,6 +813,12 @@ public class MediaProvider extends ContentProvider {
                                     new String[]{String.valueOf(userToBeRemoved.getIdentifier())});
                             return null ;
                         });
+                    }
+
+                    // Only default system user 0 has permission to update xattrs on /data/media/0
+                    if (sUserId == UserHandle.SYSTEM.getIdentifier()) {
+                        mDatabaseBackupAndRecovery.removeRecoveryDataForUserId(
+                                userToBeRemoved.getIdentifier());
                     }
                     break;
             }
@@ -1437,10 +1465,25 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Second, is the app pending, probably from a backup/restore operation?
-        for (SessionInfo si : pm.getPackageInstaller().getAllSessions()) {
-            if (Objects.equals(packageName, si.getAppPackageName())) {
+        // Cloned app installations do not have a linked install session, so skipping the check in
+        // case the user-id is a clone profile.
+        if (!isAppCloneUserForFuse(userId)) {
+            if (sUserId != userId) {
+                // Skip the package check and ensure media provider doesn't crash
+                // Returning true since we are unsure what caused the cross-user entries to be in
+                // the database and want to avoid deleting data that might be required.
+                Log.e(TAG, "Skip pruning cross-user entries stored in database for package: "
+                        + packageName + " userId: " + userId + " processUserId: " + sUserId);
                 return true;
             }
+            for (SessionInfo si : pm.getPackageInstaller().getAllSessions()) {
+                if (Objects.equals(packageName, si.getAppPackageName())) {
+                    return true;
+                }
+            }
+        } else {
+            Log.e(TAG, "Cross-user entries found in database for package " + packageName
+                    + " userId: " + userId + " processUserId: " + sUserId);
         }
 
         // I've never met this package in my life
@@ -1522,11 +1565,13 @@ public class MediaProvider extends ContentProvider {
 
         // removing calling userId
         userIds.remove(String.valueOf(sUserId));
+
+        List<String> validUsers = mUserManager.getEnabledProfiles().stream()
+                .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
+                        Collectors.toList());
         // removing all the valid/existing user, remaining userIds would be users who would have
         // been removed
-        userIds.removeAll(mUserManager.getEnabledProfiles().stream()
-                .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
-                        Collectors.toList()));
+        userIds.removeAll(validUsers);
 
         // Cleaning media files of users who have been removed
         mExternalDatabase.runWithTransaction((db) -> {
@@ -1537,6 +1582,8 @@ public class MediaProvider extends ContentProvider {
             });
             return null ;
         });
+
+        mDatabaseBackupAndRecovery.removeRecoveryDataExceptValidUsers(validUsers);
     }
 
     private void pruneStalePackages(CancellationSignal signal) {
@@ -1599,10 +1646,17 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     void detectSpecialFormat(@NonNull CancellationSignal signal) {
-        mExternalDatabase.runWithTransaction((db) -> {
-            updateSpecialFormatColumn(db, signal);
-            return null;
-        });
+        // Picker sync and special format update can execute concurrently and run into a deadlock.
+        // Acquiring a lock before execution of each flow to avoid this.
+        PickerSyncController.sIdleMaintenanceSyncLock.lock();
+        try {
+            mExternalDatabase.runWithTransaction((db) -> {
+                updateSpecialFormatColumn(db, signal);
+                return null;
+            });
+        } finally {
+            PickerSyncController.sIdleMaintenanceSyncLock.unlock();
+        }
     }
 
     private void updateSpecialFormatColumn(SQLiteDatabase db, @NonNull CancellationSignal signal) {
@@ -2647,7 +2701,6 @@ public class MediaProvider extends ContentProvider {
                 // files and directories in the given directory.
                 return new String[] {"/"};
             }
-
             // Getting UserId from the directory path, as clone user shares the MediaProvider
             // of user 0.
             int userIdFromPath = FileUtils.extractUserId(path);
@@ -2656,7 +2709,6 @@ public class MediaProvider extends ContentProvider {
             if (userIdFromPath == -1) {
                 userIdFromPath = sUserId;
             }
-
             // For all other paths, get file names from media provider database.
             // Return media and non-media files visible to the calling package.
             ArrayList<String> fileNamesList = new ArrayList<>();
@@ -3514,9 +3566,8 @@ public class MediaProvider extends ContentProvider {
         final DatabaseHelper helper = getDatabaseForUri(uri);
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, queryArgs,
                 honoredArgs::add);
-
         // Allowing hidden column _user_id for this query to support Cloned Profile use case.
-        if (isFuseThread() && table == FILES) {
+        if (table == FILES) {
             qb.allowColumn(FileColumns._USER_ID);
         }
 
@@ -3583,7 +3634,23 @@ public class MediaProvider extends ContentProvider {
             onLocaleChanged(false);
         }
 
-        final Cursor c = qb.query(helper, projection, queryArgs, signal);
+        Cursor c = qb.query(helper, projection, queryArgs, signal);
+
+        // Starting U, we are filtering owner package names for apps without visibility
+        // on other packages. Apps with QUERY_ALL_PACKAGES permission are not affected.
+        if (shouldFilterOwnerPackageNameFlag() && isApplicableForOwnerPackageNameFiltering(c)) {
+            final long startTime = SystemClock.elapsedRealtime();
+            final String[] resultOwnerPackageNames = getOwnerPackageNames(c);
+            if (resultOwnerPackageNames.length != 0) {
+                final Set<String> queryablePackages = getQueryablePackages(resultOwnerPackageNames);
+                if (resultOwnerPackageNames.length != queryablePackages.size()) {
+                    c = filterOwnerPackageNames(c, queryablePackages);
+                }
+            }
+            final long durationMillis = SystemClock.elapsedRealtime() - startTime;
+            Log.d(TAG, "Filtering owner package names took " + durationMillis + " ms");
+        }
+
         if (c != null && !forSelf) {
             // As a performance optimization, only configure notifications when
             // resulting cursor will leave our process
@@ -3608,6 +3675,73 @@ public class MediaProvider extends ContentProvider {
         }
 
         return c;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private Set<String> getQueryablePackages(String[] packageNames) {
+        final boolean[] canPackageBeQueried;
+        try {
+            canPackageBeQueried = mPackageManager.canPackageQuery(
+                    mCallingIdentity.get().getPackageName(), packageNames);
+        } catch (NameNotFoundException e) {
+            Log.e(TAG, "Invalid package name", e);
+            // If package manager throws an error, only assume calling package as queryable package
+            return new HashSet<>(Arrays.asList(mCallingIdentity.get().getPackageName()));
+        }
+
+        final Set<String> queryablePackages = new HashSet<>();
+        for (int i = 0; i < packageNames.length; i++) {
+            if (canPackageBeQueried[i]) {
+                queryablePackages.add(packageNames[i]);
+            }
+        }
+        return queryablePackages;
+    }
+
+    private String[] getOwnerPackageNames(Cursor c) {
+        final Set<String> ownerPackageNames = new HashSet<>();
+        final int ownerPackageNameColIndex = c.getColumnIndex(MediaColumns.OWNER_PACKAGE_NAME);
+
+        while (c.moveToNext()) {
+            final String ownerPackageName = c.getString(ownerPackageNameColIndex);
+            if (!Strings.isNullOrEmpty(ownerPackageName)) {
+                ownerPackageNames.add(ownerPackageName);
+            }
+        }
+        c.moveToPosition(-1);
+
+        return ownerPackageNames.toArray(new String[0]);
+    }
+
+    private Cursor filterOwnerPackageNames(@NonNull Cursor c,
+            @NonNull Set<String> queryablePackages) {
+        final MatrixCursor filteredCursor = new MatrixCursor(c.getColumnNames(), c.getCount());
+
+        while (c.moveToNext()) {
+            final MatrixCursor.RowBuilder row = filteredCursor.newRow();
+            for (int colIndex = 0; colIndex < c.getColumnCount(); colIndex++) {
+                if (OWNER_PACKAGE_NAME.equals(c.getColumnName(colIndex))
+                        && !queryablePackages.contains(c.getString(colIndex))) {
+                    row.add(null);
+                } else if (c.getType(colIndex) == FIELD_TYPE_BLOB) {
+                    row.add(c.getBlob(colIndex));
+                } else {
+                    row.add(c.getString(colIndex));
+                }
+            }
+        }
+        return filteredCursor;
+    }
+
+    private boolean isApplicableForOwnerPackageNameFiltering(Cursor c) {
+        return SdkLevel.isAtLeastU() && c != null
+                && Arrays.asList(c.getColumnNames()).contains(MediaColumns.OWNER_PACKAGE_NAME)
+                && getContext().checkPermission(QUERY_ALL_PACKAGES,
+                mCallingIdentity.get().pid, mCallingIdentity.get().uid) == PERMISSION_DENIED;
+    }
+
+    private boolean shouldFilterOwnerPackageNameFlag() {
+        return true;
     }
 
     private boolean isUriSupportedForRedaction(Uri uri) {
@@ -3724,14 +3858,12 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_MEDIA_ID:
             case DOWNLOADS_ID:
             case FILES_ID:
-                final LocalCallingIdentity token = clearLocalCallingIdentity();
-                try (Cursor cursor = queryForSingleItem(url,
-                        new String[] { MediaColumns.MIME_TYPE }, null, null, null)) {
-                    return cursor.getString(0);
-                } catch (FileNotFoundException e) {
-                    throw new IllegalArgumentException(e.getMessage());
-                } finally {
-                     restoreLocalCallingIdentity(token);
+                if (SdkLevel.isAtLeastU()) {
+                    // Starting Android 14, there is permission check for
+                    // getting types requiring internal query.
+                    return queryForTypeAsCaller(url);
+                } else {
+                    return queryForTypeAsSelf(url);
                 }
 
             case IMAGES_MEDIA:
@@ -3764,9 +3896,28 @@ public class MediaProvider extends ContentProvider {
                 return Downloads.CONTENT_TYPE;
 
             case PICKER_ID:
-                return mPickerUriResolver.getType(url);
+                return mPickerUriResolver.getType(url, Binder.getCallingPid(),
+                        Binder.getCallingUid());
         }
         throw new IllegalStateException("Unknown URL : " + url);
+    }
+
+    private String queryForTypeAsSelf(Uri url) {
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try {
+            return queryForTypeAsCaller(url);
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+    }
+
+    private String queryForTypeAsCaller(Uri url) {
+        try (Cursor cursor = queryForSingleItem(url,
+                new String[] { MediaColumns.MIME_TYPE }, null, null, null)) {
+            return cursor.getString(0);
+        } catch (FileNotFoundException e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
     }
 
     @VisibleForTesting
@@ -4037,6 +4188,20 @@ public class MediaProvider extends ContentProvider {
             // DATA column.
             File volumePath;
             UserHandle userHandle = mCallingIdentity.get().getUser();
+            Integer userIdFromPathObject = values.getAsInteger(FileColumns._USER_ID);
+            int userIdFromPath = (userIdFromPathObject == null ? userHandle.getIdentifier() :
+                    userIdFromPathObject);
+            // In case if the _user_id column is set, and is different from the userHandle
+            // determined from mCallingIdentity, we prefer the former, as it comes from the original
+            // path provided to MP process.
+            // Normally this does not create any issues, but when cloned profile is active, an app
+            // in root user can try to create an image file in lower file system, by specifying
+            // the file directory as /storage/emulated/<cloneUserId>/DCIM. For such cases, we
+            // would want <cloneUserId> to be used to determine path in MP entry.
+            if (userHandle.getIdentifier() != userIdFromPath
+                    && isAppCloneUserPair(userHandle.getIdentifier(), userIdFromPath)) {
+                userHandle = UserHandle.of(userIdFromPath);
+            }
             if (currentPath != null) {
                 int userId = FileUtils.extractUserId(currentPath);
                 if (userId != -1) {
@@ -4964,9 +5129,15 @@ public class MediaProvider extends ContentProvider {
                 } else if (isCallingPackageManager()) {
                     // Apps with MANAGE_EXTERNAL_STORAGE have all files access, hence they are
                     // allowed to insert files anywhere.
+                } else if (getCallingPackageTargetSdkVersion() >=
+                        Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    // Throwing an exception so that it doesn't result in some unexpected
+                    // behavior for apps and make them aware of what is happening.
+                    throw new IllegalArgumentException("Mutation of " + column
+                        + " is not allowed.");
                 } else {
                     Log.w(TAG, "Ignoring mutation of  " + column + " from "
-                            + getCallingPackageOrSelf());
+                        + getCallingPackageOrSelf());
                     initialValues.remove(column);
                 }
             }
@@ -5760,7 +5931,37 @@ public class MediaProvider extends ContentProvider {
             qb.setProjectionGreylist(sGreylist);
         }
 
+        // Starting U, if owner package name is used in query arguments,
+        // we are restricting result set to only self-owned packages.
+        if (shouldFilterOwnerPackageNameFlag() && shouldFilterByOwnerPackageName(extras, type)) {
+            Log.d(TAG, "Restricting result set to only packages owned by calling package: "
+                    + mCallingIdentity.get().getSharedPackagesAsString());
+            final String ownerPackageMatchClause = getWhereForOwnerPackageMatch(
+                    mCallingIdentity.get());
+            appendWhereStandalone(qb, ownerPackageMatchClause);
+        }
+
         return qb;
+    }
+
+    private boolean shouldFilterByOwnerPackageName(Bundle queryArgs, int type) {
+        return type == TYPE_QUERY && SdkLevel.isAtLeastU() && containsOwnerPackageName(queryArgs)
+                && getContext().checkPermission(QUERY_ALL_PACKAGES, mCallingIdentity.get().pid,
+                mCallingIdentity.get().uid) == PERMISSION_DENIED;
+    }
+
+    private boolean containsOwnerPackageName(Bundle queryArgs) {
+        final String selection = queryArgs.getString(QUERY_ARG_SQL_SELECTION, "")
+                .toLowerCase(Locale.ROOT);
+        final String groupBy = queryArgs.getString(QUERY_ARG_SQL_GROUP_BY, "")
+                .toLowerCase(Locale.ROOT);
+        final String sort = queryArgs.getString(QUERY_ARG_SQL_SORT_ORDER, "")
+                .toLowerCase(Locale.ROOT);
+        final String having = queryArgs.getString(QUERY_ARG_SQL_HAVING, "")
+                .toLowerCase(Locale.ROOT);
+
+        return selection.contains(OWNER_PACKAGE_NAME) || groupBy.contains(OWNER_PACKAGE_NAME)
+                || sort.contains(OWNER_PACKAGE_NAME) || having.contains(OWNER_PACKAGE_NAME);
     }
 
     private void appendAccessCheckQuery(@NonNull SQLiteQueryBuilder qb, boolean forWrite,
@@ -6264,38 +6465,51 @@ public class MediaProvider extends ContentProvider {
                 }
                 return null;
             }
-            case MediaStore.SCAN_FILE_CALL:
+            case MediaStore.SCAN_FILE_CALL: {
+                final LocalCallingIdentity token = clearLocalCallingIdentity();
+                final CallingIdentity providerToken = clearCallingIdentity();
+
+                final String filePath = arg;
+                final Uri uri;
+                try {
+                    File file;
+                    try {
+                        file = FileUtils.getCanonicalFile(filePath);
+                    } catch (IOException e) {
+                        file = null;
+                    }
+
+                    uri = file != null ? scanFile(file, REASON_DEMAND) : null;
+                } finally {
+                    restoreCallingIdentity(providerToken);
+                    restoreLocalCallingIdentity(token);
+                }
+
+                // TODO(b/262244882): maybe enforceCallingPermissionInternal(uri, ...)
+
+                final Bundle res = new Bundle();
+                res.putParcelable(Intent.EXTRA_STREAM, uri);
+                return res;
+            }
             case MediaStore.SCAN_VOLUME_CALL: {
                 final int userId = uidToUserId(Binder.getCallingUid());
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
                 final CallingIdentity providerToken = clearCallingIdentity();
+
+                final String volumeName = arg;
                 try {
-                    final Bundle res = new Bundle();
-                    switch (method) {
-                        case MediaStore.SCAN_FILE_CALL: {
-                            final File file = new File(arg);
-                            res.putParcelable(Intent.EXTRA_STREAM, scanFile(file, REASON_DEMAND));
-                            break;
-                        }
-                        case MediaStore.SCAN_VOLUME_CALL: {
-                            final String volumeName = arg;
-                            try {
-                                MediaVolume volume = mVolumeCache.findVolume(volumeName,
-                                        UserHandle.of(userId));
-                                MediaService.onScanVolume(getContext(), volume, REASON_DEMAND);
-                            } catch (FileNotFoundException e) {
-                                Log.w(TAG, "Failed to find volume " + volumeName, e);
-                            }
-                            break;
-                        }
-                    }
-                    return res;
+                    final MediaVolume volume = mVolumeCache.findVolume(volumeName,
+                            UserHandle.of(userId));
+                    MediaService.onScanVolume(getContext(), volume, REASON_DEMAND);
+                } catch (FileNotFoundException e) {
+                    Log.w(TAG, "Failed to find volume " + volumeName, e);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } finally {
                     restoreCallingIdentity(providerToken);
                     restoreLocalCallingIdentity(token);
                 }
+                return Bundle.EMPTY;
             }
             case MediaStore.GET_VERSION_CALL: {
                 final String volumeName = extras.getString(Intent.EXTRA_TEXT);
@@ -6493,13 +6707,8 @@ public class MediaProvider extends ContentProvider {
                     restoreLocalCallingIdentity(token);
                 }
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
-                // TODO(b/245746037): replace UID check with Permission(MANAGE_CLOUD_MEDIA_PROVIDER)
-                // PhotoPickerSettingsActivity will run as either the primary or the managed user.
-                // Since the activity shows both personal and work tabs, it will have to make get
-                // cloud provider IPC call to both instances of Media Provider - one running as
-                // primary profile and the other as managed profile. Hence, UID check will not be
-                // feasible here.
-                if (!checkPermissionSelf(Binder.getCallingUid())) {
+                if (!checkPermissionShell(Binder.getCallingUid())
+                        && !checkPermissionSelf(Binder.getCallingUid())) {
                     throw new SecurityException("Get cloud provider not allowed. "
                             + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
                             + " Calling UID:" + Binder.getCallingUid()
@@ -6512,20 +6721,28 @@ public class MediaProvider extends ContentProvider {
                 return bundle;
             }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
-                // TODO(b/267327327): Add permission check before updating cloud provider. Also
-                //  validate the new cloud provider before setting it by using
-                //  PickerSyncController#setCloudProvider instead of
-                //  PickerSyncController#forceSetCloudProvider.
                 final String cloudProvider = extras.getString(MediaStore.EXTRA_CLOUD_PROVIDER);
                 Log.i(TAG, "Request received to set cloud provider to " + cloudProvider);
-                mPickerSyncController.forceSetCloudProvider(cloudProvider);
-                Log.i(TAG, "Completed request to set cloud provider to " + cloudProvider);
+                boolean isUpdateSuccessful = false;
+                if (checkPermissionSelf(Binder.getCallingUid())) {
+                    isUpdateSuccessful = mPickerSyncController.setCloudProvider(cloudProvider);
+                } else if (checkPermissionShell(Binder.getCallingUid())) {
+                    isUpdateSuccessful =
+                            mPickerSyncController.forceSetCloudProvider(cloudProvider);
+                } else {
+                    throw new SecurityException("Set cloud provider not allowed. "
+                            + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
+                            + " Calling UID:" + Binder.getCallingUid()
+                            + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
+                            + " Media Provider UID:" + MY_UID);
+                }
 
-                // Cannot start sync here yet because currently sync and other picker related
-                // queries like SET_CLOUD_PROVIDER_CALL and GET_CLOUD_PROVIDER use the same lock.
-                // If we start sync here and then user tries to return to the Picker or change the
-                // provider again, Picker will ANR and crash.
-                return new Bundle();
+                if (isUpdateSuccessful) {
+                    Log.i(TAG, "Completed request to set cloud provider to " + cloudProvider);
+                }
+                final Bundle bundle = new Bundle();
+                bundle.putBoolean(MediaStore.SET_CLOUD_PROVIDER_RESULT, isUpdateSuccessful);
+                return bundle;
             }
             case MediaStore.SYNC_PROVIDERS_CALL: {
                 syncAllMedia();
@@ -6579,32 +6796,33 @@ public class MediaProvider extends ContentProvider {
                 backupDatabases(null);
                 return new Bundle();
             }
-            case MediaStore.READ_BACKED_UP_FILE_PATHS: {
+            case READ_BACKUP: {
                 getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
-                        "Permission missing to call READ_BACKED_UP_FILE_PATHS by "
-                                + "uid:" + Binder.getCallingUid());
-                List<String> cumulatedValues = new ArrayList<String>();
-                String[] backedUpFilePaths;
-                String lastReadValue = "";
-                while (true) {
-                    backedUpFilePaths = mDatabaseBackupAndRecovery.readBackedUpFilePaths(arg,
-                            lastReadValue, LEVEL_DB_READ_LIMIT);
-                    if (backedUpFilePaths.length <= 0) {
-                        break;
-                    }
-                    cumulatedValues.addAll(Arrays.asList(backedUpFilePaths));
-                    if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
-                        break;
-                    }
-                    lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
-                }
-
+                        "Permission missing to call READ_BACKUP by uid:" + Binder.getCallingUid());
                 Bundle bundle = new Bundle();
-                Object[] values =  cumulatedValues.toArray();
-                String[] resultArray =  Arrays.copyOf(values, values.length, String[].class);
-                bundle.putStringArray(READ_BACKED_UP_FILE_PATHS, resultArray);
+                Optional<BackupIdRow> backupIdRowOptional =
+                        mDatabaseBackupAndRecovery.readDataFromBackup(arg, extras.getString(
+                                FileColumns.DATA));
+                String data = null;
+                try {
+                    data = backupIdRowOptional.isPresent() ? BackupIdRow.serialize(
+                            backupIdRowOptional.get()) : null;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                bundle.putString(READ_BACKUP, data);
                 return bundle;
             }
+            case GET_OWNER_PACKAGE_NAME:
+                getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
+                        "Permission missing to call GET_OWNER_PACKAGE_NAME by "
+                                + "uid:" + Binder.getCallingUid());
+                Pair<String, Integer> packageNameAndUidPair =
+                        mDatabaseBackupAndRecovery.getOwnerPackageNameAndUidPair(
+                                Integer.parseInt(arg));
+                Bundle result = new Bundle();
+                result.putString(GET_OWNER_PACKAGE_NAME, packageNameAndUidPair.first);
+                return result;
             case MediaStore.DELETE_BACKED_UP_FILE_PATHS:
                 getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
                         "Permission missing to call DELETE_BACKED_UP_FILE_PATHS by "
@@ -7409,7 +7627,7 @@ public class MediaProvider extends ContentProvider {
             final String probePath = initialValues.getAsString(MediaColumns.DATA);
             final String probeVolume = extractVolumeName(probePath);
             final String probeOwner = extractPathOwnerPackageName(probePath);
-            if (Objects.equals(beforePath, probePath)) {
+            if (StringUtils.equalIgnoreCase(beforePath, probePath)) {
                 Log.d(TAG, "Identical paths " + beforePath + "; not moving");
             } else if (!Objects.equals(beforeVolume, probeVolume)) {
                 throw new IllegalArgumentException("Changing volume from " + beforePath + " to "
@@ -9514,12 +9732,21 @@ public class MediaProvider extends ContentProvider {
         values.put(MediaColumns.MIME_TYPE, mimeType);
         values.put(FileColumns.IS_PENDING, 1);
 
+        int userIdFromPath = FileUtils.extractUserId(path);
+
         if (useData) {
             values.put(FileColumns.DATA, path);
         } else {
             values.put(FileColumns.VOLUME_NAME, extractVolumeName(path));
             values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
             values.put(FileColumns.DISPLAY_NAME, extractDisplayName(path));
+            // In some cases when clone profile is active, this userId can be used to determine
+            // the path to be saved in MP database.
+            // We do this only if the path contains a valid user-id and any such value set is
+            // only a hint, the actual userId set will be determined later.
+            if (userIdFromPath != -1) {
+                values.put(FileColumns._USER_ID, userIdFromPath);
+            }
         }
         return insert(uri, values, Bundle.EMPTY);
     }
@@ -10766,6 +10993,15 @@ public class MediaProvider extends ContentProvider {
         writer.println();
 
         mTranscodeHelper.dump(writer);
+        writer.println();
+
+        mConfigStore.dump(writer);
+        writer.println();
+
+        mPickerDbFacade.dump(writer);
+        writer.println();
+
+        mPickerSyncController.dump(writer);
         writer.println();
 
         dumpAccessLogs(writer);

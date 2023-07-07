@@ -17,17 +17,16 @@
 package com.android.providers.media.photopicker.viewmodel;
 
 import static android.content.Intent.ACTION_GET_CONTENT;
+import static android.content.Intent.EXTRA_LOCAL_ONLY;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 
 import android.annotation.SuppressLint;
-import android.annotation.UserIdInt;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
@@ -39,13 +38,16 @@ import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.MediaApplication;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
+import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
@@ -55,9 +57,9 @@ import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.MimeUtils;
-import com.android.providers.media.util.PerUser;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -85,22 +87,10 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Item>> mCategoryItemList;
     // The list of categories.
     private MutableLiveData<List<Category>> mCategoryList;
-    // Boolean Choose App Banner visibility
-    @NonNull
-    private final MutableLiveData<Boolean> mShowChooseAppBanner = new MutableLiveData<>(false);
-
-    // The banner controllers per user
-    private final PerUser<BannerController> mBannerControllers = new PerUser<BannerController>() {
-        @NonNull
-        @Override
-        protected BannerController create(@UserIdInt int userId) {
-            return new BannerController(mAppContext, mConfigStore, UserHandle.of(userId));
-        }
-    };
 
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
-    private boolean mIsUserSelectForApp;
+    private BannerManager mBannerManager;
 
     private InstanceId mInstanceId;
     private PhotoPickerUiEventLogger mLogger;
@@ -109,7 +99,10 @@ public class PickerViewModel extends AndroidViewModel {
     private int mBottomSheetState;
 
     private Category mCurrentCategory;
-    private ConfigStore mConfigStore;
+
+    // Note - Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
+    private boolean mIsUserSelectForApp;
+    private boolean mIsLocalOnly;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -120,9 +113,10 @@ public class PickerViewModel extends AndroidViewModel {
         mMuteStatus = new MuteStatus();
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
-        mConfigStore = new ConfigStore.ConfigStoreImpl();
         mIsUserSelectForApp = false;
-        setBannersForCurrentUser();
+        mIsLocalOnly = false;
+        // Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
+        initBannerManager();
     }
 
     @VisibleForTesting
@@ -166,24 +160,22 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * If the selected tab profile is the same as the profile the picker was launched from,
-     * @return the {@link android.content.ContentProvider#mAuthority authority} of the current
-     *         {@link android.provider.CloudMediaProvider}
-     * Else, return {@code null}.
+     * @return a {@link LiveData} that holds the value (once it's fetched) of the
+     *         {@link android.content.ContentProvider#mAuthority authority} of the current
+     *         {@link android.provider.CloudMediaProvider}.
      */
-    @Nullable
-    public String getCloudMediaProviderAuthority() {
-        return getCurrentBannerController().getCloudMediaProviderAuthority();
+    @NonNull
+    public LiveData<String> getCloudMediaProviderAuthorityLiveData() {
+        return mBannerManager.getCloudMediaProviderAuthorityLiveData();
     }
 
     /**
-     * @return a {@link LiveData} that holds the value (once it's fetched) of the package name
+     * @return a {@link LiveData} that holds the value (once it's fetched) of the label
      *         of the current {@link android.provider.CloudMediaProvider}.
      */
     @NonNull
     public LiveData<String> getCloudMediaProviderAppTitleLiveData() {
-        // TODO(b/195009152): Update to hold and track the actual value.
-        return new MutableLiveData<>();
+        return mBannerManager.getCloudMediaProviderAppTitleLiveData();
     }
 
     /**
@@ -192,14 +184,14 @@ public class PickerViewModel extends AndroidViewModel {
      */
     @NonNull
     public LiveData<String> getCloudMediaAccountNameLiveData() {
-        // TODO(b/195009152): Update to hold and track the actual value.
-        return new MutableLiveData<>();
+        return mBannerManager.getCloudMediaAccountNameLiveData();
     }
 
     /**
      * Reset PickerViewModel.
      * @param switchToPersonalProfile is true then set personal profile as current profile.
      */
+    @UiThread
     public void reset(boolean switchToPersonalProfile) {
         // 1. Clear Selected items
         mSelection.clearSelectedItems();
@@ -208,26 +200,64 @@ public class PickerViewModel extends AndroidViewModel {
             mUserIdManager.setPersonalAsCurrentUserProfile();
         }
         // 3. Update Item and Category lists
+        clearUiGrid();
         updateItems();
         updateCategories();
         // 4. Update Banners
-        updateBanners();
+        // Note - Banners should always be updated after the items & categories to ensure a
+        // consistent UI.
+        mBannerManager.maybeResetAllBannerData();
+        mBannerManager.maybeUpdateBannerLiveDatas();
     }
 
     /**
-     * @return the list of Items with all photos and videos {@link #mItemList} on the device.
+     * Update items, categories & banners on profile switched by the user.
      */
-    public LiveData<List<Item>> getItems() {
+    @UiThread
+    public void onUserSwitchedProfile() {
+        clearUiGrid();
+        updateItems();
+        updateCategories();
+        // Note - Banners should always be updated after the items & categories to ensure a
+        // consistent UI.
+        mBannerManager.maybeUpdateBannerLiveDatas();
+    }
+
+    private void clearUiGrid() {
+        // clear photos grid
+        if (mItemList != null) {
+            ForegroundThread.getExecutor().execute(() -> {
+                mItemList.postValue(Arrays.asList(Item.EMPTY_VIEW));
+            });
+        }
+
+        //clear Albums Grid
+        if (mCategoryList != null) {
+            ForegroundThread.getExecutor().execute(() -> {
+                mCategoryList.postValue(Arrays.asList(Category.EMPTY_VIEW));
+            });
+        }
+    }
+
+    /**
+     * @return the list of Items with all photos and videos {@link #mItemList} on the device for a
+     * page represented by the {@code pagingParameters}.
+     *
+     * <p>Pass an object of {@link PaginationParameters} created using the default constructor
+     * to obtain the complete list of items present.</p>
+     */
+    public LiveData<List<Item>> getPaginatedItems(PaginationParameters pagingParameters) {
         if (mItemList == null) {
-            updateItems();
+            updateItems(pagingParameters);
         }
         return mItemList;
     }
 
-    private List<Item> loadItems(Category category, UserId userId) {
+    private List<Item> loadItems(Category category, UserId userId,
+            PaginationParameters pagingParameters) {
         final List<Item> items = new ArrayList<>();
 
-        try (Cursor cursor = fetchItems(category, userId)) {
+        try (Cursor cursor = fetchItems(category, userId, pagingParameters)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any items for " + category
                         + ", either cursor is null or cursor count is zero");
@@ -246,31 +276,45 @@ public class PickerViewModel extends AndroidViewModel {
         return items;
     }
 
-    private Cursor fetchItems(Category category, UserId userId) {
-        if (isUserSelectForApp()) {
-            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
-            // action for permission flow. We only show local items in this case.
-            return mItemsProvider.getLocalItems(category, /* limit */ -1, mMimeTypeFilters, userId);
+    private Cursor fetchItems(Category category, UserId userId,
+            PaginationParameters pagingParameters) {
+        if (shouldShowOnlyLocalFeatures()) {
+            return mItemsProvider.getLocalItems(category, pagingParameters,
+                    mMimeTypeFilters, userId);
         } else {
-            return mItemsProvider.getAllItems(category, /* limit */ -1, mMimeTypeFilters, userId);
+            return mItemsProvider.getAllItems(category, pagingParameters,
+                    mMimeTypeFilters, userId);
         }
     }
 
-    private void loadItemsAsync() {
+    private void loadItemsAsync(@Nullable PaginationParameters pagingParameters) {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-                    mItemList.postValue(loadItems(Category.DEFAULT, userId));
+            mItemList.postValue(loadItems(Category.DEFAULT, userId, pagingParameters));
         });
     }
 
     /**
-     * Update the item List {@link #mItemList}
+     * Update the item List {@link #mItemList} for a page represented by the
+     * {@code pagingParameters}.
+     *
+     * <p>Use {@link PickerViewModel#updateItems()} to update the complete list.</p>
+     */
+    public void updateItems(PaginationParameters pagingParameters) {
+        if (mItemList == null) {
+            mItemList = new MutableLiveData<>();
+        }
+        loadItemsAsync(pagingParameters);
+    }
+
+    /**
+     * Update the complete item List {@link #mItemList}.
      */
     public void updateItems() {
         if (mItemList == null) {
             mItemList = new MutableLiveData<>();
         }
-        loadItemsAsync();
+        loadItemsAsync(new PaginationParameters());
     }
 
     /**
@@ -284,20 +328,21 @@ public class PickerViewModel extends AndroidViewModel {
      * @return the list of all photos and videos with the specific {@code category}
      *         {@link #mCategoryItemList}
      */
-    public LiveData<List<Item>> getCategoryItems(@NonNull Category category) {
+    public LiveData<List<Item>> getPaginatedCategoryItems(@NonNull Category category,
+            PaginationParameters pagingParameters) {
         if (mCategoryItemList == null || !TextUtils.equals(mCurrentCategory.getId(),
                 category.getId())) {
             mCategoryItemList = new MutableLiveData<>();
             mCurrentCategory = category;
         }
-        updateCategoryItems();
+        updateCategoryItems(pagingParameters);
         return mCategoryItemList;
     }
 
-    private void loadCategoryItemsAsync() {
+    private void loadCategoryItemsAsync(PaginationParameters pagingParameters) {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
         ForegroundThread.getExecutor().execute(() -> {
-            mCategoryItemList.postValue(loadItems(mCurrentCategory, userId));
+            mCategoryItemList.postValue(loadItems(mCurrentCategory, userId, pagingParameters));
         });
     }
 
@@ -308,12 +353,12 @@ public class PickerViewModel extends AndroidViewModel {
      *     this method
      */
     @VisibleForTesting
-    public void updateCategoryItems() {
+    public void updateCategoryItems(PaginationParameters pagingParameters) {
         if (mCategoryItemList == null || mCurrentCategory == null) {
             throw new IllegalStateException("mCurrentCategory and mCategoryItemList are not"
                     + " initiated. Please call getCategoryItems before calling this method");
         }
-        loadCategoryItemsAsync();
+        loadCategoryItemsAsync(pagingParameters);
     }
 
     /**
@@ -347,9 +392,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private Cursor fetchCategories(UserId userId) {
-        if (isUserSelectForApp()) {
-            // Photo Picker is launched by {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
-            // action for permission flow. We only show local items in this case.
+        if (shouldShowOnlyLocalFeatures()) {
             return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId);
         } else {
             return mItemsProvider.getAllCategories(mMimeTypeFilters, userId);
@@ -400,8 +443,10 @@ public class PickerViewModel extends AndroidViewModel {
 
         mSelection.parseSelectionValuesFromIntent(intent);
 
+        mIsLocalOnly = intent.getBooleanExtra(EXTRA_LOCAL_ONLY, false);
+
         mIsUserSelectForApp =
-                intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+                MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intent.getAction());
         if (!SdkLevel.isAtLeastU() && mIsUserSelectForApp) {
             throw new IllegalArgumentException("ACTION_USER_SELECT_IMAGES_FOR_APP is not enabled "
                     + " for this OS version");
@@ -416,6 +461,15 @@ public class PickerViewModel extends AndroidViewModel {
             throw new IllegalArgumentException(
                     "EXTRA_UID is required for" + " ACTION_USER_SELECT_IMAGES_FOR_APP");
         }
+
+        // Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
+        initBannerManager();
+    }
+
+    private void initBannerManager() {
+        mBannerManager = shouldShowOnlyLocalFeatures()
+                ? new BannerManager(mAppContext, mUserIdManager)
+                : new BannerManager.CloudBannerManager(mAppContext, mUserIdManager);
     }
 
     /**
@@ -469,20 +523,32 @@ public class PickerViewModel extends AndroidViewModel {
             mLogger.logPickerOpenWithAnyOtherFilter(mInstanceId, callingUid, callingPackage);
         }
 
-        logPickerOpenedWithCloudProvider();
+        maybeLogPickerOpenedWithCloudProvider();
     }
 
     // TODO(b/245745412): Fix log params (uid & package name)
     // TODO(b/245745424): Solve for active cloud provider without a logged in account
-    private void logPickerOpenedWithCloudProvider() {
-        final String providerAuthority = getCloudMediaProviderAuthority();
-        Log.d(TAG, "logPickerOpenedWithCloudProvider() provider=" + providerAuthority
-                + ", log=" + (providerAuthority != null));
-
-        if (providerAuthority != null) {
-            mLogger.logPickerOpenWithActiveCloudProvider(
-                    mInstanceId, /* cloudProviderUid */ -1, providerAuthority);
+    private void maybeLogPickerOpenedWithCloudProvider() {
+        if (shouldShowOnlyLocalFeatures()) {
+            return;
         }
+
+        final LiveData<String> cloudMediaProviderAuthorityLiveData =
+                getCloudMediaProviderAuthorityLiveData();
+        cloudMediaProviderAuthorityLiveData.observeForever(new Observer<String>() {
+            @Override
+            public void onChanged(@Nullable String providerAuthority) {
+                Log.d(TAG, "logPickerOpenedWithCloudProvider() provider=" + providerAuthority
+                        + ", log=" + (providerAuthority != null));
+
+                if (providerAuthority != null) {
+                    mLogger.logPickerOpenWithActiveCloudProvider(
+                            mInstanceId, /* cloudProviderUid */ -1, providerAuthority);
+                }
+                // We only need to get the value once.
+                cloudMediaProviderAuthorityLiveData.removeObserver(this);
+            }
+        });
     }
 
     /**
@@ -524,68 +590,98 @@ public class PickerViewModel extends AndroidViewModel {
         mInstanceId = parcelable;
     }
 
-    public ConfigStore getConfigStore() {
-        return mConfigStore;
-    }
-
-    private void updateBanners() {
-        if (mUserIdManager.isMultiUserProfiles()) {
-            updateBannersForUser(mUserIdManager.getPersonalUserId());
-            updateBannersForUser(mUserIdManager.getManagedUserId());
-        } else {
-            updateBannersForUser(mUserIdManager.getCurrentUserProfileId());
-        }
-        setBannersForCurrentUser();
-    }
-
-    private void updateBannersForUser(@NonNull UserId userId) {
-        final int userIdInt = userId.getIdentifier();
-        final UserHandle userHandle = userId.getUserHandle();
-        if (mBannerControllers.contains(userIdInt)) {
-            mBannerControllers.forUser(userIdInt).reset(mAppContext, mConfigStore, userHandle);
-        }
+    // Return whether hotopicker's launch intent has extra {@link EXTRA_LOCAL_ONLY} set to true
+    // or not.
+    @VisibleForTesting
+    boolean isLocalOnly() {
+        return mIsLocalOnly;
     }
 
     /**
-     * Set the banner {@link LiveData} values as per the current user {@link BannerController} data.
+     * Return whether only the local features should be shown (the cloud features should be hidden).
+     *
+     * Show only the local features in the following cases -
+     * 1. Photo Picker is launched by the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
+     *    action for the permission flow.
+     * 2. Photo Picker is launched with the {@link Intent#EXTRA_LOCAL_ONLY} as {@code true} in the
+     *    {@link Intent#ACTION_GET_CONTENT} or {@link MediaStore#ACTION_PICK_IMAGES} action.
+     * 3. Cloud Media in Photo picker is disabled, i.e.,
+     *    {@link ConfigStore#isCloudMediaInPhotoPickerEnabled()} is {@code false}.
+     *
+     * @return {@code true} iff either {@link #isUserSelectForApp()} or {@link #isLocalOnly()} is
+     * {@code true}, OR if {@link ConfigStore#isCloudMediaInPhotoPickerEnabled()} is {@code false}.
      */
-    @UiThread
-    public void setBannersForCurrentUser() {
-        final BannerController bannerController = getCurrentBannerController();
-        mShowChooseAppBanner.setValue(bannerController.shouldShowChooseAppBanner());
+    public boolean shouldShowOnlyLocalFeatures() {
+        return isUserSelectForApp() || isLocalOnly()
+                || !getConfigStore().isCloudMediaInPhotoPickerEnabled();
+    }
+
+    @VisibleForTesting
+    protected ConfigStore getConfigStore() {
+        return MediaApplication.getConfigStore();
     }
 
     /**
-     * @return the {@link LiveData} of the 'Choose App banner' visibility
-     * {@link #mShowChooseAppBanner}.
+     * @return the {@link LiveData} of the 'Choose App' banner visibility.
      */
     @NonNull
     public LiveData<Boolean> shouldShowChooseAppBannerLiveData() {
-        return mShowChooseAppBanner;
+        return mBannerManager.shouldShowChooseAppBannerLiveData();
+    }
+
+    /**
+     * @return the {@link LiveData} of the 'Cloud Media Available' banner visibility.
+     */
+    @NonNull
+    public LiveData<Boolean> shouldShowCloudMediaAvailableBannerLiveData() {
+        return mBannerManager.shouldShowCloudMediaAvailableBannerLiveData();
+    }
+
+    /**
+     * @return the {@link LiveData} of the 'Account Updated' banner visibility.
+     */
+    @NonNull
+    public LiveData<Boolean> shouldShowAccountUpdatedBannerLiveData() {
+        return mBannerManager.shouldShowAccountUpdatedBannerLiveData();
+    }
+
+    /**
+     * @return the {@link LiveData} of the 'Choose Account' banner visibility.
+     */
+    @NonNull
+    public LiveData<Boolean> shouldShowChooseAccountBannerLiveData() {
+        return mBannerManager.shouldShowChooseAccountBannerLiveData();
     }
 
     /**
      * Dismiss (hide) the 'Choose App' banner for the current user.
-     *
-     * 1. Set the {@link LiveData} value of the 'Choose App' banner visibility
-     *    {@link #mShowChooseAppBanner} as {@code false}.
-     *
-     * 2. Update the 'Choose App' banner visibility of the current user {@link BannerController} to
-     *    {@code false}.
      */
     @UiThread
     public void onUserDismissedChooseAppBanner() {
-        if (Boolean.FALSE.equals(mShowChooseAppBanner.getValue())) {
-            Log.wtf(TAG, "Choose app banner visibility live data value is false on dismiss");
-        } else {
-            mShowChooseAppBanner.setValue(false);
-        }
-        getCurrentBannerController().onUserDismissedChooseAppBanner();
+        mBannerManager.onUserDismissedChooseAppBanner();
     }
 
-    @NonNull
-    private BannerController getCurrentBannerController() {
-        final int currentUserId = mUserIdManager.getCurrentUserProfileId().getIdentifier();
-        return mBannerControllers.forUser(currentUserId);
+    /**
+     * Dismiss (hide) the 'Cloud Media Available' banner for the current user.
+     */
+    @UiThread
+    public void onUserDismissedCloudMediaAvailableBanner() {
+        mBannerManager.onUserDismissedCloudMediaAvailableBanner();
+    }
+
+    /**
+     * Dismiss (hide) the 'Account Updated' banner for the current user.
+     */
+    @UiThread
+    public void onUserDismissedAccountUpdatedBanner() {
+        mBannerManager.onUserDismissedAccountUpdatedBanner();
+    }
+
+    /**
+     * Dismiss (hide) the 'Choose Account' banner for the current user.
+     */
+    @UiThread
+    public void onUserDismissedChooseAccountBanner() {
+        mBannerManager.onUserDismissedChooseAccountBanner();
     }
 }

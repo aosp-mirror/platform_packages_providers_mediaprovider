@@ -260,6 +260,8 @@ public final class MediaStore {
     /** {@hide} */
     public static final String GET_CLOUD_PROVIDER_RESULT = "get_cloud_provider_result";
     /** {@hide} */
+    public static final String SET_CLOUD_PROVIDER_RESULT = "set_cloud_provider_result";
+    /** {@hide} */
     public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";
     /** {@hide} */
     public static final String EXTRA_CLOUD_PROVIDER = "cloud_provider";
@@ -290,7 +292,14 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
-    public static final String READ_BACKED_UP_FILE_PATHS = "read_backed_up_file_paths";
+    public static final String READ_BACKUP = "read_backup";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String GET_OWNER_PACKAGE_NAME = "get_owner_package_name";
 
     /**
      * Only used for testing.
@@ -744,6 +753,9 @@ public final class MediaStore {
      * greater than 1 and less than or equal to
      * {@link MediaStore#getPickImagesMaxLimit}, otherwise
      * {@link Activity#RESULT_CANCELED} is returned.
+     * <p>
+     * Callers may use {@link Intent#EXTRA_LOCAL_ONLY} to limit content
+     * selection to local data.
      * <p>
      * Output: MediaStore content URI(s) of the item(s) that was picked.
      * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
@@ -4337,20 +4349,21 @@ public final class MediaStore {
     }
 
     /** {@hide} */
+    public static boolean isKnownVolume(@NonNull String volumeName) {
+        if (VOLUME_INTERNAL.equals(volumeName)) return true;
+        if (VOLUME_EXTERNAL.equals(volumeName)) return true;
+        if (VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) return true;
+        if (VOLUME_DEMO.equals(volumeName)) return true;
+        return false;
+    }
+
+    /** {@hide} */
     public static @NonNull String checkArgumentVolumeName(@NonNull String volumeName) {
         if (TextUtils.isEmpty(volumeName)) {
             throw new IllegalArgumentException();
         }
 
-        if (VOLUME_INTERNAL.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_EXTERNAL.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) {
-            return volumeName;
-        } else if (VOLUME_DEMO.equals(volumeName)) {
-            return volumeName;
-        }
+        if (isKnownVolume(volumeName)) return volumeName;
 
         // When not one of the well-known values above, it must be a hex UUID
         for (int i = 0; i < volumeName.length(); i++) {
@@ -4717,10 +4730,23 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
-    public static String[] readBackedUpFilePaths(@NonNull ContentResolver resolver,
-            String volumeName) {
-        Bundle bundle = resolver.call(AUTHORITY, READ_BACKED_UP_FILE_PATHS, volumeName, null);
-        return bundle.getStringArray(READ_BACKED_UP_FILE_PATHS);
+    public static String readBackup(@NonNull ContentResolver resolver,
+            String volumeName, String filePath) {
+        Bundle extras = new Bundle();
+        extras.putString(Files.FileColumns.DATA, filePath);
+        Bundle bundle = resolver.call(AUTHORITY, READ_BACKUP, volumeName, extras);
+        return bundle.getString(READ_BACKUP);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String getOwnerPackageName(@NonNull ContentResolver resolver, int ownerId) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_OWNER_PACKAGE_NAME, String.valueOf(ownerId),
+                null);
+        return bundle.getString(GET_OWNER_PACKAGE_NAME);
     }
 
     /**
@@ -4859,7 +4885,7 @@ public final class MediaStore {
      * {@link #isCurrentCloudMediaProviderAuthority(ContentResolver, String)}, the request will be
      * unsuccessful.
      *
-     * @return {@code true} if the notification was successful, {@code false} otherwise
+     * @throws SecurityException if the request was unsuccessful.
      */
     public static void notifyCloudMediaChangedEvent(@NonNull ContentResolver resolver,
             @NonNull String authority, @NonNull String currentMediaCollectionId)

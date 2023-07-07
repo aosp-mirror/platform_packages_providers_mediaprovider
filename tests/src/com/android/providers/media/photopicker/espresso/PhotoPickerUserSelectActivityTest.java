@@ -26,7 +26,9 @@ import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.atPositionOnItemViewType;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -125,6 +127,18 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
 
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
         onView(withId(addButtonId)).check(matches(withText("Allow (1)")));
+    }
+
+    @Test
+    public void testNoCloudSettingsAndBanners() {
+        launchValidActivity();
+
+        OverflowMenuUtils.assertOverflowMenuNotShown();
+
+        // Assert no banners shown
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID))
+                .check(matches(not(atPositionOnItemViewType(
+                        DEFAULT_BANNER_POSITION, ITEM_TYPE_BANNER))));
     }
 
     @Test

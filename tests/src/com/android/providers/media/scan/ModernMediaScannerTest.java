@@ -115,8 +115,7 @@ public class ModernMediaScannerTest {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
-                        Manifest.permission.INTERACT_ACROSS_USERS,
-                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+                        Manifest.permission.INTERACT_ACROSS_USERS);
 
         mDir = new File(context.getExternalMediaDirs()[0], "test_" + System.nanoTime());
         mDir.mkdirs();
@@ -733,24 +732,6 @@ public class ModernMediaScannerTest {
 
         image = new File(Environment.getStorageDirectory(), "image.jpg");
         assertThat(mModern.scanFile(image, REASON_UNKNOWN)).isNull();
-    }
-
-    @Test
-    public void testScanFileAndUpdateOwnerPackageName() throws Exception {
-        final File image = new File(mDir, "image.jpg");
-        final String thisPackageName = InstrumentationRegistry.getContext().getPackageName();
-        stage(R.raw.test_image, image);
-
-        assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        // scanning the image file inserts new database entry with OWNER_PACKAGE_NAME as
-        // thisPackageName.
-        assertNotNull(mModern.scanFile(image, REASON_UNKNOWN, thisPackageName));
-        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                new String[] {MediaColumns.OWNER_PACKAGE_NAME}, null, null, null)) {
-            assertEquals(1, cursor.getCount());
-            cursor.moveToNext();
-            assertEquals(thisPackageName, cursor.getString(0));
-        }
     }
 
     /**

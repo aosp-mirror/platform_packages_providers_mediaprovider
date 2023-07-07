@@ -86,6 +86,11 @@ public class PhotoPickerBaseTest {
      */
     protected static final int VIDEO_POSITION = 3;
 
+    /**
+     * The default position of a banner in the Photos & Albums tab recycler view adapters
+     */
+    static final int DEFAULT_BANNER_POSITION = 0;
+
 
     private static final Intent sSingleSelectIntent;
     static {
@@ -169,8 +174,7 @@ public class PhotoPickerBaseTest {
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS,
-                        Manifest.permission.READ_DEVICE_CONFIG,
-                        Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+                        Manifest.permission.READ_DEVICE_CONFIG);
 
         sIsolatedContext = new IsolatedContext(getTargetContext(), "modern",
                 /* asFuseThread */ false);

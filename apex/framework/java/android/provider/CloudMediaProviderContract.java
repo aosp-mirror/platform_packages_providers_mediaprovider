@@ -248,6 +248,21 @@ public final class CloudMediaProviderContract {
         };
     }
 
+    /**
+     * <p>
+     * {@link Intent#EXTRA_MIME_TYPES} extra can be passed as a {@link Bundle} parameter to
+     * the CloudMediaProvider#onQueryAlbums method. The value is an Array of String Mime types.
+     * The provider should only return items matching at least one of the given Mime types.
+     *
+     * <p>
+     * This may be a pattern, such as *&#47;*,to query for all available MIME types that
+     * match the pattern,e.g.{@code image/*} should match {@code image/jpeg} and
+     * {@code image/png}.
+     *
+     * <p>
+     * Type: String[] (It is an string array of meme type filters)
+     */
+
     /** Constants related to an album item, including {@link Cursor} column names */
     public static final class AlbumColumns {
         private AlbumColumns() {}
@@ -264,7 +279,6 @@ public final class CloudMediaProviderContract {
          * Type: STRING
          */
         public static final String ID = "id";
-
 
         /**
          * Display name of a an album, used as the primary title displayed to a
@@ -537,17 +551,20 @@ public final class CloudMediaProviderContract {
     public static final String EXTRA_ALBUM_ID = "android.provider.extra.ALBUM_ID";
 
     /**
-     * Limits the query results to only media items matching the give mimetype.
-     * <p>
-     * This may be a pattern, such as *&#47;*, to query for all available MIME types that match the
-     * pattern, e.g. {@code image/*} should match {@code image/jpeg} and {@code image/png}.
+     * The maximum number of query results to be included in a batch when syncing metadata
+     * with cloud provider.
+     *
+     * If the provider handled the album filter, they must also add the {@link #EXTRA_PAGE_SIZE}
+     * key to the array of {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
+     * {@link Cursor#setExtras} {@link Bundle}.
      *
      * @see CloudMediaProvider#onQueryMedia
+     * @see CloudMediaProvider#onQueryAlbums
+     *
      * <p>
-     * Type: STRING
-     * @hide
+     * Type: INTEGER
      */
-    public static final String EXTRA_MIME_TYPE = "android.provider.extra.MIME_TYPE";
+    public static final String EXTRA_PAGE_SIZE = "android.provider.extra.PAGE_SIZE";
 
     /**
      * Limits the query results to only media items less than the given file size in bytes.

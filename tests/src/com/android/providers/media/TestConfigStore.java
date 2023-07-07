@@ -31,9 +31,28 @@ import java.util.concurrent.Executor;
  * stored to {@link android.provider.DeviceConfig}) and instead simply returns default values.
  */
 public class TestConfigStore implements ConfigStore {
+    private boolean mCloudMediaInPhotoPickerEnabled = false;
     private @Nullable List<String> mAllowedCloudProviderPackages = null;
     private @Nullable String mDefaultCloudProviderPackage = null;
     private int mPickerSyncDelayMs = 0;
+
+    public void enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(String... providers) {
+        mAllowedCloudProviderPackages = Arrays.asList(providers);
+        enableCloudMediaFeature();
+    }
+
+    public void enableCloudMediaFeature() {
+        mCloudMediaInPhotoPickerEnabled = true;
+    }
+
+    public void clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature() {
+        mAllowedCloudProviderPackages = null;
+        disableCloudMediaFeature();
+    }
+
+    public void disableCloudMediaFeature() {
+        mCloudMediaInPhotoPickerEnabled = false;
+    }
 
     @Override
     public @NonNull List<String> getAllowedCloudProviderPackages() {
@@ -41,12 +60,9 @@ public class TestConfigStore implements ConfigStore {
                 : Collections.emptyList();
     }
 
-    public void setAllowedCloudProviderPackages(String... packages) {
-        mAllowedCloudProviderPackages = Arrays.asList(packages);
-    }
-
-    public void clearAllowedCloudProviders() {
-        mAllowedCloudProviderPackages = null;
+    @Override
+    public boolean isCloudMediaInPhotoPickerEnabled() {
+        return mCloudMediaInPhotoPickerEnabled;
     }
 
     public void setDefaultCloudProviderPackage(@NonNull String packageName) {

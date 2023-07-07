@@ -35,6 +35,7 @@ import androidx.core.util.Supplier;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.StringUtils;
 
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -48,7 +49,7 @@ import java.util.concurrent.Executor;
  */
 public interface ConfigStore {
     boolean DEFAULT_TAKE_OVER_GET_CONTENT = false;
-    boolean DEFAULT_USER_SELECT_FOR_APP = false;
+    boolean DEFAULT_USER_SELECT_FOR_APP = true;
     boolean DEFAULT_STABILISE_VOLUME_INTERNAL = false;
     boolean DEFAULT_STABILIZE_VOLUME_EXTERNAL = false;
 
@@ -62,9 +63,32 @@ public interface ConfigStore {
     boolean DEFAULT_PICKER_PICK_IMAGES_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG = false;
 
+    boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = false;
+    boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
+
+    /**
+     * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and
+     *         "plug-in" {@link android.provider.CloudMediaProvider}s.
+     */
+    default boolean isCloudMediaInPhotoPickerEnabled() {
+        return DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED;
+    }
+
+    /**
+     * @return package name of the pre-configured "system default"
+     *         {@link android.provider.CloudMediaProvider}.
+     * @see #isCloudMediaInPhotoPickerEnabled()
+     */
+    @Nullable
+    default String getDefaultCloudProviderPackage() {
+        return null;
+    }
+
     /**
      * @return a non-null list of names of packages that are allowed to serve as the system
      *         Cloud Media Provider.
+     * @see #isCloudMediaInPhotoPickerEnabled()
+     * @see #shouldEnforceCloudProviderAllowlist()
      */
     @NonNull
     default List<String> getAllowedCloudProviderPackages() {
@@ -72,12 +96,12 @@ public interface ConfigStore {
     }
 
     /**
-     * @return package name of the pre-configured "system default"
-     *         {@link android.provider.CloudMediaProvider}.
+     * @return if the Cloud Media Provider allowlist should be enforced.
+     * @see #isCloudMediaInPhotoPickerEnabled()
+     * @see #getAllowedCloudProviderPackages()
      */
-    @Nullable
-    default String getDefaultCloudProviderPackage() {
-        return null;
+    default boolean shouldEnforceCloudProviderAllowlist() {
+        return DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST;
     }
 
     /**
@@ -189,6 +213,34 @@ public interface ConfigStore {
     void addOnChangeListener(@NonNull Executor executor, @NonNull Runnable listener);
 
     /**
+     * Print the {@link ConfigStore} state into the given stream.
+     */
+    default void dump(PrintWriter writer) {
+        writer.println("Config store state:");
+        writer.println("  isCloudMediaInPhotoPickerEnabled=" + isCloudMediaInPhotoPickerEnabled());
+        writer.println("  defaultCloudProviderPackage=" + getDefaultCloudProviderPackage());
+        writer.println("  allowedCloudProviderPackages=" + getAllowedCloudProviderPackages());
+        writer.println("  shouldEnforceCloudProviderAllowlist="
+                + shouldEnforceCloudProviderAllowlist());
+        writer.println("  pickerSyncDelayMs=" + getPickerSyncDelayMs());
+        writer.println("  shouldPickerPreloadForGetContent=" + shouldPickerPreloadForGetContent());
+        writer.println("  shouldPickerPreloadForPickImages=" + shouldPickerPreloadForPickImages());
+        writer.println("  shouldPickerRespectPreloadArgumentForPickImages="
+                + shouldPickerRespectPreloadArgumentForPickImages());
+        writer.println("  isGetContentTakeOverEnabled=" + isGetContentTakeOverEnabled());
+        writer.println("  isUserSelectForAppEnabled=" + isUserSelectForAppEnabled());
+        writer.println("  isStableUrisForInternalVolumeEnabled="
+                + isStableUrisForInternalVolumeEnabled());
+        writer.println("  isStableUrisForExternalVolumeEnabled="
+                + isStableUrisForExternalVolumeEnabled());
+        writer.println("  isTranscodeEnabled=" + isTranscodeEnabled());
+        writer.println("  shouldTranscodeDefault=" + shouldTranscodeDefault());
+        writer.println("  transcodeMaxDurationMs=" + getTranscodeMaxDurationMs());
+        writer.println("  transcodeCompatManifest=" + getTranscodeCompatManifest());
+        writer.println("  transcodeCompatStale=" + getTranscodeCompatStale());
+    }
+
+    /**
      * Implementation of the {@link ConfigStore} that reads "real" configs from
      * {@link android.provider.DeviceConfig}. Meant to be used by the "production" code.
      */
@@ -198,7 +250,8 @@ public interface ConfigStore {
 
         @VisibleForTesting
         public static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
-        private static final String KEY_STABILIZE_VOLUME_EXTERNAL = "stabilize_volume_external";
+        @VisibleForTesting
+        public static final String KEY_STABILIZE_VOLUME_EXTERNAL = "stabilize_volume_external";
 
         private static final String KEY_TRANSCODE_ENABLED = "transcode_enabled";
         private static final String KEY_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = "transcode_default";
@@ -209,8 +262,6 @@ public interface ConfigStore {
         private static final String SYSPROP_TRANSCODE_MAX_DURATION =
             "persist.sys.fuse.transcode_max_file_duration_ms";
         private static final int TRANSCODE_MAX_DURATION_INVALID = 0;
-
-        private static final String KEY_PICKER_ALLOWED_CLOUD_PROVIDERS = "allowed_cloud_providers";
         private static final String KEY_PICKER_SYNC_DELAY = "default_sync_delay_ms";
         private static final String KEY_PICKER_GET_CONTENT_PRELOAD =
                 "picker_get_content_preload_selected";
@@ -218,6 +269,11 @@ public interface ConfigStore {
                 "picker_pick_images_preload_selected";
         private static final String KEY_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG =
                 "picker_pick_images_respect_preload_selected_arg";
+
+        private static final String KEY_CLOUD_MEDIA_FEATURE_ENABLED = "cloud_media_feature_enabled";
+        private static final String KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST = "allowed_cloud_providers";
+        private static final String KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST =
+                "cloud_media_enforce_provider_allowlist";
 
         private static final boolean sCanReadDeviceConfig = SdkLevel.isAtLeastS();
 
@@ -228,24 +284,10 @@ public interface ConfigStore {
             mResources = requireNonNull(resources);
         }
 
-        @NonNull
         @Override
-        public List<String> getAllowedCloudProviderPackages() {
-            final List<String> allowlist =
-                    getStringArrayDeviceConfig(KEY_PICKER_ALLOWED_CLOUD_PROVIDERS);
-
-            // BACKWARD COMPATIBILITY WORKAROUND.
-            // See javadoc to maybeExtractPackageNameFromCloudProviderAuthority() below for more
-            // details.
-            for (int i = 0; i < allowlist.size(); i++) {
-                final String pkg =
-                        maybeExtractPackageNameFromCloudProviderAuthority(allowlist.get(i));
-                if (pkg != null) {
-                    allowlist.set(i, pkg);
-                }
-            }
-
-            return allowlist;
+        public boolean isCloudMediaInPhotoPickerEnabled() {
+            return getBooleanDeviceConfig(KEY_CLOUD_MEDIA_FEATURE_ENABLED,
+                    DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED);
         }
 
         @Nullable
@@ -263,6 +305,32 @@ public interface ConfigStore {
                 }
             }
             return pkg;
+        }
+
+        @NonNull
+        @Override
+        public List<String> getAllowedCloudProviderPackages() {
+            final List<String> allowlist =
+                    getStringArrayDeviceConfig(KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST);
+
+            // BACKWARD COMPATIBILITY WORKAROUND.
+            // See javadoc to maybeExtractPackageNameFromCloudProviderAuthority() below for more
+            // details.
+            for (int i = 0; i < allowlist.size(); i++) {
+                final String pkg =
+                        maybeExtractPackageNameFromCloudProviderAuthority(allowlist.get(i));
+                if (pkg != null) {
+                    allowlist.set(i, pkg);
+                }
+            }
+
+            return allowlist;
+        }
+
+        @Override
+        public boolean shouldEnforceCloudProviderAllowlist() {
+            return getBooleanDeviceConfig(KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST,
+                    DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST);
         }
 
         @Override
@@ -410,20 +478,25 @@ public interface ConfigStore {
          * Initially, instead of using package names when allow-listing and setting the system
          * default CloudMediaProviders we used authorities.
          * This, however, introduced a vulnerability, so we switched to using package names.
-         * But, by then, we had been allow-listing and setting default CMPs  using authorities.
-         * Luckily for us, all of those CMPs had authorities in the following format:
-         * "${package-name}.cloudprovider", e.g. "com.hooli.android.photos" package would implement
-         * a CMP with "com.hooli.android.photos.cloudprovider" authority.
+         * But, by then, we had been allow-listing and setting default CMPs using authorities.
+         * Luckily for us, all of those CMPs had authorities in one the following formats:
+         * "${package-name}.cloudprovider" or "${package-name}.picker",
+         * e.g. "com.hooli.android.photos" package would implement a CMP with
+         * "com.hooli.android.photos.cloudpicker" authority.
          * So in order for the old allow-listings and defaults to work now, we try to extract
-         * package names from authorities by removing the ".cloudprovider" suffixes.
+         * package names from authorities by removing the ".cloudprovider" and ".cloudpicker"
+         * suffixes.
          */
         @Nullable
         private static String maybeExtractPackageNameFromCloudProviderAuthority(
                 @NonNull String authority) {
             if (authority.endsWith(".cloudprovider")) {
                 return authority.substring(0, authority.length() - ".cloudprovider".length());
+            } else if (authority.endsWith(".cloudpicker")) {
+                return authority.substring(0, authority.length() - ".cloudpicker".length());
+            } else {
+                return null;
             }
-            return null;
         }
     }
 }

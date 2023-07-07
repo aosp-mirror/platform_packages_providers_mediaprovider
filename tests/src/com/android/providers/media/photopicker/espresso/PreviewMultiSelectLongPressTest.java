@@ -63,8 +63,8 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // No dragBar in preview
             onView(withId(DRAG_BAR_ID)).check(matches(not(isDisplayed())));
 
@@ -95,8 +95,8 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 3, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             assertMultiSelectLongPressCommonLayoutMatches();
             // Verify thumbnail view is displayed
             onView(withId(R.id.preview_video_image)).check(matches(isDisplayed()));
@@ -117,8 +117,8 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
 
         final int selectButtonId = PREVIEW_ADD_OR_SELECT_BUTTON_ID;
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Select the item within Preview
             onView(withId(selectButtonId)).perform(click());
             // Check that button text is changed to "deselect"
@@ -134,8 +134,8 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         // Navigate to Preview and check the select button text
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, position, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Check that button text is set to "deselect" and common layout matches
             assertMultiSelectLongPressCommonLayoutMatches(/* isSelected */ true);
 
@@ -164,8 +164,8 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
         // Long press second image item to preview the item.
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
 
-        try (ViewPager2IdlingResource idlingResource
-                     = ViewPager2IdlingResource.register(mRule, PREVIEW_VIEW_PAGER_ID)) {
+        try (ViewPager2IdlingResource idlingResource =
+                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             mRule.getScenario().onActivity(activity -> {
                 Selection selection
                         = new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();

@@ -551,6 +551,26 @@ public final class CloudMediaProviderContract {
     public static final String EXTRA_ALBUM_ID = "android.provider.extra.ALBUM_ID";
 
     /**
+     * The maximum number of query results to be included in a batch when syncing metadata
+     * with cloud provider.
+     *
+     * This extra can be passed as a {@link Bundle} parameter to the media or album query methods.
+     * If this extra is present in the bundle then it is mandatory for the provider to honor it
+     * and return results at max page size.
+     *
+     * If the provider handled the page size, they must also add the {@link #EXTRA_PAGE_SIZE}
+     * key to the array of {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
+     * {@link Cursor#setExtras} {@link Bundle}.
+     *
+     * @see CloudMediaProvider#onQueryMedia
+     * @see CloudMediaProvider#onQueryAlbums
+     *
+     * <p>
+     * Type: INTEGER
+     */
+    public static final String EXTRA_PAGE_SIZE = "android.provider.extra.PAGE_SIZE";
+
+    /**
      * Limits the query results to only media items less than the given file size in bytes.
      * <p>
      * This is only intended for the MediaProvider to implement for cross-user communication. Not

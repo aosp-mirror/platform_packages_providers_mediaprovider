@@ -39,6 +39,7 @@ import static com.android.providers.media.util.DatabaseUtils.resolveQueryArgs;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -124,6 +125,15 @@ public class DatabaseUtilsTest {
                 bindSelection("DATA=?", "Fo'o"));
         assertEquals("DATA='Fo''''o'",
                 bindSelection("DATA=?", "Fo''o"));
+    }
+
+    @Test
+    public void testBindSelection_RejectInvalidUnicode() {
+        assertThrows(IllegalArgumentException.class, () -> bindSelection("DATA=?", "Fo\uD83Do"));
+        assertThrows(IllegalArgumentException.class, () -> bindSelection("DATA=?", "Fo\uDE00o"));
+        assertEquals("DATA='Fo\uD83D\uDE00o'", bindSelection("DATA=?", "Fo\uD83D\uDE00o"));
+        assertThrows(
+                IllegalArgumentException.class, () -> bindSelection("DATA=?", "Fo\uDE00\uD83Do"));
     }
 
     @Test

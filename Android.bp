@@ -72,6 +72,7 @@ android_app {
 
     certificate: "media",
     privileged: true,
+    privapp_allowlist: ":privapp_allowlist_com.android.providers.media.module.xml",
 
     aaptflags: ["--custom-package com.android.providers.media"],
 
@@ -87,10 +88,7 @@ android_app {
         ],
     },
 
-    required: [
-        "preinstalled-packages-com.android.providers.media.module.xml",
-        "privapp_allowlist_com.android.providers.media.module.xml",
-    ],
+    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
 
     lint: {
         strict_updatability_linting: true,
@@ -113,7 +111,6 @@ filegroup {
 java_library {
     name: "mediaprovider-database",
     srcs: [
-        "src/com/android/providers/media/LegacyDatabaseHelper.java",
         "src/com/android/providers/media/util/DatabaseUtils.java",
         "src/com/android/providers/media/util/FileUtils.java",
         "src/com/android/providers/media/util/ForegroundThread.java",

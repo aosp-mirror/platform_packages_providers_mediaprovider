@@ -626,6 +626,20 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * Log metrics to notify that the user has switched to the photos tab
+     */
+    public void logSwitchToPhotosTab() {
+        mLogger.logSwitchToPhotosTab(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has switched to the albums tab
+     */
+    public void logSwitchToAlbumsTab() {
+        mLogger.logSwitchToAlbumsTab(mInstanceId);
+    }
+
+    /**
      * Log metrics to notify that the user has opened a cloud album
      * @param category the opened album metadata
      * @param position the position of the album in the recycler view

@@ -52,7 +52,7 @@ public class LocalProvider extends CloudMediaProvider {
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
         return mMediaGenerator.getMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
-                queryExtras.getMimeTypes(), queryExtras.getSizeBytes());
+                queryExtras.getMimeTypes(), queryExtras.getSizeBytes(), queryExtras.getPageSize());
     }
 
     @Override

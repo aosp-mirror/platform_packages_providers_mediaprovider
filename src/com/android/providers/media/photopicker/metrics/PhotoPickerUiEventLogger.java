@@ -59,7 +59,9 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "User changed the active Photo picker cloud provider")
         PHOTO_PICKER_CLOUD_PROVIDER_CHANGED(1135),
         @UiEvent(doc = "Photo Picker uri is queried with an unknown column")
-        PHOTO_PICKER_QUERY_UNKNOWN_COLUMN(1227);
+        PHOTO_PICKER_QUERY_UNKNOWN_COLUMN(1227),
+        @UiEvent(doc = "Clicked the mute / unmute button in a photo picker video preview")
+        PHOTO_PICKER_VIDEO_PREVIEW_AUDIO_BUTTON_CLICK(1413);
 
         private final int mId;
 
@@ -314,5 +316,13 @@ public class PhotoPickerUiEventLogger {
         logger.log(PhotoPickerEvent.PHOTO_PICKER_QUERY_UNKNOWN_COLUMN,
                 callingUid,
                 callingPackage);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the mute / unmute button in a video preview
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logVideoPreviewMuteButtonClick(InstanceId instanceId) {
+        logger.log(PhotoPickerEvent.PHOTO_PICKER_VIDEO_PREVIEW_AUDIO_BUTTON_CLICK, instanceId);
     }
 }

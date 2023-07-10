@@ -24,6 +24,7 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 
+import androidx.annotation.NonNull;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
@@ -38,6 +39,7 @@ import com.google.android.material.progressindicator.CircularProgressIndicator;
 public class PreviewVideoHolder extends BaseViewHolder {
 
     private final ImageLoader mImageLoader;
+    private final PreviewAdapter.OnVideoPreviewClickListener mOnVideoPreviewClickListener;
     private final ImageView mImageView;
     private final SurfaceView mSurfaceView;
     private final AspectRatioFrameLayout mPlayerFrame;
@@ -47,10 +49,12 @@ public class PreviewVideoHolder extends BaseViewHolder {
     private final ImageButton mMuteButton;
     private final CircularProgressIndicator mCircularProgressIndicator;
 
-    PreviewVideoHolder(Context context, ViewGroup parent, ImageLoader imageLoader) {
+    PreviewVideoHolder(Context context, ViewGroup parent, ImageLoader imageLoader,
+            @NonNull PreviewAdapter.OnVideoPreviewClickListener onVideoPreviewClickListener) {
         super(context, parent, R.layout.item_video_preview);
 
         mImageLoader = imageLoader;
+        mOnVideoPreviewClickListener = onVideoPreviewClickListener;
         mImageView = itemView.findViewById(R.id.preview_video_image);
         mSurfaceView = itemView.findViewById(R.id.preview_player_view);
         mPlayerFrame = itemView.findViewById(R.id.preview_player_frame);
@@ -102,5 +106,12 @@ public class PreviewVideoHolder extends BaseViewHolder {
 
     public CircularProgressIndicator getCircularProgressIndicator() {
         return mCircularProgressIndicator;
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the mute / unmute button in a video preview
+     */
+    public void logMuteButtonClick() {
+        mOnVideoPreviewClickListener.logMuteButtonClick();
     }
 }

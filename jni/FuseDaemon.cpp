@@ -1979,7 +1979,8 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
         struct fuse_dirent* dirent_out = (struct fuse_dirent*)((char*)dirents_out + fro->size);
         struct stat stats;
         int err;
-        std::string child_path = path + "/" + dirent_in->name;
+        std::string child_path = path + "/";
+        child_path.append(dirent_in->name, dirent_in->namelen);
 
         in += sizeof(*dirent_in) + round_up(dirent_in->namelen, sizeof(uint64_t));
         err = stat(child_path.c_str(), &stats);

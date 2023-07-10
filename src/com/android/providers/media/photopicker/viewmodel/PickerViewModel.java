@@ -69,7 +69,6 @@ import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -81,8 +80,6 @@ public class PickerViewModel extends AndroidViewModel {
     private static final int RECENT_MINIMUM_COUNT = 12;
 
     private static final int INSTANCE_ID_MAX = 1 << 15;
-    private static final List<String> LOCAL_OR_MERGED_ALBUMS = Arrays.asList(ALBUM_ID_FAVORITES,
-            ALBUM_ID_CAMERA, ALBUM_ID_DOWNLOADS, ALBUM_ID_SCREENSHOTS, ALBUM_ID_VIDEOS);
 
     @NonNull
     @SuppressLint("StaticFieldLeak")
@@ -660,13 +657,23 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Log metrics to notify that the user has opened a cloud album
+     * Log metrics to notify that the user has opened an album
      * @param category the opened album metadata
      * @param position the position of the album in the recycler view
      */
-    public void logCloudAlbumOpened(@NonNull Category category, int position) {
+    public void logAlbumOpened(@NonNull Category category, int position) {
         final String albumId = category.getId();
-        if (!LOCAL_OR_MERGED_ALBUMS.contains(albumId) && !category.isLocal()) {
+        if (ALBUM_ID_FAVORITES.equals(albumId)) {
+            mLogger.logFavoritesAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_CAMERA.equals(albumId)) {
+            mLogger.logCameraAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_DOWNLOADS.equals(albumId)) {
+            mLogger.logDownloadsAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_SCREENSHOTS.equals(albumId)) {
+            mLogger.logScreenshotsAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_VIDEOS.equals(albumId)) {
+            mLogger.logVideosAlbumOpened(mInstanceId);
+        } else if (!category.isLocal()) {
             mLogger.logCloudAlbumOpened(mInstanceId, position);
         }
     }

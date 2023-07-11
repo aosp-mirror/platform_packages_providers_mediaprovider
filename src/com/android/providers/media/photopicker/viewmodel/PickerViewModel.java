@@ -618,6 +618,38 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger.logProfileSwitchButtonClick(mInstanceId);
     }
 
+    /**
+     * Log metrics to notify that the user has selected a media item
+     * @param item     the selected item metadata
+     * @param category the category of the item selected, {@link Category#DEFAULT} for main grid
+     * @param position the position of the album in the recycler view
+     */
+    public void logMediaItemSelected(@NonNull Item item, @NonNull Category category, int position) {
+        if (category.isDefault()) {
+            mLogger.logSelectedMainGridItem(mInstanceId, position);
+        } else {
+            mLogger.logSelectedAlbumItem(mInstanceId, position);
+        }
+
+        if (!item.isLocal()) {
+            mLogger.logSelectedCloudOnlyItem(mInstanceId, position);
+        }
+    }
+
+    /**
+     * Log metrics to notify that the user has previewed a media item
+     * @param item     the previewed item metadata
+     * @param category the category of the item previewed, {@link Category#DEFAULT} for main grid
+     * @param position the position of the album in the recycler view
+     */
+    public void logMediaItemPreviewed(
+            @NonNull Item item, @NonNull Category category, int position) {
+        if (category.isDefault()) {
+            mLogger.logPreviewedMainGridItem(
+                    item.getSpecialFormat(), item.getMimeType(), mInstanceId, position);
+        }
+    }
+
     public InstanceId getInstanceId() {
         return mInstanceId;
     }

@@ -130,7 +130,8 @@ public class PreviewFragment extends Fragment {
             throw new IllegalStateException("Expected to find ViewPager2 in " + view
                     + ", but found null");
         }
-        mViewPager2Wrapper = new ViewPager2Wrapper(viewPager, selectedItemsList, mMuteStatus);
+        mViewPager2Wrapper = new ViewPager2Wrapper(viewPager, selectedItemsList, mMuteStatus,
+                mPickerViewModel::logVideoPreviewMuteButtonClick);
 
         setUpPreviewLayout(view, getArguments());
         setupScrimLayerAndBottomBar(view);

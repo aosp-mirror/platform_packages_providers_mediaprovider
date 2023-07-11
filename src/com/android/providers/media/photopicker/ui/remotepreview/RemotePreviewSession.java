@@ -89,6 +89,7 @@ final class RemotePreviewSession {
     private final View.OnClickListener mMuteButtonClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            mPreviewVideoHolder.logMuteButtonClick();
             boolean newMutedValue = !mMuteStatus.isVolumeMuted();
             mMuteStatus.setVolumeMuted(newMutedValue);
             handleAudioFocusAndInitVolumeState();

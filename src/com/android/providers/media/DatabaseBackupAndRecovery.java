@@ -30,7 +30,6 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.CancellationSignal;
-import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.os.SystemProperties;
@@ -226,24 +225,16 @@ public class DatabaseBackupAndRecovery {
         }
 
         try {
-            boolean externalVolumeMounted = Environment.getExternalStorageState()
-                    .equals(Environment.MEDIA_MOUNTED);
-            Log.d(TAG, String.format("Setting up db backup for %s, external_primary "
-                    + "volume mounted: %s", volumeName, externalVolumeMounted));
-
             if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
                 new File(RECOVERY_DIRECTORY_PATH).mkdirs();
             }
             FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(volumePath,
                     WAIT_TIME_5_SECONDS_IN_MILLIS);
-            Log.d(TAG, "Received db backup Fuse Daemon for: " + volumeName);
             fuseDaemon.setupVolumeDbBackup();
-            mIsBackupSetupComplete.set(true);
+            mIsBackupSetupComplete = new AtomicBoolean(true);
         } catch (IOException e) {
             Log.e(TAG, "Failure in setting up backup and recovery for volume: " + volumeName, e);
-            return;
         }
-        Log.i(TAG, "Successfully set up backup and recovery for volume: " + volumeName);
     }
 
     /**
@@ -271,7 +262,7 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    protected synchronized void backupInternalDatabase(DatabaseHelper internalDbHelper,
+    protected void backupInternalDatabase(DatabaseHelper internalDbHelper,
             CancellationSignal signal) {
         if (!isStableUrisEnabled(MediaStore.VOLUME_INTERNAL)
                 || internalDbHelper.isDatabaseRecovering()) {
@@ -279,7 +270,7 @@ public class DatabaseBackupAndRecovery {
         }
 
         if (!mIsBackupSetupComplete.get()) {
-            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
+            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL,
                     new File(EXTERNAL_PRIMARY_ROOT_PATH));
         }
 
@@ -311,7 +302,7 @@ public class DatabaseBackupAndRecovery {
         });
     }
 
-    protected synchronized void backupExternalDatabase(DatabaseHelper externalDbHelper,
+    protected void backupExternalDatabase(DatabaseHelper externalDbHelper,
             CancellationSignal signal) {
         if (!isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
                 || externalDbHelper.isDatabaseRecovering()) {
@@ -319,7 +310,7 @@ public class DatabaseBackupAndRecovery {
         }
 
         if (!mIsBackupSetupComplete.get()) {
-            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
+            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL,
                     new File(EXTERNAL_PRIMARY_ROOT_PATH));
         }
 
@@ -351,13 +342,10 @@ public class DatabaseBackupAndRecovery {
 
         externalDbHelper.runWithTransaction((db) -> {
             long maxGeneration = lastBackedGenerationNumber;
-            Log.d(TAG, "Started to back up external database, maxGeneration:" + maxGeneration);
             try (Cursor c = db.query(true, "files", QUERY_COLUMNS, selectionClause, null, null,
                     null, MediaStore.MediaColumns._ID + " ASC", null, signal)) {
                 while (c.moveToNext()) {
                     if (signal != null && signal.isCanceled()) {
-                        Log.i(TAG, "Received a cancellation signal during the DB "
-                                + "backup process");
                         break;
                     }
                     backupDataValues(fuseDaemon, c);
@@ -802,6 +790,10 @@ public class DatabaseBackupAndRecovery {
     }
 
     protected void recoverData(SQLiteDatabase db, String volumeName) {
+        if (!isBackupPresent()) {
+            return;
+        }
+
         final long startTime = SystemClock.elapsedRealtime();
         final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
         // Wait for external primary to be attached as we use same thread for internal volume.
@@ -812,12 +804,6 @@ public class DatabaseBackupAndRecovery {
             Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.", e);
             return;
         }
-
-        if (!isBackupPresent()) {
-            Log.w(TAG, "Backup is not present for " + volumeName);
-            return;
-        }
-        Log.d(TAG, "Backup is present for " + volumeName);
 
         setupVolumeDbBackupAndRecovery(volumeName, new File(EXTERNAL_PRIMARY_ROOT_PATH));
         long rowsRecovered = 0;

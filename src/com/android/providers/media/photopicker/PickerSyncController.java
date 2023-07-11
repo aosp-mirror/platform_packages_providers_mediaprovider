@@ -115,7 +115,7 @@ public class PickerSyncController {
     private static final int SYNC_TYPE_MEDIA_INCREMENTAL = 1;
     private static final int SYNC_TYPE_MEDIA_FULL = 2;
     private static final int SYNC_TYPE_MEDIA_RESET = 3;
-    public static final int PAGE_SIZE = 3000;
+    public static final int PAGE_SIZE = 1000;
     @NonNull
     private static final Handler sBgThreadHandler = BackgroundThread.getHandler();
     @IntDef(flag = false, prefix = { "SYNC_TYPE_" }, value = {
@@ -245,7 +245,7 @@ public class PickerSyncController {
 
             // Trigger a sync.
             final boolean didSyncFinish = syncAllMediaFromProvider(cloudProvider,
-                    /* isLocal */ false, /* retryOnFailure */ true, /* enforcePagedSync*/ false);
+                    /* isLocal */ false, /* retryOnFailure */ true, /* enforcePagedSync*/ true);
 
             // Check if sync was completed successfully.
             if (!didSyncFinish) {
@@ -291,7 +291,7 @@ public class PickerSyncController {
     private void syncAlbumMediaFromCloudProvider(@NonNull String albumId) {
         synchronized (mCloudSyncLock) {
             syncAlbumMediaFromProvider(getCloudProvider(), /* isLocal */ false, albumId,
-                    /* enforcePagedSync*/ false);
+                    /* enforcePagedSync*/ true);
         }
     }
 
@@ -662,7 +662,7 @@ public class PickerSyncController {
             Log.e(TAG, "Failed to sync all media. Reset media and retry: " + retryOnFailure, e);
             if (retryOnFailure) {
                 return syncAllMediaFromProvider(authority, isLocal, /* retryOnFailure */ false,
-                        /* enforcePagedSync*/ false);
+                        /* enforcePagedSync*/ enforcePagedSync);
             }
         } catch (RuntimeException e) {
             // Retry the failed operation to see if it was an intermittent problem. If this fails,
@@ -671,7 +671,7 @@ public class PickerSyncController {
             Log.e(TAG, "Failed to sync all media. Reset media and retry: " + retryOnFailure, e);
             if (retryOnFailure) {
                 return syncAllMediaFromProvider(authority, isLocal, /* retryOnFailure */ false,
-                        /* enforcePagedSync*/ false);
+                        /* enforcePagedSync*/ enforcePagedSync);
             }
         } finally {
             Trace.endSection();
@@ -731,8 +731,9 @@ public class PickerSyncController {
             expectedHonoredArgs.add(EXTRA_SYNC_GENERATION);
         }
 
-        //TODO(b/287003817): add pagesize extra when enforcePagedSync is true in expectedHonoredArgs
-        // later when ready.
+        if (enforcePagedSync) {
+            expectedHonoredArgs.add(EXTRA_PAGE_SIZE);
+        }
 
         Log.i(TAG, "Executing SyncAdd. isLocal: " + isLocal + ". authority: " + authority);
 

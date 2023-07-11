@@ -41,10 +41,13 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private List<Item> mItemList = new ArrayList<>();
     private final ImageLoader mImageLoader;
     private final RemotePreviewHandler mRemotePreviewHandler;
+    private final OnVideoPreviewClickListener mOnVideoPreviewClickListener;
 
-    PreviewAdapter(Context context, MuteStatus muteStatus) {
+    PreviewAdapter(Context context, MuteStatus muteStatus,
+            @NonNull OnVideoPreviewClickListener onVideoPreviewClickListener) {
         mImageLoader = new ImageLoader(context);
         mRemotePreviewHandler = new RemotePreviewHandler(context, muteStatus);
+        mOnVideoPreviewClickListener = onVideoPreviewClickListener;
     }
 
     @NonNull
@@ -53,7 +56,8 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         if (viewType == ITEM_TYPE_IMAGE) {
             return new PreviewImageHolder(viewGroup.getContext(), viewGroup, mImageLoader);
         }
-        return new PreviewVideoHolder(viewGroup.getContext(), viewGroup, mImageLoader);
+        return new PreviewVideoHolder(viewGroup.getContext(), viewGroup, mImageLoader,
+                mOnVideoPreviewClickListener);
     }
 
     @Override
@@ -111,5 +115,9 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     void updateItemList(List<Item> itemList) {
         mItemList = itemList;
         notifyDataSetChanged();
+    }
+
+    interface OnVideoPreviewClickListener {
+        void logMuteButtonClick();
     }
 }

@@ -489,6 +489,8 @@ public class MediaProvider extends ContentProvider {
      */
     private static final String DOWNLOADS_PROVIDER_AUTHORITY = "downloads";
 
+    private static final String DEFAULT_FOLDER_CREATED_KEY_PREFIX = "created_default_folders_";
+
     @GuardedBy("mPendingOpenInfo")
     private final Map<Integer, PendingOpenInfo> mPendingOpenInfo = new ArrayMap<>();
 
@@ -805,6 +807,11 @@ public class MediaProvider extends ContentProvider {
                      * isMediaSharedWithParent is true.On removal of such user profile,
                      * the owner's MediaProvider would need to clean any media files stored
                      * by the removed user profile.
+                     * We also remove the default folder key for the cloned user (just removed)
+                     * from user 0's SharedPreferences. Usually, the next clone user would be
+                     * created with a different key (as user-id would be incremented), however, if
+                     * device is restarted, the next clone-user can use the user-id previously
+                     * assigned, causing stale entries in user 0's SharedPreferences
                      */
                     UserHandle userToBeRemoved  = intent.getParcelableExtra(Intent.EXTRA_USER);
                     if(userToBeRemoved.getIdentifier() != sUserId){
@@ -813,6 +820,26 @@ public class MediaProvider extends ContentProvider {
                                     new String[]{String.valueOf(userToBeRemoved.getIdentifier())});
                             return null ;
                         });
+                        String userToBeRemovedVolId = null;
+                        synchronized (mAttachedVolumes) {
+                          for (MediaVolume volume : mAttachedVolumes) {
+                              if (userToBeRemoved.equals(volume.getUser())) {
+                                  userToBeRemovedVolId = volume.getId();
+                                  break;
+                              }
+                          }
+                        }
+                        //The clone user volume may be unmounted at this time (userToBeRemovedVolId
+                        // will be null then), we construct the volId of unmounted vol from userId.
+                        String key = DEFAULT_FOLDER_CREATED_KEY_PREFIX
+                                + getPrimaryVolumeId(userToBeRemovedVolId, userToBeRemoved);
+                        final SharedPreferences prefs = PreferenceManager
+                                .getDefaultSharedPreferences(getContext());
+                        if (prefs.getInt(key, /* default */ 0) == 1) {
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.remove(key);
+                            editor.commit();
+                        }
                     }
 
                     // Only default system user 0 has permission to update xattrs on /data/media/0
@@ -1135,11 +1162,12 @@ public class MediaProvider extends ContentProvider {
         if (volumeName.equals(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
             // For the primary volume, we use the ID, because we may be handling
             // the primary volume for multiple users
-            key = "created_default_folders_" + volume.getId();
+            key = DEFAULT_FOLDER_CREATED_KEY_PREFIX
+                    + getPrimaryVolumeId(volume.getId(), volume.getUser());
         } else {
             // For others, like public volumes, just use the name, because the id
             // might not change when re-formatted
-            key = "created_default_folders_" + volumeName;
+            key = DEFAULT_FOLDER_CREATED_KEY_PREFIX + volumeName;
         }
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -1156,6 +1184,24 @@ public class MediaProvider extends ContentProvider {
             editor.putInt(key, 1);
             editor.commit();
         }
+    }
+
+    /**
+     * Returns the volume id for Primary External Volumes.
+     * If volId is supplied, it is returned as-is, in case it is not, user-id is used to
+     * construct the id for Primary External Volume.
+     *
+     * @param volId the id of the Volume in consideration.
+     * @param userId userId for which primary volume id needs to be determined.
+     * @return the primary volume id.
+     */
+    private String getPrimaryVolumeId(String volId, UserHandle userId) {
+        if (volId == null) {
+            // The construction is based upon system/vold/model/EmulatedVolume.cpp
+            // Should be kept in sync with the same.
+            return "emulated;" + userId.getIdentifier();
+        }
+        return volId;
     }
 
     /**

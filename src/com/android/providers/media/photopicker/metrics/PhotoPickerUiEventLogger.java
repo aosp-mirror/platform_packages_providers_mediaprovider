@@ -72,6 +72,8 @@ public class PhotoPickerUiEventLogger {
         PHOTO_PICKER_PROFILE_SWITCH_BUTTON_DISABLED(1416),
         @UiEvent(doc = "Clicked the 'switch profile' button in photo picker")
         PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK(1417),
+        @UiEvent(doc = "Opened a cloud album in photo picker")
+        PHOTO_PICKER_ALBUM_FROM_CLOUD_OPEN(1432),
         @UiEvent(doc = "Selected a media item in the main grid")
         PHOTO_PICKER_SELECTED_ITEM_MAIN_GRID(1433),
         @UiEvent(doc = "Selected a media item in an album")
@@ -376,6 +378,16 @@ public class PhotoPickerUiEventLogger {
      */
     public void logProfileSwitchButtonClick(InstanceId instanceId) {
         logWithInstance(PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened a cloud album
+     * @param instanceId an identifier for the current picker session
+     * @param position   the position of the album in the recycler view
+     */
+    public void logCloudAlbumOpened(InstanceId instanceId, int position) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_ALBUM_FROM_CLOUD_OPEN,
+                /* uid */ 0, /* packageName */ null, instanceId, position);
     }
 
     /**

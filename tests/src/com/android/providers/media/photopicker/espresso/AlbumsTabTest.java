@@ -28,6 +28,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotDisplayed;
 
 import static org.hamcrest.Matchers.allOf;
 
@@ -94,7 +95,10 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
     private void assertItemContentInAlbumList(int position, int albumNameResId) {
         // Verify the components are shown on the album item
         assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.album_name);
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.item_count);
+        // As per the current requirements , hiding album's item count.
+        // In case if in future we need to show album's item count , we also have to assert its
+        // correct count with the visibility of album's item count block.
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.item_count);
         assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.icon_thumbnail);
 
         // Verify we have the album in the list
@@ -105,10 +109,5 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
         onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
                 .atPositionOnView(position, R.id.album_name))
                 .check(matches(withText(albumNameResId)));
-
-        // Verify the item count is correct
-        onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
-                .atPositionOnView(position, R.id.item_count))
-                .check(matches(withText("1 item")));
     }
 }

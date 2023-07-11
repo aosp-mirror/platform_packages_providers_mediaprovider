@@ -61,20 +61,25 @@ class AlbumGridHolder extends RecyclerView.ViewHolder {
         itemView.setOnClickListener(v -> mOnAlbumClickListener.onAlbumClick(category));
         mImageLoader.loadAlbumThumbnail(category, mIconThumb);
         mAlbumName.setText(category.getDisplayName(itemView.getContext()));
-
         // Check whether there is a mime type filter or not. If yes, hide the item count. Otherwise,
         // show the item count and update the count.
-        if (mHasMimeTypeFilter) {
-            mItemCount.setVisibility(View.GONE);
-        } else {
-            mItemCount.setVisibility(View.VISIBLE);
-            final int itemCount = category.getItemCount();
-            final String quantityText =
-                    StringUtils.getICUFormatString(
-                        itemView.getResources(), itemCount, R.string.picker_album_item_count);
-            final String itemCountString = NumberFormat.getInstance(Locale.getDefault()).format(
-                    itemCount);
-            mItemCount.setText(TextUtils.expandTemplate(quantityText, itemCountString));
+        if (mItemCount.getVisibility() == View.VISIBLE) {
+            // As per the current requirements, we are hiding album's item count and this piece of
+            // code will never execute. for now keeping it here as it is, in case if in future we
+            // need to show album's item count.
+            if (mHasMimeTypeFilter) {
+                mItemCount.setVisibility(View.GONE);
+            } else {
+                mItemCount.setVisibility(View.VISIBLE);
+                final int itemCount = category.getItemCount();
+                final String quantityText =
+                        StringUtils.getICUFormatString(
+                                itemView.getResources(), itemCount,
+                                R.string.picker_album_item_count);
+                final String itemCountString = NumberFormat.getInstance(Locale.getDefault()).format(
+                        itemCount);
+                mItemCount.setText(TextUtils.expandTemplate(quantityText, itemCountString));
+            }
         }
     }
 }

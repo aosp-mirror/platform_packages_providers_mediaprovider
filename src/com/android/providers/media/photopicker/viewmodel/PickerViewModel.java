@@ -589,6 +589,35 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger.logVideoPreviewMuteButtonClick(mInstanceId);
     }
 
+    /**
+     * Log metrics to notify that the user has clicked the 'view selected' button
+     * @param selectedItemCount the number of items selected for preview all
+     */
+    public void logPreviewAllSelected(int selectedItemCount) {
+        mLogger.logPreviewAllSelected(mInstanceId, selectedItemCount);
+    }
+
+    /**
+     * Log metrics to notify that the 'switch profile' button is visible & enabled
+     */
+    public void logProfileSwitchButtonEnabled() {
+        mLogger.logProfileSwitchButtonEnabled(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the 'switch profile' button is visible but disabled
+     */
+    public void logProfileSwitchButtonDisabled() {
+        mLogger.logProfileSwitchButtonDisabled(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the 'switch profile' button
+     */
+    public void logProfileSwitchButtonClick() {
+        mLogger.logProfileSwitchButtonClick(mInstanceId);
+    }
+
     public InstanceId getInstanceId() {
         return mInstanceId;
     }

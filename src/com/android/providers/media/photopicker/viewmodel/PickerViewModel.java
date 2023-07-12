@@ -582,6 +582,13 @@ public class PickerViewModel extends AndroidViewModel {
         }
     }
 
+    /**
+     * Log metrics to notify that the user has clicked the mute / unmute button in a video preview
+     */
+    public void logVideoPreviewMuteButtonClick() {
+        mLogger.logVideoPreviewMuteButtonClick(mInstanceId);
+    }
+
     public InstanceId getInstanceId() {
         return mInstanceId;
     }

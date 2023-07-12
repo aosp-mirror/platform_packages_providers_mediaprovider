@@ -193,6 +193,7 @@ android_test {
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
+        "androidx.work_work-runtime",
         "exoplayer-mediaprovider-ui",
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",

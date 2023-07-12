@@ -33,6 +33,7 @@ public class ItemsAction {
     public static final int ACTION_LOAD_NEXT_PAGE = 2;
     public static final int ACTION_CLEAR_AND_UPDATE_LIST = 3;
     public static final int ACTION_CLEAR_GRID = 4;
+    public static final int ACTION_REFRESH_ITEMS = 5;
 
 
     private ItemsAction() {
@@ -43,7 +44,8 @@ public class ItemsAction {
             ACTION_VIEW_CREATED,
             ACTION_LOAD_NEXT_PAGE,
             ACTION_CLEAR_AND_UPDATE_LIST,
-            ACTION_CLEAR_GRID})
+            ACTION_CLEAR_GRID,
+            ACTION_REFRESH_ITEMS})
     @Retention(RetentionPolicy.SOURCE)
     public @interface Type {
     }

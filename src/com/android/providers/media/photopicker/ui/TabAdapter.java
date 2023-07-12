@@ -19,9 +19,12 @@ package com.android.providers.media.photopicker.ui;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_GRID;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
+import static com.android.providers.media.photopicker.viewmodel.PickerViewModel.TAG;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -240,9 +243,9 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     private void notifyOnListChanged(int previousItemCount, int sizeOfUpdatedList,
             @ItemsAction.Type int action) {
+        Log.d(TAG, "Updating adapter for action: " + action);
         switch (action) {
             case ACTION_VIEW_CREATED:
-                // fall through.
             case ACTION_CLEAR_AND_UPDATE_LIST: {
                 notifyDataSetChanged();
                 break;
@@ -256,6 +259,16 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                         sizeOfUpdatedList - previousItemCount);
                 break;
             }
+            case ACTION_REFRESH_ITEMS: {
+                notifyItemRangeChanged(0, sizeOfUpdatedList);
+                if (sizeOfUpdatedList < previousItemCount) {
+                    notifyItemRangeRemoved(sizeOfUpdatedList,
+                            previousItemCount - sizeOfUpdatedList);
+                }
+                break;
+            }
+            default:
+                Log.w(TAG, "Invalid action passed. No update to adapter");
         }
     }
 

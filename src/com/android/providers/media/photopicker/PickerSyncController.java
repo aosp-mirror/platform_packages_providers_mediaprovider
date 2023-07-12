@@ -69,12 +69,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Syncs the local and currently enabled cloud {@link CloudMediaProvider} instances on the device
  * into the picker db.
  */
 public class PickerSyncController {
+
+    public static final ReentrantLock sIdleMaintenanceSyncLock = new ReentrantLock();
     private static final String TAG = "PickerSyncController";
     private static final boolean DEBUG = false;
 
@@ -203,7 +206,14 @@ public class PickerSyncController {
      * Syncs the local media
      */
     public void syncAllMediaFromLocalProvider() {
-        syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true);
+        // Picker sync and special format update can execute concurrently and run into a deadlock.
+        // Acquiring a lock before execution of each flow to avoid this.
+        sIdleMaintenanceSyncLock.lock();
+        try {
+            syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true);
+        } finally {
+            sIdleMaintenanceSyncLock.unlock();
+        }
     }
 
     private void syncAllMediaFromCloudProvider() {

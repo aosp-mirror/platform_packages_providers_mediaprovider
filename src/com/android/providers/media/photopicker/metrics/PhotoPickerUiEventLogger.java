@@ -16,8 +16,6 @@
 
 package com.android.providers.media.photopicker.metrics;
 
-import androidx.annotation.NonNull;
-
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.UiEvent;
 import com.android.internal.logging.UiEventLogger;
@@ -63,15 +61,7 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "Photo Picker uri is queried with an unknown column")
         PHOTO_PICKER_QUERY_UNKNOWN_COLUMN(1227),
         @UiEvent(doc = "Clicked the mute / unmute button in a photo picker video preview")
-        PHOTO_PICKER_VIDEO_PREVIEW_AUDIO_BUTTON_CLICK(1413),
-        @UiEvent(doc = "Clicked the 'view selected' button in photo picker")
-        PHOTO_PICKER_PREVIEW_ALL_SELECTED(1414),
-        @UiEvent(doc = "Photo picker opened with the 'switch profile' button visible and enabled")
-        PHOTO_PICKER_PROFILE_SWITCH_BUTTON_ENABLED(1415),
-        @UiEvent(doc = "Photo picker opened with the 'switch profile' button visible but disabled")
-        PHOTO_PICKER_PROFILE_SWITCH_BUTTON_DISABLED(1416),
-        @UiEvent(doc = "Clicked the 'switch profile' button in photo picker")
-        PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK(1417);
+        PHOTO_PICKER_VIDEO_PREVIEW_AUDIO_BUTTON_CLICK(1413);
 
         private final int mId;
 
@@ -333,44 +323,6 @@ public class PhotoPickerUiEventLogger {
      * @param instanceId an identifier for the current picker session
      */
     public void logVideoPreviewMuteButtonClick(InstanceId instanceId) {
-        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_VIDEO_PREVIEW_AUDIO_BUTTON_CLICK, instanceId);
-    }
-
-    /**
-     * Log metrics to notify that the user has clicked the 'view selected' button
-     * @param instanceId        an identifier for the current picker session
-     * @param selectedItemCount the number of items selected for preview all
-     */
-    public void logPreviewAllSelected(InstanceId instanceId, int selectedItemCount) {
-        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ALL_SELECTED,
-                /* uid */ 0, /* packageName */ null, instanceId, selectedItemCount);
-    }
-
-    /**
-     * Log metrics to notify that the 'switch profile' button is visible & enabled
-     * @param instanceId an identifier for the current picker session
-     */
-    public void logProfileSwitchButtonEnabled(InstanceId instanceId) {
-        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_ENABLED, instanceId);
-    }
-
-    /**
-     * Log metrics to notify that the 'switch profile' button is visible but disabled
-     * @param instanceId an identifier for the current picker session
-     */
-    public void logProfileSwitchButtonDisabled(InstanceId instanceId) {
-        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_DISABLED, instanceId);
-    }
-
-    /**
-     * Log metrics to notify that the user has clicked the 'switch profile' button
-     * @param instanceId an identifier for the current picker session
-     */
-    public void logProfileSwitchButtonClick(InstanceId instanceId) {
-        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK, instanceId);
-    }
-
-    private void logWithInstance(@NonNull UiEventLogger.UiEventEnum event, InstanceId instance) {
-        logger.logWithInstanceId(event, /* uid */ 0, /* packageName */ null, instance);
+        logger.log(PhotoPickerEvent.PHOTO_PICKER_VIDEO_PREVIEW_AUDIO_BUTTON_CLICK, instanceId);
     }
 }

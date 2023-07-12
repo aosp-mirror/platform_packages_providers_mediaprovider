@@ -957,7 +957,7 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileInserted(insertedRow.getMediaType(),
                         insertedRow.isPending())) {
-                    mPickerDataLayer.handleMediaEventNotification();
+                    mPickerSyncController.notifyMediaEvent();
                 }
 
                 mDatabaseBackupAndRecovery.backupVolumeDbData(helper, insertedRow);
@@ -996,7 +996,7 @@ public class MediaProvider extends ContentProvider {
                         oldRow.isPending(), newRow.isPending(),
                         oldRow.isFavorite(), newRow.isFavorite(),
                         oldRow.getSpecialFormat(), newRow.getSpecialFormat())) {
-                    mPickerDataLayer.handleMediaEventNotification();
+                    mPickerSyncController.notifyMediaEvent();
                 }
 
                 mDatabaseBackupAndRecovery.updateBackup(helper, oldRow, newRow);
@@ -1056,7 +1056,7 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileDeleted(deletedRow.getId(),
                         deletedRow.getMediaType())) {
-                    mPickerDataLayer.handleMediaEventNotification();
+                    mPickerSyncController.notifyMediaEvent();
                 }
 
                 mDatabaseBackupAndRecovery.deleteFromDbBackup(helper, deletedRow);
@@ -1308,10 +1308,8 @@ public class MediaProvider extends ContentProvider {
 
         mMediaGrants = new MediaGrants(mExternalDatabase);
 
-        mPickerSyncController = PickerSyncController.initialize(context, mPickerDbFacade,
-                mConfigStore);
-        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController,
-                mConfigStore);
+        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade, mConfigStore);
+        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper);
 
         if (SdkLevel.isAtLeastS()) {
@@ -6815,7 +6813,7 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL: {
                 final boolean notifyCloudEventResult;
                 if (mPickerSyncController.isProviderEnabled(arg, Binder.getCallingUid())) {
-                    mPickerDataLayer.handleMediaEventNotification();
+                    mPickerSyncController.notifyMediaEvent();
                     notifyCloudEventResult = true;
                 } else {
                     notifyCloudEventResult = false;

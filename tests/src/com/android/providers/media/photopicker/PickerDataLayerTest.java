@@ -127,10 +127,9 @@ public class PickerDataLayerTest {
         configStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
         configStore.setPickerSyncDelayMs(0);
 
-        mController = PickerSyncController.initialize(
+        mController = new PickerSyncController(
                 mContext, mFacade, configStore, LOCAL_PROVIDER_AUTHORITY);
-        mDataLayer = new PickerDataLayer(mContext, mFacade, mController, configStore,
-                /* schedulePeriodicSyncs */ false);
+        mDataLayer = new PickerDataLayer(mContext, mFacade, mController);
 
         // Set cloud provider to null to discard
         mFacade.setCloudProvider(null);

@@ -241,9 +241,6 @@
     <!-- Retriable error dialog positive action button text -->
     <string name="picker_error_dialog_positive_action">Retry</string>
 
-    <!-- Toast notifying user that cloud media content is now available from an app on their device. [CHAR LIMIT=NONE] -->
-    <string name="picker_cloud_sync">Cloud media now available from <xliff:g id="pkg_name" example="Gmail">%1$s</xliff:g></string>
-
     <!-- Default not selected text used by accessibility for an element that can be unselected. [CHAR LIMIT=NONE] -->
     <string name="not_selected">not selected</string>
 

@@ -23,7 +23,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
 
 import android.text.format.DateUtils;
-import android.view.View;
 
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
@@ -176,8 +175,8 @@ public class PhotosTabAdapterTest {
 
     private static PhotosTabAdapter createAdapter(boolean shouldShowRecentSection) {
         return new PhotosTabAdapter(/* showRecentSection */ shouldShowRecentSection,
-                mock(Selection.class), mock(ImageLoader.class), mock(View.OnClickListener.class),
-                mock(View.OnLongClickListener.class), mock(LifecycleOwner.class),
+                mock(Selection.class), mock(ImageLoader.class),
+                mock(PhotosTabAdapter.OnMediaItemClickListener.class), mock(LifecycleOwner.class),
                 /* cloudMediaProviderAppTitle */ mock(LiveData.class),
                 /* cloudMediaAccountName */ mock(LiveData.class),
                 /* shouldShowChooseAppBanner */ mock(LiveData.class),

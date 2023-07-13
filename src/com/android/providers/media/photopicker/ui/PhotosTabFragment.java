@@ -89,7 +89,7 @@ public class PhotosTabFragment extends TabFragment {
                 ? mPickerViewModel.shouldShowChooseAccountBannerLiveData() : doNotShowBanner;
 
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
-                mImageLoader, this::onItemClick, this::onItemLongClick, /* lifecycleOwner */ this,
+                mImageLoader, mOnMediaItemClickListener, /* lifecycleOwner */ this,
                 mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
                 mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner,
                 showCloudMediaAvailableBanner, showAccountUpdatedBanner, showChooseAccountBanner,
@@ -168,57 +168,66 @@ public class PhotosTabFragment extends TabFragment {
         }
     }
 
-    private void onItemClick(@NonNull View view) {
-        if (mSelection.canSelectMultiple()) {
-            final boolean isSelectedBefore = view.isSelected();
+    private final PhotosTabAdapter.OnMediaItemClickListener mOnMediaItemClickListener =
+            new PhotosTabAdapter.OnMediaItemClickListener() {
+                @Override
+                public void onItemClick(@NonNull View view, int position) {
+                    if (mSelection.canSelectMultiple()) {
+                        final boolean isSelectedBefore = view.isSelected();
 
-            if (isSelectedBefore) {
-                mSelection.removeSelectedItem((Item) view.getTag());
-            } else {
-                if (!mSelection.isSelectionAllowed()) {
-                    final int maxCount = mSelection.getMaxSelectionLimit();
-                    final CharSequence quantityText =
-                        StringUtils.getICUFormatString(
-                            getResources(), maxCount, R.string.select_up_to);
-                    final String itemCountString = NumberFormat.getInstance(Locale.getDefault())
-                        .format(maxCount);
-                    final CharSequence message = TextUtils.expandTemplate(quantityText,
-                        itemCountString);
-                    Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
-                    return;
-                } else {
-                    final Item item = (Item) view.getTag();
-                    mSelection.addSelectedItem(item);
+                        if (isSelectedBefore) {
+                            mSelection.removeSelectedItem((Item) view.getTag());
+                        } else {
+                            if (!mSelection.isSelectionAllowed()) {
+                                final int maxCount = mSelection.getMaxSelectionLimit();
+                                final CharSequence quantityText =
+                                        StringUtils.getICUFormatString(
+                                                getResources(), maxCount, R.string.select_up_to);
+                                final String itemCountString = NumberFormat
+                                        .getInstance(Locale.getDefault()).format(maxCount);
+                                final CharSequence message = TextUtils.expandTemplate(quantityText,
+                                        itemCountString);
+                                Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
+                                return;
+                            } else {
+                                final Item item = (Item) view.getTag();
+                                mSelection.addSelectedItem(item);
+                                mPickerViewModel.logMediaItemSelected(item, mCategory, position);
+                            }
+                        }
+                        view.setSelected(!isSelectedBefore);
+                        // There is an issue b/223695510 about not selected in Accessibility mode.
+                        // It only says selected state, but it doesn't say not selected state.
+                        // Add the not selected only to avoid that it says selected twice.
+                        view.setStateDescription(
+                                isSelectedBefore ? getString(R.string.not_selected) : null);
+                    } else {
+                        final Item item = (Item) view.getTag();
+                        mSelection.setSelectedItem(item);
+                        mPickerViewModel.logMediaItemSelected(item, mCategory, position);
+                        getPickerActivity().setResultAndFinishSelf();
+                    }
                 }
-            }
-            view.setSelected(!isSelectedBefore);
-            // There is an issue b/223695510 about not selected in Accessibility mode. It only says
-            // selected state, but it doesn't say not selected state. Add the not selected only to
-            // avoid that it says selected twice.
-            view.setStateDescription(isSelectedBefore ? getString(R.string.not_selected) : null);
-        } else {
-            final Item item = (Item) view.getTag();
-            mSelection.setSelectedItem(item);
-            getPickerActivity().setResultAndFinishSelf();
-        }
-    }
 
-    private boolean onItemLongClick(@NonNull View view) {
-        final Item item = (Item) view.getTag();
-        if (!mSelection.canSelectMultiple()) {
-            // In single select mode, if the item is previewed, we set it as selected item. This is
-            // will assist in "Add" button click to return all selected items.
-            // For multi select, long click only previews the item, and until user selects the item,
-            // it doesn't get added to selected items. Also, there is no "Add" button in the preview
-            // layout that can return selected items.
-            mSelection.setSelectedItem(item);
-        }
-        mSelection.prepareItemForPreviewOnLongPress(item);
-        // Transition to PreviewFragment.
-        PreviewFragment.show(getActivity().getSupportFragmentManager(),
-                PreviewFragment.getArgsForPreviewOnLongPress());
-        return true;
-    }
+                @Override
+                public boolean onItemLongClick(@NonNull View view, int position) {
+                    final Item item = (Item) view.getTag();
+                    if (!mSelection.canSelectMultiple()) {
+                        // In single select mode, if the item is previewed, we set it as selected
+                        // item. This assists in "Add" button click to return all selected items.
+                        // For multi select, long click only previews the item, and until user
+                        // selects the item, it doesn't get added to selected items. Also, there is
+                        // no "Add" button in the preview layout that can return selected items.
+                        mSelection.setSelectedItem(item);
+                    }
+                    mSelection.prepareItemForPreviewOnLongPress(item);
+                    mPickerViewModel.logMediaItemPreviewed(item, mCategory, position);
+                    // Transition to PreviewFragment.
+                    PreviewFragment.show(getActivity().getSupportFragmentManager(),
+                            PreviewFragment.getArgsForPreviewOnLongPress());
+                    return true;
+                }
+            };
 
     /**
      * Create the fragment with the category and add it into the FragmentManager

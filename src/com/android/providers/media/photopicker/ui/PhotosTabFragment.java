@@ -90,6 +90,12 @@ public class PhotosTabFragment extends TabFragment {
         super.onViewCreated(view, savedInstanceState);
         final Context context = getContext();
 
+        // Init is only required for album content tab fragments when the fragment is not being
+        // recreated from a previous state.
+        if (savedInstanceState == null && !mCategory.isDefault()) {
+            mPickerViewModel.initPhotoPickerData(mCategory);
+        }
+
         // We only add the RECENT header on the PhotosTabFragment with CATEGORY_DEFAULT. In this
         // case, we call this method {loadItems} with null category. When the category is not
         // empty, we don't show the RECENT header.

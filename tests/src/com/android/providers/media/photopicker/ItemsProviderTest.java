@@ -824,17 +824,20 @@ public class ItemsProviderTest {
      * local content.
      */
     @Test
-    public void testGetLocalItems_withCloud() throws Exception {
+    public void testGetLocalItems_withCloudFeatureOn() throws Exception {
         File videoFile = assertCreateNewVideo();
         try {
             mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
                     sTargetPackageName);
-            // Init cloud provider and add one item
-            setupCloudProvider((cloudMediaGenerator) -> {
-                cloudMediaGenerator.addMedia(null, "cloud_id1");
-            });
+            // Init cloud provider with no items. We cannot test for cloud items because
+            // getAllItems query does not block on cloud sync.
+            setupCloudProvider((cloudMediaGenerator) -> {});
+            mItemsProvider.initPhotoPickerData(/* albumId */ null,
+                    /* albumAuthority */ null,
+                    /*initLocalOnlyData */ false,
+                    UserId.CURRENT_USER);
 
-            // Verify that getLocalItems includes only local contents
+            // Verify that getLocalItems includes all local contents
             try (Cursor c = mItemsProvider.getLocalItems(Category.DEFAULT,
                     new PaginationParameters(), new String[]{},
                     UserId.CURRENT_USER)) {
@@ -845,21 +848,15 @@ public class ItemsProviderTest {
                         .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
             }
 
-            // Verify that getAllItems includes cloud items
+            // Verify that getAllItems also includes local items. We cannot check for cloud items
+            // because getAllItems query does not block on cloud sync.
             try (Cursor c = mItemsProvider.getAllItems(Category.DEFAULT,
                     new PaginationParameters(), new String[]{},
                     UserId.CURRENT_USER)) {
-                assertThat(c.getCount()).isEqualTo(2);
+                assertThat(c.getCount()).isEqualTo(1);
 
                 // Verify that the first item is cloud item
                 assertThat(c.moveToFirst()).isTrue();
-                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
-                        .isEqualTo(CloudProviderPrimary.AUTHORITY);
-                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.ID))).isEqualTo(
-                        "cloud_id1");
-
-                // Verify that the second item is local item
-                assertThat(c.moveToNext()).isTrue();
                 assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
                         .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
             }
@@ -871,19 +868,22 @@ public class ItemsProviderTest {
     }
 
     @Test
-    public void testGetLocalItems_mergedAlbum_withCloud() throws Exception {
+    public void testGetLocalItems_mergedAlbum_withCloudFeatureOn() throws Exception {
         File videoFile = assertCreateNewVideo();
         Category videoAlbum = new Category(CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
                 LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 10, true);
         try {
             mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
                     sTargetPackageName);
-            // Init cloud provider and add one item
-            setupCloudProvider((cloudMediaGenerator) -> {
-                cloudMediaGenerator.addMedia(null, "cloud_id1", null, "video/mp4", 0, 1024, false);
-            });
+            // Init cloud provider with no items. We cannot test for cloud items because
+            // getAllItems query does not block on cloud sync.
+            setupCloudProvider((cloudMediaGenerator) -> {});
+            mItemsProvider.initPhotoPickerData(/* albumId */ null,
+                    /* albumAuthority */ null,
+                    /*initLocalOnlyData */ false,
+                    UserId.CURRENT_USER);
 
-            // Verify that getLocalItems for merged album "Video" includes only local contents
+            // Verify that getLocalItems for merged album "Video" includes all local contents
             try (Cursor c = mItemsProvider.getLocalItems(videoAlbum,
                     new PaginationParameters(), new String[]{},
                     UserId.CURRENT_USER)) {
@@ -893,20 +893,15 @@ public class ItemsProviderTest {
                         .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
             }
 
-            // Verify that getAllItems for merged album "Video" also includes cloud contents
+            // Verify that getAllItems for merged album "Video" also includes all local contents.
+            // We cannot check for cloud items because getAllItems query does not block on cloud
+            // sync.
             try (Cursor c = mItemsProvider.getAllItems(videoAlbum, new PaginationParameters(),
                     new String[]{},
                     UserId.CURRENT_USER)) {
-                assertThat(c.getCount()).isEqualTo(2);
+                assertThat(c.getCount()).isEqualTo(1);
                 // Verify that the first item is cloud item
                 assertThat(c.moveToFirst()).isTrue();
-                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
-                        .isEqualTo(CloudProviderPrimary.AUTHORITY);
-                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.ID)))
-                        .isEqualTo("cloud_id1");
-
-                // Verify that the second item is local item
-                assertThat(c.moveToNext()).isTrue();
                 assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
                         .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
             }
@@ -918,7 +913,7 @@ public class ItemsProviderTest {
     }
 
     @Test
-    public void testGetLocalCategories_withCloud() throws Exception {
+    public void testGetLocalCategories_withCloudFeatureOn() throws Exception {
         File videoFile = assertCreateNewVideo(getMoviesDir());
         File screenshotFile = assertCreateNewImage(getScreenshotsDir());
         final String cloudAlbum = "testAlbum";
@@ -933,6 +928,10 @@ public class ItemsProviderTest {
                         false);
                 cloudMediaGenerator.createAlbum(cloudAlbum);
             });
+            mItemsProvider.initPhotoPickerData(/* albumId */ null,
+                    /* albumAuthority */ null,
+                    /*initLocalOnlyData */ false,
+                    UserId.CURRENT_USER);
 
             // Verify that getLocalCategories only returns local albums
             try (Cursor c = mItemsProvider.getLocalCategories(/* mimeType */ null,

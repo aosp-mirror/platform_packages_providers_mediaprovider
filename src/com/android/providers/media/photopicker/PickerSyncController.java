@@ -133,8 +133,6 @@ public class PickerSyncController {
     private final SharedPreferences mSyncPrefs;
     private final SharedPreferences mUserPrefs;
     private final String mLocalProvider;
-    private final long mSyncDelayMs;
-    private final Runnable mSyncAllMediaCallback;
 
     private final PhotoPickerUiEventLogger mLogger;
     private final Object mCloudSyncLock = new Object();
@@ -143,14 +141,64 @@ public class PickerSyncController {
     private final Object mCloudProviderLock = new Object();
     @GuardedBy("mCloudProviderLock")
     private CloudProviderInfo mCloudProviderInfo;
+    @Nullable
+    private static PickerSyncController sInstance;
 
-    public PickerSyncController(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
-            @NonNull ConfigStore configStore) {
-        this(context, dbFacade, configStore, LOCAL_PICKER_PROVIDER_AUTHORITY);
+    /**
+     * Initialize {@link PickerSyncController} object.{@link PickerSyncController} should only be
+     * initialized from {@link com.android.providers.media.MediaProvider#onCreate}.
+     *
+     * @param context the app context of type {@link Context}
+     * @param dbFacade instance of {@link PickerDbFacade} that will be used for DB queries.
+     * @param configStore {@link ConfigStore} that returns the sync config of the device.
+     * @return an instance of {@link PickerSyncController}
+     */
+    @NonNull
+    public static PickerSyncController initialize(@NonNull Context context,
+            @NonNull PickerDbFacade dbFacade, @NonNull ConfigStore configStore) {
+        return initialize(context, dbFacade, configStore, LOCAL_PICKER_PROVIDER_AUTHORITY);
     }
 
+    /**
+     * Initialize {@link PickerSyncController} object.{@link PickerSyncController} should only be
+     * initialized from {@link com.android.providers.media.MediaProvider#onCreate}.
+     *
+     * @param context the app context of type {@link Context}
+     * @param dbFacade instance of {@link PickerDbFacade} that will be used for DB queries.
+     * @param configStore {@link ConfigStore} that returns the sync config of the device.
+     * @param localProvider is the name of the local provider that is responsible for providing the
+     *                      local media items.
+     * @return an instance of {@link PickerSyncController}
+     */
+    @NonNull
     @VisibleForTesting
-    public PickerSyncController(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
+    public static PickerSyncController initialize(@NonNull Context context,
+            @NonNull PickerDbFacade dbFacade, @NonNull ConfigStore configStore,
+            @NonNull String localProvider) {
+        sInstance = new PickerSyncController(context, dbFacade, configStore,
+                localProvider);
+        return sInstance;
+    }
+
+    /**
+     * This method is available for injecting a mock instance from tests. PickerSyncController is
+     * used in Worker classes. They cannot directly be injected with a mock controller instance.
+     */
+    @VisibleForTesting
+    public static void setInstance(PickerSyncController controller) {
+        sInstance = controller;
+    }
+
+    /**
+     * @return a PickerSyncController object. The object may not the initialized and the
+     * return value could be null.
+     */
+    @Nullable
+    public static PickerSyncController getInstance() {
+        return sInstance;
+    }
+
+    private PickerSyncController(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
             @NonNull ConfigStore configStore, @NonNull String localProvider) {
         mContext = context;
         mConfigStore = configStore;
@@ -160,9 +208,7 @@ public class PickerSyncController {
                 Context.MODE_PRIVATE);
         mDbFacade = dbFacade;
         mLocalProvider = localProvider;
-        mSyncAllMediaCallback = this::syncAllMedia;
         mLogger = new PhotoPickerUiEventLogger();
-        mSyncDelayMs = configStore.getPickerSyncDelayMs();
 
         initCloudProvider();
     }
@@ -234,7 +280,10 @@ public class PickerSyncController {
         }
     }
 
-    private void syncAllMediaFromCloudProvider() {
+    /**
+     * Syncs the cloud media
+     */
+    public void syncAllMediaFromCloudProvider() {
         synchronized (mCloudSyncLock) {
             final String cloudProvider = getCloudProvider();
 
@@ -522,18 +571,6 @@ public class PickerSyncController {
         }
 
         return false;
-    }
-
-    /**
-     * Notifies about media events like inserts/updates/deletes from cloud and local providers and
-     * syncs the changes in the background.
-     *
-     * There is a delay before executing the background sync to artificially throttle the burst
-     * notifications.
-     */
-    public void notifyMediaEvent() {
-        sBgThreadHandler.removeCallbacks(mSyncAllMediaCallback);
-        sBgThreadHandler.postDelayed(mSyncAllMediaCallback, mSyncDelayMs);
     }
 
     /**

@@ -82,7 +82,7 @@
             "name": "CtsMediaProviderTranscodeTests"
         },
         {
-            "name": "CtsAppSecurityHostTestCases",
+            "name": "CtsStorageHostTestCases",
             "options": [
                 {
                     "include-filter": "android.appsecurity.cts.ExternalStorageHostTest"

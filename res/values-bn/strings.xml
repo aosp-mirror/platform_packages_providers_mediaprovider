@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"ভিডিও প্লে করতে সমস্যা হয়েছে"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ইন্টারনেট কানেকশন ঠিক আছে কিনা দেখে নিয়ে আবার চেষ্টা করুন"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"আবার চেষ্টা করুন"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ক্লাউড মিডিয়া এখন <xliff:g id="PKG_NAME">%1$s</xliff:g> থেকে উপলভ্য"</string>
     <string name="not_selected" msgid="2244008151669896758">"বেছে নেওয়া হয়নি"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>টির মধ্যে <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> নম্বর আইটেম রেডি আছে"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ব্যাক-আপ নেওয়া ফটো এখন যোগ করা হয়েছে"</string>

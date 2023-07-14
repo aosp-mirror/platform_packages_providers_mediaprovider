@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Sự cố khi phát video"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Hãy kiểm tra kết nối Internet rồi thử lại"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Thử lại"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Hiện đã có phương tiện đám mây từ <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"chưa được chọn"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>/<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> mục đã sẵn sàng"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Ảnh được sao lưu giờ đã xuất hiện"</string>

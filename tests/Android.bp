@@ -193,6 +193,7 @@ android_test {
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
+        "androidx.work_work-runtime",
         "exoplayer-mediaprovider-ui",
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",
@@ -210,12 +211,13 @@ android_test {
     },
 
     data: [
-        ":MediaProviderTestAppWithStoragePerms",
-        ":MediaProviderTestAppWithMediaPerms",
-        ":MediaProviderTestAppWithoutPerms",
+        ":LegacyMediaProviderTestApp",
         ":MediaProviderTestAppForPermissionActivity",
         ":MediaProviderTestAppForPermissionActivity33",
-        ":LegacyMediaProviderTestApp",
+        ":MediaProviderTestAppWithMediaPerms",
+        ":MediaProviderTestAppWithStoragePerms",
+        ":MediaProviderTestAppWithoutPerms",
+        ":MediaProviderTestAppWithUserSelectedPerms",
     ],
     per_testcase_directory: true,
 

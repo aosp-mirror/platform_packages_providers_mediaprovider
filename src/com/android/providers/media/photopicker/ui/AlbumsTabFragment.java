@@ -86,8 +86,11 @@ public class AlbumsTabFragment extends TabFragment {
         getPickerActivity().updateCommonLayouts(LayoutModeUtils.MODE_ALBUMS_TAB, /* title */ "");
     }
 
-    private final AlbumsTabAdapter.OnAlbumClickListener mOnAlbumClickListener = category ->
-        PhotosTabFragment.show(getActivity().getSupportFragmentManager(), category);
+    private final AlbumsTabAdapter.OnAlbumClickListener mOnAlbumClickListener =
+            (category, position) -> {
+                mPickerViewModel.logCloudAlbumOpened(category, position);
+                PhotosTabFragment.show(getActivity().getSupportFragmentManager(), category);
+            };
 
     /**
      * Create the albums tab fragment and add it into the FragmentManager

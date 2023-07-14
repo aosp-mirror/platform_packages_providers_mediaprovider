@@ -18,6 +18,11 @@ package com.android.providers.media.photopicker.viewmodel;
 
 import static android.content.Intent.ACTION_GET_CONTENT;
 import static android.content.Intent.EXTRA_LOCAL_ONLY;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
@@ -71,6 +76,8 @@ public class PickerViewModel extends AndroidViewModel {
     private static final int RECENT_MINIMUM_COUNT = 12;
 
     private static final int INSTANCE_ID_MAX = 1 << 15;
+    private static final List<String> LOCAL_OR_MERGED_ALBUMS = Arrays.asList(ALBUM_ID_FAVORITES,
+            ALBUM_ID_CAMERA, ALBUM_ID_DOWNLOADS, ALBUM_ID_SCREENSHOTS, ALBUM_ID_VIDEOS);
 
     @NonNull
     @SuppressLint("StaticFieldLeak")
@@ -587,6 +594,79 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void logVideoPreviewMuteButtonClick() {
         mLogger.logVideoPreviewMuteButtonClick(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the 'view selected' button
+     * @param selectedItemCount the number of items selected for preview all
+     */
+    public void logPreviewAllSelected(int selectedItemCount) {
+        mLogger.logPreviewAllSelected(mInstanceId, selectedItemCount);
+    }
+
+    /**
+     * Log metrics to notify that the 'switch profile' button is visible & enabled
+     */
+    public void logProfileSwitchButtonEnabled() {
+        mLogger.logProfileSwitchButtonEnabled(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the 'switch profile' button is visible but disabled
+     */
+    public void logProfileSwitchButtonDisabled() {
+        mLogger.logProfileSwitchButtonDisabled(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the 'switch profile' button
+     */
+    public void logProfileSwitchButtonClick() {
+        mLogger.logProfileSwitchButtonClick(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened a cloud album
+     * @param category the opened album metadata
+     * @param position the position of the album in the recycler view
+     */
+    public void logCloudAlbumOpened(@NonNull Category category, int position) {
+        final String albumId = category.getId();
+        if (!LOCAL_OR_MERGED_ALBUMS.contains(albumId) && !category.isLocal()) {
+            mLogger.logCloudAlbumOpened(mInstanceId, position);
+        }
+    }
+
+    /**
+     * Log metrics to notify that the user has selected a media item
+     * @param item     the selected item metadata
+     * @param category the category of the item selected, {@link Category#DEFAULT} for main grid
+     * @param position the position of the album in the recycler view
+     */
+    public void logMediaItemSelected(@NonNull Item item, @NonNull Category category, int position) {
+        if (category.isDefault()) {
+            mLogger.logSelectedMainGridItem(mInstanceId, position);
+        } else {
+            mLogger.logSelectedAlbumItem(mInstanceId, position);
+        }
+
+        if (!item.isLocal()) {
+            mLogger.logSelectedCloudOnlyItem(mInstanceId, position);
+        }
+    }
+
+    /**
+     * Log metrics to notify that the user has previewed a media item
+     * @param item     the previewed item metadata
+     * @param category the category of the item previewed, {@link Category#DEFAULT} for main grid
+     * @param position the position of the album in the recycler view
+     */
+    public void logMediaItemPreviewed(
+            @NonNull Item item, @NonNull Category category, int position) {
+        if (category.isDefault()) {
+            mLogger.logPreviewedMainGridItem(
+                    item.getSpecialFormat(), item.getMimeType(), mInstanceId, position);
+        }
     }
 
     public InstanceId getInstanceId() {

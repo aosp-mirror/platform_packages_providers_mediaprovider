@@ -1324,8 +1324,16 @@ public class FileUtils {
         values.remove(MediaColumns.BUCKET_ID);
         values.remove(MediaColumns.BUCKET_DISPLAY_NAME);
 
-        final String data = values.getAsString(MediaColumns.DATA);
+        String data = values.getAsString(MediaColumns.DATA);
         if (TextUtils.isEmpty(data)) return;
+
+        try {
+            data = new File(data).getCanonicalPath();
+            values.put(MediaColumns.DATA, data);
+        } catch (IOException e) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ROOT, "Invalid file path:%s in request.", data));
+        }
 
         final File file = new File(data);
         final File fileLower = new File(data.toLowerCase(Locale.ROOT));

@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Probléma merült fel a videó lejátszásakor"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Ellenőrizze internetkapcsolatát, és próbálkozzon újra"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Újra"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"A felhőbeli médiatartalmak már hozzáférhetők a következőből: <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nincs kiválasztva"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>/<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> kész"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Mostantól rendelkezésre állnak a fotók, amelyekről biztonsági másolat készült"</string>

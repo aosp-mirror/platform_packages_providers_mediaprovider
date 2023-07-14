@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.metrics;
 
+import androidx.annotation.NonNull;
+
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.UiEvent;
 import com.android.internal.logging.UiEventLogger;
@@ -59,7 +61,31 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "User changed the active Photo picker cloud provider")
         PHOTO_PICKER_CLOUD_PROVIDER_CHANGED(1135),
         @UiEvent(doc = "Photo Picker uri is queried with an unknown column")
-        PHOTO_PICKER_QUERY_UNKNOWN_COLUMN(1227);
+        PHOTO_PICKER_QUERY_UNKNOWN_COLUMN(1227),
+        @UiEvent(doc = "Clicked the mute / unmute button in a photo picker video preview")
+        PHOTO_PICKER_VIDEO_PREVIEW_AUDIO_BUTTON_CLICK(1413),
+        @UiEvent(doc = "Clicked the 'view selected' button in photo picker")
+        PHOTO_PICKER_PREVIEW_ALL_SELECTED(1414),
+        @UiEvent(doc = "Photo picker opened with the 'switch profile' button visible and enabled")
+        PHOTO_PICKER_PROFILE_SWITCH_BUTTON_ENABLED(1415),
+        @UiEvent(doc = "Photo picker opened with the 'switch profile' button visible but disabled")
+        PHOTO_PICKER_PROFILE_SWITCH_BUTTON_DISABLED(1416),
+        @UiEvent(doc = "Clicked the 'switch profile' button in photo picker")
+        PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK(1417),
+        @UiEvent(doc = "User switched to the photos tab in photo picker")
+        PHOTO_PICKER_TAB_PHOTOS_OPEN(1425),
+        @UiEvent(doc = "User switched to the albums tab in photo picker")
+        PHOTO_PICKER_TAB_ALBUMS_OPEN(1426),
+        @UiEvent(doc = "Opened a cloud album in photo picker")
+        PHOTO_PICKER_ALBUM_FROM_CLOUD_OPEN(1432),
+        @UiEvent(doc = "Selected a media item in the main grid")
+        PHOTO_PICKER_SELECTED_ITEM_MAIN_GRID(1433),
+        @UiEvent(doc = "Selected a media item in an album")
+        PHOTO_PICKER_SELECTED_ITEM_ALBUM(1434),
+        @UiEvent(doc = "Selected a cloud only media item")
+        PHOTO_PICKER_SELECTED_ITEM_CLOUD_ONLY(1435),
+        @UiEvent(doc = "Previewed a media item in the main grid")
+        PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID(1436);
 
         private final int mId;
 
@@ -314,5 +340,121 @@ public class PhotoPickerUiEventLogger {
         logger.log(PhotoPickerEvent.PHOTO_PICKER_QUERY_UNKNOWN_COLUMN,
                 callingUid,
                 callingPackage);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the mute / unmute button in a video preview
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logVideoPreviewMuteButtonClick(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_VIDEO_PREVIEW_AUDIO_BUTTON_CLICK, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the 'view selected' button
+     * @param instanceId        an identifier for the current picker session
+     * @param selectedItemCount the number of items selected for preview all
+     */
+    public void logPreviewAllSelected(InstanceId instanceId, int selectedItemCount) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ALL_SELECTED,
+                /* uid */ 0, /* packageName */ null, instanceId, selectedItemCount);
+    }
+
+    /**
+     * Log metrics to notify that the 'switch profile' button is visible & enabled
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logProfileSwitchButtonEnabled(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_ENABLED, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the 'switch profile' button is visible but disabled
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logProfileSwitchButtonDisabled(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_DISABLED, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the 'switch profile' button
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logProfileSwitchButtonClick(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has switched to the photos tab
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logSwitchToPhotosTab(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_TAB_PHOTOS_OPEN, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has switched to the albums tab
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logSwitchToAlbumsTab(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_TAB_ALBUMS_OPEN, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened a cloud album
+     * @param instanceId an identifier for the current picker session
+     * @param position   the position of the album in the recycler view
+     */
+    public void logCloudAlbumOpened(InstanceId instanceId, int position) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_ALBUM_FROM_CLOUD_OPEN,
+                /* uid */ 0, /* packageName */ null, instanceId, position);
+    }
+
+    /**
+     * Log metrics to notify that the user selected a media item in the main grid
+     * @param instanceId an identifier for the current picker session
+     * @param position   the position of the album in the recycler view
+     */
+    public void logSelectedMainGridItem(InstanceId instanceId, int position) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_SELECTED_ITEM_MAIN_GRID,
+                /* uid */ 0, /* packageName */ null, instanceId, position);
+    }
+
+    /**
+     * Log metrics to notify that the user selected a media item in an album
+     * @param instanceId an identifier for the current picker session
+     * @param position   the position of the album in the recycler view
+     */
+    public void logSelectedAlbumItem(InstanceId instanceId, int position) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_SELECTED_ITEM_ALBUM,
+                /* uid */ 0, /* packageName */ null, instanceId, position);
+    }
+
+    /**
+     * Log metrics to notify that the user has selected a cloud only media item
+     * @param instanceId an identifier for the current picker session
+     * @param position   the position of the album in the recycler view
+     */
+    public void logSelectedCloudOnlyItem(InstanceId instanceId, int position) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_SELECTED_ITEM_CLOUD_ONLY,
+                /* uid */ 0, /* packageName */ null, instanceId, position);
+    }
+
+    /**
+     * Log metrics to notify that the user has previewed an item in the main grid
+     * @param specialFormat the special format of the previewed item (used to identify special
+     *                      categories like motion photos)
+     * @param mimeType      the mime type of the previewed item
+     * @param instanceId    an identifier for the current picker session
+     * @param position      the position of the album in the recycler view
+     */
+    public void logPreviewedMainGridItem(
+            int specialFormat, String mimeType, InstanceId instanceId, int position) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID,
+                specialFormat, mimeType, instanceId, position);
+    }
+
+    private void logWithInstance(@NonNull UiEventLogger.UiEventEnum event, InstanceId instance) {
+        logger.logWithInstanceId(event, /* uid */ 0, /* packageName */ null, instance);
     }
 }

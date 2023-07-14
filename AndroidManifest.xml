@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools"
         package="com.android.providers.media.module">
 
     <meta-data
@@ -90,6 +91,18 @@
             android:process=":PhotoPicker"
             android:authorities="com.android.providers.media.remote_video_preview"
             android:exported="false" />
+
+        <!-- Don't initialise WorkManager by default at startup -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
 
         <!-- Handles database upgrades after OTAs, then disables itself -->
         <receiver android:name="com.android.providers.media.MediaUpgradeReceiver"

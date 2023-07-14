@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Не удалось воспроизвести видео"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Проверьте подключение к интернету и повторите попытку."</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Повторить"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Медиаконтент из облака теперь доступен в приложении \"<xliff:g id="PKG_NAME">%1$s</xliff:g>\"."</string>
     <string name="not_selected" msgid="2244008151669896758">"не выбрано"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Предзагрузка: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> из <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Резервные копии фотографий добавлены"</string>

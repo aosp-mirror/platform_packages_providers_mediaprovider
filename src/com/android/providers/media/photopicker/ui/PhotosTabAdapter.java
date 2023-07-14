@@ -43,15 +43,13 @@ class PhotosTabAdapter extends TabAdapter {
     private static final int RECENT_MINIMUM_COUNT = 12;
 
     private final boolean mShowRecentSection;
-    private final View.OnClickListener mOnMediaItemClickListener;
-    private final View.OnLongClickListener mOnMediaItemLongClickListener;
+    private final OnMediaItemClickListener mOnMediaItemClickListener;
     private final Selection mSelection;
 
     PhotosTabAdapter(boolean showRecentSection,
             @NonNull Selection selection,
             @NonNull ImageLoader imageLoader,
-            @NonNull View.OnClickListener onMediaItemClickListener,
-            @NonNull View.OnLongClickListener onMediaItemLongClickListener,
+            @NonNull OnMediaItemClickListener onMediaItemClickListener,
             @NonNull LifecycleOwner lifecycleOwner,
             @NonNull LiveData<String> cloudMediaProviderAppTitle,
             @NonNull LiveData<String> cloudMediaAccountName,
@@ -71,7 +69,6 @@ class PhotosTabAdapter extends TabAdapter {
         mShowRecentSection = showRecentSection;
         mSelection = selection;
         mOnMediaItemClickListener = onMediaItemClickListener;
-        mOnMediaItemLongClickListener = onMediaItemLongClickListener;
     }
 
     @NonNull
@@ -85,10 +82,8 @@ class PhotosTabAdapter extends TabAdapter {
     @Override
     RecyclerView.ViewHolder createMediaItemViewHolder(@NonNull ViewGroup viewGroup) {
         final View view = getView(viewGroup, R.layout.item_photo_grid);
-        view.setOnClickListener(mOnMediaItemClickListener);
-        view.setOnLongClickListener(mOnMediaItemLongClickListener);
-
-        return new MediaItemGridViewHolder(view, mImageLoader, mSelection.canSelectMultiple());
+        return new MediaItemGridViewHolder(view, mImageLoader, mOnMediaItemClickListener,
+                mSelection.canSelectMultiple());
     }
 
     @Override
@@ -185,5 +180,10 @@ class PhotosTabAdapter extends TabAdapter {
                 title.setText(DateTimeUtils.getDateHeaderString(dateHeader.timestamp));
             }
         }
+    }
+
+    interface OnMediaItemClickListener {
+        void onItemClick(@NonNull View view, int position);
+        boolean onItemLongClick(@NonNull View view, int position);
     }
 }

@@ -25,6 +25,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
+import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
@@ -280,6 +281,7 @@ public class PickerViewModel extends AndroidViewModel {
     private List<Item> loadItems(Category category, UserId userId,
             PaginationParameters pagingParameters) {
         final List<Item> items = new ArrayList<>();
+        String cloudProviderAuthority = null; // NULL if fetched items have NO cloud only media item
 
         try (Cursor cursor = fetchItems(category, userId, pagingParameters)) {
             if (cursor == null || cursor.getCount() == 0) {
@@ -291,13 +293,26 @@ public class PickerViewModel extends AndroidViewModel {
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
                 //  here again.
-                items.add(Item.fromCursor(cursor, userId));
+                final Item item = Item.fromCursor(cursor, userId);
+                String authority = item.getContentUri().getAuthority();
+
+                if (!LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority)) {
+                    cloudProviderAuthority = authority;
+                }
+                items.add(item);
+            }
+
+            Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
+                    + userId.toString());
+            return items;
+        } finally {
+            int count = items.size();
+            if (category.isDefault()) {
+                mLogger.logLoadedMainGridMediaItems(cloudProviderAuthority, mInstanceId, count);
+            } else {
+                mLogger.logLoadedAlbumGridMediaItems(cloudProviderAuthority, mInstanceId, count);
             }
         }
-
-        Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
-                + userId.toString());
-        return items;
     }
 
     private Cursor fetchItems(Category category, UserId userId,
@@ -397,6 +412,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
+        String cloudProviderAuthority = null; // NULL if fetched albums have NO cloud album
         try (Cursor cursor = fetchCategories(userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
@@ -406,13 +422,20 @@ public class PickerViewModel extends AndroidViewModel {
 
             while (cursor.moveToNext()) {
                 final Category category = Category.fromCursor(cursor, userId);
+                String authority = category.getAuthority();
+
+                if (!LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority)) {
+                    cloudProviderAuthority = authority;
+                }
                 categoryList.add(category);
             }
 
             Log.d(TAG,
                     "Loaded " + categoryList.size() + " categories for user " + userId.toString());
+            return categoryList;
+        } finally {
+            mLogger.logLoadedAlbums(cloudProviderAuthority, mInstanceId, categoryList.size());
         }
-        return categoryList;
     }
 
     private Cursor fetchCategories(UserId userId) {

@@ -160,6 +160,10 @@ public abstract class TabFragment extends Fragment {
             // Transition to PreviewFragment on clicking "View Selected".
             viewSelectedButton.setOnClickListener(v -> {
                 mSelection.prepareSelectedItemsForPreviewAll();
+
+                int selectedItemCount = mSelection.getSelectedItemCount().getValue();
+                mPickerViewModel.logPreviewAllSelected(selectedItemCount);
+
                 PreviewFragment.show(getActivity().getSupportFragmentManager(),
                         PreviewFragment.getArgsForPreviewOnViewSelected());
             });
@@ -179,6 +183,13 @@ public abstract class TabFragment extends Fragment {
         if (crossProfileAllowed != null) {
             crossProfileAllowed.observe(this, isCrossProfileAllowed -> {
                 setUpProfileButton();
+                if (Boolean.TRUE.equals(mIsProfileButtonVisible.getValue())) {
+                    if (isCrossProfileAllowed) {
+                        mPickerViewModel.logProfileSwitchButtonEnabled();
+                    } else {
+                        mPickerViewModel.logProfileSwitchButtonDisabled();
+                    }
+                }
             });
         }
 
@@ -292,6 +303,8 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void onClickProfileButton() {
+        mPickerViewModel.logProfileSwitchButtonClick();
+
         if (!mUserIdManager.isCrossProfileAllowed()) {
             ProfileDialogFragment.show(getActivity().getSupportFragmentManager());
         } else {
@@ -313,7 +326,7 @@ public abstract class TabFragment extends Fragment {
 
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
 
-        mPickerViewModel.onUserSwitchedProfile();
+        mPickerViewModel.onSwitchedProfile();
     }
 
     private void updateProfileButtonContent(boolean isManagedUserSelected) {

@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Problem me luajtjen e videos"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Kontrollo lidhjen e internetit dhe provo përsëri"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Riprovo"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Media në renë kompjuterike tani ofrohet nga <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nuk është zgjedhur"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> nga <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> gati"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Fotografitë e rezervuara tani janë të përfshira"</string>

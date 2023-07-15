@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"播放视频时遇到问题"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"请检查互联网连接，然后重试"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"重试"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"现在可以从“<xliff:g id="PKG_NAME">%1$s</xliff:g>”获取云端媒体"</string>
     <string name="not_selected" msgid="2244008151669896758">"未选择"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> 个已准备就绪，共 <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> 个"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"备份照片现已添加完成"</string>

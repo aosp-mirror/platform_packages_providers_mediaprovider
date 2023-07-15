@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Poteškoće s reprodukcijom videozapisa"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Provjerite internetsku vezu i pokušajte ponovo"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Pokušaj ponovo"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Medijski sadržaj u oblaku sada je dostupan iz aplikacije <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nije odabrano"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Spremno: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> od <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Sad su uključene sigurnosno kopirane fotografije"</string>

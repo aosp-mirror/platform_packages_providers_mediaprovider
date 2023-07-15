@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"មានបញ្ហាក្នុងការចាក់វីដេអូ"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ពិនិត្យ​ការតភ្ជាប់​អ៊ីនធឺណិត​របស់អ្នក រួចព្យាយាម​ម្ដង​ទៀត"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ព្យាយាមម្ដងទៀត"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ឥឡូវនេះមានមេឌៀក្នុងប្រព័ន្ធពពកពី <xliff:g id="PKG_NAME">%1$s</xliff:g> ហើយ"</string>
     <string name="not_selected" msgid="2244008151669896758">"មិនបានជ្រើសរើសទេ"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> នៃ <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> រួចរាល់ហើយ"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ឥឡូវនេះមានរួមបញ្ចូលរូបថតដែលបានបម្រុងទុក"</string>

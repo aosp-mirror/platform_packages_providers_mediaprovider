@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Problemas ao reproducir o vídeo"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Comproba a conexión a Internet e téntao de novo"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Tentar de novo"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Agora podes acceder desde <xliff:g id="PKG_NAME">%1$s</xliff:g> ao contido multimedia gardado na nube"</string>
     <string name="not_selected" msgid="2244008151669896758">"elemento non seleccionado"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Elementos listos: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> de <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Agora inclúense as fotos con copia de seguranza"</string>

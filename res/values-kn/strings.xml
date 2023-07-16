@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"ವೀಡಿಯೊ ಪ್ಲೇ ಮಾಡಲು ಸಮಸ್ಯೆಯಾಗಿದೆ"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ನಿಮ್ಮ ಇಂಟರ್ನೆಟ್ ಕನೆಕ್ಷನ್ ಅನ್ನು ಪರಿಶೀಲಿಸಿ ಹಾಗೂ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ಮರುಪ್ರಯತ್ನಿಸಿ"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ಕ್ಲೌಡ್ ಮಾಧ್ಯಮವು ಈಗ <xliff:g id="PKG_NAME">%1$s</xliff:g> ನಿಂದ ಲಭ್ಯವಿದೆ"</string>
     <string name="not_selected" msgid="2244008151669896758">"ಆಯ್ಕೆಮಾಡಲಾಗಿಲ್ಲ"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ರಲ್ಲಿ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> ಸಿದ್ಧವಾಗಿವೆ"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ಬ್ಯಾಕಪ್ ಮಾಡಲಾದ ಫೋಟೋಗಳನ್ನು ಈಗ ಸೇರಿಸಲಾಗಿದೆ"</string>

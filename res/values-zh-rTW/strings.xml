@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"播放影片時發生問題"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"請檢查網際網路連線，然後再試一次"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"重試"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"現在可以透過「<xliff:g id="PKG_NAME">%1$s</xliff:g>」存取雲端媒體"</string>
     <string name="not_selected" msgid="2244008151669896758">"未選取"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"已備妥 <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> 個項目，共 <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> 個項目"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"現在已納入備份相片"</string>

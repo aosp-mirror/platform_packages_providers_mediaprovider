@@ -26,6 +26,7 @@ import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.LA
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.MEDIA_COLLECTION_ID;
 
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
+import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.PickerUriResolver.getDeletedMediaUri;
 import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
@@ -35,6 +36,7 @@ import static com.android.providers.media.photopicker.NotificationContentObserve
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 
 import android.annotation.IntDef;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -867,6 +869,17 @@ public class PickerSyncController {
             Log.d(TAG, "Updated cloud provider to: " + authority);
 
             resetCachedMediaCollectionInfo(info.authority, /* isLocal */ false);
+
+            sendPickerUiRefreshNotification();
+        }
+    }
+
+    private void sendPickerUiRefreshNotification() {
+        ContentResolver contentResolver = mContext.getContentResolver();
+        if (contentResolver != null) {
+            contentResolver.notifyChange(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI, null);
+        } else {
+            Log.d(TAG, "Couldn't notify the Picker UI to refresh");
         }
     }
 

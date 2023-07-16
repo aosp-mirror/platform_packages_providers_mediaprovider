@@ -84,6 +84,6 @@ class AlbumsTabAdapter extends TabAdapter {
     }
 
     interface OnAlbumClickListener {
-        void onAlbumClick(@NonNull Category category);
+        void onAlbumClick(@NonNull Category category, int position);
     }
 }

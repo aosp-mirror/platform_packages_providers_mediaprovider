@@ -212,50 +212,38 @@ class BannerManager {
     }
 
     /**
-     * Resets the banner controller per user.
+     * Resets the banner controller per user and sets the banner data for the current user.
      *
      * Note - Since {@link BannerController#reset()} cannot be called in the Main thread, using
      * {@link ForegroundThread} here.
      */
-    void maybeResetAllBannerData() {
+    void reset() {
         for (int arrayIndex = 0, numControllers = mBannerControllers.size();
                 arrayIndex < numControllers; arrayIndex++) {
             final BannerController bannerController = mBannerControllers.valueAt(arrayIndex);
             ForegroundThread.getExecutor().execute(bannerController::reset);
         }
-    }
 
-    /**
-     * Update the banner {@link LiveData} values.
-     *
-     * 1. {@link #hideAllBanners()} in the Main thread to ensure consistency with the media items
-     * displayed for the period when the items and categories have been updated but the
-     * {@link BannerController} construction or {@link BannerController#reset()} is still in
-     * progress.
-     *
-     * 2. Initialise and set the banner data for the current user
-     * {@link #maybeInitialiseAndSetBannersForCurrentUser()}.
-     */
-    @UiThread
-    void maybeUpdateBannerLiveDatas() {
-        // Hide all banners in the Main thread to ensure consistency with the media items
-        hideAllBanners();
-
-        // Initialise and set the banner data for the current user
+        // Set the banner data for the current user
         maybeInitialiseAndSetBannersForCurrentUser();
     }
 
     /**
-     * Hide all banners in the Main thread.
+     * Hide all the banners in the Foreground thread.
      *
-     * Set all banner {@link LiveData} values to {@code false}.
+     * Since this is always followed by a reset, they need to be done in the same threads (currently
+     * Foreground thread). For the case when multiple hideAllBanners & reset are triggered
+     * simultaneously, this ensures that they are called sequentially for each such trigger.
+     *
+     * Post all the banner {@link LiveData} values as {@code false}.
      */
-    @UiThread
-    private void hideAllBanners() {
-        mShowChooseAppBanner.setValue(false);
-        mShowCloudMediaAvailableBanner.setValue(false);
-        mShowAccountUpdatedBanner.setValue(false);
-        mShowChooseAccountBanner.setValue(false);
+    void hideAllBanners() {
+        ForegroundThread.getExecutor().execute(() -> {
+            mShowChooseAppBanner.postValue(false);
+            mShowCloudMediaAvailableBanner.postValue(false);
+            mShowAccountUpdatedBanner.postValue(false);
+            mShowChooseAccountBanner.postValue(false);
+        });
     }
 
 

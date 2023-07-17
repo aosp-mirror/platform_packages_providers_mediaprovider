@@ -88,7 +88,7 @@ public class AlbumsTabFragment extends TabFragment {
 
     private final AlbumsTabAdapter.OnAlbumClickListener mOnAlbumClickListener =
             (category, position) -> {
-                mPickerViewModel.logCloudAlbumOpened(category, position);
+                mPickerViewModel.logAlbumOpened(category, position);
                 PhotosTabFragment.show(getActivity().getSupportFragmentManager(), category);
             };
 

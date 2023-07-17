@@ -76,6 +76,16 @@ public class PhotoPickerUiEventLogger {
         PHOTO_PICKER_TAB_PHOTOS_OPEN(1425),
         @UiEvent(doc = "User switched to the albums tab in photo picker")
         PHOTO_PICKER_TAB_ALBUMS_OPEN(1426),
+        @UiEvent(doc = "Opened the device favorites album in photo picker")
+        PHOTO_PICKER_ALBUM_FAVORITES_OPEN(1427),
+        @UiEvent(doc = "Opened the device camera album in photo picker")
+        PHOTO_PICKER_ALBUM_CAMERA_OPEN(1428),
+        @UiEvent(doc = "Opened the device downloads album in photo picker")
+        PHOTO_PICKER_ALBUM_DOWNLOADS_OPEN(1429),
+        @UiEvent(doc = "Opened the device screenshots album in photo picker")
+        PHOTO_PICKER_ALBUM_SCREENSHOTS_OPEN(1430),
+        @UiEvent(doc = "Opened the device videos album in photo picker")
+        PHOTO_PICKER_ALBUM_VIDEOS_OPEN(1431),
         @UiEvent(doc = "Opened a cloud album in photo picker")
         PHOTO_PICKER_ALBUM_FROM_CLOUD_OPEN(1432),
         @UiEvent(doc = "Selected a media item in the main grid")
@@ -398,6 +408,46 @@ public class PhotoPickerUiEventLogger {
      */
     public void logSwitchToAlbumsTab(InstanceId instanceId) {
         logWithInstance(PhotoPickerEvent.PHOTO_PICKER_TAB_ALBUMS_OPEN, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened the device favorites album
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logFavoritesAlbumOpened(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_ALBUM_FAVORITES_OPEN, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened the device camera album
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logCameraAlbumOpened(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_ALBUM_CAMERA_OPEN, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened the device downloads album
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logDownloadsAlbumOpened(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_ALBUM_DOWNLOADS_OPEN, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened the device screenshots album
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logScreenshotsAlbumOpened(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_ALBUM_SCREENSHOTS_OPEN, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened the device videos album
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logVideosAlbumOpened(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_ALBUM_VIDEOS_OPEN, instanceId);
     }
 
     /**

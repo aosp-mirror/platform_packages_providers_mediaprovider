@@ -95,7 +95,13 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "Selected a cloud only media item")
         PHOTO_PICKER_SELECTED_ITEM_CLOUD_ONLY(1435),
         @UiEvent(doc = "Previewed a media item in the main grid")
-        PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID(1436);
+        PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID(1436),
+        @UiEvent(doc = "Loaded media items in the main grid in photo picker")
+        PHOTO_PICKER_UI_LOADED_PHOTOS(1437),
+        @UiEvent(doc = "Loaded albums in photo picker")
+        PHOTO_PICKER_UI_LOADED_ALBUMS(1438),
+        @UiEvent(doc = "Loaded media items in an album grid in photo picker")
+        PHOTO_PICKER_UI_LOADED_ALBUM_CONTENTS(1439);
 
         private final int mId;
 
@@ -502,6 +508,39 @@ public class PhotoPickerUiEventLogger {
             int specialFormat, String mimeType, InstanceId instanceId, int position) {
         logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID,
                 specialFormat, mimeType, instanceId, position);
+    }
+
+    /**
+     * Log metrics to notify that the picker has loaded some media items in the main grid
+     * @param authority  the authority of the selected cloud provider, null if no non-local items
+     * @param instanceId an identifier for the current picker session
+     * @param count      the number of media items loaded
+     */
+    public void logLoadedMainGridMediaItems(String authority, InstanceId instanceId, int count) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_PHOTOS,
+                /* uid */ 0, authority, instanceId, count);
+    }
+
+    /**
+     * Log metrics to notify that the picker has loaded some albums
+     * @param authority  the authority of the selected cloud provider, null if no non-local albums
+     * @param instanceId an identifier for the current picker session
+     * @param count      the number of albums loaded
+     */
+    public void logLoadedAlbums(String authority, InstanceId instanceId, int count) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_ALBUMS,
+                /* uid */ 0, authority, instanceId, count);
+    }
+
+    /**
+     * Log metrics to notify that the picker has loaded some media items in an album grid
+     * @param authority  the authority of the selected cloud provider, null if no non-local items
+     * @param instanceId an identifier for the current picker session
+     * @param count      the number of media items loaded
+     */
+    public void logLoadedAlbumGridMediaItems(String authority, InstanceId instanceId, int count) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_ALBUM_CONTENTS,
+                /* uid */ 0, authority, instanceId, count);
     }
 
     private void logWithInstance(@NonNull UiEventLogger.UiEventEnum event, InstanceId instance) {

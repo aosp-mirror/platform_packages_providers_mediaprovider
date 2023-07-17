@@ -97,12 +97,15 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
 
     private void resetData(SQLiteDatabase db) {
         clearPickerPrefs(mContext);
+
+        dropAllTables(db);
+
         createLatestSchema(db);
         createLatestIndexes(db);
     }
 
     @VisibleForTesting
-    static void makePristineSchema(SQLiteDatabase db) {
+    static void dropAllTables(SQLiteDatabase db) {
         // drop all tables
         Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'table'", null, null,
                 null, null);
@@ -113,20 +116,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
         c.close();
     }
 
-    @VisibleForTesting
-    static void makePristineIndexes(SQLiteDatabase db) {
-        // drop all indexes
-        Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'index'",
-                null, null, null, null);
-        while (c.moveToNext()) {
-            if (c.getString(0).startsWith("sqlite_")) continue;
-            db.execSQL("DROP INDEX IF EXISTS " + c.getString(0));
-        }
-        c.close();
-    }
-
     private static void createLatestSchema(SQLiteDatabase db) {
-        makePristineSchema(db);
 
         db.execSQL("CREATE TABLE media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "local_id TEXT,"
@@ -162,7 +152,6 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     }
 
     private static void createLatestIndexes(SQLiteDatabase db) {
-        makePristineIndexes(db);
 
         db.execSQL("CREATE INDEX local_id_index on media(local_id)");
         db.execSQL("CREATE INDEX cloud_id_index on media(cloud_id)");

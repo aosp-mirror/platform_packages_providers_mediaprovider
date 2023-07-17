@@ -40,7 +40,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "PickerDatabaseHelper";
 
     public static final String PICKER_DATABASE_NAME = "picker.db";
-    private static final int VERSION_U = 10;
+    private static final int VERSION_U = 11;
     public static final int VERSION_LATEST = VERSION_U;
 
     final Context mContext;
@@ -132,7 +132,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "local_id TEXT,"
                 + "cloud_id TEXT UNIQUE,"
                 + "is_visible INTEGER CHECK(is_visible == 1),"
-                + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
+                + "date_taken_ms INTEGER NOT NULL,"
                 + "sync_generation INTEGER NOT NULL CHECK(sync_generation >= 0),"
                 + "width INTEGER,"
                 + "height INTEGER,"
@@ -149,7 +149,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "local_id TEXT,"
                 + "cloud_id TEXT,"
                 + "album_id TEXT,"
-                + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
+                + "date_taken_ms INTEGER NOT NULL,"
                 + "sync_generation INTEGER NOT NULL CHECK(sync_generation >= 0),"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "duration_ms INTEGER CHECK(duration_ms >= 0),"

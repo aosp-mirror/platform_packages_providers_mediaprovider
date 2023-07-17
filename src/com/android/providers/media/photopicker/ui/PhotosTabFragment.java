@@ -22,11 +22,16 @@ import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -75,6 +80,14 @@ public class PhotosTabFragment extends TabFragment {
 
     private int mPageSize;
 
+    private ProgressBar mProgressBar;
+    private TextView mLoadingTextView;
+    private ObjectAnimator mObjectAnimator = new ObjectAnimator();
+    private int mRecyclerViewTopPadding;
+    private final Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
+
+    private final Object mHideProgressBarToken = new Object();
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -115,6 +128,13 @@ public class PhotosTabFragment extends TabFragment {
         final LiveData<Boolean> showChooseAccountBanner = shouldShowBanners
                 ? mPickerViewModel.shouldShowChooseAccountBannerLiveData() : doNotShowBanner;
 
+        mIsCloudMediaInPhotoPickerEnabled =
+                MediaApplication.getConfigStore().isCloudMediaInPhotoPickerEnabled();
+
+        if (savedInstanceState == null) {
+            initProgressBar(view);
+        }
+
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
                 mImageLoader, mOnMediaItemClickListener, /* lifecycleOwner */ this,
                 mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
@@ -122,9 +142,6 @@ public class PhotosTabFragment extends TabFragment {
                 showCloudMediaAvailableBanner, showAccountUpdatedBanner, showChooseAccountBanner,
                 mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
                 mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
-
-        mIsCloudMediaInPhotoPickerEnabled =
-                MediaApplication.getConfigStore().isCloudMediaInPhotoPickerEnabled();
 
         if (mCategory.isDefault()) {
             mPageSize = mIsCloudMediaInPhotoPickerEnabled
@@ -176,6 +193,26 @@ public class PhotosTabFragment extends TabFragment {
         }
     }
 
+
+    private void initProgressBar(@NonNull View view) {
+        // Check feature flag for cloud media and if it is not true then hide progress bar and
+        // loading text.
+        if (mIsCloudMediaInPhotoPickerEnabled) {
+            mLoadingTextView = view.findViewById(R.id.loading_text_view);
+            mProgressBar = view.findViewById(R.id.progress_bar);
+            mRecyclerViewTopPadding = getResources().getDimensionPixelSize(
+                    R.dimen.picker_recycler_view_top_padding);
+            if (mCategory == Category.DEFAULT) {
+                mPickerViewModel.isSyncInProgress().observe(this, inProgress -> {
+                    if (inProgress) {
+                        bringProgressBarAndLoadingTextInView();
+                    }
+                });
+            } else {
+                bringProgressBarAndLoadingTextInView();
+            }
+        }
+    }
     private void setOnScrollListenerForRecyclerView() {
         mRecyclerView.addOnScrollListener(
                 new RecyclerView.OnScrollListener() {
@@ -269,6 +306,7 @@ public class PhotosTabFragment extends TabFragment {
             // being created
             LinearLayoutManager layoutManager =
                     (LinearLayoutManager) mRecyclerView.getLayoutManager();
+
             if (layoutManager != null) {
                 int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
                 mPickerViewModel.getPaginatedItemsForAction(
@@ -292,6 +330,7 @@ public class PhotosTabFragment extends TabFragment {
         }
         mIsCurrentPageLoading = false;
         mAtLeastOnePageLoaded = true;
+        hideProgressBarAndLoadingText();
     }
 
     private boolean isClearGridAction(@NonNull PickerViewModel.PaginatedItemsResult itemList) {
@@ -387,9 +426,72 @@ public class PhotosTabFragment extends TabFragment {
         return fm.findFragmentByTag(FRAGMENT_TAG);
     }
 
+    /**
+     * Hides progress bar and the loading photos message.
+     * <p>This is executed with a delay of 0.6ms.
+     * This is done so that for the cases where the loading happens very quickly the user will not
+     * see the progressBar flicker.</p>
+     *
+     * <p>This results in progressBar and loadingText to remain in view for loadingTime + 0.6ms.</p>
+     */
+    private synchronized void hideProgressBarAndLoadingText() {
+        if (mProgressBar != null
+                && mLoadingTextView != null
+                && mProgressBar.getVisibility() == View.VISIBLE
+                && mLoadingTextView.getVisibility() == View.VISIBLE) {
+            // clear previous calls, extra caution.
+            mMainThreadHandler.removeCallbacksAndMessages(mHideProgressBarToken);
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (mProgressBar != null
+                            && mLoadingTextView != null
+                            && mProgressBar.getVisibility() == View.VISIBLE
+                            && mLoadingTextView.getVisibility() == View.VISIBLE) {
+                        mProgressBar.setVisibility(View.GONE);
+                        mLoadingTextView.setVisibility(View.GONE);
+                        // Move recyclerView up to cover up the space taken up by progressBar and
+                        // loadingTest.
+                        if (mRecyclerView != null
+                                && mRecyclerView.getVisibility() == View.VISIBLE) {
+                            mObjectAnimator.ofFloat(
+                                            mRecyclerView,
+                                            /* property name */ "y",
+                                            /* final position */0f)
+                                    .setDuration(300).start();
+                        }
+                    }
+                }
+            };
+            // With this runnable the hiding of progress bar is delayed by 600ms.
+            mMainThreadHandler.postDelayed(runnable, mHideProgressBarToken, /* delay duration */
+                    600);
+        }
+    }
+
+    private void bringProgressBarAndLoadingTextInView() {
+        if (mIsCloudMediaInPhotoPickerEnabled) {
+            if (mObjectAnimator != null) {
+                // stop any pending/ongoing animations.
+                mObjectAnimator.cancel();
+            }
+            if (mRecyclerView.getVisibility() == View.VISIBLE) {
+                // move recycler view down to make space for progress bar and loading text.
+                mObjectAnimator.ofFloat(
+                                mRecyclerView,
+                                /* property name */ "y",
+                                /* final position */mRecyclerViewTopPadding)
+                        .setDuration(1).start();
+            }
+            // bring progressBar and Loading text in view.
+            mLoadingTextView.setVisibility(View.VISIBLE);
+            mProgressBar.setVisibility(View.VISIBLE);
+        }
+    }
     @Override
     public void onDestroy() {
         super.onDestroy();
+        mMainThreadHandler.removeCallbacksAndMessages(mHideProgressBarToken);
         // Clear queued tasks in handler.
         DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
     }

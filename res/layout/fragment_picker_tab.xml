@@ -57,4 +57,24 @@
         android:drawSelectorOnTop="true"
         android:overScrollMode="never"/>
 
+    <TextView
+        android:id="@+id/loading_text_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:text="@string/picker_loading_photos_message"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="@dimen/picker_tab_loading_message_text_size"
+        style="?android:attr/textAppearanceListItem"
+        android:visibility="gone"/>
+
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/picker_progress_bar_margin_top"
+        style="@style/android:Widget.Material.ProgressBar.Horizontal"
+        android:indeterminate="true"
+        android:visibility="gone"/>
+
 </FrameLayout>

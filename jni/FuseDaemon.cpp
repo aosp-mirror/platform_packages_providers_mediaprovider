@@ -103,7 +103,9 @@ const bool IS_OS_DEBUGABLE = android::base::GetIntProperty("ro.debuggable", 0);
 // Stolen from: android_filesystem_config.h
 #define AID_APP_START 10000
 
-constexpr size_t MAX_READ_SIZE = 128 * 1024;
+#define FUSE_MAX_MAX_PAGES 256
+
+const size_t MAX_READ_SIZE = FUSE_MAX_MAX_PAGES * getpagesize();
 // Stolen from: UserHandle#getUserId
 constexpr int PER_USER_RANGE = 100000;
 

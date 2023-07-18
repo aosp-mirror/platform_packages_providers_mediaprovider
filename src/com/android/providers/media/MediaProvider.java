@@ -957,7 +957,7 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileInserted(insertedRow.getMediaType(),
                         insertedRow.isPending())) {
-                    mPickerSyncController.notifyMediaEvent();
+                    mPickerDataLayer.handleMediaEventNotification();
                 }
 
                 mDatabaseBackupAndRecovery.backupVolumeDbData(helper, insertedRow);
@@ -996,7 +996,7 @@ public class MediaProvider extends ContentProvider {
                         oldRow.isPending(), newRow.isPending(),
                         oldRow.isFavorite(), newRow.isFavorite(),
                         oldRow.getSpecialFormat(), newRow.getSpecialFormat())) {
-                    mPickerSyncController.notifyMediaEvent();
+                    mPickerDataLayer.handleMediaEventNotification();
                 }
 
                 mDatabaseBackupAndRecovery.updateBackup(helper, oldRow, newRow);
@@ -1056,7 +1056,7 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileDeleted(deletedRow.getId(),
                         deletedRow.getMediaType())) {
-                    mPickerSyncController.notifyMediaEvent();
+                    mPickerDataLayer.handleMediaEventNotification();
                 }
 
                 mDatabaseBackupAndRecovery.deleteFromDbBackup(helper, deletedRow);
@@ -1308,8 +1308,10 @@ public class MediaProvider extends ContentProvider {
 
         mMediaGrants = new MediaGrants(mExternalDatabase);
 
-        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade, mConfigStore);
-        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController);
+        mPickerSyncController = PickerSyncController.initialize(context, mPickerDbFacade,
+                mConfigStore);
+        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController,
+                mConfigStore);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper);
 
         if (SdkLevel.isAtLeastS()) {
@@ -6511,51 +6513,38 @@ public class MediaProvider extends ContentProvider {
                 }
                 return null;
             }
-            case MediaStore.SCAN_FILE_CALL: {
-                final LocalCallingIdentity token = clearLocalCallingIdentity();
-                final CallingIdentity providerToken = clearCallingIdentity();
-
-                final String filePath = arg;
-                final Uri uri;
-                try {
-                    File file;
-                    try {
-                        file = FileUtils.getCanonicalFile(filePath);
-                    } catch (IOException e) {
-                        file = null;
-                    }
-
-                    uri = file != null ? scanFile(file, REASON_DEMAND) : null;
-                } finally {
-                    restoreCallingIdentity(providerToken);
-                    restoreLocalCallingIdentity(token);
-                }
-
-                // TODO(b/262244882): maybe enforceCallingPermissionInternal(uri, ...)
-
-                final Bundle res = new Bundle();
-                res.putParcelable(Intent.EXTRA_STREAM, uri);
-                return res;
-            }
+            case MediaStore.SCAN_FILE_CALL:
             case MediaStore.SCAN_VOLUME_CALL: {
                 final int userId = uidToUserId(Binder.getCallingUid());
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
                 final CallingIdentity providerToken = clearCallingIdentity();
-
-                final String volumeName = arg;
                 try {
-                    final MediaVolume volume = mVolumeCache.findVolume(volumeName,
-                            UserHandle.of(userId));
-                    MediaService.onScanVolume(getContext(), volume, REASON_DEMAND);
-                } catch (FileNotFoundException e) {
-                    Log.w(TAG, "Failed to find volume " + volumeName, e);
+                    final Bundle res = new Bundle();
+                    switch (method) {
+                        case MediaStore.SCAN_FILE_CALL: {
+                            final File file = new File(arg);
+                            res.putParcelable(Intent.EXTRA_STREAM, scanFile(file, REASON_DEMAND));
+                            break;
+                        }
+                        case MediaStore.SCAN_VOLUME_CALL: {
+                            final String volumeName = arg;
+                            try {
+                                MediaVolume volume = mVolumeCache.findVolume(volumeName,
+                                        UserHandle.of(userId));
+                                MediaService.onScanVolume(getContext(), volume, REASON_DEMAND);
+                            } catch (FileNotFoundException e) {
+                                Log.w(TAG, "Failed to find volume " + volumeName, e);
+                            }
+                            break;
+                        }
+                    }
+                    return res;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } finally {
                     restoreCallingIdentity(providerToken);
                     restoreLocalCallingIdentity(token);
                 }
-                return Bundle.EMPTY;
             }
             case MediaStore.GET_VERSION_CALL: {
                 final String volumeName = extras.getString(Intent.EXTRA_TEXT);
@@ -6813,7 +6802,7 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL: {
                 final boolean notifyCloudEventResult;
                 if (mPickerSyncController.isProviderEnabled(arg, Binder.getCallingUid())) {
-                    mPickerSyncController.notifyMediaEvent();
+                    mPickerDataLayer.handleMediaEventNotification();
                     notifyCloudEventResult = true;
                 } else {
                     notifyCloudEventResult = false;

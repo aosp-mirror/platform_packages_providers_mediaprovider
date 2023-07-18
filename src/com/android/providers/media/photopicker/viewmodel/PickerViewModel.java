@@ -18,14 +18,25 @@ package com.android.providers.media.photopicker.viewmodel;
 
 import static android.content.Intent.ACTION_GET_CONTENT;
 import static android.content.Intent.EXTRA_LOCAL_ONLY;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
+import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
+
+import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
+import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 
 import android.annotation.SuppressLint;
 import android.app.Application;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -59,7 +70,6 @@ import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -88,6 +98,14 @@ public class PickerViewModel extends AndroidViewModel {
     // The list of categories.
     private MutableLiveData<List<Category>> mCategoryList;
 
+    private final MutableLiveData<Boolean> mShouldRefreshUiLiveData = new MutableLiveData<>(false);
+    private final ContentObserver mRefreshUiNotificationObserver = new ContentObserver(null) {
+        @Override
+        public void onChange(boolean selfChange) {
+            mShouldRefreshUiLiveData.postValue(true);
+        }
+    };
+
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
     private BannerManager mBannerManager;
@@ -99,6 +117,9 @@ public class PickerViewModel extends AndroidViewModel {
     private int mBottomSheetState;
 
     private Category mCurrentCategory;
+
+    // Content resolver for the currently selected user
+    private ContentResolver mContentResolver;
 
     // Note - Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
     private boolean mIsUserSelectForApp;
@@ -115,8 +136,12 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger = new PhotoPickerUiEventLogger();
         mIsUserSelectForApp = false;
         mIsLocalOnly = false;
-        // Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
-        initBannerManager();
+        registerRefreshUiNotificationObserver();
+    }
+
+    @Override
+    protected void onCleared() {
+        unregisterRefreshUiNotificationObserver();
     }
 
     @VisibleForTesting
@@ -127,6 +152,11 @@ public class PickerViewModel extends AndroidViewModel {
     @VisibleForTesting
     public void setUserIdManager(@NonNull UserIdManager userIdManager) {
         mUserIdManager = userIdManager;
+    }
+
+    @VisibleForTesting
+    public void setBannerManager(@NonNull BannerManager bannerManager) {
+        mBannerManager = bannerManager;
     }
 
     /**
@@ -188,55 +218,50 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Reset PickerViewModel.
-     * @param switchToPersonalProfile is true then set personal profile as current profile.
+     * Reset to personal profile mode.
      */
     @UiThread
-    public void reset(boolean switchToPersonalProfile) {
-        // 1. Clear Selected items
-        mSelection.clearSelectedItems();
-        // 2. Change profile to personal user
-        if (switchToPersonalProfile) {
-            mUserIdManager.setPersonalAsCurrentUserProfile();
-        }
-        // 3. Update Item and Category lists
-        clearUiGrid();
-        updateItems();
-        updateCategories();
-        // 4. Update Banners
-        // Note - Banners should always be updated after the items & categories to ensure a
-        // consistent UI.
-        mBannerManager.maybeResetAllBannerData();
-        mBannerManager.maybeUpdateBannerLiveDatas();
+    public void resetToPersonalProfile() {
+        mUserIdManager.setPersonalAsCurrentUserProfile();
+        onSwitchedProfile();
     }
 
     /**
-     * Update items, categories & banners on profile switched by the user.
+     * Reset the content observer & all the content on profile switched.
      */
     @UiThread
-    public void onUserSwitchedProfile() {
-        clearUiGrid();
-        updateItems();
-        updateCategories();
-        // Note - Banners should always be updated after the items & categories to ensure a
-        // consistent UI.
-        mBannerManager.maybeUpdateBannerLiveDatas();
+    public void onSwitchedProfile() {
+        resetRefreshUiNotificationObserver();
+        resetAllContentInCurrentProfile();
     }
 
-    private void clearUiGrid() {
-        // clear photos grid
+    /**
+     * Reset all the content (items, categories & banners) in the current profile.
+     */
+    @UiThread
+    public void resetAllContentInCurrentProfile() {
+        // Post 'should refresh UI live data' value as false to avoid unnecessary repetitive resets
+        mShouldRefreshUiLiveData.postValue(false);
+
+        // Clear the existing content - selection, photos grid, albums grid, banners
+        mSelection.clearSelectedItems();
+
         if (mItemList != null) {
-            ForegroundThread.getExecutor().execute(() -> {
-                mItemList.postValue(Arrays.asList(Item.EMPTY_VIEW));
-            });
+            ForegroundThread.getExecutor().execute(() ->
+                    mItemList.postValue(List.of(Item.EMPTY_VIEW)));
         }
 
-        //clear Albums Grid
         if (mCategoryList != null) {
-            ForegroundThread.getExecutor().execute(() -> {
-                mCategoryList.postValue(Arrays.asList(Category.EMPTY_VIEW));
-            });
+            ForegroundThread.getExecutor().execute(() ->
+                    mCategoryList.postValue(List.of(Category.EMPTY_VIEW)));
         }
+
+        mBannerManager.hideAllBanners();
+
+        // Update items, categories & banners
+        updateItems();
+        updateCategories();
+        mBannerManager.reset();
     }
 
     /**
@@ -256,6 +281,7 @@ public class PickerViewModel extends AndroidViewModel {
     private List<Item> loadItems(Category category, UserId userId,
             PaginationParameters pagingParameters) {
         final List<Item> items = new ArrayList<>();
+        String cloudProviderAuthority = null; // NULL if fetched items have NO cloud only media item
 
         try (Cursor cursor = fetchItems(category, userId, pagingParameters)) {
             if (cursor == null || cursor.getCount() == 0) {
@@ -267,13 +293,26 @@ public class PickerViewModel extends AndroidViewModel {
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
                 //  here again.
-                items.add(Item.fromCursor(cursor, userId));
+                final Item item = Item.fromCursor(cursor, userId);
+                String authority = item.getContentUri().getAuthority();
+
+                if (!LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority)) {
+                    cloudProviderAuthority = authority;
+                }
+                items.add(item);
+            }
+
+            Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
+                    + userId.toString());
+            return items;
+        } finally {
+            int count = items.size();
+            if (category.isDefault()) {
+                mLogger.logLoadedMainGridMediaItems(cloudProviderAuthority, mInstanceId, count);
+            } else {
+                mLogger.logLoadedAlbumGridMediaItems(cloudProviderAuthority, mInstanceId, count);
             }
         }
-
-        Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
-                + userId.toString());
-        return items;
     }
 
     private Cursor fetchItems(Category category, UserId userId,
@@ -373,6 +412,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
+        String cloudProviderAuthority = null; // NULL if fetched albums have NO cloud album
         try (Cursor cursor = fetchCategories(userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
@@ -382,13 +422,20 @@ public class PickerViewModel extends AndroidViewModel {
 
             while (cursor.moveToNext()) {
                 final Category category = Category.fromCursor(cursor, userId);
+                String authority = category.getAuthority();
+
+                if (!LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority)) {
+                    cloudProviderAuthority = authority;
+                }
                 categoryList.add(category);
             }
 
             Log.d(TAG,
                     "Loaded " + categoryList.size() + " categories for user " + userId.toString());
+            return categoryList;
+        } finally {
+            mLogger.logLoadedAlbums(cloudProviderAuthority, mInstanceId, categoryList.size());
         }
-        return categoryList;
     }
 
     private Cursor fetchCategories(UserId userId) {
@@ -589,6 +636,103 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger.logVideoPreviewMuteButtonClick(mInstanceId);
     }
 
+    /**
+     * Log metrics to notify that the user has clicked the 'view selected' button
+     * @param selectedItemCount the number of items selected for preview all
+     */
+    public void logPreviewAllSelected(int selectedItemCount) {
+        mLogger.logPreviewAllSelected(mInstanceId, selectedItemCount);
+    }
+
+    /**
+     * Log metrics to notify that the 'switch profile' button is visible & enabled
+     */
+    public void logProfileSwitchButtonEnabled() {
+        mLogger.logProfileSwitchButtonEnabled(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the 'switch profile' button is visible but disabled
+     */
+    public void logProfileSwitchButtonDisabled() {
+        mLogger.logProfileSwitchButtonDisabled(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the 'switch profile' button
+     */
+    public void logProfileSwitchButtonClick() {
+        mLogger.logProfileSwitchButtonClick(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has switched to the photos tab
+     */
+    public void logSwitchToPhotosTab() {
+        mLogger.logSwitchToPhotosTab(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has switched to the albums tab
+     */
+    public void logSwitchToAlbumsTab() {
+        mLogger.logSwitchToAlbumsTab(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened an album
+     * @param category the opened album metadata
+     * @param position the position of the album in the recycler view
+     */
+    public void logAlbumOpened(@NonNull Category category, int position) {
+        final String albumId = category.getId();
+        if (ALBUM_ID_FAVORITES.equals(albumId)) {
+            mLogger.logFavoritesAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_CAMERA.equals(albumId)) {
+            mLogger.logCameraAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_DOWNLOADS.equals(albumId)) {
+            mLogger.logDownloadsAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_SCREENSHOTS.equals(albumId)) {
+            mLogger.logScreenshotsAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_VIDEOS.equals(albumId)) {
+            mLogger.logVideosAlbumOpened(mInstanceId);
+        } else if (!category.isLocal()) {
+            mLogger.logCloudAlbumOpened(mInstanceId, position);
+        }
+    }
+
+    /**
+     * Log metrics to notify that the user has selected a media item
+     * @param item     the selected item metadata
+     * @param category the category of the item selected, {@link Category#DEFAULT} for main grid
+     * @param position the position of the album in the recycler view
+     */
+    public void logMediaItemSelected(@NonNull Item item, @NonNull Category category, int position) {
+        if (category.isDefault()) {
+            mLogger.logSelectedMainGridItem(mInstanceId, position);
+        } else {
+            mLogger.logSelectedAlbumItem(mInstanceId, position);
+        }
+
+        if (!item.isLocal()) {
+            mLogger.logSelectedCloudOnlyItem(mInstanceId, position);
+        }
+    }
+
+    /**
+     * Log metrics to notify that the user has previewed a media item
+     * @param item     the previewed item metadata
+     * @param category the category of the item previewed, {@link Category#DEFAULT} for main grid
+     * @param position the position of the album in the recycler view
+     */
+    public void logMediaItemPreviewed(
+            @NonNull Item item, @NonNull Category category, int position) {
+        if (category.isDefault()) {
+            mLogger.logPreviewedMainGridItem(
+                    item.getSpecialFormat(), item.getMimeType(), mInstanceId, position);
+        }
+    }
+
     public InstanceId getInstanceId() {
         return mInstanceId;
     }
@@ -690,5 +834,46 @@ public class PickerViewModel extends AndroidViewModel {
     @UiThread
     public void onUserDismissedChooseAccountBanner() {
         mBannerManager.onUserDismissedChooseAccountBanner();
+    }
+
+    /**
+     * @return a {@link LiveData} that posts Should Refresh Picker UI as {@code true} when notified.
+     */
+    @NonNull
+    public LiveData<Boolean> shouldRefreshUiLiveData() {
+        return mShouldRefreshUiLiveData;
+    }
+
+    private void registerRefreshUiNotificationObserver() {
+        mContentResolver = getContentResolverForSelectedUser();
+        mContentResolver.registerContentObserver(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI,
+                /* notifyForDescendants */ false, mRefreshUiNotificationObserver);
+    }
+
+    private void unregisterRefreshUiNotificationObserver() {
+        if (mContentResolver != null) {
+            mContentResolver.unregisterContentObserver(mRefreshUiNotificationObserver);
+            mContentResolver = null;
+        }
+    }
+
+    private void resetRefreshUiNotificationObserver() {
+        unregisterRefreshUiNotificationObserver();
+        registerRefreshUiNotificationObserver();
+    }
+
+    private ContentResolver getContentResolverForSelectedUser() {
+        final UserId selectedUserId = mUserIdManager.getCurrentUserProfileId();
+        if (selectedUserId == null) {
+            Log.d(TAG, "Selected user id is NULL; returning the default content resolver.");
+            return mAppContext.getContentResolver();
+        }
+        try {
+            return selectedUserId.getContentResolver(mAppContext);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.d(TAG, "Failed to get the content resolver for the selected user id "
+                    + selectedUserId + "; returning the default content resolver.", e);
+            return mAppContext.getContentResolver();
+        }
     }
 }

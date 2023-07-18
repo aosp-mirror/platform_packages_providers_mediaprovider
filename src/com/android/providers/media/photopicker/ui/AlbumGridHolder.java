@@ -58,7 +58,8 @@ class AlbumGridHolder extends RecyclerView.ViewHolder {
     }
 
     void bind(@NonNull Category category) {
-        itemView.setOnClickListener(v -> mOnAlbumClickListener.onAlbumClick(category));
+        int position = getAbsoluteAdapterPosition();
+        itemView.setOnClickListener(v -> mOnAlbumClickListener.onAlbumClick(category, position));
         mImageLoader.loadAlbumThumbnail(category, mIconThumb);
         mAlbumName.setText(category.getDisplayName(itemView.getContext()));
         // Check whether there is a mime type filter or not. If yes, hide the item count. Otherwise,

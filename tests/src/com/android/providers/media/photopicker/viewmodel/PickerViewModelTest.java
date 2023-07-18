@@ -19,13 +19,20 @@ package com.android.providers.media.photopicker.viewmodel;
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
+
+import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
+
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import android.app.Application;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -35,7 +42,7 @@ import android.text.format.DateUtils;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.test.InstrumentationRegistry;
+import androidx.lifecycle.LiveData;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.ConfigStore;
@@ -59,11 +66,13 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerViewModelTest {
     private static final String FAKE_CATEGORY_NAME = "testCategoryName";
     private static final String FAKE_ID = "5";
+    private static final Context sTargetContext = getInstrumentation().getTargetContext();
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
@@ -79,11 +88,10 @@ public class PickerViewModelTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
 
-        final Context context = InstrumentationRegistry.getTargetContext();
-        when(mApplication.getApplicationContext()).thenReturn(context);
+        when(mApplication.getApplicationContext()).thenReturn(sTargetContext);
         mConfigStore = new TestConfigStore();
         mConfigStore.enableCloudMediaFeature();
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+        getInstrumentation().runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
                 @Override
                 protected ConfigStore getConfigStore() {
@@ -91,11 +99,13 @@ public class PickerViewModelTest {
                 }
             };
         });
-        mItemsProvider = new TestItemsProvider(context);
+        mItemsProvider = new TestItemsProvider(sTargetContext);
         mPickerViewModel.setItemsProvider(mItemsProvider);
         UserIdManager userIdManager = mock(UserIdManager.class);
         when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
         mPickerViewModel.setUserIdManager(userIdManager);
+        final BannerManager bannerManager = new BannerManager(sTargetContext, userIdManager);
+        mPickerViewModel.setBannerManager(bannerManager);
     }
 
     @Test
@@ -116,7 +126,6 @@ public class PickerViewModelTest {
 
     @Test
     public void testGetCategories() throws Exception {
-        final Context context = InstrumentationRegistry.getTargetContext();
         final int categoryCount = 2;
         try (final Cursor fakeCursor = generateCursorForFakeCategories(categoryCount)) {
             fakeCursor.moveToFirst();
@@ -137,14 +146,14 @@ public class PickerViewModelTest {
             assertThat(categoryList.size()).isEqualTo(categoryCount);
             // Verify the first category
             final Category firstCategory = categoryList.get(0);
-            assertThat(firstCategory.getDisplayName(context)).isEqualTo(
-                    fakeFirstCategory.getDisplayName(context));
+            assertThat(firstCategory.getDisplayName(sTargetContext)).isEqualTo(
+                    fakeFirstCategory.getDisplayName(sTargetContext));
             assertThat(firstCategory.getItemCount()).isEqualTo(fakeFirstCategory.getItemCount());
             assertThat(firstCategory.getCoverUri()).isEqualTo(fakeFirstCategory.getCoverUri());
             // Verify the second category
             final Category secondCategory = categoryList.get(1);
-            assertThat(secondCategory.getDisplayName(context)).isEqualTo(
-                    fakeSecondCategory.getDisplayName(context));
+            assertThat(secondCategory.getDisplayName(sTargetContext)).isEqualTo(
+                    fakeSecondCategory.getDisplayName(sTargetContext));
             assertThat(secondCategory.getItemCount()).isEqualTo(fakeSecondCategory.getItemCount());
             assertThat(secondCategory.getCoverUri()).isEqualTo(fakeSecondCategory.getCoverUri());
         }
@@ -364,5 +373,20 @@ public class PickerViewModelTest {
 
         mConfigStore.disableCloudMediaFeature();
         assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isTrue();
+    }
+
+    @Test
+    public void testRefreshUiNotifications() throws InterruptedException {
+        final LiveData<Boolean> shouldRefreshUi = mPickerViewModel.shouldRefreshUiLiveData();
+        assertFalse(shouldRefreshUi.getValue());
+
+        final ContentResolver contentResolver = sTargetContext.getContentResolver();
+        contentResolver.notifyChange(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI, null);
+
+        TimeUnit.MILLISECONDS.sleep(100);
+        assertTrue(shouldRefreshUi.getValue());
+
+        mPickerViewModel.resetAllContentInCurrentProfile();
+        assertFalse(shouldRefreshUi.getValue());
     }
 }

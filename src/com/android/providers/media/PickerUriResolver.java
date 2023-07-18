@@ -70,6 +70,10 @@ public class PickerUriResolver {
     public static final Uri PICKER_INTERNAL_URI = MediaStore.AUTHORITY_URI.buildUpon().
             appendPath(PICKER_INTERNAL_SEGMENT).build();
 
+    public static final String REFRESH_PICKER_UI_PATH = "refresh_ui";
+    public static final Uri REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI =
+            PICKER_INTERNAL_URI.buildUpon().appendPath(REFRESH_PICKER_UI_PATH).build();
+
     public static final String MEDIA_PATH = "media";
     public static final String ALBUM_PATH = "albums";
 

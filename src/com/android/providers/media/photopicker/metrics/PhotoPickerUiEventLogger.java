@@ -72,6 +72,16 @@ public class PhotoPickerUiEventLogger {
         PHOTO_PICKER_PROFILE_SWITCH_BUTTON_DISABLED(1416),
         @UiEvent(doc = "Clicked the 'switch profile' button in photo picker")
         PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK(1417),
+        @UiEvent(doc = "Exited photo picker by swiping down")
+        PHOTO_PICKER_EXIT_SWIPE_DOWN(1420),
+        @UiEvent(doc = "Back pressed in photo picker")
+        PHOTO_PICKER_BACK_GESTURE(1421),
+        @UiEvent(doc = "Action bar home button clicked in photo picker")
+        PHOTO_PICKER_ACTION_BAR_HOME_BUTTON_CLICK(1422),
+        @UiEvent(doc = "Expanded from half screen to full in photo picker")
+        PHOTO_PICKER_FROM_HALF_TO_FULL_SCREEN(1423),
+        @UiEvent(doc = "Photo picker menu opened")
+        PHOTO_PICKER_MENU(1424),
         @UiEvent(doc = "User switched to the photos tab in photo picker")
         PHOTO_PICKER_TAB_PHOTOS_OPEN(1425),
         @UiEvent(doc = "User switched to the albums tab in photo picker")
@@ -398,6 +408,51 @@ public class PhotoPickerUiEventLogger {
      */
     public void logProfileSwitchButtonClick(InstanceId instanceId) {
         logWithInstance(PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has cancelled the current session by swiping down
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logSwipeDownExit(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_EXIT_SWIPE_DOWN, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has made a back gesture
+     * @param instanceId          an identifier for the current picker session
+     * @param backStackEntryCount the number of fragment entries currently in the back stack
+     */
+    public void logBackGestureWithStackCount(InstanceId instanceId, int backStackEntryCount) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_BACK_GESTURE, /* uid */ 0,
+                /* packageName */ null, instanceId, backStackEntryCount);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the action bar home button
+     * @param instanceId          an identifier for the current picker session
+     * @param backStackEntryCount the number of fragment entries currently in the back stack
+     */
+    public void logActionBarHomeButtonClick(InstanceId instanceId, int backStackEntryCount) {
+        logger.logWithInstanceIdAndPosition(
+                PhotoPickerEvent.PHOTO_PICKER_ACTION_BAR_HOME_BUTTON_CLICK, /* uid */ 0,
+                /* packageName */ null, instanceId, backStackEntryCount);
+    }
+
+    /**
+     * Log metrics to notify that the user has expanded from half screen to full
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logExpandToFullScreen(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_FROM_HALF_TO_FULL_SCREEN, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened the photo picker menu
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logMenuOpened(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_MENU, instanceId);
     }
 
     /**

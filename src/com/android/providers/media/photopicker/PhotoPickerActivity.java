@@ -202,6 +202,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         if (mPreloaderInstanceHolder.preloader != null) {
             subscribeToSelectedMediaPreloader(mPreloaderInstanceHolder.preloader);
         }
+
+        observeRefreshUiNotificationLiveData();
     }
 
     @Override
@@ -310,19 +312,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Intent intent = new Intent(this, PhotoPickerSettingsActivity.class);
         intent.putExtra(EXTRA_CURRENT_USER_ID, getCurrentUserId());
         startActivity(intent);
-    }
-
-    @Override
-    public void onRestart() {
-        super.onRestart();
-
-        // TODO(b/262001857): For each profile, conditionally reset PhotoPicker when cloud provider
-        //  app or account has changed. Currently, we'll reset picker each time it restarts when
-        //  settings page is enabled to avoid the scenario where cloud provider app or account has
-        //  changed but picker continues to show stale data from old provider app and account.
-        if (shouldShowSettingsScreen()) {
-            reset(/* switchToPersonalProfile */ false);
-        }
     }
 
     /**
@@ -826,10 +815,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     /**
      * Reset to Photo Picker initial launch state (Photos grid tab) in personal profile mode.
-     * @param switchToPersonalProfile is true then set personal profile as current profile.
      */
-    private void reset(boolean switchToPersonalProfile) {
-        mPickerViewModel.reset(switchToPersonalProfile);
+    private void resetToPersonalProfile() {
+        mPickerViewModel.resetToPersonalProfile();
         setupInitialLaunchState();
     }
 
@@ -966,7 +954,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
             // We reset the state of the PhotoPicker as we do not want to make any
             // assumptions on the state of the PhotoPicker when it was in Work Profile mode.
-            reset(/* switchToPersonalProfile */ true);
+            resetToPersonalProfile();
         }
     }
 
@@ -979,5 +967,18 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public static class PreloaderInstanceHolder extends ViewModel {
         @Nullable
         SelectedMediaPreloader preloader;
+    }
+
+    /**
+     * Reset the Picker view model content when launched with cloud features and notified to
+     * refresh the UI.
+     */
+    private void observeRefreshUiNotificationLiveData() {
+        mPickerViewModel.shouldRefreshUiLiveData()
+                .observe(this, shouldRefresh -> {
+                    if (shouldRefresh && !mPickerViewModel.shouldShowOnlyLocalFeatures()) {
+                        mPickerViewModel.resetAllContentInCurrentProfile();
+                    }
+                });
     }
 }

@@ -666,6 +666,43 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * Log metrics to notify that the user has cancelled the current session by swiping down
+     */
+    public void logSwipeDownExit() {
+        mLogger.logSwipeDownExit(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has made a back gesture
+     * @param backStackEntryCount the number of fragment entries currently in the back stack
+     */
+    public void logBackGestureWithStackCount(int backStackEntryCount) {
+        mLogger.logBackGestureWithStackCount(mInstanceId, backStackEntryCount);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the action bar home button
+     * @param backStackEntryCount the number of fragment entries currently in the back stack
+     */
+    public void logActionBarHomeButtonClick(int backStackEntryCount) {
+        mLogger.logActionBarHomeButtonClick(mInstanceId, backStackEntryCount);
+    }
+
+    /**
+     * Log metrics to notify that the user has expanded from half screen to full
+     */
+    public void logExpandToFullScreen() {
+        mLogger.logExpandToFullScreen(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened the photo picker menu
+     */
+    public void logMenuOpened() {
+        mLogger.logMenuOpened(mInstanceId);
+    }
+
+    /**
      * Log metrics to notify that the user has switched to the photos tab
      */
     public void logSwitchToPhotosTab() {

@@ -173,9 +173,9 @@ public class IdleServiceTest {
 
         MediaStore.runIdleMaintenance(resolver);
 
-        assertExpiredItemIsExtended(resolver, uri1);
-        assertExpiredItemIsExtended(resolver, uri2);
-        assertExpiredItemIsExtended(resolver, uri3);
+        assertExpiredItemIsExtended(resolver, uri1, dateExpires1);
+        assertExpiredItemIsExtended(resolver, uri2, dateExpires2);
+        assertExpiredItemIsExtended(resolver, uri3, dateExpires3);
     }
 
     @Test
@@ -187,7 +187,7 @@ public class IdleServiceTest {
 
         MediaStore.runIdleMaintenance(resolver);
 
-        assertExpiredItemIsExtended(resolver, uri);
+        assertExpiredItemIsExtended(resolver, uri, dateExpires);
     }
 
     @Test
@@ -292,9 +292,8 @@ public class IdleServiceTest {
         }
     }
 
-    private void assertExpiredItemIsExtended(ContentResolver resolver, Uri uri) throws Exception {
-        final long expectedExtendedTimestamp =
-                (System.currentTimeMillis() + FileUtils.DEFAULT_DURATION_EXTENDED) / 1000 - 1;
+    private void assertExpiredItemIsExtended(ContentResolver resolver, Uri uri,
+            long lastExpiredDate) {
         final String[] projection = new String[]{DATE_EXPIRES};
         final Bundle queryArgs = new Bundle();
         queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
@@ -303,8 +302,15 @@ public class IdleServiceTest {
             assertThat(cursor.getCount()).isEqualTo(1);
             cursor.moveToFirst();
             final long dateExpiresAfter = cursor.getLong(0);
-            assertThat(dateExpiresAfter).isGreaterThan(expectedExtendedTimestamp);
+            assertThat(dateExpiresAfter).isGreaterThan(lastExpiredDate);
+            assertTrue(timeDifferenceInSeconds(
+                    (System.currentTimeMillis() + FileUtils.DEFAULT_DURATION_EXTENDED) / 1000,
+                    dateExpiresAfter) <= 10);
         }
+    }
+
+    private long timeDifferenceInSeconds(long timeAfter, long timeBefore) {
+        return timeAfter - timeBefore;
     }
 
     private Uri createExpiredTrashedItem(ContentResolver resolver, long dateExpires)

@@ -25,6 +25,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
+import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
@@ -69,7 +70,6 @@ import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -81,8 +81,6 @@ public class PickerViewModel extends AndroidViewModel {
     private static final int RECENT_MINIMUM_COUNT = 12;
 
     private static final int INSTANCE_ID_MAX = 1 << 15;
-    private static final List<String> LOCAL_OR_MERGED_ALBUMS = Arrays.asList(ALBUM_ID_FAVORITES,
-            ALBUM_ID_CAMERA, ALBUM_ID_DOWNLOADS, ALBUM_ID_SCREENSHOTS, ALBUM_ID_VIDEOS);
 
     @NonNull
     @SuppressLint("StaticFieldLeak")
@@ -283,6 +281,7 @@ public class PickerViewModel extends AndroidViewModel {
     private List<Item> loadItems(Category category, UserId userId,
             PaginationParameters pagingParameters) {
         final List<Item> items = new ArrayList<>();
+        String cloudProviderAuthority = null; // NULL if fetched items have NO cloud only media item
 
         try (Cursor cursor = fetchItems(category, userId, pagingParameters)) {
             if (cursor == null || cursor.getCount() == 0) {
@@ -294,13 +293,26 @@ public class PickerViewModel extends AndroidViewModel {
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
                 //  here again.
-                items.add(Item.fromCursor(cursor, userId));
+                final Item item = Item.fromCursor(cursor, userId);
+                String authority = item.getContentUri().getAuthority();
+
+                if (!LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority)) {
+                    cloudProviderAuthority = authority;
+                }
+                items.add(item);
+            }
+
+            Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
+                    + userId.toString());
+            return items;
+        } finally {
+            int count = items.size();
+            if (category.isDefault()) {
+                mLogger.logLoadedMainGridMediaItems(cloudProviderAuthority, mInstanceId, count);
+            } else {
+                mLogger.logLoadedAlbumGridMediaItems(cloudProviderAuthority, mInstanceId, count);
             }
         }
-
-        Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
-                + userId.toString());
-        return items;
     }
 
     private Cursor fetchItems(Category category, UserId userId,
@@ -400,6 +412,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
+        String cloudProviderAuthority = null; // NULL if fetched albums have NO cloud album
         try (Cursor cursor = fetchCategories(userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
@@ -409,13 +422,20 @@ public class PickerViewModel extends AndroidViewModel {
 
             while (cursor.moveToNext()) {
                 final Category category = Category.fromCursor(cursor, userId);
+                String authority = category.getAuthority();
+
+                if (!LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority)) {
+                    cloudProviderAuthority = authority;
+                }
                 categoryList.add(category);
             }
 
             Log.d(TAG,
                     "Loaded " + categoryList.size() + " categories for user " + userId.toString());
+            return categoryList;
+        } finally {
+            mLogger.logLoadedAlbums(cloudProviderAuthority, mInstanceId, categoryList.size());
         }
-        return categoryList;
     }
 
     private Cursor fetchCategories(UserId userId) {
@@ -646,6 +666,43 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * Log metrics to notify that the user has cancelled the current session by swiping down
+     */
+    public void logSwipeDownExit() {
+        mLogger.logSwipeDownExit(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has made a back gesture
+     * @param backStackEntryCount the number of fragment entries currently in the back stack
+     */
+    public void logBackGestureWithStackCount(int backStackEntryCount) {
+        mLogger.logBackGestureWithStackCount(mInstanceId, backStackEntryCount);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the action bar home button
+     * @param backStackEntryCount the number of fragment entries currently in the back stack
+     */
+    public void logActionBarHomeButtonClick(int backStackEntryCount) {
+        mLogger.logActionBarHomeButtonClick(mInstanceId, backStackEntryCount);
+    }
+
+    /**
+     * Log metrics to notify that the user has expanded from half screen to full
+     */
+    public void logExpandToFullScreen() {
+        mLogger.logExpandToFullScreen(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened the photo picker menu
+     */
+    public void logMenuOpened() {
+        mLogger.logMenuOpened(mInstanceId);
+    }
+
+    /**
      * Log metrics to notify that the user has switched to the photos tab
      */
     public void logSwitchToPhotosTab() {
@@ -660,13 +717,23 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Log metrics to notify that the user has opened a cloud album
+     * Log metrics to notify that the user has opened an album
      * @param category the opened album metadata
      * @param position the position of the album in the recycler view
      */
-    public void logCloudAlbumOpened(@NonNull Category category, int position) {
+    public void logAlbumOpened(@NonNull Category category, int position) {
         final String albumId = category.getId();
-        if (!LOCAL_OR_MERGED_ALBUMS.contains(albumId) && !category.isLocal()) {
+        if (ALBUM_ID_FAVORITES.equals(albumId)) {
+            mLogger.logFavoritesAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_CAMERA.equals(albumId)) {
+            mLogger.logCameraAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_DOWNLOADS.equals(albumId)) {
+            mLogger.logDownloadsAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_SCREENSHOTS.equals(albumId)) {
+            mLogger.logScreenshotsAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_VIDEOS.equals(albumId)) {
+            mLogger.logVideosAlbumOpened(mInstanceId);
+        } else if (!category.isLocal()) {
             mLogger.logCloudAlbumOpened(mInstanceId, position);
         }
     }

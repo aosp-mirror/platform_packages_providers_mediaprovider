@@ -1113,25 +1113,18 @@ public class FileUtils {
     }
 
     public static @Nullable String extractRelativePath(@Nullable String data) {
+        data = getCanonicalPath(data);
         if (data == null) return null;
 
-        final String path;
-        try {
-            path = getCanonicalPath(data);
-        } catch (IOException e) {
-            Log.d(TAG, "Unable to get canonical path from invalid data path: " + data, e);
-            return null;
-        }
-
-        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(path);
+        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(data);
         if (matcher.find()) {
-            final int lastSlash = path.lastIndexOf('/');
+            final int lastSlash = data.lastIndexOf('/');
             if (lastSlash == -1 || lastSlash < matcher.end()) {
                 // This is a file in the top-level directory, so relative path is "/"
                 // which is different than null, which means unknown path
                 return "/";
             } else {
-                return path.substring(matcher.end(), lastSlash + 1);
+                return data.substring(matcher.end(), lastSlash + 1);
             }
         } else {
             return null;
@@ -1824,41 +1817,15 @@ public class FileUtils {
         return new File(file.getPath().replaceFirst(FUSE_FS_PREFIX, LOWER_FS_PREFIX));
     }
 
-    /**
-     * Returns the canonical {@link File} for the provided abstract pathname.
-     *
-     * @return The canonical pathname string denoting the same file or directory as this abstract
-     *         pathname
-     * @see File#getCanonicalFile()
-     */
-    @NonNull
-    public static File getCanonicalFile(@NonNull String path) throws IOException {
-        Objects.requireNonNull(path);
-        return new File(path).getCanonicalFile();
-    }
+    @Nullable
+    private static String getCanonicalPath(@Nullable String path) {
+        if (path == null) return null;
 
-    /**
-     * Returns the canonical pathname string of the provided abstract pathname.
-     *
-     * @return The canonical pathname string denoting the same file or directory as this abstract
-     *         pathname.
-     * @see File#getCanonicalPath()
-     */
-    @NonNull
-    public static String getCanonicalPath(@NonNull String path) throws IOException {
-        Objects.requireNonNull(path);
-        return new File(path).getCanonicalPath();
-    }
-
-    /**
-     * A wrapper for {@link File#getCanonicalFile()} that catches {@link IOException}-s and
-     * re-throws them as {@link RuntimeException}-s.
-     *
-     * @see File#getCanonicalFile()
-     */
-    @NonNull
-    public static File canonicalize(@NonNull File file) throws IOException {
-        Objects.requireNonNull(file);
-        return file.getCanonicalFile();
+        try {
+            return new File(path).getCanonicalPath();
+        } catch (IOException e) {
+            Log.d(TAG, "Unable to get canonical path from invalid data path: " + path, e);
+            return null;
+        }
     }
 }

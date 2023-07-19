@@ -53,6 +53,7 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
@@ -64,6 +65,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     private static final int VIDEO_PREVIEW_THUMBNAIL_ID = R.id.preview_video_image;

@@ -22,6 +22,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.AUTHORITY
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_CONFIGURATION_INTENT;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME;
+import static android.provider.MediaStore.MY_UID;
 
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
@@ -45,9 +46,11 @@ import androidx.work.Configuration;
 import androidx.work.WorkManager;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.logging.InstanceId;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
 import com.android.providers.media.photopicker.sync.PickerSyncManager;
 import com.android.providers.media.photopicker.sync.SyncTracker;
 
@@ -361,12 +364,22 @@ public class PickerDataLayer {
     }
 
     private Cursor queryProviderAlbumsInternal(@NonNull String authority, Bundle queryArgs) {
+        final InstanceId instanceId = NonUiEventLogger.generateInstanceId();
+        int numberOfAlbumsFetched = -1;
+        NonUiEventLogger.logPickerGetAlbumsStart(instanceId, MY_UID, authority);
         try {
-            return mContext.getContentResolver().query(getAlbumUri(authority),
+            final Cursor res = mContext.getContentResolver().query(getAlbumUri(authority),
                     /* projection */ null, queryArgs, /* cancellationSignal */ null);
+            if (res != null) {
+                numberOfAlbumsFetched = res.getCount();
+            }
+            return res;
         } catch (Exception e) {
             Log.w(TAG, "Failed to fetch cloud albums for: " + authority, e);
             return null;
+        } finally {
+            NonUiEventLogger.logPickerGetAlbumsEnd(instanceId, MY_UID, authority,
+                    numberOfAlbumsFetched);
         }
     }
 

@@ -35,12 +35,20 @@ public class NonUiEventLogger {
         PHOTO_PICKER_INCREMENTAL_SYNC_START(1443),
         @UiEvent(doc = "Triggered an album media sync in photo picker")
         PHOTO_PICKER_ALBUM_MEDIA_SYNC_START(1444),
+        @UiEvent(doc = "Triggered get media collection info in photo picker")
+        PHOTO_PICKER_GET_MEDIA_COLLECTION_INFO_START(1448),
+        @UiEvent(doc = "Triggered get albums in photo picker")
+        PHOTO_PICKER_GET_ALBUMS_START(1449),
         @UiEvent(doc = "Ended an add media sync in photo picker")
         PHOTO_PICKER_ADD_MEDIA_SYNC_END(1445),
         @UiEvent(doc = "Ended a remove media sync in photo picker")
         PHOTO_PICKER_REMOVE_MEDIA_SYNC_END(1446),
         @UiEvent(doc = "Ended an add album media sync in photo picker")
-        PHOTO_PICKER_ADD_ALBUM_MEDIA_SYNC_END(1447);
+        PHOTO_PICKER_ADD_ALBUM_MEDIA_SYNC_END(1447),
+        @UiEvent(doc = "Ended get media collection info in photo picker")
+        PHOTO_PICKER_GET_MEDIA_COLLECTION_INFO_END(1450),
+        @UiEvent(doc = "Ended get albums in photo picker")
+        PHOTO_PICKER_GET_ALBUMS_END(1451);
 
         private final int mId;
 
@@ -113,6 +121,29 @@ public class NonUiEventLogger {
     }
 
     /**
+     * Log metrics to notify get media collection info triggered
+     * @param instanceId an identifier for the current query session
+     * @param uid        the uid of the MediaProvider logging this metric
+     * @param authority  the authority of the provider
+     */
+    public static void logPickerGetMediaCollectionInfoStart(InstanceId instanceId, int uid,
+            String authority) {
+        LOGGER.logWithInstanceId(NonUiEvent.PHOTO_PICKER_GET_MEDIA_COLLECTION_INFO_START, uid,
+                authority, instanceId);
+    }
+
+    /**
+     * Log metrics to notify get albums triggered
+     * @param instanceId an identifier for the current query session
+     * @param uid        the uid of the MediaProvider logging this metric
+     * @param authority  the authority of the provider
+     */
+    public static void logPickerGetAlbumsStart(InstanceId instanceId, int uid, String authority) {
+        LOGGER.logWithInstanceId(NonUiEvent.PHOTO_PICKER_GET_ALBUMS_START, uid, authority,
+                instanceId);
+    }
+
+    /**
      * Log metrics to notify that an add media sync ended
      * @param instanceId an identifier for the current sync
      * @param uid        the uid of the MediaProvider logging this metric
@@ -149,5 +180,30 @@ public class NonUiEventLogger {
             String authority, int count) {
         LOGGER.logWithInstanceIdAndPosition(NonUiEvent.PHOTO_PICKER_ADD_ALBUM_MEDIA_SYNC_END, uid,
                 authority, instanceId, count);
+    }
+
+    /**
+     * Log metrics to notify get media collection info ended
+     * @param instanceId an identifier for the current query session
+     * @param uid        the uid of the MediaProvider logging this metric
+     * @param authority  the authority of the provider
+     */
+    public static void logPickerGetMediaCollectionInfoEnd(InstanceId instanceId, int uid,
+            String authority) {
+        LOGGER.logWithInstanceId(NonUiEvent.PHOTO_PICKER_GET_MEDIA_COLLECTION_INFO_END, uid,
+                authority, instanceId);
+    }
+
+    /**
+     * Log metrics to notify get albums ended
+     * @param instanceId an identifier for the current query session
+     * @param uid        the uid of the MediaProvider logging this metric
+     * @param authority  the authority of the provider
+     * @param count      the number of albums fetched
+     */
+    public static void logPickerGetAlbumsEnd(InstanceId instanceId, int uid, String authority,
+            int count) {
+        LOGGER.logWithInstanceIdAndPosition(NonUiEvent.PHOTO_PICKER_GET_ALBUMS_END, uid, authority,
+                instanceId, count);
     }
 }

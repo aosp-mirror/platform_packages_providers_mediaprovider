@@ -32,11 +32,13 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewTestU
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
+@RunOnlyOnPostsubmit
 public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
 
     @Rule

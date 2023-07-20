@@ -241,10 +241,30 @@ public class PhotoPickerActivity extends AppCompatActivity {
         return super.dispatchTouchEvent(event);
     }
 
+    /**
+     * This method is called on action bar home button clicks if
+     * {@link androidx.appcompat.app.ActionBar#setDisplayHomeAsUpEnabled(boolean)} is set
+     * {@code true}.
+     */
     @Override
     public boolean onSupportNavigateUp() {
-        onBackPressed();
+        int backStackEntryCount = getSupportFragmentManager().getBackStackEntryCount();
+        mPickerViewModel.logActionBarHomeButtonClick(backStackEntryCount);
+        super.onBackPressed();
         return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+        int backStackEntryCount = getSupportFragmentManager().getBackStackEntryCount();
+        mPickerViewModel.logBackGestureWithStackCount(backStackEntryCount);
+        super.onBackPressed();
+    }
+
+    @Override
+    public boolean onMenuOpened(int featureId, Menu menu) {
+        mPickerViewModel.logMenuOpened();
+        return super.onMenuOpened(featureId, menu);
     }
 
     @Override
@@ -414,7 +434,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
+                    mPickerViewModel.logSwipeDownExit();
                     finish();
+                } else if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    mPickerViewModel.logExpandToFullScreen();
                 }
                 saveBottomSheetState();
             }

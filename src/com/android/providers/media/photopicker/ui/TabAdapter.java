@@ -16,6 +16,11 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_GRID;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
+
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -225,10 +230,33 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     /**
      * Update the List of all items (excluding the banner) in tab adapter {@link #mAllItems}
      */
-    protected final void setAllItems(@NonNull List<?> items) {
+    protected final void setAllItems(@NonNull List<?> items,
+            @ItemsAction.Type int action) {
+        int previousItemCount = getItemCount();
         mAllItems.clear();
         mAllItems.addAll(items);
-        notifyDataSetChanged();
+        notifyOnListChanged(previousItemCount, items.size(), action);
+    }
+
+    private void notifyOnListChanged(int previousItemCount, int sizeOfUpdatedList,
+            @ItemsAction.Type int action) {
+        switch (action) {
+            case ACTION_VIEW_CREATED:
+                // fall through.
+            case ACTION_CLEAR_AND_UPDATE_LIST: {
+                notifyDataSetChanged();
+                break;
+            }
+            case ACTION_CLEAR_GRID: {
+                notifyItemRangeRemoved(0, previousItemCount);
+                break;
+            }
+            case ACTION_LOAD_NEXT_PAGE: {
+                notifyItemRangeInserted(previousItemCount,
+                        sizeOfUpdatedList - previousItemCount);
+                break;
+            }
+        }
     }
 
     @NonNull

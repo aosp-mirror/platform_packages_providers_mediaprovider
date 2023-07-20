@@ -865,7 +865,7 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType,
+    protected void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType,
             @NonNull String volumeName) {
         // Quota type is only updated for external primary volume
         if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {

@@ -72,6 +72,16 @@ public class PhotoPickerUiEventLogger {
         PHOTO_PICKER_PROFILE_SWITCH_BUTTON_DISABLED(1416),
         @UiEvent(doc = "Clicked the 'switch profile' button in photo picker")
         PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK(1417),
+        @UiEvent(doc = "Exited photo picker by swiping down")
+        PHOTO_PICKER_EXIT_SWIPE_DOWN(1420),
+        @UiEvent(doc = "Back pressed in photo picker")
+        PHOTO_PICKER_BACK_GESTURE(1421),
+        @UiEvent(doc = "Action bar home button clicked in photo picker")
+        PHOTO_PICKER_ACTION_BAR_HOME_BUTTON_CLICK(1422),
+        @UiEvent(doc = "Expanded from half screen to full in photo picker")
+        PHOTO_PICKER_FROM_HALF_TO_FULL_SCREEN(1423),
+        @UiEvent(doc = "Photo picker menu opened")
+        PHOTO_PICKER_MENU(1424),
         @UiEvent(doc = "User switched to the photos tab in photo picker")
         PHOTO_PICKER_TAB_PHOTOS_OPEN(1425),
         @UiEvent(doc = "User switched to the albums tab in photo picker")
@@ -95,7 +105,13 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "Selected a cloud only media item")
         PHOTO_PICKER_SELECTED_ITEM_CLOUD_ONLY(1435),
         @UiEvent(doc = "Previewed a media item in the main grid")
-        PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID(1436);
+        PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID(1436),
+        @UiEvent(doc = "Loaded media items in the main grid in photo picker")
+        PHOTO_PICKER_UI_LOADED_PHOTOS(1437),
+        @UiEvent(doc = "Loaded albums in photo picker")
+        PHOTO_PICKER_UI_LOADED_ALBUMS(1438),
+        @UiEvent(doc = "Loaded media items in an album grid in photo picker")
+        PHOTO_PICKER_UI_LOADED_ALBUM_CONTENTS(1439);
 
         private final int mId;
 
@@ -395,6 +411,51 @@ public class PhotoPickerUiEventLogger {
     }
 
     /**
+     * Log metrics to notify that the user has cancelled the current session by swiping down
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logSwipeDownExit(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_EXIT_SWIPE_DOWN, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has made a back gesture
+     * @param instanceId          an identifier for the current picker session
+     * @param backStackEntryCount the number of fragment entries currently in the back stack
+     */
+    public void logBackGestureWithStackCount(InstanceId instanceId, int backStackEntryCount) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_BACK_GESTURE, /* uid */ 0,
+                /* packageName */ null, instanceId, backStackEntryCount);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the action bar home button
+     * @param instanceId          an identifier for the current picker session
+     * @param backStackEntryCount the number of fragment entries currently in the back stack
+     */
+    public void logActionBarHomeButtonClick(InstanceId instanceId, int backStackEntryCount) {
+        logger.logWithInstanceIdAndPosition(
+                PhotoPickerEvent.PHOTO_PICKER_ACTION_BAR_HOME_BUTTON_CLICK, /* uid */ 0,
+                /* packageName */ null, instanceId, backStackEntryCount);
+    }
+
+    /**
+     * Log metrics to notify that the user has expanded from half screen to full
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logExpandToFullScreen(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_FROM_HALF_TO_FULL_SCREEN, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened the photo picker menu
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logMenuOpened(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_MENU, instanceId);
+    }
+
+    /**
      * Log metrics to notify that the user has switched to the photos tab
      * @param instanceId an identifier for the current picker session
      */
@@ -502,6 +563,39 @@ public class PhotoPickerUiEventLogger {
             int specialFormat, String mimeType, InstanceId instanceId, int position) {
         logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID,
                 specialFormat, mimeType, instanceId, position);
+    }
+
+    /**
+     * Log metrics to notify that the picker has loaded some media items in the main grid
+     * @param authority  the authority of the selected cloud provider, null if no non-local items
+     * @param instanceId an identifier for the current picker session
+     * @param count      the number of media items loaded
+     */
+    public void logLoadedMainGridMediaItems(String authority, InstanceId instanceId, int count) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_PHOTOS,
+                /* uid */ 0, authority, instanceId, count);
+    }
+
+    /**
+     * Log metrics to notify that the picker has loaded some albums
+     * @param authority  the authority of the selected cloud provider, null if no non-local albums
+     * @param instanceId an identifier for the current picker session
+     * @param count      the number of albums loaded
+     */
+    public void logLoadedAlbums(String authority, InstanceId instanceId, int count) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_ALBUMS,
+                /* uid */ 0, authority, instanceId, count);
+    }
+
+    /**
+     * Log metrics to notify that the picker has loaded some media items in an album grid
+     * @param authority  the authority of the selected cloud provider, null if no non-local items
+     * @param instanceId an identifier for the current picker session
+     * @param count      the number of media items loaded
+     */
+    public void logLoadedAlbumGridMediaItems(String authority, InstanceId instanceId, int count) {
+        logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_ALBUM_CONTENTS,
+                /* uid */ 0, authority, instanceId, count);
     }
 
     private void logWithInstance(@NonNull UiEventLogger.UiEventEnum event, InstanceId instance) {

@@ -27,13 +27,9 @@ public class PaginationParameters {
     private int mPageSize = INT_DEFAULT;
     private long mDateBeforeMs = LONG_DEFAULT;
     private int mRowId = INT_DEFAULT;
+    public static final int PAGINATION_PAGE_SIZE_ITEMS = 600;
 
-    // TODO(b/289014634): Modify the PageSize for photos tab items and album items
-    // This needs to be done after the implementation of onScrollListener for pagination has been
-    // implemented.
-    private static final int PAGINATION_PAGE_SIZE_ITEMS = INT_DEFAULT;
-
-    private static final int PAGINATION_PAGE_SIZE_ALBUM_ITEMS = INT_DEFAULT;
+    public static final int PAGINATION_PAGE_SIZE_ALBUM_ITEMS = 600;
 
     /**
      * Instantiates UI pagination parameters for photoPicker. Use this when all the fields needs to

@@ -25,6 +25,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
+import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_GRID;
@@ -44,6 +45,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.os.CancellationSignal;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
@@ -62,6 +64,7 @@ import com.android.internal.logging.InstanceIdSequence;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.MediaApplication;
+import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.NotificationContentObserver;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
@@ -74,7 +77,6 @@ import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.ui.ItemsAction;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
-import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
@@ -91,6 +93,7 @@ public class PickerViewModel extends AndroidViewModel {
     private static final int RECENT_MINIMUM_COUNT = 12;
 
     private static final int INSTANCE_ID_MAX = 1 << 15;
+    private static final int DELAY_MILLIS = 0;
 
     @NonNull
     @SuppressLint("StaticFieldLeak")
@@ -142,6 +145,7 @@ public class PickerViewModel extends AndroidViewModel {
     private boolean mIsAllItemsLoaded = false;
     private boolean mIsAllCategoryItemsLoaded = false;
     private boolean mIsNotificationForUpdateReceived = false;
+    private CancellationSignal mCancellationSignal = new CancellationSignal();
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -174,6 +178,12 @@ public class PickerViewModel extends AndroidViewModel {
     @Override
     protected void onCleared() {
         unregisterRefreshUiNotificationObserver();
+
+        // Signal ContentProvider to cancel currently running task.
+        mCancellationSignal.cancel();
+
+        // Clear queued tasks in handler.
+        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
     }
 
     private void onNotificationReceived() {
@@ -292,15 +302,18 @@ public class PickerViewModel extends AndroidViewModel {
         // Clear the existing content - selection, photos grid, albums grid, banners
         mSelection.clearSelectedItems();
 
-        if (mItemsResult != null && mItemsResult.getValue() != null) {
-            ForegroundThread.getExecutor().execute(() ->
+        // Clear queued tasks in handler.
+        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
+
+        if (mItemsResult != null) {
+            DataLoaderThread.getHandler().postDelayed(() ->
                     mItemsResult.postValue(new PaginatedItemsResult(List.of(Item.EMPTY_VIEW),
-                            ACTION_CLEAR_GRID)));
+                            ACTION_CLEAR_GRID)), TOKEN, DELAY_MILLIS);
         }
 
         if (mCategoryList != null) {
-            ForegroundThread.getExecutor().execute(() ->
-                    mCategoryList.postValue(List.of(Category.EMPTY_VIEW)));
+            DataLoaderThread.getHandler().postDelayed(() ->
+                    mCategoryList.postValue(List.of(Category.EMPTY_VIEW)), TOKEN, DELAY_MILLIS);
         }
 
         mBannerManager.hideAllBanners();
@@ -395,7 +408,8 @@ public class PickerViewModel extends AndroidViewModel {
     private void loadItemsAsync(@NonNull PaginationParameters pagingParameters, boolean isReset,
             @ItemsAction.Type int action) {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
-        ForegroundThread.getExecutor().execute(() -> {
+
+        DataLoaderThread.getHandler().postDelayed(() -> {
             if (action == ACTION_LOAD_NEXT_PAGE && mIsAllItemsLoaded) {
                 return;
             }
@@ -421,7 +435,7 @@ public class PickerViewModel extends AndroidViewModel {
 
             // post the result with the action.
             mItemsResult.postValue(new PaginatedItemsResult(updatedList, action));
-        });
+        }, TOKEN, DELAY_MILLIS);
     }
 
     private List<Item> loadItems(Category category, UserId userId,
@@ -465,10 +479,10 @@ public class PickerViewModel extends AndroidViewModel {
             PaginationParameters pagingParameters) {
         if (shouldShowOnlyLocalFeatures()) {
             return mItemsProvider.getLocalItems(category, pagingParameters,
-                    mMimeTypeFilters, userId);
+                    mMimeTypeFilters, userId, mCancellationSignal);
         } else {
             return mItemsProvider.getAllItems(category, pagingParameters,
-                    mMimeTypeFilters, userId);
+                    mMimeTypeFilters, userId, mCancellationSignal);
         }
     }
 
@@ -544,7 +558,8 @@ public class PickerViewModel extends AndroidViewModel {
     private void loadCategoryItemsAsync(PaginationParameters pagingParameters, boolean isReset,
             @ItemsAction.Type int action) {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
-        ForegroundThread.getExecutor().execute(() -> {
+
+        DataLoaderThread.getHandler().postDelayed(() -> {
             if (action == ACTION_LOAD_NEXT_PAGE && mIsAllCategoryItemsLoaded) {
                 return;
             }
@@ -568,7 +583,7 @@ public class PickerViewModel extends AndroidViewModel {
                 Log.d(TAG, "All items have been loaded for category: " + mCurrentCategory);
             }
             mCategoryItemsResult.postValue(new PaginatedItemsResult(updatedList, action));
-        });
+        }, TOKEN, DELAY_MILLIS);
     }
 
     /**
@@ -620,17 +635,17 @@ public class PickerViewModel extends AndroidViewModel {
 
     private Cursor fetchCategories(UserId userId) {
         if (shouldShowOnlyLocalFeatures()) {
-            return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId);
+            return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId, mCancellationSignal);
         } else {
-            return mItemsProvider.getAllCategories(mMimeTypeFilters, userId);
+            return mItemsProvider.getAllCategories(mMimeTypeFilters, userId, mCancellationSignal);
         }
     }
 
     private void loadCategoriesAsync() {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
-        ForegroundThread.getExecutor().execute(() -> {
+        DataLoaderThread.getHandler().postDelayed(() -> {
             mCategoryList.postValue(loadCategories(userId));
-        });
+        }, TOKEN, DELAY_MILLIS);
     }
 
     /**
@@ -1153,12 +1168,11 @@ public class PickerViewModel extends AndroidViewModel {
     public void initPhotoPickerData(@NonNull Category category) {
         if (getConfigStore().isCloudMediaInPhotoPickerEnabled()) {
             UserId userId = mUserIdManager.getCurrentUserProfileId();
-            ForegroundThread.getHandler().post(() ->
+            DataLoaderThread.getHandler().postDelayed(() ->
                     mItemsProvider.initPhotoPickerData(category.getId(),
                                 category.getAuthority(),
                                 shouldShowOnlyLocalFeatures(),
-                                userId)
-            );
+                                userId), TOKEN, DELAY_MILLIS);
         }
     }
 }

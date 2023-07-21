@@ -127,7 +127,6 @@ public class PickerDataLayerTest {
 
         final TestConfigStore configStore = new TestConfigStore();
         configStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
-        configStore.setPickerSyncDelayMs(0);
 
         mController = PickerSyncController.initialize(
                 mContext, mFacade, configStore, LOCAL_PROVIDER_AUTHORITY);

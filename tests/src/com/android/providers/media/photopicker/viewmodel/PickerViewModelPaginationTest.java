@@ -104,7 +104,6 @@ public class PickerViewModelPaginationTest {
         MockitoAnnotations.initMocks(this);
 
         mConfigStore = new TestConfigStore();
-        mConfigStore.setPickerSyncDelayMs(0);
         mConfigStore.enableCloudMediaFeature();
 
         final Context isolatedContext = new IsolatedContext(sTargetContext, /* tag */ "databases",

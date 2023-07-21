@@ -131,7 +131,7 @@ public class PreviewFragment extends Fragment {
                     + ", but found null");
         }
         mViewPager2Wrapper = new ViewPager2Wrapper(viewPager, selectedItemsList, mMuteStatus,
-                mPickerViewModel::logVideoPreviewMuteButtonClick);
+                mOnCreateSurfaceController, mPickerViewModel::logVideoPreviewMuteButtonClick);
 
         setUpPreviewLayout(view, getArguments());
         setupScrimLayerAndBottomBar(view);
@@ -397,4 +397,17 @@ public class PreviewFragment extends Fragment {
                         : context.getString(R.string.picker_add_button_multi_select);
         return TextUtils.expandTemplate(template, sizeString).toString();
     }
+
+    private final PreviewAdapter.OnCreateSurfaceController mOnCreateSurfaceController =
+            new PreviewAdapter.OnCreateSurfaceController() {
+                @Override
+                public void logStart(String authority) {
+                    mPickerViewModel.logCreateSurfaceControllerStart(authority);
+                }
+
+                @Override
+                public void logEnd(String authority) {
+                    mPickerViewModel.logCreateSurfaceControllerEnd(authority);
+                }
+            };
 }

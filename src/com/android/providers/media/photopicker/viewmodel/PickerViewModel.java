@@ -30,6 +30,7 @@ import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEA
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_GRID;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_DEFAULT;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
@@ -61,6 +62,7 @@ import com.android.internal.logging.InstanceIdSequence;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.MediaApplication;
+import com.android.providers.media.photopicker.NotificationContentObserver;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.PaginationParameters;
@@ -76,6 +78,7 @@ import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -138,7 +141,6 @@ public class PickerViewModel extends AndroidViewModel {
     private boolean mIsLocalOnly;
     private boolean mIsAllItemsLoaded = false;
     private boolean mIsAllCategoryItemsLoaded = false;
-
     private boolean mIsNotificationForUpdateReceived = false;
 
     public PickerViewModel(@NonNull Application application) {
@@ -153,12 +155,26 @@ public class PickerViewModel extends AndroidViewModel {
         mIsUserSelectForApp = false;
         mIsLocalOnly = false;
         registerRefreshUiNotificationObserver();
+        // Add notification content observer for any notifications received for changes in media.
+        NotificationContentObserver contentObserver = new NotificationContentObserver(null);
+        contentObserver.registerKeysToObserverCallback(
+                Arrays.asList(NotificationContentObserver.MEDIA),
+                (dateTakenMs, albumId) -> {
+                    onNotificationReceived();
+                });
+        contentObserver.register(mAppContext.getContentResolver());
     }
 
     @Override
     protected void onCleared() {
         unregisterRefreshUiNotificationObserver();
     }
+
+    private void onNotificationReceived() {
+        Log.d(TAG, "Notification for media update has been received");
+        mIsNotificationForUpdateReceived = true;
+    }
+
 
     @VisibleForTesting
     public void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
@@ -174,6 +190,12 @@ public class PickerViewModel extends AndroidViewModel {
     public void setBannerManager(@NonNull BannerManager bannerManager) {
         mBannerManager = bannerManager;
     }
+
+    @VisibleForTesting
+    public void setNotificationForUpdateReceived(boolean notificationForUpdateReceived) {
+        mIsNotificationForUpdateReceived = notificationForUpdateReceived;
+    }
+
 
     /**
      * @return {@link UserIdManager} for this context.
@@ -323,6 +345,15 @@ public class PickerViewModel extends AndroidViewModel {
                 // list should be loaded.
                 updatePaginatedItems(new PaginationParameters(mItemsPageSize, -1,
                         -1), /* isReset */ true, action);
+                break;
+            }
+            case ACTION_REFRESH_ITEMS: {
+                if (mIsNotificationForUpdateReceived
+                        && mItemsResult != null
+                        && mItemsResult.getValue() != null) {
+                    updatePaginatedItems(paginationParameters, true, action);
+                    mIsNotificationForUpdateReceived = false;
+                }
                 break;
             }
             default:

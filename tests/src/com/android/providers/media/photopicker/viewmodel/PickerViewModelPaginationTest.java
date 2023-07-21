@@ -21,6 +21,7 @@ import static android.provider.MediaStore.VOLUME_EXTERNAL;
 import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -52,6 +53,7 @@ import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.util.ForegroundThread;
 
@@ -374,6 +376,59 @@ public class PickerViewModelPaginationTest {
 
             // Assert that only one page of items are present now.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(pageSize);
+
+
+        } finally {
+            mPickerViewModel.clearItemsAndCategoryItemsList();
+            deleteAllFilesNoThrow();
+        }
+    }
+
+    @Test
+    public void test_onReceivingNotification_itemsRefreshed() throws Exception {
+        int pageSize = 10;
+        final int numberOfTestItems = 10;
+
+        try {
+            // Generate test items.
+            assertCreateNewImagesWithCategoryDownloads(
+                    numberOfTestItems);
+
+            // Get live data for items, this also loads the first page. Here all 10 items will be
+            // loaded.
+            LiveData<PickerViewModel.PaginatedItemsResult> testItems =
+                    mPickerViewModel.getPaginatedItemsForAction(
+                            ACTION_VIEW_CREATED, new PaginationParameters(pageSize, -1, -1));
+            ForegroundThread.waitForIdle();
+
+            assertThat(testItems.getValue().getItems().size()).isEqualTo(pageSize);
+
+            // Store this values.
+            List<Item> previousList = testItems.getValue().getItems();
+
+            // add 2 new images.
+            assertCreateNewImagesWithCategoryDownloads(/* count of new items */ 2);
+
+            mPickerViewModel.setNotificationForUpdateReceived(true);
+
+            // Now 8 items have been loaded in the item list.
+            // Call updateItems which is usually called on profile switch or reset.
+            // This should clear out the list and load the first page.
+            mPickerViewModel.getPaginatedItemsForAction(ACTION_REFRESH_ITEMS,
+                    new PaginationParameters(pageSize, -1, -1));
+            ForegroundThread.waitForIdle();
+
+            // Assert that only one page of items are present now.
+            assertThat(testItems.getValue().getItems().size()).isEqualTo(pageSize);
+            List<Item> currentList = testItems.getValue().getItems();
+            for (int itr = 0; itr < currentList.size(); itr++) {
+                assertThat(currentList.get(itr).compareTo(previousList.get(itr))).isNotEqualTo(0);
+                if (itr >= 2) {
+                    // assert items have shifted by 2.
+                    assertThat(currentList.get(itr).compareTo(previousList.get(itr - 2))).isEqualTo(
+                            0);
+                }
+            }
 
 
         } finally {

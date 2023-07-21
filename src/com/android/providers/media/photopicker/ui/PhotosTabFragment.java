@@ -16,6 +16,7 @@
 package com.android.providers.media.photopicker.ui;
 
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
@@ -248,6 +249,26 @@ public class PhotosTabFragment extends TabFragment {
 
         getPickerActivity().updateCommonLayouts(layoutMode, title);
         hideProfileButton(shouldHideProfileButton);
+
+        if (mIsCloudMediaInPhotoPickerEnabled
+                && mCategory == Category.DEFAULT
+                && isAdapterPopulated()) {
+            LinearLayoutManager layoutManager =
+                    (LinearLayoutManager) mRecyclerView.getLayoutManager();
+            if (layoutManager != null) {
+                int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+                mPickerViewModel.getPaginatedItemsForAction(
+                        ACTION_REFRESH_ITEMS,
+                        new PaginationParameters(firstVisibleItemPosition
+                                + PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS, -1, -1));
+            }
+        }
+    }
+
+    private boolean isAdapterPopulated() {
+        // Refresh should be called only when there are some items in the adapter to be updated.
+        return mRecyclerView.getAdapter() != null
+                && mRecyclerView.getAdapter().getItemCount() != 0;
     }
 
     private void onChangeMediaItems(@NonNull PickerViewModel.PaginatedItemsResult itemList,

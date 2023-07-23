@@ -48,6 +48,10 @@ import java.util.concurrent.Executor;
  * always have permissions for accessing the {@link android.provider.DeviceConfig}).
  */
 public interface ConfigStore {
+
+    // TODO(b/288066342): Remove and replace after new constant definition in
+    //  {@link android.provider.DeviceConfig}.
+    String NAMESPACE_MEDIAPROVIDER = "mediaprovider";
     boolean DEFAULT_TAKE_OVER_GET_CONTENT = false;
     boolean DEFAULT_USER_SELECT_FOR_APP = true;
     boolean DEFAULT_STABILISE_VOLUME_INTERNAL = false;
@@ -249,7 +253,7 @@ public interface ConfigStore {
         private static final String KEY_USER_SELECT_FOR_APP = "user_select_for_app";
 
         @VisibleForTesting
-        public static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
+        public static final String KEY_STABILIZE_VOLUME_INTERNAL = "stablize_volume_internal";
         @VisibleForTesting
         public static final String KEY_STABILIZE_VOLUME_EXTERNAL = "stabilize_volume_external";
 
@@ -311,7 +315,8 @@ public interface ConfigStore {
         @Override
         public List<String> getAllowedCloudProviderPackages() {
             final List<String> allowlist =
-                    getStringArrayDeviceConfig(KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST);
+                    getStringArrayDeviceConfig(NAMESPACE_MEDIAPROVIDER,
+                            KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST);
 
             // BACKWARD COMPATIBILITY WORKAROUND.
             // See javadoc to maybeExtractPackageNameFromCloudProviderAuthority() below for more
@@ -368,14 +373,14 @@ public interface ConfigStore {
 
         @Override
         public boolean isStableUrisForInternalVolumeEnabled() {
-            return getBooleanDeviceConfig(
-                    KEY_STABILISE_VOLUME_INTERNAL, DEFAULT_STABILISE_VOLUME_INTERNAL);
+            return getBooleanDeviceConfig(NAMESPACE_MEDIAPROVIDER, KEY_STABILIZE_VOLUME_INTERNAL,
+                    DEFAULT_STABILISE_VOLUME_INTERNAL);
         }
 
         @Override
         public boolean isStableUrisForExternalVolumeEnabled() {
-            return getBooleanDeviceConfig(
-                    KEY_STABILIZE_VOLUME_EXTERNAL, DEFAULT_STABILIZE_VOLUME_EXTERNAL);
+            return getBooleanDeviceConfig(NAMESPACE_MEDIAPROVIDER, KEY_STABILIZE_VOLUME_EXTERNAL,
+                    DEFAULT_STABILIZE_VOLUME_EXTERNAL);
         }
 
         @Override
@@ -440,6 +445,15 @@ public interface ConfigStore {
                     DeviceConfig.getBoolean(NAMESPACE_STORAGE_NATIVE_BOOT, key, defaultValue));
         }
 
+        private static boolean getBooleanDeviceConfig(@NonNull String namespace,
+                @NonNull String key, boolean defaultValue) {
+            if (!sCanReadDeviceConfig) {
+                return defaultValue;
+            }
+            return withCleanCallingIdentity(
+                    () -> DeviceConfig.getBoolean(namespace, key, defaultValue));
+        }
+
         private static int getIntDeviceConfig(@NonNull String key, int defaultValue) {
             if (!sCanReadDeviceConfig) {
                 return defaultValue;
@@ -456,8 +470,26 @@ public interface ConfigStore {
                     DeviceConfig.getString(NAMESPACE_STORAGE_NATIVE_BOOT, key, null));
         }
 
+        private static String getStringDeviceConfig(@NonNull String namespace,
+                @NonNull String key) {
+            if (!sCanReadDeviceConfig) {
+                return null;
+            }
+            return withCleanCallingIdentity(() ->
+                    DeviceConfig.getString(namespace, key, null));
+        }
+
         private static List<String> getStringArrayDeviceConfig(@NonNull String key) {
             final String items = getStringDeviceConfig(key);
+            if (StringUtils.isNullOrEmpty(items)) {
+                return Collections.emptyList();
+            }
+            return Arrays.asList(items.split(","));
+        }
+
+        private static List<String> getStringArrayDeviceConfig(@NonNull String namespace,
+                @NonNull String key) {
+            final String items = getStringDeviceConfig(namespace, key);
             if (StringUtils.isNullOrEmpty(items)) {
                 return Collections.emptyList();
             }

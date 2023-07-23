@@ -865,7 +865,7 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType,
+    protected void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType,
             @NonNull String volumeName) {
         // Quota type is only updated for external primary volume
         if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
@@ -6513,51 +6513,38 @@ public class MediaProvider extends ContentProvider {
                 }
                 return null;
             }
-            case MediaStore.SCAN_FILE_CALL: {
-                final LocalCallingIdentity token = clearLocalCallingIdentity();
-                final CallingIdentity providerToken = clearCallingIdentity();
-
-                final String filePath = arg;
-                final Uri uri;
-                try {
-                    File file;
-                    try {
-                        file = FileUtils.getCanonicalFile(filePath);
-                    } catch (IOException e) {
-                        file = null;
-                    }
-
-                    uri = file != null ? scanFile(file, REASON_DEMAND) : null;
-                } finally {
-                    restoreCallingIdentity(providerToken);
-                    restoreLocalCallingIdentity(token);
-                }
-
-                // TODO(b/262244882): maybe enforceCallingPermissionInternal(uri, ...)
-
-                final Bundle res = new Bundle();
-                res.putParcelable(Intent.EXTRA_STREAM, uri);
-                return res;
-            }
+            case MediaStore.SCAN_FILE_CALL:
             case MediaStore.SCAN_VOLUME_CALL: {
                 final int userId = uidToUserId(Binder.getCallingUid());
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
                 final CallingIdentity providerToken = clearCallingIdentity();
-
-                final String volumeName = arg;
                 try {
-                    final MediaVolume volume = mVolumeCache.findVolume(volumeName,
-                            UserHandle.of(userId));
-                    MediaService.onScanVolume(getContext(), volume, REASON_DEMAND);
-                } catch (FileNotFoundException e) {
-                    Log.w(TAG, "Failed to find volume " + volumeName, e);
+                    final Bundle res = new Bundle();
+                    switch (method) {
+                        case MediaStore.SCAN_FILE_CALL: {
+                            final File file = new File(arg);
+                            res.putParcelable(Intent.EXTRA_STREAM, scanFile(file, REASON_DEMAND));
+                            break;
+                        }
+                        case MediaStore.SCAN_VOLUME_CALL: {
+                            final String volumeName = arg;
+                            try {
+                                MediaVolume volume = mVolumeCache.findVolume(volumeName,
+                                        UserHandle.of(userId));
+                                MediaService.onScanVolume(getContext(), volume, REASON_DEMAND);
+                            } catch (FileNotFoundException e) {
+                                Log.w(TAG, "Failed to find volume " + volumeName, e);
+                            }
+                            break;
+                        }
+                    }
+                    return res;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } finally {
                     restoreCallingIdentity(providerToken);
                     restoreLocalCallingIdentity(token);
                 }
-                return Bundle.EMPTY;
             }
             case MediaStore.GET_VERSION_CALL: {
                 final String volumeName = extras.getString(Intent.EXTRA_TEXT);

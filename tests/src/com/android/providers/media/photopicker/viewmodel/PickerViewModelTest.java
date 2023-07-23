@@ -17,11 +17,27 @@
 package com.android.providers.media.photopicker.viewmodel;
 
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
-import static android.provider.CloudMediaProviderContract.MediaColumns;
+import static android.provider.CloudMediaProviderContract.MediaColumns.AUTHORITY;
+import static android.provider.CloudMediaProviderContract.MediaColumns.DATA;
+import static android.provider.CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS;
+import static android.provider.CloudMediaProviderContract.MediaColumns.DURATION_MILLIS;
+import static android.provider.CloudMediaProviderContract.MediaColumns.HEIGHT;
+import static android.provider.CloudMediaProviderContract.MediaColumns.ID;
+import static android.provider.CloudMediaProviderContract.MediaColumns.IS_FAVORITE;
+import static android.provider.CloudMediaProviderContract.MediaColumns.MEDIA_STORE_URI;
+import static android.provider.CloudMediaProviderContract.MediaColumns.MIME_TYPE;
+import static android.provider.CloudMediaProviderContract.MediaColumns.ORIENTATION;
+import static android.provider.CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
+import static android.provider.CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION;
+import static android.provider.CloudMediaProviderContract.MediaColumns.SYNC_GENERATION;
+import static android.provider.CloudMediaProviderContract.MediaColumns.WIDTH;
 
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
+import static com.android.providers.media.photopicker.data.model.Item.ROW_ID;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -66,6 +82,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
@@ -83,6 +100,9 @@ public class PickerViewModelTest {
     private PickerViewModel mPickerViewModel;
     private TestItemsProvider mItemsProvider;
     private TestConfigStore mConfigStore;
+
+    public PickerViewModelTest() {
+    }
 
     @Before
     public void setUp() {
@@ -112,13 +132,16 @@ public class PickerViewModelTest {
     public void testGetItems_noItems() {
         final int itemCount = 0;
         mItemsProvider.setItems(generateFakeImageItemList(itemCount));
-        mPickerViewModel.updateItems();
+        mPickerViewModel.getPaginatedItemsForAction(
+                ACTION_CLEAR_AND_UPDATE_LIST, null);
         // We use ForegroundThread to execute the loadItems in updateItems(), wait for the thread
         // idle
         ForegroundThread.waitForIdle();
 
-        final List<Item> itemList = mPickerViewModel.getPaginatedItems(
-                new PaginationParameters()).getValue();
+        final List<Item> itemList = Objects.requireNonNull(
+                mPickerViewModel.getPaginatedItemsForAction(
+                        ACTION_VIEW_CREATED,
+                        new PaginationParameters()).getValue()).getItems();
 
         // No date headers, the size should be 0
         assertThat(itemList.size()).isEqualTo(itemCount);
@@ -159,6 +182,29 @@ public class PickerViewModelTest {
         }
     }
 
+    @Test
+    public void test_getItems_correctItemsReturned() {
+        final int numberOfTestItems = 4;
+        final List<Item> expectedItems = generateFakeImageItemList(numberOfTestItems);
+        mItemsProvider.setItems(expectedItems);
+
+        LiveData<PickerViewModel.PaginatedItemsResult> testItems =
+                mPickerViewModel.getPaginatedItemsForAction(
+                ACTION_VIEW_CREATED,
+                new PaginationParameters());
+        ForegroundThread.waitForIdle();
+
+        assertThat(testItems).isNotNull();
+        assertThat(testItems.getValue()).isNotNull();
+        assertThat(testItems.getValue().getItems().size()).isEqualTo(numberOfTestItems);
+
+        for (int itr = 0; itr < numberOfTestItems; itr++) {
+            // Assert that all test and expected items are equal.
+            assertThat(testItems.getValue().getItems().get(itr).compareTo(
+                    expectedItems.get(itr))).isEqualTo(0);
+        }
+    }
+
     private static Item generateFakeImageItem(String id) {
         final long dateTakenMs = System.currentTimeMillis()
                 + Long.parseLong(id) * DateUtils.DAY_IN_MILLIS;
@@ -184,7 +230,7 @@ public class PickerViewModelTest {
                     FAKE_ID + String.valueOf(i),
                     itemCount + i,
                     PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
-                    });
+            });
         }
         return cursor;
     }
@@ -203,11 +249,32 @@ public class PickerViewModelTest {
                 PaginationParameters paginationParameters, @Nullable String[] mimeType,
                 @Nullable UserId userId) throws
                 IllegalArgumentException, IllegalStateException {
-            final MatrixCursor c = new MatrixCursor(MediaColumns.ALL_PROJECTION);
+            final String[] all_projection = new String[]{
+                    ID,
+                    // This field is unique to the cursor received by the pickerVIewModel.
+                    // It is not a part of cloud provider contract.
+                    ROW_ID,
+                    DATE_TAKEN_MILLIS,
+                    SYNC_GENERATION,
+                    MIME_TYPE,
+                    STANDARD_MIME_TYPE_EXTENSION,
+                    SIZE_BYTES,
+                    MEDIA_STORE_URI,
+                    DURATION_MILLIS,
+                    IS_FAVORITE,
+                    WIDTH,
+                    HEIGHT,
+                    ORIENTATION,
+                    DATA,
+                    AUTHORITY,
+            };
+            final MatrixCursor c = new MatrixCursor(all_projection);
 
+            int itr = 1;
             for (Item item : mItemList) {
-                c.addRow(new String[] {
+                c.addRow(new String[]{
                         item.getId(),
+                        String.valueOf(itr),
                         String.valueOf(item.getDateTaken()),
                         String.valueOf(item.getGenerationModified()),
                         item.getMimeType(),
@@ -216,9 +283,64 @@ public class PickerViewModelTest {
                         null, // media_store_uri
                         String.valueOf(item.getDuration()),
                         "0", // is_favorite
+                        String.valueOf(800), // width
+                        String.valueOf(500), // height
+                        String.valueOf(0), // orientation
                         "/storage/emulated/0/foo",
                         PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
                 });
+                itr++;
+            }
+
+            return c;
+        }
+
+        @Override
+        public Cursor getLocalItems(Category category,
+                PaginationParameters paginationParameters, @Nullable String[] mimeType,
+                @Nullable UserId userId) throws
+                IllegalArgumentException, IllegalStateException {
+            final String[] all_projection = new String[]{
+                    ID,
+                    // This field is unique to the cursor received by the pickerVIewModel.
+                    // It is not a part of cloud provider contract.
+                    ROW_ID,
+                    DATE_TAKEN_MILLIS,
+                    SYNC_GENERATION,
+                    MIME_TYPE,
+                    STANDARD_MIME_TYPE_EXTENSION,
+                    SIZE_BYTES,
+                    MEDIA_STORE_URI,
+                    DURATION_MILLIS,
+                    IS_FAVORITE,
+                    WIDTH,
+                    HEIGHT,
+                    ORIENTATION,
+                    DATA,
+                    AUTHORITY,
+            };
+            final MatrixCursor c = new MatrixCursor(all_projection);
+
+            int itr = 1;
+            for (Item item : mItemList) {
+                c.addRow(new String[]{
+                        item.getId(),
+                        String.valueOf(itr),
+                        String.valueOf(item.getDateTaken()),
+                        String.valueOf(item.getGenerationModified()),
+                        item.getMimeType(),
+                        String.valueOf(item.getSpecialFormat()),
+                        "1", // size_bytes
+                        null, // media_store_uri
+                        String.valueOf(item.getDuration()),
+                        "0", // is_favorite
+                        String.valueOf(800), // width
+                        String.valueOf(500), // height
+                        String.valueOf(0), // orientation
+                        "/storage/emulated/0/foo",
+                        PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+                });
+                itr++;
             }
 
             return c;
@@ -275,7 +397,7 @@ public class PickerViewModelTest {
     @Test
     public void testParseValuesFromPickImagesIntent_validExtraMimeType() {
         final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/gif", "video/*"});
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/gif", "video/*"});
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
@@ -285,7 +407,7 @@ public class PickerViewModelTest {
     @Test
     public void testParseValuesFromPickImagesIntent_invalidExtraMimeType() {
         final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"audio/*", "video/*"});
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"audio/*", "video/*"});
 
         try {
             mPickerViewModel.parseValuesFromIntent(intent);
@@ -317,7 +439,7 @@ public class PickerViewModelTest {
     @Test
     public void testParseValuesFromGetContentIntent_validExtraMimeType() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/gif", "video/*"});
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/gif", "video/*"});
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
@@ -327,7 +449,7 @@ public class PickerViewModelTest {
     @Test
     public void testParseValuesFromGetContentIntent_invalidExtraMimeType() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"audio/*", "video/*"});
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"audio/*", "video/*"});
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
@@ -338,7 +460,7 @@ public class PickerViewModelTest {
     @Test
     public void testParseValuesFromGetContentIntent_localOnlyTrue() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"video/*"});
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"video/*"});
         intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
 
         mPickerViewModel.parseValuesFromIntent(intent);
@@ -349,7 +471,7 @@ public class PickerViewModelTest {
     @Test
     public void testParseValuesFromGetContentIntent_localOnlyFalse() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"video/*"});
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"video/*"});
 
         mPickerViewModel.parseValuesFromIntent(intent);
 

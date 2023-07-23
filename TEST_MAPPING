@@ -1,7 +1,13 @@
 {
     "mainline-presubmit": [
         {
-            "name": "MediaProviderTests[com.google.android.mediaprovider.apex]"
+            "name": "MediaProviderTests[com.google.android.mediaprovider.apex]",
+            "options": [
+                {
+                    // Ignore the tests with @RunOnlyOnPostsubmit annotation
+                    "exclude-annotation": "com.android.providers.media.annotation.RunOnlyOnPostsubmit"
+                }
+            ]
         },
         {
             "name": "CtsScopedStorageCoreHostTest[com.google.android.mediaprovider.apex]"
@@ -14,19 +20,17 @@
         },
         {
             "name": "CtsMediaProviderTranscodeTests[com.google.android.mediaprovider.apex]"
-        },
-        {
-            "name": "CtsPhotoPickerTest[com.google.android.mediaprovider.apex]",
-            "options": [
-              {
-                "exclude-annotation": "androidx.test.filters.LargeTest"
-              }
-            ]
         }
     ],
     "presubmit": [
         {
-            "name": "MediaProviderTests"
+            "name": "MediaProviderTests",
+            "options": [
+                {
+                    // Ignore the tests with @RunOnlyOnPostsubmit annotation
+                    "exclude-annotation": "com.android.providers.media.annotation.RunOnlyOnPostsubmit"
+                }
+            ]
         },
         {
             "name": "MediaProviderClientTests",
@@ -63,14 +67,6 @@
         },
         {
             "name": "fuse_node_test"
-        },
-        {
-            "name": "CtsPhotoPickerTest",
-            "options": [
-                {
-                    "exclude-annotation": "androidx.test.filters.LargeTest"
-                }
-            ]
         }
     ],
     "postsubmit": [
@@ -91,6 +87,34 @@
         },
         {
             "name": "CtsPhotoPickerTest"
+        },
+        {
+            "name": "MediaProviderTests",
+            "options": [
+                {
+                    // Only execute the tests with @RunOnlyOnPostsubmit annotation
+                    "include-annotation": "com.android.providers.media.annotation.RunOnlyOnPostsubmit"
+                }
+            ]
+        }
+    ],
+    "mainline-postsubmit": [
+        {
+            "name": "MediaProviderTests[com.google.android.mediaprovider.apex]",
+            "options": [
+                {
+                    // Only execute the tests with @RunOnlyOnPostsubmit annotation
+                    "include-annotation": "com.android.providers.media.annotation.RunOnlyOnPostsubmit"
+                }
+            ]
+        },
+        {
+            "name": "CtsPhotoPickerTest[com.google.android.mediaprovider.apex]",
+            "options": [
+                {
+                    "exclude-annotation": "androidx.test.filters.LargeTest"
+                }
+            ]
         }
     ]
 }

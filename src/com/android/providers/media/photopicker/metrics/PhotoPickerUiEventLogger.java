@@ -58,8 +58,6 @@ public class PhotoPickerUiEventLogger {
         PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE(1128),
         @UiEvent(doc = "Photo picker opened with an active cloud provider")
         PHOTO_PICKER_CLOUD_PROVIDER_ACTIVE(1198),
-        @UiEvent(doc = "User changed the active Photo picker cloud provider")
-        PHOTO_PICKER_CLOUD_PROVIDER_CHANGED(1135),
         @UiEvent(doc = "Photo Picker uri is queried with an unknown column")
         PHOTO_PICKER_QUERY_UNKNOWN_COLUMN(1227),
         @UiEvent(doc = "Clicked the mute / unmute button in a photo picker video preview")
@@ -342,16 +340,6 @@ public class PhotoPickerUiEventLogger {
                 cloudProviderUid,
                 cloudProviderPackage,
                 instanceId);
-    }
-
-    /**
-     * Log metrics to notify that the user has changed the active cloud provider
-     * @param cloudProviderUid     new active cloud provider uid
-     * @param cloudProviderPackage new active cloud provider package name
-     */
-    public void logPickerCloudProviderChanged(int cloudProviderUid, String cloudProviderPackage) {
-        logger.log(PhotoPickerEvent.PHOTO_PICKER_CLOUD_PROVIDER_CHANGED, cloudProviderUid,
-                cloudProviderPackage);
     }
 
     /**

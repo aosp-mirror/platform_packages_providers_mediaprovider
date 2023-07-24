@@ -192,11 +192,15 @@ public class PickerSyncController {
     }
 
     /**
-     * @return a PickerSyncController object. The object may not the initialized and the
-     * return value could be null.
+     * Returns PickerSyncController instance if it is initialized else throws an exception.
+     * @return a PickerSyncController object.
+     * @throws IllegalStateException when the PickerSyncController is not initialized.
      */
-    @Nullable
-    public static PickerSyncController getInstance() {
+    @NonNull
+    public static PickerSyncController getInstanceOrThrow() throws IllegalStateException {
+        if (sInstance == null) {
+            throw new IllegalStateException("PickerSyncController is not initialised.");
+        }
         return sInstance;
     }
 
@@ -334,12 +338,18 @@ public class PickerSyncController {
         }
     }
 
-    private void syncAlbumMediaFromLocalProvider(@NonNull String albumId) {
+    /**
+     * Syncs album media from the local provider.
+     */
+    public void syncAlbumMediaFromLocalProvider(@NonNull String albumId) {
         syncAlbumMediaFromProvider(mLocalProvider, /* isLocal */ true, albumId,
                 /* enforcePagedSync*/ false);
     }
 
-    private void syncAlbumMediaFromCloudProvider(@NonNull String albumId) {
+    /**
+     * Syncs album media from the currently enabled cloud {@link CloudMediaProvider}.
+     */
+    public void syncAlbumMediaFromCloudProvider(@NonNull String albumId) {
         synchronized (mCloudSyncLock) {
             syncAlbumMediaFromProvider(getCloudProvider(), /* isLocal */ false, albumId,
                     /* enforcePagedSync*/ true);

@@ -22,6 +22,7 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getCloudSyncTracker;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getLocalSyncTracker;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSyncAsComplete;
 
 import android.content.Context;
 import android.util.Log;
@@ -85,8 +86,7 @@ public class ProactiveSyncWorker extends Worker {
             Log.e(TAG, "Could not complete proactive sync for sync source: " + syncSource, e);
 
             // Mark all pending syncs as finished and set failure result.
-            getLocalSyncTracker().markSyncCompleted(getId());
-            getCloudSyncTracker().markSyncCompleted(getId());
+            markSyncAsComplete(syncSource, getId());
             return ListenableWorker.Result.failure();
         }
     }

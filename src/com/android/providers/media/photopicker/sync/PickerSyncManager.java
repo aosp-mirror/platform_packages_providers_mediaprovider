@@ -16,8 +16,10 @@
 
 package com.android.providers.media.photopicker.sync;
 
-import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getAlbumSyncTracker;
-import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getSyncTracker;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markAlbumMediaSyncAsComplete;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSyncAsComplete;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewAlbumMediaSyncRequests;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewSyncRequests;
 
 import android.util.Log;
 
@@ -131,17 +133,27 @@ public class PickerSyncManager {
     /**
      * Use this method for reactive syncs which are user triggered.
      *
-     * @param isLocal is true when the authority when the sync type is local.
-     *                    For cloud syncs, this is false.
+     * @param shouldSyncLocalOnlyData if true indicates that the sync should only be triggered with
+     *                                the local provider. Otherwise, sync will be triggered for both
+     *                                local and cloud provider.
      */
-    public void syncMediaForProviderImmediately(boolean isLocal) {
-        final int syncSource = getSyncSource(isLocal);
+    public void syncMediaImmediately(boolean shouldSyncLocalOnlyData) {
+        if (shouldSyncLocalOnlyData) {
+            syncMediaImmediately(PickerSyncManager.SYNC_LOCAL_ONLY);
+        } else {
+            syncMediaImmediately(PickerSyncManager.SYNC_LOCAL_AND_CLOUD);
+        }
+    }
+
+    /**
+     * Use this method for reactive syncs with either, local and cloud providers, or both.
+     */
+    private void syncMediaImmediately(@SyncSource int syncSource) {
         final Data inputData = new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, syncSource));
         final OneTimeWorkRequest syncRequest = getImmediateSyncRequest(inputData);
 
-        // Track the new sync request
-        final SyncTracker syncTracker = getSyncTracker(isLocal);
-        syncTracker.createSyncFuture(syncRequest.getId());
+        // Track the new sync request(s)
+        trackNewSyncRequests(syncSource, syncRequest.getId());
 
         // Enqueue local sync then cloud sync requests
         try {
@@ -153,12 +165,12 @@ public class PickerSyncManager {
             enqueueOperation.getResult().get();
         } catch (Exception e) {
             Log.e(TAG, "Could not enqueue expedited picker sync request", e);
-            syncTracker.markSyncCompleted(syncRequest.getId());
+            markSyncAsComplete(syncSource, syncRequest.getId());
         }
     }
 
     /**
-     * Use this method for reactive syncs which are user triggered.
+     * Use this method for reactive syncs which are user action triggered.
      *
      * @param albumId is the id of the album that needs to be synced.
      * @param isLocal is true when the authority when the sync type is local.
@@ -167,15 +179,27 @@ public class PickerSyncManager {
     public void syncAlbumMediaForProviderImmediately(
             @NonNull String albumId,
             boolean isLocal) {
-        final int syncSource = getSyncSource(isLocal);
+        syncAlbumMediaForProviderImmediately(albumId, getSyncSource(isLocal));
+    }
+
+    /**
+     * Use this method for reactive syncs which are user action triggered.
+     *
+     * @param albumId is the id of the album that needs to be synced.
+     * @param syncSource indicates if the sync is required with local provider or cloud provider
+     *                   or both.
+     */
+    private void syncAlbumMediaForProviderImmediately(
+            @NonNull String albumId,
+            @SyncSource int syncSource) {
         final Data inputData = new Data(Map.of(
                 SYNC_WORKER_INPUT_SYNC_SOURCE, syncSource,
                 SYNC_WORKER_INPUT_ALBUM_ID, albumId));
         final OneTimeWorkRequest syncRequest = getImmediateAlbumSyncRequest(inputData);
 
-        // Track the new sync request
-        final SyncTracker syncTracker = getAlbumSyncTracker(isLocal);
-        syncTracker.createSyncFuture(syncRequest.getId());
+        // Track the new sync request(s)
+        trackNewAlbumMediaSyncRequests(syncSource, syncRequest.getId());
+
 
         // Enqueue local sync then cloud sync requests
         try {
@@ -187,7 +211,7 @@ public class PickerSyncManager {
             enqueueOperation.getResult().get();
         } catch (Exception e) {
             Log.e(TAG, "Could not enqueue expedited picker sync request", e);
-            syncTracker.markSyncCompleted(syncRequest.getId());
+            markAlbumMediaSyncAsComplete(syncSource, syncRequest.getId());
         }
     }
 

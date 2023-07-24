@@ -54,12 +54,14 @@ import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
 import com.android.providers.media.photopicker.sync.PickerSyncManager;
 import com.android.providers.media.photopicker.sync.SyncTracker;
+import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -72,6 +74,7 @@ public class PickerDataLayer {
     private static final String TAG = "PickerDataLayer";
     private static final boolean DEBUG = false;
     private static final boolean DEBUG_DUMP_CURSORS = false;
+    private static final long CLOUD_SYNC_TIMEOUT_MILLIS = 500L;
 
     public static final String QUERY_ARG_LOCAL_ONLY = "android:query-arg-local-only";
 
@@ -152,6 +155,19 @@ public class PickerDataLayer {
                 // Refresh the 'media' table
                 if (shouldSyncBeforePickerQuery()) {
                     syncAllMedia(isLocalOnly);
+                } else {
+                    // Wait for local sync to finish indefinitely
+                    waitForSync(SyncTrackerRegistry.getLocalSyncTracker());
+                    Log.i(TAG, "Local sync is complete");
+
+                    // Wait for on cloud sync with timeout
+                    if (!isLocalOnly) {
+                        boolean syncIsComplete = waitForSyncWithTimeout(
+                                SyncTrackerRegistry.getCloudSyncTracker(),
+                                CLOUD_SYNC_TIMEOUT_MILLIS);
+                        Log.i(TAG, "Finished waiting for cloud sync.  Is cloud sync complete: "
+                                + syncIsComplete);
+                    }
                 }
 
                 // Fetch all merged and deduped cloud and local media from 'media' table
@@ -171,6 +187,9 @@ public class PickerDataLayer {
                 // Refresh the 'album_media' table
                 if (shouldSyncBeforePickerQuery()) {
                     mSyncController.syncAlbumMedia(albumId, isLocal(albumAuthority));
+                } else {
+                    waitForSync(SyncTrackerRegistry.getAlbumSyncTracker(isLocal(albumAuthority)));
+                    Log.i(TAG, "Album sync is complete");
                 }
 
                 // Fetch album specific media for local or cloud from 'album_media' table
@@ -205,7 +224,7 @@ public class PickerDataLayer {
         waitForSyncWithTimeout(syncTracker, /* timeout */ null);
     }
 
-    private void waitForSyncWithTimeout(
+    private boolean waitForSyncWithTimeout(
             @NonNull SyncTracker syncTracker,
             @Nullable Long timeoutInMillis) {
         try {
@@ -217,8 +236,10 @@ public class PickerDataLayer {
             } else {
                 completableFuture.get(timeoutInMillis, TimeUnit.MILLISECONDS);
             }
+            return true;
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            Log.e(TAG, "Could not wait for the sync to finish", e);
+            Log.w(TAG, "Could not wait for the sync to finish: " + e);
+            return false;
         }
     }
 
@@ -257,7 +278,7 @@ public class PickerDataLayer {
                 syncAllMedia(isLocalOnly);
             }
 
-            final String cloudProvider = mDbFacade.getCloudProvider();
+            final String cloudProvider = mSyncController.getCloudProvider();
             final CloudProviderQueryExtras queryExtras =
                     CloudProviderQueryExtras.fromMediaStoreBundle(queryArgs);
             final Bundle cloudMediaArgs = queryExtras.toCloudMediaBundle();
@@ -405,36 +426,44 @@ public class PickerDataLayer {
      */
     public void initMediaData(@NonNull PickerSyncRequestExtras syncRequestExtras) {
         if (syncRequestExtras.shouldSyncMediaData()) {
-            Log.i(TAG, "Init data request for the main photo grid i.e. media data. "
-                    + "Is the request for a local-only sync: "
+            // Sync media data
+            Log.i(TAG, "Init data request for the main photo grid i.e. media data."
+                    + " Should sync with local provider only: "
                     + syncRequestExtras.shouldSyncLocalOnlyData());
 
-            // TODO(b/285890640): use WorkManager for syncs
-            syncAllMedia(syncRequestExtras.shouldSyncLocalOnlyData());
+            mSyncManager.syncMediaImmediately(syncRequestExtras.shouldSyncLocalOnlyData());
         } else {
+            // Sync album media data
             Log.i(TAG, String.format("Init data request for album content of: %s"
-                    + " Is the request for a local-only sync: %b",
+                            + " Should sync with local provider only: %b",
                     syncRequestExtras.getAlbumId(),
                     syncRequestExtras.shouldSyncLocalOnlyData()));
 
-            if (syncRequestExtras.shouldSyncMergedAlbum()) {
-                Log.i(TAG, "Init data request for a merged album - no-op request since merged"
-                        + " album data is derived from main photo grid data.");
-            } else if (syncRequestExtras.shouldSyncLocalOnlyData()
-                    && !isLocal(syncRequestExtras.getAlbumAuthority())) {
-                throw new IllegalStateException(
-                        "Can't exclude cloud contents in cloud album "
-                                + syncRequestExtras.getAlbumAuthority());
-            } else {
-                Log.i(TAG, "Init data request for a cloud or local album - "
-                        + "trigger a sync for the album");
+            validateAlbumMediaSyncArgs(syncRequestExtras);
 
-                // TODO(b/285890640): use WorkManager for syncs
-                mSyncController.syncAlbumMedia(
+            // We don't need to sync in case of merged albums
+            if (!syncRequestExtras.shouldSyncMergedAlbum()) {
+                mSyncManager.syncAlbumMediaForProviderImmediately(
                         syncRequestExtras.getAlbumId(),
-                        isLocal(syncRequestExtras.getAlbumAuthority())
-                );
+                        isLocal(syncRequestExtras.getAlbumAuthority()));
             }
+        }
+    }
+
+    private void validateAlbumMediaSyncArgs(PickerSyncRequestExtras syncRequestExtras) {
+        if (!syncRequestExtras.shouldSyncMediaData()) {
+            Objects.requireNonNull(syncRequestExtras.getAlbumId(),
+                    "Album Id can't be null for an album sync request.");
+            Objects.requireNonNull(syncRequestExtras.getAlbumAuthority(),
+                    "Album authority can't be null for an album sync request.");
+        }
+        if (!syncRequestExtras.shouldSyncMediaData()
+                && !syncRequestExtras.shouldSyncMergedAlbum()
+                && syncRequestExtras.shouldSyncLocalOnlyData()
+                && !isLocal(syncRequestExtras.getAlbumAuthority())) {
+            throw new IllegalStateException(
+                    "Can't exclude cloud contents in cloud album "
+                            + syncRequestExtras.getAlbumAuthority());
         }
     }
 
@@ -574,7 +603,6 @@ public class PickerDataLayer {
                 .setMinimumLoggingLevel(Log.INFO)
                 .build();
     }
-
 
     /**
      * For cloud feature enabled scenarios, sync request is sent from the

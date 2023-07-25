@@ -284,6 +284,7 @@ import com.android.providers.media.photopicker.PickerDataLayer;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
@@ -6722,11 +6723,9 @@ public class MediaProvider extends ContentProvider {
                     userId = uidToUserId(caller);
                 } else {
                     // All other callers are unauthorized.
-                    throw new SecurityException("Create media grants not allowed. "
-                                + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
-                                + " Calling UID:" + Binder.getCallingUid()
-                                + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
-                                + " Media Provider UID:" + MY_UID);
+
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("Create media grants"));
                 }
 
                 mMediaGrants.addMediaGrantsForPackage(packageName, uris, userId);
@@ -6754,14 +6753,21 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
+            case MediaStore.PICKER_MEDIA_INIT_CALL: {
+                Log.i(TAG, "Received media init query for extras: " + extras);
+                if (!checkPermissionShell(Binder.getCallingUid())
+                        && !checkPermissionSelf(Binder.getCallingUid())) {
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("Picker media init"));
+                }
+                mPickerDataLayer.initMediaData(PickerSyncRequestExtras.fromBundle(extras));
+                return null;
+            }
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
                 if (!checkPermissionShell(Binder.getCallingUid())
                         && !checkPermissionSelf(Binder.getCallingUid())) {
-                    throw new SecurityException("Get cloud provider not allowed. "
-                            + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
-                            + " Calling UID:" + Binder.getCallingUid()
-                            + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
-                            + " Media Provider UID:" + MY_UID);
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("Get cloud provider"));
                 }
                 final Bundle bundle = new Bundle();
                 bundle.putString(MediaStore.GET_CLOUD_PROVIDER_RESULT,
@@ -6778,11 +6784,8 @@ public class MediaProvider extends ContentProvider {
                     isUpdateSuccessful =
                             mPickerSyncController.forceSetCloudProvider(cloudProvider);
                 } else {
-                    throw new SecurityException("Set cloud provider not allowed. "
-                            + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
-                            + " Calling UID:" + Binder.getCallingUid()
-                            + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
-                            + " Media Provider UID:" + MY_UID);
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("Set cloud provider"));
                 }
 
                 if (isUpdateSuccessful) {
@@ -6894,6 +6897,17 @@ public class MediaProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
+    }
+
+    private String getSecurityExceptionMessage(String method) {
+        int callingUid = Binder.getCallingUid();
+        return String.format("%s not allowed. Calling app ID: %d, Calling UID %d. "
+                        + "Media Provider app ID: %d, Media Provider UID: %d.",
+                method,
+                UserHandle.getAppId(callingUid),
+                callingUid,
+                UserHandle.getAppId(MY_UID),
+                MY_UID);
     }
 
     public void backupDatabases(CancellationSignal signal) {

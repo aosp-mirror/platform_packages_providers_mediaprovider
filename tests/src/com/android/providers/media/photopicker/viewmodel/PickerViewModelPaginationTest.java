@@ -103,11 +103,13 @@ public class PickerViewModelPaginationTest {
                 Manifest.permission.INTERACT_ACROSS_USERS);
         MockitoAnnotations.initMocks(this);
 
-        final Context context = InstrumentationRegistry.getTargetContext();
-        when(mApplication.getApplicationContext()).thenReturn(context);
         mConfigStore = new TestConfigStore();
         mConfigStore.setPickerSyncDelayMs(0);
         mConfigStore.enableCloudMediaFeature();
+
+        final Context isolatedContext = new IsolatedContext(sTargetContext, /* tag */ "databases",
+                /* asFuseThread */ false, sTargetContext.getUser(), mConfigStore);
+        when(mApplication.getApplicationContext()).thenReturn(isolatedContext);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
                 @Override
@@ -119,9 +121,6 @@ public class PickerViewModelPaginationTest {
         UserIdManager userIdManager = mock(UserIdManager.class);
         when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
         mPickerViewModel.setUserIdManager(userIdManager);
-
-        final Context isolatedContext = new IsolatedContext(sTargetContext, /* tag */ "databases",
-                /* asFuseThread */ false, sTargetContext.getUser(), mConfigStore);
         mIsolatedResolver = isolatedContext.getContentResolver();
         mItemsProvider = new ItemsProvider(isolatedContext);
         mPickerViewModel.setItemsProvider(mItemsProvider);

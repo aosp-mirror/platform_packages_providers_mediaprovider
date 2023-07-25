@@ -154,6 +154,12 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger = new PhotoPickerUiEventLogger();
         mIsUserSelectForApp = false;
         mIsLocalOnly = false;
+
+        // When the user opens the PhotoPickerSettingsActivity and changes the cloud provider, it's
+        // possible that system kills PhotoPickerActivity and PickerViewModel while it's in the
+        // background. In these scenarios, content observer will be unregistered and PickerViewModel
+        // will not be able to receive CMP change notifications.
+        initPhotoPickerData();
         registerRefreshUiNotificationObserver();
         // Add notification content observer for any notifications received for changes in media.
         NotificationContentObserver contentObserver = new NotificationContentObserver(null);
@@ -280,6 +286,8 @@ public class PickerViewModel extends AndroidViewModel {
     public void resetAllContentInCurrentProfile() {
         // Post 'should refresh UI live data' value as false to avoid unnecessary repetitive resets
         mShouldRefreshUiLiveData.postValue(false);
+
+        initPhotoPickerData();
 
         // Clear the existing content - selection, photos grid, albums grid, banners
         mSelection.clearSelectedItems();
@@ -1111,6 +1119,30 @@ public class PickerViewModel extends AndroidViewModel {
         @ItemsAction.Type
         public int getAction() {
             return mAction;
+        }
+    }
+
+    /**
+     * This will inform the media Provider process that the UI is preparing to load data for the
+     * main photos grid.
+     */
+    public void initPhotoPickerData() {
+        initPhotoPickerData(Category.DEFAULT);
+    }
+
+    /**
+     * This will inform the media Provider process that the UI is preparing to load data for main
+     * photos grid or album contents grid.
+     */
+    public void initPhotoPickerData(@NonNull Category category) {
+        if (getConfigStore().isCloudMediaInPhotoPickerEnabled()) {
+            UserId userId = mUserIdManager.getCurrentUserProfileId();
+            ForegroundThread.getHandler().post(() ->
+                    mItemsProvider.initPhotoPickerData(category.getId(),
+                                category.getAuthority(),
+                                shouldShowOnlyLocalFeatures(),
+                                userId)
+            );
         }
     }
 }

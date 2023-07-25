@@ -67,6 +67,8 @@ public class PhotosTabFragment extends TabFragment {
 
     private boolean mIsCurrentPageLoading = false;
 
+    private boolean mAtLeastOnePageLoaded = false;
+
     private boolean mIsCloudMediaInPhotoPickerEnabled;
 
     private int mPageSize;
@@ -252,7 +254,9 @@ public class PhotosTabFragment extends TabFragment {
 
         if (mIsCloudMediaInPhotoPickerEnabled
                 && mCategory == Category.DEFAULT
-                && isAdapterPopulated()) {
+                && mAtLeastOnePageLoaded) {
+            // mAtLeastOnePageLoaded is checked to avoid calling this method while the view is
+            // being created
             LinearLayoutManager layoutManager =
                     (LinearLayoutManager) mRecyclerView.getLayoutManager();
             if (layoutManager != null) {
@@ -263,12 +267,6 @@ public class PhotosTabFragment extends TabFragment {
                                 + PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS, -1, -1));
             }
         }
-    }
-
-    private boolean isAdapterPopulated() {
-        // Refresh should be called only when there are some items in the adapter to be updated.
-        return mRecyclerView.getAdapter() != null
-                && mRecyclerView.getAdapter().getItemCount() != 0;
     }
 
     private void onChangeMediaItems(@NonNull PickerViewModel.PaginatedItemsResult itemList,
@@ -283,6 +281,7 @@ public class PhotosTabFragment extends TabFragment {
             updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.getItems().size() == 0);
         }
         mIsCurrentPageLoading = false;
+        mAtLeastOnePageLoaded = true;
     }
 
     private boolean isClearGridAction(@NonNull PickerViewModel.PaginatedItemsResult itemList) {

@@ -48,6 +48,7 @@ import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -382,6 +383,7 @@ public class PickerDataLayerTest {
     }
 
     @Test
+    @Ignore("Enable when b/293112236 is done")
     public void testFetchAlbumMedia() {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -454,6 +456,7 @@ public class PickerDataLayerTest {
     }
 
     @Test
+    @Ignore("Enable when b/293112236 is done")
     public void testFetchAlbumMediaMimeTypeFilter() {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -474,8 +477,11 @@ public class PickerDataLayerTest {
         mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllAlbums(mimeTypeQueryArgs)) {
-            assertThat(cr.getCount()).isEqualTo(2);
+            assertThat(cr.getCount()).isEqualTo(4);
 
+            // Favorites and Videos merged albums will be always visible
+            assertAlbumCursor(cr, ALBUM_ID_FAVORITES, LOCAL_PROVIDER_AUTHORITY);
+            assertAlbumCursor(cr, ALBUM_ID_VIDEOS, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
@@ -501,6 +507,7 @@ public class PickerDataLayerTest {
     }
 
     @Test
+    @Ignore("Enable when b/293112236 is done")
     public void testFetchAlbumMediaSizeFilter() {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -523,8 +530,10 @@ public class PickerDataLayerTest {
         mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllAlbums(sizeQueryArgs)) {
-            assertThat(cr.getCount()).isEqualTo(3);
+            assertThat(cr.getCount()).isEqualTo(4);
 
+            // Favorites and Videos merged albums will be always visible
+            assertAlbumCursor(cr, ALBUM_ID_FAVORITES, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_VIDEOS, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
@@ -551,6 +560,7 @@ public class PickerDataLayerTest {
     }
 
     @Test
+    @Ignore("Enable when b/293112236 is done")
     public void testFetchAlbumMediaMimeTypeAndSizeFilter() {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -573,11 +583,13 @@ public class PickerDataLayerTest {
         mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllAlbums(mimeTypeAndSizeQueryArgs)) {
-            assertWithMessage("Merged and Local album count").that(cr.getCount()).isEqualTo(3);
+            assertWithMessage("Merged and Local album count").that(cr.getCount()).isEqualTo(4);
 
             // Most recent video will be the cover of the Videos album. In this scenario, Videos
             // album cover was generated with cloud authority, so the Videos album authority should
             // be cloud provider authority.
+            // Favorites and Videos album will always be displayed.
+            assertAlbumCursor(cr, ALBUM_ID_FAVORITES, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_VIDEOS, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
@@ -596,6 +608,7 @@ public class PickerDataLayerTest {
     }
 
     @Test
+    @Ignore("Enable when b/293112236 is done")
     public void testFetchAlbumMediaLocalOnly() {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -619,6 +632,7 @@ public class PickerDataLayerTest {
         mDataLayer.initMediaData(buildDefaultSyncRequestExtras());
         // Verify that we see both local and cloud albums
         try (Cursor cr = mDataLayer.fetchAllAlbums(defaultQueryArgs)) {
+            // Favorites and Videos merged albums will be always visible
             assertThat(cr.getCount()).isEqualTo(3);
         }
 

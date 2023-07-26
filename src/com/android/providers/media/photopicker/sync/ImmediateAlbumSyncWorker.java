@@ -21,10 +21,10 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_ALBUM_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
-import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getCloudAlbumSyncTracker;
-import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getLocalAlbumSyncTracker;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markAlbumMediaSyncAsComplete;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -87,18 +87,7 @@ public class ImmediateAlbumSyncWorker extends Worker {
                     syncSource, albumId), e);
             return ListenableWorker.Result.failure();
         } finally {
-            cleanUp(syncSource);
-        }
-    }
-
-    /**
-     * Marks the pending sync future of this immediate album sync task as complete.
-     */
-    private void cleanUp(int syncSource) {
-        if (syncSource == SYNC_LOCAL_ONLY) {
-            getLocalAlbumSyncTracker().markSyncCompleted(getId());
-        } else {
-            getCloudAlbumSyncTracker().markSyncCompleted(getId());
+            markAlbumMediaSyncAsComplete(syncSource, getId());
         }
     }
 
@@ -112,7 +101,7 @@ public class ImmediateAlbumSyncWorker extends Worker {
         if (syncSource != SYNC_LOCAL_ONLY && syncSource != SYNC_CLOUD_ONLY) {
             throw new IllegalArgumentException("Invalid album sync source " + syncSource);
         }
-        if (albumId == null || albumId.isBlank()) {
+        if (albumId == null || TextUtils.isEmpty(albumId)) {
             throw new IllegalArgumentException("Invalid album id " + albumId);
         }
     }

@@ -954,6 +954,22 @@ public class PickerViewModel extends AndroidViewModel {
         }
     }
 
+    /**
+     * Log metrics to notify create surface controller triggered
+     * @param authority  the authority of the provider
+     */
+    public void logCreateSurfaceControllerStart(String authority) {
+        mLogger.logPickerCreateSurfaceControllerStart(mInstanceId, authority);
+    }
+
+    /**
+     * Log metrics to notify create surface controller ended
+     * @param authority  the authority of the provider
+     */
+    public void logCreateSurfaceControllerEnd(String authority) {
+        mLogger.logPickerCreateSurfaceControllerEnd(mInstanceId, authority);
+    }
+
     public InstanceId getInstanceId() {
         return mInstanceId;
     }

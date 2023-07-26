@@ -107,7 +107,11 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "Loaded albums in photo picker")
         PHOTO_PICKER_UI_LOADED_ALBUMS(1438),
         @UiEvent(doc = "Loaded media items in an album grid in photo picker")
-        PHOTO_PICKER_UI_LOADED_ALBUM_CONTENTS(1439);
+        PHOTO_PICKER_UI_LOADED_ALBUM_CONTENTS(1439),
+        @UiEvent(doc = "Triggered create surface controller in photo picker")
+        PHOTO_PICKER_CREATE_SURFACE_CONTROLLER_START(1452),
+        @UiEvent(doc = "Ended create surface controller in photo picker")
+        PHOTO_PICKER_CREATE_SURFACE_CONTROLLER_END(1453);
 
         private final int mId;
 
@@ -568,6 +572,26 @@ public class PhotoPickerUiEventLogger {
     public void logLoadedAlbumGridMediaItems(String authority, InstanceId instanceId, int count) {
         logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_ALBUM_CONTENTS,
                 /* uid */ 0, authority, instanceId, count);
+    }
+
+    /**
+     * Log metrics to notify create surface controller triggered
+     * @param instanceId an identifier for the current picker session
+     * @param authority  the authority of the provider
+     */
+    public void logPickerCreateSurfaceControllerStart(InstanceId instanceId, String authority) {
+        logger.logWithInstanceId(PhotoPickerEvent.PHOTO_PICKER_CREATE_SURFACE_CONTROLLER_START,
+                /* uid */ 0, authority, instanceId);
+    }
+
+    /**
+     * Log metrics to notify create surface controller ended
+     * @param instanceId an identifier for the current picker session
+     * @param authority  the authority of the provider
+     */
+    public void logPickerCreateSurfaceControllerEnd(InstanceId instanceId, String authority) {
+        logger.logWithInstanceId(PhotoPickerEvent.PHOTO_PICKER_CREATE_SURFACE_CONTROLLER_END,
+                /* uid */ 0, authority, instanceId);
     }
 
     private void logWithInstance(@NonNull UiEventLogger.UiEventEnum event, InstanceId instance) {

@@ -29,6 +29,8 @@ public class NonUiEventLogger {
     enum NonUiEvent implements UiEventLogger.UiEventEnum {
         @UiEvent(doc = "User changed the active Photo picker cloud provider")
         PHOTO_PICKER_CLOUD_PROVIDER_CHANGED(1135),
+        @UiEvent(doc = "Photo Picker uri is queried with an unknown column")
+        PHOTO_PICKER_QUERY_UNKNOWN_COLUMN(1227),
         @UiEvent(doc = "Triggered a full sync in photo picker")
         PHOTO_PICKER_FULL_SYNC_START(1442),
         @UiEvent(doc = "Triggered an incremental sync in photo picker")
@@ -83,6 +85,19 @@ public class NonUiEventLogger {
             String cloudProviderPackage) {
         LOGGER.log(NonUiEvent.PHOTO_PICKER_CLOUD_PROVIDER_CHANGED, cloudProviderUid,
                 cloudProviderPackage);
+    }
+
+    /**
+     * Log metrics to notify that a picker uri was queried for an unknown column (that is not
+     * supported yet)
+     * @param callingUid              the uid of the app initiating the picker query
+     * @param callingPackageAndColumn the package name of the app initiating the picker query,
+     *                                followed by the unknown column name, separated by a ':'
+     */
+    public static void logPickerQueriedWithUnknownColumn(int callingUid,
+            String callingPackageAndColumn) {
+        LOGGER.log(NonUiEvent.PHOTO_PICKER_QUERY_UNKNOWN_COLUMN, callingUid,
+                callingPackageAndColumn);
     }
 
     /**

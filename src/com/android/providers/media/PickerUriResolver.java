@@ -44,7 +44,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
-import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
+import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -318,8 +318,9 @@ public class PickerUriResolver {
 
         for (String column : projection) {
             if (!mAllValidProjectionColumns.contains(column)) {
-                final PhotoPickerUiEventLogger logger = new PhotoPickerUiEventLogger();
-                logger.logPickerQueriedWithUnknownColumn(callingUid, callingPackageName);
+                final String callingPackageAndColumn = callingPackageName + ":" + column;
+                NonUiEventLogger.logPickerQueriedWithUnknownColumn(
+                        callingUid, callingPackageAndColumn);
             }
         }
     }

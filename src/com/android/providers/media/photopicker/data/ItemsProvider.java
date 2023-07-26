@@ -18,10 +18,12 @@ package com.android.providers.media.photopicker.data;
 
 import static android.content.ContentResolver.QUERY_ARG_LIMIT;
 import static android.database.DatabaseUtils.dumpCursorToString;
+import static android.provider.MediaStore.AUTHORITY;
 
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_DATE_TAKEN_BEFORE_MS;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ROW_ID;
+import static com.android.providers.media.photopicker.util.CloudProviderUtils.sendInitPhotoPickerDataNotification;
 
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -384,5 +386,36 @@ public class ItemsProvider {
     private static boolean uriHasUserId(Uri uri) {
         if (uri == null) return false;
         return !TextUtils.isEmpty(uri.getUserInfo());
+    }
+
+    /**
+     * Sends a data init notification to the MP process.
+     */
+    public void initPhotoPickerData(@Nullable String albumId,
+            @Nullable String albumAuthority,
+            boolean initLocalOnlyData,
+            @Nullable UserId userId) {
+        if (userId == null) {
+            Log.e(TAG, "Could not determine the current active user id in Picker. "
+                    + "Init media call cannot go through.");
+            return;
+        }
+
+        try (ContentProviderClient client = getContentProviderClient(userId)) {
+            if (client == null) {
+                throw new IllegalStateException("ContentProviderClient is null.");
+            }
+            sendInitPhotoPickerDataNotification(client, albumId, albumAuthority, initLocalOnlyData);
+        } catch (RuntimeException | NameNotFoundException | RemoteException e) {
+            Log.e(TAG, "Could not send init media call to Media Provider", e);
+        }
+    }
+
+    @Nullable
+    private ContentProviderClient getContentProviderClient(@NonNull UserId userId)
+            throws NameNotFoundException {
+        return userId
+                .getContentResolver(mContext)
+                .acquireContentProviderClient(AUTHORITY);
     }
 }

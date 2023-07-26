@@ -81,15 +81,15 @@ public class StableUriIdleMaintenanceServiceTest {
 
         // Read existing value of the flag
         sInitialDeviceConfigValueForInternal = Boolean.parseBoolean(
-                DeviceConfig.getProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                        ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL));
-        DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL, Boolean.TRUE.toString(),
+                DeviceConfig.getProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
+                        ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_INTERNAL));
+        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
+                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_INTERNAL, Boolean.TRUE.toString(),
                 false);
         sInitialDeviceConfigValueForExternal = Boolean.parseBoolean(
-                DeviceConfig.getProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                DeviceConfig.getProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
                         ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL));
-        DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
                 ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL, Boolean.TRUE.toString(),
                 false);
     }
@@ -97,10 +97,10 @@ public class StableUriIdleMaintenanceServiceTest {
     @AfterClass
     public static void tearDownClass() throws IOException {
         // Restore previous value of the flag
-        DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL,
+        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
+                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_INTERNAL,
                 String.valueOf(sInitialDeviceConfigValueForInternal), false);
-        DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
                 ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL,
                 String.valueOf(sInitialDeviceConfigValueForExternal), false);
         SystemClock.sleep(3000);

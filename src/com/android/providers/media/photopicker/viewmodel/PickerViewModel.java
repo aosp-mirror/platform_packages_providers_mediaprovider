@@ -76,6 +76,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.ui.ItemsAction;
+import com.android.providers.media.photopicker.util.CategoryOrganiserUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.util.MimeUtils;
 
@@ -637,6 +638,7 @@ public class PickerViewModel extends AndroidViewModel {
 
             Log.d(TAG,
                     "Loaded " + categoryList.size() + " categories for user " + userId.toString());
+            CategoryOrganiserUtils.getReorganisedCategoryList(categoryList);
             return categoryList;
         } finally {
             mLogger.logLoadedAlbums(cloudProviderAuthority, mInstanceId, categoryList.size());

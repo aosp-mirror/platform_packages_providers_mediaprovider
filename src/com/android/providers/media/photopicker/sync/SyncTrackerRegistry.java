@@ -16,6 +16,14 @@
 
 package com.android.providers.media.photopicker.sync;
 
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
+
+import androidx.annotation.NonNull;
+
+import java.util.UUID;
+
 /**
  * This class stores all sync trackers.
  */
@@ -66,6 +74,63 @@ public class SyncTrackerRegistry {
             return LOCAL_ALBUM_SYNC_TRACKER;
         } else {
             return CLOUD_ALBUM_SYNC_TRACKER;
+        }
+    }
+
+    /**
+     * Create the required completable futures for new media sync requests that need to be tracked.
+     */
+    public static void trackNewSyncRequests(
+            @PickerSyncManager.SyncSource int syncSource,
+            @NonNull UUID syncRequestId) {
+        if (syncSource == SYNC_LOCAL_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getLocalSyncTracker().createSyncFuture(syncRequestId);
+        }
+        if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getCloudSyncTracker().createSyncFuture(syncRequestId);
+        }
+    }
+
+    /**
+     * Create the required completable futures for new album media sync requests that need to be
+     * tracked.
+     */
+    public static void trackNewAlbumMediaSyncRequests(
+            @PickerSyncManager.SyncSource int syncSource,
+            @NonNull UUID syncRequestId) {
+        if (syncSource == SYNC_LOCAL_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getLocalAlbumSyncTracker().createSyncFuture(syncRequestId);
+        }
+        if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getCloudAlbumSyncTracker().createSyncFuture(syncRequestId);
+        }
+    }
+
+    /**
+     * Mark the required futures as complete for existing media sync requests.
+     */
+    public static void markSyncAsComplete(
+            @PickerSyncManager.SyncSource int syncSource,
+            @NonNull UUID syncRequestId) {
+        if (syncSource == SYNC_LOCAL_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getLocalSyncTracker().markSyncCompleted(syncRequestId);
+        }
+        if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getCloudSyncTracker().markSyncCompleted(syncRequestId);
+        }
+    }
+
+    /**
+     * Mark the required futures as complete for existing album media sync requests.
+     */
+    public static void markAlbumMediaSyncAsComplete(
+            @PickerSyncManager.SyncSource int syncSource,
+            @NonNull UUID syncRequestId) {
+        if (syncSource == SYNC_LOCAL_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getLocalAlbumSyncTracker().markSyncCompleted(syncRequestId);
+        }
+        if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getCloudAlbumSyncTracker().markSyncCompleted(syncRequestId);
         }
     }
 }

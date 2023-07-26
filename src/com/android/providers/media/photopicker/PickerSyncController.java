@@ -293,11 +293,6 @@ public class PickerSyncController {
         synchronized (mCloudSyncLock) {
             final String cloudProvider = getCloudProvider();
 
-            // Disable cloud queries in the database. If any cloud related queries come through
-            // while cloud sync is in progress, all cloud items will be ignored and local items will
-            // be returned.
-            mDbFacade.setCloudProvider(null);
-
             // Trigger a sync.
             final InstanceId instanceId = NonUiEventLogger.generateInstanceId();
             final boolean didSyncFinish = syncAllMediaFromProvider(cloudProvider,
@@ -314,17 +309,6 @@ public class PickerSyncController {
             // Reset the album_media table every time we sync all media
             // TODO(258765155): do we really need to reset for both providers?
             resetAlbumMedia();
-
-            // Re-enable cloud queries in the database for the latest cloud provider.
-            synchronized (mCloudProviderLock) {
-                if (Objects.equals(mCloudProviderInfo.authority, cloudProvider)) {
-                    mDbFacade.setCloudProvider(cloudProvider);
-                } else {
-                    Log.e(TAG, "Failed to sync with cloud provider - " + cloudProvider
-                            + ". The cloud provider has changed to "
-                            + mCloudProviderInfo.authority);
-                }
-            }
         }
     }
 
@@ -476,7 +460,7 @@ public class PickerSyncController {
                 // This will temporarily *clear* the cloud provider on the db facade and prevent
                 // any queries from seeing cloud media until a sync where the cloud provider will be
                 // reset on the facade
-                mDbFacade.setCloudProvider(null);
+                disablePickerCloudMediaQueries(/* isLocal */ false);
 
                 final String oldAuthority = mCloudProviderInfo.authority;
                 persistCloudProviderInfo(newProviderInfo, /* shouldUnset */ true);
@@ -671,12 +655,16 @@ public class PickerSyncController {
             switch (params.syncType) {
                 case SYNC_TYPE_MEDIA_RESET:
                     // Can only happen when |authority| has been set to null and we need to clean up
+                    disablePickerCloudMediaQueries(isLocal);
                     return resetAllMedia(authority, isLocal);
                 case SYNC_TYPE_MEDIA_FULL:
                     NonUiEventLogger.logPickerFullSyncStart(instanceId, MY_UID, authority);
+                    disablePickerCloudMediaQueries(isLocal);
                     if (!resetAllMedia(authority, isLocal)) {
                         return false;
                     }
+                    enablePickerCloudMediaQueries(authority, isLocal);
+
                     final Bundle fullSyncQueryArgs = new Bundle();
                     if (enforcePagedSync) {
                         fullSyncQueryArgs.putInt(EXTRA_PAGE_SIZE, params.mPageSize);
@@ -735,6 +723,30 @@ public class PickerSyncController {
             Trace.endSection();
         }
         return false;
+    }
+
+    /**
+     * Disable cloud media queries from Picker database. After disabling cloud media queries, when a
+     * media query will run on Picker database, only local media items will be returned.
+     */
+    private void disablePickerCloudMediaQueries(boolean isLocal) {
+        if (!isLocal) {
+            mDbFacade.setCloudProvider(null);
+        }
+    }
+
+    /**
+     * Enable cloud media queries from Picker database. After enabling cloud media queries, when a
+     * media query will run on Picker database, both local and cloud media items will be returned.
+     */
+    private void enablePickerCloudMediaQueries(String authority, boolean isLocal) {
+        if (!isLocal) {
+            synchronized (mCloudProviderLock) {
+                if (Objects.equals(mCloudProviderInfo.authority, authority)) {
+                    mDbFacade.setCloudProvider(authority);
+                }
+            }
+        }
     }
 
     private void executeSyncReset(String authority, boolean isLocal) {

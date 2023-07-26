@@ -23,6 +23,7 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getCloudSyncTracker;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getLocalSyncTracker;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSyncAsComplete;
 
 import android.content.Context;
 import android.util.Log;
@@ -56,8 +57,8 @@ public class ImmediateSyncWorker extends Worker {
         final int syncSource = getInputData()
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
 
-        Log.i(TAG,
-                String.format("Starting immediate picker sync from sync source: %s", syncSource));
+        Log.i(TAG, String.format(
+                "Starting immediate picker sync from sync source: %s", syncSource));
 
         try {
             // No need to instantiate a work request tracker for immediate syncs in the worker.
@@ -79,8 +80,7 @@ public class ImmediateSyncWorker extends Worker {
                     "Could not complete immediate sync from sync source: %s", syncSource), e);
 
             // Mark all pending syncs as finished and set failure result.
-            getLocalSyncTracker().markSyncCompleted(getId());
-            getCloudSyncTracker().markSyncCompleted(getId());
+            markSyncAsComplete(syncSource, getId());
             return ListenableWorker.Result.failure();
         }
     }

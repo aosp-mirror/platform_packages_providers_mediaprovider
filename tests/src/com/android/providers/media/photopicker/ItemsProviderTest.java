@@ -109,8 +109,6 @@ public class ItemsProviderTest {
                         Manifest.permission.INTERACT_ACROSS_USERS);
 
         mConfigStore = new TestConfigStore();
-        // Remove sync delay to avoid flaky tests
-        mConfigStore.setPickerSyncDelayMs(0);
 
         final Context isolatedContext = new IsolatedContext(sTargetContext, /* tag */ "databases",
                 /* asFuseThread */ false, sTargetContext.getUser(), mConfigStore);

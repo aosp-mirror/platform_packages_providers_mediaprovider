@@ -16,17 +16,36 @@
 
 package com.android.providers.media.photopicker.espresso;
 
+import static org.mockito.Mockito.RETURNS_SMART_NULLS;
+import static org.mockito.Mockito.mock;
+
+import com.android.internal.logging.InstanceId;
+import com.android.internal.logging.UiEventLogger;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 public class PhotoPickerTestActivity extends PhotoPickerActivity {
+    private final UiEventLogger mLogger = mock(UiEventLogger.class, RETURNS_SMART_NULLS);
+    private InstanceId mInstanceId;
+
     @Override
     protected PickerViewModel getOrCreateViewModel() {
         PickerViewModel pickerViewModel = super.getOrCreateViewModel();
         pickerViewModel.setItemsProvider(new ItemsProvider(
                 PhotoPickerBaseTest.getIsolatedContext()));
         pickerViewModel.setUserIdManager(PhotoPickerBaseTest.getMockUserIdManager());
+        pickerViewModel.setLogger(new PhotoPickerUiEventLogger(mLogger));
+        mInstanceId = pickerViewModel.getInstanceId();
         return pickerViewModel;
+    }
+
+    UiEventLogger getLogger() {
+        return mLogger;
+    }
+
+    InstanceId getInstanceId() {
+        return mInstanceId;
     }
 }

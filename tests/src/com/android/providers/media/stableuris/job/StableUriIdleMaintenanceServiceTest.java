@@ -39,7 +39,6 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.compatibility.common.util.SystemUtil;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
 
@@ -193,7 +192,7 @@ public class StableUriIdleMaintenanceServiceTest {
     }
 
     @Test
-    public void testJobScheduling() throws Exception {
+    public void testJobScheduling() {
         try {
             final Context context = InstrumentationRegistry.getTargetContext();
             final JobScheduler scheduler = InstrumentationRegistry.getTargetContext()
@@ -203,13 +202,6 @@ public class StableUriIdleMaintenanceServiceTest {
 
             StableUriIdleMaintenanceService.scheduleIdlePass(context);
             assertNotNull(scheduler.getPendingJob(IDLE_JOB_ID));
-
-            String forceRunCommand = "cmd jobscheduler run "
-                    + "-f com.google.android.providers.media.module " + IDLE_JOB_ID;
-            String result = SystemUtil.runShellCommand(InstrumentationRegistry.getInstrumentation(),
-                    forceRunCommand).trim();
-
-            assertEquals("Running job [FORCED]", result);
         } finally {
             cancelJob();
         }

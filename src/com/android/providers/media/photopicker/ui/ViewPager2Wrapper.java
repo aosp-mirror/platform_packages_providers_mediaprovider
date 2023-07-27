@@ -44,12 +44,14 @@ class ViewPager2Wrapper {
     private final List<ViewPager2.OnPageChangeCallback> mOnPageChangeCallbacks = new ArrayList<>();
 
     ViewPager2Wrapper(ViewPager2 viewPager, List<Item> selectedItems, MuteStatus muteStatus,
+            @NonNull PreviewAdapter.OnCreateSurfaceController onCreateSurfaceController,
             @NonNull PreviewAdapter.OnVideoPreviewClickListener onVideoPreviewClickListener) {
         mViewPager = viewPager;
 
         final Context context = mViewPager.getContext();
 
-        mAdapter = new PreviewAdapter(context, muteStatus, onVideoPreviewClickListener);
+        mAdapter = new PreviewAdapter(context, muteStatus, onCreateSurfaceController,
+                onVideoPreviewClickListener);
         mAdapter.updateItemList(selectedItems);
         mViewPager.setAdapter(mAdapter);
 

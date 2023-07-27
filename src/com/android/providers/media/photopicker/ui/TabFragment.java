@@ -326,7 +326,7 @@ public abstract class TabFragment extends Fragment {
 
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
 
-        mPickerViewModel.onUserSwitchedProfile();
+        mPickerViewModel.onSwitchedProfile();
     }
 
     private void updateProfileButtonContent(boolean isManagedUserSelected) {

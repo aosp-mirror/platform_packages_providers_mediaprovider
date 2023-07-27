@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Бейнені ойнату кезінде қиындық туындады"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Интернет байланысын тексеріп, әрекетті қайталаңыз."</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Қайталау"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Бұлтқа сақталған медиафайл енді <xliff:g id="PKG_NAME">%1$s</xliff:g> қолданбасында қолжетімді."</string>
     <string name="not_selected" msgid="2244008151669896758">"таңдалмаған"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>/<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> дайын"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Сақтық көшірмесі жасалған фотосуреттер қосылды"</string>

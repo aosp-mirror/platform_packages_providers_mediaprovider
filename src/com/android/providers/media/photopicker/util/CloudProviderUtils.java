@@ -19,9 +19,13 @@ package com.android.providers.media.photopicker.util;
 import static android.provider.CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME;
+import static android.provider.MediaStore.EXTRA_ALBUM_AUTHORITY;
+import static android.provider.MediaStore.EXTRA_ALBUM_ID;
 import static android.provider.MediaStore.EXTRA_CLOUD_PROVIDER;
+import static android.provider.MediaStore.EXTRA_LOCAL_ONLY;
 import static android.provider.MediaStore.GET_CLOUD_PROVIDER_CALL;
 import static android.provider.MediaStore.GET_CLOUD_PROVIDER_RESULT;
+import static android.provider.MediaStore.PICKER_MEDIA_INIT_CALL;
 import static android.provider.MediaStore.SET_CLOUD_PROVIDER_CALL;
 
 import static java.util.Collections.emptyList;
@@ -188,6 +192,24 @@ public class CloudProviderUtils {
         final Bundle result = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
                 /* extras */ null);
         return result.getString(GET_CLOUD_PROVIDER_RESULT, defaultAuthority);
+    }
+
+    /**
+     * Send data init call.
+     */
+    public static boolean sendInitPhotoPickerDataNotification(
+            @NonNull ContentProviderClient client,
+            @Nullable String albumId,
+            @Nullable String albumAuthority,
+            boolean initLocalOnlyData) throws RemoteException {
+        final Bundle input = new Bundle();
+        input.putString(EXTRA_ALBUM_ID, albumId);
+        input.putString(EXTRA_ALBUM_AUTHORITY, albumAuthority);
+        input.putBoolean(EXTRA_LOCAL_ONLY, initLocalOnlyData);
+        Log.i(TAG, "Sending media init query for extras: " + input);
+
+        client.call(PICKER_MEDIA_INIT_CALL, /* arg */ null, /* extras */ input);
+        return true;
     }
 
     /**

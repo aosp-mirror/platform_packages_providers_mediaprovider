@@ -33,6 +33,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.RemoteException;
 import android.os.Trace;
 import android.os.UserHandle;
@@ -106,7 +107,8 @@ public class ItemsProvider {
     @Nullable
     public Cursor getAllItems(Category category, PaginationParameters pagingParameters,
             @Nullable String[] mimeTypes,
-            @Nullable UserId userId) throws IllegalArgumentException {
+            @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
         if (DEBUG) {
             Log.d(TAG, "getAllItems() userId=" + userId + " cat=" + category
                     + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit="
@@ -117,7 +119,8 @@ public class ItemsProvider {
 
         Trace.beginSection("ItemsProvider.getAllItems");
         try {
-            return queryMedia(URI_MEDIA_ALL, pagingParameters, mimeTypes, category, userId);
+            return queryMedia(URI_MEDIA_ALL, pagingParameters, mimeTypes, category, userId,
+                    cancellationSignal);
         } finally {
             Trace.endSection();
         }
@@ -150,7 +153,8 @@ public class ItemsProvider {
     @Nullable
     public Cursor getLocalItems(Category category, PaginationParameters pagingParameters,
             @Nullable String[] mimeTypes,
-            @Nullable UserId userId) throws IllegalArgumentException {
+            @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
         if (DEBUG) {
             Log.d(TAG, "getLocalItems() userId=" + userId + " cat=" + category
                     + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit="
@@ -161,7 +165,8 @@ public class ItemsProvider {
 
         Trace.beginSection("ItemsProvider.getLocalItems");
         try {
-            return queryMedia(URI_MEDIA_LOCAL, pagingParameters, mimeTypes, category, userId);
+            return queryMedia(URI_MEDIA_LOCAL, pagingParameters, mimeTypes, category, userId,
+                    cancellationSignal);
         } finally {
             Trace.endSection();
         }
@@ -182,7 +187,8 @@ public class ItemsProvider {
       * in the relative order.
      */
     @Nullable
-    public Cursor getAllCategories(@Nullable String[] mimeTypes, @Nullable UserId userId) {
+    public Cursor getAllCategories(@Nullable String[] mimeTypes, @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) {
         if (DEBUG) {
             Log.d(TAG, "getAllCategories() userId=" + userId
                     + " mimeTypes=" + Arrays.toString(mimeTypes));
@@ -191,7 +197,7 @@ public class ItemsProvider {
 
         Trace.beginSection("ItemsProvider.getAllCategories");
         try {
-            return queryAlbums(URI_ALBUMS_ALL, mimeTypes, userId);
+            return queryAlbums(URI_ALBUMS_ALL, mimeTypes, userId, cancellationSignal);
         } finally {
             Trace.endSection();
         }
@@ -210,7 +216,8 @@ public class ItemsProvider {
      * in the relative order.
      */
     @Nullable
-    public Cursor getLocalCategories(@Nullable String[] mimeTypes, @Nullable UserId userId) {
+    public Cursor getLocalCategories(@Nullable String[] mimeTypes, @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) {
         if (DEBUG) {
             Log.d(TAG, "getLocalCategories() userId=" + userId
                     + " mimeTypes=" + Arrays.toString(mimeTypes));
@@ -219,7 +226,7 @@ public class ItemsProvider {
 
         Trace.beginSection("ItemsProvider.getLocalCategories");
         try {
-            return queryAlbums(URI_ALBUMS_LOCAL, mimeTypes, userId);
+            return queryAlbums(URI_ALBUMS_LOCAL, mimeTypes, userId, cancellationSignal);
         } finally {
             Trace.endSection();
         }
@@ -227,7 +234,8 @@ public class ItemsProvider {
 
     @Nullable
     private Cursor queryMedia(@NonNull Uri uri, PaginationParameters paginationParameters,
-            String[] mimeTypes, @NonNull Category category, @Nullable UserId userId)
+            String[] mimeTypes, @NonNull Category category, @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal)
             throws IllegalStateException {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
@@ -265,7 +273,7 @@ public class ItemsProvider {
             }
 
             result = client.query(uri, /* projection */ null, extras,
-                    /* cancellationSignal */ null);
+                    /* cancellationSignal */ cancellationSignal);
             return result;
         } catch (RemoteException | NameNotFoundException ignored) {
             // Do nothing, return null.
@@ -289,7 +297,7 @@ public class ItemsProvider {
 
     @Nullable
     private Cursor queryAlbums(@NonNull Uri uri, @Nullable String[] mimeTypes,
-                @Nullable UserId userId) {
+                @Nullable UserId userId, @Nullable CancellationSignal cancellationSignal) {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
@@ -315,7 +323,7 @@ public class ItemsProvider {
             }
 
             result = client.query(uri, /* projection */ null, extras,
-                    /* cancellationSignal */ null);
+                    /* cancellationSignal */ cancellationSignal);
             return result;
         } catch (RemoteException | NameNotFoundException ignored) {
             // Do nothing, return null.

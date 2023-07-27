@@ -53,6 +53,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.os.CancellationSignal;
 import android.provider.MediaStore;
 import android.text.format.DateUtils;
 
@@ -63,6 +64,7 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.PaginationParameters;
@@ -71,7 +73,6 @@ import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.ModelTestUtils;
 import com.android.providers.media.photopicker.data.model.UserId;
-import com.android.providers.media.util.ForegroundThread;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -134,9 +135,9 @@ public class PickerViewModelTest {
         mItemsProvider.setItems(generateFakeImageItemList(itemCount));
         mPickerViewModel.getPaginatedItemsForAction(
                 ACTION_CLEAR_AND_UPDATE_LIST, null);
-        // We use ForegroundThread to execute the loadItems in updateItems(), wait for the thread
+        // We use DataLoader thread to execute the loadItems in updateItems(), wait for the thread
         // idle
-        ForegroundThread.waitForIdle();
+        DataLoaderThread.waitForIdle();
 
         final List<Item> itemList = Objects.requireNonNull(
                 mPickerViewModel.getPaginatedItemsForAction(
@@ -160,9 +161,9 @@ public class PickerViewModelTest {
             // move the cursor to original position
             fakeCursor.moveToPosition(-1);
             mPickerViewModel.updateCategories();
-            // We use ForegroundThread to execute the loadCategories in updateCategories(), wait for
+            // We use DataLoaderThread to execute the loadCategories in updateCategories(), wait for
             // the thread idle
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             final List<Category> categoryList = mPickerViewModel.getCategories().getValue();
 
@@ -192,7 +193,7 @@ public class PickerViewModelTest {
                 mPickerViewModel.getPaginatedItemsForAction(
                 ACTION_VIEW_CREATED,
                 new PaginationParameters());
-        ForegroundThread.waitForIdle();
+        DataLoaderThread.waitForIdle();
 
         assertThat(testItems).isNotNull();
         assertThat(testItems.getValue()).isNotNull();
@@ -247,7 +248,8 @@ public class PickerViewModelTest {
         @Override
         public Cursor getAllItems(Category category,
                 PaginationParameters paginationParameters, @Nullable String[] mimeType,
-                @Nullable UserId userId) throws
+                @Nullable UserId userId,
+                @Nullable CancellationSignal cancellationSignal) throws
                 IllegalArgumentException, IllegalStateException {
             final String[] all_projection = new String[]{
                     ID,
@@ -298,7 +300,8 @@ public class PickerViewModelTest {
         @Override
         public Cursor getLocalItems(Category category,
                 PaginationParameters paginationParameters, @Nullable String[] mimeType,
-                @Nullable UserId userId) throws
+                @Nullable UserId userId,
+                @Nullable CancellationSignal cancellationSignal) throws
                 IllegalArgumentException, IllegalStateException {
             final String[] all_projection = new String[]{
                     ID,
@@ -347,7 +350,8 @@ public class PickerViewModelTest {
         }
 
         @Nullable
-        public Cursor getAllCategories(@Nullable String[] mimeType, @Nullable UserId userId) {
+        public Cursor getAllCategories(@Nullable String[] mimeType, @Nullable UserId userId,
+                @Nullable CancellationSignal cancellationSignal) {
             if (mCategoriesCursor != null) {
                 return mCategoriesCursor;
             }

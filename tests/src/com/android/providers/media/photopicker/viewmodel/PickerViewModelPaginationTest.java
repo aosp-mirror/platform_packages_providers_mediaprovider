@@ -241,10 +241,6 @@ public class PickerViewModelPaginationTest {
         }
     }
 
-    /**
-     * Uncomment after:
-     * TODO(b/285890640): [Media Provider/Cloud Picker] Add orchestration and timeouts for syncs
-     *
     @Test
     public void test_differentCategories_getCategoryItems() throws Exception {
         int pageSize = 4;
@@ -263,6 +259,8 @@ public class PickerViewModelPaginationTest {
                     CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
                     LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true);
 
+            mPickerViewModel.initPhotoPickerData(cameraAlbum);
+            DataLoaderThread.waitForIdle();
             LiveData<PickerViewModel.PaginatedItemsResult> testItems =
                     mPickerViewModel.getPaginatedCategoryItemsForAction(
                             cameraAlbum, ACTION_VIEW_CREATED,
@@ -297,6 +295,8 @@ public class PickerViewModelPaginationTest {
                     CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS,
                     LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true);
 
+            mPickerViewModel.initPhotoPickerData(downloadsAlbum);
+            DataLoaderThread.waitForIdle();
             LiveData<PickerViewModel.PaginatedItemsResult> testItemsDownloads =
                     mPickerViewModel.getPaginatedCategoryItemsForAction(
                             downloadsAlbum, ACTION_VIEW_CREATED,
@@ -339,7 +339,6 @@ public class PickerViewModelPaginationTest {
             deleteAllFilesNoThrow();
         }
     }
-     */
 
     @Test
     public void test_updateItems_itemsResetAndFirstPageLoaded() throws Exception {

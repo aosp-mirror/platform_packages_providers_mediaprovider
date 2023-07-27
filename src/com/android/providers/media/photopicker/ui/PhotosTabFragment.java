@@ -15,6 +15,7 @@
  */
 package com.android.providers.media.photopicker.ui;
 
+import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
@@ -39,6 +40,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.MediaApplication;
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -120,8 +122,10 @@ public class PhotosTabFragment extends TabFragment {
                 showCloudMediaAvailableBanner, showAccountUpdatedBanner, showChooseAccountBanner,
                 mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
                 mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
+
         mIsCloudMediaInPhotoPickerEnabled =
                 MediaApplication.getConfigStore().isCloudMediaInPhotoPickerEnabled();
+
         if (mCategory.isDefault()) {
             mPageSize = mIsCloudMediaInPhotoPickerEnabled
                     ? PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS : -1;
@@ -381,5 +385,12 @@ public class PhotosTabFragment extends TabFragment {
      */
     public static Fragment get(FragmentManager fm) {
         return fm.findFragmentByTag(FRAGMENT_TAG);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        // Clear queued tasks in handler.
+        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
     }
 }

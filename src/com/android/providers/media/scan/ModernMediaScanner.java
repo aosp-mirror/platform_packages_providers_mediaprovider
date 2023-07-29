@@ -48,6 +48,7 @@ import static android.provider.MediaStore.UNKNOWN_STRING;
 import static android.text.format.DateUtils.HOUR_IN_MILLIS;
 import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
+import static com.android.providers.media.util.FileUtils.canonicalize;
 import static com.android.providers.media.util.Metrics.translateReason;
 
 import static java.util.Objects.requireNonNull;
@@ -242,12 +243,17 @@ public class ModernMediaScanner implements MediaScanner {
     @Override
     public void scanDirectory(@NonNull File file, @ScanReason int reason) {
         requireNonNull(file);
+        try {
+            file = canonicalize(file);
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't canonicalize directory to scan" + file, e);
+            return;
+        }
 
         try (Scan scan = new Scan(file, reason)) {
             scan.run();
         } catch (FileNotFoundException e) {
             Log.e(TAG, "Couldn't find directory to scan", e);
-            return;
         } catch (OperationCanceledException ignored) {
             // No-op.
         }
@@ -257,6 +263,12 @@ public class ModernMediaScanner implements MediaScanner {
     @Nullable
     public Uri scanFile(@NonNull File file, @ScanReason int reason) {
         requireNonNull(file);
+        try {
+            file = canonicalize(file);
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't canonicalize file to scan" + file, e);
+            return null;
+        }
 
         try (Scan scan = new Scan(file, reason)) {
             scan.run();
@@ -293,10 +305,18 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void onDirectoryDirty(File dir) {
+    public void onDirectoryDirty(@NonNull File dir) {
+        requireNonNull(dir);
+        try {
+            dir = canonicalize(dir);
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't canonicalize directory" + dir, e);
+            return;
+        }
+
         synchronized (mPendingCleanDirectories) {
             mPendingCleanDirectories.remove(dir.getPath().toLowerCase(Locale.ROOT));
-            FileUtils.setDirectoryDirty(dir, /*isDirty*/ true);
+            FileUtils.setDirectoryDirty(dir, /* isDirty */ true);
         }
     }
 

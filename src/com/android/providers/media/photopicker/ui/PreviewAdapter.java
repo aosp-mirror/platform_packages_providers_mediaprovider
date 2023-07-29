@@ -33,7 +33,7 @@ import java.util.List;
 /**
  * Adapter for Preview RecyclerView to preview all images and videos.
  */
-class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
+public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     private static final int ITEM_TYPE_IMAGE = 1;
     private static final int ITEM_TYPE_VIDEO = 2;
@@ -44,9 +44,11 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private final OnVideoPreviewClickListener mOnVideoPreviewClickListener;
 
     PreviewAdapter(Context context, MuteStatus muteStatus,
+            @NonNull OnCreateSurfaceController onCreateSurfaceController,
             @NonNull OnVideoPreviewClickListener onVideoPreviewClickListener) {
         mImageLoader = new ImageLoader(context);
-        mRemotePreviewHandler = new RemotePreviewHandler(context, muteStatus);
+        mRemotePreviewHandler = new RemotePreviewHandler(context, muteStatus,
+                onCreateSurfaceController);
         mOnVideoPreviewClickListener = onVideoPreviewClickListener;
     }
 
@@ -119,5 +121,22 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     interface OnVideoPreviewClickListener {
         void logMuteButtonClick();
+    }
+
+    /**
+     * Log metrics related to the surface controller creation
+     */
+    public interface OnCreateSurfaceController {
+        /**
+         * Log metrics to notify create surface controller triggered
+         * @param authority the authority of the provider
+         */
+        void logStart(String authority);
+
+        /**
+         * Log metrics to notify create surface controller ended
+         * @param authority the authority of the provider
+         */
+        void logEnd(String authority);
     }
 }

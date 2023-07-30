@@ -61,8 +61,6 @@ public interface ConfigStore {
     boolean DEFAULT_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = false;
     int DEFAULT_TRANSCODE_MAX_DURATION = 60 * 1000; // 1 minute
 
-    int DEFAULT_PICKER_SYNC_DELAY = 5000; // 5 seconds
-
     boolean DEFAULT_PICKER_GET_CONTENT_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG = false;
@@ -106,14 +104,6 @@ public interface ConfigStore {
      */
     default boolean shouldEnforceCloudProviderAllowlist() {
         return DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST;
-    }
-
-    /**
-     * @return a delay (in milliseconds) before executing PhotoPicker media sync on media events
-     *         like inserts/updates/deletes to artificially throttle the burst notifications.
-     */
-    default int getPickerSyncDelayMs() {
-        return DEFAULT_PICKER_SYNC_DELAY;
     }
 
     /**
@@ -226,7 +216,6 @@ public interface ConfigStore {
         writer.println("  allowedCloudProviderPackages=" + getAllowedCloudProviderPackages());
         writer.println("  shouldEnforceCloudProviderAllowlist="
                 + shouldEnforceCloudProviderAllowlist());
-        writer.println("  pickerSyncDelayMs=" + getPickerSyncDelayMs());
         writer.println("  shouldPickerPreloadForGetContent=" + shouldPickerPreloadForGetContent());
         writer.println("  shouldPickerPreloadForPickImages=" + shouldPickerPreloadForPickImages());
         writer.println("  shouldPickerRespectPreloadArgumentForPickImages="
@@ -266,7 +255,7 @@ public interface ConfigStore {
         private static final String SYSPROP_TRANSCODE_MAX_DURATION =
             "persist.sys.fuse.transcode_max_file_duration_ms";
         private static final int TRANSCODE_MAX_DURATION_INVALID = 0;
-        private static final String KEY_PICKER_SYNC_DELAY = "default_sync_delay_ms";
+
         private static final String KEY_PICKER_GET_CONTENT_PRELOAD =
                 "picker_get_content_preload_selected";
         private static final String KEY_PICKER_PICK_IMAGES_PRELOAD =
@@ -290,7 +279,7 @@ public interface ConfigStore {
 
         @Override
         public boolean isCloudMediaInPhotoPickerEnabled() {
-            return getBooleanDeviceConfig(KEY_CLOUD_MEDIA_FEATURE_ENABLED,
+            return getBooleanDeviceConfig(NAMESPACE_MEDIAPROVIDER, KEY_CLOUD_MEDIA_FEATURE_ENABLED,
                     DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED);
         }
 
@@ -334,13 +323,10 @@ public interface ConfigStore {
 
         @Override
         public boolean shouldEnforceCloudProviderAllowlist() {
-            return getBooleanDeviceConfig(KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST,
+            return getBooleanDeviceConfig(
+                    NAMESPACE_MEDIAPROVIDER,
+                    KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST,
                     DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST);
-        }
-
-        @Override
-        public int getPickerSyncDelayMs() {
-            return getIntDeviceConfig(KEY_PICKER_SYNC_DELAY, DEFAULT_PICKER_SYNC_DELAY);
         }
 
         @Override
@@ -435,6 +421,8 @@ public interface ConfigStore {
             // that make changes to this package independent of reboot
             DeviceConfig.addOnPropertiesChangedListener(
                     NAMESPACE_STORAGE_NATIVE_BOOT, executor, unused -> listener.run());
+            DeviceConfig.addOnPropertiesChangedListener(
+                    NAMESPACE_MEDIAPROVIDER, executor, unused -> listener.run());
         }
 
         private static boolean getBooleanDeviceConfig(@NonNull String key, boolean defaultValue) {

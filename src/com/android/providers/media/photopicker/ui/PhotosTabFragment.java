@@ -15,6 +15,7 @@
  */
 package com.android.providers.media.photopicker.ui;
 
+import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
@@ -39,6 +40,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.MediaApplication;
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -67,6 +69,8 @@ public class PhotosTabFragment extends TabFragment {
 
     private boolean mIsCurrentPageLoading = false;
 
+    private boolean mAtLeastOnePageLoaded = false;
+
     private boolean mIsCloudMediaInPhotoPickerEnabled;
 
     private int mPageSize;
@@ -87,6 +91,12 @@ public class PhotosTabFragment extends TabFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         final Context context = getContext();
+
+        // Init is only required for album content tab fragments when the fragment is not being
+        // recreated from a previous state.
+        if (savedInstanceState == null && !mCategory.isDefault()) {
+            mPickerViewModel.initPhotoPickerData(mCategory);
+        }
 
         // We only add the RECENT header on the PhotosTabFragment with CATEGORY_DEFAULT. In this
         // case, we call this method {loadItems} with null category. When the category is not
@@ -112,8 +122,10 @@ public class PhotosTabFragment extends TabFragment {
                 showCloudMediaAvailableBanner, showAccountUpdatedBanner, showChooseAccountBanner,
                 mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
                 mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
+
         mIsCloudMediaInPhotoPickerEnabled =
                 MediaApplication.getConfigStore().isCloudMediaInPhotoPickerEnabled();
+
         if (mCategory.isDefault()) {
             mPageSize = mIsCloudMediaInPhotoPickerEnabled
                     ? PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS : -1;
@@ -252,7 +264,9 @@ public class PhotosTabFragment extends TabFragment {
 
         if (mIsCloudMediaInPhotoPickerEnabled
                 && mCategory == Category.DEFAULT
-                && isAdapterPopulated()) {
+                && mAtLeastOnePageLoaded) {
+            // mAtLeastOnePageLoaded is checked to avoid calling this method while the view is
+            // being created
             LinearLayoutManager layoutManager =
                     (LinearLayoutManager) mRecyclerView.getLayoutManager();
             if (layoutManager != null) {
@@ -263,12 +277,6 @@ public class PhotosTabFragment extends TabFragment {
                                 + PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS, -1, -1));
             }
         }
-    }
-
-    private boolean isAdapterPopulated() {
-        // Refresh should be called only when there are some items in the adapter to be updated.
-        return mRecyclerView.getAdapter() != null
-                && mRecyclerView.getAdapter().getItemCount() != 0;
     }
 
     private void onChangeMediaItems(@NonNull PickerViewModel.PaginatedItemsResult itemList,
@@ -283,6 +291,7 @@ public class PhotosTabFragment extends TabFragment {
             updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.getItems().size() == 0);
         }
         mIsCurrentPageLoading = false;
+        mAtLeastOnePageLoaded = true;
     }
 
     private boolean isClearGridAction(@NonNull PickerViewModel.PaginatedItemsResult itemList) {
@@ -376,5 +385,12 @@ public class PhotosTabFragment extends TabFragment {
      */
     public static Fragment get(FragmentManager fm) {
         return fm.findFragmentByTag(FRAGMENT_TAG);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        // Clear queued tasks in handler.
+        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
     }
 }

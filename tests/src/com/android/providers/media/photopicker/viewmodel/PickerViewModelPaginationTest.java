@@ -49,13 +49,13 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
-import com.android.providers.media.util.ForegroundThread;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -103,11 +103,12 @@ public class PickerViewModelPaginationTest {
                 Manifest.permission.INTERACT_ACROSS_USERS);
         MockitoAnnotations.initMocks(this);
 
-        final Context context = InstrumentationRegistry.getTargetContext();
-        when(mApplication.getApplicationContext()).thenReturn(context);
         mConfigStore = new TestConfigStore();
-        mConfigStore.setPickerSyncDelayMs(0);
         mConfigStore.enableCloudMediaFeature();
+
+        final Context isolatedContext = new IsolatedContext(sTargetContext, /* tag */ "databases",
+                /* asFuseThread */ false, sTargetContext.getUser(), mConfigStore);
+        when(mApplication.getApplicationContext()).thenReturn(isolatedContext);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
                 @Override
@@ -119,9 +120,6 @@ public class PickerViewModelPaginationTest {
         UserIdManager userIdManager = mock(UserIdManager.class);
         when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
         mPickerViewModel.setUserIdManager(userIdManager);
-
-        final Context isolatedContext = new IsolatedContext(sTargetContext, /* tag */ "databases",
-                /* asFuseThread */ false, sTargetContext.getUser(), mConfigStore);
         mIsolatedResolver = isolatedContext.getContentResolver();
         mItemsProvider = new ItemsProvider(isolatedContext);
         mPickerViewModel.setItemsProvider(mItemsProvider);
@@ -141,14 +139,14 @@ public class PickerViewModelPaginationTest {
                     mPickerViewModel.getPaginatedItemsForAction(
                             ACTION_VIEW_CREATED, new
                                     PaginationParameters(pageSize, -1, -1));
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Empty list should be returned.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(numberOfTestItems);
 
             // Load next page size number of images.
             mPickerViewModel.getPaginatedItemsForAction(ACTION_LOAD_NEXT_PAGE, null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Empty list should be returned.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(numberOfTestItems);
@@ -175,7 +173,7 @@ public class PickerViewModelPaginationTest {
                     mPickerViewModel.getPaginatedCategoryItemsForAction(
                             downloadsAlbum, ACTION_VIEW_CREATED,
                             new PaginationParameters(pageSize, -1, -1));
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Empty list should be returned.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(numberOfTestItems);
@@ -183,7 +181,7 @@ public class PickerViewModelPaginationTest {
             // Load next page size number of images.
             mPickerViewModel.getPaginatedCategoryItemsForAction(
                     downloadsAlbum, ACTION_LOAD_NEXT_PAGE, null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Empty list should be returned.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(numberOfTestItems);
@@ -208,21 +206,21 @@ public class PickerViewModelPaginationTest {
                     mPickerViewModel.getPaginatedItemsForAction(
                             ACTION_VIEW_CREATED, new
                                     PaginationParameters(pageSize, -1, -1));
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Page 1: Since the page size is set to 4, only 4 images should be returned.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(pageSize);
 
             // Load next page size number of images.
             mPickerViewModel.getPaginatedItemsForAction(ACTION_LOAD_NEXT_PAGE, null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Page 2: 8 images should be returned.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(2 * pageSize);
 
             // Load next page size number of images.
             mPickerViewModel.getPaginatedItemsForAction(ACTION_LOAD_NEXT_PAGE, null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Page 3: all 10 images should be returned. All items loaded.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(numberOfTestItems);
@@ -230,7 +228,7 @@ public class PickerViewModelPaginationTest {
             // Try loading once more, but the number of images should not change since we have
             // exhausted the list.
             mPickerViewModel.getPaginatedItemsForAction(ACTION_LOAD_NEXT_PAGE, null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // All items loaded.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(numberOfTestItems);
@@ -268,7 +266,7 @@ public class PickerViewModelPaginationTest {
                     mPickerViewModel.getPaginatedCategoryItemsForAction(
                             cameraAlbum, ACTION_VIEW_CREATED,
                             new PaginationParameters(pageSize, -1, -1));
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Page 1: Since the page size is set to 4, only 4 images should be returned.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(pageSize);
@@ -277,7 +275,7 @@ public class PickerViewModelPaginationTest {
             mPickerViewModel.getPaginatedCategoryItemsForAction(cameraAlbum,
                     ACTION_LOAD_NEXT_PAGE,
                     null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Page 2: 7 images should be returned.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(numberOfTestItemsInCamera);
@@ -287,7 +285,7 @@ public class PickerViewModelPaginationTest {
             mPickerViewModel.getPaginatedCategoryItemsForAction(cameraAlbum,
                     ACTION_LOAD_NEXT_PAGE,
                     null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // All items loaded.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(numberOfTestItemsInCamera);
@@ -302,7 +300,7 @@ public class PickerViewModelPaginationTest {
                     mPickerViewModel.getPaginatedCategoryItemsForAction(
                             downloadsAlbum, ACTION_VIEW_CREATED,
                             new PaginationParameters(pageSize, -1, -1));
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Page 1: Since the page size is set to 4, only 4 images should be returned.
             assertThat(testItemsDownloads.getValue().getItems().size()).isEqualTo(pageSize);
@@ -310,7 +308,7 @@ public class PickerViewModelPaginationTest {
             // Load next page size number of images.
             mPickerViewModel.getPaginatedCategoryItemsForAction(
                     downloadsAlbum, ACTION_LOAD_NEXT_PAGE, null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Page 2: 8 images should be returned.
             assertThat(testItemsDownloads.getValue().getItems().size()).isEqualTo(2 * pageSize);
@@ -318,7 +316,7 @@ public class PickerViewModelPaginationTest {
             // Load next page size number of images.
             mPickerViewModel.getPaginatedCategoryItemsForAction(
                     downloadsAlbum, ACTION_LOAD_NEXT_PAGE, null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Page 3: all 10 images should be returned.
             assertThat(testItemsDownloads.getValue().getItems().size()).isEqualTo(
@@ -329,7 +327,7 @@ public class PickerViewModelPaginationTest {
             // exhausted the list.
             mPickerViewModel.getPaginatedCategoryItemsForAction(
                     downloadsAlbum, ACTION_LOAD_NEXT_PAGE, null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // All items loaded.
             assertThat(testItemsDownloads.getValue().getItems().size()).isEqualTo(
@@ -356,14 +354,14 @@ public class PickerViewModelPaginationTest {
             LiveData<PickerViewModel.PaginatedItemsResult> testItems =
                     mPickerViewModel.getPaginatedItemsForAction(
                             ACTION_VIEW_CREATED, new PaginationParameters(pageSize, -1, -1));
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Page 1: Since the page size is set to 4, only 4 images should be returned.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(pageSize);
 
             // Load next page size number of images.
             mPickerViewModel.getPaginatedItemsForAction(ACTION_LOAD_NEXT_PAGE, null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Page 2: 8 images should be returned.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(2 * pageSize);
@@ -372,7 +370,7 @@ public class PickerViewModelPaginationTest {
             // Call updateItems which is usually called on profile switch or reset.
             // This should clear out the list and load the first page.
             mPickerViewModel.getPaginatedItemsForAction(ACTION_CLEAR_AND_UPDATE_LIST, null);
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Assert that only one page of items are present now.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(pageSize);
@@ -399,7 +397,7 @@ public class PickerViewModelPaginationTest {
             LiveData<PickerViewModel.PaginatedItemsResult> testItems =
                     mPickerViewModel.getPaginatedItemsForAction(
                             ACTION_VIEW_CREATED, new PaginationParameters(pageSize, -1, -1));
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             assertThat(testItems.getValue().getItems().size()).isEqualTo(pageSize);
 
@@ -416,7 +414,7 @@ public class PickerViewModelPaginationTest {
             // This should clear out the list and load the first page.
             mPickerViewModel.getPaginatedItemsForAction(ACTION_REFRESH_ITEMS,
                     new PaginationParameters(pageSize, -1, -1));
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             // Assert that only one page of items are present now.
             assertThat(testItems.getValue().getItems().size()).isEqualTo(pageSize);

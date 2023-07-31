@@ -816,6 +816,22 @@ public class ItemsProviderTest {
             final Uri videoFileDateNowUri
                     = prepareFileAndGetUri(new File(getCameraDir(), VIDEO_FILE_NAME), timeNow);
 
+            // Querying and logging to resolve flakiness issue
+            try (Cursor c = mIsolatedResolver.query(
+                    MediaStore.Files.getContentUri(VOLUME_EXTERNAL), new String[]{
+                            MediaStore.Files.FileColumns.DATA, MediaStore.Files.FileColumns._ID,
+                            MediaStore.MediaColumns.DATE_ADDED,
+                            MediaStore.MediaColumns.DATE_MODIFIED,
+                            MediaStore.MediaColumns.DATE_TAKEN}, null, null)) {
+                while (c.moveToNext()) {
+                    Log.i("ItemsProviderTest",
+                            String.format("%s -- %s -- %s -- %s -- %s", c.getString(0),
+                                    c.getString(1),
+                                    c.getString(2), c.getString(3), c.getString(4)));
+                }
+            }
+
+
             // This is the list of uris based on the expected sort order of items returned by
             // ItemsProvider#getAllItems(com.android.providers.media.photopicker.data.model
             // .Category, com.android.providers.media.photopicker.data

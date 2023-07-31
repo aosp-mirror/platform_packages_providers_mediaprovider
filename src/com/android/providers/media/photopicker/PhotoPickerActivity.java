@@ -186,11 +186,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         am.addAccessibilityStateChangeListener(enabled -> mIsAccessibilityEnabled = enabled);
 
         initBottomSheetBehavior();
-        restoreState(savedInstanceState);
 
         final String intentAction = intent != null ? intent.getAction() : null;
-        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
-        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
@@ -204,6 +201,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
         }
 
         observeRefreshUiNotificationLiveData();
+        // Restore state operation should always be kept at the end of this method.
+        restoreState(savedInstanceState);
+        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
+        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
     }
 
     @Override

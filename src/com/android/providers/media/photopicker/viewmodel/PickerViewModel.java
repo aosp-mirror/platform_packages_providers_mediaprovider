@@ -124,6 +124,8 @@ public class PickerViewModel extends AndroidViewModel {
         }
     };
 
+    private MutableLiveData<Boolean> mIsSyncInProgress = new MutableLiveData<>(false);
+
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
     private BannerManager mBannerManager;
@@ -435,8 +437,10 @@ public class PickerViewModel extends AndroidViewModel {
 
             // post the result with the action.
             mItemsResult.postValue(new PaginatedItemsResult(updatedList, action));
+            mIsSyncInProgress.postValue(false);
         }, TOKEN, DELAY_MILLIS);
     }
+
 
     private List<Item> loadItems(Category category, UserId userId,
             PaginationParameters pagingParameters) {
@@ -1129,6 +1133,10 @@ public class PickerViewModel extends AndroidViewModel {
         }
     }
 
+    public LiveData<Boolean> isSyncInProgress() {
+        return mIsSyncInProgress;
+    }
+
     /**
      * Class used to store the result of the item modification operations.
      */
@@ -1168,11 +1176,15 @@ public class PickerViewModel extends AndroidViewModel {
     public void initPhotoPickerData(@NonNull Category category) {
         if (getConfigStore().isCloudMediaInPhotoPickerEnabled()) {
             UserId userId = mUserIdManager.getCurrentUserProfileId();
-            DataLoaderThread.getHandler().postDelayed(() ->
-                    mItemsProvider.initPhotoPickerData(category.getId(),
-                                category.getAuthority(),
-                                shouldShowOnlyLocalFeatures(),
-                                userId), TOKEN, DELAY_MILLIS);
+            DataLoaderThread.getHandler().postDelayed(() -> {
+                if (category == Category.DEFAULT) {
+                    mIsSyncInProgress.postValue(true);
+                }
+                mItemsProvider.initPhotoPickerData(category.getId(),
+                        category.getAuthority(),
+                        shouldShowOnlyLocalFeatures(),
+                        userId);
+            }, TOKEN, DELAY_MILLIS);
         }
     }
 }

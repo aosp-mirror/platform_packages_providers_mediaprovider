@@ -50,6 +50,8 @@ import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
 import static com.android.providers.media.util.Metrics.translateReason;
 
+import static java.util.Objects.requireNonNull;
+
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
@@ -243,7 +245,15 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void scanDirectory(File file, int reason) {
+    public void scanDirectory(@NonNull File file, int reason) {
+        requireNonNull(file);
+        try {
+            file = file.getCanonicalFile();
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't canonicalize directory to scan" + file, e);
+            return;
+        }
+
         try (Scan scan = new Scan(file, reason, /*ownerPackage*/ null)) {
             scan.run();
         } catch (OperationCanceledException ignored) {
@@ -253,12 +263,21 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    public Uri scanFile(File file, int reason) {
+    @Nullable
+    public Uri scanFile(@NonNull File file, int reason) {
        return scanFile(file, reason, /*ownerPackage*/ null);
     }
 
     @Override
     public Uri scanFile(File file, int reason, @Nullable String ownerPackage) {
+        requireNonNull(file);
+        try {
+            file = file.getCanonicalFile();
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't canonicalize file to scan" + file, e);
+            return null;
+        }
+
         try (Scan scan = new Scan(file, reason, ownerPackage)) {
             scan.run();
             return scan.getFirstResult();

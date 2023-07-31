@@ -214,6 +214,10 @@ public class PickerViewModel extends AndroidViewModel {
         mIsNotificationForUpdateReceived = notificationForUpdateReceived;
     }
 
+    @VisibleForTesting
+    public void setLogger(@NonNull PhotoPickerUiEventLogger logger) {
+        mLogger = logger;
+    }
 
     /**
      * @return {@link UserIdManager} for this context.

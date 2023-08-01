@@ -16,8 +16,15 @@
 
 package com.android.providers.media.library;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
 /**
  * Tests marked with this annotation will only run on postsubmit and not on presubmit.
  */
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD, ElementType.TYPE})
 public @interface RunOnlyOnPostsubmit {
 }

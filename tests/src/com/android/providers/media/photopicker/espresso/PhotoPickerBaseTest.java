@@ -34,6 +34,7 @@ import android.system.ErrnoException;
 import android.system.Os;
 
 import androidx.core.util.Supplier;
+import androidx.lifecycle.MutableLiveData;
 import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.IsolatedContext;
@@ -283,6 +284,7 @@ public class PhotoPickerBaseTest {
             updateIsManagedUserSelected(/* isManagedUserSelected */ true);
             return null;
         }).when(sUserIdManager).setManagedAsCurrentUserProfile();
+        when(sUserIdManager.getCrossProfileAllowed()).thenReturn(new MutableLiveData<>(true));
     }
 
     /**
@@ -307,6 +309,7 @@ public class PhotoPickerBaseTest {
         when(sUserIdManager.isWorkProfileOff()).thenReturn(false);
         when(sUserIdManager.isCrossProfileAllowed()).thenReturn(false);
         when(sUserIdManager.isManagedUserSelected()).thenReturn(true);
+        when(sUserIdManager.getCrossProfileAllowed()).thenReturn(new MutableLiveData<>(false));
     }
 
     private static void updateIsManagedUserSelected(boolean isManagedUserSelected) {

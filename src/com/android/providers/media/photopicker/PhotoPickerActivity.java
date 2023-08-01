@@ -845,6 +845,14 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     /**
+     * Reset to Photo Picker initial launch state (Photos grid tab) in the current profile mode.
+     */
+    private void resetInCurrentProfile() {
+        mPickerViewModel.resetAllContentInCurrentProfile();
+        setupInitialLaunchState();
+    }
+
+    /**
      * Returns {@code true} if settings page is enabled.
      */
     private boolean shouldShowSettingsScreen() {
@@ -1000,7 +1008,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mPickerViewModel.shouldRefreshUiLiveData()
                 .observe(this, shouldRefresh -> {
                     if (shouldRefresh && !mPickerViewModel.shouldShowOnlyLocalFeatures()) {
-                        mPickerViewModel.resetAllContentInCurrentProfile();
+                        resetInCurrentProfile();
                     }
                 });
     }

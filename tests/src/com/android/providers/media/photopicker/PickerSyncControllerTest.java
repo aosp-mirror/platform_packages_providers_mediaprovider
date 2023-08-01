@@ -669,6 +669,34 @@ public class PickerSyncControllerTest {
     }
 
     @Test
+    public void testEnableCloudQueriesAfterMPRestart() {
+        //1. Get local provider assertion out of the way
+        assertThat(mController.getLocalProvider()).isEqualTo(LOCAL_PROVIDER_AUTHORITY);
+
+        // Assert that no cloud provider set on facade
+        assertThat(mFacade.getCloudProvider()).isNull();
+
+        // 2. Can set cloud provider
+        assertThat(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
+        assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Assert that setting cloud provider clears facade cloud provider
+        // And after syncing, the latest provider is set on the facade
+        assertThat(mFacade.getCloudProvider()).isNull();
+        mController.syncAllMedia();
+        assertThat(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // 3. Clear facade cloud provider to simulate MP restart.
+        mFacade.setCloudProvider(null);
+
+        // 4. Assert that latest provider is set in the facade after sync even when no sync was
+        // required.
+        mController.syncAllMedia();
+        assertThat(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+    }
+
+
+    @Test
     public void testGetSupportedCloudProviders() {
         List<CloudProviderInfo> providers = mController.getAvailableCloudProviders();
 

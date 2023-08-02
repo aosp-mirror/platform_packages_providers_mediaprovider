@@ -6720,7 +6720,9 @@ public class MediaProvider extends ContentProvider {
                     }
                     packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
                     uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
-                    userId = uidToUserId(caller);
+                    // Caller is always shell which may not have the desired userId. Hence, use
+                    // UserId from the MediaProvider process itself.
+                    userId = UserHandle.myUserId();
                 } else {
                     // All other callers are unauthorized.
 

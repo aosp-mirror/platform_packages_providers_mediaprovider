@@ -68,6 +68,10 @@ public class PhotoPickerBaseTest {
     protected static final int PREVIEW_MOTION_PHOTO_ID = R.id.preview_motion_photo;
     protected static final int PREVIEW_ADD_OR_SELECT_BUTTON_ID = R.id.preview_add_or_select_button;
     protected static final int PRIVACY_TEXT_ID = R.id.privacy_text;
+    protected static final String GIF_IMAGE_MIME_TYPE = "image/gif";
+    protected static final String ANIMATED_WEBP_MIME_TYPE = "image/webp";
+    protected static final String JPEG_IMAGE_MIME_TYPE = "image/jpeg";
+    protected static final String MP4_VIDEO_MIME_TYPE = "video/mp4";
 
     protected static final int DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH
             = R.dimen.preview_add_or_select_width;

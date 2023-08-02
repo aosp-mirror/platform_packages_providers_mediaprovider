@@ -186,11 +186,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         am.addAccessibilityStateChangeListener(enabled -> mIsAccessibilityEnabled = enabled);
 
         initBottomSheetBehavior();
-        restoreState(savedInstanceState);
 
         final String intentAction = intent != null ? intent.getAction() : null;
-        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
-        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
@@ -202,6 +199,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
         if (mPreloaderInstanceHolder.preloader != null) {
             subscribeToSelectedMediaPreloader(mPreloaderInstanceHolder.preloader);
         }
+
+        observeRefreshUiNotificationLiveData();
+        // Restore state operation should always be kept at the end of this method.
+        restoreState(savedInstanceState);
+        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
+        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
     }
 
     @Override
@@ -239,10 +242,30 @@ public class PhotoPickerActivity extends AppCompatActivity {
         return super.dispatchTouchEvent(event);
     }
 
+    /**
+     * This method is called on action bar home button clicks if
+     * {@link androidx.appcompat.app.ActionBar#setDisplayHomeAsUpEnabled(boolean)} is set
+     * {@code true}.
+     */
     @Override
     public boolean onSupportNavigateUp() {
-        onBackPressed();
+        int backStackEntryCount = getSupportFragmentManager().getBackStackEntryCount();
+        mPickerViewModel.logActionBarHomeButtonClick(backStackEntryCount);
+        super.onBackPressed();
         return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+        int backStackEntryCount = getSupportFragmentManager().getBackStackEntryCount();
+        mPickerViewModel.logBackGestureWithStackCount(backStackEntryCount);
+        super.onBackPressed();
+    }
+
+    @Override
+    public boolean onMenuOpened(int featureId, Menu menu) {
+        mPickerViewModel.logMenuOpened();
+        return super.onMenuOpened(featureId, menu);
     }
 
     @Override
@@ -310,19 +333,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Intent intent = new Intent(this, PhotoPickerSettingsActivity.class);
         intent.putExtra(EXTRA_CURRENT_USER_ID, getCurrentUserId());
         startActivity(intent);
-    }
-
-    @Override
-    public void onRestart() {
-        super.onRestart();
-
-        // TODO(b/262001857): For each profile, conditionally reset PhotoPicker when cloud provider
-        //  app or account has changed. Currently, we'll reset picker each time it restarts when
-        //  settings page is enabled to avoid the scenario where cloud provider app or account has
-        //  changed but picker continues to show stale data from old provider app and account.
-        if (shouldShowSettingsScreen()) {
-            reset(/* switchToPersonalProfile */ false);
-        }
     }
 
     /**
@@ -425,7 +435,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
+                    mPickerViewModel.logSwipeDownExit();
                     finish();
+                } else if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    mPickerViewModel.logExpandToFullScreen();
                 }
                 saveBottomSheetState();
             }
@@ -826,10 +839,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     /**
      * Reset to Photo Picker initial launch state (Photos grid tab) in personal profile mode.
-     * @param switchToPersonalProfile is true then set personal profile as current profile.
      */
-    private void reset(boolean switchToPersonalProfile) {
-        mPickerViewModel.reset(switchToPersonalProfile);
+    private void resetToPersonalProfile() {
+        mPickerViewModel.resetToPersonalProfile();
         setupInitialLaunchState();
     }
 
@@ -966,7 +978,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
             // We reset the state of the PhotoPicker as we do not want to make any
             // assumptions on the state of the PhotoPicker when it was in Work Profile mode.
-            reset(/* switchToPersonalProfile */ true);
+            resetToPersonalProfile();
         }
     }
 
@@ -979,5 +991,18 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public static class PreloaderInstanceHolder extends ViewModel {
         @Nullable
         SelectedMediaPreloader preloader;
+    }
+
+    /**
+     * Reset the Picker view model content when launched with cloud features and notified to
+     * refresh the UI.
+     */
+    private void observeRefreshUiNotificationLiveData() {
+        mPickerViewModel.shouldRefreshUiLiveData()
+                .observe(this, shouldRefresh -> {
+                    if (shouldRefresh && !mPickerViewModel.shouldShowOnlyLocalFeatures()) {
+                        mPickerViewModel.resetAllContentInCurrentProfile();
+                    }
+                });
     }
 }

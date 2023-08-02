@@ -26,6 +26,8 @@ import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryF
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import static org.junit.Assert.assertThrows;
+
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -686,6 +688,19 @@ public class PickerDataLayerTest {
         assertThat(info).isNotNull();
         assertThat(info.accountName).isEqualTo(expectedName);
         assertThat(info.accountConfigurationIntent).isEqualTo(expectedIntent);
+    }
+
+    @Test
+    public void testInitMediaDataInvalidData() {
+        final Bundle syncExtrasBundle = new Bundle();
+        syncExtrasBundle.putString(MediaStore.EXTRA_ALBUM_ID, "NotMergedAlbum");
+        syncExtrasBundle.putString(MediaStore.EXTRA_ALBUM_AUTHORITY, "NotLocalAuthority");
+        syncExtrasBundle.putBoolean(MediaStore.EXTRA_LOCAL_ONLY, true);
+        final PickerSyncRequestExtras syncExtras =
+                PickerSyncRequestExtras.fromBundle(syncExtrasBundle);
+
+        assertThrows(IllegalStateException.class,
+                () -> mDataLayer.initMediaData(syncExtras));
     }
 
     private static void waitForIdle() {

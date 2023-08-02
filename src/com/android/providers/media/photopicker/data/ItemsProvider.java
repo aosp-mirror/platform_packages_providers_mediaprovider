@@ -18,10 +18,12 @@ package com.android.providers.media.photopicker.data;
 
 import static android.content.ContentResolver.QUERY_ARG_LIMIT;
 import static android.database.DatabaseUtils.dumpCursorToString;
+import static android.provider.MediaStore.AUTHORITY;
 
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_DATE_TAKEN_BEFORE_MS;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ROW_ID;
+import static com.android.providers.media.photopicker.util.CloudProviderUtils.sendInitPhotoPickerDataNotification;
 
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -31,6 +33,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.RemoteException;
 import android.os.Trace;
 import android.os.UserHandle;
@@ -104,7 +107,8 @@ public class ItemsProvider {
     @Nullable
     public Cursor getAllItems(Category category, PaginationParameters pagingParameters,
             @Nullable String[] mimeTypes,
-            @Nullable UserId userId) throws IllegalArgumentException {
+            @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
         if (DEBUG) {
             Log.d(TAG, "getAllItems() userId=" + userId + " cat=" + category
                     + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit="
@@ -115,7 +119,8 @@ public class ItemsProvider {
 
         Trace.beginSection("ItemsProvider.getAllItems");
         try {
-            return queryMedia(URI_MEDIA_ALL, pagingParameters, mimeTypes, category, userId);
+            return queryMedia(URI_MEDIA_ALL, pagingParameters, mimeTypes, category, userId,
+                    cancellationSignal);
         } finally {
             Trace.endSection();
         }
@@ -148,7 +153,8 @@ public class ItemsProvider {
     @Nullable
     public Cursor getLocalItems(Category category, PaginationParameters pagingParameters,
             @Nullable String[] mimeTypes,
-            @Nullable UserId userId) throws IllegalArgumentException {
+            @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
         if (DEBUG) {
             Log.d(TAG, "getLocalItems() userId=" + userId + " cat=" + category
                     + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit="
@@ -159,7 +165,8 @@ public class ItemsProvider {
 
         Trace.beginSection("ItemsProvider.getLocalItems");
         try {
-            return queryMedia(URI_MEDIA_LOCAL, pagingParameters, mimeTypes, category, userId);
+            return queryMedia(URI_MEDIA_LOCAL, pagingParameters, mimeTypes, category, userId,
+                    cancellationSignal);
         } finally {
             Trace.endSection();
         }
@@ -180,7 +187,8 @@ public class ItemsProvider {
       * in the relative order.
      */
     @Nullable
-    public Cursor getAllCategories(@Nullable String[] mimeTypes, @Nullable UserId userId) {
+    public Cursor getAllCategories(@Nullable String[] mimeTypes, @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) {
         if (DEBUG) {
             Log.d(TAG, "getAllCategories() userId=" + userId
                     + " mimeTypes=" + Arrays.toString(mimeTypes));
@@ -189,7 +197,7 @@ public class ItemsProvider {
 
         Trace.beginSection("ItemsProvider.getAllCategories");
         try {
-            return queryAlbums(URI_ALBUMS_ALL, mimeTypes, userId);
+            return queryAlbums(URI_ALBUMS_ALL, mimeTypes, userId, cancellationSignal);
         } finally {
             Trace.endSection();
         }
@@ -208,7 +216,8 @@ public class ItemsProvider {
      * in the relative order.
      */
     @Nullable
-    public Cursor getLocalCategories(@Nullable String[] mimeTypes, @Nullable UserId userId) {
+    public Cursor getLocalCategories(@Nullable String[] mimeTypes, @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) {
         if (DEBUG) {
             Log.d(TAG, "getLocalCategories() userId=" + userId
                     + " mimeTypes=" + Arrays.toString(mimeTypes));
@@ -217,7 +226,7 @@ public class ItemsProvider {
 
         Trace.beginSection("ItemsProvider.getLocalCategories");
         try {
-            return queryAlbums(URI_ALBUMS_LOCAL, mimeTypes, userId);
+            return queryAlbums(URI_ALBUMS_LOCAL, mimeTypes, userId, cancellationSignal);
         } finally {
             Trace.endSection();
         }
@@ -225,7 +234,8 @@ public class ItemsProvider {
 
     @Nullable
     private Cursor queryMedia(@NonNull Uri uri, PaginationParameters paginationParameters,
-            String[] mimeTypes, @NonNull Category category, @Nullable UserId userId)
+            String[] mimeTypes, @NonNull Category category, @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal)
             throws IllegalStateException {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
@@ -263,7 +273,7 @@ public class ItemsProvider {
             }
 
             result = client.query(uri, /* projection */ null, extras,
-                    /* cancellationSignal */ null);
+                    /* cancellationSignal */ cancellationSignal);
             return result;
         } catch (RemoteException | NameNotFoundException ignored) {
             // Do nothing, return null.
@@ -287,7 +297,7 @@ public class ItemsProvider {
 
     @Nullable
     private Cursor queryAlbums(@NonNull Uri uri, @Nullable String[] mimeTypes,
-                @Nullable UserId userId) {
+                @Nullable UserId userId, @Nullable CancellationSignal cancellationSignal) {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
@@ -313,7 +323,7 @@ public class ItemsProvider {
             }
 
             result = client.query(uri, /* projection */ null, extras,
-                    /* cancellationSignal */ null);
+                    /* cancellationSignal */ cancellationSignal);
             return result;
         } catch (RemoteException | NameNotFoundException ignored) {
             // Do nothing, return null.
@@ -384,5 +394,36 @@ public class ItemsProvider {
     private static boolean uriHasUserId(Uri uri) {
         if (uri == null) return false;
         return !TextUtils.isEmpty(uri.getUserInfo());
+    }
+
+    /**
+     * Sends a data init notification to the MP process.
+     */
+    public void initPhotoPickerData(@Nullable String albumId,
+            @Nullable String albumAuthority,
+            boolean initLocalOnlyData,
+            @Nullable UserId userId) {
+        if (userId == null) {
+            Log.e(TAG, "Could not determine the current active user id in Picker. "
+                    + "Init media call cannot go through.");
+            return;
+        }
+
+        try (ContentProviderClient client = getContentProviderClient(userId)) {
+            if (client == null) {
+                throw new IllegalStateException("ContentProviderClient is null.");
+            }
+            sendInitPhotoPickerDataNotification(client, albumId, albumAuthority, initLocalOnlyData);
+        } catch (RuntimeException | NameNotFoundException | RemoteException e) {
+            Log.e(TAG, "Could not send init media call to Media Provider", e);
+        }
+    }
+
+    @Nullable
+    private ContentProviderClient getContentProviderClient(@NonNull UserId userId)
+            throws NameNotFoundException {
+        return userId
+                .getContentResolver(mContext)
+                .acquireContentProviderClient(AUTHORITY);
     }
 }

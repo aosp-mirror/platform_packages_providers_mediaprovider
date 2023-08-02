@@ -100,8 +100,8 @@ public class CloudProviderQueryExtras {
         final long generation = LONG_DEFAULT;
         final int limit = bundle.getInt(QUERY_ARG_LIMIT, LIMIT_DEFAULT);
 
-        final boolean isFavorite = AlbumColumns.ALBUM_ID_FAVORITES.equals(albumId);
-        final boolean isVideo = AlbumColumns.ALBUM_ID_VIDEOS.equals(albumId);
+        final boolean isFavorite = isFavorite(albumId);
+        final boolean isVideo = isVideo(albumId);
 
         final boolean isLocalOnly = bundle.getBoolean(PickerDataLayer.QUERY_ARG_LOCAL_ONLY,
                 BOOLEAN_DEFAULT);
@@ -163,6 +163,28 @@ public class CloudProviderQueryExtras {
         extras.putLong(CloudMediaProviderContract.EXTRA_SIZE_LIMIT_BYTES, mSizeBytes);
 
         return extras;
+    }
+
+    /**
+     * Checks if the query is for a merged album type.
+     */
+    public boolean isMergedAlbum() {
+        return mIsFavorite || mIsVideo;
+    }
+
+    private static boolean isFavorite(String albumId) {
+        return AlbumColumns.ALBUM_ID_FAVORITES.equals(albumId);
+    }
+
+    private static boolean isVideo(String albumId) {
+        return AlbumColumns.ALBUM_ID_VIDEOS.equals(albumId);
+    }
+
+    /**
+     * Checks if the given albumID belongs to a merged album type.
+     */
+    public static boolean isMergedAlbum(String albumId) {
+        return isFavorite(albumId) || isVideo(albumId);
     }
 
     public String getAlbumId() {

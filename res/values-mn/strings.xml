@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Видеог тоглуулахад асуудал гарлаа"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Интернэт холболтоо шалгаад, дахин оролдоно уу"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Дахин оролдох"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Үүлэн медиаг одоо <xliff:g id="PKG_NAME">%1$s</xliff:g>-с авах боломжтой боллоо"</string>
     <string name="not_selected" msgid="2244008151669896758">"сонгоогүй"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>-с <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> бэлэн"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Одоо хуулбарласан зургийг багтаасан"</string>

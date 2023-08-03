@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Probleem bij video afspelen"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Check de internetverbinding en probeer het opnieuw"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Opnieuw proberen"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Cloudmedia nu beschikbaar van <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"niet geselecteerd"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> van <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> klaar"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Nu ook met foto\'s waarvan een back-up is gemaakt"</string>

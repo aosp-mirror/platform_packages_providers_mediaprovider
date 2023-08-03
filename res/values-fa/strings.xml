@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"پخش ویدیو با مشکل روبه‌رو شد"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"اتصال اینترنت را بررسی کنید و دوباره امتحان کنید"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"امتحان مجدد"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"رسانه ابری اکنون از <xliff:g id="PKG_NAME">%1$s</xliff:g> دردسترس است"</string>
     <string name="not_selected" msgid="2244008151669896758">"انتخاب نشده است"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> مورد از <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> مورد آماده است"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"عکس‌های پشتیبان‌گیری‌شده اکنون اضافه می‌شود"</string>

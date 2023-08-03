@@ -1,0 +1,82 @@
+/*
+ * Copyright (C) 2023 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.android.providers.media.photopicker.sync;
+
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_ALBUM_ID;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
+
+import android.content.Context;
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+import androidx.work.Configuration;
+import androidx.work.Data;
+import androidx.work.testing.SynchronousExecutor;
+import androidx.work.testing.WorkManagerTestInitHelper;
+
+import java.util.Map;
+import java.util.Objects;
+
+public class SyncWorkerTestUtils {
+    public static void initializeTestWorkManager(@NonNull Context context) {
+        Configuration workManagerConfig = new Configuration.Builder()
+                .setMinimumLoggingLevel(Log.DEBUG)
+                .setExecutor(new SynchronousExecutor()) // This runs WM synchronously.
+                .build();
+
+        WorkManagerTestInitHelper.initializeTestWorkManager(
+                context, workManagerConfig);
+    }
+
+    @NonNull
+    public static Data getLocalSyncInputData() {
+        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_ONLY));
+    }
+
+    @NonNull
+    public static Data getLocalAlbumSyncInputData(@NonNull String albumId) {
+        Objects.requireNonNull(albumId);
+        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_ONLY,
+                SYNC_WORKER_INPUT_ALBUM_ID, albumId));
+    }
+
+    @NonNull
+    public static Data getCloudSyncInputData() {
+        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_CLOUD_ONLY));
+    }
+
+    @NonNull
+    public static Data getCloudAlbumSyncInputData(@NonNull String albumId) {
+        Objects.requireNonNull(albumId);
+        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_CLOUD_ONLY,
+                SYNC_WORKER_INPUT_ALBUM_ID, albumId));
+    }
+
+    @NonNull
+    public static Data getLocalAndCloudSyncInputData() {
+        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD));
+    }
+
+    public static Data getLocalAndCloudAlbumSyncInputData(@NonNull String albumId) {
+        Objects.requireNonNull(albumId);
+        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD,
+                SYNC_WORKER_INPUT_ALBUM_ID, albumId));
+    }
+}

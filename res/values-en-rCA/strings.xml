@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Trouble playing video"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Check your internet connection and try again"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Retry"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Cloud media now available from <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"not selected"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> of <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ready"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Backed up photos now included"</string>

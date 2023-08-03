@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"ቪድዮን ማጫወት ላይ ችግር"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"የበይነመረብዎን ግንኙነት ይፈትሹ እና እንደገና ይሞክሩ"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"እንደገና ሞክር"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"የደመና ሚዲያ አሁን ከ<xliff:g id="PKG_NAME">%1$s</xliff:g> ይገኛል"</string>
     <string name="not_selected" msgid="2244008151669896758">"አልተመረጠም"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> ከ<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ዝግጁ"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ምትኬ የተቀመጠላቸው ፎቶዎች አሁን ተካትተዋል"</string>

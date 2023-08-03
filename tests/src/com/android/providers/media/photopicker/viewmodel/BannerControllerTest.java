@@ -16,8 +16,6 @@
 
 package com.android.providers.media.photopicker.viewmodel;
 
-import static android.os.Process.myUserHandle;
-
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 
 import static org.junit.Assert.assertEquals;
@@ -29,6 +27,8 @@ import android.content.Context;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.android.providers.media.IsolatedContext;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,12 +38,14 @@ public class BannerControllerTest {
     private BannerController mBannerController;
     private static final String CMP_AUTHORITY = "authority";
     private static final String CMP_ACCOUNT_NAME = "account_name";
+    private static final String TAG = "BannerControllerTest";
 
     @Before
     public void setUp() {
-        final Context context = getInstrumentation().getTargetContext();
+        final Context context = new IsolatedContext(
+                getInstrumentation().getTargetContext(), TAG, /* asFuseThread= */ false);
 
-        mBannerController = new BannerController(context, myUserHandle()) {
+        mBannerController = new BannerController(context, context.getUser()) {
             @Override
             void updateCloudProviderDataFile() {
                 // No-op

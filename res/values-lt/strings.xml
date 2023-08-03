@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Paleidžiant vaizdo įrašą kilo problema"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Patikrinkite interneto ryšį ir bandykite dar kartą"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Bandyti dar kartą"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Debesyje esanti medija dabar pasiekiama iš „<xliff:g id="PKG_NAME">%1$s</xliff:g>“"</string>
     <string name="not_selected" msgid="2244008151669896758">"nepasirinkta"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Paruošta: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> iš <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Dabar įtraukiamos atsarginės nuotraukų kopijos"</string>

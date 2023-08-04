@@ -34,6 +34,7 @@ import android.system.ErrnoException;
 import android.system.Os;
 
 import androidx.core.util.Supplier;
+import androidx.lifecycle.MutableLiveData;
 import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.IsolatedContext;
@@ -67,6 +68,10 @@ public class PhotoPickerBaseTest {
     protected static final int PREVIEW_MOTION_PHOTO_ID = R.id.preview_motion_photo;
     protected static final int PREVIEW_ADD_OR_SELECT_BUTTON_ID = R.id.preview_add_or_select_button;
     protected static final int PRIVACY_TEXT_ID = R.id.privacy_text;
+    protected static final String GIF_IMAGE_MIME_TYPE = "image/gif";
+    protected static final String ANIMATED_WEBP_MIME_TYPE = "image/webp";
+    protected static final String JPEG_IMAGE_MIME_TYPE = "image/jpeg";
+    protected static final String MP4_VIDEO_MIME_TYPE = "video/mp4";
 
     protected static final int DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH
             = R.dimen.preview_add_or_select_width;
@@ -283,6 +288,7 @@ public class PhotoPickerBaseTest {
             updateIsManagedUserSelected(/* isManagedUserSelected */ true);
             return null;
         }).when(sUserIdManager).setManagedAsCurrentUserProfile();
+        when(sUserIdManager.getCrossProfileAllowed()).thenReturn(new MutableLiveData<>(true));
     }
 
     /**
@@ -307,6 +313,7 @@ public class PhotoPickerBaseTest {
         when(sUserIdManager.isWorkProfileOff()).thenReturn(false);
         when(sUserIdManager.isCrossProfileAllowed()).thenReturn(false);
         when(sUserIdManager.isManagedUserSelected()).thenReturn(true);
+        when(sUserIdManager.getCrossProfileAllowed()).thenReturn(new MutableLiveData<>(false));
     }
 
     private static void updateIsManagedUserSelected(boolean isManagedUserSelected) {

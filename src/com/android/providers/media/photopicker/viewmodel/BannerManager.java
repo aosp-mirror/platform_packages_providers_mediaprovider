@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.viewmodel;
 
+import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
+
 import android.annotation.UserIdInt;
 import android.content.Context;
 import android.os.UserHandle;
@@ -27,12 +29,14 @@ import androidx.annotation.UiThread;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.android.providers.media.ConfigStore;
+import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.UserIdManager;
-import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.PerUser;
 
 class BannerManager {
     private static final String TAG = "BannerManager";
+    private static final int DELAY_MILLIS = 0;
 
     private final UserIdManager mUserIdManager;
 
@@ -56,13 +60,14 @@ class BannerManager {
     // The banner controllers per user
     private final PerUser<BannerController> mBannerControllers;
 
-    BannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager) {
+    BannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager,
+            @NonNull ConfigStore configStore) {
         mUserIdManager = userIdManager;
         mBannerControllers = new PerUser<BannerController>() {
             @NonNull
             @Override
             protected BannerController create(@UserIdInt int userId) {
-                return new BannerController(context, UserHandle.of(userId));
+                return new BannerController(context, UserHandle.of(userId), configStore);
             }
         };
         maybeInitialiseAndSetBannersForCurrentUser();
@@ -215,13 +220,13 @@ class BannerManager {
      * Resets the banner controller per user and sets the banner data for the current user.
      *
      * Note - Since {@link BannerController#reset()} cannot be called in the Main thread, using
-     * {@link ForegroundThread} here.
+     * {@link DataLoaderThread} here.
      */
     void reset() {
         for (int arrayIndex = 0, numControllers = mBannerControllers.size();
                 arrayIndex < numControllers; arrayIndex++) {
             final BannerController bannerController = mBannerControllers.valueAt(arrayIndex);
-            ForegroundThread.getExecutor().execute(bannerController::reset);
+            DataLoaderThread.getHandler().postDelayed(bannerController::reset, TOKEN, DELAY_MILLIS);
         }
 
         // Set the banner data for the current user
@@ -229,21 +234,21 @@ class BannerManager {
     }
 
     /**
-     * Hide all the banners in the Foreground thread.
+     * Hide all the banners in the DataLoader thread.
      *
      * Since this is always followed by a reset, they need to be done in the same threads (currently
-     * Foreground thread). For the case when multiple hideAllBanners & reset are triggered
+     * DataLoaderThread thread). For the case when multiple hideAllBanners & reset are triggered
      * simultaneously, this ensures that they are called sequentially for each such trigger.
      *
      * Post all the banner {@link LiveData} values as {@code false}.
      */
     void hideAllBanners() {
-        ForegroundThread.getExecutor().execute(() -> {
+        DataLoaderThread.getHandler().postDelayed(() -> {
             mShowChooseAppBanner.postValue(false);
             mShowCloudMediaAvailableBanner.postValue(false);
             mShowAccountUpdatedBanner.postValue(false);
             mShowChooseAccountBanner.postValue(false);
-        });
+        }, TOKEN, DELAY_MILLIS);
     }
 
 
@@ -257,8 +262,9 @@ class BannerManager {
     }
 
     static class CloudBannerManager extends BannerManager {
-        CloudBannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager) {
-            super(context, userIdManager);
+        CloudBannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager,
+                @NonNull ConfigStore configStore) {
+            super(context, userIdManager, configStore);
         }
 
         /**
@@ -267,14 +273,14 @@ class BannerManager {
          * 1. Get or create the {@link BannerController} for
          * {@link UserIdManager#getCurrentUserProfileId()} using {@link PerUser#forUser(int)}.
          * Since, the {@link BannerController} construction cannot be done in the Main thread,
-         * using {@link ForegroundThread} here.
+         * using {@link DataLoaderThread} here.
          *
          * 2. Post the updated {@link BannerController} {@link LiveData} values.
          */
         @Override
         void maybeInitialiseAndSetBannersForCurrentUser() {
             final int currentUserProfileId = getCurrentUserProfileId();
-            ForegroundThread.getExecutor().execute(() -> {
+            DataLoaderThread.getHandler().postDelayed(() -> {
                 // Get (iff exists) or create the banner controller for the current user
                 final BannerController bannerController =
                         getBannerControllersPerUser().forUser(currentUserProfileId);
@@ -293,7 +299,7 @@ class BannerManager {
                         .postValue(bannerController.shouldShowAccountUpdatedBanner());
                 shouldShowChooseAccountBannerLiveData()
                         .postValue(bannerController.shouldShowChooseAccountBanner());
-            });
+            }, TOKEN, DELAY_MILLIS);
         }
     }
 }

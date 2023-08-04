@@ -18,7 +18,6 @@ package com.android.providers.media.photopicker.viewmodel;
 
 import static android.provider.MediaStore.getCurrentCloudProvider;
 
-import static com.android.providers.media.MediaApplication.getConfigStore;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.getAvailableCloudProviders;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.getCloudMediaAccountName;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.getProviderLabelForUser;
@@ -36,6 +35,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.util.XmlUtils;
 
@@ -67,6 +67,7 @@ class BannerController {
 
     private final Context mContext;
     private final UserHandle mUserHandle;
+    private final ConfigStore mConfigStore;
 
     /**
      * {@link File} for persisting the last fetched {@link android.provider.CloudMediaProvider}
@@ -94,10 +95,12 @@ class BannerController {
     // Boolean 'Choose Account' banner visibility
     private boolean mShowChooseAccountBanner;
 
-    BannerController(@NonNull Context context, @NonNull UserHandle userHandle) {
+    BannerController(@NonNull Context context, @NonNull UserHandle userHandle,
+            @NonNull ConfigStore configStore) {
         Log.d(TAG, "Constructing the BannerController for user " + userHandle.getIdentifier());
         mContext = context;
         mUserHandle = userHandle;
+        mConfigStore = configStore;
 
         final String lastCloudProviderDataFilePath = DATA_MEDIA_DIRECTORY_PATH
                 + userHandle.getIdentifier() + LAST_CLOUD_PROVIDER_DATA_FILE_PATH_IN_USER_MEDIA_DIR;
@@ -232,7 +235,7 @@ class BannerController {
 
     @VisibleForTesting
     boolean areCloudProviderOptionsAvailable() {
-        return !getAvailableCloudProviders(mContext, getConfigStore(), mUserHandle).isEmpty();
+        return !getAvailableCloudProviders(mContext, mConfigStore, mUserHandle).isEmpty();
     }
 
     /**

@@ -16,6 +16,10 @@
 
 package com.android.providers.media.photopicker.espresso;
 
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP;
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
+
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
@@ -34,6 +38,7 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.providers.media.R;
 import com.android.providers.media.library.RunOnlyOnPostsubmit;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger.PhotoPickerEvent;
 
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -119,6 +124,10 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
 
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID,
+                _SPECIAL_FORMAT_GIF, GIF_IMAGE_MIME_TYPE, GIF_POSITION);
+
         try (ViewPager2IdlingResource idlingResource =
                 ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
             // Verify gif icon is displayed for gif preview
@@ -134,6 +143,10 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
+
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID,
+                _SPECIAL_FORMAT_ANIMATED_WEBP, ANIMATED_WEBP_MIME_TYPE, ANIMATED_WEBP_POSITION);
 
         try (ViewPager2IdlingResource idlingResource =
                 ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
@@ -170,6 +183,10 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_THUMBNAIL_ID);
+
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID,
+                _SPECIAL_FORMAT_MOTION_PHOTO, JPEG_IMAGE_MIME_TYPE, MOTION_PHOTO_POSITION);
 
         try (ViewPager2IdlingResource idlingResource =
                 ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {

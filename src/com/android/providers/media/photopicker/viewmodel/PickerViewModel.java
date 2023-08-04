@@ -132,6 +132,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private InstanceId mInstanceId;
     private PhotoPickerUiEventLogger mLogger;
+    private ConfigStore mConfigStore;
 
     private String[] mMimeTypeFilters = null;
     private int mBottomSheetState;
@@ -160,6 +161,8 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger = new PhotoPickerUiEventLogger();
         mIsUserSelectForApp = false;
         mIsLocalOnly = false;
+
+        initConfigStore();
 
         // When the user opens the PhotoPickerSettingsActivity and changes the cloud provider, it's
         // possible that system kills PhotoPickerActivity and PickerViewModel while it's in the
@@ -193,6 +196,10 @@ public class PickerViewModel extends AndroidViewModel {
         mIsNotificationForUpdateReceived = true;
     }
 
+    @VisibleForTesting
+    protected void initConfigStore() {
+        mConfigStore = MediaApplication.getConfigStore();
+    }
 
     @VisibleForTesting
     public void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
@@ -217,6 +224,18 @@ public class PickerViewModel extends AndroidViewModel {
     @VisibleForTesting
     public void setLogger(@NonNull PhotoPickerUiEventLogger logger) {
         mLogger = logger;
+    }
+
+    @VisibleForTesting
+    public void setConfigStore(@NonNull ConfigStore configStore) {
+        mConfigStore = configStore;
+    }
+
+    /**
+     * @return the {@link ConfigStore} for this context.
+     */
+    public ConfigStore getConfigStore() {
+        return mConfigStore;
     }
 
     /**
@@ -720,8 +739,8 @@ public class PickerViewModel extends AndroidViewModel {
 
     private void initBannerManager() {
         mBannerManager = shouldShowOnlyLocalFeatures()
-                ? new BannerManager(mAppContext, mUserIdManager)
-                : new BannerManager.CloudBannerManager(mAppContext, mUserIdManager);
+                ? new BannerManager(mAppContext, mUserIdManager, mConfigStore)
+                : new BannerManager.CloudBannerManager(mAppContext, mUserIdManager, mConfigStore);
     }
 
     /**
@@ -1026,12 +1045,7 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public boolean shouldShowOnlyLocalFeatures() {
         return isUserSelectForApp() || isLocalOnly()
-                || !getConfigStore().isCloudMediaInPhotoPickerEnabled();
-    }
-
-    @VisibleForTesting
-    protected ConfigStore getConfigStore() {
-        return MediaApplication.getConfigStore();
+                || !mConfigStore.isCloudMediaInPhotoPickerEnabled();
     }
 
     /**
@@ -1180,7 +1194,7 @@ public class PickerViewModel extends AndroidViewModel {
      * photos grid or album contents grid.
      */
     public void initPhotoPickerData(@NonNull Category category) {
-        if (getConfigStore().isCloudMediaInPhotoPickerEnabled()) {
+        if (mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
             UserId userId = mUserIdManager.getCurrentUserProfileId();
             DataLoaderThread.getHandler().postDelayed(() -> {
                 if (category == Category.DEFAULT) {

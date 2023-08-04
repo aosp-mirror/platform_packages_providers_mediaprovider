@@ -28,6 +28,7 @@ import android.content.Context;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.android.providers.media.IsolatedContext;
+import com.android.providers.media.TestConfigStore;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -44,8 +45,9 @@ public class BannerControllerTest {
     public void setUp() {
         final Context context = new IsolatedContext(
                 getInstrumentation().getTargetContext(), TAG, /* asFuseThread= */ false);
+        final TestConfigStore configStore = new TestConfigStore();
 
-        mBannerController = new BannerController(context, context.getUser()) {
+        mBannerController = new BannerController(context, context.getUser(), configStore) {
             @Override
             void updateCloudProviderDataFile() {
                 // No-op

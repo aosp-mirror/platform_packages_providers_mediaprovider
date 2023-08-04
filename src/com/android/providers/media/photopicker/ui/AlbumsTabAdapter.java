@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
+
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -80,10 +82,10 @@ class AlbumsTabAdapter extends TabAdapter {
     }
 
     void updateCategoryList(@NonNull List<Category> categoryList) {
-        setAllItems(categoryList);
+        setAllItems(categoryList, /* reset */ ACTION_VIEW_CREATED);
     }
 
     interface OnAlbumClickListener {
-        void onAlbumClick(@NonNull Category category);
+        void onAlbumClick(@NonNull Category category, int position);
     }
 }

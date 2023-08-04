@@ -58,7 +58,7 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"କୌଣସି ଆଲବମ ନାହିଁ"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ଚୟନିତଗୁଡ଼ିକୁ ଦେଖନ୍ତୁ"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ଫଟୋ"</string>
-    <string name="picker_albums" msgid="4822511902115299142">"ଆଲବମ୍"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"ଆଲବମ"</string>
     <string name="picker_preview" msgid="6257414886055861039">"ପ୍ରିଭ୍ୟୁ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ୱାର୍କକୁ ସ୍ୱିଚ୍ କରନ୍ତୁ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ବ୍ୟକ୍ତିଗତକୁ ସ୍ୱିଚ୍ କରନ୍ତୁ"</string>
@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"ଭିଡିଓ ପ୍ଲେ କରିବାରେ ସମସ୍ୟା"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ଆପଣଙ୍କ ଇଣ୍ଟରନେଟ କନେକ୍ସନ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ବର୍ତ୍ତମାନ <xliff:g id="PKG_NAME">%1$s</xliff:g>ରୁ କ୍ଲାଉଡ ମିଡିଆ ଉପଲବ୍ଧ ଅଛି"</string>
     <string name="not_selected" msgid="2244008151669896758">"ଚୟନ କରାଯାଇନାହିଁ"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>ରୁ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>ଟି ପ୍ରସ୍ତୁତ ଅଛି"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ବ୍ୟାକଅପ ନିଆଯାଇଥିବା ଫଟୋଗୁଡ଼ିକୁ ବର୍ତ୍ତମାନ ଅନ୍ତର୍ଭୁକ୍ତ କରାଯାଇଛି"</string>

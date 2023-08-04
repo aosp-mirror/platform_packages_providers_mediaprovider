@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.espresso;
 
 import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.Espresso.pressBack;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
@@ -28,6 +29,9 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
+
+import static org.hamcrest.Matchers.not;
 
 import android.view.View;
 
@@ -37,10 +41,13 @@ import androidx.test.espresso.IdlingResource;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class MaxSelectionTest extends PhotoPickerBaseTest {
     private static final int MAX_SELECTION_COUNT = 2;
@@ -57,9 +64,35 @@ public class MaxSelectionTest extends PhotoPickerBaseTest {
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
         assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_CHECK_ID);
 
-        // Select second image item thumbnail and verify select icon is selected
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+        // Assert that when the max selection is not yet reached, the select button is visible on
+        // long click preview of an unselected item (the second image item in this case).
+        // Then select this item (the second image item) by clicking the select button.
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID))
+                .check(matches(isDisplayed()))
+                .perform(click());
+
+        // Go back to the photos grid
+        pressBack();
+
+        // Verify that the select icon is selected for the second image item
         assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_CHECK_ID);
+
+        // Assert that when the max selection is reached, the select button is not visible on long
+        // click preview of an unselected item (the video item in this case).
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
+        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(not(isDisplayed())));
+
+        // Go back to the photos grid
+        pressBack();
+
+        // Assert that the deselect button is always visible on long click preview of a selected
+        // item (any of the 2 image items in this case), irrespective of the max selection
+        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
+
+        // Go back to the photos grid
+        pressBack();
 
         // Click Video item thumbnail and verify select icon is not selected. Because we set the
         // max selection is 2.

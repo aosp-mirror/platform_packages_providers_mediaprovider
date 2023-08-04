@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.metrics;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.UiEvent;
@@ -25,7 +26,8 @@ import com.android.providers.media.metrics.MPUiEventLoggerImpl;
 
 public class PhotoPickerUiEventLogger {
 
-    enum PhotoPickerEvent implements UiEventLogger.UiEventEnum {
+    @VisibleForTesting
+    public enum PhotoPickerEvent implements UiEventLogger.UiEventEnum {
         @UiEvent(doc = "Photo picker opened in personal profile")
         PHOTO_PICKER_OPEN_PERSONAL_PROFILE(942),
         @UiEvent(doc = "Photo picker opened in work profile")
@@ -58,10 +60,6 @@ public class PhotoPickerUiEventLogger {
         PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE(1128),
         @UiEvent(doc = "Photo picker opened with an active cloud provider")
         PHOTO_PICKER_CLOUD_PROVIDER_ACTIVE(1198),
-        @UiEvent(doc = "User changed the active Photo picker cloud provider")
-        PHOTO_PICKER_CLOUD_PROVIDER_CHANGED(1135),
-        @UiEvent(doc = "Photo Picker uri is queried with an unknown column")
-        PHOTO_PICKER_QUERY_UNKNOWN_COLUMN(1227),
         @UiEvent(doc = "Clicked the mute / unmute button in a photo picker video preview")
         PHOTO_PICKER_VIDEO_PREVIEW_AUDIO_BUTTON_CLICK(1413),
         @UiEvent(doc = "Clicked the 'view selected' button in photo picker")
@@ -111,7 +109,11 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "Loaded albums in photo picker")
         PHOTO_PICKER_UI_LOADED_ALBUMS(1438),
         @UiEvent(doc = "Loaded media items in an album grid in photo picker")
-        PHOTO_PICKER_UI_LOADED_ALBUM_CONTENTS(1439);
+        PHOTO_PICKER_UI_LOADED_ALBUM_CONTENTS(1439),
+        @UiEvent(doc = "Triggered create surface controller in photo picker")
+        PHOTO_PICKER_CREATE_SURFACE_CONTROLLER_START(1452),
+        @UiEvent(doc = "Ended create surface controller in photo picker")
+        PHOTO_PICKER_CREATE_SURFACE_CONTROLLER_END(1453);
 
         private final int mId;
 
@@ -129,6 +131,11 @@ public class PhotoPickerUiEventLogger {
 
     public PhotoPickerUiEventLogger() {
         logger = new MPUiEventLoggerImpl();
+    }
+
+    @VisibleForTesting
+    public PhotoPickerUiEventLogger(@NonNull UiEventLogger logger) {
+        this.logger = logger;
     }
 
     public void logPickerOpenPersonal(InstanceId instanceId, int callingUid,
@@ -342,30 +349,6 @@ public class PhotoPickerUiEventLogger {
                 cloudProviderUid,
                 cloudProviderPackage,
                 instanceId);
-    }
-
-    /**
-     * Log metrics to notify that the user has changed the active cloud provider
-     * @param cloudProviderUid     new active cloud provider uid
-     * @param cloudProviderPackage new active cloud provider package name
-     */
-    public void logPickerCloudProviderChanged(int cloudProviderUid, String cloudProviderPackage) {
-        logger.log(PhotoPickerEvent.PHOTO_PICKER_CLOUD_PROVIDER_CHANGED, cloudProviderUid,
-                cloudProviderPackage);
-    }
-
-    /**
-     * Log metrics to notify that a picker uri was queried for an unknown column (that is not
-     * supported yet)
-     * @param callingUid     the uid of the app initiating the picker query
-     * @param callingPackage the package name of the app initiating the picker query
-     *
-     * TODO(b/251425380): Move non-UI events out of PhotoPickerUiEventLogger
-     */
-    public void logPickerQueriedWithUnknownColumn(int callingUid, String callingPackage) {
-        logger.log(PhotoPickerEvent.PHOTO_PICKER_QUERY_UNKNOWN_COLUMN,
-                callingUid,
-                callingPackage);
     }
 
     /**
@@ -596,6 +579,26 @@ public class PhotoPickerUiEventLogger {
     public void logLoadedAlbumGridMediaItems(String authority, InstanceId instanceId, int count) {
         logger.logWithInstanceIdAndPosition(PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_ALBUM_CONTENTS,
                 /* uid */ 0, authority, instanceId, count);
+    }
+
+    /**
+     * Log metrics to notify create surface controller triggered
+     * @param instanceId an identifier for the current picker session
+     * @param authority  the authority of the provider
+     */
+    public void logPickerCreateSurfaceControllerStart(InstanceId instanceId, String authority) {
+        logger.logWithInstanceId(PhotoPickerEvent.PHOTO_PICKER_CREATE_SURFACE_CONTROLLER_START,
+                /* uid */ 0, authority, instanceId);
+    }
+
+    /**
+     * Log metrics to notify create surface controller ended
+     * @param instanceId an identifier for the current picker session
+     * @param authority  the authority of the provider
+     */
+    public void logPickerCreateSurfaceControllerEnd(InstanceId instanceId, String authority) {
+        logger.logWithInstanceId(PhotoPickerEvent.PHOTO_PICKER_CREATE_SURFACE_CONTROLLER_END,
+                /* uid */ 0, authority, instanceId);
     }
 
     private void logWithInstance(@NonNull UiEventLogger.UiEventEnum event, InstanceId instance) {

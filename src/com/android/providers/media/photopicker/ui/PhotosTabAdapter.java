@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
+
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -97,7 +99,7 @@ class PhotosTabAdapter extends TabAdapter {
     @Override
     void onBindMediaItemViewHolder(@NonNull RecyclerView.ViewHolder viewHolder, int position) {
         final Item item = (Item) getAdapterItem(position);
-        final MediaItemGridViewHolder mediaItemVH  = (MediaItemGridViewHolder) viewHolder;
+        final MediaItemGridViewHolder mediaItemVH = (MediaItemGridViewHolder) viewHolder;
 
         final boolean isSelected = mSelection.canSelectMultiple()
                 && mSelection.isItemSelected(item);
@@ -119,6 +121,10 @@ class PhotosTabAdapter extends TabAdapter {
     }
 
     void setMediaItems(@NonNull List<Item> mediaItems) {
+        setMediaItems(mediaItems, ACTION_CLEAR_AND_UPDATE_LIST);
+    }
+
+    void setMediaItems(@NonNull List<Item> mediaItems, @ItemsAction.Type int action) {
         final List<Object> mediaItemsWithDateHeaders;
         if (!mediaItems.isEmpty()) {
             // We'll have at least one section
@@ -150,9 +156,7 @@ class PhotosTabAdapter extends TabAdapter {
         } else {
             mediaItemsWithDateHeaders = Collections.emptyList();
         }
-        setAllItems(mediaItemsWithDateHeaders);
-
-        notifyDataSetChanged();
+        setAllItems(mediaItemsWithDateHeaders, action);
     }
 
     @VisibleForTesting
@@ -184,6 +188,7 @@ class PhotosTabAdapter extends TabAdapter {
 
     interface OnMediaItemClickListener {
         void onItemClick(@NonNull View view, int position);
+
         boolean onItemLongClick(@NonNull View view, int position);
     }
 }

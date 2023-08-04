@@ -444,12 +444,6 @@ public class PickerSyncController {
             Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
 
-        if (!mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
-            Log.w(TAG, "Ignoring a request to set the CloudMediaProvider (" + authority + ") "
-                    + "since the Cloud-Media-in-Photo-Picker feature is disabled");
-            return false;
-        }
-
         synchronized (mCloudProviderLock) {
             if (Objects.equals(mCloudProviderInfo.authority, authority)) {
                 Log.w(TAG, "Cloud provider already set: " + authority);

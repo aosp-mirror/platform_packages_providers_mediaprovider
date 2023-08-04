@@ -41,9 +41,12 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import androidx.annotation.NonNull;
+
 import com.android.providers.media.photopicker.RemoteVideoPreviewProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.ui.PreviewAdapter.OnCreateSurfaceController;
 import com.android.providers.media.photopicker.ui.PreviewVideoHolder;
 
 import java.util.Map;
@@ -72,13 +75,16 @@ public final class RemotePreviewHandler {
     private final ItemPreviewState mCurrentPreviewState = new ItemPreviewState();
     private final PlayerControlsVisibilityStatus mPlayerControlsVisibilityStatus =
             new PlayerControlsVisibilityStatus();
+    private final OnCreateSurfaceController mOnCreateSurfaceController;
 
     private boolean mIsInBackground = false;
     private int mSurfaceCounter = 0;
 
-    public RemotePreviewHandler(Context context, MuteStatus muteStatus) {
+    public RemotePreviewHandler(Context context, MuteStatus muteStatus,
+            @NonNull OnCreateSurfaceController onCreateSurfaceController) {
         mContext = context;
         mMuteStatus = muteStatus;
+        mOnCreateSurfaceController = onCreateSurfaceController;
     }
 
     /**
@@ -200,9 +206,11 @@ public final class RemotePreviewHandler {
 
         SurfaceControllerProxy controller = null;
         try {
+            mOnCreateSurfaceController.logStart(authority);
             controller = createController(authority, localControllerFallback);
             if (controller != null) {
                 mControllers.put(authority, controller);
+                mOnCreateSurfaceController.logEnd(authority);
             }
         } catch (RuntimeException e) {
             Log.e(TAG, "Could not create SurfaceController.", e);

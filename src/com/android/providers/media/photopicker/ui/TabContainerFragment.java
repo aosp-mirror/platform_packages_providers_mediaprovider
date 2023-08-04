@@ -26,11 +26,13 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.CompositePageTransformer;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.tabs.TabLayout;
@@ -50,6 +52,7 @@ public class TabContainerFragment extends Fragment {
     private TabContainerAdapter mTabContainerAdapter;
     private TabLayoutMediator mTabLayoutMediator;
     private ViewPager2 mViewPager;
+    private PickerViewModel mPickerViewModel;
 
     @Override
     @NonNull
@@ -65,6 +68,8 @@ public class TabContainerFragment extends Fragment {
         mTabContainerAdapter = new TabContainerAdapter(/* fragment */ this);
         mViewPager = view.findViewById(R.id.picker_tab_viewpager);
         mViewPager.setAdapter(mTabContainerAdapter);
+        final ViewModelProvider viewModelProvider = new ViewModelProvider(requireActivity());
+        mPickerViewModel = viewModelProvider.get(PickerViewModel.class);
 
         // If the ViewPager2 has more than one page with BottomSheetBehavior, the scrolled view
         // (e.g. RecyclerView) on the second page can't be scrolled. The workaround is to update
@@ -108,6 +113,7 @@ public class TabContainerFragment extends Fragment {
         // setSelectedTabIndicator method, it doesn't apply the color. So, we set color in xml and
         // set the drawable for the shape here.
         tabLayout.setSelectedTabIndicator(R.drawable.picker_tab_indicator);
+        tabLayout.addOnTabSelectedListener(mOnTabSelectedListener);
     }
 
     @Override
@@ -127,6 +133,29 @@ public class TabContainerFragment extends Fragment {
         ft.replace(R.id.fragment_container, fragment, TAG);
         ft.commitAllowingStateLoss();
     }
+
+    private final TabLayout.OnTabSelectedListener mOnTabSelectedListener =
+            new TabLayout.OnTabSelectedListener() {
+                @Override
+                public void onTabSelected(TabLayout.Tab tab) {
+                    int position = tab.getPosition();
+                    if (position == PHOTOS_TAB_POSITION) {
+                        mPickerViewModel.logSwitchToPhotosTab();
+                    } else if (position == ALBUMS_TAB_POSITION) {
+                        mPickerViewModel.logSwitchToAlbumsTab();
+                    }
+                }
+
+                @Override
+                public void onTabUnselected(TabLayout.Tab tab) {
+                    // No=op
+                }
+
+                @Override
+                public void onTabReselected(TabLayout.Tab tab) {
+                    // No-op
+                }
+            };
 
     private static class AnimationPageTransformer implements ViewPager2.PageTransformer {
 

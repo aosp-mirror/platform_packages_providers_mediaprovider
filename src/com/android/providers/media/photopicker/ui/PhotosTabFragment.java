@@ -15,13 +15,23 @@
  */
 package com.android.providers.media.photopicker.ui;
 
+import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -30,20 +40,27 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.providers.media.MediaApplication;
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import com.android.providers.media.util.StringUtils;
 
 import com.google.android.material.snackbar.Snackbar;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * Photos tab fragment for showing the photos
@@ -54,6 +71,23 @@ public class PhotosTabFragment extends TabFragment {
     private static final String FRAGMENT_TAG = "PhotosTabFragment";
 
     private Category mCategory = Category.DEFAULT;
+
+    private boolean mIsCurrentPageLoading = false;
+
+    private boolean mAtLeastOnePageLoaded = false;
+
+    private boolean mIsCloudMediaInPhotoPickerEnabled;
+
+    private int mPageSize;
+
+    private ProgressBar mProgressBar;
+    private TextView mLoadingTextView;
+    private ObjectAnimator mObjectAnimator = new ObjectAnimator();
+    private int mRecyclerViewTopPadding;
+    private final Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
+
+    private final Object mHideProgressBarToken = new Object();
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -70,6 +104,12 @@ public class PhotosTabFragment extends TabFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         final Context context = getContext();
+
+        // Init is only required for album content tab fragments when the fragment is not being
+        // recreated from a previous state.
+        if (savedInstanceState == null && !mCategory.isDefault()) {
+            mPickerViewModel.initPhotoPickerData(mCategory);
+        }
 
         // We only add the RECENT header on the PhotosTabFragment with CATEGORY_DEFAULT. In this
         // case, we call this method {loadItems} with null category. When the category is not
@@ -88,8 +128,15 @@ public class PhotosTabFragment extends TabFragment {
         final LiveData<Boolean> showChooseAccountBanner = shouldShowBanners
                 ? mPickerViewModel.shouldShowChooseAccountBannerLiveData() : doNotShowBanner;
 
+        mIsCloudMediaInPhotoPickerEnabled =
+                MediaApplication.getConfigStore().isCloudMediaInPhotoPickerEnabled();
+
+        if (savedInstanceState == null) {
+            initProgressBar(view);
+        }
+
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
-                mImageLoader, this::onItemClick, this::onItemLongClick, /* lifecycleOwner */ this,
+                mImageLoader, mOnMediaItemClickListener, /* lifecycleOwner */ this,
                 mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
                 mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner,
                 showCloudMediaAvailableBanner, showAccountUpdatedBanner, showChooseAccountBanner,
@@ -97,20 +144,38 @@ public class PhotosTabFragment extends TabFragment {
                 mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
 
         if (mCategory.isDefault()) {
+            mPageSize = mIsCloudMediaInPhotoPickerEnabled
+                    ? PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS : -1;
             setEmptyMessage(R.string.picker_photos_empty_message);
             // Set the pane title for A11y
             view.setAccessibilityPaneTitle(getString(R.string.picker_photos));
-            // Pagination is no-op for now and the existing flow has not been modified with this.
-            mPickerViewModel.getPaginatedItems(
-                            new PaginationParameters())
-                    .observe(this, itemList -> onChangeMediaItems(itemList, adapter));
+            // Get items with pagination parameters representing the first page.
+            mPickerViewModel.getPaginatedItemsForAction(
+                            ACTION_VIEW_CREATED,
+                            new PaginationParameters(
+                                    mPageSize,
+                                    /* dateBeforeMs */ -1,
+                                    /* rowId */ -1))
+                    .observe(this, itemListResult -> {
+                        onChangeMediaItems(itemListResult, adapter);
+                    });
         } else {
+            mPageSize = mIsCloudMediaInPhotoPickerEnabled
+                    ? PaginationParameters.PAGINATION_PAGE_SIZE_ALBUM_ITEMS : -1;
             setEmptyMessage(R.string.picker_album_media_empty_message);
             // Set the pane title for A11y
             view.setAccessibilityPaneTitle(mCategory.getDisplayName(context));
-            // Pagination is no-op for now and the existing flow has not been modified with this.
-            mPickerViewModel.getPaginatedCategoryItems(mCategory, new PaginationParameters())
-                    .observe(this, itemList -> onChangeMediaItems(itemList, adapter));
+            // Get items with pagination parameters representing the first page.
+            mPickerViewModel.getPaginatedCategoryItemsForAction(
+                    mCategory,
+                            ACTION_VIEW_CREATED,
+                            new PaginationParameters(
+                                     mPageSize,
+                                    /* dateBeforeMs */ -1,
+                                    /* rowId */ -1))
+                    .observe(this, itemListResult -> {
+                        onChangeMediaItems(itemListResult, adapter);
+                    });
         }
 
         final PhotosTabItemDecoration itemDecoration = new PhotosTabItemDecoration(context);
@@ -123,6 +188,85 @@ public class PhotosTabFragment extends TabFragment {
         setLayoutManager(adapter, GRID_COLUMN_COUNT);
         mRecyclerView.setAdapter(adapter);
         mRecyclerView.addItemDecoration(itemDecoration);
+        if (mIsCloudMediaInPhotoPickerEnabled) {
+            setOnScrollListenerForRecyclerView();
+        }
+    }
+
+
+    private void initProgressBar(@NonNull View view) {
+        // Check feature flag for cloud media and if it is not true then hide progress bar and
+        // loading text.
+        if (mIsCloudMediaInPhotoPickerEnabled) {
+            mLoadingTextView = view.findViewById(R.id.loading_text_view);
+            mProgressBar = view.findViewById(R.id.progress_bar);
+            mRecyclerViewTopPadding = getResources().getDimensionPixelSize(
+                    R.dimen.picker_recycler_view_top_padding);
+            if (mCategory == Category.DEFAULT) {
+                mPickerViewModel.isSyncInProgress().observe(this, inProgress -> {
+                    if (inProgress) {
+                        bringProgressBarAndLoadingTextInView();
+                    }
+                });
+            } else {
+                bringProgressBarAndLoadingTextInView();
+            }
+        }
+    }
+    private void setOnScrollListenerForRecyclerView() {
+        mRecyclerView.addOnScrollListener(
+                new RecyclerView.OnScrollListener() {
+                    @Override
+                    public void onScrolled(@NonNull @NotNull RecyclerView recyclerView, int dx,
+                            int dy) {
+                        super.onScrolled(recyclerView, dx, dy);
+
+                        // check to ensure that the current page is not still loading and the last
+                        // page has not been loaded.
+                        if (!mIsCurrentPageLoading) {
+                            LinearLayoutManager layoutManager =
+                                    (LinearLayoutManager) mRecyclerView.getLayoutManager();
+
+                            assert layoutManager != null;
+                            // Total items visible at the screen at any current time.
+                            int visibleItemCount = layoutManager.getChildCount();
+                            // Total items in the layout.
+                            int totalItemCount = layoutManager.getItemCount();
+                            // The position of the first visible view
+                            int firstVisibleItemPosition =
+                                    layoutManager.findFirstVisibleItemPosition();
+
+                            // If the number of items have exceeded the threshold, a call will be
+                            // triggered to load the next page.
+                            int thresholdNumberOfItems = totalItemCount - mPageSize;
+                            if (visibleItemCount + firstVisibleItemPosition
+                                    >= thresholdNumberOfItems
+                                    && firstVisibleItemPosition >= 0
+                            ) {
+
+                                Log.d(FRAGMENT_TAG, "Scrolled beyond page threshold, sending a"
+                                        + " call to load the next page.");
+
+                                // setting this to true ensures that only one call is sent on
+                                // crossing the threshold and only required number of pages are
+                                // loaded.
+                                mIsCurrentPageLoading = true;
+                                if (mCategory.isDefault()) {
+                                    mPickerViewModel.getPaginatedItemsForAction(
+                                            ACTION_LOAD_NEXT_PAGE,
+                                            null);
+                                } else {
+                                    mPickerViewModel.getPaginatedCategoryItemsForAction(
+                                            mCategory,
+                                            ACTION_LOAD_NEXT_PAGE,
+                                            null);
+                                }
+                            }
+                        }
+
+                    }
+                });
+
     }
 
     /**
@@ -154,71 +298,107 @@ public class PhotosTabFragment extends TabFragment {
 
         getPickerActivity().updateCommonLayouts(layoutMode, title);
         hideProfileButton(shouldHideProfileButton);
+
+        if (mIsCloudMediaInPhotoPickerEnabled
+                && mCategory == Category.DEFAULT
+                && mAtLeastOnePageLoaded) {
+            // mAtLeastOnePageLoaded is checked to avoid calling this method while the view is
+            // being created
+            LinearLayoutManager layoutManager =
+                    (LinearLayoutManager) mRecyclerView.getLayoutManager();
+
+            if (layoutManager != null) {
+                int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+                mPickerViewModel.getPaginatedItemsForAction(
+                        ACTION_REFRESH_ITEMS,
+                        new PaginationParameters(firstVisibleItemPosition
+                                + PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS, -1, -1));
+            }
+        }
     }
 
-    private void onChangeMediaItems(@NonNull List<Item> itemList,
+    private void onChangeMediaItems(@NonNull PickerViewModel.PaginatedItemsResult itemList,
             @NonNull PhotosTabAdapter adapter) {
-        if (itemList.size() == 1 && itemList.get(0).getId().equals("EMPTY_VIEW")) {
-            adapter.setMediaItems(new ArrayList<>());
+        Objects.requireNonNull(itemList);
+        if (isClearGridAction(itemList)) {
+            adapter.setMediaItems(new ArrayList<>(), itemList.getAction());
             updateVisibilityForEmptyView(false);
         } else {
-            adapter.setMediaItems(itemList);
+            adapter.setMediaItems(itemList.getItems(), itemList.getAction());
             // Handle emptyView's visibility
-            updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.size() == 0);
+            updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.getItems().size() == 0);
         }
+        mIsCurrentPageLoading = false;
+        mAtLeastOnePageLoaded = true;
+        hideProgressBarAndLoadingText();
     }
 
-    private void onItemClick(@NonNull View view) {
-        if (mSelection.canSelectMultiple()) {
-            final boolean isSelectedBefore = view.isSelected();
+    private boolean isClearGridAction(@NonNull PickerViewModel.PaginatedItemsResult itemList) {
+        return itemList.getItems() != null
+                && itemList.getItems().size() == 1
+                && itemList.getItems().get(0).getId().equals("EMPTY_VIEW");
+    }
 
-            if (isSelectedBefore) {
-                mSelection.removeSelectedItem((Item) view.getTag());
-            } else {
-                if (!mSelection.isSelectionAllowed()) {
-                    final int maxCount = mSelection.getMaxSelectionLimit();
-                    final CharSequence quantityText =
-                        StringUtils.getICUFormatString(
-                            getResources(), maxCount, R.string.select_up_to);
-                    final String itemCountString = NumberFormat.getInstance(Locale.getDefault())
-                        .format(maxCount);
-                    final CharSequence message = TextUtils.expandTemplate(quantityText,
-                        itemCountString);
-                    Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
-                    return;
-                } else {
-                    final Item item = (Item) view.getTag();
-                    mSelection.addSelectedItem(item);
+    private final PhotosTabAdapter.OnMediaItemClickListener mOnMediaItemClickListener =
+            new PhotosTabAdapter.OnMediaItemClickListener() {
+                @Override
+                public void onItemClick(@NonNull View view, int position) {
+                    if (mSelection.canSelectMultiple()) {
+                        final boolean isSelectedBefore = view.isSelected();
+
+                        if (isSelectedBefore) {
+                            mSelection.removeSelectedItem((Item) view.getTag());
+                        } else {
+                            if (!mSelection.isSelectionAllowed()) {
+                                final int maxCount = mSelection.getMaxSelectionLimit();
+                                final CharSequence quantityText =
+                                        StringUtils.getICUFormatString(
+                                                getResources(), maxCount, R.string.select_up_to);
+                                final String itemCountString = NumberFormat
+                                        .getInstance(Locale.getDefault()).format(maxCount);
+                                final CharSequence message = TextUtils.expandTemplate(quantityText,
+                                        itemCountString);
+                                Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
+                                return;
+                            } else {
+                                final Item item = (Item) view.getTag();
+                                mSelection.addSelectedItem(item);
+                                mPickerViewModel.logMediaItemSelected(item, mCategory, position);
+                            }
+                        }
+                        view.setSelected(!isSelectedBefore);
+                        // There is an issue b/223695510 about not selected in Accessibility mode.
+                        // It only says selected state, but it doesn't say not selected state.
+                        // Add the not selected only to avoid that it says selected twice.
+                        view.setStateDescription(
+                                isSelectedBefore ? getString(R.string.not_selected) : null);
+                    } else {
+                        final Item item = (Item) view.getTag();
+                        mSelection.setSelectedItem(item);
+                        mPickerViewModel.logMediaItemSelected(item, mCategory, position);
+                        getPickerActivity().setResultAndFinishSelf();
+                    }
                 }
-            }
-            view.setSelected(!isSelectedBefore);
-            // There is an issue b/223695510 about not selected in Accessibility mode. It only says
-            // selected state, but it doesn't say not selected state. Add the not selected only to
-            // avoid that it says selected twice.
-            view.setStateDescription(isSelectedBefore ? getString(R.string.not_selected) : null);
-        } else {
-            final Item item = (Item) view.getTag();
-            mSelection.setSelectedItem(item);
-            getPickerActivity().setResultAndFinishSelf();
-        }
-    }
 
-    private boolean onItemLongClick(@NonNull View view) {
-        final Item item = (Item) view.getTag();
-        if (!mSelection.canSelectMultiple()) {
-            // In single select mode, if the item is previewed, we set it as selected item. This is
-            // will assist in "Add" button click to return all selected items.
-            // For multi select, long click only previews the item, and until user selects the item,
-            // it doesn't get added to selected items. Also, there is no "Add" button in the preview
-            // layout that can return selected items.
-            mSelection.setSelectedItem(item);
-        }
-        mSelection.prepareItemForPreviewOnLongPress(item);
-        // Transition to PreviewFragment.
-        PreviewFragment.show(getActivity().getSupportFragmentManager(),
-                PreviewFragment.getArgsForPreviewOnLongPress());
-        return true;
-    }
+                @Override
+                public boolean onItemLongClick(@NonNull View view, int position) {
+                    final Item item = (Item) view.getTag();
+                    if (!mSelection.canSelectMultiple()) {
+                        // In single select mode, if the item is previewed, we set it as selected
+                        // item. This assists in "Add" button click to return all selected items.
+                        // For multi select, long click only previews the item, and until user
+                        // selects the item, it doesn't get added to selected items. Also, there is
+                        // no "Add" button in the preview layout that can return selected items.
+                        mSelection.setSelectedItem(item);
+                    }
+                    mSelection.prepareItemForPreviewOnLongPress(item);
+                    mPickerViewModel.logMediaItemPreviewed(item, mCategory, position);
+                    // Transition to PreviewFragment.
+                    PreviewFragment.show(getActivity().getSupportFragmentManager(),
+                            PreviewFragment.getArgsForPreviewOnLongPress());
+                    return true;
+                }
+            };
 
     /**
      * Create the fragment with the category and add it into the FragmentManager
@@ -244,5 +424,75 @@ public class PhotosTabFragment extends TabFragment {
      */
     public static Fragment get(FragmentManager fm) {
         return fm.findFragmentByTag(FRAGMENT_TAG);
+    }
+
+    /**
+     * Hides progress bar and the loading photos message.
+     * <p>This is executed with a delay of 0.6ms.
+     * This is done so that for the cases where the loading happens very quickly the user will not
+     * see the progressBar flicker.</p>
+     *
+     * <p>This results in progressBar and loadingText to remain in view for loadingTime + 0.6ms.</p>
+     */
+    private synchronized void hideProgressBarAndLoadingText() {
+        if (mProgressBar != null
+                && mLoadingTextView != null
+                && mProgressBar.getVisibility() == View.VISIBLE
+                && mLoadingTextView.getVisibility() == View.VISIBLE) {
+            // clear previous calls, extra caution.
+            mMainThreadHandler.removeCallbacksAndMessages(mHideProgressBarToken);
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (mProgressBar != null
+                            && mLoadingTextView != null
+                            && mProgressBar.getVisibility() == View.VISIBLE
+                            && mLoadingTextView.getVisibility() == View.VISIBLE) {
+                        mProgressBar.setVisibility(View.GONE);
+                        mLoadingTextView.setVisibility(View.GONE);
+                        // Move recyclerView up to cover up the space taken up by progressBar and
+                        // loadingTest.
+                        if (mRecyclerView != null
+                                && mRecyclerView.getVisibility() == View.VISIBLE) {
+                            mObjectAnimator.ofFloat(
+                                            mRecyclerView,
+                                            /* property name */ "y",
+                                            /* final position */0f)
+                                    .setDuration(300).start();
+                        }
+                    }
+                }
+            };
+            // With this runnable the hiding of progress bar is delayed by 600ms.
+            mMainThreadHandler.postDelayed(runnable, mHideProgressBarToken, /* delay duration */
+                    600);
+        }
+    }
+
+    private void bringProgressBarAndLoadingTextInView() {
+        if (mIsCloudMediaInPhotoPickerEnabled) {
+            if (mObjectAnimator != null) {
+                // stop any pending/ongoing animations.
+                mObjectAnimator.cancel();
+            }
+            if (mRecyclerView.getVisibility() == View.VISIBLE) {
+                // move recycler view down to make space for progress bar and loading text.
+                mObjectAnimator.ofFloat(
+                                mRecyclerView,
+                                /* property name */ "y",
+                                /* final position */mRecyclerViewTopPadding)
+                        .setDuration(1).start();
+            }
+            // bring progressBar and Loading text in view.
+            mLoadingTextView.setVisibility(View.VISIBLE);
+            mProgressBar.setVisibility(View.VISIBLE);
+        }
+    }
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mMainThreadHandler.removeCallbacksAndMessages(mHideProgressBarToken);
+        // Clear queued tasks in handler.
+        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
     }
 }

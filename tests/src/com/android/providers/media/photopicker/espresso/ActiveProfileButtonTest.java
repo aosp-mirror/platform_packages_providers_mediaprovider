@@ -25,7 +25,6 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
-import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
@@ -39,12 +38,15 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger.PhotoPickerEvent;
 
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class ActiveProfileButtonTest extends PhotoPickerBaseTest {
     private static final int PROFILE_BUTTON = R.id.profile_button;
@@ -127,10 +129,18 @@ public class ActiveProfileButtonTest extends PhotoPickerBaseTest {
         // Check the text on the button. It should be "Switch to work"
         onView(withText(R.string.picker_work_profile)).check(matches(isDisplayed()));
 
+        // Verify log
+        UiEventLoggerTestUtils.verifyLogWithInstanceId(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_ENABLED);
+
         // verify clicking it does not open error dialog
         onView(withId(PROFILE_BUTTON)).check(matches(isDisplayed())).perform(click());
         onView(withText(R.string.picker_profile_admin_title)).check(doesNotExist());
         onView(withText(R.string.picker_profile_work_paused_title)).check(doesNotExist());
+
+        // Verify log
+        UiEventLoggerTestUtils.verifyLogWithInstanceId(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK);
 
         // Clicking the button, it takes a few ms to change the string.
         // Wait 100ms to be sure.

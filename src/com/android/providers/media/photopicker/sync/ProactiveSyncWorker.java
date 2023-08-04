@@ -16,11 +16,13 @@
 
 package com.android.providers.media.photopicker.sync;
 
-
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getCloudSyncTracker;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getLocalSyncTracker;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSyncAsComplete;
 
 import android.content.Context;
 import android.util.Log;
@@ -52,7 +54,7 @@ public class ProactiveSyncWorker extends Worker {
     @NonNull
     @Override
     public ListenableWorker.Result doWork() {
-        int syncSource = getInputData()
+        final int syncSource = getInputData()
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
 
         Log.i(TAG,
@@ -60,27 +62,32 @@ public class ProactiveSyncWorker extends Worker {
 
         try {
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_LOCAL_ONLY) {
-                getPickerSyncController().syncAllMediaFromLocalProvider();
+                // Instantiate sync state tracker.
+                final SyncTracker localSyncTracker = getLocalSyncTracker();
+                localSyncTracker.createSyncFuture(getId());
+
+                // Complete sync and mark work tracker as finished.
+                PickerSyncController.getInstanceOrThrow().syncAllMediaFromLocalProvider();
+                localSyncTracker.markSyncCompleted(getId());
                 Log.i(TAG, "Completed picker proactive sync complete from local provider.");
             }
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_CLOUD_ONLY) {
-                getPickerSyncController().syncAllMediaFromCloudProvider();
+                // Instantiate sync state tracker.
+                final SyncTracker cloudSyncTracker = getCloudSyncTracker();
+                cloudSyncTracker.createSyncFuture(getId());
+
+                // Complete sync and mark work tracker as finished.
+                PickerSyncController.getInstanceOrThrow().syncAllMediaFromCloudProvider();
+                cloudSyncTracker.markSyncCompleted(getId());
                 Log.i(TAG, "Completed picker proactive sync complete from cloud provider.");
             }
             return ListenableWorker.Result.success();
-        } catch (Throwable t) {
-            Log.e(TAG, "Could not complete proactive sync for sync source: " + syncSource, t);
+        } catch (IllegalStateException e) {
+            Log.e(TAG, "Could not complete proactive sync for sync source: " + syncSource, e);
+
+            // Mark all pending syncs as finished and set failure result.
+            markSyncAsComplete(syncSource, getId());
             return ListenableWorker.Result.failure();
         }
-    }
-
-    @NonNull
-    private PickerSyncController getPickerSyncController() {
-        PickerSyncController pickerSyncController = PickerSyncController.getInstance();
-        if (pickerSyncController == null) {
-            throw new IllegalStateException("Something went wrong - "
-                    + "PickerSyncController was not initialised in MediaProvider.onCreate()");
-        }
-        return pickerSyncController;
     }
 }

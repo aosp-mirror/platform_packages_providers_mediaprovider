@@ -300,16 +300,18 @@ public class PickerViewModel extends AndroidViewModel {
      */
     @UiThread
     public void resetAllContentInCurrentProfile() {
+        Log.d(TAG, "Reset all content in current profile");
+
         // Post 'should refresh UI live data' value as false to avoid unnecessary repetitive resets
         mShouldRefreshUiLiveData.postValue(false);
+
+        // Clear queued tasks in handler.
+        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
 
         initPhotoPickerData();
 
         // Clear the existing content - selection, photos grid, albums grid, banners
         mSelection.clearSelectedItems();
-
-        // Clear queued tasks in handler.
-        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
 
         if (mItemsResult != null) {
             DataLoaderThread.getHandler().postDelayed(() ->

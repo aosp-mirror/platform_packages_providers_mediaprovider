@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.espresso;
 
+import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
+
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
@@ -51,6 +53,7 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
 import com.android.providers.media.library.RunOnlyOnPostsubmit;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger.PhotoPickerEvent;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -87,6 +90,10 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
             // Navigate to preview
             longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+
+            UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                    mRule, PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID,
+                    _SPECIAL_FORMAT_NONE, JPEG_IMAGE_MIME_TYPE, IMAGE_1_POSITION);
 
             try (ViewPager2IdlingResource idlingResource =
                     ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
@@ -134,6 +141,10 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
 
         // Navigate to preview
         longClickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
+
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ITEM_MAIN_GRID,
+                _SPECIAL_FORMAT_NONE, MP4_VIDEO_MIME_TYPE, VIDEO_POSITION);
 
         try (ViewPager2IdlingResource idlingResource =
                 ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {

@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.metrics;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.UiEvent;
@@ -25,7 +26,8 @@ import com.android.providers.media.metrics.MPUiEventLoggerImpl;
 
 public class PhotoPickerUiEventLogger {
 
-    enum PhotoPickerEvent implements UiEventLogger.UiEventEnum {
+    @VisibleForTesting
+    public enum PhotoPickerEvent implements UiEventLogger.UiEventEnum {
         @UiEvent(doc = "Photo picker opened in personal profile")
         PHOTO_PICKER_OPEN_PERSONAL_PROFILE(942),
         @UiEvent(doc = "Photo picker opened in work profile")
@@ -129,6 +131,11 @@ public class PhotoPickerUiEventLogger {
 
     public PhotoPickerUiEventLogger() {
         logger = new MPUiEventLoggerImpl();
+    }
+
+    @VisibleForTesting
+    public PhotoPickerUiEventLogger(@NonNull UiEventLogger logger) {
+        this.logger = logger;
     }
 
     public void logPickerOpenPersonal(InstanceId instanceId, int callingUid,

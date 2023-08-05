@@ -21,6 +21,7 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import java.util.UUID;
 
@@ -28,25 +29,60 @@ import java.util.UUID;
  * This class stores all sync trackers.
  */
 public class SyncTrackerRegistry {
-    private static final SyncTracker LOCAL_SYNC_TRACKER = new SyncTracker();
-    private static final SyncTracker LOCAL_ALBUM_SYNC_TRACKER = new SyncTracker();
-    private static final SyncTracker CLOUD_SYNC_TRACKER = new SyncTracker();
-    private static final SyncTracker CLOUD_ALBUM_SYNC_TRACKER = new SyncTracker();
+    private static SyncTracker sLocalSyncTracker = new SyncTracker();
+    private static SyncTracker sLocalAlbumSyncTracker = new SyncTracker();
+    private static SyncTracker sCloudSyncTracker = new SyncTracker();
+    private static SyncTracker sCloudAlbumSyncTracker = new SyncTracker();
 
     public static SyncTracker getLocalSyncTracker() {
-        return LOCAL_SYNC_TRACKER;
+        return sLocalSyncTracker;
+    }
+
+    /**
+     * This setter is required to inject mock data for tests. Do not use this anywhere else.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static void setLocalSyncTracker(SyncTracker syncTracker) {
+        sLocalSyncTracker = syncTracker;
     }
 
     public static SyncTracker getLocalAlbumSyncTracker() {
-        return LOCAL_ALBUM_SYNC_TRACKER;
+        return sLocalAlbumSyncTracker;
+    }
+
+    /**
+     * This setter is required to inject mock data for tests. Do not use this anywhere else.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static void setLocalAlbumSyncTracker(
+            SyncTracker localAlbumSyncTracker) {
+        sLocalAlbumSyncTracker = localAlbumSyncTracker;
     }
 
     public static SyncTracker getCloudSyncTracker() {
-        return CLOUD_SYNC_TRACKER;
+        return sCloudSyncTracker;
+    }
+
+    /**
+     * This setter is required to inject mock data for tests. Do not use this anywhere else.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static void setCloudSyncTracker(
+            SyncTracker cloudSyncTracker) {
+        sCloudSyncTracker = cloudSyncTracker;
     }
 
     public static SyncTracker getCloudAlbumSyncTracker() {
-        return CLOUD_ALBUM_SYNC_TRACKER;
+        return sCloudAlbumSyncTracker;
+    }
+
+    /**
+     * This setter is required to inject mock data for tests. Do not use this anywhere else.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static void setCloudAlbumSyncTracker(
+            SyncTracker cloudAlbumSyncTracker) {
+        sCloudAlbumSyncTracker = cloudAlbumSyncTracker;
     }
 
     /**
@@ -57,9 +93,9 @@ public class SyncTrackerRegistry {
      */
     public static SyncTracker getSyncTracker(boolean isLocal) {
         if (isLocal) {
-            return LOCAL_SYNC_TRACKER;
+            return sLocalSyncTracker;
         } else {
-            return CLOUD_SYNC_TRACKER;
+            return sCloudSyncTracker;
         }
     }
 
@@ -71,9 +107,9 @@ public class SyncTrackerRegistry {
      */
     public static SyncTracker getAlbumSyncTracker(boolean isLocal) {
         if (isLocal) {
-            return LOCAL_ALBUM_SYNC_TRACKER;
+            return sLocalAlbumSyncTracker;
         } else {
-            return CLOUD_ALBUM_SYNC_TRACKER;
+            return sCloudAlbumSyncTracker;
         }
     }
 

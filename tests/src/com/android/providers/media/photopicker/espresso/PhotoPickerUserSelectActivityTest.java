@@ -45,11 +45,13 @@ import androidx.test.filters.SdkSuppress;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @SdkSuppress(minSdkVersion = 34, codeName = "UpsideDownCake")
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {

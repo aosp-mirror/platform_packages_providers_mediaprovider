@@ -21,6 +21,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.pm.ProviderInfo;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.UserHandle;
 import android.provider.CloudMediaProvider;
@@ -28,6 +29,8 @@ import android.provider.MediaStore;
 import android.provider.Settings;
 import android.test.mock.MockContentProvider;
 import android.test.mock.MockContentResolver;
+
+import androidx.annotation.NonNull;
 
 import com.android.providers.media.cloudproviders.CloudProviderPrimary;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
@@ -109,6 +112,12 @@ public class IsolatedContext extends ContextWrapper {
             @Override
             protected void storageNativeBootPropertyChangeListener() {
                 // Ignore this as test app cannot read device config
+            }
+
+            @Override
+            protected void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType,
+                    @NonNull String volumeName) {
+                return;
             }
         };
     }

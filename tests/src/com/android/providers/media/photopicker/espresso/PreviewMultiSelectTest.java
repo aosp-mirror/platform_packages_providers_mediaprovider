@@ -53,7 +53,9 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 import com.android.providers.media.photopicker.data.Selection;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger.PhotoPickerEvent;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import org.hamcrest.Description;
@@ -64,6 +66,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     private static final int VIDEO_PREVIEW_THUMBNAIL_ID = R.id.preview_video_image;
@@ -80,8 +83,16 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         // Select two items and Navigate to preview
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_SELECTED_ITEM_MAIN_GRID, IMAGE_1_POSITION);
+
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_SELECTED_ITEM_MAIN_GRID, IMAGE_2_POSITION);
+
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(mRule,
+                PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ALL_SELECTED, /* selectedItemCount */ 2);
 
         try (ViewPager2IdlingResource idlingResource =
                 ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
@@ -352,6 +363,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Select image item from Camera category
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, 1, ICON_THUMBNAIL_ID);
         assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_SELECTED_ITEM_ALBUM, /* position= */ 1);
 
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());

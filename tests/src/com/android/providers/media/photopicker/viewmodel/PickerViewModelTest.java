@@ -62,7 +62,6 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.ConfigStore;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.PickerSyncController;
@@ -115,17 +114,18 @@ public class PickerViewModelTest {
         getInstrumentation().runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
                 @Override
-                protected ConfigStore getConfigStore() {
-                    return mConfigStore;
+                protected void initConfigStore() {
+                    setConfigStore(mConfigStore);
                 }
             };
         });
         mItemsProvider = new TestItemsProvider(sTargetContext);
         mPickerViewModel.setItemsProvider(mItemsProvider);
-        UserIdManager userIdManager = mock(UserIdManager.class);
+        final UserIdManager userIdManager = mock(UserIdManager.class);
         when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
         mPickerViewModel.setUserIdManager(userIdManager);
-        final BannerManager bannerManager = new BannerManager(sTargetContext, userIdManager);
+        final BannerManager bannerManager = new BannerManager(sTargetContext, userIdManager,
+                mConfigStore);
         mPickerViewModel.setBannerManager(bannerManager);
     }
 

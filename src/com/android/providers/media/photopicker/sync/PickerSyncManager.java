@@ -41,6 +41,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -158,8 +159,7 @@ public class PickerSyncManager {
         // Enqueue local sync then cloud sync requests
         try {
             final Operation enqueueOperation = mWorkManager
-                    .beginWith(syncRequest)
-                    .enqueue();
+                    .enqueue(Collections.singletonList(syncRequest));
 
             // Check that the request has been successfully enqueued.
             enqueueOperation.getResult().get();
@@ -204,8 +204,7 @@ public class PickerSyncManager {
         // Enqueue local sync then cloud sync requests
         try {
             final Operation enqueueOperation = mWorkManager
-                    .beginWith(syncRequest)
-                    .enqueue();
+                    .enqueue(Collections.singletonList(syncRequest));
 
             // Check that the request has been successfully enqueued.
             enqueueOperation.getResult().get();

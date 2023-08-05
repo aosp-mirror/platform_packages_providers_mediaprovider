@@ -870,6 +870,7 @@ public class DatabaseBackupAndRecovery {
 
     protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath, long waitTime)
             throws FileNotFoundException {
+        pollForExternalStorageMountedState();
         return MediaProvider.getFuseDaemonForFileWithWait(fuseFilePath, mVolumeCache, waitTime);
     }
 
@@ -997,5 +998,18 @@ public class DatabaseBackupAndRecovery {
         // Remove valid users
         validUsers.forEach(presentUserIdsAsXattr::remove);
         return presentUserIdsAsXattr.stream().collect(Collectors.toList());
+    }
+
+    private static void pollForExternalStorageMountedState() {
+        final File target = Environment.getExternalStorageDirectory();
+        for (int i = 0; i < WAIT_TIME_10_SECONDS_IN_MILLIS / 100; i++) {
+            if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState(target))) {
+                return;
+            }
+            Log.v(TAG, "Waiting for external storage...");
+            SystemClock.sleep(100);
+        }
+        throw new RuntimeException("Timed out while waiting for ExternalStorageState "
+                + "to be MEDIA_MOUNTED");
     }
 }

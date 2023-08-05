@@ -201,7 +201,7 @@ public class PreviewFragment extends Fragment {
             // For preview on long press, we always preview only one item.
             // Selection#getSelectedItemsForPreview is guaranteed to return only one item. Hence,
             // we can always use position=0 as current position.
-            updateSelectButtonText(addOrSelectButton,
+            updateSelectButtonTextAndVisibility(addOrSelectButton,
                     mSelection.isItemSelected(mViewPager2Wrapper.getItemAt(/* position */ 0)));
             addOrSelectButton.setOnClickListener(v -> onClickSelectButton(addOrSelectButton));
         }
@@ -286,7 +286,7 @@ public class PreviewFragment extends Fragment {
 
     private void onClickSelectButton(@NonNull Button selectButton) {
         final boolean isSelectedNow = updateSelectionAndGetState();
-        updateSelectButtonText(selectButton, isSelectedNow);
+        updateSelectButtonTextAndVisibility(selectButton, isSelectedNow);
     }
 
     private void onClickSelectedCheckButton(@NonNull Button selectedCheckButton) {
@@ -338,9 +338,11 @@ public class PreviewFragment extends Fragment {
         }
     }
 
-    private static void updateSelectButtonText(@NonNull Button selectButton,
+    private void updateSelectButtonTextAndVisibility(@NonNull Button selectButton,
             boolean isSelected) {
         selectButton.setText(isSelected ? R.string.deselect : R.string.select);
+        selectButton.setVisibility(
+                (isSelected || mSelection.isSelectionAllowed()) ? View.VISIBLE : View.GONE);
     }
 
     private static void updateSelectedCheckButtonStateAndText(@NonNull Button selectedCheckButton,

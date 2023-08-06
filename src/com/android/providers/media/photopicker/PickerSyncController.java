@@ -186,7 +186,7 @@ public class PickerSyncController {
      * This method is available for injecting a mock instance from tests. PickerSyncController is
      * used in Worker classes. They cannot directly be injected with a mock controller instance.
      */
-    @VisibleForTesting
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     public static void setInstance(PickerSyncController controller) {
         sInstance = controller;
     }
@@ -680,6 +680,7 @@ public class PickerSyncController {
                     return cacheMediaCollectionInfo(
                             authority, isLocal, params.latestMediaCollectionInfo);
                 case SYNC_TYPE_MEDIA_INCREMENTAL:
+                    enablePickerCloudMediaQueries(authority, isLocal);
                     NonUiEventLogger.logPickerIncrementalSyncStart(instanceId, MY_UID, authority);
                     final Bundle queryArgs = new Bundle();
                     queryArgs.putLong(EXTRA_SYNC_GENERATION, params.syncGeneration);
@@ -696,6 +697,7 @@ public class PickerSyncController {
                     return cacheMediaCollectionInfo(
                             authority, isLocal, params.latestMediaCollectionInfo);
                 case SYNC_TYPE_NONE:
+                    enablePickerCloudMediaQueries(authority, isLocal);
                     return true;
                 default:
                     throw new IllegalArgumentException("Unexpected sync type: " + params.syncType);

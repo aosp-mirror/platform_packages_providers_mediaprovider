@@ -76,6 +76,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.ui.ItemsAction;
+import com.android.providers.media.photopicker.util.CategoryOrganiserUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.util.MimeUtils;
 
@@ -124,12 +125,15 @@ public class PickerViewModel extends AndroidViewModel {
         }
     };
 
+    private MutableLiveData<Boolean> mIsSyncInProgress = new MutableLiveData<>(false);
+
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
     private BannerManager mBannerManager;
 
     private InstanceId mInstanceId;
     private PhotoPickerUiEventLogger mLogger;
+    private ConfigStore mConfigStore;
 
     private String[] mMimeTypeFilters = null;
     private int mBottomSheetState;
@@ -158,6 +162,8 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger = new PhotoPickerUiEventLogger();
         mIsUserSelectForApp = false;
         mIsLocalOnly = false;
+
+        initConfigStore();
 
         // When the user opens the PhotoPickerSettingsActivity and changes the cloud provider, it's
         // possible that system kills PhotoPickerActivity and PickerViewModel while it's in the
@@ -191,6 +197,10 @@ public class PickerViewModel extends AndroidViewModel {
         mIsNotificationForUpdateReceived = true;
     }
 
+    @VisibleForTesting
+    protected void initConfigStore() {
+        mConfigStore = MediaApplication.getConfigStore();
+    }
 
     @VisibleForTesting
     public void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
@@ -212,6 +222,22 @@ public class PickerViewModel extends AndroidViewModel {
         mIsNotificationForUpdateReceived = notificationForUpdateReceived;
     }
 
+    @VisibleForTesting
+    public void setLogger(@NonNull PhotoPickerUiEventLogger logger) {
+        mLogger = logger;
+    }
+
+    @VisibleForTesting
+    public void setConfigStore(@NonNull ConfigStore configStore) {
+        mConfigStore = configStore;
+    }
+
+    /**
+     * @return the {@link ConfigStore} for this context.
+     */
+    public ConfigStore getConfigStore() {
+        return mConfigStore;
+    }
 
     /**
      * @return {@link UserIdManager} for this context.
@@ -294,16 +320,18 @@ public class PickerViewModel extends AndroidViewModel {
      */
     @UiThread
     public void resetAllContentInCurrentProfile() {
+        Log.d(TAG, "Reset all content in current profile");
+
         // Post 'should refresh UI live data' value as false to avoid unnecessary repetitive resets
         mShouldRefreshUiLiveData.postValue(false);
+
+        // Clear queued tasks in handler.
+        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
 
         initPhotoPickerData();
 
         // Clear the existing content - selection, photos grid, albums grid, banners
         mSelection.clearSelectedItems();
-
-        // Clear queued tasks in handler.
-        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
 
         if (mItemsResult != null) {
             DataLoaderThread.getHandler().postDelayed(() ->
@@ -435,8 +463,10 @@ public class PickerViewModel extends AndroidViewModel {
 
             // post the result with the action.
             mItemsResult.postValue(new PaginatedItemsResult(updatedList, action));
+            mIsSyncInProgress.postValue(false);
         }, TOKEN, DELAY_MILLIS);
     }
+
 
     private List<Item> loadItems(Category category, UserId userId,
             PaginationParameters pagingParameters) {
@@ -627,6 +657,7 @@ public class PickerViewModel extends AndroidViewModel {
 
             Log.d(TAG,
                     "Loaded " + categoryList.size() + " categories for user " + userId.toString());
+            CategoryOrganiserUtils.getReorganisedCategoryList(categoryList);
             return categoryList;
         } finally {
             mLogger.logLoadedAlbums(cloudProviderAuthority, mInstanceId, categoryList.size());
@@ -710,8 +741,8 @@ public class PickerViewModel extends AndroidViewModel {
 
     private void initBannerManager() {
         mBannerManager = shouldShowOnlyLocalFeatures()
-                ? new BannerManager(mAppContext, mUserIdManager)
-                : new BannerManager.CloudBannerManager(mAppContext, mUserIdManager);
+                ? new BannerManager(mAppContext, mUserIdManager, mConfigStore)
+                : new BannerManager.CloudBannerManager(mAppContext, mUserIdManager, mConfigStore);
     }
 
     /**
@@ -1016,12 +1047,7 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public boolean shouldShowOnlyLocalFeatures() {
         return isUserSelectForApp() || isLocalOnly()
-                || !getConfigStore().isCloudMediaInPhotoPickerEnabled();
-    }
-
-    @VisibleForTesting
-    protected ConfigStore getConfigStore() {
-        return MediaApplication.getConfigStore();
+                || !mConfigStore.isCloudMediaInPhotoPickerEnabled();
     }
 
     /**
@@ -1129,6 +1155,10 @@ public class PickerViewModel extends AndroidViewModel {
         }
     }
 
+    public LiveData<Boolean> isSyncInProgress() {
+        return mIsSyncInProgress;
+    }
+
     /**
      * Class used to store the result of the item modification operations.
      */
@@ -1166,13 +1196,17 @@ public class PickerViewModel extends AndroidViewModel {
      * photos grid or album contents grid.
      */
     public void initPhotoPickerData(@NonNull Category category) {
-        if (getConfigStore().isCloudMediaInPhotoPickerEnabled()) {
+        if (mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
             UserId userId = mUserIdManager.getCurrentUserProfileId();
-            DataLoaderThread.getHandler().postDelayed(() ->
-                    mItemsProvider.initPhotoPickerData(category.getId(),
-                                category.getAuthority(),
-                                shouldShowOnlyLocalFeatures(),
-                                userId), TOKEN, DELAY_MILLIS);
+            DataLoaderThread.getHandler().postDelayed(() -> {
+                if (category == Category.DEFAULT) {
+                    mIsSyncInProgress.postValue(true);
+                }
+                mItemsProvider.initPhotoPickerData(category.getId(),
+                        category.getAuthority(),
+                        shouldShowOnlyLocalFeatures(),
+                        userId);
+            }, TOKEN, DELAY_MILLIS);
         }
     }
 }

@@ -29,6 +29,7 @@ import androidx.annotation.UiThread;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.util.PerUser;
@@ -59,13 +60,14 @@ class BannerManager {
     // The banner controllers per user
     private final PerUser<BannerController> mBannerControllers;
 
-    BannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager) {
+    BannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager,
+            @NonNull ConfigStore configStore) {
         mUserIdManager = userIdManager;
         mBannerControllers = new PerUser<BannerController>() {
             @NonNull
             @Override
             protected BannerController create(@UserIdInt int userId) {
-                return new BannerController(context, UserHandle.of(userId));
+                return new BannerController(context, UserHandle.of(userId), configStore);
             }
         };
         maybeInitialiseAndSetBannersForCurrentUser();
@@ -260,8 +262,9 @@ class BannerManager {
     }
 
     static class CloudBannerManager extends BannerManager {
-        CloudBannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager) {
-            super(context, userIdManager);
+        CloudBannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager,
+                @NonNull ConfigStore configStore) {
+            super(context, userIdManager, configStore);
         }
 
         /**

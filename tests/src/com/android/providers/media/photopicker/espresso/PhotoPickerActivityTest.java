@@ -25,8 +25,11 @@ import static androidx.test.espresso.matcher.ViewMatchers.isNotSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.isSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 
+import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.espresso.BottomSheetTestUtils.assertBottomSheetState;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.customSwipeDownPartialScreen;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
@@ -44,6 +47,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.core.app.ActivityScenario;
@@ -60,6 +64,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.concurrent.TimeUnit;
 
 @RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
@@ -308,6 +314,37 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
                     .atPositionOnView(0, R.id.date_header_title))
                     .check(matches(withText(R.string.recent)));
         }
+    }
+
+    @Test
+    public void testResetOnCloudProviderChange() throws InterruptedException {
+        // Enable cloud media feature for the activity through the test config store
+        mScenario.onActivity(activity -> activity.getConfigStore().enableCloudMediaFeature());
+
+        // Switch to the albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .perform(click());
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .check(matches(isSelected()));
+
+        // Navigate to the photos in the Camera album
+        final int cameraStringId = R.string.picker_category_camera;
+        onView(allOf(withText(cameraStringId), isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID))))
+                .perform(click());
+        onView(allOf(withText(cameraStringId), withParent(withId(R.id.toolbar))))
+                .check(matches(isDisplayed()));
+
+        // Notify refresh ui
+        final ContentResolver contentResolver =
+                getInstrumentation().getTargetContext().getContentResolver();
+        contentResolver.notifyChange(
+                REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI, /* observer= */ null);
+
+        TimeUnit.MILLISECONDS.sleep(/* timeout= */ 100);
+
+        // Verify activity reset to the initial launch state (Photos tab)
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .check(matches(isSelected()));
     }
 
     private void assertProfileButtonNotShown() {

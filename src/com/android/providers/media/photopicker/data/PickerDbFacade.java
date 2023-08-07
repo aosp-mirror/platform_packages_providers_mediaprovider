@@ -845,7 +845,7 @@ public class PickerDbFacade {
      * Returns empty {@link Cursor} if there are no items matching merged album constraints {@code
      * query}
      */
-    public Cursor getMergedAlbums(QueryFilter query) {
+    public Cursor getMergedAlbums(QueryFilter query, String cloudProvider) {
         final MatrixCursor c = new MatrixCursor(AlbumColumns.ALL_PROJECTION);
         List<String> mergedAlbums = List.of(ALBUM_ID_FAVORITES, ALBUM_ID_VIDEOS);
         for (String albumId : mergedAlbums) {
@@ -873,7 +873,9 @@ public class PickerDbFacade {
             }
 
             long count = getCursorLong(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT);
-            if (count == 0) {
+
+            // We want to always display empty merged folder in case of cloud picker.
+            if (count == 0 && (query.mIsLocalOnly || cloudProvider == null)) {
                 continue;
             }
 

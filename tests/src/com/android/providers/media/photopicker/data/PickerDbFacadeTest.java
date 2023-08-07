@@ -1218,7 +1218,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(4);
         }
 
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
@@ -1271,7 +1271,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(4);
         }
 
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
@@ -1290,7 +1290,7 @@ public class PickerDbFacadeTest {
         }
 
         qfb.setMimeTypes(IMAGE_MIME_TYPES_QUERY);
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), /* cloudProvider*/ null)) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
@@ -1301,8 +1301,19 @@ public class PickerDbFacadeTest {
                     /* count */ 1);
         }
 
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
+            assertThat(cr.getCount()).isEqualTo(2);
+            cr.moveToFirst();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_FAVORITES,
+                    ALBUM_ID_FAVORITES,
+                    CLOUD_ID + "1",
+                    DATE_TAKEN_MS,
+                    /* count */ 1);
+        }
+
         qfb.setMimeTypes(VIDEO_MIME_TYPES_QUERY);
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
@@ -1321,8 +1332,8 @@ public class PickerDbFacadeTest {
         }
 
         qfb.setMimeTypes(new String[]{"foo"});
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
-            assertThat(cr.getCount()).isEqualTo(0);
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
+            assertThat(cr.getCount()).isEqualTo(2);
         }
     }
 
@@ -1380,7 +1391,7 @@ public class PickerDbFacadeTest {
 
         // Verify that we see all available merged albums and their respective media count
         qfb.setIsLocalOnly(false);
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
@@ -1400,7 +1411,7 @@ public class PickerDbFacadeTest {
 
         qfb.setIsLocalOnly(true);
         // Verify that with isLocalOnly=true, we only see one album with only one local item.
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), /* cloudProvider */ null)) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,

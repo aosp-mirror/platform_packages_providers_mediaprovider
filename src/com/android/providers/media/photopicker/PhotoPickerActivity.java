@@ -21,7 +21,6 @@ import static android.provider.MediaStore.ACTION_PICK_IMAGES;
 import static android.provider.MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP;
 import static android.provider.MediaStore.grantMediaReadForPackage;
 
-import static com.android.providers.media.MediaApplication.getConfigStore;
 import static com.android.providers.media.photopicker.PhotoPickerSettingsActivity.EXTRA_CURRENT_USER_ID;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
@@ -186,11 +185,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         am.addAccessibilityStateChangeListener(enabled -> mIsAccessibilityEnabled = enabled);
 
         initBottomSheetBehavior();
-        restoreState(savedInstanceState);
 
         final String intentAction = intent != null ? intent.getAction() : null;
-        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
-        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
@@ -204,6 +200,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
         }
 
         observeRefreshUiNotificationLiveData();
+        // Restore state operation should always be kept at the end of this method.
+        restoreState(savedInstanceState);
+        // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
+        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
     }
 
     @Override
@@ -241,10 +241,30 @@ public class PhotoPickerActivity extends AppCompatActivity {
         return super.dispatchTouchEvent(event);
     }
 
+    /**
+     * This method is called on action bar home button clicks if
+     * {@link androidx.appcompat.app.ActionBar#setDisplayHomeAsUpEnabled(boolean)} is set
+     * {@code true}.
+     */
     @Override
     public boolean onSupportNavigateUp() {
-        onBackPressed();
+        int backStackEntryCount = getSupportFragmentManager().getBackStackEntryCount();
+        mPickerViewModel.logActionBarHomeButtonClick(backStackEntryCount);
+        super.onBackPressed();
         return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+        int backStackEntryCount = getSupportFragmentManager().getBackStackEntryCount();
+        mPickerViewModel.logBackGestureWithStackCount(backStackEntryCount);
+        super.onBackPressed();
+    }
+
+    @Override
+    public boolean onMenuOpened(int featureId, Menu menu) {
+        mPickerViewModel.logMenuOpened();
+        return super.onMenuOpened(featureId, menu);
     }
 
     @Override
@@ -414,7 +434,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
+                    mPickerViewModel.logSwipeDownExit();
                     finish();
+                } else if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    mPickerViewModel.logExpandToFullScreen();
                 }
                 saveBottomSheetState();
             }
@@ -558,7 +581,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         final boolean isGetContent = isGetContentAction();
         final boolean isPickImages = isPickImagesAction();
-        final ConfigStore cs = getConfigStore();
+        final ConfigStore cs = mPickerViewModel.getConfigStore();
 
         if (getIntent().hasExtra(EXTRA_PRELOAD_SELECTED)) {
             if (Build.isDebuggable()
@@ -822,6 +845,14 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     /**
+     * Reset to Photo Picker initial launch state (Photos grid tab) in the current profile mode.
+     */
+    private void resetInCurrentProfile() {
+        mPickerViewModel.resetAllContentInCurrentProfile();
+        setupInitialLaunchState();
+    }
+
+    /**
      * Returns {@code true} if settings page is enabled.
      */
     private boolean shouldShowSettingsScreen() {
@@ -977,7 +1008,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mPickerViewModel.shouldRefreshUiLiveData()
                 .observe(this, shouldRefresh -> {
                     if (shouldRefresh && !mPickerViewModel.shouldShowOnlyLocalFeatures()) {
-                        mPickerViewModel.resetAllContentInCurrentProfile();
+                        resetInCurrentProfile();
                     }
                 });
     }

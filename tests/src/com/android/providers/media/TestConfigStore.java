@@ -34,7 +34,6 @@ public class TestConfigStore implements ConfigStore {
     private boolean mCloudMediaInPhotoPickerEnabled = false;
     private @Nullable List<String> mAllowedCloudProviderPackages = null;
     private @Nullable String mDefaultCloudProviderPackage = null;
-    private int mPickerSyncDelayMs = 0;
 
     public void enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(String... providers) {
         mAllowedCloudProviderPackages = Arrays.asList(providers);
@@ -79,15 +78,6 @@ public class TestConfigStore implements ConfigStore {
     @Override
     public String getDefaultCloudProviderPackage() {
         return mDefaultCloudProviderPackage;
-    }
-
-    @Override
-    public int getPickerSyncDelayMs() {
-        return mPickerSyncDelayMs;
-    }
-
-    public void setPickerSyncDelayMs(int delay) {
-        mPickerSyncDelayMs = delay;
     }
 
     @NonNull

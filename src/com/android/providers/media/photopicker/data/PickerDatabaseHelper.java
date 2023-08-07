@@ -40,7 +40,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "PickerDatabaseHelper";
 
     public static final String PICKER_DATABASE_NAME = "picker.db";
-    private static final int VERSION_U = 10;
+    private static final int VERSION_U = 11;
     public static final int VERSION_LATEST = VERSION_U;
 
     final Context mContext;
@@ -97,12 +97,15 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
 
     private void resetData(SQLiteDatabase db) {
         clearPickerPrefs(mContext);
+
+        dropAllTables(db);
+
         createLatestSchema(db);
         createLatestIndexes(db);
     }
 
     @VisibleForTesting
-    static void makePristineSchema(SQLiteDatabase db) {
+    static void dropAllTables(SQLiteDatabase db) {
         // drop all tables
         Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'table'", null, null,
                 null, null);
@@ -113,26 +116,13 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
         c.close();
     }
 
-    @VisibleForTesting
-    static void makePristineIndexes(SQLiteDatabase db) {
-        // drop all indexes
-        Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'index'",
-                null, null, null, null);
-        while (c.moveToNext()) {
-            if (c.getString(0).startsWith("sqlite_")) continue;
-            db.execSQL("DROP INDEX IF EXISTS " + c.getString(0));
-        }
-        c.close();
-    }
-
     private static void createLatestSchema(SQLiteDatabase db) {
-        makePristineSchema(db);
 
         db.execSQL("CREATE TABLE media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "local_id TEXT,"
                 + "cloud_id TEXT UNIQUE,"
                 + "is_visible INTEGER CHECK(is_visible == 1),"
-                + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
+                + "date_taken_ms INTEGER NOT NULL,"
                 + "sync_generation INTEGER NOT NULL CHECK(sync_generation >= 0),"
                 + "width INTEGER,"
                 + "height INTEGER,"
@@ -149,7 +139,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "local_id TEXT,"
                 + "cloud_id TEXT,"
                 + "album_id TEXT,"
-                + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
+                + "date_taken_ms INTEGER NOT NULL,"
                 + "sync_generation INTEGER NOT NULL CHECK(sync_generation >= 0),"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "duration_ms INTEGER CHECK(duration_ms >= 0),"
@@ -162,7 +152,6 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     }
 
     private static void createLatestIndexes(SQLiteDatabase db) {
-        makePristineIndexes(db);
 
         db.execSQL("CREATE INDEX local_id_index on media(local_id)");
         db.execSQL("CREATE INDEX cloud_id_index on media(cloud_id)");

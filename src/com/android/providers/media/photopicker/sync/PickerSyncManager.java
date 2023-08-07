@@ -16,6 +16,11 @@
 
 package com.android.providers.media.photopicker.sync;
 
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markAlbumMediaSyncAsComplete;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSyncAsComplete;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewAlbumMediaSyncRequests;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewSyncRequests;
+
 import android.util.Log;
 
 import androidx.annotation.IntDef;
@@ -26,6 +31,7 @@ import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.Operation;
+import androidx.work.OutOfQuotaPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
@@ -35,6 +41,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -108,10 +115,11 @@ public class PickerSyncManager {
      * conditions may apply before the sync can start like battery level etc.
      */
     public void syncAllMediaProactively() {
-        Data inputData = new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD));
-        OneTimeWorkRequest syncRequest = getOneTimeProactiveSyncRequest(inputData);
+        final Data inputData =
+                new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD));
+        final OneTimeWorkRequest syncRequest = getOneTimeProactiveSyncRequest(inputData);
 
-        String workName = SYNC_MEDIA_PROACTIVE_WORK_PREFIX + SYNC_ALL_WORK_SUFFIX;
+        final String workName = SYNC_MEDIA_PROACTIVE_WORK_PREFIX + SYNC_ALL_WORK_SUFFIX;
         try {
             Operation enqueueOperation = mWorkManager
                     .enqueueUniqueWork(workName, ExistingWorkPolicy.KEEP, syncRequest);
@@ -126,17 +134,43 @@ public class PickerSyncManager {
     /**
      * Use this method for reactive syncs which are user triggered.
      *
-     * @param isLocal is true when the authority when the sync type is local.
-     *                    For cloud syncs, this is false.
+     * @param shouldSyncLocalOnlyData if true indicates that the sync should only be triggered with
+     *                                the local provider. Otherwise, sync will be triggered for both
+     *                                local and cloud provider.
      */
-    public void syncMediaForProviderImmediately(boolean isLocal) {
-        // TODO
-        throw new UnsupportedOperationException(
-                "syncMediaForProviderImmediately is not supported.");
+    public void syncMediaImmediately(boolean shouldSyncLocalOnlyData) {
+        if (shouldSyncLocalOnlyData) {
+            syncMediaImmediately(PickerSyncManager.SYNC_LOCAL_ONLY);
+        } else {
+            syncMediaImmediately(PickerSyncManager.SYNC_LOCAL_AND_CLOUD);
+        }
     }
 
     /**
-     * Use this method for reactive syncs which are user triggered.
+     * Use this method for reactive syncs with either, local and cloud providers, or both.
+     */
+    private void syncMediaImmediately(@SyncSource int syncSource) {
+        final Data inputData = new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, syncSource));
+        final OneTimeWorkRequest syncRequest = getImmediateSyncRequest(inputData);
+
+        // Track the new sync request(s)
+        trackNewSyncRequests(syncSource, syncRequest.getId());
+
+        // Enqueue local sync then cloud sync requests
+        try {
+            final Operation enqueueOperation = mWorkManager
+                    .enqueue(Collections.singletonList(syncRequest));
+
+            // Check that the request has been successfully enqueued.
+            enqueueOperation.getResult().get();
+        } catch (Exception e) {
+            Log.e(TAG, "Could not enqueue expedited picker sync request", e);
+            markSyncAsComplete(syncSource, syncRequest.getId());
+        }
+    }
+
+    /**
+     * Use this method for reactive syncs which are user action triggered.
      *
      * @param albumId is the id of the album that needs to be synced.
      * @param isLocal is true when the authority when the sync type is local.
@@ -145,9 +179,55 @@ public class PickerSyncManager {
     public void syncAlbumMediaForProviderImmediately(
             @NonNull String albumId,
             boolean isLocal) {
-        // TODO
-        throw new UnsupportedOperationException(
-                "syncAlbumMediaForProviderImmediately is not supported.");
+        syncAlbumMediaForProviderImmediately(albumId, getSyncSource(isLocal));
+    }
+
+    /**
+     * Use this method for reactive syncs which are user action triggered.
+     *
+     * @param albumId is the id of the album that needs to be synced.
+     * @param syncSource indicates if the sync is required with local provider or cloud provider
+     *                   or both.
+     */
+    private void syncAlbumMediaForProviderImmediately(
+            @NonNull String albumId,
+            @SyncSource int syncSource) {
+        final Data inputData = new Data(Map.of(
+                SYNC_WORKER_INPUT_SYNC_SOURCE, syncSource,
+                SYNC_WORKER_INPUT_ALBUM_ID, albumId));
+        final OneTimeWorkRequest syncRequest = getImmediateAlbumSyncRequest(inputData);
+
+        // Track the new sync request(s)
+        trackNewAlbumMediaSyncRequests(syncSource, syncRequest.getId());
+
+
+        // Enqueue local sync then cloud sync requests
+        try {
+            final Operation enqueueOperation = mWorkManager
+                    .enqueue(Collections.singletonList(syncRequest));
+
+            // Check that the request has been successfully enqueued.
+            enqueueOperation.getResult().get();
+        } catch (Exception e) {
+            Log.e(TAG, "Could not enqueue expedited picker sync request", e);
+            markAlbumMediaSyncAsComplete(syncSource, syncRequest.getId());
+        }
+    }
+
+    @NotNull
+    private OneTimeWorkRequest getImmediateSyncRequest(@NotNull Data inputData) {
+        return new OneTimeWorkRequest.Builder(ImmediateSyncWorker.class)
+                .setInputData(inputData)
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                .build();
+    }
+
+    @NotNull
+    private OneTimeWorkRequest getImmediateAlbumSyncRequest(@NotNull Data inputData) {
+        return new OneTimeWorkRequest.Builder(ImmediateAlbumSyncWorker.class)
+                .setInputData(inputData)
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                .build();
     }
 
     @NotNull
@@ -173,5 +253,12 @@ public class PickerSyncManager {
         return new Constraints.Builder()
                 .setRequiresBatteryNotLow(true)
                 .build();
+    }
+
+    @SyncSource
+    private static int getSyncSource(boolean isLocal) {
+        return isLocal
+                ? SYNC_LOCAL_ONLY
+                : SYNC_CLOUD_ONLY;
     }
 }

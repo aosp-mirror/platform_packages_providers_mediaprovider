@@ -30,6 +30,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import android.content.Context;
+
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
@@ -59,6 +61,8 @@ public class PickerSyncManagerTest {
     private Operation mMockOperation;
     @Mock
     private ListenableFuture<Operation.State.SUCCESS> mMockFuture;
+    @Mock
+    private Context mMockContext;
     @Captor
     ArgumentCaptor<PeriodicWorkRequest> mPeriodicWorkRequestArgumentCaptor;
     @Captor
@@ -217,6 +221,7 @@ public class PickerSyncManagerTest {
         doReturn(mMockFuture).when(mMockOperation).getResult();
 
         mPickerSyncManager =
-                new PickerSyncManager(mMockWorkManager, mConfigStore, schedulePeriodicSyncs);
+                new PickerSyncManager(mMockWorkManager, mMockContext,
+                        mConfigStore, schedulePeriodicSyncs);
     }
 }

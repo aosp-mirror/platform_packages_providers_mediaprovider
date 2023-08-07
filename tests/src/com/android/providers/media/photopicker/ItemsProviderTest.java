@@ -1188,6 +1188,7 @@ public class ItemsProviderTest {
             try (Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null,
                     /* userId */ null, /* cancellationSignal*/ null)) {
                 assertGetCategoriesMatchMultiple(c, Arrays.asList(
+                        Pair.create(ALBUM_ID_FAVORITES, 0),
                         Pair.create(ALBUM_ID_VIDEOS, 2),
                         Pair.create(ALBUM_ID_SCREENSHOTS, 1),
                         Pair.create(cloudAlbum, 1)

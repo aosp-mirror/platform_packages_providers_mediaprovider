@@ -291,7 +291,8 @@ public class PickerDataLayer {
             cursorExtra.putString(MediaStore.EXTRA_LOCAL_PROVIDER, mLocalProvider);
 
             // Favorites and Videos are merged albums.
-            final Cursor mergedAlbums = mDbFacade.getMergedAlbums(queryExtras.toQueryFilter());
+            final Cursor mergedAlbums = mDbFacade.getMergedAlbums(queryExtras.toQueryFilter(),
+                    cloudProvider);
             if (mergedAlbums != null) {
                 cursors.add(mergedAlbums);
             }

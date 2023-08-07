@@ -110,7 +110,7 @@ public class PickerDataLayer {
         mLocalProvider = requireNonNull(dbFacade.getLocalProvider());
         mConfigStore = requireNonNull(configStore);
         mSyncManager = new PickerSyncManager(
-                getWorkManager(), configStore, schedulePeriodicSyncs);
+                getWorkManager(), context, configStore, schedulePeriodicSyncs);
     }
 
     /**

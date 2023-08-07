@@ -28,6 +28,7 @@ import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.work.ForegroundInfo;
 import androidx.work.ListenableWorker;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -40,6 +41,7 @@ import com.android.providers.media.photopicker.PickerSyncController;
  */
 public class ProactiveSyncWorker extends Worker {
     private static final String TAG = "PSyncWorker";
+    private final Context mContext;
 
     /**
      * Creates an instance of the {@link Worker}.
@@ -49,6 +51,7 @@ public class ProactiveSyncWorker extends Worker {
      */
     public ProactiveSyncWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
+        mContext = context;
     }
 
     @NonNull
@@ -89,5 +92,12 @@ public class ProactiveSyncWorker extends Worker {
             markSyncAsComplete(syncSource, getId());
             return ListenableWorker.Result.failure();
         }
+    }
+
+    @Override
+    @NonNull
+    public ForegroundInfo getForegroundInfo() {
+        Log.e(TAG, "Proactive Sync Worker should not run as an expedited task");
+        return PickerSyncNotificationHelper.getForegroundInfo(mContext);
     }
 }

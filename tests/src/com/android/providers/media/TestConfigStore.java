@@ -18,9 +18,12 @@ package com.android.providers.media;
 
 import static java.util.Objects.requireNonNull;
 
+import android.util.Pair;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -32,36 +35,49 @@ import java.util.concurrent.Executor;
  */
 public class TestConfigStore implements ConfigStore {
     private boolean mCloudMediaInPhotoPickerEnabled = false;
-    private @Nullable List<String> mAllowedCloudProviderPackages = null;
+    private List<String> mAllowedCloudProviderPackages = Collections.emptyList();
     private @Nullable String mDefaultCloudProviderPackage = null;
+    private List<Pair<Executor, Runnable>> mObservers = new ArrayList<>();
 
     public void enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(String... providers) {
         mAllowedCloudProviderPackages = Arrays.asList(providers);
         enableCloudMediaFeature();
+        notifyObservers();
     }
 
     public void enableCloudMediaFeature() {
         mCloudMediaInPhotoPickerEnabled = true;
+        notifyObservers();
     }
 
     public void clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature() {
-        mAllowedCloudProviderPackages = null;
+        mAllowedCloudProviderPackages = Collections.emptyList();
         disableCloudMediaFeature();
+        notifyObservers();
     }
 
     public void disableCloudMediaFeature() {
         mCloudMediaInPhotoPickerEnabled = false;
+        notifyObservers();
     }
 
     @Override
     public @NonNull List<String> getAllowedCloudProviderPackages() {
-        return mAllowedCloudProviderPackages != null ? mAllowedCloudProviderPackages
-                : Collections.emptyList();
+        return mAllowedCloudProviderPackages;
+    }
+
+    public void setAllowedCloudProviderPackages(String... providers) {
+        if (providers.length == 0) {
+            mAllowedCloudProviderPackages = Collections.emptyList();
+        } else {
+            mAllowedCloudProviderPackages = Arrays.asList(providers);
+        }
+        notifyObservers();
     }
 
     @Override
     public boolean isCloudMediaInPhotoPickerEnabled() {
-        return mCloudMediaInPhotoPickerEnabled;
+        return mCloudMediaInPhotoPickerEnabled && !mAllowedCloudProviderPackages.isEmpty();
     }
 
     public void setDefaultCloudProviderPackage(@NonNull String packageName) {
@@ -94,6 +110,19 @@ public class TestConfigStore implements ConfigStore {
 
     @Override
     public void addOnChangeListener(@NonNull Executor executor, @NonNull Runnable listener) {
-        // No-op.
+        Pair p = Pair.create(executor, listener);
+        mObservers.add(p);
+    }
+
+
+    /**
+     * Runs all subscribers to the TestConfigStore.
+     */
+    private void notifyObservers() {
+        for (Pair<Executor, Runnable> observer: mObservers) {
+            Executor exec = observer.first;
+            Runnable listener = observer.second;
+            exec.execute(listener);
+        }
     }
 }

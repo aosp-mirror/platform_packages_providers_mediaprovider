@@ -74,7 +74,8 @@ public class PickerSyncManagerTest {
     public void setUp() {
         initMocks(this);
         mConfigStore = new TestConfigStore();
-        mConfigStore.enableCloudMediaFeature();
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
+                "com.hooli.super.awesome.cloudpicker");
     }
 
     @Test

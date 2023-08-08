@@ -55,6 +55,7 @@ import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
 import com.android.providers.media.photopicker.sync.PickerSyncManager;
 import com.android.providers.media.photopicker.sync.SyncTracker;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
+import com.android.providers.media.util.ForegroundThread;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -111,6 +112,11 @@ public class PickerDataLayer {
         mConfigStore = requireNonNull(configStore);
         mSyncManager = new PickerSyncManager(
                 getWorkManager(), context, configStore, schedulePeriodicSyncs);
+
+        // Add a subscriber to config store changes to monitor the allowlist.
+        mConfigStore.addOnChangeListener(
+                ForegroundThread.getExecutor(),
+                this::validateCurrentCloudProviderOnAllowlistChange);
     }
 
     /**
@@ -617,5 +623,28 @@ public class PickerDataLayer {
      */
     private boolean shouldSyncBeforePickerQuery() {
         return !mConfigStore.isCloudMediaInPhotoPickerEnabled();
+    }
+
+    /**
+     * Checks the current allowed list of Cloud Provider packages, and ensures that the currently
+     * set provider is a member of the allowlist. In the event the current Cloud Provider is not on
+     * the list, the current Cloud Provider is removed.
+     */
+    private void validateCurrentCloudProviderOnAllowlistChange() {
+
+        List<String> currentAllowlist = mConfigStore.getAllowedCloudProviderPackages();
+        String currentCloudProvider = mSyncController.getCurrentCloudProviderInfo().packageName;
+
+        if (!currentAllowlist.contains(currentCloudProvider)) {
+            Log.d(
+                    TAG,
+                    String.format(
+                            "Cloud provider allowlist was changed, and the current cloud provider"
+                                    + " is no longer on the allowlist."
+                                    + " Allowlist: %s"
+                                    + " Current Provider: %s",
+                            currentAllowlist.toString(), currentCloudProvider));
+            mSyncController.notifyPackageRemoval(currentCloudProvider);
+        }
     }
 }

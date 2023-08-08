@@ -2593,7 +2593,7 @@ std::string deriveVolumeName(const std::string& path) {
 void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
     std::string volume_name = deriveVolumeName(key);
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(ERROR) << "Failure in leveldb delete in volume:" << volume_name << " for key:" << key;
+        LOG(ERROR) << "DeleteFromLevelDb: Missing leveldb connection.";
         return;
     }
 
@@ -2608,7 +2608,7 @@ void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
 void FuseDaemon::InsertInLevelDb(const std::string& key, const std::string& value) {
     std::string volume_name = deriveVolumeName(key);
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(ERROR) << "Failure in leveldb insert in volume:" << volume_name << " for key:" << key;
+        LOG(ERROR) << "InsertInLevelDb: Missing leveldb connection.";
         return;
     }
 
@@ -2616,6 +2616,7 @@ void FuseDaemon::InsertInLevelDb(const std::string& key, const std::string& valu
     status = fuse->level_db_connection_map[volume_name]->Put(leveldb::WriteOptions(), key, value);
     if (!status.ok()) {
         LOG(ERROR) << "Failure in leveldb insert for key: " << key << " in volume:" << volume_name;
+        LOG(ERROR) << status.ToString();
     }
 }
 
@@ -2626,7 +2627,7 @@ std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string&
     std::vector<std::string> file_paths;
 
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(ERROR) << "Failure in leveldb file paths read for volume:" << volume_name;
+        LOG(ERROR) << "ReadFilePathsFromLevelDb: Missing leveldb connection.";
         return file_paths;
     }
 
@@ -2651,16 +2652,16 @@ std::string FuseDaemon::ReadBackedUpDataFromLevelDb(const std::string& filePath)
     std::string data = "";
     std::string volume_name = deriveVolumeName(filePath);
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(ERROR) << "Failure in leveldb data read for key:" << filePath;
+        LOG(ERROR) << "ReadBackedUpDataFromLevelDb: Missing leveldb connection.";
         return data;
     }
 
     leveldb::Status status = fuse->level_db_connection_map[volume_name]->Get(leveldb::ReadOptions(),
                                                                              filePath, &data);
-    if (!status.ok()) {
-        LOG(WARNING) << "Failure in leveldb read for key: " << filePath << status.ToString();
-    } else {
-        LOG(DEBUG) << "Read successful for key: " << filePath;
+    if (status.IsNotFound()) {
+        LOG(VERBOSE) << "Key is not found in leveldb: " << filePath << " " << status.ToString();
+    } else if (!status.ok()) {
+        LOG(WARNING) << "Failure in leveldb read for key: " << filePath << " " << status.ToString();
     }
     return data;
 }
@@ -2668,22 +2669,26 @@ std::string FuseDaemon::ReadBackedUpDataFromLevelDb(const std::string& filePath)
 std::string FuseDaemon::ReadOwnership(const std::string& key) {
     // Return empty string if key not found
     std::string data = "";
-    if (CheckLevelDbConnection(OWNERSHIP_RELATION)) {
-        leveldb::Status status = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Get(
-                leveldb::ReadOptions(), key, &data);
-        if (!status.ok()) {
-            LOG(WARNING) << "Failure in leveldb read for key: " << key << status.ToString();
-        } else {
-            LOG(DEBUG) << "Read successful for key: " << key;
-        }
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "ReadOwnership: Missing leveldb connection.";
+        return data;
     }
+
+    leveldb::Status status = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Get(
+            leveldb::ReadOptions(), key, &data);
+    if (status.IsNotFound()) {
+        LOG(VERBOSE) << "Key is not found in leveldb: " << key << " " << status.ToString();
+    } else if (!status.ok()) {
+        LOG(WARNING) << "Failure in leveldb read for key: " << key << " " << status.ToString();
+    }
+
     return data;
 }
 
 void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
                                        const std::string& ownerPackageIdentifier) {
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
-        LOG(ERROR) << "Failure in leveldb insert for ownership relation.";
+        LOG(ERROR) << "CreateOwnerIdRelation: Missing leveldb connection.";
         return;
     }
 
@@ -2706,7 +2711,7 @@ void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
 void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
                                        const std::string& ownerPackageIdentifier) {
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
-        LOG(ERROR) << "Failure in leveldb delete for ownership relation.";
+        LOG(ERROR) << "RemoveOwnerIdRelation: Missing leveldb connection.";
         return;
     }
 
@@ -2732,7 +2737,7 @@ void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
 std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
     std::map<std::string, std::string> resultMap;
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
-        LOG(ERROR) << "Failure in leveldb read for ownership relation.";
+        LOG(ERROR) << "GetOwnerRelationship: Missing leveldb connection.";
         return resultMap;
     }
 

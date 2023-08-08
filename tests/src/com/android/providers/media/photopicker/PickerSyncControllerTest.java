@@ -1365,7 +1365,8 @@ public class PickerSyncControllerTest {
         final String authority = isLocal ? LOCAL_PROVIDER_AUTHORITY
                 : CLOUD_PRIMARY_PROVIDER_AUTHORITY;
         return mFacade.queryAlbumMediaForUi(
-                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId).build(), authority);
+                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId)
+                        .build(), authority, /* validateAlbumAuthority */ true);
     }
 
     private void assertEmptyCursorFromMediaQuery() {

@@ -110,7 +110,7 @@ public class PickerDataLayer {
         mLocalProvider = requireNonNull(dbFacade.getLocalProvider());
         mConfigStore = requireNonNull(configStore);
         mSyncManager = new PickerSyncManager(
-                getWorkManager(), configStore, schedulePeriodicSyncs);
+                getWorkManager(), context, configStore, schedulePeriodicSyncs);
     }
 
     /**
@@ -185,16 +185,19 @@ public class PickerDataLayer {
                 // The album type here can only be local or cloud because merged categories like,
                 // Favorites and Videos would hit the first condition.
                 // Refresh the 'album_media' table
+                boolean validateAlbumAuthority;
                 if (shouldSyncBeforePickerQuery()) {
+                    validateAlbumAuthority = true;
                     mSyncController.syncAlbumMedia(albumId, isLocal(albumAuthority));
                 } else {
+                    validateAlbumAuthority = false;
                     waitForSync(SyncTrackerRegistry.getAlbumSyncTracker(isLocal(albumAuthority)));
                     Log.i(TAG, "Album sync is complete");
                 }
 
                 // Fetch album specific media for local or cloud from 'album_media' table
                 result = mDbFacade.queryAlbumMediaForUi(
-                        queryExtras.toQueryFilter(), albumAuthority);
+                        queryExtras.toQueryFilter(), albumAuthority, validateAlbumAuthority);
             }
             return result;
         } finally {
@@ -288,7 +291,8 @@ public class PickerDataLayer {
             cursorExtra.putString(MediaStore.EXTRA_LOCAL_PROVIDER, mLocalProvider);
 
             // Favorites and Videos are merged albums.
-            final Cursor mergedAlbums = mDbFacade.getMergedAlbums(queryExtras.toQueryFilter());
+            final Cursor mergedAlbums = mDbFacade.getMergedAlbums(queryExtras.toQueryFilter(),
+                    cloudProvider);
             if (mergedAlbums != null) {
                 cursors.add(mergedAlbums);
             }

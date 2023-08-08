@@ -43,6 +43,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ProviderInfo;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.os.CancellationSignal;
@@ -61,6 +62,7 @@ import androidx.lifecycle.Observer;
 
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
+import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.MediaApplication;
@@ -799,8 +801,6 @@ public class PickerViewModel extends AndroidViewModel {
         maybeLogPickerOpenedWithCloudProvider();
     }
 
-    // TODO(b/245745412): Fix log params (uid & package name)
-    // TODO(b/245745424): Solve for active cloud provider without a logged in account
     private void maybeLogPickerOpenedWithCloudProvider() {
         if (shouldShowOnlyLocalFeatures()) {
             return;
@@ -815,13 +815,34 @@ public class PickerViewModel extends AndroidViewModel {
                         + ", log=" + (providerAuthority != null));
 
                 if (providerAuthority != null) {
-                    mLogger.logPickerOpenWithActiveCloudProvider(
-                            mInstanceId, /* cloudProviderUid */ -1, providerAuthority);
+                    BackgroundThread.getExecutor().execute(() ->
+                            logPickerOpenedWithCloudProvider(providerAuthority));
                 }
                 // We only need to get the value once.
                 cloudMediaProviderAuthorityLiveData.removeObserver(this);
             }
         });
+    }
+
+    private void logPickerOpenedWithCloudProvider(@NonNull String providerAuthority) {
+        String cloudProviderPackage = providerAuthority;
+        int cloudProviderUid = -1;
+
+        try {
+            final PackageManager packageManager =
+                    UserId.CURRENT_USER.getPackageManager(mAppContext);
+            final ProviderInfo providerInfo = packageManager.resolveContentProvider(
+                    providerAuthority, /* flags= */ 0);
+
+            cloudProviderPackage = providerInfo.applicationInfo.packageName;
+            cloudProviderUid = providerInfo.applicationInfo.uid;
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.d(TAG, "Logging the ui event 'picker open with an active cloud provider' with its "
+                    + "authority in place of the package name and a default uid.", e);
+        }
+
+        mLogger.logPickerOpenWithActiveCloudProvider(
+                mInstanceId, cloudProviderUid, cloudProviderPackage);
     }
 
     /**

@@ -29,6 +29,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.work.ForegroundInfo;
 import androidx.work.ListenableWorker;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -41,6 +42,7 @@ import com.android.providers.media.photopicker.PickerSyncController;
 public class ImmediateAlbumSyncWorker extends Worker {
     private static final String TAG = "IASyncWorker";
     private static final int INVALID_SYNC_SOURCE = -1;
+    private final Context mContext;
 
     /**
      * Creates an instance of the {@link Worker}.
@@ -52,6 +54,7 @@ public class ImmediateAlbumSyncWorker extends Worker {
             @NonNull Context context,
             @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
+        mContext = context;
     }
 
     @NonNull
@@ -104,5 +107,11 @@ public class ImmediateAlbumSyncWorker extends Worker {
         if (albumId == null || TextUtils.isEmpty(albumId)) {
             throw new IllegalArgumentException("Invalid album id " + albumId);
         }
+    }
+
+    @Override
+    @NonNull
+    public ForegroundInfo getForegroundInfo() {
+        return PickerSyncNotificationHelper.getForegroundInfo(mContext);
     }
 }

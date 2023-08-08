@@ -279,8 +279,19 @@ public interface ConfigStore {
 
         @Override
         public boolean isCloudMediaInPhotoPickerEnabled() {
-            return getBooleanDeviceConfig(NAMESPACE_MEDIAPROVIDER, KEY_CLOUD_MEDIA_FEATURE_ENABLED,
-                    DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED);
+            Boolean isEnabled =
+                    getBooleanDeviceConfig(
+                            NAMESPACE_MEDIAPROVIDER,
+                            KEY_CLOUD_MEDIA_FEATURE_ENABLED,
+                            DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED);
+
+            List<String> allowList =
+                    getStringArrayDeviceConfig(
+                            NAMESPACE_MEDIAPROVIDER, KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST);
+
+            // Only consider the feature enabled when the enabled flag is on AND when the allowlist
+            // of permitted cloud media providers is not empty.
+            return isEnabled && !allowList.isEmpty();
         }
 
         @Nullable

@@ -6810,10 +6810,15 @@ public class MediaProvider extends ContentProvider {
                 return bundle;
             }
             case MediaStore.IS_CURRENT_CLOUD_PROVIDER_CALL: {
-                final boolean isEnabled = mPickerSyncController.isProviderEnabled(arg,
-                        Binder.getCallingUid());
-
                 Bundle bundle = new Bundle();
+                boolean isEnabled = false;
+
+                if (mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
+                    isEnabled =
+                            mPickerSyncController.isProviderEnabled(
+                                    arg, Binder.getCallingUid());
+                }
+
                 bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT, isEnabled);
                 return bundle;
             }

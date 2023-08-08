@@ -138,6 +138,9 @@ public class PickerSyncController {
     private final String mLocalProvider;
 
     private final Object mCloudSyncLock = new Object();
+    private final Object mCloudAlbumSyncLock = new Object();
+
+
     // TODO(b/278562157): If there is a dependency on the sync process, always acquire the
     //  {@link mCloudSyncLock} before {@link mCloudProviderLock} to avoid deadlock.
     private final Object mCloudProviderLock = new Object();
@@ -290,6 +293,11 @@ public class PickerSyncController {
      * Syncs the cloud media
      */
     public void syncAllMediaFromCloudProvider() {
+        // Reset the album_media table every time we sync all media
+        // TODO(b/294538740): This may create problems when multiple picker sessions are open at
+        //  the same time.
+        resetAlbumMedia();
+
         synchronized (mCloudSyncLock) {
             final String cloudProvider = getCloudProvider();
 
@@ -305,10 +313,6 @@ public class PickerSyncController {
                         + ". The cloud provider may have changed during the sync, or only a"
                         + " partial sync was completed.");
             }
-
-            // Reset the album_media table every time we sync all media
-            // TODO(258765155): do we really need to reset for both providers?
-            resetAlbumMedia();
         }
     }
 
@@ -336,7 +340,7 @@ public class PickerSyncController {
      * Syncs album media from the currently enabled cloud {@link CloudMediaProvider}.
      */
     public void syncAlbumMediaFromCloudProvider(@NonNull String albumId) {
-        synchronized (mCloudSyncLock) {
+        synchronized (mCloudAlbumSyncLock) {
             syncAlbumMediaFromProvider(getCloudProvider(), /* isLocal */ false, albumId,
                     /* enforcePagedSync*/ true);
         }
@@ -345,7 +349,7 @@ public class PickerSyncController {
     private void resetAlbumMedia() {
         executeSyncAlbumReset(mLocalProvider, /* isLocal */ true, /* albumId */ null);
 
-        synchronized (mCloudSyncLock) {
+        synchronized (mCloudAlbumSyncLock) {
             executeSyncAlbumReset(getCloudProvider(), /* isLocal */ false, /* albumId */ null);
         }
     }
@@ -1002,7 +1006,7 @@ public class PickerSyncController {
      */
     private void rememberNextPageToken(@Nullable String token, String resumeKey) {
 
-        synchronized (mCloudSyncLock) {
+        synchronized (mCloudProviderLock) {
             final SharedPreferences.Editor editor = mSyncPrefs.edit();
             if (token == null) {
                 Log.d(TAG, String.format("Clearing next page token for key: %s", resumeKey));

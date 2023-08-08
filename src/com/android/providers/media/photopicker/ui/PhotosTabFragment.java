@@ -43,7 +43,6 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.android.providers.media.MediaApplication;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.PaginationParameters;
@@ -129,7 +128,7 @@ public class PhotosTabFragment extends TabFragment {
                 ? mPickerViewModel.shouldShowChooseAccountBannerLiveData() : doNotShowBanner;
 
         mIsCloudMediaInPhotoPickerEnabled =
-                MediaApplication.getConfigStore().isCloudMediaInPhotoPickerEnabled();
+                mPickerViewModel.getConfigStore().isCloudMediaInPhotoPickerEnabled();
 
         if (savedInstanceState == null) {
             initProgressBar(view);

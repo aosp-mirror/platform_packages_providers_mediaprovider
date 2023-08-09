@@ -49,6 +49,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -1371,6 +1372,7 @@ public class PickerDbFacade {
             final boolean isLocal = isLocal();
             final String albumId = getAlbumId();
             final SQLiteQueryBuilder qb = createAlbumMediaQueryBuilder(isLocal);
+            final SQLiteQueryBuilder qbMedia = createMediaQueryBuilder();
             int counter = 0;
 
             if (cursor.getCount() > PAGE_SIZE) {
@@ -1416,9 +1418,44 @@ public class PickerDbFacade {
                 } catch (SQLiteConstraintException e) {
                     Log.v(TAG, "Failed to insert album_media. ContentValues: " + values, e);
                 }
+
+                // Check if a Cloud sync is running, and additionally insert this row to media table
+                // if true.
+                maybeInsertFileToMedia(qbMedia, cursor, isLocal);
             }
 
             return counter;
+        }
+
+        /**
+         * Will (possibly) insert this file to the Picker database's media table if there's an
+         * existing Cloud Sync running.
+         *
+         * <p>This is necessary to guarantee it exists in case it is selected by the user. (So that
+         * the pre-loader can load it to the device before the session is closed.)
+         *
+         * @param queryBuilder The media table query builder to use for the insert
+         * @param cursor The current cursor being processed (this method does not advance the
+         *     cursor).
+         * @param isLocal Whether this is the local provider sync or not.
+         */
+        private void maybeInsertFileToMedia(
+                SQLiteQueryBuilder queryBuilder, Cursor cursor, boolean isLocal) {
+            if (SyncTrackerRegistry.getCloudSyncTracker().pendingSyncFutures().size() > 0) {
+                ContentValues values = cursorToContentValue(cursor, isLocal);
+                Log.d(
+                        TAG,
+                        String.format(
+                                "Encountered running Cloud sync during AddAlbumMediaOperation while"
+                                    + " processing row. Will additional insert to media table:  %s",
+                                values));
+                try {
+                    queryBuilder.insert(getDatabase(), values);
+                } catch (SQLiteConstraintException ignored) {
+                    // If we hit a constraint exception it means this row is already in media,
+                    // so nothing to do here.
+                }
+            }
         }
 
         private void updateContentValues(ContentValues values, Cursor cursor) {

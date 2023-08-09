@@ -24,6 +24,8 @@ import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeTyp
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -39,13 +41,18 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.ProjectionHelper;
+import com.android.providers.media.photopicker.sync.SyncTracker;
+import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerDbFacadeTest {
@@ -86,14 +93,25 @@ public class PickerDbFacadeTest {
     private Context mContext;
     private ProjectionHelper mProjectionHelper;
 
+    @Mock
+    private SyncTracker mMockLocalSyncTracker;
+    @Mock
+    private SyncTracker mMockCloudSyncTracker;
+
     @Before
     public void setUp() {
+        initMocks(this);
         mContext = InstrumentationRegistry.getTargetContext();
         File dbPath = mContext.getDatabasePath(PickerDatabaseHelper.PICKER_DATABASE_NAME);
         dbPath.delete();
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER);
         mFacade.setCloudProvider(CLOUD_PROVIDER);
         mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
+
+
+        // Inject mock trackers
+        SyncTrackerRegistry.setLocalSyncTracker(mMockLocalSyncTracker);
+        SyncTrackerRegistry.setCloudSyncTracker(mMockCloudSyncTracker);
     }
 
     @After
@@ -101,6 +119,10 @@ public class PickerDbFacadeTest {
         if (mFacade != null) {
             mFacade.setCloudProvider(null);
         }
+
+        // Reset mock trackers
+        SyncTrackerRegistry.setLocalSyncTracker(new SyncTracker());
+        SyncTrackerRegistry.setCloudSyncTracker(new SyncTracker());
     }
 
     @Test
@@ -237,6 +259,33 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 2);
+        }
+    }
+
+    @Test
+    public void testAddCloudAlbumMediaWhileCloudSyncIsRunning() {
+
+
+        doReturn(Collections.singletonList(new CompletableFuture<>()))
+                .when(mMockCloudSyncTracker)
+                .pendingSyncFutures();
+
+        Cursor cursor1 = getAlbumMediaCursor(/* local id */ null, CLOUD_ID, DATE_TAKEN_MS + 1);
+
+        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cursor1, 1, ALBUM_ID);
+
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID, false)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 1);
+        }
+
+        // These files should also be in the media table since we're pretending that
+        // we have a cloud sync running.
+        try (Cursor cr = queryMediaAll()) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 1);
         }
     }
 

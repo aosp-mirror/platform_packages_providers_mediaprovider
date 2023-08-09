@@ -1307,49 +1307,46 @@ public class PickerSyncController {
 
             do {
                 String updateDateTakenMs = null;
-                try (PickerDbFacade.DbWriteOperation operation =
-                        beginPagedOperation(op, authority, albumId)) {
+                if (nextPageToken != null) {
+                    queryArgs.putString(EXTRA_PAGE_TOKEN, nextPageToken);
+                }
 
-                    if (nextPageToken != null) {
-                        queryArgs.putString(EXTRA_PAGE_TOKEN, nextPageToken);
-                    }
+                try (Cursor cursor = query(uri, queryArgs)) {
+                    nextPageToken =
+                            validateCursor(
+                                    cursor,
+                                    expectedMediaCollectionId,
+                                    expectedHonoredArgs,
+                                    tokens);
 
-                    try (Cursor cursor = query(uri, queryArgs)) {
-                        nextPageToken =
-                                validateCursor(
-                                        cursor,
-                                        expectedMediaCollectionId,
-                                        expectedHonoredArgs,
-                                        tokens);
-
-
+                    try (PickerDbFacade.DbWriteOperation operation =
+                                 beginPagedOperation(op, authority, albumId)) {
                         int writeCount = operation.execute(cursor);
 
-                        totalRowcount += writeCount;
+                        if (!isLocal) {
+                            // Ensure the cloud provider hasn't change out from underneath the
+                            // running sync. If it has, we need to stop syncing.
+                            String currentCloudProvider = getCloudProvider();
+                            if (TextUtils.isEmpty(currentCloudProvider)
+                                    || !currentCloudProvider.equals(authority)) {
 
-                        // Before the cursor is closed pull the date taken ms for the first row.
-                        updateDateTakenMs = getFirstDateTakenMsInCursor(cursor);
-                    }
-
-                    if (!isLocal) {
-                        // Ensure the cloud provider hasn't change out from underneath the running
-                        // sync. If it has, we need to stop syncing.
-                        String currentCloudProvider = getCloudProvider();
-                        if (TextUtils.isEmpty(currentCloudProvider)
-                                || !currentCloudProvider.equals(authority)) {
-
-                            throw new RequestObsoleteException(
-                                    String.format(
-                                            "Aborting sync: the CloudProvider seems to have changed"
-                                                    + " mid-sync. Old: %s Current: %s",
-                                            authority, currentCloudProvider));
+                                throw new RequestObsoleteException(
+                                        String.format(
+                                                "Aborting sync: the CloudProvider seems to have"
+                                                        + " changed mid-sync. Old: %s Current: %s",
+                                                authority, currentCloudProvider));
+                            }
                         }
+
+                        operation.setSuccess();
+                        totalRowcount += writeCount;
                     }
 
-                    operation.setSuccess();
-
+                    // Before the cursor is closed pull the date taken ms for the first row.
+                    updateDateTakenMs = getFirstDateTakenMsInCursor(cursor);
                 } catch (IllegalArgumentException ex) {
-                    Log.e(TAG, String.format("Failed to open DbWriteOperation for op: %d", op), ex);
+                    Log.e(TAG, String.format("Failed to open DbWriteOperation for op: %d", op),
+                            ex);
                     return -1;
                 }
 

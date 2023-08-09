@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"வீடியோவைப் பிளே செய்வதில் சிக்கல்"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"உங்கள் இணைய இணைப்பைச் சரிபார்த்துவிட்டு மீண்டும் முயலவும்"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"மீண்டும் முயல்க"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"கிளவுட் மீடியா <xliff:g id="PKG_NAME">%1$s</xliff:g> ஆப்ஸில் தற்போது கிடைக்கிறது"</string>
     <string name="not_selected" msgid="2244008151669896758">"தேர்ந்தெடுக்கப்படவில்லை"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> / <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> தயாராக உள்ளது"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"காப்புப் பிரதி எடுக்கப்பட்ட படங்கள் இப்போது சேர்க்கப்பட்டுள்ளன"</string>
@@ -107,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ஆப்ஸைத் தேர்வுசெய்க"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"கணக்கைத் தேர்வுசெய்க"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"கணக்கை மாற்று"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"உங்கள் படங்கள் அனைத்தையும் பெறுகிறது"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{இந்த ஆடியோ ஃபைலில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}other{<xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ஆடியோ ஃபைலை மாற்றியமைக்கிறது…}other{<xliff:g id="COUNT">^1</xliff:g> ஆடியோ ஃபைல்களை மாற்றியமைக்கிறது…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{இந்த வீடியோவில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}other{<xliff:g id="COUNT">^2</xliff:g> வீடியோக்களில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}}"</string>

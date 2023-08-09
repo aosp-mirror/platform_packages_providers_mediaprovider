@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"ვიდეოს იკვრება პრობლემურად"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"შეამოწმეთ ინტერნეტთან კავშირი და სცადეთ ხელახლა"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ცდა"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ღრუბლოვანი მედია უკვე ხელმისაწვდომია <xliff:g id="PKG_NAME">%1$s</xliff:g>-ისგან"</string>
     <string name="not_selected" msgid="2244008151669896758">"არ არის არჩეული"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> სულ <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>-დან მზადაა"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ფოტოების სარეზერვო ასლები ახლა განთავსებულია"</string>
@@ -107,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"აპის არჩევა"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"აირჩიეთ ანგარიში"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ანგარიშის შეცვლა"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"თქვენი ყველა ფოტოს მიღება"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{აძლევთ უფლებას <xliff:g id="APP_NAME_0">^1</xliff:g>-ს, შეცვალოს ეს აუდიოფაილი?}other{აძლევთ უფლებას <xliff:g id="APP_NAME_1">^1</xliff:g>-ს, შეცვალოს <xliff:g id="COUNT">^2</xliff:g> აუდიოფაილი?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{მიმდინარეობს აუდიოფაილის მოდიფიკაცია…}other{მიმდინარეობს <xliff:g id="COUNT">^1</xliff:g> აუდიოფაილის მოდიფიკაცია…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{აძლევთ უფლებას <xliff:g id="APP_NAME_0">^1</xliff:g>-ს, შეცვალოს ეს ვიდეო?}other{აძლევთ უფლებას <xliff:g id="APP_NAME_1">^1</xliff:g>-ს, შეცვალოს <xliff:g id="COUNT">^2</xliff:g> ვიდეო?}}"</string>

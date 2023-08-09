@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"වීඩියෝව වාදනය කිරීමේ ගැටලුවකි"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ඔබේ අන්තර්ජාල සබැඳුම පරීක්ෂා කර නැවත උත්සාහ කරන්න"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"යළි උත්සාහ කරන්න"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ක්ලවුඩ් මාධ්‍ය දැන් <xliff:g id="PKG_NAME">%1$s</xliff:g> වෙතින් ලබා ගත හැකිය"</string>
     <string name="not_selected" msgid="2244008151669896758">"තෝරා නොමැත"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>කින් <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>ක් සූදානම්"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"උපස්ථ කළ ඡායාරූප දැන් ඇතුළත් කර ඇත"</string>
@@ -107,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"යෙදුම තෝරා ගන්න"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ගිණුම තෝරා ගන්න"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ගිණුම වෙනස් කරන්න"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"ඔබේ සියලු ඡායාරූප ලබා ගැනීම"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> හට මෙම ශ්‍රව්‍ය ගොනුව වෙනස් කිරීමට ඉඩ දෙන්නද?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> හට ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> හට ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ශ්‍රව්‍ය ගොනුව වෙනස් කරමින්…}one{ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^1</xliff:g>ක් වෙනස් කරමින්…}other{ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^1</xliff:g>ක් වෙනස් කරමින්…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> හට මෙම වීඩියෝව වෙනස් කිරීමට ඉඩ දෙන්නද?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> හට වීඩියෝ <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> හට වීඩියෝ <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}}"</string>

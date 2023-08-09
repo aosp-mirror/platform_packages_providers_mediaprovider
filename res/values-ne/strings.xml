@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"भिडियो प्ले गर्दा समस्या भयो"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"इन्टरनेट जाँच्नुहोस् र फेरि प्रयास गर्नुहोस्"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"फेरि प्रयास गर्नुहोस्"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"क्लाउड मिडिया अब <xliff:g id="PKG_NAME">%1$s</xliff:g> मा उपलब्ध छ"</string>
     <string name="not_selected" msgid="2244008151669896758">"चयन गरिएको छैन"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> मध्ये <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> वटा फोटो तयार छन्"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"अब ब्याकअप गरिएका फोटोहरू समावेश गरिएका छन्"</string>
@@ -107,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"एप छनौट गर्नुहोस्"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"खाता छनौट गर्नुहोस्"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"खाता बदल्नुहोस्"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"तपाईंका सबै फोटोहरू प्राप्त गरिँदै छन्"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो अडियो फाइल परिमार्जन गर्न दिने हो?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> लाई <xliff:g id="COUNT">^2</xliff:g> वटा अडियो फाइल परिमार्जन गर्न दिने हो?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{अडियो फाइल परिमार्जन गरिँदै छ…}other{<xliff:g id="COUNT">^1</xliff:g> वटा अडियो फाइल परिमार्जन गरिँदै छन्…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो भिडियो परिमार्जन गर्न दिने हो?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> लाई <xliff:g id="COUNT">^2</xliff:g> वटा भिडियो परिमार्जन गर्न दिने हो?}}"</string>

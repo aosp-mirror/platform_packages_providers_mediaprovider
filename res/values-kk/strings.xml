@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Бейнені ойнату кезінде қиындық туындады"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Интернет байланысын тексеріп, әрекетті қайталаңыз."</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Қайталау"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Бұлтқа сақталған медиафайл енді <xliff:g id="PKG_NAME">%1$s</xliff:g> қолданбасында қолжетімді."</string>
     <string name="not_selected" msgid="2244008151669896758">"таңдалмаған"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>/<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> дайын"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Сақтық көшірмесі жасалған фотосуреттер қосылды"</string>
@@ -107,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Қолданба таңдау"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Аккаунт таңдау"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Аккаунтты өзгерту"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Барлық сурет алынып жатыр."</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> қолданбасына осы аудиофайлды өзгертуге рұқсат етілсін бе?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> қолданбасына <xliff:g id="COUNT">^2</xliff:g> аудиофайлды өзгертуге рұқсат етілсін бе?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Аудиофайл өзгертілуде…}other{<xliff:g id="COUNT">^1</xliff:g> аудиофайл өзгертілуде…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> қолданбасына осы бейнені өзгертуге рұқсат етілсін бе?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> қолданбасына <xliff:g id="COUNT">^2</xliff:g> бейнені өзгертуге рұқсат етілсін бе?}}"</string>

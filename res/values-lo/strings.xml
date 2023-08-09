@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"ບັນຫາໃນການຫຼິ້ນວິດີໂອ"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ກະລຸນາກວດສອບການເຊື່ອມຕໍ່ອິນເຕີເນັດຂອງທ່ານແລ້ວລອງໃໝ່"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ລອງໃໝ່"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ຕອນນີ້ສາມາດໃຊ້ມີເດຍຄລາວຈາກ <xliff:g id="PKG_NAME">%1$s</xliff:g> ໄດ້ແລ້ວ"</string>
     <string name="not_selected" msgid="2244008151669896758">"ບໍ່ໄດ້ເລືອກ"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"ພ້ອມແລ້ວ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> ຈາກທັງໝົດ <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ຕອນນີ້ຮວມຮູບພາບທີ່ສຳຮອງຂໍ້ມູນໄວ້ແລ້ວ"</string>
@@ -107,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ເລືອກແອັບ"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ເລືອກບັນຊີ"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ປ່ຽນບັນຊີ"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"ກຳລັງໂຫຼດຮູບພາບທັງໝົດຂອງທ່ານ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_0">^1</xliff:g> ແກ້ໄຂໄຟລ໌ສຽງນີ້ບໍ?}other{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_1">^1</xliff:g> ແກ້ໄຂໄຟລ໌ສຽງ <xliff:g id="COUNT">^2</xliff:g> ໄຟລ໌ບໍ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ກຳລັງແກ້ໄຂໄຟລ໌ສຽງ…}other{ກຳລັງແກ້ໄຂໄຟລ໌ສຽງ <xliff:g id="COUNT">^1</xliff:g> ໄຟລ໌…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_0">^1</xliff:g> ແກ້ໄຂວິດີໂອນີ້ບໍ?}other{ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_1">^1</xliff:g> ແກ້ໄຂວິດີໂອ <xliff:g id="COUNT">^2</xliff:g> ລາຍການບໍ?}}"</string>

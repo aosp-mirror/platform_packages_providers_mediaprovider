@@ -1111,8 +1111,7 @@ public class PickerDbFacadeTest {
                 new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
         try (Cursor cr =
                      mFacade.queryAlbumMediaForUi(
-                             localQfb.setAlbumId(ALBUM_ID)
-                                     .build(), LOCAL_PROVIDER, /* validateAlbumAuthority */ true)) {
+                             localQfb.setAlbumId(ALBUM_ID).build(), LOCAL_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertThrows(
@@ -1130,8 +1129,7 @@ public class PickerDbFacadeTest {
                 new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
         try (Cursor cr =
                      mFacade.queryAlbumMediaForUi(
-                             cloudQfb.setAlbumId(ALBUM_ID)
-                                     .build(), CLOUD_PROVIDER, /* validateAlbumAuthority */ true)) {
+                             cloudQfb.setAlbumId(ALBUM_ID).build(), CLOUD_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertThrows(
@@ -1585,8 +1583,7 @@ public class PickerDbFacadeTest {
         final String authority = isLocal ? LOCAL_PROVIDER : CLOUD_PROVIDER;
 
         return mFacade.queryAlbumMediaForUi(
-                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId)
-                        .build(), authority, /* validateAlbumAuthority */ true);
+                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId).build(), authority);
     }
 
     private void assertAddMediaOperation(String authority, Cursor cursor, int writeCount) {

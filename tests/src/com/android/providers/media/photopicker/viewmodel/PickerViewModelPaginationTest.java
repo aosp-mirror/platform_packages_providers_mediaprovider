@@ -18,6 +18,8 @@ package com.android.providers.media.photopicker.viewmodel;
 
 import static android.provider.MediaStore.VOLUME_EXTERNAL;
 
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
+
 import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
@@ -43,10 +45,8 @@ import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
 import androidx.lifecycle.LiveData;
-import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.ConfigStore;
 import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.DataLoaderThread;
@@ -80,15 +80,12 @@ public class PickerViewModelPaginationTest {
     private Application mApplication;
 
     private PickerViewModel mPickerViewModel;
-    private TestConfigStore mConfigStore;
 
-    private static final Instrumentation sInstrumentation =
-            InstrumentationRegistry.getInstrumentation();
+    private static final Instrumentation sInstrumentation = getInstrumentation();
     private static final Context sTargetContext = sInstrumentation.getTargetContext();
 
     private static final String TAG = "PickerViewModelTest";
     private ContentResolver mIsolatedResolver;
-    private ItemsProvider mItemsProvider;
 
     public PickerViewModelPaginationTest() {
 
@@ -103,26 +100,26 @@ public class PickerViewModelPaginationTest {
                 Manifest.permission.INTERACT_ACROSS_USERS);
         MockitoAnnotations.initMocks(this);
 
-        mConfigStore = new TestConfigStore();
-        mConfigStore.enableCloudMediaFeature();
+        final TestConfigStore testConfigStore = new TestConfigStore();
+        testConfigStore.enableCloudMediaFeature();
 
         final Context isolatedContext = new IsolatedContext(sTargetContext, /* tag */ "databases",
-                /* asFuseThread */ false, sTargetContext.getUser(), mConfigStore);
+                /* asFuseThread */ false, sTargetContext.getUser(), testConfigStore);
         when(mApplication.getApplicationContext()).thenReturn(isolatedContext);
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+        sInstrumentation.runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
                 @Override
-                protected ConfigStore getConfigStore() {
-                    return mConfigStore;
+                protected void initConfigStore() {
+                    setConfigStore(testConfigStore);
                 }
             };
         });
-        UserIdManager userIdManager = mock(UserIdManager.class);
+        final UserIdManager userIdManager = mock(UserIdManager.class);
         when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
         mPickerViewModel.setUserIdManager(userIdManager);
         mIsolatedResolver = isolatedContext.getContentResolver();
-        mItemsProvider = new ItemsProvider(isolatedContext);
-        mPickerViewModel.setItemsProvider(mItemsProvider);
+        final ItemsProvider itemsProvider = new ItemsProvider(isolatedContext);
+        mPickerViewModel.setItemsProvider(itemsProvider);
         mPickerViewModel.clearItemsAndCategoryItemsList();
     }
 

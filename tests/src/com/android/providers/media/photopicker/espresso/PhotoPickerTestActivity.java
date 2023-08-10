@@ -21,24 +21,31 @@ import static org.mockito.Mockito.mock;
 
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.UiEventLogger;
+import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 public class PhotoPickerTestActivity extends PhotoPickerActivity {
+    private final TestConfigStore mConfigStore = new TestConfigStore();
     private final UiEventLogger mLogger = mock(UiEventLogger.class, RETURNS_SMART_NULLS);
     private InstanceId mInstanceId;
 
     @Override
     protected PickerViewModel getOrCreateViewModel() {
         PickerViewModel pickerViewModel = super.getOrCreateViewModel();
+        pickerViewModel.setConfigStore(mConfigStore);
         pickerViewModel.setItemsProvider(new ItemsProvider(
                 PhotoPickerBaseTest.getIsolatedContext()));
         pickerViewModel.setUserIdManager(PhotoPickerBaseTest.getMockUserIdManager());
         pickerViewModel.setLogger(new PhotoPickerUiEventLogger(mLogger));
         mInstanceId = pickerViewModel.getInstanceId();
         return pickerViewModel;
+    }
+
+    TestConfigStore getConfigStore() {
+        return mConfigStore;
     }
 
     UiEventLogger getLogger() {

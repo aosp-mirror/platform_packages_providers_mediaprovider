@@ -21,6 +21,7 @@ import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.m
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewAlbumMediaSyncRequests;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewSyncRequests;
 
+import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.IntDef;
@@ -77,12 +78,17 @@ public class PickerSyncManager {
     private final WorkManager mWorkManager;
 
     public PickerSyncManager(@NonNull WorkManager workManager,
+            @NonNull Context context,
             @NonNull ConfigStore configStore,
-            boolean schedulePeriodicSyncs) {
+            boolean shouldSchedulePeriodicSyncs) {
         mWorkManager = workManager;
 
-        if (schedulePeriodicSyncs && configStore.isCloudMediaInPhotoPickerEnabled()) {
-            schedulePeriodicSyncs();
+        if (configStore.isCloudMediaInPhotoPickerEnabled()) {
+            PickerSyncNotificationHelper.createNotificationChannel(context);
+
+            if (shouldSchedulePeriodicSyncs) {
+                schedulePeriodicSyncs();
+            }
         }
     }
 

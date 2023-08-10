@@ -55,6 +55,7 @@ import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
 import com.android.providers.media.photopicker.sync.PickerSyncManager;
 import com.android.providers.media.photopicker.sync.SyncTracker;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
+import com.android.providers.media.util.ForegroundThread;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -110,7 +111,12 @@ public class PickerDataLayer {
         mLocalProvider = requireNonNull(dbFacade.getLocalProvider());
         mConfigStore = requireNonNull(configStore);
         mSyncManager = new PickerSyncManager(
-                getWorkManager(), configStore, schedulePeriodicSyncs);
+                getWorkManager(), context, configStore, schedulePeriodicSyncs);
+
+        // Add a subscriber to config store changes to monitor the allowlist.
+        mConfigStore.addOnChangeListener(
+                ForegroundThread.getExecutor(),
+                this::validateCurrentCloudProviderOnAllowlistChange);
     }
 
     /**
@@ -185,16 +191,19 @@ public class PickerDataLayer {
                 // The album type here can only be local or cloud because merged categories like,
                 // Favorites and Videos would hit the first condition.
                 // Refresh the 'album_media' table
+                boolean validateAlbumAuthority;
                 if (shouldSyncBeforePickerQuery()) {
+                    validateAlbumAuthority = true;
                     mSyncController.syncAlbumMedia(albumId, isLocal(albumAuthority));
                 } else {
+                    validateAlbumAuthority = false;
                     waitForSync(SyncTrackerRegistry.getAlbumSyncTracker(isLocal(albumAuthority)));
                     Log.i(TAG, "Album sync is complete");
                 }
 
                 // Fetch album specific media for local or cloud from 'album_media' table
                 result = mDbFacade.queryAlbumMediaForUi(
-                        queryExtras.toQueryFilter(), albumAuthority);
+                        queryExtras.toQueryFilter(), albumAuthority, validateAlbumAuthority);
             }
             return result;
         } finally {
@@ -288,7 +297,8 @@ public class PickerDataLayer {
             cursorExtra.putString(MediaStore.EXTRA_LOCAL_PROVIDER, mLocalProvider);
 
             // Favorites and Videos are merged albums.
-            final Cursor mergedAlbums = mDbFacade.getMergedAlbums(queryExtras.toQueryFilter());
+            final Cursor mergedAlbums = mDbFacade.getMergedAlbums(queryExtras.toQueryFilter(),
+                    cloudProvider);
             if (mergedAlbums != null) {
                 cursors.add(mergedAlbums);
             }
@@ -613,5 +623,28 @@ public class PickerDataLayer {
      */
     private boolean shouldSyncBeforePickerQuery() {
         return !mConfigStore.isCloudMediaInPhotoPickerEnabled();
+    }
+
+    /**
+     * Checks the current allowed list of Cloud Provider packages, and ensures that the currently
+     * set provider is a member of the allowlist. In the event the current Cloud Provider is not on
+     * the list, the current Cloud Provider is removed.
+     */
+    private void validateCurrentCloudProviderOnAllowlistChange() {
+
+        List<String> currentAllowlist = mConfigStore.getAllowedCloudProviderPackages();
+        String currentCloudProvider = mSyncController.getCurrentCloudProviderInfo().packageName;
+
+        if (!currentAllowlist.contains(currentCloudProvider)) {
+            Log.d(
+                    TAG,
+                    String.format(
+                            "Cloud provider allowlist was changed, and the current cloud provider"
+                                    + " is no longer on the allowlist."
+                                    + " Allowlist: %s"
+                                    + " Current Provider: %s",
+                            currentAllowlist.toString(), currentCloudProvider));
+            mSyncController.notifyPackageRemoval(currentCloudProvider);
+        }
     }
 }

@@ -20,6 +20,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.res.Resources;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -36,14 +37,6 @@ public class PickerSyncNotificationHelper {
     private static final String TAG = "SyncNotifHelper";
     private static final String NOTIFICATION_CHANNEL_ID = "PhotoPickerSyncChannel";
     private static final int NOTIFICATION_ID = 0;
-
-    // TODO(b/285890649): Finalize with the following config
-    private static final String CHANNEL_NAME = "System Photo Picker";
-    private static final String CHANNEL_DESCRIPTION =
-            "Notifies when System Photo Picker sync is in progress";
-    private static final String NOTIFICATION_TITLE = "System Photo Picker";
-    private static final String NOTIFICATION_TEXT =
-            "Latest photos will be available in Photo Picker shortly";
     private static final int NOTIFICATION_TIMEOUT_MILLIS = 1000;
 
 
@@ -53,15 +46,15 @@ public class PickerSyncNotificationHelper {
      * so it's safe to call this code when starting an app.
      */
     public static void createNotificationChannel(@NonNull Context context) {
-        int importance = NotificationManager.IMPORTANCE_LOW;
+        final String contentTitle = context.getResources()
+                .getString(R.string.picker_sync_notification_channel);
 
-        NotificationChannel channel =
-                new NotificationChannel(NOTIFICATION_CHANNEL_ID, CHANNEL_NAME, importance);
-        channel.setDescription(CHANNEL_DESCRIPTION);
+        final NotificationChannel channel = new NotificationChannel(
+                NOTIFICATION_CHANNEL_ID, contentTitle, NotificationManager.IMPORTANCE_LOW);
         channel.enableLights(false);
         channel.enableVibration(false);
 
-        NotificationManager notificationManager =
+        final NotificationManager notificationManager =
                 context.getSystemService(NotificationManager.class);
         if (notificationManager != null) {
             notificationManager.createNotificationChannel(channel);
@@ -85,10 +78,14 @@ public class PickerSyncNotificationHelper {
      * Create a notification to display when Picker sync is happening.
      */
     private static Notification getNotification(@NonNull Context context) {
+        final Resources resources = context.getResources();
+        final String contentTitle = resources.getString(R.string.picker_sync_notification_title);
+        final String contentText = resources.getString(R.string.picker_sync_notification_text);
+
         return new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_lock)
-                .setContentTitle(NOTIFICATION_TITLE)
-                .setContentText(NOTIFICATION_TEXT)
+                .setSmallIcon(R.drawable.picker_app_icon)
+                .setContentTitle(contentTitle)
+                .setContentText(contentText)
                 .setPriority(NotificationCompat.PRIORITY_MIN)
                 .setVisibility(NotificationCompat.VISIBILITY_SECRET)
                 .setSilent(true)

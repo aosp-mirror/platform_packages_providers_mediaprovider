@@ -15,7 +15,6 @@
  */
 package com.android.providers.media.photopicker.ui;
 
-import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
@@ -44,7 +43,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -487,11 +485,10 @@ public class PhotosTabFragment extends TabFragment {
             mProgressBar.setVisibility(View.VISIBLE);
         }
     }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
         mMainThreadHandler.removeCallbacksAndMessages(mHideProgressBarToken);
-        // Clear queued tasks in handler.
-        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
     }
 }

@@ -780,8 +780,7 @@ public class PickerDbFacade {
             cloudProvider = mCloudProvider;
         }
 
-        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_MEDIA, cloudProvider,
-                /* validateAuthority */ true);
+        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_MEDIA, cloudProvider);
     }
 
     /**
@@ -795,14 +794,11 @@ public class PickerDbFacade {
      * The result is sorted in reverse chronological order, i.e. newest first, up to a maximum of
      * {@code limit}. They can also be filtered with {@code query}.
      */
-    public Cursor queryAlbumMediaForUi(@NonNull QueryFilter query,
-            @NonNull String authority,
-            boolean validateAlbumAuthority) {
+    public Cursor queryAlbumMediaForUi(@NonNull QueryFilter query, @NonNull String authority) {
         final SQLiteQueryBuilder qb = createAlbumMediaQueryBuilder(isLocal(authority));
         final String[] selectionArgs = buildSelectionArgs(qb, query);
 
-        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_ALBUM_MEDIA, authority,
-                validateAlbumAuthority);
+        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_ALBUM_MEDIA, authority);
     }
 
     /**
@@ -918,7 +914,7 @@ public class PickerDbFacade {
      * Returns sorted and deduped cloud and local media or album content items from the picker db.
      */
     private Cursor queryMediaForUi(SQLiteQueryBuilder qb, String[] selectionArgs,
-            int limit, String tableName, String authority, boolean validateAuthority) {
+            int limit, String tableName, String authority) {
         // Use the <table>.<column> form to order _id to avoid ordering against the projection '_id'
         final String orderBy = getOrderClause(tableName);
         final String limitStr = String.valueOf(limit);
@@ -927,8 +923,7 @@ public class PickerDbFacade {
         // the cloud provider is consistent with the cursor results and doesn't race with
         // #setCloudProvider
         synchronized (mLock) {
-            if (validateAuthority
-                    && (mCloudProvider == null || !Objects.equals(mCloudProvider, authority))) {
+            if (mCloudProvider == null || !Objects.equals(mCloudProvider, authority)) {
                 // TODO(b/278086344): If cloud provider is null or has changed from what we received
                 //  from the UI, skip all cloud items in the picker db.
                 qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);

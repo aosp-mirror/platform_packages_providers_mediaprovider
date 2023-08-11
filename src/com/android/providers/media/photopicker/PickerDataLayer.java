@@ -191,19 +191,16 @@ public class PickerDataLayer {
                 // The album type here can only be local or cloud because merged categories like,
                 // Favorites and Videos would hit the first condition.
                 // Refresh the 'album_media' table
-                boolean validateAlbumAuthority;
                 if (shouldSyncBeforePickerQuery()) {
-                    validateAlbumAuthority = true;
                     mSyncController.syncAlbumMedia(albumId, isLocal(albumAuthority));
                 } else {
-                    validateAlbumAuthority = false;
                     waitForSync(SyncTrackerRegistry.getAlbumSyncTracker(isLocal(albumAuthority)));
                     Log.i(TAG, "Album sync is complete");
                 }
 
                 // Fetch album specific media for local or cloud from 'album_media' table
                 result = mDbFacade.queryAlbumMediaForUi(
-                        queryExtras.toQueryFilter(), albumAuthority, validateAlbumAuthority);
+                        queryExtras.toQueryFilter(), albumAuthority);
             }
             return result;
         } finally {

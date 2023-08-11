@@ -89,6 +89,7 @@
 
     <style name="PickerDefaultTheme" parent="@android:style/Theme.DeviceDefault.DayNight">
         <!-- System | Widget section -->
+        <item name="actionOverflowButtonStyle">@style/OverflowButtonStyle</item>
         <item name="android:backgroundDimEnabled">true</item>
         <item name="android:navigationBarColor">@color/picker_background_color</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
@@ -136,6 +137,10 @@
         <item name="android:textSize">@dimen/picker_banner_button_text_size</item>
         <item name="android:letterSpacing">@dimen/picker_banner_button_text_letter_spacing</item>
         <item name="android:textColor">?attr/pickerBannerButtonTextColor</item>
+    </style>
+
+    <style name="OverflowButtonStyle" parent="Widget.AppCompat.ActionButton.Overflow">
+        <item name="android:minWidth">@dimen/button_touch_size</item>
     </style>
 
 </resources>

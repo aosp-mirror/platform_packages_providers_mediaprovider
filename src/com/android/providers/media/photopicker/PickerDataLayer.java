@@ -65,6 +65,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -82,6 +84,14 @@ public class PickerDataLayer {
     public static final String QUERY_DATE_TAKEN_BEFORE_MS = "android:query-date-taken-before-ms";
 
     public static final String QUERY_ROW_ID = "android:query-row-id";
+
+    // Thread pool size should be at least equal to the number of unique work requests in
+    // {@link PickerSyncManager} to ensure that any request type is not blocked on other request
+    // types. It is advisable to use unique work requests because in case the number of queued
+    // requests grows, they should not block other work requests.
+    private static final int WORK_MANAGER_THREAD_POOL_SIZE = 5;
+    @Nullable
+    private static volatile Executor sWorkManagerExecutor;
 
     @NonNull
     private final Context mContext;
@@ -606,9 +616,22 @@ public class PickerDataLayer {
 
     @NonNull
     private static Configuration getWorkManagerConfiguration() {
+        ensureWorkManagerExecutor();
         return new Configuration.Builder()
                 .setMinimumLoggingLevel(Log.INFO)
+                .setExecutor(sWorkManagerExecutor)
                 .build();
+    }
+
+    private static void ensureWorkManagerExecutor() {
+        if (sWorkManagerExecutor == null) {
+            synchronized (PickerDataLayer.class) {
+                if (sWorkManagerExecutor == null) {
+                    sWorkManagerExecutor = Executors
+                            .newFixedThreadPool(WORK_MANAGER_THREAD_POOL_SIZE);
+                }
+            }
+        }
     }
 
     /**

@@ -42,7 +42,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -72,9 +71,28 @@ public class PickerSyncManager {
     static final String SYNC_WORKER_INPUT_SYNC_SOURCE = "INPUT_SYNC_TYPE";
     static final String SYNC_WORKER_INPUT_ALBUM_ID = "INPUT_ALBUM_ID";
     private static final int SYNC_MEDIA_PERIODIC_WORK_INTERVAL = 4; // Time unit is hours.
-    private static final String SYNC_MEDIA_PERIODIC_SYNC_PREFIX = "SYNC_MEDIA_PERIODIC_";
-    private static final String SYNC_MEDIA_PROACTIVE_WORK_PREFIX = "SYNC_MEDIA_PROACTIVE_";
-    private static final String SYNC_ALL_WORK_SUFFIX = "ALL";
+
+    private static final String PERIODIC_SYNC_WORK_NAME;
+    private static final String PROACTIVE_SYNC_WORK_NAME;
+    private static final String IMMEDIATE_LOCAL_SYNC_WORK_NAME;
+    private static final String IMMEDIATE_CLOUD_SYNC_WORK_NAME;
+    private static final String IMMEDIATE_ALBUM_SYNC_WORK_NAME;
+
+    static {
+        final String syncPeriodicPrefix = "SYNC_MEDIA_PERIODIC_";
+        final String syncProactivePrefix = "SYNC_MEDIA_PROACTIVE_";
+        final String syncImmediatePrefix = "SYNC_MEDIA_IMMEDIATE_";
+        final String syncAllSuffix = "ALL";
+        final String syncLocalSuffix = "LOCAL";
+        final String syncCloudSuffix = "CLOUD";
+
+        PERIODIC_SYNC_WORK_NAME = syncPeriodicPrefix + syncAllSuffix;
+        PROACTIVE_SYNC_WORK_NAME = syncProactivePrefix + syncAllSuffix;
+        IMMEDIATE_LOCAL_SYNC_WORK_NAME = syncImmediatePrefix + syncLocalSuffix;
+        IMMEDIATE_CLOUD_SYNC_WORK_NAME = syncImmediatePrefix + syncCloudSuffix;
+        IMMEDIATE_ALBUM_SYNC_WORK_NAME = "SYNC_ALBUM_MEDIA_IMMEDIATE";
+    }
+
     private final WorkManager mWorkManager;
 
     public PickerSyncManager(@NonNull WorkManager workManager,
@@ -102,9 +120,9 @@ public class PickerSyncManager {
         try {
             // Note that the first execution of periodic work happens immediately or as soon as the
             // given Constraints are met.
-            Operation enqueueOperation = mWorkManager
+            final Operation enqueueOperation = mWorkManager
                     .enqueueUniquePeriodicWork(
-                            SYNC_MEDIA_PERIODIC_SYNC_PREFIX + SYNC_ALL_WORK_SUFFIX,
+                            PERIODIC_SYNC_WORK_NAME,
                             ExistingPeriodicWorkPolicy.KEEP,
                             periodicSyncRequest
                     );
@@ -125,10 +143,9 @@ public class PickerSyncManager {
                 new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD));
         final OneTimeWorkRequest syncRequest = getOneTimeProactiveSyncRequest(inputData);
 
-        final String workName = SYNC_MEDIA_PROACTIVE_WORK_PREFIX + SYNC_ALL_WORK_SUFFIX;
         try {
-            Operation enqueueOperation = mWorkManager
-                    .enqueueUniqueWork(workName, ExistingWorkPolicy.KEEP, syncRequest);
+            final Operation enqueueOperation = mWorkManager.enqueueUniqueWork(
+                    PROACTIVE_SYNC_WORK_NAME, ExistingWorkPolicy.KEEP, syncRequest);
 
             // Check that the request has been successfully enqueued.
             enqueueOperation.getResult().get();
@@ -145,27 +162,26 @@ public class PickerSyncManager {
      *                                local and cloud provider.
      */
     public void syncMediaImmediately(boolean shouldSyncLocalOnlyData) {
-        if (shouldSyncLocalOnlyData) {
-            syncMediaImmediately(PickerSyncManager.SYNC_LOCAL_ONLY);
-        } else {
-            syncMediaImmediately(PickerSyncManager.SYNC_LOCAL_AND_CLOUD);
+        syncMediaImmediately(PickerSyncManager.SYNC_LOCAL_ONLY, IMMEDIATE_LOCAL_SYNC_WORK_NAME);
+        if (!shouldSyncLocalOnlyData) {
+            syncMediaImmediately(PickerSyncManager.SYNC_CLOUD_ONLY, IMMEDIATE_CLOUD_SYNC_WORK_NAME);
         }
     }
 
     /**
      * Use this method for reactive syncs with either, local and cloud providers, or both.
      */
-    private void syncMediaImmediately(@SyncSource int syncSource) {
+    private void syncMediaImmediately(@SyncSource int syncSource, @NonNull String workName) {
         final Data inputData = new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, syncSource));
         final OneTimeWorkRequest syncRequest = getImmediateSyncRequest(inputData);
 
         // Track the new sync request(s)
         trackNewSyncRequests(syncSource, syncRequest.getId());
 
-        // Enqueue local sync then cloud sync requests
+        // Enqueue local or cloud sync request
         try {
             final Operation enqueueOperation = mWorkManager
-                    .enqueue(Collections.singletonList(syncRequest));
+                    .enqueueUniqueWork(workName, ExistingWorkPolicy.APPEND_OR_REPLACE, syncRequest);
 
             // Check that the request has been successfully enqueued.
             enqueueOperation.getResult().get();
@@ -207,10 +223,12 @@ public class PickerSyncManager {
         trackNewAlbumMediaSyncRequests(syncSource, syncRequest.getId());
 
 
-        // Enqueue local sync then cloud sync requests
+        // Enqueue local or cloud sync requests
         try {
-            final Operation enqueueOperation = mWorkManager
-                    .enqueue(Collections.singletonList(syncRequest));
+            final Operation enqueueOperation = mWorkManager.enqueueUniqueWork(
+                    IMMEDIATE_ALBUM_SYNC_WORK_NAME,
+                    ExistingWorkPolicy.APPEND_OR_REPLACE,
+                    syncRequest);
 
             // Check that the request has been successfully enqueued.
             enqueueOperation.getResult().get();
@@ -255,7 +273,6 @@ public class PickerSyncManager {
 
     @NotNull
     private static Constraints getProactiveSyncConstraints() {
-        // TODO these constraints are not finalised.
         return new Constraints.Builder()
                 .setRequiresBatteryNotLow(true)
                 .build();

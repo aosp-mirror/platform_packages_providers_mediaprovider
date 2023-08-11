@@ -67,8 +67,6 @@ public class PickerSyncManagerTest {
     ArgumentCaptor<PeriodicWorkRequest> mPeriodicWorkRequestArgumentCaptor;
     @Captor
     ArgumentCaptor<OneTimeWorkRequest> mOneTimeWorkRequestArgumentCaptor;
-    @Captor
-    ArgumentCaptor<List<WorkRequest>> mWorkRequestListArgumentCaptor;
 
     @Before
     public void setUp() {
@@ -128,11 +126,9 @@ public class PickerSyncManagerTest {
 
         mPickerSyncManager.syncMediaImmediately(true);
         verify(mMockWorkManager, times(1))
-                .enqueue(mWorkRequestListArgumentCaptor.capture());
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
-        final List<WorkRequest> workRequestList = mWorkRequestListArgumentCaptor.getValue();
-        assertThat(workRequestList.size()).isEqualTo(1);
-        WorkRequest workRequest = workRequestList.get(0);
+        final OneTimeWorkRequest workRequest = mOneTimeWorkRequestArgumentCaptor.getValue();
         assertThat(workRequest.getWorkSpec().workerClassName)
                 .isEqualTo(ImmediateSyncWorker.class.getName());
         assertThat(workRequest.getWorkSpec().expedited).isTrue();
@@ -149,21 +145,34 @@ public class PickerSyncManagerTest {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
         mPickerSyncManager.syncMediaImmediately(false);
-        verify(mMockWorkManager, times(1))
-                .enqueue(mWorkRequestListArgumentCaptor.capture());
+        verify(mMockWorkManager, times(2))
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
-        final List<WorkRequest> workRequestList = mWorkRequestListArgumentCaptor.getValue();
-        assertThat(workRequestList.size()).isEqualTo(1);
-        WorkRequest workRequest = workRequestList.get(0);
-        assertThat(workRequest.getWorkSpec().workerClassName)
+        final List<OneTimeWorkRequest> workRequestList =
+                mOneTimeWorkRequestArgumentCaptor.getAllValues();
+        assertThat(workRequestList.size()).isEqualTo(2);
+
+        WorkRequest localWorkRequest = workRequestList.get(0);
+        assertThat(localWorkRequest.getWorkSpec().workerClassName)
                 .isEqualTo(ImmediateSyncWorker.class.getName());
-        assertThat(workRequest.getWorkSpec().expedited).isTrue();
-        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
-        assertThat(workRequest.getWorkSpec().id).isNotNull();
-        assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
-        assertThat(workRequest.getWorkSpec().input
+        assertThat(localWorkRequest.getWorkSpec().expedited).isTrue();
+        assertThat(localWorkRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(localWorkRequest.getWorkSpec().id).isNotNull();
+        assertThat(localWorkRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
+        assertThat(localWorkRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
-                .isEqualTo(SYNC_LOCAL_AND_CLOUD);
+                .isEqualTo(SYNC_LOCAL_ONLY);
+
+        WorkRequest cloudWorkRequest = workRequestList.get(1);
+        assertThat(cloudWorkRequest.getWorkSpec().workerClassName)
+                .isEqualTo(ImmediateSyncWorker.class.getName());
+        assertThat(cloudWorkRequest.getWorkSpec().expedited).isTrue();
+        assertThat(cloudWorkRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(cloudWorkRequest.getWorkSpec().id).isNotNull();
+        assertThat(cloudWorkRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
+        assertThat(cloudWorkRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_CLOUD_ONLY);
     }
 
     @Test
@@ -172,11 +181,9 @@ public class PickerSyncManagerTest {
 
         mPickerSyncManager.syncAlbumMediaForProviderImmediately("Not_null", true);
         verify(mMockWorkManager, times(1))
-                .enqueue(mWorkRequestListArgumentCaptor.capture());
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
-        final List<WorkRequest> workRequestList = mWorkRequestListArgumentCaptor.getValue();
-        assertThat(workRequestList.size()).isEqualTo(1);
-        WorkRequest workRequest = workRequestList.get(0);
+        final OneTimeWorkRequest workRequest = mOneTimeWorkRequestArgumentCaptor.getValue();
         assertThat(workRequest.getWorkSpec().workerClassName)
                 .isEqualTo(ImmediateAlbumSyncWorker.class.getName());
         assertThat(workRequest.getWorkSpec().expedited).isTrue();
@@ -194,11 +201,9 @@ public class PickerSyncManagerTest {
 
         mPickerSyncManager.syncAlbumMediaForProviderImmediately("Not_null", false);
         verify(mMockWorkManager, times(1))
-                .enqueue(mWorkRequestListArgumentCaptor.capture());
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
-        final List<WorkRequest> workRequestList = mWorkRequestListArgumentCaptor.getValue();
-        assertThat(workRequestList.size()).isEqualTo(1);
-        WorkRequest workRequest = workRequestList.get(0);
+        final OneTimeWorkRequest workRequest = mOneTimeWorkRequestArgumentCaptor.getValue();
         assertThat(workRequest.getWorkSpec().workerClassName)
                 .isEqualTo(ImmediateAlbumSyncWorker.class.getName());
         assertThat(workRequest.getWorkSpec().expedited).isTrue();

@@ -840,7 +840,15 @@ public class PhotoPickerActivity extends AppCompatActivity {
      * Reset to Photo Picker initial launch state (Photos grid tab) in personal profile mode.
      */
     private void resetToPersonalProfile() {
+        // Clear all the fragments in the FragmentManager
+        final FragmentManager fragmentManager = getSupportFragmentManager();
+        fragmentManager.popBackStackImmediate(/* name */ null,
+                FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+        // Reset all content to the personal profile
         mPickerViewModel.resetToPersonalProfile();
+
+        // Set up the fragments same as the initial launch state
         setupInitialLaunchState();
     }
 
@@ -848,7 +856,15 @@ public class PhotoPickerActivity extends AppCompatActivity {
      * Reset to Photo Picker initial launch state (Photos grid tab) in the current profile mode.
      */
     private void resetInCurrentProfile() {
+        // Clear all the fragments in the FragmentManager
+        final FragmentManager fragmentManager = getSupportFragmentManager();
+        fragmentManager.popBackStackImmediate(/* name */ null,
+                FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+        // Reset all content in the current profile
         mPickerViewModel.resetAllContentInCurrentProfile();
+
+        // Set up the fragments same as the initial launch state
         setupInitialLaunchState();
     }
 
@@ -978,11 +994,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         }
 
         private void switchToPersonalProfileInitialLaunchState() {
-            final FragmentManager fragmentManager = getSupportFragmentManager();
-            // Clear all back stacks in FragmentManager
-            fragmentManager.popBackStackImmediate(/* name */ null,
-                    FragmentManager.POP_BACK_STACK_INCLUSIVE);
-
             // We reset the state of the PhotoPicker as we do not want to make any
             // assumptions on the state of the PhotoPicker when it was in Work Profile mode.
             resetToPersonalProfile();

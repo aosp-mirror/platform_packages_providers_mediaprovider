@@ -132,11 +132,6 @@ public class DatabaseBackupAndRecovery {
     };
 
     /**
-     * Wait time of 5 seconds in millis.
-     */
-    private static final long WAIT_TIME_5_SECONDS_IN_MILLIS = 5000;
-
-    /**
      * Wait time of 10 seconds in millis.
      */
     private static final long WAIT_TIME_10_SECONDS_IN_MILLIS = 10000;
@@ -234,8 +229,7 @@ public class DatabaseBackupAndRecovery {
             if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
                 new File(RECOVERY_DIRECTORY_PATH).mkdirs();
             }
-            FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(volumePath,
-                    WAIT_TIME_5_SECONDS_IN_MILLIS);
+            FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(volumePath);
             Log.d(TAG, "Received db backup Fuse Daemon for: " + volumeName);
             fuseDaemon.setupVolumeDbBackup();
             mIsBackupSetupComplete.set(true);
@@ -264,6 +258,11 @@ public class DatabaseBackupAndRecovery {
         final String fuseDaemonFilePath = getFuseDaemonFilePath(filePath);
         try {
             final String data = getFuseDaemonForPath(fuseDaemonFilePath).readBackedUpData(filePath);
+            if (data == null || data.isEmpty()) {
+                Log.w(TAG, "No backup found for path: " + filePath);
+                return Optional.empty();
+            }
+
             return Optional.of(BackupIdRow.deserialize(data));
         } catch (Exception e) {
             Log.e(TAG, "Failure in getting backed up data for filePath: " + filePath, e);
@@ -325,8 +324,7 @@ public class DatabaseBackupAndRecovery {
 
         FuseDaemon fuseDaemon;
         try {
-            fuseDaemon = getFuseDaemonForFileWithWait(new File(EXTERNAL_PRIMARY_ROOT_PATH),
-                    WAIT_TIME_5_SECONDS_IN_MILLIS);
+            fuseDaemon = getFuseDaemonForFileWithWait(new File(EXTERNAL_PRIMARY_ROOT_PATH));
         } catch (FileNotFoundException e) {
             Log.e(TAG,
                     "Fuse Daemon not found for primary external storage, skipping backing up of "
@@ -807,7 +805,7 @@ public class DatabaseBackupAndRecovery {
         // Wait for external primary to be attached as we use same thread for internal volume.
         // Maximum wait for 10s
         try {
-            getFuseDaemonForFileWithWait(new File(fuseFilePath), WAIT_TIME_10_SECONDS_IN_MILLIS);
+            getFuseDaemonForFileWithWait(new File(fuseFilePath));
         } catch (FileNotFoundException e) {
             Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.", e);
             return;
@@ -828,7 +826,7 @@ public class DatabaseBackupAndRecovery {
         while (true) {
             backedUpFilePaths = readBackedUpFilePaths(volumeName, lastReadValue,
                     LEVEL_DB_READ_LIMIT);
-            if (backedUpFilePaths.length <= 0) {
+            if (backedUpFilePaths.length == 0) {
                 break;
             }
 
@@ -868,10 +866,11 @@ public class DatabaseBackupAndRecovery {
         return new File(RECOVERY_DIRECTORY_PATH).exists();
     }
 
-    protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath, long waitTime)
+    protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath)
             throws FileNotFoundException {
         pollForExternalStorageMountedState();
-        return MediaProvider.getFuseDaemonForFileWithWait(fuseFilePath, mVolumeCache, waitTime);
+        return MediaProvider.getFuseDaemonForFileWithWait(fuseFilePath, mVolumeCache,
+                WAIT_TIME_10_SECONDS_IN_MILLIS);
     }
 
     private int getVolumeNameForStatsLog(String volumeName) {
@@ -927,7 +926,6 @@ public class DatabaseBackupAndRecovery {
                     null, null)) {
                 if (c.moveToFirst()) {
                     backupDataValues(fuseDaemon, c);
-                    Log.v(TAG, "Updated backed up row in leveldb");
                     String newPath = c.getString(1);
                     if (oldRow.getPath() != null && !oldRow.getPath().equalsIgnoreCase(newPath)) {
                         // If file path has changed, update leveldb backup to delete old path.

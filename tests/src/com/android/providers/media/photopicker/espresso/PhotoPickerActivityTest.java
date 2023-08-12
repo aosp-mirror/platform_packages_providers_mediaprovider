@@ -319,7 +319,11 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     @Test
     public void testResetOnCloudProviderChange() throws InterruptedException {
         // Enable cloud media feature for the activity through the test config store
-        mScenario.onActivity(activity -> activity.getConfigStore().enableCloudMediaFeature());
+        mScenario.onActivity(
+                activity ->
+                        activity.getConfigStore()
+                                .enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
+                                        "com.hooli.super.awesome.cloud.provider"));
 
         // Switch to the albums tab
         onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))

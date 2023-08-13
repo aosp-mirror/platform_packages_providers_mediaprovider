@@ -49,6 +49,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -779,8 +780,7 @@ public class PickerDbFacade {
             cloudProvider = mCloudProvider;
         }
 
-        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_MEDIA, cloudProvider,
-                /* validateAuthority */ true);
+        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_MEDIA, cloudProvider);
     }
 
     /**
@@ -794,14 +794,11 @@ public class PickerDbFacade {
      * The result is sorted in reverse chronological order, i.e. newest first, up to a maximum of
      * {@code limit}. They can also be filtered with {@code query}.
      */
-    public Cursor queryAlbumMediaForUi(@NonNull QueryFilter query,
-            @NonNull String authority,
-            boolean validateAlbumAuthority) {
+    public Cursor queryAlbumMediaForUi(@NonNull QueryFilter query, @NonNull String authority) {
         final SQLiteQueryBuilder qb = createAlbumMediaQueryBuilder(isLocal(authority));
         final String[] selectionArgs = buildSelectionArgs(qb, query);
 
-        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_ALBUM_MEDIA, authority,
-                validateAlbumAuthority);
+        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_ALBUM_MEDIA, authority);
     }
 
     /**
@@ -917,7 +914,7 @@ public class PickerDbFacade {
      * Returns sorted and deduped cloud and local media or album content items from the picker db.
      */
     private Cursor queryMediaForUi(SQLiteQueryBuilder qb, String[] selectionArgs,
-            int limit, String tableName, String authority, boolean validateAuthority) {
+            int limit, String tableName, String authority) {
         // Use the <table>.<column> form to order _id to avoid ordering against the projection '_id'
         final String orderBy = getOrderClause(tableName);
         final String limitStr = String.valueOf(limit);
@@ -926,8 +923,7 @@ public class PickerDbFacade {
         // the cloud provider is consistent with the cursor results and doesn't race with
         // #setCloudProvider
         synchronized (mLock) {
-            if (validateAuthority
-                    && (mCloudProvider == null || !Objects.equals(mCloudProvider, authority))) {
+            if (mCloudProvider == null || !Objects.equals(mCloudProvider, authority)) {
                 // TODO(b/278086344): If cloud provider is null or has changed from what we received
                 //  from the UI, skip all cloud items in the picker db.
                 qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
@@ -1371,6 +1367,7 @@ public class PickerDbFacade {
             final boolean isLocal = isLocal();
             final String albumId = getAlbumId();
             final SQLiteQueryBuilder qb = createAlbumMediaQueryBuilder(isLocal);
+            final SQLiteQueryBuilder qbMedia = createMediaQueryBuilder();
             int counter = 0;
 
             if (cursor.getCount() > PAGE_SIZE) {
@@ -1416,9 +1413,44 @@ public class PickerDbFacade {
                 } catch (SQLiteConstraintException e) {
                     Log.v(TAG, "Failed to insert album_media. ContentValues: " + values, e);
                 }
+
+                // Check if a Cloud sync is running, and additionally insert this row to media table
+                // if true.
+                maybeInsertFileToMedia(qbMedia, cursor, isLocal);
             }
 
             return counter;
+        }
+
+        /**
+         * Will (possibly) insert this file to the Picker database's media table if there's an
+         * existing Cloud Sync running.
+         *
+         * <p>This is necessary to guarantee it exists in case it is selected by the user. (So that
+         * the pre-loader can load it to the device before the session is closed.)
+         *
+         * @param queryBuilder The media table query builder to use for the insert
+         * @param cursor The current cursor being processed (this method does not advance the
+         *     cursor).
+         * @param isLocal Whether this is the local provider sync or not.
+         */
+        private void maybeInsertFileToMedia(
+                SQLiteQueryBuilder queryBuilder, Cursor cursor, boolean isLocal) {
+            if (SyncTrackerRegistry.getCloudSyncTracker().pendingSyncFutures().size() > 0) {
+                ContentValues values = cursorToContentValue(cursor, isLocal);
+                Log.d(
+                        TAG,
+                        String.format(
+                                "Encountered running Cloud sync during AddAlbumMediaOperation while"
+                                    + " processing row. Will additional insert to media table:  %s",
+                                values));
+                try {
+                    queryBuilder.insert(getDatabase(), values);
+                } catch (SQLiteConstraintException ignored) {
+                    // If we hit a constraint exception it means this row is already in media,
+                    // so nothing to do here.
+                }
+            }
         }
 
         private void updateContentValues(ContentValues values, Cursor cursor) {

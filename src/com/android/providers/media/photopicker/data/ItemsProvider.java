@@ -57,7 +57,7 @@ import java.util.Arrays;
  */
 public class ItemsProvider {
     private static final String TAG = ItemsProvider.class.getSimpleName();
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
     private static final boolean DEBUG_DUMP_CURSORS = false;
 
     private final Context mContext;
@@ -109,14 +109,6 @@ public class ItemsProvider {
             @Nullable String[] mimeTypes,
             @Nullable UserId userId,
             @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
-        if (DEBUG) {
-            Log.d(TAG, "getAllItems() userId=" + userId + " cat=" + category
-                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit="
-                    + pagingParameters.getPageSize() + " dateTakenBeforeMs="
-                    + pagingParameters.getDateBeforeMs() + " rowId=" + pagingParameters.getRowId());
-            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
-        }
-
         Trace.beginSection("ItemsProvider.getAllItems");
         try {
             return queryMedia(URI_MEDIA_ALL, pagingParameters, mimeTypes, category, userId,
@@ -155,14 +147,6 @@ public class ItemsProvider {
             @Nullable String[] mimeTypes,
             @Nullable UserId userId,
             @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
-        if (DEBUG) {
-            Log.d(TAG, "getLocalItems() userId=" + userId + " cat=" + category
-                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit="
-                    + pagingParameters.getPageSize() + " dateTakenBeforeMs="
-                    + pagingParameters.getDateBeforeMs() + " rowId=" + pagingParameters.getRowId());
-            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
-        }
-
         Trace.beginSection("ItemsProvider.getLocalItems");
         try {
             return queryMedia(URI_MEDIA_LOCAL, pagingParameters, mimeTypes, category, userId,
@@ -189,12 +173,6 @@ public class ItemsProvider {
     @Nullable
     public Cursor getAllCategories(@Nullable String[] mimeTypes, @Nullable UserId userId,
             @Nullable CancellationSignal cancellationSignal) {
-        if (DEBUG) {
-            Log.d(TAG, "getAllCategories() userId=" + userId
-                    + " mimeTypes=" + Arrays.toString(mimeTypes));
-            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
-        }
-
         Trace.beginSection("ItemsProvider.getAllCategories");
         try {
             return queryAlbums(URI_ALBUMS_ALL, mimeTypes, userId, cancellationSignal);
@@ -218,12 +196,6 @@ public class ItemsProvider {
     @Nullable
     public Cursor getLocalCategories(@Nullable String[] mimeTypes, @Nullable UserId userId,
             @Nullable CancellationSignal cancellationSignal) {
-        if (DEBUG) {
-            Log.d(TAG, "getLocalCategories() userId=" + userId
-                    + " mimeTypes=" + Arrays.toString(mimeTypes));
-            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
-        }
-
         Trace.beginSection("ItemsProvider.getLocalCategories");
         try {
             return queryAlbums(URI_ALBUMS_LOCAL, mimeTypes, userId, cancellationSignal);
@@ -242,12 +214,12 @@ public class ItemsProvider {
         }
 
         if (DEBUG) {
-            Log.d(TAG, "queryMedia() userId=" + userId + " uri=" + uri + " cat=" + category
-                    + " mimeTypes=" + Arrays.toString(mimeTypes) + " limit="
-                    + paginationParameters.getPageSize() + " date_taken_before_ms = "
-                    + paginationParameters.getDateBeforeMs() + " row_id = "
-                    + paginationParameters.getRowId());
-            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
+            Log.d(TAG, "queryMedia() uri=" + uri
+                    + " cat=" + category
+                    + " mimeTypes=" + Arrays.toString(mimeTypes)
+                    + " limit=" + paginationParameters.getPageSize()
+                    + " date_taken_before_ms = " + paginationParameters.getDateBeforeMs()
+                    + " row_id = " + paginationParameters.getRowId());
         }
         Trace.beginSection("ItemsProvider.queryMedia");
 
@@ -303,9 +275,8 @@ public class ItemsProvider {
         }
 
         if (DEBUG) {
-            Log.d(TAG, "queryAlbums() userId=" + userId + " uri=" + uri
+            Log.d(TAG, "queryAlbums() uri=" + uri
                     + " mimeTypes=" + Arrays.toString(mimeTypes));
-            Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
         }
         Trace.beginSection("ItemsProvider.queryAlbums");
 

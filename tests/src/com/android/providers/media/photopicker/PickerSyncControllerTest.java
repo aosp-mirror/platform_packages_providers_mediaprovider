@@ -24,6 +24,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -182,6 +183,55 @@ public class PickerSyncControllerTest {
             mController.setCloudProvider(/* authority */ null);
             mController.clearPersistedCloudProviderAuthority();
         }
+    }
+
+    @Test
+    public void testSyncIsCancelledIfCloudProviderIsChanged() {
+
+        PickerSyncController controller = spy(mController);
+
+        // Ensure we return the appropriate authority until we actually enter the sync process,
+        // and then return a different authority than what the sync was started with to simulate
+        // a cloud provider changing.
+        doReturn(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
+                CLOUD_PRIMARY_PROVIDER_AUTHORITY,
+                CLOUD_SECONDARY_PROVIDER_AUTHORITY)
+                .when(controller)
+                .getCloudProvider();
+
+        // Add local only media, we expect these to be successfully sync'd from the local provider.
+        addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
+        addMedia(mLocalMediaGenerator, LOCAL_ONLY_2);
+        mLocalMediaGenerator.setNextCursorExtras(
+                /* queryCount */ 2,
+                /* mediaCollectionId */ COLLECTION_1,
+                /* honoredSyncGeneration */ true,
+                /* honoredAlbumId */ false,
+                /* honoredPageSize */ true);
+
+        // Add cloud media, we should try to sync these, but not actually commit them since the
+        // cloud provider will be changed before the transaction can be committed.
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
+        mCloudPrimaryMediaGenerator.setNextCursorExtras(
+                /* queryCount */ 2,
+                /* mediaCollectionId */ COLLECTION_1,
+                /* honoredSyncGeneration */ true,
+                /* honoredAlbumId */ false,
+                /* honoredPageSize */ true);
+
+        controller.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        controller.syncAllMedia();
+
+        // The cursor should only contain the items from the local provider. (Even though we've
+        // aded a total of 4 items to the linked providers.)
+        try (Cursor cr = queryMedia()) {
+            assertThat(cr.getCount()).isEqualTo(2);
+
+            assertCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER_AUTHORITY);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
     }
 
     @Test

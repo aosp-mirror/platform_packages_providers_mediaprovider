@@ -490,7 +490,13 @@ public class PickerDataLayer {
      * local providers.
      */
     public void handleMediaEventNotification() {
-        mSyncManager.syncAllMediaProactively();
+        try {
+            mSyncManager.syncAllMediaProactively();
+        } catch (RuntimeException e) {
+            // Catch any unchecked exceptions so that critical paths in MP that call this method are
+            // not affected by Picker related issues.
+            Log.e(TAG, "Could not handle media event notification ", e);
+        }
     }
 
     public static class AccountInfo {

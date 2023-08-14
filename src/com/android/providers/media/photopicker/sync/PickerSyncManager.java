@@ -143,15 +143,10 @@ public class PickerSyncManager {
                 new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD));
         final OneTimeWorkRequest syncRequest = getOneTimeProactiveSyncRequest(inputData);
 
-        try {
-            final Operation enqueueOperation = mWorkManager.enqueueUniqueWork(
-                    PROACTIVE_SYNC_WORK_NAME, ExistingWorkPolicy.KEEP, syncRequest);
-
-            // Check that the request has been successfully enqueued.
-            enqueueOperation.getResult().get();
-        } catch (InterruptedException | ExecutionException e) {
-            Log.e(TAG, "Could not enqueue proactive picker sync request", e);
-        }
+        // Don't wait for the sync operation to enqueue so that Picker sync enqueue requests in
+        // order to avoid adding latency to critical MP code paths.
+        mWorkManager.enqueueUniqueWork(PROACTIVE_SYNC_WORK_NAME, ExistingWorkPolicy.KEEP,
+                syncRequest);
     }
 
     /**

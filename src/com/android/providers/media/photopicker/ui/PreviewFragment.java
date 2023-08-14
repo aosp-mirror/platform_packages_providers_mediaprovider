@@ -130,7 +130,8 @@ public class PreviewFragment extends Fragment {
             throw new IllegalStateException("Expected to find ViewPager2 in " + view
                     + ", but found null");
         }
-        mViewPager2Wrapper = new ViewPager2Wrapper(viewPager, selectedItemsList, mMuteStatus);
+        mViewPager2Wrapper = new ViewPager2Wrapper(viewPager, selectedItemsList, mMuteStatus,
+                mOnCreateSurfaceController, mPickerViewModel::logVideoPreviewMuteButtonClick);
 
         setUpPreviewLayout(view, getArguments());
         setupScrimLayerAndBottomBar(view);
@@ -200,7 +201,7 @@ public class PreviewFragment extends Fragment {
             // For preview on long press, we always preview only one item.
             // Selection#getSelectedItemsForPreview is guaranteed to return only one item. Hence,
             // we can always use position=0 as current position.
-            updateSelectButtonText(addOrSelectButton,
+            updateSelectButtonTextAndVisibility(addOrSelectButton,
                     mSelection.isItemSelected(mViewPager2Wrapper.getItemAt(/* position */ 0)));
             addOrSelectButton.setOnClickListener(v -> onClickSelectButton(addOrSelectButton));
         }
@@ -285,7 +286,7 @@ public class PreviewFragment extends Fragment {
 
     private void onClickSelectButton(@NonNull Button selectButton) {
         final boolean isSelectedNow = updateSelectionAndGetState();
-        updateSelectButtonText(selectButton, isSelectedNow);
+        updateSelectButtonTextAndVisibility(selectButton, isSelectedNow);
     }
 
     private void onClickSelectedCheckButton(@NonNull Button selectedCheckButton) {
@@ -337,9 +338,11 @@ public class PreviewFragment extends Fragment {
         }
     }
 
-    private static void updateSelectButtonText(@NonNull Button selectButton,
+    private void updateSelectButtonTextAndVisibility(@NonNull Button selectButton,
             boolean isSelected) {
         selectButton.setText(isSelected ? R.string.deselect : R.string.select);
+        selectButton.setVisibility(
+                (isSelected || mSelection.isSelectionAllowed()) ? View.VISIBLE : View.GONE);
     }
 
     private static void updateSelectedCheckButtonStateAndText(@NonNull Button selectedCheckButton,
@@ -396,4 +399,17 @@ public class PreviewFragment extends Fragment {
                         : context.getString(R.string.picker_add_button_multi_select);
         return TextUtils.expandTemplate(template, sizeString).toString();
     }
+
+    private final PreviewAdapter.OnCreateSurfaceController mOnCreateSurfaceController =
+            new PreviewAdapter.OnCreateSurfaceController() {
+                @Override
+                public void logStart(String authority) {
+                    mPickerViewModel.logCreateSurfaceControllerStart(authority);
+                }
+
+                @Override
+                public void logEnd(String authority) {
+                    mPickerViewModel.logCreateSurfaceControllerEnd(authority);
+                }
+            };
 }

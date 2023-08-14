@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"ವೀಡಿಯೊ ಪ್ಲೇ ಮಾಡಲು ಸಮಸ್ಯೆಯಾಗಿದೆ"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ನಿಮ್ಮ ಇಂಟರ್ನೆಟ್ ಕನೆಕ್ಷನ್ ಅನ್ನು ಪರಿಶೀಲಿಸಿ ಹಾಗೂ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ಮರುಪ್ರಯತ್ನಿಸಿ"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ಕ್ಲೌಡ್ ಮಾಧ್ಯಮವು ಈಗ <xliff:g id="PKG_NAME">%1$s</xliff:g> ನಿಂದ ಲಭ್ಯವಿದೆ"</string>
     <string name="not_selected" msgid="2244008151669896758">"ಆಯ್ಕೆಮಾಡಲಾಗಿಲ್ಲ"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ರಲ್ಲಿ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> ಸಿದ್ಧವಾಗಿವೆ"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ಬ್ಯಾಕಪ್ ಮಾಡಲಾದ ಫೋಟೋಗಳನ್ನು ಈಗ ಸೇರಿಸಲಾಗಿದೆ"</string>
@@ -107,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ಆ್ಯಪ್ ಅನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ಖಾತೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ಖಾತೆಯನ್ನು ಬದಲಾಯಿಸಿ"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"ನಿಮ್ಮ ಎಲ್ಲಾ ಫೋಟೋಗಳನ್ನು ಪಡೆಯಲಾಗುತ್ತಿದೆ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ಈ ಆಡಿಯೋ ಫೈಲ್ ಅನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_0">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}one{ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}other{ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ಆಡಿಯೋ ಫೈಲ್ ಅನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}one{<xliff:g id="COUNT">^1</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}other{<xliff:g id="COUNT">^1</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ಈ ವೀಡಿಯೊವನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_0">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}one{ಈ <xliff:g id="COUNT">^2</xliff:g> ವೀಡಿಯೊಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}other{ಈ <xliff:g id="COUNT">^2</xliff:g> ವೀಡಿಯೊಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}}"</string>

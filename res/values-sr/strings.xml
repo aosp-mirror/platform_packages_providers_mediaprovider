@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Дошло је до грешке при пуштању видеа"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Проверите интернет везу и пробајте поново"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Пробај поново"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"<xliff:g id="PKG_NAME">%1$s</xliff:g> сада нуди медијски садржај у клауду"</string>
     <string name="not_selected" msgid="2244008151669896758">"није изабрано"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Спремно:<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> од <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Сада су уврштене резервне копије слика"</string>
@@ -107,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Одабери апликацију"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Одабери налог"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Промени налог"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Преузимају се све слике"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Желите ли да дозволите да <xliff:g id="APP_NAME_0">^1</xliff:g> измени овај аудио фајл?}one{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> аудио фајл?}few{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> аудио фајла?}other{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> аудио фајлова?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Мења се аудио фајл…}one{Мења се <xliff:g id="COUNT">^1</xliff:g> аудио фајл…}few{Мењају се <xliff:g id="COUNT">^1</xliff:g> аудио фајла…}other{Мења се <xliff:g id="COUNT">^1</xliff:g> аудио фајлова…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Желите ли да дозволите да <xliff:g id="APP_NAME_0">^1</xliff:g> измени овај видео?}one{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> видео?}few{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> видео снимка?}other{Желите ли да дозволите да <xliff:g id="APP_NAME_1">^1</xliff:g> измени <xliff:g id="COUNT">^2</xliff:g> видео снимака?}}"</string>

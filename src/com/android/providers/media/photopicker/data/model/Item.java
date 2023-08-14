@@ -21,6 +21,7 @@ import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIM
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
 
+import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorInt;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
@@ -216,5 +217,12 @@ public class Item {
         } else {
             return mId.compareTo(anotherItem.getId());
         }
+    }
+
+    /**
+     * @return {@code true} iff this item is local (available on device), {@code false} otherwise.
+     */
+    public boolean isLocal() {
+        return LOCAL_PICKER_PROVIDER_AUTHORITY.equals(mUri.getAuthority());
     }
 }

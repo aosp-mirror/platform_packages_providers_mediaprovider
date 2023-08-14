@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Poteškoće s reprodukcijom videozapisa"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Provjerite internetsku vezu i pokušajte ponovo"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Pokušaj ponovo"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Medijski sadržaj u oblaku sada je dostupan iz aplikacije <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nije odabrano"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Spremno: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> od <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Sad su uključene sigurnosno kopirane fotografije"</string>
@@ -107,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Odaberite aplikaciju"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Odaberite račun"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Promijenite račun"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Dohvaćanje svih vaših fotografija"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g> da izmijeni tu audiodatoteku?}one{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteku?}few{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteke?}other{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteka?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Mijenjanje audiodatoteke…}one{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteke…}few{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteke…}other{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteka…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g> da izmijeni taj videozapis?}one{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapis?}few{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}other{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}}"</string>

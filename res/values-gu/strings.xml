@@ -92,7 +92,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"વીડિયો ચલાવવામાં સમસ્યા આવી"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"તમારું ઇન્ટરનેટ કનેક્શન ચેક કરો અને ફરી પ્રયાસ કરો"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ફરી પ્રયાસ કરો"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ક્લાઉડ મીડિયા હવે <xliff:g id="PKG_NAME">%1$s</xliff:g>માંથી પણ ઉપલબ્ધ છે"</string>
     <string name="not_selected" msgid="2244008151669896758">"પસંદ નહીં કરેલી"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>માંથી <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> તૈયાર"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"બૅકઅપ લીધેલા ફોટા હવે શામેલ કરવામાં આવ્યા છે"</string>
@@ -107,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ઍપ પસંદ કરો"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"એકાઉન્ટ પસંદ કરો"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"એકાઉન્ટ બદલો"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"તમારા બધા ફોટા મેળવવામાં આવી રહ્યાં છે"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ને આ ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}one{<xliff:g id="COUNT">^1</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}other{<xliff:g id="COUNT">^1</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરી રહ્યાં છીએ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ને આ વીડિયોમાં ફેરફાર કરવાની મંજૂરી આપીએ?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોમાં ફેરફાર કરવાની મંજૂરી આપીએ?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોમાં ફેરફાર કરવાની મંજૂરી આપીએ?}}"</string>

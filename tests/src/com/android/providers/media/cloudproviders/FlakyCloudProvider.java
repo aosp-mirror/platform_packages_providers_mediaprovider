@@ -85,7 +85,8 @@ public class FlakyCloudProvider extends CloudMediaProvider {
                 queryExtras.getAlbumId(),
                 queryExtras.getMimeTypes(),
                 queryExtras.getSizeBytes(),
-                pageToken);
+                pageToken,
+                queryExtras.getPageSize());
     }
 
     @Override

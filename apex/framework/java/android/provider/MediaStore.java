@@ -278,6 +278,14 @@ public final class MediaStore {
     public static final String USES_FUSE_PASSTHROUGH = "uses_fuse_passthrough";
     /** {@hide} */
     public static final String USES_FUSE_PASSTHROUGH_RESULT = "uses_fuse_passthrough_result";
+    /** {@hide} */
+    public static final String PICKER_MEDIA_INIT_CALL = "picker_media_init";
+    /** {@hide} */
+    public static final String EXTRA_LOCAL_ONLY = "is_local_only";
+    /** {@hide} */
+    public static final String EXTRA_ALBUM_ID = "album_id";
+    /** {@hide} */
+    public static final String EXTRA_ALBUM_AUTHORITY = "album_authority";
 
     /**
      * Only used for testing.

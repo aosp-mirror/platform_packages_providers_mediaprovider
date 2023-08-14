@@ -50,6 +50,8 @@ import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
 import static com.android.providers.media.util.Metrics.translateReason;
 
+import static java.util.Objects.requireNonNull;
+
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
@@ -236,23 +238,36 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void scanDirectory(File file, int reason) {
-        try (Scan scan = new Scan(file, reason, /*ownerPackage*/ null)) {
+    public void scanDirectory(@NonNull File file, int reason) {
+        requireNonNull(file);
+        try {
+            file = file.getCanonicalFile();
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't canonicalize directory to scan" + file, e);
+            return;
+        }
+
+        try (Scan scan = new Scan(file, reason)) {
             scan.run();
-        } catch (OperationCanceledException ignored) {
         } catch (FileNotFoundException e) {
-           Log.e(TAG, "Couldn't find directory to scan", e) ;
+            Log.e(TAG, "Couldn't find directory to scan", e);
+        } catch (OperationCanceledException ignored) {
+            // No-op.
         }
     }
 
     @Override
-    public Uri scanFile(File file, int reason) {
-       return scanFile(file, reason, /*ownerPackage*/ null);
-    }
+    @Nullable
+    public Uri scanFile(@NonNull File file, int reason) {
+        requireNonNull(file);
+        try {
+            file = file.getCanonicalFile();
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't canonicalize file to scan" + file, e);
+            return null;
+        }
 
-    @Override
-    public Uri scanFile(File file, int reason, @Nullable String ownerPackage) {
-        try (Scan scan = new Scan(file, reason, ownerPackage)) {
+        try (Scan scan = new Scan(file, reason)) {
             scan.run();
             return scan.getFirstResult();
         } catch (OperationCanceledException ignored) {
@@ -286,10 +301,18 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void onDirectoryDirty(File dir) {
+    public void onDirectoryDirty(@NonNull File dir) {
+        requireNonNull(dir);
+        try {
+            dir = dir.getCanonicalFile();
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't canonicalize directory" + dir, e);
+            return;
+        }
+
         synchronized (mPendingCleanDirectories) {
             mPendingCleanDirectories.remove(dir.getPath());
-            FileUtils.setDirectoryDirty(dir, /*isDirty*/ true);
+            FileUtils.setDirectoryDirty(dir, /* isDirty */ true);
         }
     }
 
@@ -320,7 +343,6 @@ public class ModernMediaScanner implements MediaScanner {
         private final String mVolumeName;
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
-        private final String mOwnerPackage;
         private final List<String> mExcludeDirs;
 
         private final long mStartGeneration;
@@ -349,7 +371,7 @@ public class ModernMediaScanner implements MediaScanner {
          */
         private boolean mIsDirectoryTreeDirty;
 
-        public Scan(File root, int reason, @Nullable String ownerPackage)
+        public Scan(File root, int reason)
                 throws FileNotFoundException {
             Trace.beginSection("ctor");
 
@@ -371,7 +393,6 @@ public class ModernMediaScanner implements MediaScanner {
 
             mStartGeneration = MediaStore.getGeneration(mResolver, mVolumeName);
             mSingleFile = mRoot.isFile();
-            mOwnerPackage = ownerPackage;
             mExcludeDirs = new ArrayList<>();
 
             Trace.endSection();
@@ -800,10 +821,7 @@ public class ModernMediaScanner implements MediaScanner {
             }
             if (op != null) {
                 op.withValue(FileColumns._MODIFIER, FileColumns._MODIFIER_MEDIA_SCAN);
-                // Add owner package name to new insertions when package name is provided.
-                if (op.build().isInsert() && !attrs.isDirectory() && mOwnerPackage != null) {
-                    op.withValue(MediaColumns.OWNER_PACKAGE_NAME, mOwnerPackage);
-                }
+
                 // Force DRM files to be marked as DRM, since the lower level
                 // stack may not set this correctly
                 if (isDrm) {

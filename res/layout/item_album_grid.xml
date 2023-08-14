@@ -38,6 +38,14 @@
             android:scaleType="centerCrop"
             android:contentDescription="@null"/>
 
+        <ImageView
+            android:id="@+id/icon_default_thumbnail"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:scaleType="centerCrop"
+            android:tint="?attr/categoryDefaultThumbnailColor"
+            android:contentDescription="@null"
+            android:layout_gravity="center" />
     </com.google.android.material.card.MaterialCardView>
 
     <TextView

@@ -167,7 +167,7 @@ public class Category {
         return new Category(getCursorString(cursor, AlbumColumns.ID),
                 authority,
                 getCursorString(cursor, AlbumColumns.DISPLAY_NAME),
-                coverUri,
+                getCursorString(cursor, AlbumColumns.MEDIA_COVER_ID) != null ? coverUri : null,
                 getCursorInt(cursor, AlbumColumns.MEDIA_COUNT),
                 isLocal);
     }

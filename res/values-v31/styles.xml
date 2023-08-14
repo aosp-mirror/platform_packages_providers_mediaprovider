@@ -40,6 +40,7 @@
         <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerSecondaryTextColor">?android:attr/textColorPrimary</item>
         <item name="pickerBannerButtonTextColor">@android:color/system_accent1_600</item>
+        <item name="categoryDefaultThumbnailColor">@android:color/system_accent1_300</item>
     </style>
 
 </resources>

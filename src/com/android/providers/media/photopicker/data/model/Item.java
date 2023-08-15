@@ -41,6 +41,8 @@ import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.util.MimeUtils;
 
+import java.util.Objects;
+
 /**
  * Base class for representing a single media item (a picture, a video, etc.) in the PhotoPicker.
  */
@@ -224,5 +226,18 @@ public class Item {
      */
     public boolean isLocal() {
         return LOCAL_PICKER_PROVIDER_AUTHORITY.equals(mUri.getAuthority());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || !(obj instanceof Item)) return false;
+
+        Item other = (Item) obj;
+        return mUri.equals(other.mUri);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hash(mUri);
     }
 }

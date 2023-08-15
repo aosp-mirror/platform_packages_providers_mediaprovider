@@ -85,7 +85,6 @@ public class PhotosTabFragment extends TabFragment {
 
     private final Object mHideProgressBarToken = new Object();
 
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -131,6 +130,7 @@ public class PhotosTabFragment extends TabFragment {
         if (savedInstanceState == null) {
             initProgressBar(view);
         }
+        mSelection.clearCheckedItemList();
 
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
                 mImageLoader, mOnMediaItemClickListener, /* lifecycleOwner */ this,
@@ -188,8 +188,21 @@ public class PhotosTabFragment extends TabFragment {
         if (mIsCloudMediaInPhotoPickerEnabled) {
             setOnScrollListenerForRecyclerView();
         }
-    }
 
+        // uncheck the unavailable items at UI those are no longer available in the selection list
+        getPickerActivity().isItemPhotoGridViewChanged()
+                .observe(this, isItemViewChanged -> {
+                    if (isItemViewChanged) {
+                        // To re-bind the view just to uncheck the unavailable media items at UI
+                        // Size of mCheckItems is going to be constant ( Iterating over mCheckItems
+                        // is not a heavy operation)
+                        for (Integer index : mSelection.getCheckedItemsIndexes()) {
+                            adapter.notifyItemChanged(index);
+                        }
+                    }
+                }
+        );
+    }
 
     private void initProgressBar(@NonNull View view) {
         // Check feature flag for cloud media and if it is not true then hide progress bar and
@@ -279,7 +292,6 @@ public class PhotosTabFragment extends TabFragment {
     @Override
     public void onResume() {
         super.onResume();
-
         final String title;
         final LayoutModeUtils.Mode layoutMode;
         final boolean shouldHideProfileButton;
@@ -340,12 +352,15 @@ public class PhotosTabFragment extends TabFragment {
             new PhotosTabAdapter.OnMediaItemClickListener() {
                 @Override
                 public void onItemClick(@NonNull View view, int position) {
+
                     if (mSelection.canSelectMultiple()) {
                         final boolean isSelectedBefore = view.isSelected();
 
                         if (isSelectedBefore) {
                             mSelection.removeSelectedItem((Item) view.getTag());
+                            mSelection.removeCheckedItemIndex((Item) view.getTag());
                         } else {
+                            mSelection.addCheckedItemIndex((Item) view.getTag(), position);
                             if (!mSelection.isSelectionAllowed()) {
                                 final int maxCount = mSelection.getMaxSelectionLimit();
                                 final CharSequence quantityText =
@@ -364,6 +379,7 @@ public class PhotosTabFragment extends TabFragment {
                             }
                         }
                         view.setSelected(!isSelectedBefore);
+
                         // There is an issue b/223695510 about not selected in Accessibility mode.
                         // It only says selected state, but it doesn't say not selected state.
                         // Add the not selected only to avoid that it says selected twice.

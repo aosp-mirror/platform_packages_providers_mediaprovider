@@ -47,8 +47,8 @@
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Չկա"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Չհաջողվեց փոխել ամպային մուլտիմեդիա հավելվածը։"</string>
     <string name="add" msgid="2894574044585549298">"Ավելացնել"</string>
-    <string name="deselect" msgid="4297825044827769490">"Ապընտրել"</string>
-    <string name="deselected" msgid="8488133193326208475">"Ապընտրված"</string>
+    <string name="deselect" msgid="4297825044827769490">"Չեղարկել ընտրությունը"</string>
+    <string name="deselected" msgid="8488133193326208475">"Ընտրությունը չեղարկված է"</string>
     <string name="select" msgid="2704765470563027689">"Ընտրել"</string>
     <string name="selected" msgid="9151797369975828124">"Ընտրված"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Ընտրեք մինչև <xliff:g id="COUNT_0">^1</xliff:g> տարր}one{Ընտրեք մինչև <xliff:g id="COUNT_1">^1</xliff:g> տարր}other{Ընտրեք մինչև <xliff:g id="COUNT_1">^1</xliff:g> տարր}}"</string>

@@ -48,7 +48,7 @@
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Медийното приложение в облака не бе променено."</string>
     <string name="add" msgid="2894574044585549298">"Добавяне"</string>
     <string name="deselect" msgid="4297825044827769490">"Премахване на избора"</string>
-    <string name="deselected" msgid="8488133193326208475">"Неизбрано"</string>
+    <string name="deselected" msgid="8488133193326208475">"Отменен избор"</string>
     <string name="select" msgid="2704765470563027689">"Избиране"</string>
     <string name="selected" msgid="9151797369975828124">"Избрано"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Изберете най-много <xliff:g id="COUNT_0">^1</xliff:g> елемент}other{Изберете най-много <xliff:g id="COUNT_1">^1</xliff:g> елемента}}"</string>
@@ -61,7 +61,7 @@
     <string name="picker_albums" msgid="4822511902115299142">"Албуми"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Визуализация"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Превкл. към служ. пoтр. профил"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Превключване към личния потребителски профил"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Превкл. към личния потр. профил"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано от администратора ви"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Достъпът до служебни данни от лично приложение не е разрешен"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Достъпът до лични данни от служебно приложение не е разрешен"</string>

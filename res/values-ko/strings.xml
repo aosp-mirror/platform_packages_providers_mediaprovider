@@ -60,8 +60,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"사진"</string>
     <string name="picker_albums" msgid="4822511902115299142">"앨범"</string>
     <string name="picker_preview" msgid="6257414886055861039">"미리보기"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"직장으로 전환"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"개인으로 전환"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"직장 프로필로 전환"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"개인 프로필로 전환"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"관리자가 차단함"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"개인 앱에서는 업무 데이터에 액세스할 수 없습니다."</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"직장 앱에서는 개인 데이터에 액세스할 수 없습니다."</string>

@@ -19,7 +19,10 @@ package com.android.providers.media.photopicker.sync;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_RESET_ALBUM;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_ALBUM_ID;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_AUTHORITY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_RESET_TYPE;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 
 import android.content.Context;
@@ -60,6 +63,19 @@ public class SyncWorkerTestUtils {
     @NonNull
     public static Data getCloudSyncInputData() {
         return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_CLOUD_ONLY));
+    }
+
+    @NonNull
+    public static Data getAlbumResetInputData(
+            @NonNull String albumId, String authority, boolean isLocal) {
+        Objects.requireNonNull(albumId);
+        Objects.requireNonNull(authority);
+        return new Data(
+                Map.of(
+                        SYNC_WORKER_INPUT_AUTHORITY, authority,
+                        SYNC_WORKER_INPUT_SYNC_SOURCE, isLocal ? SYNC_LOCAL_ONLY : SYNC_CLOUD_ONLY,
+                        SYNC_WORKER_INPUT_RESET_TYPE, SYNC_RESET_ALBUM,
+                        SYNC_WORKER_INPUT_ALBUM_ID, albumId));
     }
 
     @NonNull

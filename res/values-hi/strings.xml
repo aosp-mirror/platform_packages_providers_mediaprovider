@@ -47,8 +47,8 @@
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"कोई नहीं"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"इस समय क्लाउड मीडिया ऐप्लिकेशन नहीं बदला जा सका."</string>
     <string name="add" msgid="2894574044585549298">"जोड़ें"</string>
-    <string name="deselect" msgid="4297825044827769490">"चुना हुआ हटाएं"</string>
-    <string name="deselected" msgid="8488133193326208475">"चुना हुआ हटाया गया"</string>
+    <string name="deselect" msgid="4297825044827769490">"चुने हुए का निशान हटाएं"</string>
+    <string name="deselected" msgid="8488133193326208475">"चुने हुए का निशान हटाया गया"</string>
     <string name="select" msgid="2704765470563027689">"चुनें"</string>
     <string name="selected" msgid="9151797369975828124">"चुना गया"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{ज़्यादा से ज़्यादा <xliff:g id="COUNT_0">^1</xliff:g> आइटम चुनें}one{ज़्यादा से ज़्यादा <xliff:g id="COUNT_1">^1</xliff:g> आइटम चुनें}other{ज़्यादा से ज़्यादा <xliff:g id="COUNT_1">^1</xliff:g> आइटम चुनें}}"</string>
@@ -73,7 +73,7 @@
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) जोड़ें"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"अनुमति दें (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"कैमरा"</string>
-    <string name="picker_category_downloads" msgid="793866660287361900">"डाउनलोड की गई चीज़ें"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"डाउनलोड किए गए आइटम"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"पसंदीदा"</string>
     <string name="picker_category_screenshots" msgid="7216102327587644284">"स्क्रीनशॉट"</string>
     <!-- no translation found for picker_category_videos (1478458836380241356) -->

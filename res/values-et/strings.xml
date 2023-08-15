@@ -63,7 +63,7 @@
     <string name="picker_work_profile" msgid="2083221066869141576">"Lülituge tööprofiilile"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Lülituge isiklikule profiilile"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokeeris teie administraator"</string>
-    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Juurdepääs tööandmetele isikliku rakenduse kaudu pole lubatud"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Juurdepääs tööandmetele isikliku rakenduse kaudu pole lubatud."</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Juurdepääs isiklikele andmetele töörakenduse kaudu pole lubatud"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Töörakendused on peatatud"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Tööfotode avamiseks lülitage töörakendused sisse ja proovige uuesti"</string>

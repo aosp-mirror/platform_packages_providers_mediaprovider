@@ -73,6 +73,9 @@ class SelectedMediaPreloader {
     @NonNull
     private final MutableLiveData<Boolean> mIsFinishedLiveData = new MutableLiveData<>(false);
     @NonNull
+    private final MutableLiveData<List<Integer>> mUnavailableMediaIndexes =
+            new MutableLiveData<>(new ArrayList<>());
+    @NonNull
     private final ContentResolver mContentResolver;
 
     /**
@@ -114,17 +117,17 @@ class SelectedMediaPreloader {
             public void onChanged(Boolean isFinished) {
                 if (isFinished) {
                     preloader.mIsFinishedLiveData.removeObserver(this);
-                    dialog.dismiss();
-
                     Trace.endAsyncSection(TRACE_SECTION_NAME, /* cookie */ preloader.hashCode());
                 }
             }
         });
+
         preloader.mFinishedCountLiveData.observeForever(new Observer<>() {
             @Override
             public void onChanged(Integer finishedCount) {
                 if (finishedCount == count) {
                     preloader.mFinishedCountLiveData.removeObserver(this);
+                    dialog.dismiss();
                 }
                 // "X of Y ready"
                 final String message = context.getString(
@@ -155,18 +158,28 @@ class SelectedMediaPreloader {
         return mIsFinishedLiveData;
     }
 
+    @NonNull
+    LiveData<List<Integer>> getUnavailableMediaIndexes() {
+        return mUnavailableMediaIndexes;
+    }
+
     /**
      * This method is intentionally {@code private}: clients should use static
      * {@link #preload(Context, List)} method.
      */
     @UiThread
     private void start(@NonNull Executor executor) {
-        for (var item : mItems) {
+        List<Integer> unavailableMediaIndexes = new ArrayList<>();
+        for (int index = 0; index < mItems.size(); index++) {
+            int currIndex = index;
             // Off-loading to an Executor (presumable backed up by a thread pool)
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    openFileDescriptor(item);
+                    boolean isOpenedSuccessfully = openFileDescriptor(mItems.get(currIndex));
+                    if (!isOpenedSuccessfully) {
+                        unavailableMediaIndexes.add(currIndex);
+                    }
 
                     final int preloadedCount = mFinishedCount.incrementAndGet();
                     if (DEBUG) {
@@ -175,7 +188,12 @@ class SelectedMediaPreloader {
                     if (preloadedCount == mCount) {
                         // Don't need to "synchronize" here: mCount is our final value for
                         // preloadedCount, it won't be changing anymore.
-                        mIsFinishedLiveData.postValue(true);
+                        if (unavailableMediaIndexes.size() == 0) {
+                            mIsFinishedLiveData.postValue(true);
+                        } else {
+                            mUnavailableMediaIndexes.postValue(unavailableMediaIndexes);
+                            mIsFinishedLiveData.postValue(false);
+                        }
                     }
 
                     // In order to prevent race conditions where we may "post" a lower value after
@@ -190,7 +208,8 @@ class SelectedMediaPreloader {
     }
 
     @Nullable
-    private void openFileDescriptor(@NonNull Uri uri) {
+    private Boolean openFileDescriptor(@NonNull Uri uri) {
+        Boolean isOpenedSuccessfully = true;
         long start = 0;
         if (DEBUG) {
             Log.d(TAG, "openFileDescriptor() START, " + Thread.currentThread() + ", " + uri);
@@ -201,6 +220,7 @@ class SelectedMediaPreloader {
         try {
             mContentResolver.openAssetFileDescriptor(uri, "r");
         } catch (FileNotFoundException e) {
+            isOpenedSuccessfully = false;
             Log.w(TAG, "Could not open FileDescriptor for " + uri, e);
         } finally {
             Trace.endSection();
@@ -211,6 +231,7 @@ class SelectedMediaPreloader {
                         + ", " + uri);
             }
         }
+        return isOpenedSuccessfully;
     }
 
     @NonNull

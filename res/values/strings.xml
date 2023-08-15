@@ -508,4 +508,13 @@
 
     <!-- Transcode progress channel name. -->
     <string name="transcode_progress_channel">Native Transcode Progress</string>
+
+    <!-- Dialog error message-->
+    <string name="dialog_error_message">Sorry, the photos you selected are unavailable. Please try again.</string>
+
+    <!-- Dialog error title-->
+    <string name="dialog_error_title">Can\'t load some Photos</string>
+
+    <!-- Error dialog OK button text-->
+    <string name="dialog_button_text">Got it</string>
 </resources>

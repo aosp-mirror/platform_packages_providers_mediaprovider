@@ -65,6 +65,8 @@ import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.FragmentManager;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -73,6 +75,7 @@ import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.PickerResult;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.TabContainerFragment;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
@@ -114,6 +117,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private TabLayout mTabLayout;
     private Toolbar mToolbar;
     private CrossProfileListeners mCrossProfileListeners;
+
+    @NonNull
+    private final MutableLiveData<Boolean> mIsItemPhotoGridViewChanged =
+            new MutableLiveData<>(false);
 
     @ColorInt
     private int mDefaultBackgroundColor;
@@ -527,13 +534,17 @@ public class PhotoPickerActivity extends AppCompatActivity {
         return getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
     }
 
+    public LiveData<Boolean> isItemPhotoGridViewChanged() {
+        return mIsItemPhotoGridViewChanged;
+    }
+
     public void setResultAndFinishSelf() {
         logPickerSelectionConfirmed(mSelection.getSelectedItems().size());
-
         if (shouldPreloadSelectedItems()) {
             final var uris = PickerResult.getPickerUrisForItems(mSelection.getSelectedItems());
             mPreloaderInstanceHolder.preloader =
                     SelectedMediaPreloader.preload(/* activity */ this, uris);
+            deSelectUnavailableMedia(mPreloaderInstanceHolder.preloader);
             subscribeToSelectedMediaPreloader(mPreloaderInstanceHolder.preloader);
         } else {
             setResultAndFinishSelfInternal();
@@ -607,6 +618,30 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 isFinished -> {
                     if (isFinished) {
                         setResultAndFinishSelfInternal();
+                    }
+                });
+    }
+
+    // This method is responsible for deselecting all  unavailable items from selection list
+    // when user tries selecting unavailable could only media (not cached) while offline
+    private void deSelectUnavailableMedia(@NonNull SelectedMediaPreloader preloader) {
+        preloader.getUnavailableMediaIndexes().observe(
+                /* lifecycleOwner */ PhotoPickerActivity.this,
+                unavailableMediaIndexes -> {
+                    if (unavailableMediaIndexes.size() > 0) {
+                        // To notify the fragment to uncheck the unavailable items at UI those are
+                        // no longer available in the selection list.
+                        mIsItemPhotoGridViewChanged.postValue(true);
+                        // Displaying  error dialog with an error message when the user tries
+                        // to add unavailable cloud only media (not cached) while offline.
+                        DialogUtils.showDialog(this,
+                                getResources().getString(R.string.dialog_error_title),
+                                getResources().getString(R.string.dialog_error_message));
+
+                        List<Item> selectedItems = mSelection.getSelectedItems();
+                        for (var mediaIndex : unavailableMediaIndexes) {
+                            mSelection.removeSelectedItem(selectedItems.get(mediaIndex));
+                        }
                     }
                 });
     }

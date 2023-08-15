@@ -194,7 +194,6 @@ public class PickerSyncControllerTest {
         // and then return a different authority than what the sync was started with to simulate
         // a cloud provider changing.
         doReturn(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY,
                 CLOUD_SECONDARY_PROVIDER_AUTHORITY)
                 .when(controller)
                 .getCloudProvider();
@@ -401,29 +400,6 @@ public class PickerSyncControllerTest {
             assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
-    }
-
-    @Test
-    public void testSyncAllMediaResetsAlbumMedia() {
-        // 1. Set primary cloud provider
-        setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
-        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
-
-        // 2. Add album_media
-        addAlbumMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1.first, CLOUD_ONLY_1.second,
-                ALBUM_ID_1);
-        addAlbumMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2.first, CLOUD_ONLY_2.second,
-                ALBUM_ID_1);
-        mController.syncAlbumMedia(ALBUM_ID_1, false);
-
-        // 3. Assert non-empty album_media
-        try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, false)) {
-            assertThat(cr.getCount()).isEqualTo(2);
-        }
-
-        // 4. Sync all media and assert empty album_media
-        mController.syncAllMedia();
-        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
     }
 
     @Test

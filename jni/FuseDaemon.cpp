@@ -2349,7 +2349,8 @@ void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
         }
 
         if (!name.empty()) {
-            fuse_inval(fuse->se, parent, child, name, path);
+            std::thread t([=]() { fuse_inval(fuse->se, parent, child, name, path); });
+            t.detach();
         }
     } else {
         LOG(WARNING) << "FUSE daemon is inactive. Cannot invalidate dentry";

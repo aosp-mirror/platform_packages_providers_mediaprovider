@@ -226,7 +226,7 @@ class SelectedMediaPreloader {
         if (sExecutor == null) {
             synchronized (SelectedMediaPreloader.class) {
                 if (sExecutor == null) {
-                    final ThreadFactory threadFactory = new ThreadFactory() {
+                    sExecutor = Executors.newFixedThreadPool(2, new ThreadFactory() {
 
                         final AtomicInteger mCount = new AtomicInteger(1);
 
@@ -250,8 +250,7 @@ class SelectedMediaPreloader {
                                 }
                             };
                         }
-                    };
-                    sExecutor = Executors.newCachedThreadPool(threadFactory);
+                    });
                 }
             }
         }

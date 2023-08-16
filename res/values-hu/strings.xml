@@ -19,7 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"Média"</string>
     <string name="storage_description" msgid="4081716890357580107">"Helyi tárhely"</string>
     <string name="app_label" msgid="9035307001052716210">"Médiatároló"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Média"</string>
+    <!-- no translation found for picker_app_label (1195424381053599122) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"Előadó"</string>
     <string name="unknown" msgid="2059049215682829375">"Ismeretlen"</string>
     <string name="root_images" msgid="5861633549189045666">"Képek"</string>
@@ -106,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Válasszon alkalmazást"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Fiók kiválasztása"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Másik fiók választása"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Folyamatban van az összes fotó lekérése"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a hangfájlnak a módosítását?}other{Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> hangfájl módosítását?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Az audiofájl módosítása folyamatban van…}other{<xliff:g id="COUNT">^1</xliff:g> audiofájl módosítása folyamatban van…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a videónak a módosítását?}other{Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> videó módosítását?}}"</string>

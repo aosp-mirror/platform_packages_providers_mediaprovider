@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"მედია"</string>
     <string name="storage_description" msgid="4081716890357580107">"ადგილობრივი მეხსიერება"</string>
     <string name="app_label" msgid="9035307001052716210">"მედიის საცავი"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"მედია"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"მედიის ამომრჩევი"</string>
     <string name="artist_label" msgid="8105600993099120273">"შემსრულებელი"</string>
     <string name="unknown" msgid="2059049215682829375">"უცნობი"</string>
     <string name="root_images" msgid="5861633549189045666">"სურათები"</string>
@@ -106,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"აპის არჩევა"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"აირჩიეთ ანგარიში"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ანგარიშის შეცვლა"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"თქვენი ყველა ფოტოს მიღება"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{აძლევთ უფლებას <xliff:g id="APP_NAME_0">^1</xliff:g>-ს, შეცვალოს ეს აუდიოფაილი?}other{აძლევთ უფლებას <xliff:g id="APP_NAME_1">^1</xliff:g>-ს, შეცვალოს <xliff:g id="COUNT">^2</xliff:g> აუდიოფაილი?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{მიმდინარეობს აუდიოფაილის მოდიფიკაცია…}other{მიმდინარეობს <xliff:g id="COUNT">^1</xliff:g> აუდიოფაილის მოდიფიკაცია…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{აძლევთ უფლებას <xliff:g id="APP_NAME_0">^1</xliff:g>-ს, შეცვალოს ეს ვიდეო?}other{აძლევთ უფლებას <xliff:g id="APP_NAME_1">^1</xliff:g>-ს, შეცვალოს <xliff:g id="COUNT">^2</xliff:g> ვიდეო?}}"</string>

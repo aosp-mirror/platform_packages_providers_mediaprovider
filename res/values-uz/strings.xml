@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Multimedia"</string>
     <string name="storage_description" msgid="4081716890357580107">"Mahalliy xotira"</string>
     <string name="app_label" msgid="9035307001052716210">"Multimedia xotirasi"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Media"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Rasm tanlash"</string>
     <string name="artist_label" msgid="8105600993099120273">"Ijrochi"</string>
     <string name="unknown" msgid="2059049215682829375">"Noaniq"</string>
     <string name="root_images" msgid="5861633549189045666">"Rasmlar"</string>
@@ -51,7 +51,7 @@
     <string name="deselected" msgid="8488133193326208475">"Tanlovi yechilgan"</string>
     <string name="select" msgid="2704765470563027689">"Tanlash"</string>
     <string name="selected" msgid="9151797369975828124">"Tanlangan"</string>
-    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> tagcha elementni tanlang}other{<xliff:g id="COUNT_1">^1</xliff:g> tagcha elementni tanlang}}"</string>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> tagacha elementni tanlang}other{<xliff:g id="COUNT_1">^1</xliff:g> tagacha elementni tanlang}}"</string>
     <string name="recent" msgid="6694613584743207874">"Oxirgi"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Surat yoki video kiritilmagan"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Qabul qilinmaydigan rasm va videolar"</string>
@@ -106,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Ilovani tanlash"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Hisobni tanlang"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Hisobni almashtirish"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Barcha rasmlaringizni yuklab oling"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ilovasiga bu audio faylni oʻzgartirishi uchun ruxsat berilsinmi?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ilovasiga <xliff:g id="COUNT">^2</xliff:g> ta audio faylni oʻzgartirishi uchun ruxsat berilsinmi?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Audio fayl oʻzgartirilmoqda…}other{<xliff:g id="COUNT">^1</xliff:g> ta audio fayl oʻzgartirilmoqda…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ilovasiga bu videoni oʻzgartirishi uchun ruxsat berilsinmi?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> ilovasiga <xliff:g id="COUNT">^2</xliff:g> ta videoni oʻzgartirishi uchun ruxsat berilsinmi?}}"</string>

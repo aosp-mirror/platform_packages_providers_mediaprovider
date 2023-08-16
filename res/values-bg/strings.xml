@@ -19,7 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"Мултимедия"</string>
     <string name="storage_description" msgid="4081716890357580107">"Локално хранилище"</string>
     <string name="app_label" msgid="9035307001052716210">"Мултимедийно хранилище"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Мултимедия"</string>
+    <!-- no translation found for picker_app_label (1195424381053599122) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"Изпълнител"</string>
     <string name="unknown" msgid="2059049215682829375">"Неизвестно"</string>
     <string name="root_images" msgid="5861633549189045666">"Изображения"</string>
@@ -48,7 +49,7 @@
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Медийното приложение в облака не бе променено."</string>
     <string name="add" msgid="2894574044585549298">"Добавяне"</string>
     <string name="deselect" msgid="4297825044827769490">"Премахване на избора"</string>
-    <string name="deselected" msgid="8488133193326208475">"Неизбрано"</string>
+    <string name="deselected" msgid="8488133193326208475">"Отменен избор"</string>
     <string name="select" msgid="2704765470563027689">"Избиране"</string>
     <string name="selected" msgid="9151797369975828124">"Избрано"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Изберете най-много <xliff:g id="COUNT_0">^1</xliff:g> елемент}other{Изберете най-много <xliff:g id="COUNT_1">^1</xliff:g> елемента}}"</string>
@@ -61,7 +62,7 @@
     <string name="picker_albums" msgid="4822511902115299142">"Албуми"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Визуализация"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Превкл. към служ. пoтр. профил"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Превключване към личния потребителски профил"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Превкл. към личния потр. профил"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано от администратора ви"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Достъпът до служебни данни от лично приложение не е разрешен"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Достъпът до лични данни от служебно приложение не е разрешен"</string>
@@ -106,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Избиране на приложение"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Избиране на профил"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Промяна на профила"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Всичките ви снимки се извличат"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Да се разреши ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този аудиофайл?}other{Да се разреши ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> аудиофайла?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Аудиофайлът се променя…}other{<xliff:g id="COUNT">^1</xliff:g> аудиофайла се променят…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Да се разреши ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този видеоклип?}other{Да се разреши ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> видеоклипа?}}"</string>

@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
+import android.content.res.Resources;
 
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.ExistingWorkPolicy;
@@ -63,6 +64,8 @@ public class PickerSyncManagerTest {
     private ListenableFuture<Operation.State.SUCCESS> mMockFuture;
     @Mock
     private Context mMockContext;
+    @Mock
+    private Resources mResources;
     @Captor
     ArgumentCaptor<PeriodicWorkRequest> mPeriodicWorkRequestArgumentCaptor;
     @Captor
@@ -71,6 +74,7 @@ public class PickerSyncManagerTest {
     @Before
     public void setUp() {
         initMocks(this);
+        doReturn(mResources).when(mMockContext).getResources();
         mConfigStore = new TestConfigStore();
         mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
                 "com.hooli.super.awesome.cloudpicker");

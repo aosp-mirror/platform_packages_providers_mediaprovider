@@ -107,6 +107,15 @@
     <!-- Error message displayed to the user when the user is not able to change cloud media app preference in Picker Settings. [CHAR LIMIT=50] -->
     <string name="picker_settings_toast_error">Could not change cloud media app at this time.</string>
 
+    <!-- PhotoPicker notification channel for sync updates [CHAR LIMIT=40] -->
+    <string name="picker_sync_notification_channel">Media picker</string>
+
+    <!-- PhotoPicker sync notification title [CHAR LIMIT=40] -->
+    <string name="picker_sync_notification_title">Media picker</string>
+
+    <!-- PhotoPicker sync notification text [CHAR LIMIT=60] -->
+    <string name="picker_sync_notification_text">Syncing media&#8230;</string>
+
     <!-- Add button for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="add">Add</string>
 

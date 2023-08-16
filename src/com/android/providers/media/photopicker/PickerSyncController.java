@@ -1340,10 +1340,19 @@ public class PickerSyncController {
 
                         operation.setSuccess();
                         totalRowcount += writeCount;
-                    }
 
-                    // Before the cursor is closed pull the date taken ms for the first row.
-                    updateDateTakenMs = getFirstDateTakenMsInCursor(cursor);
+                        if (cursor.getCount() > 0) {
+                            // Before the cursor is closed pull the date taken ms for the first row.
+                            updateDateTakenMs = getFirstDateTakenMsInCursor(cursor);
+
+                            // If the cursor count is not null and the date taken field is not
+                            // present in the cursor, fallback on the operation to provide the date
+                            // taken.
+                            if (updateDateTakenMs == null) {
+                                updateDateTakenMs = getFirstDateTakenMsFromOperation(operation);
+                            }
+                        }
+                    }
                 } catch (IllegalArgumentException ex) {
                     Log.e(TAG, String.format("Failed to open DbWriteOperation for op: %d", op),
                             ex);
@@ -1386,11 +1395,22 @@ public class PickerSyncController {
      */
     @Nullable
     private String getFirstDateTakenMsInCursor(Cursor cursor) {
-        if (cursor.getCount() > 0) {
-            cursor.moveToFirst();
+        if (cursor.moveToFirst()) {
             return getCursorString(cursor, MediaColumns.DATE_TAKEN_MILLIS);
         }
         return null;
+    }
+
+    /**
+     * Extracts the first row's date taken from the operation. Note that all functions may not
+     * implement this method.
+     */
+    private String getFirstDateTakenMsFromOperation(PickerDbFacade.DbWriteOperation op) {
+        final long firstDateTakenMillis = op.getFirstDateTakenMillis();
+
+        return firstDateTakenMillis == Long.MIN_VALUE
+                ? null
+                : Long.toString(firstDateTakenMillis);
     }
 
     /**

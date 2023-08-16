@@ -397,6 +397,16 @@ public class PickerDbFacade {
 
             return null;
         }
+
+        /**
+         * Returns the first date taken present in the columns affected by the DB write operation
+         * when this method is overridden. Otherwise, it returns Long.MIN_VALUE.
+         */
+        public long getFirstDateTakenMillis() {
+            Log.e(TAG, "Method getFirstDateTakenMillis() is not overridden. "
+                    + "It will always return Long.MIN_VALUE");
+            return Long.MIN_VALUE;
+        }
     }
 
     /**
@@ -527,6 +537,8 @@ public class PickerDbFacade {
     }
 
     private static final class RemoveMediaOperation extends DbWriteOperation {
+        private static final String[] sDateTakenProjection = new String[] {KEY_DATE_TAKEN_MS};
+        private long mFirstDateTakenMillis = Long.MIN_VALUE;
 
         private RemoveMediaOperation(SQLiteDatabase database, boolean isLocal) {
             super(database, isLocal);
@@ -540,6 +552,10 @@ public class PickerDbFacade {
             int counter = 0;
 
             while (cursor.moveToNext()) {
+                if (cursor.isFirst()) {
+                    updateFirstDateTakenMillis(cursor, isLocal);
+                }
+
                 // Need to fetch the local_id before delete because for cloud items
                 // we need a db query to fetch the local_id matching the id received from
                 // cursor (cloud_id).
@@ -557,6 +573,11 @@ public class PickerDbFacade {
             }
 
             return counter;
+        }
+
+        @Override
+        public long getFirstDateTakenMillis() {
+            return mFirstDateTakenMillis;
         }
 
         private void promoteCloudMediaToVisible(@Nullable String localId) {
@@ -593,6 +614,34 @@ public class PickerDbFacade {
                 final String[] queryArgs = new String[] {id};
                 return querySingleMedia(QB_MATCH_CLOUD, localIdProjection, queryArgs,
                         /* columnIndex */ 0);
+            }
+        }
+
+        private void updateFirstDateTakenMillis(Cursor inputCursor, boolean isLocal) {
+            final int idIndex = inputCursor
+                    .getColumnIndex(CloudMediaProviderContract.MediaColumns.ID);
+            if (idIndex < 0) {
+                Log.e(TAG, "Id is not present in the cursor");
+                return;
+            }
+
+            final String id = inputCursor.getString(idIndex);
+            if (TextUtils.isEmpty((id))) {
+                Log.e(TAG, "Input id is empty");
+                return;
+            }
+
+            final SQLiteQueryBuilder qb = isLocal ? QB_MATCH_LOCAL_ONLY : QB_MATCH_CLOUD;
+            final String[] queryArgs = new String[]{id};
+
+            try (Cursor outputCursor = qb.query(getDatabase(), sDateTakenProjection,
+                    /* selection */ null, queryArgs, /* groupBy */ null, /* having */ null,
+                    /* orderBy */ null)) {
+                if (outputCursor.moveToFirst()) {
+                    mFirstDateTakenMillis = outputCursor.getLong(/* columnIndex */ 0);
+                } else {
+                    Log.e(TAG, "Could not get first date taken millis for media id: " + id);
+                }
             }
         }
     }

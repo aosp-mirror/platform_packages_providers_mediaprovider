@@ -84,8 +84,8 @@ public class DatabaseBackupAndRecoveryTest {
         assertThat(DatabaseBackupAndRecovery.getFilePathForFuseRequests("/storage")).isEqualTo(
                 "/storage/emulated/" + UserHandle.myUserId());
         assertThat(DatabaseBackupAndRecovery.getFilePathForFuseRequests(
-                "/storage/emulated/0")).isEqualTo(
-                "/storage/emulated/0");
+                "/storage/emulated/" + UserHandle.myUserId() + "/Android/media")).isEqualTo(
+                "/storage/emulated/" + UserHandle.myUserId());
         assertThat(
                 DatabaseBackupAndRecovery.getFilePathForFuseRequests("/storage/ABC-DEF")).isEqualTo(
                 "/storage/ABC-DEF");

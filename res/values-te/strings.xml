@@ -48,7 +48,7 @@
     <string name="picker_settings_toast_error" msgid="697274445512467469">"ఈ సమయంలో క్లౌడ్ మీడియా యాప్ మార్చడం సాధ్యపడలేదు."</string>
     <string name="add" msgid="2894574044585549298">"జోడించండి"</string>
     <string name="deselect" msgid="4297825044827769490">"ఎంపికను తొలగించండి"</string>
-    <string name="deselected" msgid="8488133193326208475">"ఎంపికను తొలగించండి"</string>
+    <string name="deselected" msgid="8488133193326208475">"ఎంపిక తొలగించబడింది"</string>
     <string name="select" msgid="2704765470563027689">"ఎంచుకోండి"</string>
     <string name="selected" msgid="9151797369975828124">"ఎంచుకోబడింది"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{గరిష్ఠంగా <xliff:g id="COUNT_0">^1</xliff:g> ఐటెమ్‌ను ఎంచుకోండి}other{గరిష్ఠంగా <xliff:g id="COUNT_1">^1</xliff:g> ఐటెమ్‌లను ఎంచుకోండి}}"</string>
@@ -60,7 +60,7 @@
     <string name="picker_photos" msgid="7415035516411087392">"ఫోటోలు"</string>
     <string name="picker_albums" msgid="4822511902115299142">"ఆల్బమ్‌లు"</string>
     <string name="picker_preview" msgid="6257414886055861039">"ప్రివ్యూ"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"ఆఫీస్ ప్రొఫైల్‌కు మార్చండి"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"వర్క్ ప్రొఫైల్‌కు మార్చండి"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"వ్యక్తిగత ప్రొఫైల్‌కు మార్చండి"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"మీ అడ్మిన్ బ్లాక్ చేశారు"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"వ్యక్తిగత యాప్ నుండి వర్క్ డేటాను యాక్సెస్ చేయడం అనుమతించబడదు"</string>

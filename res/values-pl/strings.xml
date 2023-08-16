@@ -47,9 +47,9 @@
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Brak"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Nie udało się zmienić aplikacji do multimediów w chmurze."</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
-    <string name="deselect" msgid="4297825044827769490">"Odznacz"</string>
+    <string name="deselect" msgid="4297825044827769490">"Usuń wybór"</string>
     <string name="deselected" msgid="8488133193326208475">"Usunięto wybór"</string>
-    <string name="select" msgid="2704765470563027689">"Zaznacz"</string>
+    <string name="select" msgid="2704765470563027689">"Wybierz"</string>
     <string name="selected" msgid="9151797369975828124">"Wybrano"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Wybierz maksymalnie <xliff:g id="COUNT_0">^1</xliff:g> element}few{Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementy}many{Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementów}other{Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementu}}"</string>
     <string name="recent" msgid="6694613584743207874">"Ostatnie"</string>

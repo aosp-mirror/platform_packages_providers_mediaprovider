@@ -218,6 +218,8 @@ public class PickerSyncController {
         mDbFacade = dbFacade;
         mLocalProvider = localProvider;
 
+        // Listen to the device config, and try to enable cloud features when the config changes.
+        mConfigStore.addOnChangeListener(BackgroundThread.getExecutor(), this::initCloudProvider);
         initCloudProvider();
     }
 

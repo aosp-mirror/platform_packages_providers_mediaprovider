@@ -63,7 +63,7 @@
     <string name="picker_work_profile" msgid="2083221066869141576">"仕事用に切り替える"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"個人用に切り替える"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"管理者によりブロックされています"</string>
-    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"個人用アプリから仕事用データにアクセスすることは認められていません"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"個人用アプリから仕事用データにアクセスすることは許可されていません"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"仕事用アプリから個人データにアクセスすることは認められていません"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"仕事用アプリ一時停止中"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"仕事用の写真を開くには、仕事用アプリを有効にしてからもう一度試してください。"</string>

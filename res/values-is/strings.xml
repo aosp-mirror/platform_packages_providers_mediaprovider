@@ -61,7 +61,7 @@
     <string name="picker_albums" msgid="4822511902115299142">"Albúm"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Forskoða"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Skipta yfir í vinnusnið"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Skipta yfir í eigið snið"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Skipta yfir í einkasnið"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Útilokað af kerfisstjóra"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Óheimilt er að opna vinnugögn í forriti til einkanota"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Óheimilt er að opna einkagögn í vinnuforriti"</string>

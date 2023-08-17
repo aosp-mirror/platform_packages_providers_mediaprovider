@@ -39,11 +39,11 @@
     <string name="allow" msgid="8885707816848569619">"Luba"</string>
     <string name="deny" msgid="6040983710442068936">"Keela"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Sirvimine …"</string>
-    <string name="picker_settings" msgid="6443463167344790260">"Pilvemeediarakendus"</string>
-    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Pilvemeediarakendus"</string>
-    <string name="picker_settings_title" msgid="5647700706470673258">"Pilvemeediarakendus"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Pilvemeedia rakendus"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Pilvemeedia rakendus"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Pilvemeedia rakendus"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Juurdepääs teie pilves olevale meediale, kui rakendus või veebisait palub teil fotosid või videoid valida"</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"Pilvemeediarakendus:"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Pilvemeedia rakendus:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Pole"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Pilvepõhist meediarakendust ei saanud muuta."</string>
     <string name="add" msgid="2894574044585549298">"Lisa"</string>
@@ -63,7 +63,7 @@
     <string name="picker_work_profile" msgid="2083221066869141576">"Lülituge tööprofiilile"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Lülituge isiklikule profiilile"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokeeris teie administraator"</string>
-    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Juurdepääs tööandmetele isikliku rakenduse kaudu pole lubatud"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Juurdepääs tööandmetele isikliku rakenduse kaudu pole lubatud."</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Juurdepääs isiklikele andmetele töörakenduse kaudu pole lubatud"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Töörakendused on peatatud"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Tööfotode avamiseks lülitage töörakendused sisse ja proovige uuesti"</string>
@@ -96,7 +96,7 @@
     <string name="not_selected" msgid="2244008151669896758">"pole valitud"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>-st on valmis"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Varundatud fotod on nüüd kaasatud"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Saate valida fotosid rakendusest <xliff:g id="APP_NAME">%1$s</xliff:g> konto <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> kaudu"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Saate valida konto <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> fotosid rakendusest <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Rakenduse <xliff:g id="APP_NAME">%1$s</xliff:g> kontot värskendati"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Kasutaja <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> fotod on nüüd siia kaasatud"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Valige pilvemeediarakendus"</string>

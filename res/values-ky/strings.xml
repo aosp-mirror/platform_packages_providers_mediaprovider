@@ -51,7 +51,7 @@
     <string name="deselected" msgid="8488133193326208475">"Тандоодон чыгарылды"</string>
     <string name="select" msgid="2704765470563027689">"Тандоо"</string>
     <string name="selected" msgid="9151797369975828124">"Тандалды"</string>
-    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> объектке чейин тандаңыз}other{<xliff:g id="COUNT_1">^1</xliff:g> объектке чейин тандаңыз}}"</string>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> нерсеге чейин тандаңыз}other{<xliff:g id="COUNT_1">^1</xliff:g> нерсеге чейин тандаңыз}}"</string>
     <string name="recent" msgid="6694613584743207874">"Акыркы"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Сүрөттөр же видеолор жок"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Колдоого алынган сүрөттөр же видеолор жок"</string>
@@ -67,7 +67,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Жеке маалыматка жумуш колдонмосунан кирүүгө тыюу салынат"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Жумуш колдонмолору тындырылды"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Жумуш сүрөттөрүн ачуу үчүн жумуш колдонмолорун иштетип, кайра аракет кылыңыз"</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"Бул колдонмо сиз тандаган сүрөттөргө гана кире алат"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Бул колдонмого сиз тандаган сүрөттөр гана жеткиликтүү"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Бул колдонмо кире турган сүрөттөрдү жана видеолорду тандаңыз"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> нерсе}other{<xliff:g id="COUNT_1">^1</xliff:g> нерсе}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Кошуу (<xliff:g id="COUNT">^1</xliff:g>)"</string>

@@ -19,7 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"Multimedia"</string>
     <string name="storage_description" msgid="4081716890357580107">"Pamięć lokalna"</string>
     <string name="app_label" msgid="9035307001052716210">"Przechowywanie multimediów"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Multimedia"</string>
+    <!-- no translation found for picker_app_label (1195424381053599122) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"Wykonawca"</string>
     <string name="unknown" msgid="2059049215682829375">"Nieznany"</string>
     <string name="root_images" msgid="5861633549189045666">"Obrazy"</string>
@@ -47,9 +48,9 @@
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Brak"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Nie udało się zmienić aplikacji do multimediów w chmurze."</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
-    <string name="deselect" msgid="4297825044827769490">"Odznacz"</string>
+    <string name="deselect" msgid="4297825044827769490">"Usuń wybór"</string>
     <string name="deselected" msgid="8488133193326208475">"Usunięto wybór"</string>
-    <string name="select" msgid="2704765470563027689">"Zaznacz"</string>
+    <string name="select" msgid="2704765470563027689">"Wybierz"</string>
     <string name="selected" msgid="9151797369975828124">"Wybrano"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Wybierz maksymalnie <xliff:g id="COUNT_0">^1</xliff:g> element}few{Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementy}many{Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementów}other{Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementu}}"</string>
     <string name="recent" msgid="6694613584743207874">"Ostatnie"</string>
@@ -106,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Wybierz aplikację"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Wybierz konto"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Zmień konto"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Pobieram wszystkie Twoje zdjęcia"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Zezwolić aplikacji <xliff:g id="APP_NAME_0">^1</xliff:g> na zmodyfikowanie tego pliku audio?}few{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> plików audio?}many{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> plików audio?}other{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> pliku audio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modyfikuję plik audio…}few{Modyfikuję <xliff:g id="COUNT">^1</xliff:g> pliki audio…}many{Modyfikuję <xliff:g id="COUNT">^1</xliff:g> plików audio…}other{Modyfikuję <xliff:g id="COUNT">^1</xliff:g> pliku audio…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Zezwolić aplikacji <xliff:g id="APP_NAME_0">^1</xliff:g> na zmodyfikowanie tego filmu?}few{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> filmów?}many{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> filmów?}other{Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> filmu?}}"</string>

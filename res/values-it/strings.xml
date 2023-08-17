@@ -19,7 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"Supporti multimediali"</string>
     <string name="storage_description" msgid="4081716890357580107">"Archiviazione locale"</string>
     <string name="app_label" msgid="9035307001052716210">"Media Storage"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Contenuti multimediali"</string>
+    <!-- no translation found for picker_app_label (1195424381053599122) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"Artista"</string>
     <string name="unknown" msgid="2059049215682829375">"Sconosciuto"</string>
     <string name="root_images" msgid="5861633549189045666">"Immagini"</string>
@@ -106,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Scegli app"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Scegli account"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Cambia account"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Recupero di tutte le tue foto in corso…"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di modificare questo file audio?}many{Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> file audio?}other{Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> file audio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modifica del file audio in corso…}many{Modifica di <xliff:g id="COUNT">^1</xliff:g> file audio in corso…}other{Modifica di <xliff:g id="COUNT">^1</xliff:g> file audio in corso…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Consentire all\'app <xliff:g id="APP_NAME_0">^1</xliff:g> di modificare questo video?}many{Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> video?}other{Consentire all\'app <xliff:g id="APP_NAME_1">^1</xliff:g> di modificare <xliff:g id="COUNT">^2</xliff:g> video?}}"</string>

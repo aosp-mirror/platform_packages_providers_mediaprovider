@@ -19,7 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"Media"</string>
     <string name="storage_description" msgid="4081716890357580107">"Hapësira ruajtëse lokale"</string>
     <string name="app_label" msgid="9035307001052716210">"Hapësira ruajtëse e medias"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Media"</string>
+    <!-- no translation found for picker_app_label (1195424381053599122) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"Artisti"</string>
     <string name="unknown" msgid="2059049215682829375">"I panjohur"</string>
     <string name="root_images" msgid="5861633549189045666">"Fotografitë"</string>
@@ -60,8 +61,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Fotografitë"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albumet"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Pamja paraprake"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Ndryshoje te puna"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Ndryshoje te personale"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Kalo te profili i punës"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Kalo te profili personal"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bllokuar nga administratori yt"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Qasja e të dhënave të punës nga një aplikacion personal nuk lejohet"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Qasja e të dhënave personale nga një aplikacion pune nuk lejohet"</string>
@@ -106,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Zgjidh aplikacionin"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Zgjidh llogarinë"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Ndrysho llogarinë"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Po merren të gjitha fotografitë e tua"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Të lejohet <xliff:g id="APP_NAME_0">^1</xliff:g> që ta modifikojë këtë skedar audio?}other{Të lejohet <xliff:g id="APP_NAME_1">^1</xliff:g> që të modifikojë <xliff:g id="COUNT">^2</xliff:g> skedarë audio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Skedari audio po modifikohet…}other{<xliff:g id="COUNT">^1</xliff:g> skedarë audio po modifikohen…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Të lejohet <xliff:g id="APP_NAME_0">^1</xliff:g> që ta modifikojë këtë video?}other{Të lejohet <xliff:g id="APP_NAME_1">^1</xliff:g> që të modifikojë <xliff:g id="COUNT">^2</xliff:g> video?}}"</string>

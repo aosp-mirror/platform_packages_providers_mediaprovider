@@ -19,7 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"Մեդիա"</string>
     <string name="storage_description" msgid="4081716890357580107">"Սարքի հիշողություն"</string>
     <string name="app_label" msgid="9035307001052716210">"Մեդիա կրիչ"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Մեդիա"</string>
+    <!-- no translation found for picker_app_label (1195424381053599122) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"Կատարող"</string>
     <string name="unknown" msgid="2059049215682829375">"Անհայտ"</string>
     <string name="root_images" msgid="5861633549189045666">"Պատկերներ"</string>
@@ -47,8 +48,8 @@
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Չկա"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Չհաջողվեց փոխել ամպային մուլտիմեդիա հավելվածը։"</string>
     <string name="add" msgid="2894574044585549298">"Ավելացնել"</string>
-    <string name="deselect" msgid="4297825044827769490">"Ապընտրել"</string>
-    <string name="deselected" msgid="8488133193326208475">"Ապընտրված"</string>
+    <string name="deselect" msgid="4297825044827769490">"Չեղարկել ընտրությունը"</string>
+    <string name="deselected" msgid="8488133193326208475">"Ընտրությունը չեղարկված է"</string>
     <string name="select" msgid="2704765470563027689">"Ընտրել"</string>
     <string name="selected" msgid="9151797369975828124">"Ընտրված"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Ընտրեք մինչև <xliff:g id="COUNT_0">^1</xliff:g> տարր}one{Ընտրեք մինչև <xliff:g id="COUNT_1">^1</xliff:g> տարր}other{Ընտրեք մինչև <xliff:g id="COUNT_1">^1</xliff:g> տարր}}"</string>
@@ -106,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Ընտրել հավելված"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Ընտրել հաշիվը"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Փոխել հաշիվը"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Ձեր բոլոր լուսանկարները բեռնվում են"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Թույլատրե՞լ <xliff:g id="APP_NAME_0">^1</xliff:g> հավելվածին վերականգնել այս աուդիո ֆայլն աղբարկղից}one{Թույլատրե՞լ <xliff:g id="APP_NAME_1">^1</xliff:g> հավելվածին վերականգնել <xliff:g id="COUNT">^2</xliff:g> աուդիո ֆայլ աղբարկղից}other{Թույլատրե՞լ <xliff:g id="APP_NAME_1">^1</xliff:g> հավելվածին վերականգնել <xliff:g id="COUNT">^2</xliff:g> աուդիո ֆայլ աղբարկղից}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Աուդիո ֆայլը փոփոխվում է…}one{<xliff:g id="COUNT">^1</xliff:g> աուդիո ֆայլ փոփոխվում է…}other{<xliff:g id="COUNT">^1</xliff:g> աուդիո ֆայլ փոփոխվում է…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Թույլատրե՞լ <xliff:g id="APP_NAME_0">^1</xliff:g> հավելվածին փոփոխել այս տեսանյութը}one{Թույլատրե՞լ <xliff:g id="APP_NAME_1">^1</xliff:g> հավելվածին փոփոխել <xliff:g id="COUNT">^2</xliff:g> տեսանյութ}other{Թույլատրե՞լ <xliff:g id="APP_NAME_1">^1</xliff:g> հավելվածին փոփոխել <xliff:g id="COUNT">^2</xliff:g> տեսանյութ}}"</string>

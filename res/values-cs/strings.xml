@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Média"</string>
     <string name="storage_description" msgid="4081716890357580107">"Místní úložiště"</string>
     <string name="app_label" msgid="9035307001052716210">"Úložiště médií"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Média"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Nástroj pro výběr médií"</string>
     <string name="artist_label" msgid="8105600993099120273">"Interpret"</string>
     <string name="unknown" msgid="2059049215682829375">"Neznámý"</string>
     <string name="root_images" msgid="5861633549189045666">"Obrázky"</string>
@@ -106,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Vybrat aplikaci"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Vybrat účet"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Změnit účet"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Načítání všech fotek"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit tento zvukový soubor?}few{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukové soubory?}many{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukového souboru?}other{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukových souborů?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Úprava zvukového souboru…}few{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…}many{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukového souboru…}other{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit toto video?}few{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?}many{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?}other{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videí?}}"</string>

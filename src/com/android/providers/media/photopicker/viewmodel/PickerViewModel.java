@@ -300,6 +300,15 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * @return the account selection activity {@link Intent} of the current
+     *         {@link android.provider.CloudMediaProvider}.
+     */
+    @Nullable
+    public Intent getChooseCloudMediaAccountActivityIntent() {
+        return mBannerManager.getChooseCloudMediaAccountActivityIntent();
+    }
+
+    /**
      * Reset to personal profile mode.
      */
     @UiThread

@@ -277,4 +277,26 @@ public class CloudProviderUtils {
 
         return (timeout > 0) ? future.get(timeout, MILLISECONDS) : future.get();
     }
+
+    /**
+     * @param resolver                    {@link ContentResolver} for the related user
+     * @param cloudMediaProviderAuthority authority {@link String} of the {@link CloudMediaProvider}
+     * @param timeout                     timeout in milliseconds for this query (<= 0 for timeout)
+     * @return the current cloud media collection info for the {@link CloudMediaProvider} with the
+     *         given {@code cloudMediaProviderAuthority}.
+     */
+    @Nullable
+    public static Bundle getCloudMediaCollectionInfo(@NonNull ContentResolver resolver,
+            @Nullable String cloudMediaProviderAuthority, @DurationMillisLong long timeout)
+            throws ExecutionException, InterruptedException, TimeoutException {
+        if (cloudMediaProviderAuthority == null) {
+            return null;
+        }
+
+        CompletableFuture<Bundle> future = CompletableFuture.supplyAsync(() ->
+                resolver.call(getMediaCollectionInfoUri(cloudMediaProviderAuthority),
+                        METHOD_GET_MEDIA_COLLECTION_INFO, /* arg */ null, /* extras */ null));
+
+        return (timeout > 0) ? future.get(timeout, MILLISECONDS) : future.get();
+    }
 }

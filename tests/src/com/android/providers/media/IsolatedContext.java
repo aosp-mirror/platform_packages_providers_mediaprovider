@@ -31,8 +31,10 @@ import android.test.mock.MockContentProvider;
 import android.test.mock.MockContentResolver;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.cloudproviders.CloudProviderPrimary;
+import com.android.providers.media.cloudproviders.FlakyCloudProvider;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.util.FileUtils;
@@ -48,6 +50,7 @@ public class IsolatedContext extends ContextWrapper {
     private final MockContentResolver mResolver;
     private final MediaProvider mMediaProvider;
     private final UserHandle mUserHandle;
+    private final FlakyCloudProvider mFlakyCloudProvider;
 
     public IsolatedContext(Context base, String tag, boolean asFuseThread) {
         this(base, tag, asFuseThread, base.getUser());
@@ -87,6 +90,9 @@ public class IsolatedContext extends ContextWrapper {
 
         final CloudMediaProvider cmp = new CloudProviderPrimary();
         attachInfoAndAddProvider(base, cmp, CloudProviderPrimary.AUTHORITY);
+
+        mFlakyCloudProvider = new FlakyCloudProvider();
+        attachInfoAndAddProvider(base, mFlakyCloudProvider, FlakyCloudProvider.AUTHORITY);
 
         MediaStore.waitForIdle(mResolver);
     }
@@ -162,4 +168,13 @@ public class IsolatedContext extends ContextWrapper {
         }
     }
 
+    @VisibleForTesting
+    public void setFlakyCloudProviderToFlakeInTheNextRequest() {
+        mFlakyCloudProvider.setToFlakeInTheNextRequest();
+    }
+
+    @VisibleForTesting
+    public void resetFlakyCloudProviderToNotFlakeInTheNextRequest() {
+        mFlakyCloudProvider.resetToNotFlakeInTheNextRequest();
+    }
 }

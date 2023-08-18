@@ -47,6 +47,8 @@ import android.content.pm.ProviderInfo;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.os.CancellationSignal;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
@@ -104,6 +106,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private final Selection mSelection;
     private final MuteStatus mMuteStatus;
+    public boolean mEmptyPageDisplayed = false;
 
     // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
     //  data set to reduce memories.
@@ -148,7 +151,6 @@ public class PickerViewModel extends AndroidViewModel {
     // Note - Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
     private boolean mIsUserSelectForApp;
     private boolean mIsLocalOnly;
-    private boolean mIsAllItemsLoaded = false;
     private boolean mIsAllCategoryItemsLoaded = false;
     private boolean mIsNotificationForUpdateReceived = false;
     private CancellationSignal mCancellationSignal = new CancellationSignal();
@@ -197,6 +199,14 @@ public class PickerViewModel extends AndroidViewModel {
     private void onNotificationReceived() {
         Log.d(TAG, "Notification for media update has been received");
         mIsNotificationForUpdateReceived = true;
+        if (mEmptyPageDisplayed && mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
+            (new Handler(Looper.getMainLooper())).post(() -> {
+                Log.d(TAG, "Refreshing UI to display new items.");
+                mEmptyPageDisplayed = false;
+                getPaginatedItemsForAction(ACTION_REFRESH_ITEMS,
+                        new PaginationParameters(mItemsPageSize, -1, -1));
+            });
+        }
     }
 
     @VisibleForTesting
@@ -232,6 +242,10 @@ public class PickerViewModel extends AndroidViewModel {
     @VisibleForTesting
     public void setConfigStore(@NonNull ConfigStore configStore) {
         mConfigStore = configStore;
+    }
+
+    public void setEmptyPageDisplayed(boolean emptyPageDisplayed) {
+        mEmptyPageDisplayed = emptyPageDisplayed;
     }
 
     /**
@@ -449,9 +463,6 @@ public class PickerViewModel extends AndroidViewModel {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
 
         DataLoaderThread.getHandler().postDelayed(() -> {
-            if (action == ACTION_LOAD_NEXT_PAGE && mIsAllItemsLoaded) {
-                return;
-            }
             // Load the items as per the pagination parameters passed as params to this method.
             List<Item> newPageItemList = loadItems(Category.DEFAULT, userId, pagingParameters);
 
@@ -462,13 +473,8 @@ public class PickerViewModel extends AndroidViewModel {
                     mItemsResult.getValue() == null || isReset ? new ArrayList<>()
                             : mItemsResult.getValue().getItems();
             updatedList.addAll(newPageItemList);
-
-            if (isReset) {
-                mIsAllItemsLoaded = false;
-            }
             Log.d(TAG, "Next page for photos items have been loaded.");
             if (newPageItemList.isEmpty()) {
-                mIsAllItemsLoaded = true;
                 Log.d(TAG, "All photos items have been loaded.");
             }
 

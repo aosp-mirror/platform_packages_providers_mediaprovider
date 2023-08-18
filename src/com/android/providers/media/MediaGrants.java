@@ -16,10 +16,13 @@
 
 package com.android.providers.media;
 
+import static android.provider.MediaStore.MediaColumns.DATA;
+
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 
 import android.content.ContentUris;
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -29,7 +32,9 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.util.FileUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -46,6 +51,9 @@ class MediaGrants {
     public static final String PACKAGE_USER_ID_COLUMN = "package_user_id";
     public static final String OWNER_PACKAGE_NAME_COLUMN =
             MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
+
+    private static final String MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME = "media_grants LEFT JOIN "
+            + "files ON media_grants.file_id = files._id";
 
     private SQLiteQueryBuilder mQueryBuilder = new SQLiteQueryBuilder();
     private DatabaseHelper mExternalDatabase;
@@ -98,6 +106,41 @@ class MediaGrants {
 
                     return null;
                 });
+    }
+
+    /**
+     * Returns the file uris of items for which the passed package has READ_GRANTS.
+     *
+     * @param packageName   the package name that has access.
+     * @param packageUserId the user_id of the package
+     */
+    List<Uri> getMediaGrantsForPackage(String packageName, int packageUserId)
+            throws IllegalArgumentException {
+        Objects.requireNonNull(packageName);
+        return mExternalDatabase.runWithoutTransaction((db) -> {
+            final List<Uri> filesUriList = new ArrayList<>();
+            final String selection = String.format(
+                    "%s = '%s' AND %s = %s",
+                    "media_grants." + MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                    packageName,
+                    "media_grants." + MediaGrants.PACKAGE_USER_ID_COLUMN,
+                    Integer.toString(packageUserId));
+            SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
+            queryBuilder.setDistinct(true);
+            queryBuilder.setTables(MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME);
+            try (Cursor c = queryBuilder.query(db,
+                    new String[]{DATA, FILE_ID_COLUMN},
+                    selection,
+                    null, null, null, null, null, null)) {
+                while (c.moveToNext()) {
+                    final String file_path = c.getString(c.getColumnIndexOrThrow(DATA));
+                    final Integer file_id = c.getInt(c.getColumnIndexOrThrow(FILE_ID_COLUMN));
+                    filesUriList.add(FileUtils.getContentUriForPath(
+                            file_path).buildUpon().appendPath(String.valueOf(file_id)).build());
+                }
+                return filesUriList;
+            }
+        });
     }
 
     /**

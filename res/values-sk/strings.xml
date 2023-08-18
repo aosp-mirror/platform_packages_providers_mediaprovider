@@ -19,7 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"Médiá"</string>
     <string name="storage_description" msgid="4081716890357580107">"Miestne úložisko"</string>
     <string name="app_label" msgid="9035307001052716210">"Úložisko médií"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Médiá"</string>
+    <!-- no translation found for picker_app_label (1195424381053599122) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"Interpret"</string>
     <string name="unknown" msgid="2059049215682829375">"Neznáme"</string>
     <string name="root_images" msgid="5861633549189045666">"Obrázky"</string>
@@ -60,8 +61,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Fotky"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albumy"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Ukážka"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Prepnúť na pracovný"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Prepnúť na osobný"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Prepnúť na pracovný profil"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Prepnúť na osobný profil"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokované vaším správcom"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Prístup k pracovným údajom z osobnej aplikácie nie je povolený"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Prístup k osobným údajom z pracovnej aplikácie nie je povolený"</string>
@@ -106,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Vybrať aplikáciu"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Vybrať účet"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Zmeniť účet"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Načítavajú sa všekty vaše fotky"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Chcete povoliť aplikácii <xliff:g id="APP_NAME_0">^1</xliff:g> upraviť tento zvukový súbor?}few{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> zvukové súbory?}many{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> audio files?}other{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> zvukových súborov?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Upravuje sa zvukový súbor…}few{Upravujú sa <xliff:g id="COUNT">^1</xliff:g> zvukové súbory…}many{Modifying <xliff:g id="COUNT">^1</xliff:g> audio files…}other{Upravuje sa <xliff:g id="COUNT">^1</xliff:g> zvukových súborov…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Chcete povoliť aplikácii <xliff:g id="APP_NAME_0">^1</xliff:g> upraviť toto video?}few{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> videá?}many{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> videos?}other{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> videí?}}"</string>

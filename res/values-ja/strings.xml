@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"メディア"</string>
     <string name="storage_description" msgid="4081716890357580107">"ローカル ストレージ"</string>
     <string name="app_label" msgid="9035307001052716210">"メディア ストレージ"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"メディア"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"メディアの選択"</string>
     <string name="artist_label" msgid="8105600993099120273">"アーティスト"</string>
     <string name="unknown" msgid="2059049215682829375">"不明"</string>
     <string name="root_images" msgid="5861633549189045666">"画像"</string>
@@ -63,7 +63,7 @@
     <string name="picker_work_profile" msgid="2083221066869141576">"仕事用に切り替える"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"個人用に切り替える"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"管理者によりブロックされています"</string>
-    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"個人用アプリから仕事用データにアクセスすることは認められていません"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"個人用アプリから仕事用データにアクセスすることは許可されていません"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"仕事用アプリから個人データにアクセスすることは認められていません"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"仕事用アプリ一時停止中"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"仕事用の写真を開くには、仕事用アプリを有効にしてからもう一度試してください。"</string>
@@ -106,6 +106,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"アプリを選択"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"アカウントを選択"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"アカウントを変更"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"すべての写真を取得しています"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{この音声ファイルの変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 件の音声ファイルの変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{音声ファイルを変更しています…}other{<xliff:g id="COUNT">^1</xliff:g> 件の音声ファイルを変更しています…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{この動画の変更を <xliff:g id="APP_NAME_0">^1</xliff:g> に許可しますか？}other{<xliff:g id="COUNT">^2</xliff:g> 本の動画の変更を <xliff:g id="APP_NAME_1">^1</xliff:g> に許可しますか？}}"</string>

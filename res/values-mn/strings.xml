@@ -19,7 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"Медиа"</string>
     <string name="storage_description" msgid="4081716890357580107">"Дотоод сан"</string>
     <string name="app_label" msgid="9035307001052716210">"Медиа санах ой"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Медиа"</string>
+    <!-- no translation found for picker_app_label (1195424381053599122) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"Уран бүтээлч"</string>
     <string name="unknown" msgid="2059049215682829375">"Тодорхойгүй"</string>
     <string name="root_images" msgid="5861633549189045666">"Зураг"</string>
@@ -42,7 +43,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Үүлэн медиа апп"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Үүлэн медиа апп"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Үүлэн медиа апп"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Апп эсвэл вебсайт танаас зураг эсвэл видео сонгохыг хүсэх үед таны үүлэн медиадаа хандана уу"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Апп эсвэл вебсайт танаас зураг эсвэл видео сонгохыг хүсвэл үүлэн медиадаа хандана уу"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Дараахаас үүлэн медиад хандах"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Байхгүй"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Энэ удаад үүлэн медиа аппыг өөрчилж чадсангүй."</string>
@@ -106,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Апп сонгох"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Бүртгэл сонгох"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Бүртгэл өөрчлөх"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Таны бүх зургийг авч байна"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>-д энэ аудио файлыг өөрчлөхийг зөвшөөрөх үү?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>-д <xliff:g id="COUNT">^2</xliff:g> аудио файлыг өөрчлөхийг зөвшөөрөх үү?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Аудио файлыг өөрчилж байна…}other{<xliff:g id="COUNT">^1</xliff:g> аудио файлыг өөрчилж байна…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>-д энэ видеог өөрчлөхийг зөвшөөрөх үү?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>-д <xliff:g id="COUNT">^2</xliff:g> видеог өөрчлөхийг зөвшөөрөх үү?}}"</string>

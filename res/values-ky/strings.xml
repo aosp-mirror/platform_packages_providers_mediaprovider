@@ -19,7 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"Мультимедия"</string>
     <string name="storage_description" msgid="4081716890357580107">"Жергиликтүү сактагыч"</string>
     <string name="app_label" msgid="9035307001052716210">"Медиа сактагыч"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Медиа"</string>
+    <!-- no translation found for picker_app_label (1195424381053599122) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"Аткаруучу"</string>
     <string name="unknown" msgid="2059049215682829375">"Белгисиз"</string>
     <string name="root_images" msgid="5861633549189045666">"Сүрөттөр"</string>
@@ -51,7 +52,7 @@
     <string name="deselected" msgid="8488133193326208475">"Тандоодон чыгарылды"</string>
     <string name="select" msgid="2704765470563027689">"Тандоо"</string>
     <string name="selected" msgid="9151797369975828124">"Тандалды"</string>
-    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> объектке чейин тандаңыз}other{<xliff:g id="COUNT_1">^1</xliff:g> объектке чейин тандаңыз}}"</string>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> нерсеге чейин тандаңыз}other{<xliff:g id="COUNT_1">^1</xliff:g> нерсеге чейин тандаңыз}}"</string>
     <string name="recent" msgid="6694613584743207874">"Акыркы"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Сүрөттөр же видеолор жок"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Колдоого алынган сүрөттөр же видеолор жок"</string>
@@ -67,7 +68,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Жеке маалыматка жумуш колдонмосунан кирүүгө тыюу салынат"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Жумуш колдонмолору тындырылды"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Жумуш сүрөттөрүн ачуу үчүн жумуш колдонмолорун иштетип, кайра аракет кылыңыз"</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"Бул колдонмо сиз тандаган сүрөттөргө гана кире алат"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Бул колдонмого сиз тандаган сүрөттөр гана жеткиликтүү"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Бул колдонмо кире турган сүрөттөрдү жана видеолорду тандаңыз"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> нерсе}other{<xliff:g id="COUNT_1">^1</xliff:g> нерсе}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Кошуу (<xliff:g id="COUNT">^1</xliff:g>)"</string>
@@ -106,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Колдонмо тандаңыз"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Аккаунт тандоо"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Аккаунтту өзгөртүү"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Бардык сүрөттөрүңүз алынууда"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул аудио файлды өзгөртсүнбү?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> аудио файлды өзгөртсүнбү?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Аудио файл өзгөртүлүүдө…}other{<xliff:g id="COUNT">^1</xliff:g> аудио файл өзгөртүлүүдө…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул видеону өзгөртсүнбү?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> видеону өзгөртсүнбү?}}"</string>

@@ -19,7 +19,8 @@
     <string name="uid_label" msgid="8421971615411294156">"Mediji"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokalna pohrana"</string>
     <string name="app_label" msgid="9035307001052716210">"Pohranjivanje na mediju"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Mediji"</string>
+    <!-- no translation found for picker_app_label (1195424381053599122) -->
+    <skip />
     <string name="artist_label" msgid="8105600993099120273">"Izvođač"</string>
     <string name="unknown" msgid="2059049215682829375">"Nepoznato"</string>
     <string name="root_images" msgid="5861633549189045666">"Slike"</string>
@@ -106,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Odaberite aplikaciju"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Odaberite račun"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Promijenite račun"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Dohvaćanje svih vaših fotografija"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g> da izmijeni tu audiodatoteku?}one{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteku?}few{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteke?}other{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteka?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Mijenjanje audiodatoteke…}one{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteke…}few{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteke…}other{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteka…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g> da izmijeni taj videozapis?}one{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapis?}few{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}other{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}}"</string>

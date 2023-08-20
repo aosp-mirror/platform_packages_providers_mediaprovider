@@ -28,8 +28,12 @@ import static android.provider.MediaStore.GET_CLOUD_PROVIDER_RESULT;
 import static android.provider.MediaStore.PICKER_MEDIA_INIT_CALL;
 import static android.provider.MediaStore.SET_CLOUD_PROVIDER_CALL;
 
-import static java.util.Collections.emptyList;
+import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
 
+import static java.util.Collections.emptyList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
+import android.annotation.DurationMillisLong;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -55,6 +59,9 @@ import com.android.providers.media.photopicker.data.model.UserId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Utility methods for retrieving available and/or allowlisted Cloud Providers.
@@ -248,23 +255,26 @@ public class CloudProviderUtils {
     }
 
     /**
+     * @param resolver                    {@link ContentResolver} for the related user
+     * @param cloudMediaProviderAuthority authority {@link String} of the {@link CloudMediaProvider}
+     * @param timeout                     timeout in milliseconds for this query (<= 0 for timeout)
      * @return the current cloud media account name for the {@link CloudMediaProvider} with the
      *         given {@code cloudMediaProviderAuthority}.
      */
     @Nullable
     public static String getCloudMediaAccountName(@NonNull ContentResolver resolver,
-            @Nullable String cloudMediaProviderAuthority) {
+            @Nullable String cloudMediaProviderAuthority, @DurationMillisLong long timeout)
+            throws ExecutionException, InterruptedException, TimeoutException {
         if (cloudMediaProviderAuthority == null) {
             return null;
         }
 
-        try (ContentProviderClient client =
-                     resolver.acquireContentProviderClient(cloudMediaProviderAuthority)) {
-            final Bundle out = client.call(METHOD_GET_MEDIA_COLLECTION_INFO, /* arg */ null,
-                    /* extras */ null);
-            return out.getString(ACCOUNT_NAME);
-        } catch (RemoteException e) {
-            throw e.rethrowAsRuntimeException();
-        }
+        CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+            final Bundle out = resolver.call(getMediaCollectionInfoUri(cloudMediaProviderAuthority),
+                    METHOD_GET_MEDIA_COLLECTION_INFO, /* arg */ null, /* extras */ null);
+            return (out == null) ? null : out.getString(ACCOUNT_NAME);
+        });
+
+        return (timeout > 0) ? future.get(timeout, MILLISECONDS) : future.get();
     }
 }

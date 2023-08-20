@@ -35,6 +35,7 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 
 /**
  * This is a {@link Worker} class responsible for syncing with the correct sync source.
@@ -58,7 +59,7 @@ public class ImmediateSyncWorker extends Worker {
     @Override
     public ListenableWorker.Result doWork() {
         final int syncSource = getInputData()
-                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_ONLY);
 
         Log.i(TAG, String.format(
                 "Starting immediate picker sync from sync source: %s", syncSource));
@@ -68,17 +69,19 @@ public class ImmediateSyncWorker extends Worker {
             // For immediate syncs, the work request tracker is initiated before enqueueing the
             // request in WorkManager.
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_LOCAL_ONLY) {
+                checkIsWorkerStopped();
                 PickerSyncController.getInstanceOrThrow().syncAllMediaFromLocalProvider();
                 getLocalSyncTracker().markSyncCompleted(getId());
                 Log.i(TAG, "Completed immediate picker sync from local provider.");
             }
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_CLOUD_ONLY) {
+                checkIsWorkerStopped();
                 PickerSyncController.getInstanceOrThrow().syncAllMediaFromCloudProvider();
                 getCloudSyncTracker().markSyncCompleted(getId());
                 Log.i(TAG, "Completed immediate picker sync from cloud provider.");
             }
             return ListenableWorker.Result.success();
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException | RequestObsoleteException e) {
             Log.i(TAG, String.format(
                     "Could not complete immediate sync from sync source: %s", syncSource), e);
 
@@ -88,9 +91,24 @@ public class ImmediateSyncWorker extends Worker {
         }
     }
 
+    private void checkIsWorkerStopped() throws RequestObsoleteException {
+        if (isStopped()) {
+            throw new RequestObsoleteException("Work is stopped " + getId());
+        }
+    }
+
     @Override
     @NonNull
     public ForegroundInfo getForegroundInfo() {
         return PickerSyncNotificationHelper.getForegroundInfo(mContext);
+    }
+
+    @Override
+    public void onStopped() {
+        Log.w(TAG, "Worker is stopped. Clearing all pending futures. It's possible that the sync "
+                + "still finishes running if it has started already.");
+        final int syncSource = getInputData()
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
+        markSyncAsComplete(syncSource, getId());
     }
 }

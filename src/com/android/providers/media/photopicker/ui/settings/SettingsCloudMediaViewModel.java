@@ -56,6 +56,7 @@ import java.util.List;
 public class SettingsCloudMediaViewModel extends ViewModel {
     static final String NONE_PREF_KEY = "none";
     private static final String TAG = "SettingsFragVM";
+    private static final long GET_ACCOUNT_NAME_TIMEOUT_IN_MILLIS = 10000L;
 
     @NonNull
     private final Context mContext;
@@ -196,7 +197,8 @@ public class SettingsCloudMediaViewModel extends ViewModel {
         } else {
             try {
                 final String accountName = getCloudMediaAccountName(
-                        mUserId.getContentResolver(mContext), currentProviderAuthority);
+                        mUserId.getContentResolver(mContext), currentProviderAuthority,
+                        GET_ACCOUNT_NAME_TIMEOUT_IN_MILLIS);
                 return new CloudMediaProviderAccount(currentProviderAuthority, accountName);
             } catch (Exception e) {
                 Log.w(TAG, "Failed to fetch account name from the cloud media provider.", e);

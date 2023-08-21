@@ -40,6 +40,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -56,6 +57,9 @@ public class Category {
     private final boolean mIsLocal;
     private final Uri mCoverUri;
     private final int mItemCount;
+
+    private final List<String> mTranslatableCategories = List.of(ALBUM_ID_VIDEOS, ALBUM_ID_CAMERA,
+            ALBUM_ID_SCREENSHOTS, ALBUM_ID_DOWNLOADS, ALBUM_ID_FAVORITES);
 
     private Category() {
         this(null, null, null, null, 0, false);
@@ -91,7 +95,7 @@ public class Category {
     }
 
     public String getDisplayName(Context context) {
-        if (mIsLocal) {
+        if (mTranslatableCategories.contains(mId)) {
             return getLocalizedDisplayName(context, mId);
         }
         return mDisplayName;

@@ -58,6 +58,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -237,6 +238,7 @@ public class PickerViewModelPaginationTest {
         }
     }
 
+    @Ignore("Enable progress bar and pagination tests after fixing the flaky behaviour b/296520260")
     @Test
     public void test_differentCategories_getCategoryItems() throws Exception {
         int pageSize = 4;

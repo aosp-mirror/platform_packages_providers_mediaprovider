@@ -128,6 +128,7 @@
         <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerSecondaryTextColor">?android:attr/textColorPrimary</item>
         <item name="pickerBannerButtonTextColor">?android:attr/colorAccent</item>
+        <item name="categoryDefaultThumbnailColor">?android:attr/colorAccent</item>
     </style>
 
     <style name="PickerBannerButtonTheme"

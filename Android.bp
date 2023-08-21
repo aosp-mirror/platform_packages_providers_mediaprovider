@@ -41,6 +41,7 @@ android_app {
         "framework-mediaprovider.impl",
         "framework-media.stubs.module_lib",
         "framework-statsd",
+        "keepanno-annotations",
     ],
 
     jni_libs: [

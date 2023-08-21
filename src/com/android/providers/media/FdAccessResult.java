@@ -17,11 +17,16 @@
 package com.android.providers.media;
 
 import android.text.TextUtils;
+import com.android.tools.r8.keepanno.annotations.KeepItemKind;
+import com.android.tools.r8.keepanno.annotations.UsedByNative;
 
 /**
- * Wrapper class which contains information about how a file descriptor can be opened
- * after a {@link FuseDaemon#checkFdAccess} call.
+ * Wrapper class which contains information about how a file descriptor can be opened after a {@link
+ * FuseDaemon#checkFdAccess} call.
  */
+@UsedByNative(
+    description = "Called from JNI in jni/MediaProviderWrapper.cpp",
+    kind = KeepItemKind.CLASS_AND_MEMBERS)
 public final class FdAccessResult {
     public final String filePath;
     public final boolean shouldRedact;

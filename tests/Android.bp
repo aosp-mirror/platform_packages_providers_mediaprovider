@@ -150,6 +150,7 @@ android_test {
         "android.test.runner",
         "unsupportedappusage",
         "framework-mediaprovider.impl",
+        "keepanno-annotations",
     ],
 
     static_libs: [

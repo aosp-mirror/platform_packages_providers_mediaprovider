@@ -35,8 +35,10 @@ import androidx.work.Operation;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
+import androidx.work.Worker;
 
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.photopicker.PickerSyncController;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -45,7 +47,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-
 
 /**
  * This class manages all the triggers for Picker syncs.
@@ -68,15 +69,28 @@ public class PickerSyncManager {
     @IntDef(value = { SYNC_LOCAL_ONLY, SYNC_CLOUD_ONLY, SYNC_LOCAL_AND_CLOUD })
     @Retention(RetentionPolicy.SOURCE)
     public @interface SyncSource {}
+
+    public static final int SYNC_RESET_MEDIA = 1;
+    public static final int SYNC_RESET_ALBUM = 2;
+
+    @IntDef(value = {SYNC_RESET_MEDIA, SYNC_RESET_ALBUM})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface SyncResetType {}
+
+    static final String SYNC_WORKER_INPUT_AUTHORITY = "INPUT_AUTHORITY";
     static final String SYNC_WORKER_INPUT_SYNC_SOURCE = "INPUT_SYNC_TYPE";
+    static final String SYNC_WORKER_INPUT_RESET_TYPE = "INPUT_RESET_TYPE";
     static final String SYNC_WORKER_INPUT_ALBUM_ID = "INPUT_ALBUM_ID";
+    static final String SYNC_WORKER_TAG_IS_PERIODIC = "PERIODIC";
     private static final int SYNC_MEDIA_PERIODIC_WORK_INTERVAL = 4; // Time unit is hours.
+    private static final int RESET_ALBUM_MEDIA_PERIODIC_WORK_INTERVAL = 12; // Time unit is hours.
 
     private static final String PERIODIC_SYNC_WORK_NAME;
     private static final String PROACTIVE_SYNC_WORK_NAME;
     private static final String IMMEDIATE_LOCAL_SYNC_WORK_NAME;
     private static final String IMMEDIATE_CLOUD_SYNC_WORK_NAME;
     private static final String IMMEDIATE_ALBUM_SYNC_WORK_NAME;
+    private static final String PERIODIC_ALBUM_RESET_WORK_NAME;
 
     static {
         final String syncPeriodicPrefix = "SYNC_MEDIA_PERIODIC_";
@@ -86,6 +100,7 @@ public class PickerSyncManager {
         final String syncLocalSuffix = "LOCAL";
         final String syncCloudSuffix = "CLOUD";
 
+        PERIODIC_ALBUM_RESET_WORK_NAME = "RESET_ALBUM_MEDIA_PERIODIC";
         PERIODIC_SYNC_WORK_NAME = syncPeriodicPrefix + syncAllSuffix;
         PROACTIVE_SYNC_WORK_NAME = syncProactivePrefix + syncAllSuffix;
         IMMEDIATE_LOCAL_SYNC_WORK_NAME = syncImmediatePrefix + syncLocalSuffix;
@@ -106,6 +121,7 @@ public class PickerSyncManager {
 
             if (shouldSchedulePeriodicSyncs) {
                 schedulePeriodicSyncs();
+                schedulePeriodicAlbumReset();
             }
         }
     }
@@ -131,6 +147,35 @@ public class PickerSyncManager {
             enqueueOperation.getResult().get();
         } catch (InterruptedException | ExecutionException e) {
             Log.e(TAG, "Could not enqueue periodic proactive picker sync request", e);
+        }
+    }
+
+    private void schedulePeriodicAlbumReset() {
+        Log.i(TAG, "Scheduling periodic picker album data resets");
+
+        final Data inputData =
+                new Data(
+                        Map.of(
+                                SYNC_WORKER_INPUT_SYNC_SOURCE,
+                                SYNC_LOCAL_AND_CLOUD,
+                                SYNC_WORKER_INPUT_RESET_TYPE,
+                                SYNC_RESET_ALBUM));
+        final PeriodicWorkRequest periodicAlbumResetRequest =
+                getPeriodicAlbumResetRequest(inputData);
+
+        try {
+            // Note that the first execution of periodic work happens immediately or as soon
+            // as the given Constraints are met.
+            Operation enqueueOperation =
+                    mWorkManager.enqueueUniquePeriodicWork(
+                            PERIODIC_ALBUM_RESET_WORK_NAME,
+                            ExistingPeriodicWorkPolicy.KEEP,
+                            periodicAlbumResetRequest);
+
+            // Check that the request has been successfully enqueued.
+            enqueueOperation.getResult().get();
+        } catch (InterruptedException | ExecutionException e) {
+            Log.e(TAG, "Could not enqueue periodic picker album resets request", e);
         }
     }
 
@@ -168,7 +213,8 @@ public class PickerSyncManager {
      */
     private void syncMediaImmediately(@SyncSource int syncSource, @NonNull String workName) {
         final Data inputData = new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, syncSource));
-        final OneTimeWorkRequest syncRequest = getImmediateSyncRequest(inputData);
+        final OneTimeWorkRequest syncRequest =
+                buildOneTimeWorkerRequest(ImmediateSyncWorker.class, inputData);
 
         // Track the new sync request(s)
         trackNewSyncRequests(syncSource, syncRequest.getId());
@@ -190,60 +236,62 @@ public class PickerSyncManager {
      * Use this method for reactive syncs which are user action triggered.
      *
      * @param albumId is the id of the album that needs to be synced.
-     * @param isLocal is true when the authority when the sync type is local.
-     *                    For cloud syncs, this is false.
+     * @param authority The authority of the album media.
      */
     public void syncAlbumMediaForProviderImmediately(
-            @NonNull String albumId,
-            boolean isLocal) {
-        syncAlbumMediaForProviderImmediately(albumId, getSyncSource(isLocal));
+            @NonNull String albumId, @NonNull String authority) {
+        boolean isLocal = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority);
+        syncAlbumMediaForProviderImmediately(albumId, getSyncSource(isLocal), authority);
     }
 
     /**
      * Use this method for reactive syncs which are user action triggered.
      *
      * @param albumId is the id of the album that needs to be synced.
-     * @param syncSource indicates if the sync is required with local provider or cloud provider
-     *                   or both.
+     * @param syncSource indicates if the sync is required with local provider or cloud provider or
+     *     both.
      */
     private void syncAlbumMediaForProviderImmediately(
-            @NonNull String albumId,
-            @SyncSource int syncSource) {
-        final Data inputData = new Data(Map.of(
-                SYNC_WORKER_INPUT_SYNC_SOURCE, syncSource,
-                SYNC_WORKER_INPUT_ALBUM_ID, albumId));
-        final OneTimeWorkRequest syncRequest = getImmediateAlbumSyncRequest(inputData);
+            @NonNull String albumId, @SyncSource int syncSource, String authority) {
+        final Data inputData =
+                new Data(
+                        Map.of(
+                                SYNC_WORKER_INPUT_AUTHORITY, authority,
+                                SYNC_WORKER_INPUT_SYNC_SOURCE, syncSource,
+                                SYNC_WORKER_INPUT_RESET_TYPE, SYNC_RESET_ALBUM,
+                                SYNC_WORKER_INPUT_ALBUM_ID, albumId));
+        final OneTimeWorkRequest resetRequest =
+                buildOneTimeWorkerRequest(MediaResetWorker.class, inputData);
+        final OneTimeWorkRequest syncRequest =
+                buildOneTimeWorkerRequest(ImmediateAlbumSyncWorker.class, inputData);
 
         // Track the new sync request(s)
+        trackNewAlbumMediaSyncRequests(syncSource, resetRequest.getId());
         trackNewAlbumMediaSyncRequests(syncSource, syncRequest.getId());
-
 
         // Enqueue local or cloud sync requests
         try {
-            final Operation enqueueOperation = mWorkManager.enqueueUniqueWork(
-                    IMMEDIATE_ALBUM_SYNC_WORK_NAME,
-                    ExistingWorkPolicy.APPEND_OR_REPLACE,
-                    syncRequest);
+            final Operation enqueueOperation =
+                    mWorkManager
+                            .beginUniqueWork(
+                                    IMMEDIATE_ALBUM_SYNC_WORK_NAME,
+                                    ExistingWorkPolicy.APPEND_OR_REPLACE,
+                                    resetRequest)
+                            .then(syncRequest).enqueue();
 
             // Check that the request has been successfully enqueued.
             enqueueOperation.getResult().get();
         } catch (Exception e) {
             Log.e(TAG, "Could not enqueue expedited picker sync request", e);
+            markAlbumMediaSyncAsComplete(syncSource, resetRequest.getId());
             markAlbumMediaSyncAsComplete(syncSource, syncRequest.getId());
         }
     }
 
     @NotNull
-    private OneTimeWorkRequest getImmediateSyncRequest(@NotNull Data inputData) {
-        return new OneTimeWorkRequest.Builder(ImmediateSyncWorker.class)
-                .setInputData(inputData)
-                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                .build();
-    }
-
-    @NotNull
-    private OneTimeWorkRequest getImmediateAlbumSyncRequest(@NotNull Data inputData) {
-        return new OneTimeWorkRequest.Builder(ImmediateAlbumSyncWorker.class)
+    private OneTimeWorkRequest buildOneTimeWorkerRequest(
+            @NotNull Class<? extends Worker> workerClass, @NonNull Data inputData) {
+        return new OneTimeWorkRequest.Builder(workerClass)
                 .setInputData(inputData)
                 .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                 .build();
@@ -255,6 +303,25 @@ public class PickerSyncManager {
                 ProactiveSyncWorker.class, SYNC_MEDIA_PERIODIC_WORK_INTERVAL, TimeUnit.HOURS)
                 .setInputData(inputData)
                 .setConstraints(getProactiveSyncConstraints())
+                .build();
+    }
+
+    @NotNull
+    private PeriodicWorkRequest getPeriodicAlbumResetRequest(@NotNull Data inputData) {
+
+        Constraints constraints =
+                new Constraints.Builder()
+                        .setRequiresBatteryNotLow(true)
+                        .setRequiresDeviceIdle(true)
+                        .build();
+
+        return new PeriodicWorkRequest.Builder(
+                        MediaResetWorker.class,
+                        RESET_ALBUM_MEDIA_PERIODIC_WORK_INTERVAL,
+                        TimeUnit.HOURS)
+                .setInputData(inputData)
+                .setConstraints(constraints)
+                .addTag(SYNC_WORKER_TAG_IS_PERIODIC)
                 .build();
     }
 

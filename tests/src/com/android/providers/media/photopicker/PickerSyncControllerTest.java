@@ -186,6 +186,30 @@ public class PickerSyncControllerTest {
     }
 
     @Test
+    public void testInitCloudProviderOnDeviceConfigChange() {
+
+        TestConfigStore configStore = new TestConfigStore();
+        configStore.disableCloudMediaFeature();
+
+        PickerSyncController controller =
+                PickerSyncController.initialize(mContext, mFacade, configStore);
+        assertThat(controller.getCurrentCloudProviderInfo()).isEqualTo(CloudProviderInfo.EMPTY);
+        configStore.setDefaultCloudProviderPackage(PACKAGE_NAME);
+        configStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
+        waitForIdle();
+
+        // Ensure the cloud provider is set to something. (The test package name here actually
+        // has multiple cloud providers in it, so just ensure something got set.)
+        assertThat(controller.getCurrentCloudProviderInfo().authority).isNotNull();
+
+        configStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
+        waitForIdle();
+
+        // Ensure the cloud provider is correctly nulled out when the config changes again.
+        assertThat(controller.getCurrentCloudProviderInfo().authority).isNull();
+    }
+
+    @Test
     public void testSyncIsCancelledIfCloudProviderIsChanged() {
 
         PickerSyncController controller = spy(mController);

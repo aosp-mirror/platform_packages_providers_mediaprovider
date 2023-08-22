@@ -25,6 +25,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -42,6 +43,7 @@ import androidx.work.WorkContinuation;
 import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
 
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 
@@ -54,6 +56,8 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class PickerSyncManagerTest {
     private PickerSyncManager mPickerSyncManager;
@@ -119,6 +123,64 @@ public class PickerSyncManagerTest {
         assertThat(periodicResetRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_LOCAL_AND_CLOUD);
+    }
+
+    @Test
+    public void testPeriodicWorkIsScheduledOnDeviceConfigChanges() {
+
+        mConfigStore.disableCloudMediaFeature();
+
+
+        setupPickerSyncManager(true);
+
+        // Ensure no syncs have been scheduled yet.
+        verify(mMockWorkManager, times(0))
+                .enqueueUniquePeriodicWork(anyString(),
+                        any(),
+                        mPeriodicWorkRequestArgumentCaptor.capture());
+
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
+                "com.hooli.some.cloud.provider");
+
+        waitForIdle();
+
+        // Ensure the syncs are now scheduled.
+        verify(mMockWorkManager, times(2))
+                .enqueueUniquePeriodicWork(anyString(),
+                        any(),
+                        mPeriodicWorkRequestArgumentCaptor.capture());
+
+        final PeriodicWorkRequest periodicWorkRequest =
+                mPeriodicWorkRequestArgumentCaptor.getAllValues().get(0);
+        assertThat(periodicWorkRequest.getWorkSpec().workerClassName)
+                .isEqualTo(ProactiveSyncWorker.class.getName());
+        assertThat(periodicWorkRequest.getWorkSpec().expedited).isFalse();
+        assertThat(periodicWorkRequest.getWorkSpec().isPeriodic()).isTrue();
+        assertThat(periodicWorkRequest.getWorkSpec().id).isNotNull();
+        assertThat(periodicWorkRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isTrue();
+        assertThat(periodicWorkRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_LOCAL_AND_CLOUD);
+
+        final PeriodicWorkRequest periodicResetRequest =
+                mPeriodicWorkRequestArgumentCaptor.getAllValues().get(1);
+        assertThat(periodicResetRequest.getWorkSpec().workerClassName)
+                .isEqualTo(MediaResetWorker.class.getName());
+        assertThat(periodicResetRequest.getWorkSpec().expedited).isFalse();
+        assertThat(periodicResetRequest.getWorkSpec().isPeriodic()).isTrue();
+        assertThat(periodicResetRequest.getWorkSpec().id).isNotNull();
+        assertThat(periodicResetRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isTrue();
+        assertThat(periodicResetRequest.getWorkSpec().constraints.requiresDeviceIdle()).isTrue();
+        assertThat(periodicResetRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_LOCAL_AND_CLOUD);
+
+        clearInvocations(mMockWorkManager);
+
+        mConfigStore.disableCloudMediaFeature();
+        waitForIdle();
+
+        verify(mMockWorkManager, times(2)).cancelUniqueWork(anyString());
     }
 
     @Test
@@ -298,4 +360,16 @@ public class PickerSyncManagerTest {
                 new PickerSyncManager(mMockWorkManager, mMockContext,
                         mConfigStore, schedulePeriodicSyncs);
     }
+
+    private static void waitForIdle() {
+        final CountDownLatch latch = new CountDownLatch(1);
+        BackgroundThread.getExecutor().execute(latch::countDown);
+        try {
+            latch.await(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+
+    }
+
 }

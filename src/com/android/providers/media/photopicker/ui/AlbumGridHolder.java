@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import android.provider.CloudMediaProviderContract;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.ImageView;
@@ -38,6 +39,7 @@ class AlbumGridHolder extends RecyclerView.ViewHolder {
 
     private final ImageLoader mImageLoader;
     private final ImageView mIconThumb;
+    private final ImageView mIconDefaultThumb;
     private final TextView mAlbumName;
     private final TextView mItemCount;
     private final boolean mHasMimeTypeFilter;
@@ -50,6 +52,7 @@ class AlbumGridHolder extends RecyclerView.ViewHolder {
         super(itemView);
 
         mIconThumb = itemView.findViewById(R.id.icon_thumbnail);
+        mIconDefaultThumb = itemView.findViewById(R.id.icon_default_thumbnail);
         mAlbumName = itemView.findViewById(R.id.album_name);
         mItemCount = itemView.findViewById(R.id.item_count);
         mImageLoader = imageLoader;
@@ -60,7 +63,16 @@ class AlbumGridHolder extends RecyclerView.ViewHolder {
     void bind(@NonNull Category category) {
         int position = getAbsoluteAdapterPosition();
         itemView.setOnClickListener(v -> mOnAlbumClickListener.onAlbumClick(category, position));
-        mImageLoader.loadAlbumThumbnail(category, mIconThumb);
+
+        // Show default thumbnail icons if merged album is empty.
+        int defaultResId = -1;
+        if (CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES.equals(category.getId())) {
+            defaultResId = R.drawable.thumbnail_favorites;
+        } else if (CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
+                .equals(category.getId())) {
+            defaultResId = R.drawable.thumbnail_videos;
+        }
+        mImageLoader.loadAlbumThumbnail(category, mIconThumb, defaultResId, mIconDefaultThumb);
         mAlbumName.setText(category.getDisplayName(itemView.getContext()));
         // Check whether there is a mime type filter or not. If yes, hide the item count. Otherwise,
         // show the item count and update the count.

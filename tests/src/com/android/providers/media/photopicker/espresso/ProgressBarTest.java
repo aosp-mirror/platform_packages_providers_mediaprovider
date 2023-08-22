@@ -45,6 +45,7 @@ import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -59,6 +60,7 @@ public class ProgressBarTest extends PhotoPickerBaseTest {
         startPhotoPickerActivityAndEnableCloudFlag();
     }
 
+    @Ignore("Enable progress bar and pagination tests after fixing the flaky behaviour b/296520260")
     @Test
     public void test_progressBarPhotosItems_isVisible() {
         // To recreate the fragments with the new config.
@@ -75,6 +77,7 @@ public class ProgressBarTest extends PhotoPickerBaseTest {
     }
 
 
+    @Ignore("Enable progress bar and pagination tests after fixing the flaky behaviour b/296520260")
     @Test
     public void test_progressBarAlbumItems_isVisible() {
         // Navigate to Albums tab

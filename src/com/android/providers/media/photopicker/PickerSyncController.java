@@ -218,6 +218,8 @@ public class PickerSyncController {
         mDbFacade = dbFacade;
         mLocalProvider = localProvider;
 
+        // Listen to the device config, and try to enable cloud features when the config changes.
+        mConfigStore.addOnChangeListener(BackgroundThread.getExecutor(), this::initCloudProvider);
         initCloudProvider();
     }
 
@@ -259,6 +261,14 @@ public class PickerSyncController {
     }
 
     /**
+     * Returns the sync lock object for Cloud albums.
+     * @return the lock object for protecting synchronized code related to cloud albums.
+     */
+    public Object getCloudAlbumSyncLock() {
+        return mCloudAlbumSyncLock;
+    }
+
+    /**
      * Syncs the local and currently enabled cloud {@link CloudMediaProvider} instances
      */
     public void syncAllMedia() {
@@ -293,10 +303,6 @@ public class PickerSyncController {
      * Syncs the cloud media
      */
     public void syncAllMediaFromCloudProvider() {
-        // Reset the album_media table every time we sync all media
-        // TODO(b/294538740): This may create problems when multiple picker sessions are open at
-        //  the same time.
-        resetAlbumMedia();
 
         synchronized (mCloudSyncLock) {
             final String cloudProvider = getCloudProvider();
@@ -322,8 +328,12 @@ public class PickerSyncController {
      */
     public void syncAlbumMedia(String albumId, boolean isLocal) {
         if (isLocal) {
+            executeSyncAlbumReset(getLocalProvider(), isLocal, albumId);
             syncAlbumMediaFromLocalProvider(albumId);
         } else {
+            synchronized (mCloudAlbumSyncLock) {
+                executeSyncAlbumReset(getCloudProvider(), isLocal, albumId);
+            }
             syncAlbumMediaFromCloudProvider(albumId);
         }
     }
@@ -343,14 +353,6 @@ public class PickerSyncController {
         synchronized (mCloudAlbumSyncLock) {
             syncAlbumMediaFromProvider(getCloudProvider(), /* isLocal */ false, albumId,
                     /* enforcePagedSync*/ true);
-        }
-    }
-
-    private void resetAlbumMedia() {
-        executeSyncAlbumReset(mLocalProvider, /* isLocal */ true, /* albumId */ null);
-
-        synchronized (mCloudAlbumSyncLock) {
-            executeSyncAlbumReset(getCloudProvider(), /* isLocal */ false, /* albumId */ null);
         }
     }
 
@@ -616,8 +618,6 @@ public class PickerSyncController {
 
         Trace.beginSection(traceSectionName("syncAlbumMediaFromProvider", isLocal));
         try {
-            executeSyncAlbumReset(authority, isLocal, albumId);
-
             if (authority != null) {
                 executeSyncAddAlbum(authority, isLocal, albumId, queryArgs, instanceId);
             }

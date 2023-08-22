@@ -59,7 +59,7 @@ public class ImmediateSyncWorker extends Worker {
     @Override
     public ListenableWorker.Result doWork() {
         final int syncSource = getInputData()
-                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_ONLY);
 
         Log.i(TAG, String.format(
                 "Starting immediate picker sync from sync source: %s", syncSource));
@@ -69,14 +69,14 @@ public class ImmediateSyncWorker extends Worker {
             // For immediate syncs, the work request tracker is initiated before enqueueing the
             // request in WorkManager.
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_LOCAL_ONLY) {
-                PickerSyncController.getInstanceOrThrow().syncAllMediaFromLocalProvider();
                 checkIsWorkerStopped();
+                PickerSyncController.getInstanceOrThrow().syncAllMediaFromLocalProvider();
                 getLocalSyncTracker().markSyncCompleted(getId());
                 Log.i(TAG, "Completed immediate picker sync from local provider.");
             }
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_CLOUD_ONLY) {
-                PickerSyncController.getInstanceOrThrow().syncAllMediaFromCloudProvider();
                 checkIsWorkerStopped();
+                PickerSyncController.getInstanceOrThrow().syncAllMediaFromCloudProvider();
                 getCloudSyncTracker().markSyncCompleted(getId());
                 Log.i(TAG, "Completed immediate picker sync from cloud provider.");
             }

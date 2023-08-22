@@ -37,6 +37,7 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 
@@ -92,6 +93,7 @@ public class PickerSyncManager {
     private static final String IMMEDIATE_ALBUM_SYNC_WORK_NAME;
     private static final String PERIODIC_ALBUM_RESET_WORK_NAME;
 
+
     static {
         final String syncPeriodicPrefix = "SYNC_MEDIA_PERIODIC_";
         final String syncProactivePrefix = "SYNC_MEDIA_PROACTIVE_";
@@ -109,20 +111,41 @@ public class PickerSyncManager {
     }
 
     private final WorkManager mWorkManager;
+    private final ConfigStore mConfigStore;
+    private final Context mContext;
 
     public PickerSyncManager(@NonNull WorkManager workManager,
             @NonNull Context context,
             @NonNull ConfigStore configStore,
             boolean shouldSchedulePeriodicSyncs) {
         mWorkManager = workManager;
+        mConfigStore = configStore;
+        mContext = context;
 
-        if (configStore.isCloudMediaInPhotoPickerEnabled()) {
-            PickerSyncNotificationHelper.createNotificationChannel(context);
+        if (shouldSchedulePeriodicSyncs) {
+            setUpPeriodicWork();
+        }
 
-            if (shouldSchedulePeriodicSyncs) {
-                schedulePeriodicSyncs();
-                schedulePeriodicAlbumReset();
-            }
+        // Subscribe to device config changes so we can enable periodic workers if Cloud
+        // Photopicker is enabled.
+        mConfigStore.addOnChangeListener(BackgroundThread.getExecutor(), this::setUpPeriodicWork);
+    }
+
+    /**
+     * Will register new unique {@link Worker} for periodic sync and picker database maintenance if
+     * the cloud photopicker experiment is currently enabled.
+     */
+    private void setUpPeriodicWork() {
+
+        if (mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
+            PickerSyncNotificationHelper.createNotificationChannel(mContext);
+
+            schedulePeriodicSyncs();
+            schedulePeriodicAlbumReset();
+        } else {
+            // Disable any scheduled ongoing work if the feature is disabled.
+            mWorkManager.cancelUniqueWork(PERIODIC_SYNC_WORK_NAME);
+            mWorkManager.cancelUniqueWork(PERIODIC_ALBUM_RESET_WORK_NAME);
         }
     }
 

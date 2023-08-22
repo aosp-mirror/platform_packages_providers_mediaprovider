@@ -241,12 +241,17 @@ public class ModernMediaScanner implements MediaScanner {
     @Override
     public void scanDirectory(@NonNull File file, @ScanReason int reason) {
         requireNonNull(file);
+        try {
+            file = file.getCanonicalFile();
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't canonicalize directory to scan" + file, e);
+            return;
+        }
 
         try (Scan scan = new Scan(file, reason)) {
             scan.run();
         } catch (FileNotFoundException e) {
             Log.e(TAG, "Couldn't find directory to scan", e);
-            return;
         } catch (OperationCanceledException ignored) {
             // No-op.
         }
@@ -256,6 +261,12 @@ public class ModernMediaScanner implements MediaScanner {
     @Nullable
     public Uri scanFile(@NonNull File file, @ScanReason int reason) {
         requireNonNull(file);
+        try {
+            file = file.getCanonicalFile();
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't canonicalize file to scan" + file, e);
+            return null;
+        }
 
         try (Scan scan = new Scan(file, reason)) {
             scan.run();
@@ -292,10 +303,18 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void onDirectoryDirty(File dir) {
+    public void onDirectoryDirty(@NonNull File dir) {
+        requireNonNull(dir);
+        try {
+            dir = dir.getCanonicalFile();
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't canonicalize directory" + dir, e);
+            return;
+        }
+
         synchronized (mPendingCleanDirectories) {
             mPendingCleanDirectories.remove(dir.getPath());
-            FileUtils.setDirectoryDirty(dir, /*isDirty*/ true);
+            FileUtils.setDirectoryDirty(dir, /* isDirty */ true);
         }
     }
 

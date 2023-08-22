@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Media"</string>
     <string name="storage_description" msgid="4081716890357580107">"Hapësira ruajtëse lokale"</string>
     <string name="app_label" msgid="9035307001052716210">"Hapësira ruajtëse e medias"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Zgjedhësi i fotografive"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Media"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artisti"</string>
     <string name="unknown" msgid="2059049215682829375">"I panjohur"</string>
     <string name="root_images" msgid="5861633549189045666">"Fotografitë"</string>
@@ -38,6 +38,14 @@
     <string name="clear" msgid="5524638938415865915">"Pastro"</string>
     <string name="allow" msgid="8885707816848569619">"Lejo"</string>
     <string name="deny" msgid="6040983710442068936">"Refuzo"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Shfleto…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Aplikacioni i medias në renë kompjuterike"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikacion i medias në renë kompjuterike"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Aplikacioni i medias në renë kompjuterike"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Qasu te media jote në renë kompjuterike kur një aplikacion ose sajt uebi të kërkon të zgjedhësh fotografitë ose videot"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Qasu te media në renë kompjuterike nga"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Asnjë"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Aplikacioni i medias në renë kompjuterike nuk mund të ndryshohej në këtë moment."</string>
     <string name="add" msgid="2894574044585549298">"Shto"</string>
     <string name="deselect" msgid="4297825044827769490">"Hiq përzgjedhjen"</string>
     <string name="deselected" msgid="8488133193326208475">"Zgjedhja është hequr"</string>
@@ -46,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Zgjidh deri në <xliff:g id="COUNT_0">^1</xliff:g> artikull}other{Zgjidh deri në <xliff:g id="COUNT_1">^1</xliff:g> artikuj}}"</string>
     <string name="recent" msgid="6694613584743207874">"Të fundit"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Nuk ka fotografi apo video"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Nuk ka fotografi ose video të mbështetura"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nuk ka albume"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Shiko të zgjedhurat"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotografitë"</string>
@@ -59,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Aplikacionet e punës janë vendosur në pauzë"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Për të hapur fotografitë e punës, aktivizo aplikacionet e punës dhe provo sërish"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ky aplikacion mund të ketë qasje vetëm në fotografitë që zgjedh ti"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Zgjidh fotografitë dhe videot që lejon këtë aplikacion të ketë qasje"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> artikull}other{<xliff:g id="COUNT_1">^1</xliff:g> artikuj}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Shto (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Lejo (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Shkarkimet"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Të preferuarat"</string>
@@ -75,10 +86,29 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Fotografi me lëvizje"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Çaktivizo zërin e videos"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Aktivizo zërin e videos"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Luaj videon"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Vendos videon në pauzë"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Luaj"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Vendos në pauzë"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Videoja nuk mund të luhet"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Problem me luajtjen e videos"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Kontrollo lidhjen e internetit dhe provo përsëri"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Riprovo"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Media në renë kompjuterike tani ofrohet nga <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nuk është zgjedhur"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> nga <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> gati"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Fotografitë e rezervuara tani janë të përfshira"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Mund të zgjedhësh fotografi nga llogaria e<xliff:g id="USER_ACCOUNT">%2$s</xliff:g> në <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Llogaria e <xliff:g id="APP_NAME">%1$s</xliff:g> u përditësua"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Fotografitë nga <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> janë përfshirë këtu tani"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Zgjidh aplikacionin e medias në renë kompjuterike"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Për të përfshirë fotografitë e rezervuara këtu, zgjidh një aplikacion të medias në renë kompjuterike te \"Cilësimet\""</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Zgjidh llogarinë e <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Për të përfshirë fotografi nga <xliff:g id="APP_NAME">%1$s</xliff:g> këtu, zgjidh një llogari në aplikacion"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Hiq"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Zgjidh aplikacionin"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Zgjidh llogarinë"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Ndrysho llogarinë"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Të lejohet <xliff:g id="APP_NAME_0">^1</xliff:g> që ta modifikojë këtë skedar audio?}other{Të lejohet <xliff:g id="APP_NAME_1">^1</xliff:g> që të modifikojë <xliff:g id="COUNT">^2</xliff:g> skedarë audio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Skedari audio po modifikohet…}other{<xliff:g id="COUNT">^1</xliff:g> skedarë audio po modifikohen…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Të lejohet <xliff:g id="APP_NAME_0">^1</xliff:g> që ta modifikojë këtë video?}other{Të lejohet <xliff:g id="APP_NAME_1">^1</xliff:g> që të modifikojë <xliff:g id="COUNT">^2</xliff:g> video?}}"</string>
@@ -119,4 +149,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Media po përpunohet…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Anulo"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Prit"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Mbrojtja e sigurisë"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Sinjalizimet e transkodimit origjinal"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Progresi i transkodimit origjinal"</string>
 </resources>

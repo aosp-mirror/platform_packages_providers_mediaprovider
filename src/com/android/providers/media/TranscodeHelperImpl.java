@@ -57,9 +57,9 @@ import android.media.MediaCodec;
 import android.media.MediaFeature;
 import android.media.MediaFormat;
 import android.media.MediaTranscodingManager;
-import android.media.MediaTranscodingManager.VideoTranscodingRequest;
 import android.media.MediaTranscodingManager.TranscodingRequest.VideoFormatResolver;
 import android.media.MediaTranscodingManager.TranscodingSession;
+import android.media.MediaTranscodingManager.VideoTranscodingRequest;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -101,7 +101,6 @@ import com.android.providers.media.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -116,8 +115,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -135,18 +134,12 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     // Keeping the whole strings separate for the ease of text search.
     private static final String TRANSCODE_ENABLED_SYS_PROP_KEY =
             "persist.sys.fuse.transcode_enabled";
-    private static final String TRANSCODE_ENABLED_DEVICE_CONFIG_KEY = "transcode_enabled";
     private static final String TRANSCODE_DEFAULT_SYS_PROP_KEY =
             "persist.sys.fuse.transcode_default";
-    private static final String TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY = "transcode_default";
     private static final String TRANSCODE_USER_CONTROL_SYS_PROP_KEY =
             "persist.sys.fuse.transcode_user_control";
-    private static final String TRANSCODE_COMPAT_MANIFEST_KEY = "transcode_compat_manifest";
-    private static final String TRANSCODE_COMPAT_STALE_KEY = "transcode_compat_stale";
-    private static final String TRANSCODE_MAX_DURATION_MS_KEY = "transcode_max_duration_ms";
 
     private static final int MY_UID = android.os.Process.myUid();
-    private static final int MAX_TRANSCODE_DURATION_MS = (int) TimeUnit.MINUTES.toMillis(1);
 
     // Whether the device has HDR plugin for transcoding HDR to SDR video.
     private boolean mHasHdrPlugin = false;
@@ -228,6 +221,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     private final Object mLock = new Object();
     private final Context mContext;
     private final MediaProvider mMediaProvider;
+    private final ConfigStore mConfigStore;
     private final PackageManager mPackageManager;
     private final StorageManager mStorageManager;
     private final ActivityManager mActivityManager;
@@ -267,23 +261,22 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     private static final String TRANSCODE_WHERE_CLAUSE =
             FileColumns.DATA + "=?" + " and mime_type not like 'null'";
 
-    public TranscodeHelperImpl(Context context, MediaProvider mediaProvider) {
+    public TranscodeHelperImpl(@NonNull Context context, @NonNull MediaProvider mediaProvider,
+            @NonNull ConfigStore configStore) {
         mContext = context;
         mPackageManager = context.getPackageManager();
         mStorageManager = context.getSystemService(StorageManager.class);
         mActivityManager = context.getSystemService(ActivityManager.class);
         mMediaProvider = mediaProvider;
+        mConfigStore = configStore;
         mTranscodeDirectory = new File("/storage/emulated/" + UserHandle.myUserId(),
                 DIRECTORY_TRANSCODE);
         mTranscodeDirectory.mkdirs();
         mSessionTiming = new SessionTiming();
         mTranscodingUiNotifier = new TranscodeUiNotifier(context, mSessionTiming);
         mIsTranscodeEnabled = isTranscodeEnabled();
-        int maxTranscodeDurationMs =
-                mMediaProvider.getIntDeviceConfig(TRANSCODE_MAX_DURATION_MS_KEY,
-                        MAX_TRANSCODE_DURATION_MS);
         mTranscodeDenialController = new TranscodeDenialController(mActivityManager,
-                mTranscodingUiNotifier, maxTranscodeDurationMs);
+                mTranscodingUiNotifier, mConfigStore.getTranscodeMaxDurationMs());
         mSupportedRelativePaths = verifySupportedRelativePaths(StringUtils.getStringArrayConfig(
                         mContext, R.array.config_supported_transcoding_relative_paths));
         mHasHdrPlugin = hasHDRPlugin();
@@ -291,7 +284,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         parseTranscodeCompatManifest();
         // The storage namespace is a boot namespace so we actually don't expect this to be changed
         // after boot, but it is useful for tests
-        mMediaProvider.addOnPropertiesChangedListener(properties -> parseTranscodeCompatManifest());
+        configStore.addOnChangeListener(
+                BackgroundThread.getExecutor(), this::parseTranscodeCompatManifest);
     }
 
     private boolean hasHDRPlugin() {
@@ -702,7 +696,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         // If we are here then the file supports HEVC, so we only check if the package is in the
         // mAppCompatCapabilities.  If it's there, we will respect that value.
         LocalCallingIdentity identity = mMediaProvider.getCachedCallingIdentityForTranscoding(uid);
-        final String[] callingPackages = identity.getSharedPackageNames();
+        final String[] callingPackages = identity.getSharedPackageNamesArray();
 
         // Check app manifest support
         for (String callingPackage : callingPackages) {
@@ -994,17 +988,6 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         return Pair.create(supportedFlags, unsupportedFlags);
     }
 
-    private boolean getBooleanProperty(String sysPropKey, String deviceConfigKey,
-            boolean defaultValue) {
-        // If the user wants to override the default, respect that; otherwise use the DeviceConfig
-        // which is filled with the values sent from server.
-        if (SystemProperties.getBoolean(TRANSCODE_USER_CONTROL_SYS_PROP_KEY, false)) {
-            return SystemProperties.getBoolean(sysPropKey, defaultValue);
-        }
-
-        return mMediaProvider.getBooleanDeviceConfig(deviceConfigKey, defaultValue);
-    }
-
     private Pair<Long, Integer> getTranscodeCacheInfoFromDB(String path) {
         try (Cursor cursor = queryFileForTranscode(path, TRANSCODE_CACHE_INFO_PROJECTION)) {
             if (cursor != null && cursor.moveToNext()) {
@@ -1074,7 +1057,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     }
 
     public void onFileOpen(String path, String ioPath, int uid, int transformsReason) {
-        if (!isTranscodeEnabled()) {
+        if (!isTranscodeEnabled() || !supportsTranscode(path)) {
             return;
         }
 
@@ -1090,43 +1073,41 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         };
 
         try (Cursor c = queryFileForTranscode(path, resolverInfoProjection)) {
-            if (c != null && c.moveToNext()) {
-                if (supportsTranscode(path)
-                        && isModernFormat(c.getString(0), c.getInt(6), c.getInt(7))) {
-                    if (transformsReason == 0) {
-                        MediaProviderStatsLog.write(
-                                TRANSCODING_DATA,
-                                getMetricsSafeNameForUid(uid) /* owner_package_name */,
-                                MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_DIRECT,
-                                c.getLong(1) /* file size */,
-                                TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
-                                -1 /* transcoding_duration */,
-                                c.getLong(2) /* video_duration */,
-                                c.getLong(3) /* capture_framerate */,
-                                -1 /* transcode_reason */,
-                                c.getLong(4) /* width */,
-                                c.getLong(5) /* height */,
-                                false /*hit_anr*/,
-                                TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN,
-                                TranscodingSession.ERROR_NONE);
-                    } else if (isTranscodeFileCached(path, ioPath)) {
-                            MediaProviderStatsLog.write(
-                                    TRANSCODING_DATA,
-                                    getMetricsSafeNameForUid(uid) /* owner_package_name */,
-                                    MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_CACHE,
-                                    c.getLong(1) /* file size */,
-                                    TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
-                                    -1 /* transcoding_duration */,
-                                    c.getLong(2) /* video_duration */,
-                                    c.getLong(3) /* capture_framerate */,
-                                    transformsReason /* transcode_reason */,
-                                    c.getLong(4) /* width */,
-                                    c.getLong(5) /* height */,
-                                    false /*hit_anr*/,
-                                    TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN,
-                                    TranscodingSession.ERROR_NONE);
-                    } // else if file is not in cache, we'll log at read(2) when we transcode
-                }
+            if (c != null && c.moveToNext()
+                    && isModernFormat(c.getString(0), c.getInt(6), c.getInt(7))) {
+                if (transformsReason == 0) {
+                    MediaProviderStatsLog.write(
+                            TRANSCODING_DATA,
+                            getMetricsSafeNameForUid(uid) /* owner_package_name */,
+                            MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_DIRECT,
+                            c.getLong(1) /* file size */,
+                            TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
+                            -1 /* transcoding_duration */,
+                            c.getLong(2) /* video_duration */,
+                            c.getLong(3) /* capture_framerate */,
+                            -1 /* transcode_reason */,
+                            c.getLong(4) /* width */,
+                            c.getLong(5) /* height */,
+                            false /*hit_anr*/,
+                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN,
+                            TranscodingSession.ERROR_NONE);
+                } else if (isTranscodeFileCached(path, ioPath)) {
+                    MediaProviderStatsLog.write(
+                            TRANSCODING_DATA,
+                            getMetricsSafeNameForUid(uid) /* owner_package_name */,
+                            MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_CACHE,
+                            c.getLong(1) /* file size */,
+                            TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
+                            -1 /* transcoding_duration */,
+                            c.getLong(2) /* video_duration */,
+                            c.getLong(3) /* capture_framerate */,
+                            transformsReason /* transcode_reason */,
+                            c.getLong(4) /* width */,
+                            c.getLong(5) /* height */,
+                            false /*hit_anr*/,
+                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN,
+                            TranscodingSession.ERROR_NONE);
+                } // else if file is not in cache, we'll log at read(2) when we transcode
             }
         } catch (IllegalStateException e) {
             Log.w(TAG, "Unable to log metrics on file open", e);
@@ -1329,7 +1310,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     private boolean updateTranscodeStatus(String path, int transcodeStatus) {
         final Uri uri = FileUtils.getContentUriForPath(path);
         // TODO(b/170465810): Replace this with matchUri when the code is refactored.
-        final int match = MediaProvider.FILES;
+        final int match = LocalUriMatcher.FILES;
         final SQLiteQueryBuilder qb = mMediaProvider.getQueryBuilderForTranscoding(TYPE_UPDATE,
                 match, uri, Bundle.EMPTY, null);
         final String[] selectionArgs = new String[]{path};
@@ -1368,7 +1349,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     private Cursor queryFileForTranscode(String path, String[] projection) {
         final Uri uri = FileUtils.getContentUriForPath(path);
         // TODO(b/170465810): Replace this with matchUri when the code is refactored.
-        final int match = MediaProvider.FILES;
+        final int match = LocalUriMatcher.FILES;
         final SQLiteQueryBuilder qb = mMediaProvider.getQueryBuilderForTranscoding(TYPE_QUERY,
                 match, uri, Bundle.EMPTY, null);
         final String[] selectionArgs = new String[]{path};
@@ -1382,13 +1363,29 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     }
 
     private boolean isTranscodeEnabled() {
-        return IS_TRANSCODING_SUPPORTED && getBooleanProperty(TRANSCODE_ENABLED_SYS_PROP_KEY,
-                TRANSCODE_ENABLED_DEVICE_CONFIG_KEY, true /* defaultValue */);
+        if (!IS_TRANSCODING_SUPPORTED) {
+            return false;
+        }
+
+        // If the user wants to override the default, respect that; otherwise use the DeviceConfig
+        // which is filled with the values sent from server.
+        if (SystemProperties.getBoolean(TRANSCODE_USER_CONTROL_SYS_PROP_KEY, false)) {
+            return SystemProperties.getBoolean(
+                    TRANSCODE_ENABLED_SYS_PROP_KEY, /* defaultValue */ true);
+        }
+
+        return mConfigStore.isTranscodeEnabled();
     }
 
     private boolean shouldTranscodeDefault() {
-        return getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
-                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, false /* defaultValue */);
+        // If the user wants to override the default, respect that; otherwise use the DeviceConfig
+        // which is filled with the values sent from server.
+        if (SystemProperties.getBoolean(TRANSCODE_USER_CONTROL_SYS_PROP_KEY, false)) {
+            return SystemProperties.getBoolean(
+                    TRANSCODE_DEFAULT_SYS_PROP_KEY, /* defaultValue */ false);
+        }
+
+        return mConfigStore.shouldTranscodeDefault();
     }
 
     private void updateConfigs(boolean transcodeEnabled) {
@@ -1422,14 +1419,13 @@ public class TranscodeHelperImpl implements TranscodeHelper {
 
     /** @return {@code true} if the manifest was parsed successfully, {@code false} otherwise */
     private boolean parseTranscodeCompatManifestFromDeviceConfigLocked() {
-        final String[] manifest = mMediaProvider.getStringDeviceConfig(
-                TRANSCODE_COMPAT_MANIFEST_KEY, "").split(",");
+        final List<String> manifest = mConfigStore.getTranscodeCompatManifest();
 
-        if (manifest.length == 0 || manifest[0].isEmpty()) {
+        if (manifest.isEmpty()) {
             Log.i(TAG, "Empty device config transcode compat manifest");
             return false;
         }
-        if ((manifest.length % 2) != 0) {
+        if ((manifest.size() % 2) != 0) {
             Log.w(TAG, "Uneven number of items in device config transcode compat manifest");
             return false;
         }
@@ -1438,10 +1434,10 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         int packageCompatValue;
         int i = 0;
         int count = 0;
-        while (i < manifest.length - 1) {
+        while (i < manifest.size() - 1) {
             try {
-                packageName = manifest[i++];
-                packageCompatValue = Integer.parseInt(manifest[i++]);
+                packageName = manifest.get(i++);
+                packageCompatValue = Integer.parseInt(manifest.get(i++));
                 synchronized (mLock) {
                     // Lock is already held, explicitly hold again to make error prone happy
                     mAppCompatMediaCapabilities.put(packageName, packageCompatValue);
@@ -1509,10 +1505,9 @@ public class TranscodeHelperImpl implements TranscodeHelper {
 
     private Set<String> getTranscodeCompatStale() {
         Set<String> stalePackages = new ArraySet<>();
-        final String[] staleConfig = mMediaProvider.getStringDeviceConfig(
-                TRANSCODE_COMPAT_STALE_KEY, "").split(",");
+        final List<String> staleConfig = mConfigStore.getTranscodeCompatStale();
 
-        if (staleConfig.length == 0 || staleConfig[0].isEmpty()) {
+        if (staleConfig.isEmpty()) {
             Log.i(TAG, "Empty transcode compat stale");
             return stalePackages;
         }
@@ -1657,7 +1652,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
                 errorCode = mErrorCode;
             }
 
-            return String.format("<%s. Src: %s. Dst: %s. BlockedUids: %s. DurationMs: %sms"
+            return String.format(Locale.ROOT,
+                    "<%s. Src: %s. Dst: %s. BlockedUids: %s. DurationMs: %sms"
                     + ". Start: %s. Finish: %sms. HasAnr: %b. FailureReason: %d. ErrorCode: %d>",
                     session.toString(), mSrcPath, mDstPath, session.getClientUids(), durationMs,
                     startTime, finishTime, hasAnr, failureReason, errorCode);
@@ -1669,10 +1665,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         private static final int ALERT_DISMISS_DELAY_MS = 1000;
         private static final int SHOW_PROGRESS_THRESHOLD_TIME_MS = 1000;
         private static final String TRANSCODE_ALERT_CHANNEL_ID = "native_transcode_alert_channel";
-        private static final String TRANSCODE_ALERT_CHANNEL_NAME = "Native Transcode Alerts";
         private static final String TRANSCODE_PROGRESS_CHANNEL_ID =
                 "native_transcode_progress_channel";
-        private static final String TRANSCODE_PROGRESS_CHANNEL_NAME = "Native Transcode Progress";
 
         // Related to notification settings
         private static final String TRANSCODE_NOTIFICATION_SYS_PROP_KEY =
@@ -1794,7 +1788,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
 
         private static void createAlertNotificationChannel(Context context) {
             NotificationChannel channel = new NotificationChannel(TRANSCODE_ALERT_CHANNEL_ID,
-                    TRANSCODE_ALERT_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
+                    getString(context, R.string.transcode_alert_channel),
+                    NotificationManager.IMPORTANCE_HIGH);
             NotificationManager notificationManager = context.getSystemService(
                     NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
@@ -1802,7 +1797,8 @@ public class TranscodeHelperImpl implements TranscodeHelper {
 
         private static void createProgressNotificationChannel(Context context) {
             NotificationChannel channel = new NotificationChannel(TRANSCODE_PROGRESS_CHANNEL_ID,
-                    TRANSCODE_PROGRESS_CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW);
+                    getString(context, R.string.transcode_progress_channel),
+                    NotificationManager.IMPORTANCE_LOW);
             NotificationManager notificationManager = context.getSystemService(
                     NotificationManager.class);
             notificationManager.createNotificationChannel(channel);

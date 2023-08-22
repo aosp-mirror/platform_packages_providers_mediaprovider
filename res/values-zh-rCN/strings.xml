@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"媒体"</string>
     <string name="storage_description" msgid="4081716890357580107">"本地存储空间"</string>
     <string name="app_label" msgid="9035307001052716210">"媒体存储设备"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"照片选择器"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"媒体"</string>
     <string name="artist_label" msgid="8105600993099120273">"音乐人"</string>
     <string name="unknown" msgid="2059049215682829375">"未知"</string>
     <string name="root_images" msgid="5861633549189045666">"图片"</string>
@@ -38,6 +38,14 @@
     <string name="clear" msgid="5524638938415865915">"清除"</string>
     <string name="allow" msgid="8885707816848569619">"允许"</string>
     <string name="deny" msgid="6040983710442068936">"拒绝"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"浏览…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"云端媒体应用"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"云端媒体应用"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"云端媒体应用"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"在应用或网站要求您选择照片或视频时访问您的云端媒体"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"从以下位置访问云端媒体："</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"无"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"目前无法更改云端媒体应用。"</string>
     <string name="add" msgid="2894574044585549298">"添加"</string>
     <string name="deselect" msgid="4297825044827769490">"取消选择"</string>
     <string name="deselected" msgid="8488133193326208475">"已取消选中"</string>
@@ -46,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{最多可选择 <xliff:g id="COUNT_0">^1</xliff:g> 项}other{最多可选择 <xliff:g id="COUNT_1">^1</xliff:g> 项}}"</string>
     <string name="recent" msgid="6694613584743207874">"最近"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"无照片或视频"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"没有受支持的照片或视频"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"无影集"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"查看所选内容"</string>
     <string name="picker_photos" msgid="7415035516411087392">"照片"</string>
@@ -59,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"工作应用已暂停"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"如需打开工作照片，请打开您的工作应用，然后重试"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"此应用只能访问您选择的照片"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"选择允许此应用访问的照片和视频"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> 个}other{<xliff:g id="COUNT_1">^1</xliff:g> 个}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"添加（<xliff:g id="COUNT">^1</xliff:g> 项）"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"允许 (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"相机"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"下载内容"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"收藏"</string>
@@ -75,10 +86,29 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"动态照片"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"将视频静音"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"将视频取消静音"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"播放视频"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"暂停视频"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"播放"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"暂停"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"无法播放视频"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"播放视频时遇到问题"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"请检查互联网连接，然后重试"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"重试"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"现在可以从“<xliff:g id="PKG_NAME">%1$s</xliff:g>”获取云端媒体"</string>
     <string name="not_selected" msgid="2244008151669896758">"未选择"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> 个已准备就绪，共 <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> 个"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"备份照片现已添加完成"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"您可以选择来自<xliff:g id="APP_NAME">%1$s</xliff:g>帐号 <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> 的照片"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g>帐号已更新"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"来自 <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> 的照片已添加到此处"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"选择云端媒体应用"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"如需将备份照片添加到此处，请在“设置”中选择一个云端媒体应用"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"选择<xliff:g id="APP_NAME">%1$s</xliff:g>帐号"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"如需将来自<xliff:g id="APP_NAME">%1$s</xliff:g>的照片添加到此处，请在应用中选择一个帐号"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"关闭"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"选择应用"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"选择帐号"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"更改帐号"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{要允许<xliff:g id="APP_NAME_0">^1</xliff:g>修改这个音频文件吗？}other{要允许<xliff:g id="APP_NAME_1">^1</xliff:g>修改这 <xliff:g id="COUNT">^2</xliff:g> 个音频文件吗？}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{正在修改音频文件…}other{正在修改 <xliff:g id="COUNT">^1</xliff:g> 个音频文件…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{要允许<xliff:g id="APP_NAME_0">^1</xliff:g>修改这个视频吗？}other{要允许<xliff:g id="APP_NAME_1">^1</xliff:g>修改这 <xliff:g id="COUNT">^2</xliff:g> 个视频吗？}}"</string>
@@ -119,4 +149,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"正在处理媒体内容…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"取消"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"等待"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"安全保护"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"原生转码警报"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"原生转码进度"</string>
 </resources>

@@ -18,8 +18,8 @@ package com.android.providers.media;
 
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.provider.MediaStore.MediaColumns._ID;
 
+import static androidx.test.InstrumentationRegistry.getContext;
 import static androidx.test.InstrumentationRegistry.getTargetContext;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -40,16 +40,19 @@ import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.os.Process;
 import android.os.UserHandle;
 import android.provider.CloudMediaProviderContract;
+import android.provider.Column;
+import android.provider.ExportedSince;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.scan.MediaScannerTest;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -76,7 +79,8 @@ public class PickerUriResolverTest {
 
     private static class TestPickerUriResolver extends PickerUriResolver {
         TestPickerUriResolver(Context context) {
-            super(context, new PickerDbFacade(getTargetContext()));
+            super(context, new PickerDbFacade(getTargetContext()),
+                    new ProjectionHelper(Column.class, ExportedSince.class));
         }
 
         @Override
@@ -306,14 +310,30 @@ public class PickerUriResolverTest {
         testGetType(sTestPickerUri, "image/jpeg");
     }
 
+    @Test
+    public void testQueryUnknownColumn() throws Exception {
+        final int myUid = Process.myUid();
+        final int myPid = Process.myPid();
+        final String myPackageName = getContext().getPackageName();
+        final String[] invalidProjection = new String[] {"invalidColumn"};
+
+        updateReadUriPermissionForSelf(sTestPickerUri, /* grant */ true);
+        try (Cursor c = sTestPickerUriResolver.query(sTestPickerUri,
+                invalidProjection, myPid, myUid, myPackageName)) {
+            assertThat(c).isNotNull();
+            assertThat(c.moveToFirst()).isTrue();
+        } finally {
+            updateReadUriPermissionForSelf(sTestPickerUri, /* grant */ false);
+        }
+    }
+
     private static Context createOtherUserContext(int user) throws Exception {
         final UserHandle userHandle = UserHandle.of(user);
         // For unit testing: IsolatedContext is the context of another User: user.
         // PickerUriResolver should correctly be able to call into other user's content resolver
         // from the current context.
-        final MediaScannerTest.IsolatedContext otherUserContext =
-                new MediaScannerTest.IsolatedContext(getTargetContext(), "databases",
-                        /* asFuseThread */ false, userHandle);
+        final IsolatedContext otherUserContext = new IsolatedContext(getTargetContext(),
+                "databases", /* asFuseThread */ false, userHandle);
         otherUserContext.setPickerUriResolver(new TestPickerUriResolver(otherUserContext));
 
         when(sCurrentContext.createPackageContextAsUser("android", /* flags= */ 0, userHandle)).
@@ -337,6 +357,12 @@ public class PickerUriResolverTest {
     private void updateReadUriPermission(Uri uri, boolean grant) {
         final int permission = grant ? PERMISSION_GRANTED : PERMISSION_DENIED;
         when(sCurrentContext.checkUriPermission(uri, -1, -1,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION)).thenReturn(permission);
+    }
+
+    private void updateReadUriPermissionForSelf(Uri uri, boolean grant) {
+        final int permission = grant ? PERMISSION_GRANTED : PERMISSION_DENIED;
+        when(sCurrentContext.checkUriPermission(uri, Process.myPid() , Process.myUid(),
                 Intent.FLAG_GRANT_READ_URI_PERMISSION)).thenReturn(permission);
     }
 
@@ -365,15 +391,18 @@ public class PickerUriResolverTest {
 
     private void testQuery(Uri uri) throws Exception {
         Cursor result = sTestPickerUriResolver.query(uri,
-                /* projection */ new String[]{_ID}, /* callingPid */ -1, /* callingUid */ -1);
+                /* projection */ null, /* callingPid */ -1, /* callingUid */ -1,
+                /* callingPackageName= */ TAG);
         assertThat(result).isNotNull();
         assertThat(result.getCount()).isEqualTo(1);
         result.moveToFirst();
-        assertThat(result.getString(0)).isEqualTo(TEST_ID);
+        int idx = result.getColumnIndexOrThrow(CloudMediaProviderContract.MediaColumns.ID);
+        assertThat(result.getString(idx)).isEqualTo(TEST_ID);
     }
 
     private void testGetType(Uri uri, String expectedMimeType) throws Exception {
-        String mimeType = sTestPickerUriResolver.getType(uri);
+        String mimeType = sTestPickerUriResolver.getType(uri,
+                /* callingPid */ -1, /* callingUid */ -1);
         assertThat(mimeType).isEqualTo(expectedMimeType);
     }
 
@@ -401,14 +430,14 @@ public class PickerUriResolverTest {
 
     private void testQueryInvalidUser(Uri uri) throws Exception {
         Cursor result = sTestPickerUriResolver.query(uri, /* projection */ null,
-                /* callingPid */ -1, /* callingUid */ -1);
+                /* callingPid */ -1, /* callingUid */ -1, /* callingPackageName= */ TAG);
         assertThat(result).isNotNull();
         assertThat(result.getCount()).isEqualTo(0);
     }
 
     private void testGetTypeInvalidUser(Uri uri) throws Exception {
         try {
-            sTestPickerUriResolver.getType(uri);
+            sTestPickerUriResolver.getType(uri, /* callingPid */ -1, /* callingUid */ -1);
             fail("Invalid user specified in the picker uri: " + uri);
         } catch (IllegalStateException expected) {
             // expected
@@ -445,8 +474,8 @@ public class PickerUriResolverTest {
 
     private void testQuery_permissionDenied(Uri uri) throws Exception {
         try {
-            sTestPickerUriResolver.query(uri, /* projection */ null
-                    , /* callingPid */ -1, /* callingUid */ -1);
+            sTestPickerUriResolver.query(uri, /* projection */ null,
+                    /* callingPid */ -1, /* callingUid */ -1, /* callingPackageName= */ TAG);
             fail("query should fail if the caller does not have permission grant on"
                     + " the picker uri: " + uri);
         } catch (SecurityException expected) {
@@ -457,7 +486,19 @@ public class PickerUriResolverTest {
     }
 
     private void testGetType_permissionDenied(Uri uri) throws Exception {
-        // getType is unaffected by uri permission grants
-        testGetType(uri, "image/jpeg");
+        if (SdkLevel.isAtLeastU()) {
+            try {
+                sTestPickerUriResolver.getType(uri, /* callingPid */ -1, /* callingUid */ -1);
+                fail("getType should fail if the caller does not have permission grant on"
+                        + " the picker uri: " + uri);
+            } catch (SecurityException expected) {
+                // expected
+                assertThat(expected.getMessage()).isEqualTo("Calling uid ( -1 ) does not have"
+                        + " permission to access picker uri: " + uri);
+            }
+        } else {
+            // getType is unaffected by uri permission grants for U- builds
+            testGetType(uri, "image/jpeg");
+        }
     }
 }

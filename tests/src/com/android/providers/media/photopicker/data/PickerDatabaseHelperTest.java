@@ -27,7 +27,7 @@ import android.provider.CloudMediaProviderContract;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
+import com.android.providers.media.IsolatedContext;
 
 import org.junit.Before;
 import org.junit.Test;

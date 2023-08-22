@@ -16,11 +16,11 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.MediaProvider.AUDIO_MEDIA_ID;
-import static com.android.providers.media.MediaProvider.AUDIO_PLAYLISTS_ID;
-import static com.android.providers.media.MediaProvider.FILES_ID;
-import static com.android.providers.media.MediaProvider.IMAGES_MEDIA_ID;
-import static com.android.providers.media.MediaProvider.VIDEO_MEDIA_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_MEDIA_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_PLAYLISTS_ID;
+import static com.android.providers.media.LocalUriMatcher.FILES_ID;
+import static com.android.providers.media.LocalUriMatcher.IMAGES_MEDIA_ID;
+import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA_ID;
 import static com.android.providers.media.MediaProvider.collectUris;
 import static com.android.providers.media.util.DatabaseUtils.getAsBoolean;
 import static com.android.providers.media.util.Logging.TAG;
@@ -77,7 +77,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
-import com.android.providers.media.MediaProvider.LocalUriMatcher;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.StringUtils;
 
@@ -479,7 +478,7 @@ public class PermissionActivity extends Activity {
 
         // if verb is write, check ACCESS_MEDIA_LOCATION permission
         if (TextUtils.equals(verb, VERB_WRITE) && !checkPermissionAccessMediaLocation(context, pid,
-                uid, packageName, attributionTag)) {
+                uid, packageName, attributionTag, isTargetSdkAtLeastT)) {
             Log.d(TAG, "No permission ACCESS_MEDIA_LOCATION");
             return true;
         }

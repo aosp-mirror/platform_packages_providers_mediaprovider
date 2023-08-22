@@ -59,7 +59,7 @@ public class NoItemsTest extends PhotoPickerBaseTest {
                 PhotoPickerBaseTest.getSingleSelectionIntent())) {
             final int pickerTabRecyclerViewId = R.id.picker_tab_recyclerview;
 
-            onView(withId(pickerTabRecyclerViewId)).check(matches(not(isDisplayed())));
+            onView(allOf(withId(pickerTabRecyclerViewId))).check(matches(not(isDisplayed())));
             onView(withId(android.R.id.empty)).check(matches(isDisplayed()));
             onView(withText(R.string.picker_photos_empty_message)).check(matches(isDisplayed()));
 
@@ -67,7 +67,7 @@ public class NoItemsTest extends PhotoPickerBaseTest {
             onView(allOf(withText(R.string.picker_albums),
                     isDescendantOfA(withId(R.id.tab_layout)))).perform(click());
 
-            onView(withId(pickerTabRecyclerViewId)).check(matches(not(isDisplayed())));
+            onView(allOf(withId(pickerTabRecyclerViewId))).check(matches(not(isDisplayed())));
             onView(withId(android.R.id.empty)).check(matches(isDisplayed()));
             onView(withText(R.string.picker_albums_empty_message)).check(matches(isDisplayed()));
         }

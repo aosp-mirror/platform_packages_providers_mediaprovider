@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"ማህደረመረጃ"</string>
     <string name="storage_description" msgid="4081716890357580107">"አካባቢያዊ ማከማቻ"</string>
     <string name="app_label" msgid="9035307001052716210">"ማህደረ መረጃ ማከማቻ"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"ፎቶ መልቀሚያ"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"ሚዲያ"</string>
     <string name="artist_label" msgid="8105600993099120273">"አርቲስት"</string>
     <string name="unknown" msgid="2059049215682829375">"የማይታወቅ"</string>
     <string name="root_images" msgid="5861633549189045666">"ምስሎች"</string>
@@ -38,6 +38,14 @@
     <string name="clear" msgid="5524638938415865915">"አጽዳ"</string>
     <string name="allow" msgid="8885707816848569619">"ፍቀድ"</string>
     <string name="deny" msgid="6040983710442068936">"ከልክል"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"ያስሱ…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"የደመና ሚዲያ መተግበሪያ"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"የደመና ሚዲያ መተግበሪያ"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"የደመና ሚዲያ መተግበሪያ"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"አንድ መተግበሪያ ወይም ድር ጣቢያ ፎቶዎችን ወይም ቪድዮዎችን እንዲመርጡ ሲጠይቅዎ የእርስዎን የደመና ሚዲያ ይድረሱበት"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"የደመና ሚዲያን ይድረሱ ከ"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"ምንም"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"በዚህ ጊዜ የደመና የሚዲያ መተግበሪያን መለወጥ አልተቻለም።"</string>
     <string name="add" msgid="2894574044585549298">"አክል"</string>
     <string name="deselect" msgid="4297825044827769490">"አትምረጥ"</string>
     <string name="deselected" msgid="8488133193326208475">"አልተመረጠም"</string>
@@ -46,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{እስከ <xliff:g id="COUNT_0">^1</xliff:g> ንጥል ድረስ ይምረጡ}one{እስከ <xliff:g id="COUNT_1">^1</xliff:g> ንጥል ድረስ ይምረጡ}other{እስከ <xliff:g id="COUNT_1">^1</xliff:g> ንጥሎች ድረስ ይምረጡ}}"</string>
     <string name="recent" msgid="6694613584743207874">"የቅርብ ጊዜ"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"ምንም ፎቶዎች ወይም ቪዲዮዎች የሉም"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"ምንም የሚደገፉ ፎቶዎች ወይም ቪድዮዎች የሉም"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ምንም አልበሞች የሉም"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"የተመረጡትን አሳይ"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ፎቶዎች"</string>
@@ -59,12 +68,14 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"የስራ መተግበሪያዎች ባሉበት ቆመዋል"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"የሥራ ፎቶዎችን ለመክፈት የሥራ መተግበሪያዎችዎን ያብሩ እና እንደገና ይሞክሩ"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"ይህ መተግበሪያ መድረስ የሚችለው እርስዎ የሚመርጧቸውን ፎቶዎች ብቻ ነው"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"ይህ መዳረሻ እንዲደርስባቸው የሚፈቅዱባቸውን ፎቶዎች እና ቪድዮዎች ይምረጡ"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ንጥል}one{<xliff:g id="COUNT_1">^1</xliff:g> ንጥል}other{<xliff:g id="COUNT_1">^1</xliff:g> ንጥሎች}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) አክል"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"ለ(<xliff:g id="COUNT">^1</xliff:g>) ፍቀድ"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"ካሜራ"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"ውርዶች"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"ተወዳጆች"</string>
-    <string name="picker_category_screenshots" msgid="7216102327587644284">"ቅጽበታዊ ገፅ እይታዎች"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"ቅጽበታዊ ገጽ እይታዎች"</string>
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"የእንቅስቃሴ ፎቶ"</string>
@@ -75,10 +86,29 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"የእንቅስቃሴ ፎቶ"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"ቪዲዮ ላይ ድምፀ-ከል አድርግ"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"የቪዲዮን ድምፀ-ከል አንሣ"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"ቪድዮ አጫውት"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"ቪዲዮን ባለበት አቁም"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"አጫውት"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"ባለበት አቁም"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"ቪድዮ ማጫወት አልተቻለም"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"ቪድዮን ማጫወት ላይ ችግር"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"የበይነመረብዎን ግንኙነት ይፈትሹ እና እንደገና ይሞክሩ"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"እንደገና ሞክር"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"የደመና ሚዲያ አሁን ከ<xliff:g id="PKG_NAME">%1$s</xliff:g> ይገኛል"</string>
     <string name="not_selected" msgid="2244008151669896758">"አልተመረጠም"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> ከ<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ዝግጁ"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ምትኬ የተቀመጠላቸው ፎቶዎች አሁን ተካትተዋል"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ከ<xliff:g id="APP_NAME">%1$s</xliff:g> መለያ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ፎቶዎችን መምረጥ ይችላሉ"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> መለያ ተዘምኗል"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"አሁን ከ<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> የመጡ ፎቶዎች እዚህ ተካትተዋል"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"የደመና ሚዲያ መተግበሪያን ይምረጡ"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"ምትኬ የተቀመጠላቸው ፎቶዎችን እዚህ ለማካተት ቅንብሮች ውስጥ የደመና ሚዲያ መተግበሪያን ይምረጡ"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"የ<xliff:g id="APP_NAME">%1$s</xliff:g> መለያ ይምረጡ"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"ከ<xliff:g id="APP_NAME">%1$s</xliff:g> የመጡ ፎቶዎችን እዚህ ለማካተት በመተግበሪያው ውስጥ አንድ መለያ ይምረጡ"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"አሰናብት"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"መተግበሪያ ይምረጡ"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"መለያ ይምረጡ"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"መለያ ቀይር"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ይህን ኦዲዮ ፋይል እንዲቀይር ይፈቀድለት?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ኦዲዮ ፋይልን እንዲቀይር ይፈቀድለት?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ኦዲዮ ፋይሎችን እንዲቀይር ይፈቀድለት?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{የኦዲዮ ፋይልን በመቀየር ላይ…}one{<xliff:g id="COUNT">^1</xliff:g> የኦዲዮ ፋይልን በመቀየር ላይ…}other{<xliff:g id="COUNT">^1</xliff:g> የኦዲዮ ፋይሎችን በመቀየር ላይ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ይህን ቪዲዮ እንዲቀይር ይፈቀድለት?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ቪዲዮን እንዲቀይር ይፈቀድለት?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ቪዲዮዎችን እንዲቀይር ይፈቀድለት?}}"</string>
@@ -119,4 +149,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"ሚዲያን በማሰናዳት ላይ…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"ይቅር"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"ጠብቅ"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"የደህንነት ጥበቃ"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"የቤተኛ ትራንስኮድ ማንቂያዎች"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"የቤተኛ ትራንስኮድ ሂደት"</string>
 </resources>

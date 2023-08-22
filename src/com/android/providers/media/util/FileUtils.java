@@ -54,12 +54,14 @@ import android.os.UserHandle;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.util.ArrayMap;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -91,6 +93,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.ObjIntConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -417,8 +420,8 @@ public class FileUtils {
             // When file size exceeds MAX_READ_STRING_SIZE, file is either
             // corrupted or doesn't the contain expected data. Hence we return
             // Optional.empty() which will be interpreted as empty file.
-            Logging.logPersistent(String.format("Ignored reading %s, file size exceeds %d", file,
-                    MAX_READ_STRING_SIZE));
+            Logging.logPersistent(String.format(Locale.ROOT,
+                    "Ignored reading %s, file size exceeds %d", file, MAX_READ_STRING_SIZE));
         } catch (NoSuchFileException ignored) {
         }
         return Optional.empty();
@@ -1416,6 +1419,41 @@ public class FileUtils {
         }
     }
 
+    @VisibleForTesting
+    static ArrayMap<String, String> sAudioTypes = new ArrayMap<>();
+
+    static {
+        sAudioTypes.put(Environment.DIRECTORY_RINGTONES, AudioColumns.IS_RINGTONE);
+        sAudioTypes.put(Environment.DIRECTORY_NOTIFICATIONS, AudioColumns.IS_NOTIFICATION);
+        sAudioTypes.put(Environment.DIRECTORY_ALARMS, AudioColumns.IS_ALARM);
+        sAudioTypes.put(Environment.DIRECTORY_PODCASTS, AudioColumns.IS_PODCAST);
+        sAudioTypes.put(Environment.DIRECTORY_AUDIOBOOKS, AudioColumns.IS_AUDIOBOOK);
+        sAudioTypes.put(Environment.DIRECTORY_MUSIC, AudioColumns.IS_MUSIC);
+        if (SdkLevel.isAtLeastS()) {
+            sAudioTypes.put(Environment.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
+        } else {
+            sAudioTypes.put(FileUtils.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
+        }
+    }
+
+    /**
+     * Compute values for columns in {@code sAudioTypes} based on the given {@code filePath}.
+     */
+    public static void computeAudioTypeValuesFromData(@NonNull String filePath,
+            @NonNull ObjIntConsumer<String> consumer) {
+        final String lowPath = filePath.toLowerCase(Locale.ROOT);
+        boolean anyMatch = false;
+        for (int i = 0; i < sAudioTypes.size(); i++) {
+            final boolean match = lowPath
+                    .contains('/' + sAudioTypes.keyAt(i).toLowerCase(Locale.ROOT) + '/');
+            consumer.accept(sAudioTypes.valueAt(i), match ? 1 : 0);
+            anyMatch |= match;
+        }
+        if (!anyMatch) {
+            consumer.accept(AudioColumns.IS_MUSIC, 1);
+        }
+    }
+
     public static void sanitizeValues(@NonNull ContentValues values,
             boolean rewriteHiddenFileName) {
         final String[] relativePath = values.getAsString(MediaColumns.RELATIVE_PATH).split("/");
@@ -1637,18 +1675,28 @@ public class FileUtils {
         Log.i(TAG, "Clearing cache for all apps");
         final File rootDataDir = buildPath(Environment.getExternalStorageDirectory(),
                 "Android", "data");
-        for (File appDataDir : rootDataDir.listFiles()) {
-            try {
-                final File appCacheDir = new File(appDataDir, "cache");
-                if (appCacheDir.isDirectory()) {
-                    FileUtils.deleteContents(appCacheDir);
+        File[] appDataDirs = rootDataDir.listFiles();
+        if (appDataDirs == null) {
+            // Couldn't delete any app cache dirs because the call to list files in root data dir
+            // failed (b/234521806). It is not clear why this call would fail because root data
+            // dir path should be well-formed.
+            Log.e(TAG, String.format("Couldn't delete any app cache dirs in root data dir %s !",
+                    rootDataDir.getAbsolutePath()));
+            status = OsConstants.EIO;
+        } else {
+            for (File appDataDir : appDataDirs) {
+                try {
+                    final File appCacheDir = new File(appDataDir, "cache");
+                    if (appCacheDir.isDirectory()) {
+                        FileUtils.deleteContents(appCacheDir);
+                    }
+                } catch (Exception e) {
+                    // We want to avoid crashing MediaProvider at all costs, so we handle all
+                    // "generic" exceptions here, and just report to the caller that an IO exception
+                    // has occurred. We still try to clear the rest of the directories.
+                    Log.e(TAG, "Couldn't delete all app cache dirs!", e);
+                    status = OsConstants.EIO;
                 }
-            } catch (Exception e) {
-                // We want to avoid crashing MediaProvider at all costs, so we handle all "generic"
-                // exceptions here, and just report to the caller that an IO exception has occurred.
-                // We still try to clear the rest of the directories.
-                Log.e(TAG, "Couldn't delete all app cache dirs!", e);
-                status = OsConstants.EIO;
             }
         }
         return status;

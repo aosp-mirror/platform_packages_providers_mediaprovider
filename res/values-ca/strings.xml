@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Multimèdia"</string>
     <string name="storage_description" msgid="4081716890357580107">"Emmagatzematge local"</string>
     <string name="app_label" msgid="9035307001052716210">"Emmagatzematge multimèdia"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Selector de fotos"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Contingut multimèdia"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artista"</string>
     <string name="unknown" msgid="2059049215682829375">"Desconegut"</string>
     <string name="root_images" msgid="5861633549189045666">"Imatges"</string>
@@ -38,6 +38,14 @@
     <string name="clear" msgid="5524638938415865915">"Esborra"</string>
     <string name="allow" msgid="8885707816848569619">"Permet"</string>
     <string name="deny" msgid="6040983710442068936">"Denega"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Navega…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Aplicació multimèdia al núvol"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplicació multimèdia al núvol"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Aplicació multimèdia al núvol"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Accedeix al contingut multimèdia al núvol si una aplicació o un lloc web et demana que seleccionis fotos o vídeos"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Accedeix al contingut multimèdia al núvol des de"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Cap"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"No s\'ha pogut canviar l\'app multimèdia al núvol."</string>
     <string name="add" msgid="2894574044585549298">"Afegeix"</string>
     <string name="deselect" msgid="4297825044827769490">"Desselecciona"</string>
     <string name="deselected" msgid="8488133193326208475">"Desseleccionat"</string>
@@ -46,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Selecciona fins a <xliff:g id="COUNT_0">^1</xliff:g> element}many{Selecciona fins a <xliff:g id="COUNT_1">^1</xliff:g> elements}other{Selecciona fins a <xliff:g id="COUNT_1">^1</xliff:g> elements}}"</string>
     <string name="recent" msgid="6694613584743207874">"Recent"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"No hi ha cap foto ni vídeo"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"No hi ha cap foto ni vídeo compatibles"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"No hi ha cap àlbum"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Mostra la selecció"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotos"</string>
@@ -59,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Les aplicacions de treball estan en pausa"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Per obrir les fotos de treball, activa les aplicacions de treball i torna-ho a provar"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Aquesta aplicació només pot accedir a les fotos que seleccionis"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Selecciona a quines fotos i vídeos permets que accedeixi aquesta aplicació"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> element}many{<xliff:g id="COUNT_1">^1</xliff:g> elements}other{<xliff:g id="COUNT_1">^1</xliff:g> elements}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Afegeix (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Permet (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Càmera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Baixades"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Preferits"</string>
@@ -75,10 +86,29 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"foto amb moviment"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Silencia el vídeo"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Deixa de silenciar el vídeo"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Reprodueix el vídeo"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Posa en pausa el vídeo"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Reprodueix"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Posa en pausa"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"No es pot reproduir el vídeo"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Hi ha hagut un problema en reproduir el vídeo"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Comprova la connexió a Internet i torna-ho a provar"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Torna-ho a provar"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"El contingut multimèdia al núvol ara està disponible des de <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"no seleccionat"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> de <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> a punt"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Ara s\'ha inclòs la còpia de seguretat de les fotos"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Pots seleccionar fotos del compte de <xliff:g id="APP_NAME">%1$s</xliff:g> de <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"S\'ha actualitzat el compte de <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Les fotos de <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> ara s\'inclouen aquí"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Tria una aplicació multimèdia amb servei al núvol"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Per incloure una còpia de seguretat de les fotos aquí, a Configuració, tria una aplicació multimèdia amb servei al núvol"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Tria un compte de <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Per incloure les fotos de <xliff:g id="APP_NAME">%1$s</xliff:g> aquí, tria un compte a l\'aplicació"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Ignora"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Tria una aplicació"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Tria un compte"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Canvia de compte"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> modifiqui aquest fitxer d\'àudio?}many{Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> modifiqui <xliff:g id="COUNT">^2</xliff:g> fitxers d\'àudio?}other{Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> modifiqui <xliff:g id="COUNT">^2</xliff:g> fitxers d\'àudio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{S\'està modificant el fitxer d\'àudio…}many{S\'estan modificant <xliff:g id="COUNT">^1</xliff:g> fitxers d\'àudio…}other{S\'estan modificant <xliff:g id="COUNT">^1</xliff:g> fitxers d\'àudio…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> modifiqui aquest vídeo?}many{Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> modifiqui <xliff:g id="COUNT">^2</xliff:g> vídeos?}other{Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> modifiqui <xliff:g id="COUNT">^2</xliff:g> vídeos?}}"</string>
@@ -119,4 +149,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"S\'està processant el contingut multimèdia…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Cancel·la"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Espera"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Protecció de seguretat"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Alertes de transcodificació nativa"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Progrés de la transcodificació nativa"</string>
 </resources>

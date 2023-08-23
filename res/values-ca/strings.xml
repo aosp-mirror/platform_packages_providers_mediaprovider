@@ -40,7 +40,7 @@
     <string name="deny" msgid="6040983710442068936">"Denega"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Navega…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"Aplicació multimèdia al núvol"</string>
-    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplicació multimèdia al núvol"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"App multimèdia al núvol"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplicació multimèdia al núvol"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Accedeix al contingut multimèdia al núvol si una aplicació o un lloc web et demana que seleccionis fotos o vídeos"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accedeix al contingut multimèdia al núvol des de"</string>

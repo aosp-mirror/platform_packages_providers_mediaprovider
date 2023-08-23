@@ -60,8 +60,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Photos"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albums"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Aperçu"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Passer au professionnel"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Passer au personnel"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Passer au profil professionnel"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Passer au profil personnel"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloqué par votre administrateur"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Vous n\'êtes pas autorisé à accéder à des données professionnelles depuis une appli personnelle"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Vous n\'êtes pas autorisé à accéder à des données à caractère personnel depuis une appli professionnelle"</string>
@@ -96,7 +96,7 @@
     <string name="not_selected" msgid="2244008151669896758">"non sélectionné"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Prêt(s) : <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> sur <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Les photos sauvegardées sont désormais incluses"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Vous pouvez sélectionner des photos de <xliff:g id="APP_NAME">%1$s</xliff:g>, compte <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Vous pouvez sélectionner des photos issues du compte <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> dans l\'appli <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Compte <xliff:g id="APP_NAME">%1$s</xliff:g> mis à jour"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Les photos de <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> sont désormais incluses ici"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Sélectionner une appli multimédia cloud"</string>

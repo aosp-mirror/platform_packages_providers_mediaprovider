@@ -96,17 +96,17 @@
     <string name="not_selected" msgid="2244008151669896758">"未选择"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> 个已准备就绪，共 <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> 个"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"备份照片现已添加完成"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"您可以选择来自<xliff:g id="APP_NAME">%1$s</xliff:g>帐号 <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> 的照片"</string>
-    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g>帐号已更新"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"您可以选择来自<xliff:g id="APP_NAME">%1$s</xliff:g>账号 <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> 的照片"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g>账号已更新"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"来自 <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> 的照片已添加到此处"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"选择云端媒体应用"</string>
     <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"如需将备份照片添加到此处，请在“设置”中选择一个云端媒体应用"</string>
-    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"选择<xliff:g id="APP_NAME">%1$s</xliff:g>帐号"</string>
-    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"如需将来自<xliff:g id="APP_NAME">%1$s</xliff:g>的照片添加到此处，请在应用中选择一个帐号"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"选择<xliff:g id="APP_NAME">%1$s</xliff:g>账号"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"如需将来自<xliff:g id="APP_NAME">%1$s</xliff:g>的照片添加到此处，请在应用中选择一个账号"</string>
     <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"关闭"</string>
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"选择应用"</string>
-    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"选择帐号"</string>
-    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"更改帐号"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"选择账号"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"更改账号"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{要允许<xliff:g id="APP_NAME_0">^1</xliff:g>修改这个音频文件吗？}other{要允许<xliff:g id="APP_NAME_1">^1</xliff:g>修改这 <xliff:g id="COUNT">^2</xliff:g> 个音频文件吗？}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{正在修改音频文件…}other{正在修改 <xliff:g id="COUNT">^1</xliff:g> 个音频文件…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{要允许<xliff:g id="APP_NAME_0">^1</xliff:g>修改这个视频吗？}other{要允许<xliff:g id="APP_NAME_1">^1</xliff:g>修改这 <xliff:g id="COUNT">^2</xliff:g> 个视频吗？}}"</string>

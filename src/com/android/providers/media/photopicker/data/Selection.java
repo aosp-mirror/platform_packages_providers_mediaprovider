@@ -27,6 +27,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +37,16 @@ import java.util.Map;
  * A class that tracks Selection
  */
 public class Selection {
+    /**
+     * Contains positions of checked Item at UI. {@link #mCheckedItemIndexes} may have more number
+     * of indexes , from the number of items present in {@link #mSelectedItems}. The index in
+     * {@link #mCheckedItemIndexes} is a potential index that needs to be rechecked in
+     * notifyItemChanged() at the time of deselecting the unavailable item at UI when user is
+     * offline and tries adding unavailable non cached items. the item corresponding to the index in
+     * {@link #mCheckedItemIndexes} may no longer be selected.
+     */
+    private final Map<Item, Integer> mCheckedItemIndexes = new HashMap<>();
+
     // The list of selected items.
     private Map<Uri, Item> mSelectedItems = new HashMap<>();
     private MutableLiveData<Integer> mSelectedItemSize = new MutableLiveData<>();
@@ -52,6 +63,13 @@ public class Selection {
      */
     public List<Item> getSelectedItems() {
         return Collections.unmodifiableList(new ArrayList<>(mSelectedItems.values()));
+    }
+
+    /**
+     * @return Indexes - A {@link List} of checked {@link Item} positions.
+     */
+    public Collection<Integer> getCheckedItemsIndexes() {
+        return mCheckedItemIndexes.values();
     }
 
     /**
@@ -74,6 +92,13 @@ public class Selection {
     }
 
     /**
+     * Add the checked {@code item} index into {@link #mCheckedItemIndexes}.
+     */
+    public void addCheckedItemIndex(Item item, Integer index) {
+        mCheckedItemIndexes.put(item, index);
+    }
+
+    /**
      * Clears {@link #mSelectedItems} and sets the selected item as given {@code item}
      */
     public void setSelectedItem(Item item) {
@@ -84,7 +109,7 @@ public class Selection {
     }
 
     /**
-     * Remove the {@code item} from the selected item list {@link #mSelectedItems}.
+     * Remove the {@code item} from the selected item list {@link #mSelectedItems}
      *
      * @param item the item to be removed from the selected item list
      */
@@ -95,12 +120,29 @@ public class Selection {
     }
 
     /**
-     * Clear all selected items
+     * Remove the {@code item} index from the checked item  index list {@link #mCheckedItemIndexes}.
+     *
+     * @param item the item to be removed from the selected item list
+     */
+    public void removeCheckedItemIndex(Item item) {
+        mCheckedItemIndexes.remove(item);
+    }
+
+    /**
+     * Clear all selected items and checked positions
      */
     public void clearSelectedItems() {
         mSelectedItems.clear();
+        mCheckedItemIndexes.clear();
         mSelectedItemSize.postValue(mSelectedItems.size());
         updateSelectionAllowed();
+    }
+
+    /**
+     * Clear all checked items
+     */
+    public void clearCheckedItemList() {
+        mCheckedItemIndexes.clear();
     }
 
     /**

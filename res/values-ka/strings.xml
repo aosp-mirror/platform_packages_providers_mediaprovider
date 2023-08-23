@@ -95,7 +95,7 @@
     <string name="picker_cloud_sync" msgid="997251377538536319">"ღრუბლოვანი მედია უკვე ხელმისაწვდომია <xliff:g id="PKG_NAME">%1$s</xliff:g>-ისგან"</string>
     <string name="not_selected" msgid="2244008151669896758">"არ არის არჩეული"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> სულ <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>-დან მზადაა"</string>
-    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ფოტოების სარეზერვო ასლები ახლა განთავსებულია"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"უკვე ფოტოების სარეზერვო ასლების ჩათვლით"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"შეგიძლიათ აირჩიოთ ფოტოები <xliff:g id="APP_NAME">%1$s</xliff:g>-ის ანგარიშიდან <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> ანგარიში განახლებულია"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g>-ის ფოტოები ახლა აქ არის განთავსებული"</string>

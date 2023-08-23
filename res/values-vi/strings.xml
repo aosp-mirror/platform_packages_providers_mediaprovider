@@ -39,11 +39,11 @@
     <string name="allow" msgid="8885707816848569619">"Cho phép"</string>
     <string name="deny" msgid="6040983710442068936">"Từ chối"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Duyệt qua…"</string>
-    <string name="picker_settings" msgid="6443463167344790260">"Ứng dụng đa phương tiện trên đám mây"</string>
-    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Ứng dụng đa phương tiện trên đám mây"</string>
-    <string name="picker_settings_title" msgid="5647700706470673258">"Ứng dụng nội dung phương tiện trên đám mây"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Truy cập vào nội dung nghe nhìn trên đám mây của bạn khi ứng dụng hoặc trang web yêu cầu bạn chọn ảnh hoặc video"</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"Truy cập nội dung phương tiện trên đám mây qua"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Ứng dụng nghe nhìn trên đám mây"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Ứng dụng nghe nhìn trên đám mây"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Ứng dụng nghe nhìn trên đám mây"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Truy cập vào nội dung nghe nhìn của bạn trên đám mây khi có ứng dụng hay trang web yêu cầu bạn chọn ảnh hoặc video"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Truy cập nội dung nghe nhìn trên đám mây qua"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Không có"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Hiện không thay đổi được ứng dụng đa phương tiện đám mây."</string>
     <string name="add" msgid="2894574044585549298">"Thêm"</string>
@@ -55,14 +55,14 @@
     <string name="recent" msgid="6694613584743207874">"Gần đây"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Không có ảnh hoặc video nào"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Không có ảnh hoặc video nào được hỗ trợ"</string>
-    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Không có đĩa nhạc nào"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Không có album nào"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Xem các mục được chọn"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Ảnh"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Album"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Xem trước"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Chuyển sang hồ sơ công việc"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Chuyển sang hồ sơ cá nhân"</string>
-    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bị quản trị viên của bạn chặn"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Quản trị viên của bạn đã chặn thao tác này"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Bạn không được phép truy cập dữ liệu công việc từ một ứng dụng cá nhân"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Bạn không được phép truy cập dữ liệu cá nhân từ một ứng dụng công việc"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ứng dụng công việc đã tạm dừng"</string>
@@ -95,7 +95,7 @@
     <string name="picker_cloud_sync" msgid="997251377538536319">"Hiện đã có phương tiện đám mây từ <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"chưa được chọn"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>/<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> mục đã sẵn sàng"</string>
-    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Ảnh được sao lưu giờ đã xuất hiện"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Ảnh được sao lưu giờ đã có mặt"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Bạn có thể chọn ảnh của <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> trên <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Đã cập nhật tài khoản <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Ảnh của <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> giờ sẽ xuất hiện tại đây"</string>

@@ -51,7 +51,7 @@
     <string name="deselected" msgid="8488133193326208475">"Tanlovi yechilgan"</string>
     <string name="select" msgid="2704765470563027689">"Tanlash"</string>
     <string name="selected" msgid="9151797369975828124">"Tanlangan"</string>
-    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> tagcha elementni tanlang}other{<xliff:g id="COUNT_1">^1</xliff:g> tagcha elementni tanlang}}"</string>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> tagacha elementni tanlang}other{<xliff:g id="COUNT_1">^1</xliff:g> tagacha elementni tanlang}}"</string>
     <string name="recent" msgid="6694613584743207874">"Oxirgi"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Surat yoki video kiritilmagan"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Qabul qilinmaydigan rasm va videolar"</string>
@@ -60,8 +60,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Suratlar"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albomlar"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Razm solish"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Ish profiliga oʻtish"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Shaxsiy profilga oʻtish"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Ish profiliga almashish"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Shaxsiy profilga almashish"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Administratoringiz tomonidan bloklangan"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Shaxsiy ilovadan ishga oid maʼlumotlarga kirish taqiqlangan"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Ishga oid ilovadan shaxsiy maʼlumotlarga kirish taqiqlangan"</string>

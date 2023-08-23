@@ -39,16 +39,16 @@
     <string name="allow" msgid="8885707816848569619">"Dozvoli"</string>
     <string name="deny" msgid="6040983710442068936">"Odbij"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Pregledajte…"</string>
-    <string name="picker_settings" msgid="6443463167344790260">"Apl. za med. sadržaje u oblaku"</string>
-    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikacija za medijske sadržaje u oblaku"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Aplikacija za medije u oblaku"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikacija za medije u oblaku"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikacija za medijske sadržaje u oblaku"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Pristupite medijima na oblaku kada vam aplikacija ili web lokacija zatraži da odaberete fotografije ili videozapise"</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"Pristupite medijskom sadržaju u oblaku iz"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Pristupite medijima u oblaku kada vam aplikacija ili web lokacija zatraži da odaberete fotografije ili videozapise"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Pristupite medijima u oblaku iz oblaku iz"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Ništa"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Promjena medijske aplikacije u oblaku nije uspjela."</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Poništi odabir"</string>
-    <string name="deselected" msgid="8488133193326208475">"Odabir poništen"</string>
+    <string name="deselected" msgid="8488133193326208475">"Odabir je poništen"</string>
     <string name="select" msgid="2704765470563027689">"Odaberi"</string>
     <string name="selected" msgid="9151797369975828124">"Odabrano"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Odaberite najviše <xliff:g id="COUNT_0">^1</xliff:g> stavku}one{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavku}few{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavke}other{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
@@ -60,8 +60,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Fotografije"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albumi"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Pregled"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Prebacite se na radni"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Prebacite se na lični"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Prebacite se na radni profil"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Prebacite se na lični profil profil"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokirao je administrator"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Pristupanje poslovnim podacima iz lične aplikacije nije dozvoljeno"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Pristupanje ličnim podacima iz poslovne aplikacije nije dozvoljeno"</string>

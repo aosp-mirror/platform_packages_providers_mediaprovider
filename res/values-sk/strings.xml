@@ -60,8 +60,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Fotky"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albumy"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Ukážka"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Prepnúť na pracovný"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Prepnúť na osobný"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Prepnúť na pracovný profil"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Prepnúť na osobný profil"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokované vaším správcom"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Prístup k pracovným údajom z osobnej aplikácie nie je povolený"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Prístup k osobným údajom z pracovnej aplikácie nie je povolený"</string>

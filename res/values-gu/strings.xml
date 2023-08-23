@@ -62,7 +62,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"પ્રીવ્યૂ કરો"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ઑફિસની પ્રોફાઇલ પર સ્વિચ કરો"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"વ્યક્તિગત પ્રોફાઇલ પર સ્વિચ કરો"</string>
-    <string name="picker_profile_admin_title" msgid="4172022376418293777">"તમારા વ્યવસ્થાપકે સુવિધા બ્લૉક કરી છે"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"તમારા ઍડમિને સુવિધા બ્લૉક કરી છે"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"વ્યક્તિગત ઍપ પરથી ઑફિસનો ડેટા ઍક્સેસ કરવાની પરવાનગી નથી"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ઑફિસ માટેની ઍપ પરથી વ્યક્તિગત ડેટા ઍક્સેસ કરવાની પરવાનગી નથી"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ઑફિસ માટેની ઍપ થોભાવવામાં આવી છે"</string>

@@ -268,6 +268,12 @@ final class RemotePreviewSession {
             case PLAYBACK_STATE_BUFFERING:
                 mPreviewVideoHolder.getCircularProgressIndicator().setVisibility(View.VISIBLE);
                 return;
+            case PLAYBACK_STATE_COMPLETED:
+                // TODO(b/296543163): Investigate CloudMediaProviderContract for future OEM
+                //  implementers. Should the provider be expected to loop the video themselves
+                //  instead of ending the playback state?
+                requestPlayMedia();
+                return;
             default:
         }
     }

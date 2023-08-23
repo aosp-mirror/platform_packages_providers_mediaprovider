@@ -14,7 +14,8 @@
      limitations under the License.
 -->
 
-<resources xmlns:android="http://schemas.android.com/apk/res/android">
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+           xmlns:androidprv="http://schemas.android.com/apk/prv/res/android">
 
     <style name="PickerDialogTheme"
            parent="@android:style/Theme.DeviceDefault.Dialog.Alert">
@@ -60,6 +61,7 @@
         <item name="pickerBannerSecondaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerButtonTextColor">?android:attr/colorAccent</item>
         <item name="categoryDefaultThumbnailColor">?android:attr/colorAccent</item>
+        <item name="categoryDefaultThumbnailCircleColor">?androidprv:attr/materialColorSurfaceContainer</item>
     </style>
 
 </resources>

@@ -381,7 +381,8 @@ final class RemotePreviewSession {
         // media size, then we hide the thumbnail view.
         mPreviewVideoHolder.getPlayerContainer().setVisibility(View.INVISIBLE);
         mPreviewVideoHolder.getThumbnailView().setVisibility(View.VISIBLE);
-        mPreviewVideoHolder.getPlayerControlsRoot().setVisibility(View.GONE);
+        updatePlayerControlsVisibilityState(
+                mPlayerControlsVisibilityStatus.shouldShowPlayerControls());
         mPreviewVideoHolder.getCircularProgressIndicator().setVisibility(View.GONE);
 
         updatePlayPauseButtonState(false /* isPlaying */);
@@ -456,7 +457,11 @@ final class RemotePreviewSession {
         mIsAccessibilityEnabled = enabled;
         mPreviewVideoHolder.getPlayerContainer().setOnClickListener(
                 mIsAccessibilityEnabled ? null : mPlayerContainerClickListener);
-        updatePlayerControlsVisibilityState(mIsAccessibilityEnabled);
+        if (mIsAccessibilityEnabled) {
+            updatePlayerControlsVisibilityState(/* visible= */ true);
+        } else {
+            hidePlayerControlsWithDelay();
+        }
     }
 
     private void updatePlayPauseButtonState(boolean isPlaying) {

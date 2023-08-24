@@ -253,6 +253,8 @@
     <!-- Default not selected text used by accessibility for an element that can be unselected. [CHAR LIMIT=NONE] -->
     <string name="not_selected">not selected</string>
 
+    <!-- Title of the preloading progress dialog -->
+    <string name="preloading_dialog_title">"Preparing your selected media"</string>
     <!-- A message for the Progress Dialog shown while preloading selected items before "closing" Photo Picker. [CHAR LIMIT=NONE] -->
     <string name="preloading_progress_message"><xliff:g id="number_preloaded">%1$d</xliff:g> of <xliff:g id="number_total">%2$d</xliff:g> ready</string>
 

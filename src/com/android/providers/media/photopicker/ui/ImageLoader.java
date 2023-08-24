@@ -26,6 +26,7 @@ import android.net.Uri;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
@@ -71,12 +72,24 @@ public class ImageLoader {
      * @param category  the album
      * @param imageView the imageView shows the thumbnail
      */
-    public void loadAlbumThumbnail(@NonNull Category category, @NonNull ImageView imageView) {
+    public void loadAlbumThumbnail(@NonNull Category category, @NonNull ImageView imageView,
+            int defaultThumbnailRes, @NonNull ImageView defaultIcon) {
         // Always show all thumbnails as bitmap images instead of drawables
         // This is to ensure that we do not animate any thumbnail (for eg GIF)
         // TODO(b/194285082): Use drawable instead of bitmap, as it saves memory.
-        loadWithGlide(getBitmapRequestBuilder(category.getCoverUri()), THUMBNAIL_OPTION,
-                /* signature */ null, imageView);
+        if (category.getCoverUri() != null || defaultThumbnailRes == -1) {
+            defaultIcon.setVisibility(View.GONE);
+            imageView.setVisibility(View.VISIBLE);
+
+            loadWithGlide(getBitmapRequestBuilder(category.getCoverUri()), THUMBNAIL_OPTION,
+                    /* signature */ null, imageView);
+        } else {
+            imageView.setVisibility(View.INVISIBLE);
+            defaultIcon.setVisibility(View.VISIBLE);
+
+            loadWithGlide(getDrawableRequestBuilder(mContext.getDrawable(defaultThumbnailRes)),
+                    THUMBNAIL_OPTION,  /* signature */ null, defaultIcon);
+        }
     }
 
     /**

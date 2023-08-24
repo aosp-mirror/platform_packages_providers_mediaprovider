@@ -110,7 +110,7 @@ class SelectedMediaPreloader {
 
         Trace.beginAsyncSection(TRACE_SECTION_NAME, /* cookie */ preloader.hashCode());
 
-        final var dialog = createProgressDialog(activity, items);
+        final var dialog = createProgressDialog(activity, items, context);
 
         preloader.mIsFinishedLiveData.observeForever(new Observer<>() {
             @Override
@@ -236,11 +236,15 @@ class SelectedMediaPreloader {
 
     @NonNull
     private static AlertDialog createProgressDialog(
-            @NonNull Activity activity, @NonNull List<Uri> selectedMedia) {
-        return ProgressDialog.show(activity,
-                /* tile */ "Preparing your selected media",
-                /* message */ "0 of " + selectedMedia.size() + " ready.",
-                /* indeterminate */ true);
+            @NonNull Activity activity, @NonNull List<Uri> selectedMedia, Context context) {
+        ProgressDialog dialog = new ProgressDialog(activity,
+                R.style.SelectedMediaPreloaderDialogTheme);
+        dialog.setTitle(/* title */ context.getString(R.string.preloading_dialog_title));
+        dialog.setMessage(/* message */ context.getString(
+                R.string.preloading_progress_message, 0, selectedMedia.size()));
+        dialog.setIndeterminate(/* indeterminate */ true);
+        dialog.show();
+        return dialog;
     }
 
     private static void ensureExecutor() {

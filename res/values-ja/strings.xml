@@ -46,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"クラウド メディアへのアクセス元"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"なし"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"クラウド メディアアプリを変更できませんでした。"</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"メディアの選択"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"メディアの選択"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"メディアを同期しています…"</string>
     <string name="add" msgid="2894574044585549298">"追加"</string>
     <string name="deselect" msgid="4297825044827769490">"選択を解除"</string>
     <string name="deselected" msgid="8488133193326208475">"選択解除済み"</string>
@@ -150,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"安全保護"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"ネイティブ コード変換アラート"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"ネイティブ コード変換進行状況"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

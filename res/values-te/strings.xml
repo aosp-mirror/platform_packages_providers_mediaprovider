@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"మీడియా"</string>
     <string name="storage_description" msgid="4081716890357580107">"స్థానిక స్టోరేజ్‌"</string>
     <string name="app_label" msgid="9035307001052716210">"మీడియా స్టోరేజ్‌"</string>
-    <!-- no translation found for picker_app_label (1195424381053599122) -->
-    <skip />
+    <string name="picker_app_label" msgid="1195424381053599122">"మీడియా సెలెక్టర్"</string>
     <string name="artist_label" msgid="8105600993099120273">"కళాకారుడు"</string>
     <string name="unknown" msgid="2059049215682829375">"తెలియదు"</string>
     <string name="root_images" msgid="5861633549189045666">"ఇమేజ్‌లు"</string>
@@ -47,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"దాని నుండి క్లౌడ్ మీడియాను యాక్సెస్ చేయండి"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ఏవీ లేవు"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"ఈ సమయంలో క్లౌడ్ మీడియా యాప్ మార్చడం సాధ్యపడలేదు."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"మీడియా సెలెక్టర్"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"మీడియా సెలెక్టర్"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"మీడియాను సింక్ చేస్తోంది…"</string>
     <string name="add" msgid="2894574044585549298">"జోడించండి"</string>
     <string name="deselect" msgid="4297825044827769490">"ఎంపికను తొలగించండి"</string>
     <string name="deselected" msgid="8488133193326208475">"ఎంపిక తొలగించబడింది"</string>
@@ -151,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"భద్రత రక్షణ"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"స్థానిక ట్రాన్స్‌కోడ్ అలర్ట్‌లు"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"స్థానిక ట్రాన్స్‌కోడ్ ప్రోగ్రెస్"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

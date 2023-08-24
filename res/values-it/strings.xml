@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Supporti multimediali"</string>
     <string name="storage_description" msgid="4081716890357580107">"Archiviazione locale"</string>
     <string name="app_label" msgid="9035307001052716210">"Media Storage"</string>
-    <!-- no translation found for picker_app_label (1195424381053599122) -->
-    <skip />
+    <string name="picker_app_label" msgid="1195424381053599122">"Selettore media"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artista"</string>
     <string name="unknown" msgid="2059049215682829375">"Sconosciuto"</string>
     <string name="root_images" msgid="5861633549189045666">"Immagini"</string>
@@ -43,10 +42,13 @@
     <string name="picker_settings" msgid="6443463167344790260">"App multimediale cloud"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"App multimediale cloud"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"App multimediale con funzionalità cloud"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Accedi ai tuoi contenuti multimediali cloud quando un\'app o un sito web ti chiede di selezionare foto o video"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Accedi ai tuoi contenuti multimediali sul cloud quando un\'app o un sito web ti chiede di selezionare foto o video"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accedi ai contenuti multimediali sul cloud da"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nessuna"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Ora è impossibile cambiare app multimediale cloud."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Selettore media"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Selettore media"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Sincronizzazione dei media in corso…"</string>
     <string name="add" msgid="2894574044585549298">"Aggiungi"</string>
     <string name="deselect" msgid="4297825044827769490">"Deseleziona"</string>
     <string name="deselected" msgid="8488133193326208475">"Deselezionato"</string>
@@ -68,7 +70,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Non è consentito accedere ai dati personali da un\'app di lavoro"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Le app di lavoro sono in pausa"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Per aprire le foto relative al lavoro, attiva le app di lavoro e riprova"</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"Questa app può accedere soltanto alle foto selezionate da te"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Questa app può accedere soltanto alle foto che selezioni"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Seleziona le foto e i video a cui può accedere questa app"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> elemento}many{<xliff:g id="COUNT_1">^1</xliff:g> elementi}other{<xliff:g id="COUNT_1">^1</xliff:g> elementi}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Aggiungi (<xliff:g id="COUNT">^1</xliff:g>)"</string>
@@ -96,7 +98,7 @@
     <string name="not_selected" msgid="2244008151669896758">"Elemento non selezionato"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> su <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> pronti"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Ora sono incluse le foto di cui hai eseguito il backup"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Puoi selezionare foto dall\'account <xliff:g id="APP_NAME">%1$s</xliff:g> di <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Puoi selezionare foto dall\'account <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> nell\'app <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Account <xliff:g id="APP_NAME">%1$s</xliff:g> aggiornato"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Ora le foto di <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> sono incluse qui"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Scegli un\'app multimediale con funzionalità cloud"</string>
@@ -151,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Protezione di sicurezza"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Avvisi di transcodifica nativa"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Avanzamento di transcodifica nativa"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

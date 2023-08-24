@@ -42,10 +42,13 @@
     <string name="picker_settings" msgid="6443463167344790260">"Aplikace pro cloudová média"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikace pro cloudová média"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikace pro cloudová média"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Když vás aplikace nebo web požádá o výběr fotografií nebo videí, přejít na vaše cloudová média"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Když vás aplikace nebo web požádá o výběr fotografií nebo videí, můžete přejít na svoje cloudová média"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Přístup ke cloudovým médiím z"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Žádný"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Aplikaci pro cloudová média nyní nelze změnit."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Nástroj pro výběr médií"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Nástroj pro výběr médií"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Synchronizace médií…"</string>
     <string name="add" msgid="2894574044585549298">"Přidat"</string>
     <string name="deselect" msgid="4297825044827769490">"Zrušit výběr"</string>
     <string name="deselected" msgid="8488133193326208475">"Výběr zrušen"</string>
@@ -150,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Bezpečnostní ochrana"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Upozornění na nativní překódování"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Průběh nativního překódování"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

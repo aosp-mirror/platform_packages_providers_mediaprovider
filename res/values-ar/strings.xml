@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"الوسائط"</string>
     <string name="storage_description" msgid="4081716890357580107">"التخزين المحلي"</string>
     <string name="app_label" msgid="9035307001052716210">"تخزين الوسائط"</string>
-    <!-- no translation found for picker_app_label (1195424381053599122) -->
-    <skip />
+    <string name="picker_app_label" msgid="1195424381053599122">"أداة اختيار الوسائط"</string>
     <string name="artist_label" msgid="8105600993099120273">"الفنان"</string>
     <string name="unknown" msgid="2059049215682829375">"غير معروف"</string>
     <string name="root_images" msgid="5861633549189045666">"الصور"</string>
@@ -47,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"الوصول إلى الوسائط في السحابة الإلكترونية من"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"بلا تطبيق"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"تعذر تغيير تطبيق وسائط في السحابة الإلكترونية حاليًا"</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"أداة اختيار الوسائط"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"أداة اختيار الوسائط"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"جارٍ مزامنة الوسائط…"</string>
     <string name="add" msgid="2894574044585549298">"إضافة"</string>
     <string name="deselect" msgid="4297825044827769490">"إلغاء الاختيار"</string>
     <string name="deselected" msgid="8488133193326208475">"تم إلغاء الاختيار"</string>
@@ -96,7 +98,7 @@
     <string name="not_selected" msgid="2244008151669896758">"غير محدّد"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> من إجمالي <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> صورة جاهزة"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"تم الآن تضمين الصور التي تم الاحتفاظ بنسخة احتياطية منها"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"يمكنك اختيار صور من حساب <xliff:g id="APP_NAME">%1$s</xliff:g> للمستخدم <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>."</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"يمكنك اختيار صور من حساب \"<xliff:g id="APP_NAME">%1$s</xliff:g>\" للمستخدم <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>."</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"تم تعديل الحساب <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"تم الآن تضمين الصور من <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> هنا."</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"اختيار تطبيق موسيقى على السحابة الإلكترونية"</string>
@@ -151,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"حماية الأمن الشخصي"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"‏تنبيهات Native Transcode"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"‏مدى تقدُّم Native Transcode"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

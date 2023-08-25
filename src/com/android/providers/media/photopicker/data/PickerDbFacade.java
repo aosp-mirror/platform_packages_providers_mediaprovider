@@ -669,8 +669,8 @@ public class PickerDbFacade {
         public static final int LIMIT_DEFAULT = 1000;
 
         private final int limit;
-        private long dateTakenBeforeMs = LONG_DEFAULT;
-        private long dateTakenAfterMs = LONG_DEFAULT;
+        private long mDateTakenBeforeMs = Long.MIN_VALUE;
+        private long mDateTakenAfterMs = Long.MIN_VALUE;
         private long id = LONG_DEFAULT;
         private String albumId = STRING_DEFAULT;
         private long sizeBytes = LONG_DEFAULT;
@@ -684,12 +684,12 @@ public class PickerDbFacade {
         }
 
         public QueryFilterBuilder setDateTakenBeforeMs(long dateTakenBeforeMs) {
-            this.dateTakenBeforeMs = dateTakenBeforeMs;
+            this.mDateTakenBeforeMs = dateTakenBeforeMs;
             return this;
         }
 
         public QueryFilterBuilder setDateTakenAfterMs(long dateTakenAfterMs) {
-            this.dateTakenAfterMs = dateTakenAfterMs;
+            this.mDateTakenAfterMs = dateTakenAfterMs;
             return this;
         }
 
@@ -754,7 +754,7 @@ public class PickerDbFacade {
         }
 
         public QueryFilter build() {
-            return new QueryFilter(limit, dateTakenBeforeMs, dateTakenAfterMs, id, albumId,
+            return new QueryFilter(limit, mDateTakenBeforeMs, mDateTakenAfterMs, id, albumId,
                     sizeBytes, mimeTypes, isFavorite, mIsVideo, mIsLocalOnly);
         }
     }

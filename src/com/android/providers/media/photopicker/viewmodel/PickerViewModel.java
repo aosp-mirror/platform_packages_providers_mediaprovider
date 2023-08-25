@@ -23,6 +23,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
+import static android.provider.MediaStore.fetchReadGrantedItemsUrisForPackage;
 
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
@@ -40,12 +41,14 @@ import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.CancellationSignal;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -86,6 +89,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * PickerViewModel to store and handle data for PhotoPickerActivity.
@@ -103,6 +108,10 @@ public class PickerViewModel extends AndroidViewModel {
     private final Context mAppContext;
 
     private final Selection mSelection;
+
+    private int mPackageUid = -1;
+
+    private MutableLiveData<Set<String>> mPreGrantedItemsSet = new MutableLiveData<>();
     private final MuteStatus mMuteStatus;
 
     // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
@@ -255,6 +264,17 @@ public class PickerViewModel extends AndroidViewModel {
         return mSelection;
     }
 
+    /**
+     * Initialises and returns the pre granted item set by getting the Ids of the items that have
+     * READ_GRANT for the current package and the user.
+     */
+    public LiveData<Set<String>> populateAndGetPreGrantedItemsSet() {
+        if (isUserSelectForApp()
+                && mPackageUid != -1) {
+            initialisePreGrantedMediaUris();
+        }
+        return mPreGrantedItemsSet;
+    }
 
     /**
      * @return {@code mMuteStatus} that tracks the volume mute status of the video preview
@@ -478,7 +498,6 @@ public class PickerViewModel extends AndroidViewModel {
         }, TOKEN, DELAY_MILLIS);
     }
 
-
     private List<Item> loadItems(Category category, UserId userId,
             PaginationParameters pagingParameters) {
         final List<Item> items = new ArrayList<>();
@@ -495,6 +514,11 @@ public class PickerViewModel extends AndroidViewModel {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
                 //  here again.
                 final Item item = Item.fromCursor(cursor, userId);
+                if (isUserSelectForApp() && mPreGrantedItemsSet.getValue() != null
+                        && mPreGrantedItemsSet.getValue().contains(item.getId())) {
+                    item.setPreGranted();
+                    mSelection.addSelectedItem(item);
+                }
                 String authority = item.getContentUri().getAuthority();
 
                 if (!LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority)) {
@@ -746,8 +770,23 @@ public class PickerViewModel extends AndroidViewModel {
                     "EXTRA_UID is required for" + " ACTION_USER_SELECT_IMAGES_FOR_APP");
         }
 
+        if (mIsUserSelectForApp) {
+            mPackageUid = intent.getExtras().getInt(Intent.EXTRA_UID);
+        }
         // Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
         initBannerManager();
+    }
+
+    /**
+     * Loads list of pre granted items for the current package and userID.
+     */
+    private void initialisePreGrantedMediaUris() {
+        DataLoaderThread.getHandler().postDelayed(() -> {
+            mPreGrantedItemsSet.postValue(
+                    fetchReadGrantedItemsUrisForPackage(mAppContext, mPackageUid)
+                            .stream().map((Uri uri) -> String.valueOf(ContentUris.parseId(uri)))
+                            .collect(Collectors.toSet()));
+        }, TOKEN, DELAY_MILLIS);
     }
 
     private void initBannerManager() {

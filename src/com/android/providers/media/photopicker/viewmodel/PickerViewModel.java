@@ -403,8 +403,8 @@ public class PickerViewModel extends AndroidViewModel {
                 // number of items. This will be equal to page size for pagination if cloud
                 // picker feature flag is enabled, else it will be -1 implying that the complete
                 // list should be loaded.
-                updatePaginatedItems(new PaginationParameters(mItemsPageSize, -1,
-                        -1), /* isReset */ true, action);
+                updatePaginatedItems(new PaginationParameters(mItemsPageSize,
+                        /*dateBeforeMs*/ Long.MIN_VALUE, /*rowId*/ -1), /* isReset */ true, action);
                 break;
             }
             case ACTION_REFRESH_ITEMS: {

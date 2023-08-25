@@ -151,7 +151,7 @@ public class PhotosTabFragment extends TabFragment {
                             ACTION_VIEW_CREATED,
                             new PaginationParameters(
                                     mPageSize,
-                                    /* dateBeforeMs */ -1,
+                                    /* dateBeforeMs */ Long.MIN_VALUE,
                                     /* rowId */ -1))
                     .observe(this, itemListResult -> {
                         onChangeMediaItems(itemListResult, adapter);
@@ -168,7 +168,7 @@ public class PhotosTabFragment extends TabFragment {
                             ACTION_VIEW_CREATED,
                             new PaginationParameters(
                                      mPageSize,
-                                    /* dateBeforeMs */ -1,
+                                    /* dateBeforeMs */ Long.MIN_VALUE,
                                     /* rowId */ -1))
                     .observe(this, itemListResult -> {
                         onChangeMediaItems(itemListResult, adapter);
@@ -321,7 +321,8 @@ public class PhotosTabFragment extends TabFragment {
                 mPickerViewModel.getPaginatedItemsForAction(
                         ACTION_REFRESH_ITEMS,
                         new PaginationParameters(firstVisibleItemPosition
-                                + PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS, -1, -1));
+                                + PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS,
+                                /*dateBeforeMs*/ Long.MIN_VALUE, -1));
             }
         }
     }

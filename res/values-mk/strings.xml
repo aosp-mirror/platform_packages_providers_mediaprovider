@@ -42,8 +42,8 @@
     <string name="picker_settings" msgid="6443463167344790260">"Апликација за содржини во облак"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Апликација за содржини во облак"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Апликација за аудиовизуелни содржини во облак"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Пристап до вашите аудиовизуелни содржини во облак кога некоја апликација или веб-сајт ќе ве праша да изберете фотографии или видеа"</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"Пристапете до аудиовизуелните содржини во облак од"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Пристапувајте до вашите аудиовизуелни содржини во облак кога некоја апликација или веб-сајт ќе побара да изберете фотографии или видеа"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Пристапувајте до аудиовизуелните содржини во облак од"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Нема"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Не може да се промени апликацијата за аудиовизуелни содржини во облак во моментов."</string>
     <string name="add" msgid="2894574044585549298">"Додај"</string>
@@ -60,8 +60,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Фотографии"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Албуми"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Преглед"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Префрли на работен профил"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Префрли на личен профил"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Префрлете се на работен профил"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Префрлете се на личен профил"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано од администраторот"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Не е дозволено пристапување до работни податоци од лична апликација"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Не е дозволено пристапување до лични податоци од работна апликација"</string>
@@ -95,7 +95,7 @@
     <string name="picker_cloud_sync" msgid="997251377538536319">"Аудиовизуелните содржини во облак сега се достапни од <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не е избрано"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Подготвени: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> од <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
-    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Бекап од фотографиите сега е влучен"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Сега се опфатени фотографии од бекап"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Можете да изберете фотографии од сметката <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> на <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Сметката на <xliff:g id="APP_NAME">%1$s</xliff:g> е ажурирана"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Фотографиите од <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> сега се вклучени овде"</string>

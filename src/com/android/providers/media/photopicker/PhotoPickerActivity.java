@@ -89,6 +89,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
@@ -153,7 +154,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_photo_picker);
-
         mToolbar = findViewById(R.id.toolbar);
         setSupportActionBar(mToolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -173,13 +173,25 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Intent intent = getIntent();
         try {
             mPickerViewModel.parseValuesFromIntent(intent);
+            if (isUserSelectImagesForAppAction() && mPickerViewModel.getConfigStore()
+                    .isPickerChoiceManagedSelectionEnabled()) {
+                // observe the set of pre granted items and update the number of selected items
+                // when the value is received.
+                mPickerViewModel.populateAndGetPreGrantedItemsSet().observe(this,
+                        (Set<String> preGrantedItems) -> {
+                            if (preGrantedItems != null) {
+                                Log.d(TAG, "Count of pre granted items : "
+                                        + preGrantedItems.size());
+                                mSelection.setTotalNumberOfPreGrantedItems(preGrantedItems.size());
+                            }
+                        });
+            }
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Finish activity due to an exception while parsing extras", e);
             finishWithoutLoggingCancelledResult();
             return;
         }
         mSelection = mPickerViewModel.getSelection();
-
         mDragBar = findViewById(R.id.drag_bar);
         mPrivacyText = findViewById(R.id.privacy_text);
         mBottomBar = findViewById(R.id.picker_bottom_bar);
@@ -541,7 +553,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void setResultAndFinishSelf() {
         logPickerSelectionConfirmed(mSelection.getSelectedItems().size());
         if (shouldPreloadSelectedItems()) {
-            final var uris = PickerResult.getPickerUrisForItems(mSelection.getSelectedItems());
+            final var uris = PickerResult.getPickerUrisForItems(
+                    mSelection.getSelectedItemsWithoutGrants());
             mPreloaderInstanceHolder.preloader =
                     SelectedMediaPreloader.preload(/* activity */ this, uris);
             deSelectUnavailableMedia(mPreloaderInstanceHolder.preloader);

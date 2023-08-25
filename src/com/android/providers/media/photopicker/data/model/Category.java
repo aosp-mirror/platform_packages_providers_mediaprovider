@@ -50,6 +50,8 @@ public class Category {
     public static final String TAG = "PhotoPicker";
     public static final Category DEFAULT = new Category();
     public static final Category EMPTY_VIEW = new Category("EMPTY_VIEW");
+    private static final List<String> TRANSLATABLE_CATEGORIES = List.of(ALBUM_ID_VIDEOS,
+            ALBUM_ID_CAMERA, ALBUM_ID_SCREENSHOTS, ALBUM_ID_DOWNLOADS, ALBUM_ID_FAVORITES);
 
     private final String mId;
     private final String mAuthority;
@@ -57,9 +59,6 @@ public class Category {
     private final boolean mIsLocal;
     private final Uri mCoverUri;
     private final int mItemCount;
-
-    private final List<String> mTranslatableCategories = List.of(ALBUM_ID_VIDEOS, ALBUM_ID_CAMERA,
-            ALBUM_ID_SCREENSHOTS, ALBUM_ID_DOWNLOADS, ALBUM_ID_FAVORITES);
 
     private Category() {
         this(null, null, null, null, 0, false);
@@ -95,7 +94,7 @@ public class Category {
     }
 
     public String getDisplayName(Context context) {
-        if (mTranslatableCategories.contains(mId)) {
+        if (TRANSLATABLE_CATEGORIES.contains(mId)) {
             return getLocalizedDisplayName(context, mId);
         }
         return mDisplayName;

@@ -42,7 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Aplikace pro cloudová média"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikace pro cloudová média"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikace pro cloudová média"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Když vás aplikace nebo web požádá o výběr fotografií nebo videí, přejít na vaše cloudová média"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Když vás aplikace nebo web požádá o výběr fotografií nebo videí, můžete přejít na svoje cloudová média"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Přístup ke cloudovým médiím z"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Žádný"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Aplikaci pro cloudová média nyní nelze změnit."</string>

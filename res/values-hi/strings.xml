@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"मीडिया"</string>
     <string name="storage_description" msgid="4081716890357580107">"स्थानीय जगह"</string>
     <string name="app_label" msgid="9035307001052716210">"मीडिया मेमोरी"</string>
-    <!-- no translation found for picker_app_label (1195424381053599122) -->
-    <skip />
+    <string name="picker_app_label" msgid="1195424381053599122">"मीडिया पिकर"</string>
     <string name="artist_label" msgid="8105600993099120273">"कलाकार"</string>
     <string name="unknown" msgid="2059049215682829375">"अज्ञात"</string>
     <string name="root_images" msgid="5861633549189045666">"इमेज"</string>
@@ -47,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"क्लाउड पर मौजूद मीडिया को यहां से ऐक्सेस करें:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"कोई नहीं"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"इस समय क्लाउड मीडिया ऐप्लिकेशन नहीं बदला जा सका."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"मीडिया पिकर"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"मीडिया पिकर"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"मीडिया को सिंक किया जा रहा है…"</string>
     <string name="add" msgid="2894574044585549298">"जोड़ें"</string>
     <string name="deselect" msgid="4297825044827769490">"चुने हुए का निशान हटाएं"</string>
     <string name="deselected" msgid="8488133193326208475">"चुने हुए का निशान हटाया गया"</string>
@@ -151,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"सुरक्षा के लिए बचाव"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"नेटिव ट्रांसकोड सूचना"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"नेटिव ट्रांसकोड स्थिति"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

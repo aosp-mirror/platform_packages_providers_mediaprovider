@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"මාධ්‍ය"</string>
     <string name="storage_description" msgid="4081716890357580107">"පෙදෙසි ආචයනය"</string>
     <string name="app_label" msgid="9035307001052716210">"මාධ්‍ය ගබඩාව"</string>
-    <!-- no translation found for picker_app_label (1195424381053599122) -->
-    <skip />
+    <string name="picker_app_label" msgid="1195424381053599122">"මාධ්‍ය තෝරනය"</string>
     <string name="artist_label" msgid="8105600993099120273">"කලාකරු"</string>
     <string name="unknown" msgid="2059049215682829375">"නොදනී"</string>
     <string name="root_images" msgid="5861633549189045666">"රූප"</string>
@@ -47,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"මෙයින් ක්ලවුඩ් මාධ්‍ය වෙත ප්‍රවේශ වන්න"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"කිසිවක් නැත"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"මෙම අවස්ථාවේ ක්ලවුඩ් මාධ්‍ය යෙදුම වෙනස් කළ නොහැක."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"මාධ්‍ය තෝරනය"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"මාධ්‍ය තෝරනය"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"මාධ්‍ය සමමුහුර්ත කරමින්…"</string>
     <string name="add" msgid="2894574044585549298">"එක් කරන්න"</string>
     <string name="deselect" msgid="4297825044827769490">"නොතෝරන්න"</string>
     <string name="deselected" msgid="8488133193326208475">"නොතෝරන ලද"</string>
@@ -151,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"සුරක්ෂිතතා ආරක්ෂණය"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"සහජ ට්‍රාන්ස්කෝඩ් ඇඟවීම්"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"සහජ ට්‍රාන්ස්කෝඩ් ප්‍රගතිය"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

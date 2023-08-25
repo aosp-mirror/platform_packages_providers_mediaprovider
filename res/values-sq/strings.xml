@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Media"</string>
     <string name="storage_description" msgid="4081716890357580107">"Hapësira ruajtëse lokale"</string>
     <string name="app_label" msgid="9035307001052716210">"Hapësira ruajtëse e medias"</string>
-    <!-- no translation found for picker_app_label (1195424381053599122) -->
-    <skip />
+    <string name="picker_app_label" msgid="1195424381053599122">"Zgjedhësi i medias"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artisti"</string>
     <string name="unknown" msgid="2059049215682829375">"I panjohur"</string>
     <string name="root_images" msgid="5861633549189045666">"Fotografitë"</string>
@@ -43,10 +42,13 @@
     <string name="picker_settings" msgid="6443463167344790260">"Aplikacioni i medias në renë kompjuterike"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikacion i medias në renë kompjuterike"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikacioni i medias në renë kompjuterike"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Qasu te media jote në renë kompjuterike kur një aplikacion ose sajt uebi të kërkon të zgjedhësh fotografitë ose videot"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Qasu te media jote në renë kompjuterike kur një aplikacion ose uebsajt të kërkon të zgjedhësh fotografitë ose videot"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Qasu te media në renë kompjuterike nga"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Asnjë"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Aplikacioni i medias në renë kompjuterike nuk mund të ndryshohej në këtë moment."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Zgjedhësi i medias"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Zgjedhësi i medias"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Media po sinkronizohet…"</string>
     <string name="add" msgid="2894574044585549298">"Shto"</string>
     <string name="deselect" msgid="4297825044827769490">"Hiq përzgjedhjen"</string>
     <string name="deselected" msgid="8488133193326208475">"Zgjedhja është hequr"</string>
@@ -151,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Mbrojtja e sigurisë"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Sinjalizimet e transkodimit origjinal"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Progresi i transkodimit origjinal"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

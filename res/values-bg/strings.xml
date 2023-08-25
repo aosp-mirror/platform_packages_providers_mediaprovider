@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Мултимедия"</string>
     <string name="storage_description" msgid="4081716890357580107">"Локално хранилище"</string>
     <string name="app_label" msgid="9035307001052716210">"Мултимедийно хранилище"</string>
-    <!-- no translation found for picker_app_label (1195424381053599122) -->
-    <skip />
+    <string name="picker_app_label" msgid="1195424381053599122">"Инструмент за избор на носители"</string>
     <string name="artist_label" msgid="8105600993099120273">"Изпълнител"</string>
     <string name="unknown" msgid="2059049215682829375">"Неизвестно"</string>
     <string name="root_images" msgid="5861633549189045666">"Изображения"</string>
@@ -40,13 +39,16 @@
     <string name="allow" msgid="8885707816848569619">"Разрешаване"</string>
     <string name="deny" msgid="6040983710442068936">"Отказ"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Преглед…"</string>
-    <string name="picker_settings" msgid="6443463167344790260">"Медийно приложение в облака"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Прил. за мултимедия в облака"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Приложение за мултимедия в облака"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Приложение за мултимедия в облака"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Осъществяване на достъп до мултимедията в облака, когато приложение или уебсайт иска от вас да изберете снимки или видеоклипове"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Достъп до мултимедия в облака от"</string>
-    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Няма"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Нищо"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Медийното приложение в облака не бе променено."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Инструмент за избор на мултимедия"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Инструмент за избор на мултимедия"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Мултимедията се синхронизира…"</string>
     <string name="add" msgid="2894574044585549298">"Добавяне"</string>
     <string name="deselect" msgid="4297825044827769490">"Премахване на избора"</string>
     <string name="deselected" msgid="8488133193326208475">"Отменен избор"</string>
@@ -151,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Защита на безопасността"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Стандартни сигнали за прекодиране"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Стандартен прогрес при прекодиране"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

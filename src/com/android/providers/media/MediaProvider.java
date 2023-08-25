@@ -6725,6 +6725,42 @@ public class MediaProvider extends ContentProvider {
                 mMediaGrants.addMediaGrantsForPackage(packageName, uris, userId);
                 return null;
             }
+            case MediaStore.GET_READ_GRANTED_MEDIA_FOR_PACKAGE_CALL: {
+                final int caller = Binder.getCallingUid();
+                int userId;
+                String[] packageNames;
+                if (checkPermissionSelf(caller)) {
+                    final PackageManager pm = getContext().getPackageManager();
+                    final int packageUid = extras.getInt(Intent.EXTRA_UID);
+                    packageNames = pm.getPackagesForUid(packageUid);
+                    // Get the userId from packageUid as the initiator could be a cloned app, which
+                    // accesses Media via MP of its parent user and Binder's callingUid reflects
+                    // the latter.
+                    userId = uidToUserId(packageUid);
+                } else if (checkPermissionShell(caller)) {
+                    // If the caller is the shell, the accepted parameter is EXTRA_PACKAGE_NAME
+                    // (as string).
+                    if (!extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
+                        throw new IllegalArgumentException(
+                                "Missing required extras arguments: EXTRA_URI or"
+                                        + " EXTRA_PACKAGE_NAME");
+                    }
+                    packageNames = new String[]{extras.getString(Intent.EXTRA_PACKAGE_NAME)};
+                    // Caller is always shell which may not have the desired userId. Hence, use
+                    // UserId from the MediaProvider process itself.
+                    userId = UserHandle.myUserId();
+                } else {
+                    // All other callers are unauthorized.
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("read media grants"));
+                }
+                final Bundle bundle = new Bundle();
+                bundle.putStringArrayList(MediaStore.GET_READ_GRANTED_MEDIA_FOR_PACKAGE_RESULT,
+                        mMediaGrants.getMediaGrantsForPackages(packageNames,
+                                userId).stream().map(Uri::toString).collect(
+                                Collectors.toCollection(ArrayList::new)));
+                return bundle;
+            }
             case MediaStore.CREATE_WRITE_REQUEST_CALL:
             case MediaStore.CREATE_FAVORITE_REQUEST_CALL:
             case MediaStore.CREATE_TRASH_REQUEST_CALL:

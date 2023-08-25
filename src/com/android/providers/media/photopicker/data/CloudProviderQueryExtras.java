@@ -62,7 +62,7 @@ public class CloudProviderQueryExtras {
         mIsVideo = BOOLEAN_DEFAULT;
         mIsLocalOnly = BOOLEAN_DEFAULT;
         mPageSize = INT_DEFAULT;
-        mDateTakenBeforeMs = LONG_DEFAULT;
+        mDateTakenBeforeMs = Long.MIN_VALUE;
         mRowId = INT_DEFAULT;
     }
 
@@ -106,7 +106,7 @@ public class CloudProviderQueryExtras {
         final boolean isLocalOnly = bundle.getBoolean(PickerDataLayer.QUERY_ARG_LOCAL_ONLY,
                 BOOLEAN_DEFAULT);
         final int pageSize = INT_DEFAULT;
-        final Long dateTakenBeforeMs = bundle.getLong(QUERY_DATE_TAKEN_BEFORE_MS, LONG_DEFAULT);
+        final long dateTakenBeforeMs = bundle.getLong(QUERY_DATE_TAKEN_BEFORE_MS, Long.MIN_VALUE);
         final int rowId = bundle.getInt(QUERY_ROW_ID, INT_DEFAULT);
 
         return new CloudProviderQueryExtras(albumId, albumAuthority, mimeTypes, sizeBytes,
@@ -133,7 +133,7 @@ public class CloudProviderQueryExtras {
         final boolean isFavorite = BOOLEAN_DEFAULT;
         final boolean isVideo = BOOLEAN_DEFAULT;
         final boolean isLocalOnly = BOOLEAN_DEFAULT;
-        final Long dateTakenBeforeMs = bundle.getLong(QUERY_DATE_TAKEN_BEFORE_MS, LONG_DEFAULT);
+        final long dateTakenBeforeMs = bundle.getLong(QUERY_DATE_TAKEN_BEFORE_MS, Long.MIN_VALUE);
         final int rowId = bundle.getInt(QUERY_ROW_ID, INT_DEFAULT);
 
         final int pageSize = bundle.getInt(CloudMediaProviderContract.EXTRA_PAGE_SIZE, INT_DEFAULT);

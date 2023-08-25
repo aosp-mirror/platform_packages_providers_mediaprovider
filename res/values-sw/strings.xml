@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Maudhui"</string>
     <string name="storage_description" msgid="4081716890357580107">"Hifadhi ya ndani"</string>
     <string name="app_label" msgid="9035307001052716210">"Hifadhi ya Maudhui"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Maudhui"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Kiteua maudhui"</string>
     <string name="artist_label" msgid="8105600993099120273">"Msanii"</string>
     <string name="unknown" msgid="2059049215682829375">"Isiyojulikana"</string>
     <string name="root_images" msgid="5861633549189045666">"Picha"</string>
@@ -39,13 +39,16 @@
     <string name="allow" msgid="8885707816848569619">"Ruhusu"</string>
     <string name="deny" msgid="6040983710442068936">"Kataa"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Vinjari…"</string>
-    <string name="picker_settings" msgid="6443463167344790260">"Programu ya maudhui ya Wingu"</string>
-    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Programu ya maudhui ya Wingu"</string>
-    <string name="picker_settings_title" msgid="5647700706470673258">"Programu ya maudhui ya kwenye wingu"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Programu ya maudhui ya wingu"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Programu ya maudhui ya wingu"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Programu ya maudhui ya wingu"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Fikia maudhui kwenye wingu lako programu au tovuti inapokuomba uchague picha au video"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Fikia maudhui ya kwenye wingu katika"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Hamna"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Imeshindwa kubadilisha programu ya maudhui ya wingu kwa wakati huu."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Kiteua maudhui"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Kiteua maudhui"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Inasawazisha maudhui…"</string>
     <string name="add" msgid="2894574044585549298">"Weka"</string>
     <string name="deselect" msgid="4297825044827769490">"Acha kuchagua"</string>
     <string name="deselected" msgid="8488133193326208475">"Umeacha kuchagua"</string>
@@ -60,8 +63,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Picha"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albamu"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Onyesho la kukagua"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Badili uweke wasifu wa kazini"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Badili uweke wasifu wa binafsi"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Badili utumie wasifu wa kazini"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Badili utumie wasifu wa binafsi"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Umezuiwa na msimamizi wako"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Huruhusiwi kufikia data ya kazini kwenye programu ya binafsi"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Huruhusiwi kufikia data binafsi kwenye programu ya kazini"</string>
@@ -92,7 +95,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Tatizo limetokea wakati wa kucheza video"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Angalia muunganisho wako wa intaneti na ujaribu tena"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Jaribu tena"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Maudhui ya kwenye wingu sasa yanapatikana katika <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"haijachaguliwa"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> kati ya <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ziko tayari"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Picha zilizohifadhiwa nakala zimejumuishwa sasa"</string>
@@ -107,6 +109,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Chagua programu"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Chagua akaunti"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Badilisha akaunti"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Inapakia picha zako zote"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Ungependa kuruhusu <xliff:g id="APP_NAME_0">^1</xliff:g> ibadilishe faili hii ya sauti?}other{Ungependa kuruhusu <xliff:g id="APP_NAME_1">^1</xliff:g> ibadilishe faili <xliff:g id="COUNT">^2</xliff:g> za sauti?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Inarekebisha faili ya sauti…}other{Inarekebisha faili <xliff:g id="COUNT">^1</xliff:g> za sauti…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Ungependa kuruhusu <xliff:g id="APP_NAME_0">^1</xliff:g> ibadilishe video hii?}other{Ungependa kuruhusu <xliff:g id="APP_NAME_1">^1</xliff:g> ibadilishe video <xliff:g id="COUNT">^2</xliff:g>?}}"</string>

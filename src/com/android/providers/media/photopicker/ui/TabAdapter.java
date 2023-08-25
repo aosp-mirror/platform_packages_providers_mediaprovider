@@ -16,7 +16,15 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_GRID;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
+import static com.android.providers.media.photopicker.viewmodel.PickerViewModel.TAG;
+
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -225,10 +233,43 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     /**
      * Update the List of all items (excluding the banner) in tab adapter {@link #mAllItems}
      */
-    protected final void setAllItems(@NonNull List<?> items) {
+    protected final void setAllItems(@NonNull List<?> items,
+            @ItemsAction.Type int action) {
+        int previousItemCount = getItemCount();
         mAllItems.clear();
         mAllItems.addAll(items);
-        notifyDataSetChanged();
+        notifyOnListChanged(previousItemCount, items.size(), action);
+    }
+
+    private void notifyOnListChanged(int previousItemCount, int sizeOfUpdatedList,
+            @ItemsAction.Type int action) {
+        Log.d(TAG, "Updating adapter for action: " + action);
+        switch (action) {
+            case ACTION_VIEW_CREATED:
+            case ACTION_CLEAR_AND_UPDATE_LIST: {
+                notifyDataSetChanged();
+                break;
+            }
+            case ACTION_CLEAR_GRID: {
+                notifyItemRangeRemoved(0, previousItemCount);
+                break;
+            }
+            case ACTION_LOAD_NEXT_PAGE: {
+                notifyItemRangeInserted(previousItemCount,
+                        sizeOfUpdatedList - previousItemCount);
+                break;
+            }
+            case ACTION_REFRESH_ITEMS: {
+                notifyItemRangeChanged(0, sizeOfUpdatedList);
+                if (sizeOfUpdatedList < previousItemCount) {
+                    notifyItemRangeRemoved(sizeOfUpdatedList,
+                            previousItemCount - sizeOfUpdatedList);
+                }
+                break;
+            }
+            default:
+                Log.w(TAG, "Invalid action passed. No update to adapter");
+        }
     }
 
     @NonNull
@@ -276,7 +317,7 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
             mDismissButton.setOnClickListener(v -> onBannerEventListener.onDismissButtonClick());
 
-            if (banner.mActionButtonText != -1) {
+            if (banner.mActionButtonText != -1 && onBannerEventListener.shouldShowActionButton()) {
                 mActionButton.setText(banner.mActionButtonText);
                 mActionButton.setVisibility(View.VISIBLE);
                 mActionButton.setOnClickListener(v -> onBannerEventListener.onActionButtonClick());
@@ -287,18 +328,14 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     private enum Banner {
-        // TODO(b/274426228): Replace `CLOUD_MEDIA_AVAILABLE` `mActionButtonText` from `-1` to
-        //  `R.string.picker_banner_cloud_change_account_button`, post change cloud account
-        //  functionality implementation from the Picker settings (b/261999521).
         CLOUD_MEDIA_AVAILABLE(R.string.picker_banner_cloud_first_time_available_title,
-                R.string.picker_banner_cloud_first_time_available_desc, /* no action button */ -1),
+                R.string.picker_banner_cloud_first_time_available_desc,
+                R.string.picker_banner_cloud_change_account_button),
         ACCOUNT_UPDATED(R.string.picker_banner_cloud_account_changed_title,
                 R.string.picker_banner_cloud_account_changed_desc, /* no action button */ -1),
-        // TODO(b/274426228): Replace `CHOOSE_ACCOUNT` `mActionButtonText` from `-1` to
-        //  `R.string.picker_banner_cloud_choose_account_button`, post change cloud account
-        //  functionality implementation from the Picker settings (b/261999521).
         CHOOSE_ACCOUNT(R.string.picker_banner_cloud_choose_account_title,
-                R.string.picker_banner_cloud_choose_account_desc, /* no action button */ -1),
+                R.string.picker_banner_cloud_choose_account_desc,
+                R.string.picker_banner_cloud_choose_account_button),
         CHOOSE_APP(R.string.picker_banner_cloud_choose_app_title,
                 R.string.picker_banner_cloud_choose_app_desc,
                 R.string.picker_banner_cloud_choose_app_button);
@@ -354,5 +391,9 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         }
 
         void onBannerAdded();
+
+        default boolean shouldShowActionButton() {
+            return true;
+        }
     }
 }

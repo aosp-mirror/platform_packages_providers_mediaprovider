@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Multimedia"</string>
     <string name="storage_description" msgid="4081716890357580107">"Almacenamiento local"</string>
     <string name="app_label" msgid="9035307001052716210">"Almacenamiento multimedia"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Multimedia"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Selector de medios"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artista"</string>
     <string name="unknown" msgid="2059049215682829375">"Desconocido"</string>
     <string name="root_images" msgid="5861633549189045666">"Imágenes"</string>
@@ -46,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accede al contenido multimedia en la nube desde"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Ninguna"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"No se puede cambiar la app multimedia en la nube."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Selector de medios"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Selector de medios"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Sincronizando contenido multimedia…"</string>
     <string name="add" msgid="2894574044585549298">"Añadir"</string>
     <string name="deselect" msgid="4297825044827769490">"Desmarcar"</string>
     <string name="deselected" msgid="8488133193326208475">"Desmarcado"</string>
@@ -60,8 +63,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Fotos"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Álbumes"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Vista previa"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Cambiar al de trabajo"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Cambiar al personal"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Cambiar a perfil de trabajo"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Cambiar a perfil personal"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloqueado por tu administrador"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"No se puede acceder a datos de trabajo desde una aplicación personal"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"No se puede acceder a datos personales desde una aplicación de trabajo"</string>
@@ -92,7 +95,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Hay problemas para reproducir el vídeo"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Comprueba tu conexión a Internet y vuelve a intentarlo"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Reintentar"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Contenido multimedia en la nube ahora disponible desde <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"no seleccionado"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> de <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> listos"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Ahora se incluye la copia de seguridad de las fotos"</string>
@@ -107,6 +109,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Elegir aplicación"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Elegir cuenta"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Cambiar de cuenta"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Cargando todas tus fotos"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{¿Permitir que <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este archivo de audio?}many{¿Permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> archivos de audio?}other{¿Permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> archivos de audio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modificando archivo de audio…}many{Modificando <xliff:g id="COUNT">^1</xliff:g> archivos de audio…}other{Modificando <xliff:g id="COUNT">^1</xliff:g> archivos de audio…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{¿Permitir que <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este vídeo?}many{¿Permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> vídeos?}other{¿Permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> vídeos?}}"</string>

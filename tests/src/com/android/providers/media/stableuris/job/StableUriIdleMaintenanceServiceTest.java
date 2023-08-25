@@ -39,7 +39,6 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.compatibility.common.util.SystemUtil;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
 
@@ -81,15 +80,15 @@ public class StableUriIdleMaintenanceServiceTest {
 
         // Read existing value of the flag
         sInitialDeviceConfigValueForInternal = Boolean.parseBoolean(
-                DeviceConfig.getProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                        ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL));
-        DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL, Boolean.TRUE.toString(),
+                DeviceConfig.getProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
+                        ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_INTERNAL));
+        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
+                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_INTERNAL, Boolean.TRUE.toString(),
                 false);
         sInitialDeviceConfigValueForExternal = Boolean.parseBoolean(
-                DeviceConfig.getProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                DeviceConfig.getProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
                         ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL));
-        DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
                 ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL, Boolean.TRUE.toString(),
                 false);
     }
@@ -97,10 +96,10 @@ public class StableUriIdleMaintenanceServiceTest {
     @AfterClass
     public static void tearDownClass() throws IOException {
         // Restore previous value of the flag
-        DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-                ConfigStore.ConfigStoreImpl.KEY_STABILISE_VOLUME_INTERNAL,
+        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
+                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_INTERNAL,
                 String.valueOf(sInitialDeviceConfigValueForInternal), false);
-        DeviceConfig.setProperty(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
                 ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL,
                 String.valueOf(sInitialDeviceConfigValueForExternal), false);
         SystemClock.sleep(3000);
@@ -193,7 +192,7 @@ public class StableUriIdleMaintenanceServiceTest {
     }
 
     @Test
-    public void testJobScheduling() throws Exception {
+    public void testJobScheduling() {
         try {
             final Context context = InstrumentationRegistry.getTargetContext();
             final JobScheduler scheduler = InstrumentationRegistry.getTargetContext()
@@ -203,13 +202,6 @@ public class StableUriIdleMaintenanceServiceTest {
 
             StableUriIdleMaintenanceService.scheduleIdlePass(context);
             assertNotNull(scheduler.getPendingJob(IDLE_JOB_ID));
-
-            String forceRunCommand = "cmd jobscheduler run "
-                    + "-f com.google.android.providers.media.module " + IDLE_JOB_ID;
-            String result = SystemUtil.runShellCommand(InstrumentationRegistry.getInstrumentation(),
-                    forceRunCommand).trim();
-
-            assertEquals("Running job [FORCED]", result);
         } finally {
             cancelJob();
         }

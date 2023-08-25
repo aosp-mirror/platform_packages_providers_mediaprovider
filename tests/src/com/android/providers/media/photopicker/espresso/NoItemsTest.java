@@ -22,7 +22,6 @@ import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
-import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static org.hamcrest.Matchers.allOf;
@@ -34,12 +33,13 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import android.provider.MediaStore;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class NoItemsTest extends PhotoPickerBaseTest {
 

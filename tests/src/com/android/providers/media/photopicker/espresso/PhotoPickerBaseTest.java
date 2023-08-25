@@ -34,6 +34,7 @@ import android.system.ErrnoException;
 import android.system.Os;
 
 import androidx.core.util.Supplier;
+import androidx.lifecycle.MutableLiveData;
 import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.IsolatedContext;
@@ -53,10 +54,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class PhotoPickerBaseTest {
-    protected static final int PICKER_TAB_RECYCLERVIEW_ID = R.id.picker_tab_recyclerview;
-    protected static final int TAB_LAYOUT_ID = R.id.tab_layout;
+    public static final int PICKER_TAB_RECYCLERVIEW_ID = R.id.picker_tab_recyclerview;
+    public static final int TAB_LAYOUT_ID = R.id.tab_layout;
     protected static final int PICKER_PHOTOS_STRING_ID = R.string.picker_photos;
-    protected static final int PICKER_ALBUMS_STRING_ID = R.string.picker_albums;
+    public static final int PICKER_ALBUMS_STRING_ID = R.string.picker_albums;
     protected static final int PREVIEW_VIEW_PAGER_ID = R.id.preview_viewPager;
     protected static final int ICON_CHECK_ID = R.id.icon_check;
     protected static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
@@ -67,6 +68,10 @@ public class PhotoPickerBaseTest {
     protected static final int PREVIEW_MOTION_PHOTO_ID = R.id.preview_motion_photo;
     protected static final int PREVIEW_ADD_OR_SELECT_BUTTON_ID = R.id.preview_add_or_select_button;
     protected static final int PRIVACY_TEXT_ID = R.id.privacy_text;
+    protected static final String GIF_IMAGE_MIME_TYPE = "image/gif";
+    protected static final String ANIMATED_WEBP_MIME_TYPE = "image/webp";
+    protected static final String JPEG_IMAGE_MIME_TYPE = "image/jpeg";
+    protected static final String MP4_VIDEO_MIME_TYPE = "video/mp4";
 
     protected static final int DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH
             = R.dimen.preview_add_or_select_width;
@@ -128,7 +133,7 @@ public class PhotoPickerBaseTest {
     private static final long POLLING_SLEEP_MILLIS = 200;
 
     private static IsolatedContext sIsolatedContext;
-    private static UserIdManager sUserIdManager;
+    static UserIdManager sUserIdManager;
 
     public static Intent getSingleSelectMimeTypeFilterIntent(String mimeTypeFilter) {
         final Intent intent = new Intent(sSingleSelectIntent);
@@ -283,6 +288,7 @@ public class PhotoPickerBaseTest {
             updateIsManagedUserSelected(/* isManagedUserSelected */ true);
             return null;
         }).when(sUserIdManager).setManagedAsCurrentUserProfile();
+        when(sUserIdManager.getCrossProfileAllowed()).thenReturn(new MutableLiveData<>(true));
     }
 
     /**
@@ -307,6 +313,7 @@ public class PhotoPickerBaseTest {
         when(sUserIdManager.isWorkProfileOff()).thenReturn(false);
         when(sUserIdManager.isCrossProfileAllowed()).thenReturn(false);
         when(sUserIdManager.isManagedUserSelected()).thenReturn(true);
+        when(sUserIdManager.getCrossProfileAllowed()).thenReturn(new MutableLiveData<>(false));
     }
 
     private static void updateIsManagedUserSelected(boolean isManagedUserSelected) {

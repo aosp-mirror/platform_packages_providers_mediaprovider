@@ -89,6 +89,7 @@ final class RemotePreviewSession {
     private final View.OnClickListener mMuteButtonClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            mPreviewVideoHolder.logMuteButtonClick();
             boolean newMutedValue = !mMuteStatus.isVolumeMuted();
             mMuteStatus.setVolumeMuted(newMutedValue);
             handleAudioFocusAndInitVolumeState();
@@ -267,6 +268,12 @@ final class RemotePreviewSession {
             case PLAYBACK_STATE_BUFFERING:
                 mPreviewVideoHolder.getCircularProgressIndicator().setVisibility(View.VISIBLE);
                 return;
+            case PLAYBACK_STATE_COMPLETED:
+                // TODO(b/296543163): Investigate CloudMediaProviderContract for future OEM
+                //  implementers. Should the provider be expected to loop the video themselves
+                //  instead of ending the playback state?
+                requestPlayMedia();
+                return;
             default:
         }
     }
@@ -374,7 +381,8 @@ final class RemotePreviewSession {
         // media size, then we hide the thumbnail view.
         mPreviewVideoHolder.getPlayerContainer().setVisibility(View.INVISIBLE);
         mPreviewVideoHolder.getThumbnailView().setVisibility(View.VISIBLE);
-        mPreviewVideoHolder.getPlayerControlsRoot().setVisibility(View.GONE);
+        updatePlayerControlsVisibilityState(
+                mPlayerControlsVisibilityStatus.shouldShowPlayerControls());
         mPreviewVideoHolder.getCircularProgressIndicator().setVisibility(View.GONE);
 
         updatePlayPauseButtonState(false /* isPlaying */);
@@ -449,7 +457,11 @@ final class RemotePreviewSession {
         mIsAccessibilityEnabled = enabled;
         mPreviewVideoHolder.getPlayerContainer().setOnClickListener(
                 mIsAccessibilityEnabled ? null : mPlayerContainerClickListener);
-        updatePlayerControlsVisibilityState(mIsAccessibilityEnabled);
+        if (mIsAccessibilityEnabled) {
+            updatePlayerControlsVisibilityState(/* visible= */ true);
+        } else {
+            hidePlayerControlsWithDelay();
+        }
     }
 
     private void updatePlayPauseButtonState(boolean isPlaying) {

@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.espresso;
 
 import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.Espresso.pressBack;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
@@ -28,6 +29,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
+import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotDisplayed;
 
 import static org.hamcrest.Matchers.allOf;
 
@@ -36,12 +38,14 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger.PhotoPickerEvent;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class AlbumsTabTest extends PhotoPickerBaseTest {
 
@@ -51,7 +55,6 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
     public ActivityScenarioRule<PhotoPickerTestActivity> mRule =
             new ActivityScenarioRule<>(PhotoPickerBaseTest.getMultiSelectionIntent());
 
-    @Ignore("b/227478958 Odd failure to verify Downloads album")
     @Test
     public void testAlbumGrid() {
         // Goto Albums page
@@ -78,10 +81,16 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID))
                 .check(new RecyclerViewItemCountAssertion(expectedAlbumCount));
 
+        // Verify albums tab click and albums loaded UI events
+        UiEventLoggerTestUtils.verifyLogWithInstanceId(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_TAB_ALBUMS_OPEN);
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_ALBUMS, expectedAlbumCount);
+
         // First album is Camera
-        assertItemContentInAlbumList(/* position */ 0, R.string.picker_category_videos);
+        assertItemContentInAlbumList(/* position */ 0, R.string.picker_category_camera);
         // Second album is Videos
-        assertItemContentInAlbumList(/* position */ 1, R.string.picker_category_camera);
+        assertItemContentInAlbumList(/* position */ 1, R.string.picker_category_videos);
         // Third album is Downloads
         assertItemContentInAlbumList(/* position */ 2, R.string.picker_category_downloads);
 
@@ -94,21 +103,39 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
     private void assertItemContentInAlbumList(int position, int albumNameResId) {
         // Verify the components are shown on the album item
         assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.album_name);
-        assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.item_count);
+        // As per the current requirements , hiding album's item count.
+        // In case if in future we need to show album's item count , we also have to assert its
+        // correct count with the visibility of album's item count block.
+        assertItemNotDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.item_count);
         assertItemDisplayed(PICKER_TAB_RECYCLERVIEW_ID, position, R.id.icon_thumbnail);
 
         // Verify we have the album in the list
         onView(allOf(withText(albumNameResId), isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID))))
                 .check(matches(isDisplayed()));
 
-        // Verify the position of the album name matches the correct order
+        // Verify the position of the album name matches the correct order AND click the album
         onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
                 .atPositionOnView(position, R.id.album_name))
-                .check(matches(withText(albumNameResId)));
+                .check(matches(withText(albumNameResId)))
+                .perform(click());
 
-        // Verify the item count is correct
-        onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
-                .atPositionOnView(position, R.id.item_count))
-                .check(matches(withText("1 item")));
+        // Verify album click UI event
+        UiEventLoggerTestUtils.verifyLogWithInstanceId(mRule, getUiEventForAlbumId(albumNameResId));
+
+        // Go back to the Albums tab
+        pressBack();
+    }
+
+    private PhotoPickerEvent getUiEventForAlbumId(int albumNameResId) {
+        switch (albumNameResId) {
+            case R.string.picker_category_videos:
+                return PhotoPickerEvent.PHOTO_PICKER_ALBUM_VIDEOS_OPEN;
+            case R.string.picker_category_camera:
+                return PhotoPickerEvent.PHOTO_PICKER_ALBUM_CAMERA_OPEN;
+            case R.string.picker_category_downloads:
+                return PhotoPickerEvent.PHOTO_PICKER_ALBUM_DOWNLOADS_OPEN;
+            default:
+                throw new IllegalArgumentException("Unexpected albumNameResId: " + albumNameResId);
+        }
     }
 }

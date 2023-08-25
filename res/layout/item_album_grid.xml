@@ -38,6 +38,16 @@
             android:scaleType="centerCrop"
             android:contentDescription="@null"/>
 
+        <ImageView
+            android:id="@+id/icon_default_thumbnail"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:scaleType="centerCrop"
+            android:tint="?attr/categoryDefaultThumbnailColor"
+            android:contentDescription="@null"
+            android:layout_gravity="center"
+            android:background="@drawable/ic_background_circle"
+            android:padding="16dp"/>
     </com.google.android.material.card.MaterialCardView>
 
     <TextView
@@ -57,6 +67,7 @@
         android:minHeight="@dimen/picker_album_item_count_height"
         android:layout_marginTop="@dimen/picker_album_item_count_margin"
         android:textAppearance="@android:style/TextAppearance.DeviceDefault.Small"
-        android:textColor="?android:attr/textColorSecondary"/>
+        android:textColor="?android:attr/textColorSecondary"
+        android:visibility="gone"/>
 
 </LinearLayout>

@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"মিডিয়া"</string>
     <string name="storage_description" msgid="4081716890357580107">"স্থানীয় ষ্ট’ৰেজ"</string>
     <string name="app_label" msgid="9035307001052716210">"মিডিয়া ষ্ট’ৰেজ"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"মিডিয়া"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"মিডিয়া বাছনিকৰ্তা"</string>
     <string name="artist_label" msgid="8105600993099120273">"শিল্পী"</string>
     <string name="unknown" msgid="2059049215682829375">"অজ্ঞাত"</string>
     <string name="root_images" msgid="5861633549189045666">"প্ৰতিচ্ছবি"</string>
@@ -46,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"ইয়াৰ পৰা ক্লাউড মিডিয়া এক্সেছ কৰক"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"নাই"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"এই সময়ত ক্লাউড মিডিয়া এপ্ সলনি কৰিব নোৱাৰি"</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"মিডিয়া বাছনিকৰ্তা"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"মিডিয়া বাছনিকৰ্তা"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"মিডিয়া ছিংক কৰি থকা হৈছে…"</string>
     <string name="add" msgid="2894574044585549298">"যোগ দিয়ক"</string>
     <string name="deselect" msgid="4297825044827769490">"বাছনিৰ পৰা আঁতৰাওক"</string>
     <string name="deselected" msgid="8488133193326208475">"বাছনিৰ পৰা আঁতৰোৱা হ’ল"</string>
@@ -92,7 +95,6 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"ভিডিঅ’ প্লে’ কৰাত সমস্যা হৈছে"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"আপোনাৰ ইণ্টাৰনেট সংযোগ পৰীক্ষা কৰক আৰু পুনৰ চেষ্টা কৰক"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"পুনৰ চেষ্টা কৰক"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"এতিয়া <xliff:g id="PKG_NAME">%1$s</xliff:g>ৰ পৰা ক্লাউড মিডিয়া উপলব্ধ"</string>
     <string name="not_selected" msgid="2244008151669896758">"বাছনি কৰা হোৱা নাই"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> টা বস্তুৰ ভিতৰত <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> টা সাজু"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"এতিয়া বেকআপ লোৱা ফট’সমূহ অন্তৰ্ভুক্ত কৰা হৈছে"</string>
@@ -107,6 +109,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"এপ্‌ বাছনি কৰক"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"একাউণ্ট বাছনি কৰক"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"একাউণ্ট সলনি কৰক"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"আপোনাৰ আটাইবোৰ ফট’ পাই থকা হৈছে"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ক এই অডিঅ’ ফাইলটো সংশোধন কৰিবলৈ অনুমতি দিবনে?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰিবলৈ অনুমতি দিবনে?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰিবলৈ অনুমতি দিবনে?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{অডিঅ’ ফাইলটো সংশোধন কৰি থকা হৈছে…}one{<xliff:g id="COUNT">^1</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰি থকা হৈছে…}other{<xliff:g id="COUNT">^1</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰি থকা হৈছে…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>ক এই ভিডিঅ’টো সংশোধন কৰিবলৈ অনুমতি দিবনে?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ সংশোধন কৰিবলৈ অনুমতি দিবনে?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ সংশোধন কৰিবলৈ অনুমতি দিবনে?}}"</string>

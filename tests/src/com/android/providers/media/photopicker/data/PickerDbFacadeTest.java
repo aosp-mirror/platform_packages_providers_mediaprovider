@@ -512,6 +512,39 @@ public class PickerDbFacadeTest {
     }
 
     @Test
+    public void testRemoveMedia_withLatestDateTakenMillis() {
+        Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
+        Cursor cloudCursor1 = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS + 1);
+
+        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor1, 1);
+
+        try (Cursor cr = queryMediaAll()) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
+        }
+
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginRemoveMediaOperation(CLOUD_PROVIDER)) {
+            assertWriteOperation(operation, getDeletedMediaCursor(CLOUD_ID), /* writeCount */ 1);
+            assertThat(operation.getFirstDateTakenMillis()).isEqualTo(DATE_TAKEN_MS + 1);
+            operation.setSuccess();
+        }
+
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginRemoveMediaOperation(LOCAL_PROVIDER)) {
+            assertWriteOperation(operation, getDeletedMediaCursor(LOCAL_ID), /* writeCount */ 1);
+            assertThat(operation.getFirstDateTakenMillis()).isEqualTo(DATE_TAKEN_MS);
+            operation.setSuccess();
+        }
+
+        try (Cursor cr = queryMediaAll()) {
+            assertThat(cr.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
     public void testResetLocal() throws Exception {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         // Add two cloud_ids mapping to the same local_id to verify that

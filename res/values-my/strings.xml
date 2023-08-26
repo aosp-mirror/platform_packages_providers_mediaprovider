@@ -42,7 +42,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Cloud မီဒီယာအက်ပ်"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Cloud မီဒီယာအက်ပ်"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Cloud မီဒီယာအက်ပ်"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"အက်ပ် (သို့) ဝဘ်ဆိုက်က သင့်အား ဓာတ်ပုံ (သို့) ဗီဒီယိုများ ရွေးခိုင်းသောအခါ သင်၏ cloud မီဒီယာကို ဝင်ပါ"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"အက်ပ် (သို့) ဝဘ်ဆိုက်က သင့်အား ဓာတ်ပုံ (သို့) ဗီဒီယိုများ ရွေးခိုင်းသောအခါ သင်၏ cloud မီဒီယာကို ဝင်သည်"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Cloud မီဒီယာကို ဤနေရာမှ ဝင်သုံးရန်"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"မရှိ"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"လောလောဆယ် cloud မီဒီယာ အက်ပ်ကို ပြောင်း၍မရပါ။"</string>
@@ -96,7 +96,7 @@
     <string name="not_selected" msgid="2244008151669896758">"ရွေးချယ်မထားပါ"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> အနက် <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> အသင့်ဖြစ်ပြီ"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"အရန်သိမ်းထားသော ဓာတ်ပုံများ ယခုထည့်သွင်းထားပြီ"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> အကောင့်မှ ဓာတ်ပုံများ ရွေးနိုင်သည်"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> အကောင့် <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> မှ ဓာတ်ပုံများ ရွေးနိုင်သည်"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> အကောင့် အပ်ဒိတ်လုပ်လိုက်သည်"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> မှ ဓာတ်ပုံများကို ဤနေရာတွင် ယခုထည့်သွင်းထားပါပြီ"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"cloud မီဒီယာအက်ပ် ရွေးရန်"</string>

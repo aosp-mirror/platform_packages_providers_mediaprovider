@@ -60,16 +60,16 @@
     <string name="picker_photos" msgid="7415035516411087392">"ಫೋಟೋಗಳು"</string>
     <string name="picker_albums" msgid="4822511902115299142">"ಆಲ್ಬಮ್‌ಗಳು"</string>
     <string name="picker_preview" msgid="6257414886055861039">"ಪೂರ್ವವೀಕ್ಷಣೆ"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"ಕೆಲಸಕ್ಕೆ ಬದಲಿಸಿ"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"ವೈಯಕ್ತಿಕಕ್ಕೆ ಬದಲಿಸಿ"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"ಉದ್ಯೋಗ ಪ್ರೊಫೈಲ್‌ಗೆ ಬದಲಿಸಿ"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"ವೈಯಕ್ತಿಕ ಪ್ರೊಫೈಲ್‌ಗೆ ಬದಲಿಸಿ"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"ನಿಮ್ಮ ನಿರ್ವಾಹಕರು ನಿರ್ಬಂಧಿಸಿದ್ದಾರೆ"</string>
-    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ವೈಯಕ್ತಿಕ ಆ್ಯಪ್ ಮೂಲಕ ಅಧಿಕೃತ ಡೇಟಾವನ್ನು ಪ್ರವೇಶಿಸಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ವೈಯಕ್ತಿಕ ಆ್ಯಪ್‌ನಿಂದ ಉದ್ಯೋಗದ ಡೇಟಾವನ್ನು ಆ್ಯಕ್ಸೆಸ್ ಮಾಡಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್ ಮೂಲಕ ಅಧಿಕೃತ ಡೇಟಾವನ್ನು ಪ್ರವೇಶಿಸಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳನ್ನು ವಿರಾಮಗೊಳಿಸಲಾಗಿದೆ"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ಕೆಲಸದ ಫೋಟೋಗಳನ್ನು ತೆರೆಯಲು, ನಿಮ್ಮ ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳನ್ನು ಆನ್ ಮಾಡಿ ನಂತರ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ"</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"ಈ ಆ್ಯಪ್ ನೀವು ಆಯ್ಕೆಮಾಡಿದ ಫೋಟೋಗಳನ್ನು ಮಾತ್ರ ಪ್ರವೇಶಿಸಬಹುದು"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"ಈ ಆ್ಯಪ್ ನೀವು ಆಯ್ಕೆಮಾಡಿದ ಫೋಟೋಗಳನ್ನು ಮಾತ್ರ ಆ್ಯಕ್ಸೆಸ್ ಮಾಡಬಹುದು"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"ಈ ಆ್ಯಪ್ ಅನ್ನು ಆ್ಯಕ್ಸೆಸ್ ಮಾಡಲು ನೀವು ಅನುಮತಿಸುವ ಫೋಟೋಗಳು ಮತ್ತು ವೀಡಿಯೊಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
-    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g>ಐಟಂ}one{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳು}other{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳು}}"</string>
+    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ಐಟಂ}one{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳು}other{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳು}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"ಸೇರಿಸಿ (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"(<xliff:g id="COUNT">^1</xliff:g>) ಅನುಮತಿಸಿ"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"ಕ್ಯಾಮರಾ"</string>

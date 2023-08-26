@@ -96,7 +96,7 @@
     <string name="not_selected" msgid="2244008151669896758">"sin seleccionar"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> de <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> listos"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Ahora se incluyen las fotos con copia de seguridad"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Puedes seleccionar fotos de <xliff:g id="APP_NAME">%1$s</xliff:g> desde la cuenta de <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Puedes seleccionar imágenes de <xliff:g id="APP_NAME">%1$s</xliff:g> desde la cuenta de <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Se actualizó la cuenta de <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Ahora se incluyen aquí las fotos de <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Elige una app multimedia en la nube"</string>

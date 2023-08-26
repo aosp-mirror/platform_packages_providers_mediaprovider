@@ -51,7 +51,7 @@
     <string name="deselected" msgid="8488133193326208475">"தேர்வுநீக்கப்பட்டது"</string>
     <string name="select" msgid="2704765470563027689">"தேர்ந்தெடு"</string>
     <string name="selected" msgid="9151797369975828124">"தேர்ந்தெடுக்கப்பட்டது"</string>
-    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> படத்தைத் தேர்ந்தெடுங்கள்}other{<xliff:g id="COUNT_1">^1</xliff:g> படங்களைத் தேர்ந்தெடுங்கள்}}"</string>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> படத்தைத் தேர்ந்தெடுங்கள்}other{<xliff:g id="COUNT_1">^1</xliff:g> படங்கள் வரை தேர்ந்தெடுங்கள்}}"</string>
     <string name="recent" msgid="6694613584743207874">"சமீபத்தியவை"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"படங்களோ வீடியோக்களோ இல்லை"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"ஆதரிக்கப்படும் படங்களோ வீடியோக்களோ இல்லை"</string>
@@ -96,7 +96,7 @@
     <string name="not_selected" msgid="2244008151669896758">"தேர்ந்தெடுக்கப்படவில்லை"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> / <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> தயாராக உள்ளது"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"காப்புப் பிரதி எடுக்கப்பட்ட படங்கள் இப்போது சேர்க்கப்பட்டுள்ளன"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> ஆப்ஸிலிருந்தும் <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> கணக்கிலிருந்தும் படங்களைத் தேர்ந்தெடுக்கலாம்"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> ஆப்ஸில் <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> கணக்கிலிருந்தும் படங்களைத் தேர்ந்தெடுக்கலாம்"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> கணக்கு புதுப்பிக்கப்பட்டது"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> கணக்கிலிருந்த படங்களும் இப்போது சேர்க்கப்பட்டுள்ளன"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"கிளவுட் மீடியா ஆப்ஸைத் தேர்வுசெய்தல்"</string>

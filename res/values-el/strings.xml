@@ -55,7 +55,7 @@
     <string name="recent" msgid="6694613584743207874">"Πρόσφατα"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Δεν υπάρχουν φωτογραφίες ή βίντεο"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Δεν υπάρχουν υποστηριζόμενες φωτογραφίες ή βίντεο"</string>
-    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Δεν υπάρχουν λευκώματα"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Δεν υπάρχουν άλμπουμ"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Προβολή επιλεγμένων"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Φωτογραφίες"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Άλμπουμ"</string>

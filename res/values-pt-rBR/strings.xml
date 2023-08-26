@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Mídia"</string>
     <string name="storage_description" msgid="4081716890357580107">"Armazenamento local"</string>
     <string name="app_label" msgid="9035307001052716210">"Armazenamento de mídia"</string>
-    <!-- no translation found for picker_app_label (1195424381053599122) -->
-    <skip />
+    <string name="picker_app_label" msgid="1195424381053599122">"Seletor de mídia"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artista"</string>
     <string name="unknown" msgid="2059049215682829375">"Desconhecido"</string>
     <string name="root_images" msgid="5861633549189045666">"Imagens"</string>
@@ -47,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Acessar a mídia em nuvem de"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nenhum"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Não foi possível mudar o app de mídia em nuvem."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Seletor de mídia"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Seletor de mídia"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Sincronizando mídia…"</string>
     <string name="add" msgid="2894574044585549298">"Adicionar"</string>
     <string name="deselect" msgid="4297825044827769490">"Desmarcar"</string>
     <string name="deselected" msgid="8488133193326208475">"Desmarcada"</string>
@@ -61,8 +63,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Fotos"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Álbuns"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Visualização"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Mudar para \"Trabalho\""</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Mudar para \"Pessoal\""</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Mudar para Trabalho"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Mudar para Pessoal"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloqueado pelo administrador"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Não é permitido o acesso a dados de trabalho em um app pessoal"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Não é permitido o acesso a dados pessoais em um app de trabalho"</string>
@@ -95,7 +97,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Tentar novamente"</string>
     <string name="not_selected" msgid="2244008151669896758">"não selecionado"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> de <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> itens prontos"</string>
-    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Fotos salvas em backup agora estão incluídas"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"As fotos salvas em backup agora estão incluídas"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Selecione fotos da conta <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> do app <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"A conta do app <xliff:g id="APP_NAME">%1$s</xliff:g> foi atualizada"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"As fotos da conta <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> agora estão incluídas aqui"</string>
@@ -151,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Proteção"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Alertas da transcodificação nativa"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Progresso da transcodificação nativa"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

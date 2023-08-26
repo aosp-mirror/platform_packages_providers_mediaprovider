@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Мультимедиа"</string>
     <string name="storage_description" msgid="4081716890357580107">"Локальное хранилище"</string>
     <string name="app_label" msgid="9035307001052716210">"Хранилище мультимедиа"</string>
-    <!-- no translation found for picker_app_label (1195424381053599122) -->
-    <skip />
+    <string name="picker_app_label" msgid="1195424381053599122">"Инструмент выбора медиа"</string>
     <string name="artist_label" msgid="8105600993099120273">"Исполнитель"</string>
     <string name="unknown" msgid="2059049215682829375">"Неизвестно"</string>
     <string name="root_images" msgid="5861633549189045666">"Изображения"</string>
@@ -44,9 +43,12 @@
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Приложение для мультимедиа в облаке"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Приложение для мультимедиа в облаке"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Выбирайте свои фото и видео из облака в приложениях или на сайтах."</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"Получите доступ к мультимедиа в облаке"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Какое приложение использовать для доступа к медиафайлам в облаке?"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Нет"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Не удалось изменить приложение для мультимедиа."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Инструмент выбора медиа"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Инструмент выбора медиа"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Синхронизация медиаконтента…"</string>
     <string name="add" msgid="2894574044585549298">"Добавить"</string>
     <string name="deselect" msgid="4297825044827769490">"Отменить выбор"</string>
     <string name="deselected" msgid="8488133193326208475">"Выбор отменен"</string>
@@ -95,7 +97,7 @@
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Повторить"</string>
     <string name="not_selected" msgid="2244008151669896758">"не выбрано"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Предзагрузка: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> из <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
-    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Резервные копии фотографий добавлены"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Теперь можно выбирать фотографии в облаке"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Вы можете выбрать фотографии из аккаунта <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> приложения \"<xliff:g id="APP_NAME">%1$s</xliff:g>\"."</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g>: аккаунт обновлен"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Фотографии из аккаунта <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> теперь хранятся здесь."</string>
@@ -151,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Защита безопасности"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Уведомления нативного перекодирования"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Прогресс нативного перекодирования"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

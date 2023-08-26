@@ -19,8 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Medien"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokaler Speicher"</string>
     <string name="app_label" msgid="9035307001052716210">"Medienspeicher"</string>
-    <!-- no translation found for picker_app_label (1195424381053599122) -->
-    <skip />
+    <string name="picker_app_label" msgid="1195424381053599122">"Media-Auswahl"</string>
     <string name="artist_label" msgid="8105600993099120273">"Interpret"</string>
     <string name="unknown" msgid="2059049215682829375">"Unbekannt"</string>
     <string name="root_images" msgid="5861633549189045666">"Bilder"</string>
@@ -47,6 +46,12 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Zugriff auf Cloud-Medien aus"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Keine"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Ändern der Cloud-Medien-App derzeit nicht möglich."</string>
+    <!-- no translation found for picker_sync_notification_channel (1867105708912627993) -->
+    <skip />
+    <!-- no translation found for picker_sync_notification_title (1122713382122055246) -->
+    <skip />
+    <!-- no translation found for picker_sync_notification_text (8204423917712309382) -->
+    <skip />
     <string name="add" msgid="2894574044585549298">"Hinzufügen"</string>
     <string name="deselect" msgid="4297825044827769490">"Auswahl aufheben"</string>
     <string name="deselected" msgid="8488133193326208475">"Auswahl aufgehoben"</string>
@@ -151,4 +156,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Schutz"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Warnmeldungen bei nativer Transcodierung"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Fortschritt bei nativer Transcodierung"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

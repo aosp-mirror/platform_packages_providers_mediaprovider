@@ -46,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Bulutli media kontentni ochish"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Hech qanday"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Hozirda bulutli media ilovasi oʻzgarmadi"</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Rasm tanlash"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Rasm tanlash"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Media sinxronlanmoqda…"</string>
     <string name="add" msgid="2894574044585549298">"Kiritish"</string>
     <string name="deselect" msgid="4297825044827769490">"Tanlovni bekor qilish"</string>
     <string name="deselected" msgid="8488133193326208475">"Tanlovi yechilgan"</string>
@@ -60,8 +63,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Suratlar"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albomlar"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Razm solish"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Ish profiliga oʻtish"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Shaxsiy profilga oʻtish"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Ish profiliga almashish"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Shaxsiy profilga almashish"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Administratoringiz tomonidan bloklangan"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Shaxsiy ilovadan ishga oid maʼlumotlarga kirish taqiqlangan"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Ishga oid ilovadan shaxsiy maʼlumotlarga kirish taqiqlangan"</string>
@@ -150,4 +153,10 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Xavfsizlik himoyasi"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Nativ transkodlash signallari"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Nativ transkodlash jarayoni"</string>
+    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <skip />
+    <!-- no translation found for dialog_error_title (636349284077820636) -->
+    <skip />
+    <!-- no translation found for dialog_button_text (351366485240852280) -->
+    <skip />
 </resources>

@@ -22,6 +22,7 @@ import static com.android.providers.media.photopicker.NotificationContentObserve
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
@@ -1295,7 +1296,7 @@ public class PickerSyncControllerTest {
     }
 
     @Test
-    public void testContentNotifications() throws Exception {
+    public void testContentAddNotifications() throws Exception {
         NotificationContentObserver observer = new NotificationContentObserver(null);
         observer.register(mContext.getContentResolver());
 
@@ -1327,6 +1328,36 @@ public class PickerSyncControllerTest {
         } finally {
             observer.unregister(mContext.getContentResolver());
         }
+    }
+
+    @Test
+    public void testContentDeleteNotifications() throws Exception {
+        NotificationContentObserver observer = new NotificationContentObserver(null);
+        observer.register(mContext.getContentResolver());
+
+        setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        CountDownLatch latch = new CountDownLatch(1);
+        NotificationContentObserver.ContentObserverCallback callback =
+                spy(new TestableContentObserverCallback(latch));
+        observer.registerKeysToObserverCallback(Arrays.asList(MEDIA), callback);
+
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
+        mController.syncAllMedia();
+        latch.await(2, TimeUnit.SECONDS);
+        verify(callback).onNotificationReceived(any(), any());
+
+        latch = new CountDownLatch(1);
+        callback = spy(new TestableContentObserverCallback(latch));
+        observer.registerKeysToObserverCallback(Arrays.asList(MEDIA), callback);
+
+        deleteMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        mController.syncAllMedia();
+        latch.await(2, TimeUnit.SECONDS);
+        verify(callback).onNotificationReceived(any(), any());
+
+        observer.unregister(mContext.getContentResolver());
     }
 
     @Test

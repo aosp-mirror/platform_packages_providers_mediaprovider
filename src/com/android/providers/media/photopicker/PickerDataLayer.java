@@ -462,7 +462,7 @@ public class PickerDataLayer {
             if (!syncRequestExtras.shouldSyncMergedAlbum()) {
                 mSyncManager.syncAlbumMediaForProviderImmediately(
                         syncRequestExtras.getAlbumId(),
-                        isLocal(syncRequestExtras.getAlbumAuthority()));
+                        syncRequestExtras.getAlbumAuthority());
             }
         }
     }

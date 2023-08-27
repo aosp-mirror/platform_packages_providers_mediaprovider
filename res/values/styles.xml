@@ -14,7 +14,8 @@
      limitations under the License.
 -->
 
-<resources xmlns:android="http://schemas.android.com/apk/res/android">
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+           xmlns:androidprv="http://schemas.android.com/apk/prv/res/android">
 
     <style name="PickerDialogTheme"
            parent="@android:style/Theme.DeviceDefault.Light.Dialog.Alert">
@@ -128,6 +129,8 @@
         <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerSecondaryTextColor">?android:attr/textColorPrimary</item>
         <item name="pickerBannerButtonTextColor">?android:attr/colorAccent</item>
+        <item name="categoryDefaultThumbnailColor">?android:attr/colorAccent</item>
+        <item name="categoryDefaultThumbnailCircleColor">?androidprv:attr/materialColorSurfaceContainer</item>
     </style>
 
     <style name="PickerBannerButtonTheme"
@@ -143,4 +146,14 @@
         <item name="android:minWidth">@dimen/button_touch_size</item>
     </style>
 
+    <style name="SelectedMediaPreloaderDialogTheme"
+           parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog.Centered">
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/AlertDialogTitleStyle</item>
+    </style>
+
+    <style name="AlertDialogTitleStyle"
+           parent="@style/MaterialAlertDialog.MaterialComponents.Title.Text.CenterStacked">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
 </resources>

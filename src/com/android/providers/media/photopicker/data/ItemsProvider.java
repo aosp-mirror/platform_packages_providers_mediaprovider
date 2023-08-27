@@ -238,8 +238,9 @@ public class ItemsProvider {
             }
             extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category.getId());
             extras.putString(MediaStore.QUERY_ARG_ALBUM_AUTHORITY, category.getAuthority());
+
             if (paginationParameters.getRowId() >= 0
-                    && paginationParameters.getDateBeforeMs() >= 0) {
+                    && paginationParameters.getDateBeforeMs() > Long.MIN_VALUE) {
                 extras.putInt(QUERY_ROW_ID, paginationParameters.getRowId());
                 extras.putLong(QUERY_DATE_TAKEN_BEFORE_MS, paginationParameters.getDateBeforeMs());
             }

@@ -397,6 +397,16 @@ public class PickerDbFacade {
 
             return null;
         }
+
+        /**
+         * Returns the first date taken present in the columns affected by the DB write operation
+         * when this method is overridden. Otherwise, it returns Long.MIN_VALUE.
+         */
+        public long getFirstDateTakenMillis() {
+            Log.e(TAG, "Method getFirstDateTakenMillis() is not overridden. "
+                    + "It will always return Long.MIN_VALUE");
+            return Long.MIN_VALUE;
+        }
     }
 
     /**
@@ -527,6 +537,8 @@ public class PickerDbFacade {
     }
 
     private static final class RemoveMediaOperation extends DbWriteOperation {
+        private static final String[] sDateTakenProjection = new String[] {KEY_DATE_TAKEN_MS};
+        private long mFirstDateTakenMillis = Long.MIN_VALUE;
 
         private RemoveMediaOperation(SQLiteDatabase database, boolean isLocal) {
             super(database, isLocal);
@@ -540,6 +552,10 @@ public class PickerDbFacade {
             int counter = 0;
 
             while (cursor.moveToNext()) {
+                if (cursor.isFirst()) {
+                    updateFirstDateTakenMillis(cursor, isLocal);
+                }
+
                 // Need to fetch the local_id before delete because for cloud items
                 // we need a db query to fetch the local_id matching the id received from
                 // cursor (cloud_id).
@@ -557,6 +573,11 @@ public class PickerDbFacade {
             }
 
             return counter;
+        }
+
+        @Override
+        public long getFirstDateTakenMillis() {
+            return mFirstDateTakenMillis;
         }
 
         private void promoteCloudMediaToVisible(@Nullable String localId) {
@@ -593,6 +614,34 @@ public class PickerDbFacade {
                 final String[] queryArgs = new String[] {id};
                 return querySingleMedia(QB_MATCH_CLOUD, localIdProjection, queryArgs,
                         /* columnIndex */ 0);
+            }
+        }
+
+        private void updateFirstDateTakenMillis(Cursor inputCursor, boolean isLocal) {
+            final int idIndex = inputCursor
+                    .getColumnIndex(CloudMediaProviderContract.MediaColumns.ID);
+            if (idIndex < 0) {
+                Log.e(TAG, "Id is not present in the cursor");
+                return;
+            }
+
+            final String id = inputCursor.getString(idIndex);
+            if (TextUtils.isEmpty((id))) {
+                Log.e(TAG, "Input id is empty");
+                return;
+            }
+
+            final SQLiteQueryBuilder qb = isLocal ? QB_MATCH_LOCAL_ONLY : QB_MATCH_CLOUD;
+            final String[] queryArgs = new String[]{id};
+
+            try (Cursor outputCursor = qb.query(getDatabase(), sDateTakenProjection,
+                    /* selection */ null, queryArgs, /* groupBy */ null, /* having */ null,
+                    /* orderBy */ null)) {
+                if (outputCursor.moveToFirst()) {
+                    mFirstDateTakenMillis = outputCursor.getLong(/* columnIndex */ 0);
+                } else {
+                    Log.e(TAG, "Could not get first date taken millis for media id: " + id);
+                }
             }
         }
     }
@@ -669,8 +718,8 @@ public class PickerDbFacade {
         public static final int LIMIT_DEFAULT = 1000;
 
         private final int limit;
-        private long dateTakenBeforeMs = LONG_DEFAULT;
-        private long dateTakenAfterMs = LONG_DEFAULT;
+        private long mDateTakenBeforeMs = Long.MIN_VALUE;
+        private long mDateTakenAfterMs = Long.MIN_VALUE;
         private long id = LONG_DEFAULT;
         private String albumId = STRING_DEFAULT;
         private long sizeBytes = LONG_DEFAULT;
@@ -684,12 +733,12 @@ public class PickerDbFacade {
         }
 
         public QueryFilterBuilder setDateTakenBeforeMs(long dateTakenBeforeMs) {
-            this.dateTakenBeforeMs = dateTakenBeforeMs;
+            this.mDateTakenBeforeMs = dateTakenBeforeMs;
             return this;
         }
 
         public QueryFilterBuilder setDateTakenAfterMs(long dateTakenAfterMs) {
-            this.dateTakenAfterMs = dateTakenAfterMs;
+            this.mDateTakenAfterMs = dateTakenAfterMs;
             return this;
         }
 
@@ -709,6 +758,7 @@ public class PickerDbFacade {
             this.id = id;
             return this;
         }
+
         public QueryFilterBuilder setAlbumId(String albumId) {
             this.albumId = albumId;
             return this;
@@ -754,7 +804,7 @@ public class PickerDbFacade {
         }
 
         public QueryFilter build() {
-            return new QueryFilter(limit, dateTakenBeforeMs, dateTakenAfterMs, id, albumId,
+            return new QueryFilter(limit, mDateTakenBeforeMs, mDateTakenAfterMs, id, albumId,
                     sizeBytes, mimeTypes, isFavorite, mIsVideo, mIsLocalOnly);
         }
     }
@@ -772,6 +822,11 @@ public class PickerDbFacade {
         final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
         final String[] selectionArgs = buildSelectionArgs(qb, query);
 
+        if (query.mIsLocalOnly) {
+            return queryMediaForUi(qb, selectionArgs, query.mLimit,  /* isLocalOnly*/true,
+                    TABLE_MEDIA, /* cloudProvider*/ null);
+        }
+
         final String cloudProvider;
         synchronized (mLock) {
             // If the cloud sync is in progress or the cloud provider has changed but a sync has not
@@ -780,7 +835,8 @@ public class PickerDbFacade {
             cloudProvider = mCloudProvider;
         }
 
-        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_MEDIA, cloudProvider);
+        return queryMediaForUi(qb, selectionArgs, query.mLimit, query.mIsLocalOnly,
+                TABLE_MEDIA, cloudProvider);
     }
 
     /**
@@ -798,7 +854,8 @@ public class PickerDbFacade {
         final SQLiteQueryBuilder qb = createAlbumMediaQueryBuilder(isLocal(authority));
         final String[] selectionArgs = buildSelectionArgs(qb, query);
 
-        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_ALBUM_MEDIA, authority);
+        return queryMediaForUi(qb, selectionArgs, query.mLimit, query.mIsLocalOnly,
+                TABLE_ALBUM_MEDIA, authority);
     }
 
     /**
@@ -819,19 +876,19 @@ public class PickerDbFacade {
         }
 
         if (authority.equals(mLocalProvider)) {
-            return queryMediaIdForAppsInternal(qb, projection, selectionArgs);
+            return queryMediaIdForAppsLocked(qb, projection, selectionArgs);
         }
 
         synchronized (mLock) {
             if (authority.equals(mCloudProvider)) {
-                return queryMediaIdForAppsInternal(qb, projection, selectionArgs);
+                return queryMediaIdForAppsLocked(qb, projection, selectionArgs);
             }
         }
 
         return null;
     }
 
-    private Cursor queryMediaIdForAppsInternal(@NonNull SQLiteQueryBuilder qb,
+    private Cursor queryMediaIdForAppsLocked(@NonNull SQLiteQueryBuilder qb,
             @NonNull String[] projection, @NonNull String[] selectionArgs) {
         return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
                 /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
@@ -914,10 +971,15 @@ public class PickerDbFacade {
      * Returns sorted and deduped cloud and local media or album content items from the picker db.
      */
     private Cursor queryMediaForUi(SQLiteQueryBuilder qb, String[] selectionArgs,
-            int limit, String tableName, String authority) {
+            int limit, boolean isLocalOnly, String tableName, String authority) {
         // Use the <table>.<column> form to order _id to avoid ordering against the projection '_id'
         final String orderBy = getOrderClause(tableName);
         final String limitStr = String.valueOf(limit);
+
+        if (isLocalOnly) {
+            qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
+            return queryMediaForUiLocked(qb, selectionArgs, orderBy, limitStr);
+        }
 
         // Hold lock while checking the cloud provider and querying so that cursor extras containing
         // the cloud provider is consistent with the cursor results and doesn't race with
@@ -928,10 +990,14 @@ public class PickerDbFacade {
                 //  from the UI, skip all cloud items in the picker db.
                 qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
             }
-
-            return qb.query(mDatabase, getCloudMediaProjectionLocked(), /* selection */ null,
-                    selectionArgs, /* groupBy */ null, /* having */ null, orderBy, limitStr);
+            return queryMediaForUiLocked(qb, selectionArgs, orderBy, limitStr);
         }
+    }
+
+    private Cursor queryMediaForUiLocked(SQLiteQueryBuilder qb, String[] selectionArgs,
+            String orderBy, String limitStr) {
+        return qb.query(mDatabase, getCloudMediaProjectionLocked(), /* selection */ null,
+                selectionArgs, /* groupBy */ null, /* having */ null, orderBy, limitStr);
     }
 
     private static String getOrderClause(String tableName) {

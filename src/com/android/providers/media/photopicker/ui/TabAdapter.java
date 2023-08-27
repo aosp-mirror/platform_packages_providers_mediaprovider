@@ -317,7 +317,7 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
             mDismissButton.setOnClickListener(v -> onBannerEventListener.onDismissButtonClick());
 
-            if (banner.mActionButtonText != -1) {
+            if (banner.mActionButtonText != -1 && onBannerEventListener.shouldShowActionButton()) {
                 mActionButton.setText(banner.mActionButtonText);
                 mActionButton.setVisibility(View.VISIBLE);
                 mActionButton.setOnClickListener(v -> onBannerEventListener.onActionButtonClick());
@@ -328,18 +328,14 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     private enum Banner {
-        // TODO(b/274426228): Replace `CLOUD_MEDIA_AVAILABLE` `mActionButtonText` from `-1` to
-        //  `R.string.picker_banner_cloud_change_account_button`, post change cloud account
-        //  functionality implementation from the Picker settings (b/261999521).
         CLOUD_MEDIA_AVAILABLE(R.string.picker_banner_cloud_first_time_available_title,
-                R.string.picker_banner_cloud_first_time_available_desc, /* no action button */ -1),
+                R.string.picker_banner_cloud_first_time_available_desc,
+                R.string.picker_banner_cloud_change_account_button),
         ACCOUNT_UPDATED(R.string.picker_banner_cloud_account_changed_title,
                 R.string.picker_banner_cloud_account_changed_desc, /* no action button */ -1),
-        // TODO(b/274426228): Replace `CHOOSE_ACCOUNT` `mActionButtonText` from `-1` to
-        //  `R.string.picker_banner_cloud_choose_account_button`, post change cloud account
-        //  functionality implementation from the Picker settings (b/261999521).
         CHOOSE_ACCOUNT(R.string.picker_banner_cloud_choose_account_title,
-                R.string.picker_banner_cloud_choose_account_desc, /* no action button */ -1),
+                R.string.picker_banner_cloud_choose_account_desc,
+                R.string.picker_banner_cloud_choose_account_button),
         CHOOSE_APP(R.string.picker_banner_cloud_choose_app_title,
                 R.string.picker_banner_cloud_choose_app_desc,
                 R.string.picker_banner_cloud_choose_app_button);
@@ -395,5 +391,9 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         }
 
         void onBannerAdded();
+
+        default boolean shouldShowActionButton() {
+            return true;
+        }
     }
 }

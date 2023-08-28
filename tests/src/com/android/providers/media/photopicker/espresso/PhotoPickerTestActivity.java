@@ -21,24 +21,33 @@ import static org.mockito.Mockito.mock;
 
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.UiEventLogger;
+import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 public class PhotoPickerTestActivity extends PhotoPickerActivity {
+    private final TestConfigStore mConfigStore = new TestConfigStore();
     private final UiEventLogger mLogger = mock(UiEventLogger.class, RETURNS_SMART_NULLS);
     private InstanceId mInstanceId;
 
+    private PickerViewModel mPickerViewModel;
+
     @Override
     protected PickerViewModel getOrCreateViewModel() {
-        PickerViewModel pickerViewModel = super.getOrCreateViewModel();
-        pickerViewModel.setItemsProvider(new ItemsProvider(
+        mPickerViewModel = super.getOrCreateViewModel();
+        mPickerViewModel.setConfigStore(mConfigStore);
+        mPickerViewModel.setItemsProvider(new ItemsProvider(
                 PhotoPickerBaseTest.getIsolatedContext()));
-        pickerViewModel.setUserIdManager(PhotoPickerBaseTest.getMockUserIdManager());
-        pickerViewModel.setLogger(new PhotoPickerUiEventLogger(mLogger));
-        mInstanceId = pickerViewModel.getInstanceId();
-        return pickerViewModel;
+        mPickerViewModel.setUserIdManager(PhotoPickerBaseTest.getMockUserIdManager());
+        mPickerViewModel.setLogger(new PhotoPickerUiEventLogger(mLogger));
+        mInstanceId = mPickerViewModel.getInstanceId();
+        return mPickerViewModel;
+    }
+
+    TestConfigStore getConfigStore() {
+        return mConfigStore;
     }
 
     UiEventLogger getLogger() {
@@ -47,5 +56,13 @@ public class PhotoPickerTestActivity extends PhotoPickerActivity {
 
     InstanceId getInstanceId() {
         return mInstanceId;
+    }
+
+    void setItemsProvider(ItemsProvider itemsProvider) {
+        mPickerViewModel.setItemsProvider(itemsProvider);
+    }
+
+    void initSyncForPhotosGrid() {
+        mPickerViewModel.initPhotoPickerData();
     }
 }

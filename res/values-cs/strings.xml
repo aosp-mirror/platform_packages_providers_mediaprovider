@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Média"</string>
     <string name="storage_description" msgid="4081716890357580107">"Místní úložiště"</string>
     <string name="app_label" msgid="9035307001052716210">"Úložiště médií"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Média"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Nástroj pro výběr médií"</string>
     <string name="artist_label" msgid="8105600993099120273">"Interpret"</string>
     <string name="unknown" msgid="2059049215682829375">"Neznámý"</string>
     <string name="root_images" msgid="5861633549189045666">"Obrázky"</string>
@@ -42,10 +42,13 @@
     <string name="picker_settings" msgid="6443463167344790260">"Aplikace pro cloudová média"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikace pro cloudová média"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikace pro cloudová média"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Když vás aplikace nebo web požádá o výběr fotografií nebo videí, přejít na vaše cloudová média"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Když vás aplikace nebo web požádá o výběr fotografií nebo videí, můžete přejít na svoje cloudová média"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Přístup ke cloudovým médiím z"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Žádný"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Aplikaci pro cloudová média nyní nelze změnit."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Nástroj pro výběr médií"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Nástroj pro výběr médií"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Synchronizace médií…"</string>
     <string name="add" msgid="2894574044585549298">"Přidat"</string>
     <string name="deselect" msgid="4297825044827769490">"Zrušit výběr"</string>
     <string name="deselected" msgid="8488133193326208475">"Výběr zrušen"</string>
@@ -106,6 +109,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Vybrat aplikaci"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Vybrat účet"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Změnit účet"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Načítání všech fotek"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit tento zvukový soubor?}few{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukové soubory?}many{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukového souboru?}other{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukových souborů?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Úprava zvukového souboru…}few{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…}many{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukového souboru…}other{Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit toto video?}few{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?}many{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?}other{Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videí?}}"</string>

@@ -88,9 +88,9 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
                 mRule, PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_ALBUMS, expectedAlbumCount);
 
         // First album is Camera
-        assertItemContentInAlbumList(/* position */ 0, R.string.picker_category_videos);
+        assertItemContentInAlbumList(/* position */ 0, R.string.picker_category_camera);
         // Second album is Videos
-        assertItemContentInAlbumList(/* position */ 1, R.string.picker_category_camera);
+        assertItemContentInAlbumList(/* position */ 1, R.string.picker_category_videos);
         // Third album is Downloads
         assertItemContentInAlbumList(/* position */ 2, R.string.picker_category_downloads);
 

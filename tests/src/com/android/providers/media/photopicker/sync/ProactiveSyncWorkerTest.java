@@ -16,139 +16,191 @@
 
 package com.android.providers.media.photopicker.sync;
 
-import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
-import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
-import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
-import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getCloudSyncInputData;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudSyncInputData;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalSyncInputData;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.initializeTestWorkManager;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
+import android.os.Build;
 
-import androidx.work.Data;
-import androidx.work.ForegroundUpdater;
-import androidx.work.ListenableWorker;
-import androidx.work.ProgressUpdater;
-import androidx.work.WorkerFactory;
-import androidx.work.WorkerParameters;
-import androidx.work.impl.utils.taskexecutor.TaskExecutor;
+import androidx.test.filters.SdkSuppress;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutionException;
 
+// TODO enable tests in Android R after fixing b/293390235
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
 public class ProactiveSyncWorkerTest {
-    PickerSyncController mMockPickerSyncController;
-    Context mMockContext;
+    @Mock
+    private PickerSyncController mMockPickerSyncController;
+    @Mock
+    private SyncTracker mMockLocalSyncTracker;
+    @Mock
+    private SyncTracker mMockCloudSyncTracker;
+    private Context mContext;
 
     @Before
     public void setup() {
-        mMockContext = mock(Context.class);
-        mMockPickerSyncController = mock(PickerSyncController.class);
+        initMocks(this);
+
+        // Inject mock trackers
+        SyncTrackerRegistry.setLocalSyncTracker(mMockLocalSyncTracker);
+        SyncTrackerRegistry.setCloudSyncTracker(mMockCloudSyncTracker);
+
+        mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        initializeTestWorkManager(mContext);
+    }
+
+    @After
+    public void teardown() {
+        // Reset mock trackers
+        SyncTrackerRegistry.setLocalSyncTracker(new SyncTracker());
+        SyncTrackerRegistry.setCloudSyncTracker(new SyncTracker());
     }
 
     @Test
-    public void testLocalProactiveSync() {
+    public void testLocalProactiveSync() throws ExecutionException, InterruptedException {
         // Setup
         PickerSyncController.setInstance(mMockPickerSyncController);
-        WorkerParameters workerParameters = getWorkerParams(getLocalSyncInputData());
+        final OneTimeWorkRequest request  =
+                new OneTimeWorkRequest.Builder(ProactiveSyncWorker.class)
+                        .setInputData(getLocalSyncInputData())
+                        .build();
 
         // Test run
-        ProactiveSyncWorker proactiveSyncWorker =
-                new ProactiveSyncWorker(mMockContext, workerParameters);
-        ListenableWorker.Result proactiveSyncResult = proactiveSyncWorker.doWork();
+        final WorkManager workManager = WorkManager.getInstance(mContext);
+        workManager.enqueue(request).getResult().get();
 
         // Verify
-        assertThat(proactiveSyncResult).isEqualTo(ListenableWorker.Result.success());
+        final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
+        assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
                 .syncAllMediaFromLocalProvider();
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
                 .syncAllMediaFromCloudProvider();
+
+        verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .createSyncFuture(any());
+        verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .markSyncCompleted(any());
     }
 
     @Test
-    public void testCloudProactiveSync() {
+    public void testCloudProactiveSync() throws ExecutionException, InterruptedException {
         // Setup
         PickerSyncController.setInstance(mMockPickerSyncController);
-        WorkerParameters workerParameters = getWorkerParams(getCloudSyncInputData());
+        final OneTimeWorkRequest request  =
+                new OneTimeWorkRequest.Builder(ProactiveSyncWorker.class)
+                        .setInputData(getCloudSyncInputData())
+                        .build();
 
         // Test run
-        ProactiveSyncWorker proactiveSyncWorker =
-                new ProactiveSyncWorker(mMockContext, workerParameters);
-        ListenableWorker.Result proactiveSyncResult = proactiveSyncWorker.doWork();
+        final WorkManager workManager = WorkManager.getInstance(mContext);
+        workManager.enqueue(request).getResult().get();
 
         // Verify
-        assertThat(proactiveSyncResult).isEqualTo(ListenableWorker.Result.success());
+        final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
+        assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
                 .syncAllMediaFromLocalProvider();
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
                 .syncAllMediaFromCloudProvider();
+
+        verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .createSyncFuture(any());
+        verify(mMockCloudSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
     }
 
     @Test
-    public void testLocalAndCloudProactiveSync() {
+    public void testLocalAndCloudProactiveSync() throws ExecutionException, InterruptedException {
         // Setup
         PickerSyncController.setInstance(mMockPickerSyncController);
-        WorkerParameters workerParameters = getWorkerParams(getLocalAndCloudSyncInputData());
+        final OneTimeWorkRequest request  =
+                new OneTimeWorkRequest.Builder(ProactiveSyncWorker.class)
+                        .setInputData(getLocalAndCloudSyncInputData())
+                        .build();
 
         // Test run
-        ProactiveSyncWorker proactiveSyncWorker =
-                new ProactiveSyncWorker(mMockContext, workerParameters);
-        ListenableWorker.Result proactiveSyncResult = proactiveSyncWorker.doWork();
+        final WorkManager workManager = WorkManager.getInstance(mContext);
+        workManager.enqueue(request).getResult().get();
 
         // Verify
-        assertThat(proactiveSyncResult).isEqualTo(ListenableWorker.Result.success());
+        final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
+        assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
                 .syncAllMediaFromLocalProvider();
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
                 .syncAllMediaFromCloudProvider();
+
+        verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .createSyncFuture(any());
+        verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .createSyncFuture(any());
+        verify(mMockCloudSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
     }
 
     @Test
-    public void testProactiveSyncFailure() {
+    public void testProactiveSyncFailure() throws ExecutionException, InterruptedException {
         // Setup
         PickerSyncController.setInstance(null);
-        WorkerParameters workerParameters = getWorkerParams(getLocalAndCloudSyncInputData());
+        final OneTimeWorkRequest request  =
+                new OneTimeWorkRequest.Builder(ProactiveSyncWorker.class)
+                        .setInputData(getLocalAndCloudSyncInputData())
+                        .build();
 
         // Test run
-        ProactiveSyncWorker proactiveSyncWorker =
-                new ProactiveSyncWorker(mMockContext, workerParameters);
-        ListenableWorker.Result proactiveSyncResult = proactiveSyncWorker.doWork();
+        final WorkManager workManager = WorkManager.getInstance(mContext);
+        workManager.enqueue(request).getResult().get();
 
         // Verify
-        assertThat(proactiveSyncResult).isEqualTo(ListenableWorker.Result.failure());
+        final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
+        assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.FAILED);
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
                 .syncAllMediaFromLocalProvider();
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
                 .syncAllMediaFromCloudProvider();
-    }
 
-    private WorkerParameters getWorkerParams(Data inputData) {
-        return new WorkerParameters(UUID.randomUUID(), inputData, new HashSet<>(),
-                mock(WorkerParameters.RuntimeExtras.class), /* runAttempt */ 1, /* generation */ 1,
-                mock(Executor.class), mock(TaskExecutor.class), mock(WorkerFactory.class),
-                mock(ProgressUpdater.class), mock(ForegroundUpdater.class));
-    }
+        verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .createSyncFuture(any());
+        verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
 
-    private Data getLocalSyncInputData() {
-        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_ONLY));
-    }
-
-    private Data getCloudSyncInputData() {
-        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_CLOUD_ONLY));
-    }
-
-    private Data getLocalAndCloudSyncInputData() {
-        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD));
+        verify(mMockCloudSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
     }
 }

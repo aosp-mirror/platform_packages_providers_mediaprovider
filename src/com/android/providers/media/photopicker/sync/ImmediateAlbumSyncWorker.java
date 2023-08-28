@@ -29,11 +29,13 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.work.ForegroundInfo;
 import androidx.work.ListenableWorker;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 
 /**
  * This is a {@link Worker} class responsible for syncing album media with the correct sync source.
@@ -41,6 +43,7 @@ import com.android.providers.media.photopicker.PickerSyncController;
 public class ImmediateAlbumSyncWorker extends Worker {
     private static final String TAG = "IASyncWorker";
     private static final int INVALID_SYNC_SOURCE = -1;
+    private final Context mContext;
 
     /**
      * Creates an instance of the {@link Worker}.
@@ -52,6 +55,7 @@ public class ImmediateAlbumSyncWorker extends Worker {
             @NonNull Context context,
             @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
+        mContext = context;
     }
 
     @NonNull
@@ -71,6 +75,7 @@ public class ImmediateAlbumSyncWorker extends Worker {
             // No need to instantiate a work request tracker for immediate syncs in the worker.
             // For immediate syncs, the work request tracker is initiated before enqueueing the
             // request in WorkManager.
+            checkIsWorkerStopped();
             if (syncSource == SYNC_LOCAL_ONLY) {
                 PickerSyncController.getInstanceOrThrow().syncAlbumMediaFromLocalProvider(albumId);
             } else {
@@ -81,7 +86,7 @@ public class ImmediateAlbumSyncWorker extends Worker {
                     "Completed picker immediate album sync from sync source: %s album id: %s",
                     syncSource, albumId));
             return ListenableWorker.Result.success();
-        } catch (IllegalArgumentException | IllegalStateException e) {
+        } catch (IllegalArgumentException | IllegalStateException | RequestObsoleteException e) {
             Log.e(TAG, String.format("Could not complete picker immediate album sync from "
                             + "sync source: %s album id: %s",
                     syncSource, albumId), e);
@@ -104,5 +109,26 @@ public class ImmediateAlbumSyncWorker extends Worker {
         if (albumId == null || TextUtils.isEmpty(albumId)) {
             throw new IllegalArgumentException("Invalid album id " + albumId);
         }
+    }
+
+    private void checkIsWorkerStopped() throws RequestObsoleteException {
+        if (isStopped()) {
+            throw new RequestObsoleteException("Work is stopped " + getId());
+        }
+    }
+
+    @Override
+    @NonNull
+    public ForegroundInfo getForegroundInfo() {
+        return PickerSyncNotificationHelper.getForegroundInfo(mContext);
+    }
+
+    @Override
+    public void onStopped() {
+        Log.w(TAG, "Worker is stopped. Clearing all pending futures. It's possible that the sync "
+                + "will continue to run if it has started already.");
+        final int syncSource = getInputData()
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_ONLY);
+        markAlbumMediaSyncAsComplete(syncSource, getId());
     }
 }

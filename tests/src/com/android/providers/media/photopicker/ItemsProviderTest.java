@@ -662,7 +662,7 @@ public class ItemsProviderTest {
         try {
             // Set the limit and ensure that only that number of items are returned.
             final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
-                    new PaginationParameters(/* limit */ 5, -1, -1),
+                    new PaginationParameters(/* limit */ 5, /*dateBeforeMs*/ Long.MIN_VALUE, -1),
                     /* mimeType */ null, /* userId */ null, /* cancellationSignal */ null);
             assertThat(res).isNotNull();
 
@@ -1172,6 +1172,7 @@ public class ItemsProviderTest {
             try (Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null,
                     /* userId */ null, /* cancellationSignal*/ null)) {
                 assertGetCategoriesMatchMultiple(c, Arrays.asList(
+                        Pair.create(ALBUM_ID_FAVORITES, 0),
                         Pair.create(ALBUM_ID_VIDEOS, 2),
                         Pair.create(ALBUM_ID_SCREENSHOTS, 1),
                         Pair.create(cloudAlbum, 1)

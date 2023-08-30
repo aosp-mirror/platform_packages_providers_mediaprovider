@@ -255,7 +255,7 @@ public class DatabaseBackupAndRecovery {
             return Optional.empty();
         }
 
-        final String fuseDaemonFilePath = getFuseDaemonFilePath(filePath);
+        final String fuseDaemonFilePath = getFilePathForFuseRequests(filePath);
         try {
             final String data = getFuseDaemonForPath(fuseDaemonFilePath).readBackedUpData(filePath);
             if (data == null || data.isEmpty()) {
@@ -341,7 +341,7 @@ public class DatabaseBackupAndRecovery {
         if (lastBackedGenerationNumber > 0) {
             Log.i(TAG, "Last backed up generation number is " + lastBackedGenerationNumber);
         }
-        final String generationClause = MediaStore.Files.FileColumns.GENERATION_MODIFIED + " > "
+        final String generationClause = MediaStore.Files.FileColumns.GENERATION_MODIFIED + " >= "
                 + lastBackedGenerationNumber;
         final String volumeClause = MediaStore.Files.FileColumns.VOLUME_NAME + " = '"
                 + MediaStore.VOLUME_EXTERNAL_PRIMARY + "'";
@@ -455,10 +455,9 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
-        // For all internal file paths, redirect to external primary fuse daemon.
-        final String fuseDaemonFilePath = getFuseDaemonFilePath(insertedRow.getPath());
         try {
-            FuseDaemon fuseDaemon = getFuseDaemonForPath(fuseDaemonFilePath);
+            FuseDaemon fuseDaemon = getFuseDaemonForPath(
+                    getFilePathForFuseRequests(insertedRow.getPath()));
             final BackupIdRow value = createBackupIdRow(fuseDaemon, insertedRow);
             fuseDaemon.backupVolumeDbData(insertedRow.getPath(), BackupIdRow.serialize(value));
         } catch (Exception e) {
@@ -466,8 +465,21 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    private String getFuseDaemonFilePath(String filePath) {
-        return filePath.startsWith("/storage") ? filePath : EXTERNAL_PRIMARY_ROOT_PATH;
+    /**
+     * Creates a fuse daemon file path for a given path.
+     */
+    protected static String getFilePathForFuseRequests(String filePath) {
+        // For internal volume paths
+        if (!filePath.startsWith("/storage")) {
+            return EXTERNAL_PRIMARY_ROOT_PATH;
+        }
+
+        // For primary external and cloned app paths.
+        if (filePath.equalsIgnoreCase("/storage") || filePath.startsWith("/storage/emulated")) {
+            return EXTERNAL_PRIMARY_ROOT_PATH;
+        }
+
+        return filePath;
     }
 
     private BackupIdRow createBackupIdRow(FuseDaemon fuseDaemon, FileRow insertedRow)
@@ -597,10 +609,9 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
-        // For all internal file paths, redirect to external primary fuse daemon.
-        String fuseDaemonFilePath = getFuseDaemonFilePath(deletedFilePath);
         try {
-            getFuseDaemonForPath(fuseDaemonFilePath).deleteDbBackup(deletedFilePath);
+            getFuseDaemonForPath(getFilePathForFuseRequests(deletedFilePath)).deleteDbBackup(
+                    deletedFilePath);
         } catch (IOException e) {
             Log.w(TAG, "Failure in deleting backup data for key: " + deletedFilePath, e);
         }
@@ -635,10 +646,9 @@ public class DatabaseBackupAndRecovery {
         }
 
         final String updatedFilePath = updatedRow.getPath();
-        // For all internal file paths, redirect to external primary fuse daemon.
-        final String fuseDaemonFilePath = getFuseDaemonFilePath(updatedFilePath);
         try {
-            getFuseDaemonForPath(fuseDaemonFilePath).backupVolumeDbData(updatedFilePath,
+            getFuseDaemonForPath(getFilePathForFuseRequests(updatedFilePath)).backupVolumeDbData(
+                    updatedFilePath,
                     BackupIdRow.serialize(BackupIdRow.newBuilder(updatedRow.getId()).setIsDirty(
                             true).build()));
         } catch (IOException e) {
@@ -911,7 +921,7 @@ public class DatabaseBackupAndRecovery {
 
         FuseDaemon fuseDaemon;
         try {
-            fuseDaemon = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
+            fuseDaemon = getFuseDaemonForPath(getFilePathForFuseRequests(oldRow.getPath()));
         } catch (FileNotFoundException e) {
             Log.e(TAG,
                     "Fuse Daemon not found for primary external storage, skipping update of "

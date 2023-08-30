@@ -242,7 +242,7 @@ public interface ConfigStore {
         private static final String KEY_USER_SELECT_FOR_APP = "user_select_for_app";
 
         @VisibleForTesting
-        public static final String KEY_STABILIZE_VOLUME_INTERNAL = "stablize_volume_internal";
+        public static final String KEY_STABILIZE_VOLUME_INTERNAL = "stabilize_volume_internal";
         @VisibleForTesting
         public static final String KEY_STABILIZE_VOLUME_EXTERNAL = "stabilize_volume_external";
 

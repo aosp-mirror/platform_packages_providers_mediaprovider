@@ -25,6 +25,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.os.UserHandle;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.runner.AndroidJUnit4;
@@ -76,5 +77,17 @@ public class DatabaseBackupAndRecoveryTest {
 
         assertThat(DatabaseBackupAndRecovery.getInvalidUsersList(xattrData, /* validUserIds */
                 Arrays.asList("0", "13"))).containsExactly("10", "11", "12");
+    }
+
+    @Test
+    public void testGetFilePathForFuseRequests() {
+        assertThat(DatabaseBackupAndRecovery.getFilePathForFuseRequests("/storage")).isEqualTo(
+                "/storage/emulated/" + UserHandle.myUserId());
+        assertThat(DatabaseBackupAndRecovery.getFilePathForFuseRequests(
+                "/storage/emulated/0")).isEqualTo(
+                "/storage/emulated/0");
+        assertThat(
+                DatabaseBackupAndRecovery.getFilePathForFuseRequests("/storage/ABC-DEF")).isEqualTo(
+                "/storage/ABC-DEF");
     }
 }

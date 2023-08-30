@@ -1981,8 +1981,9 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
         struct fuse_dirent* dirent_out = (struct fuse_dirent*)((char*)dirents_out + fro->size);
         struct stat stats;
         int err;
-        std::string child_path = path + "/";
-        child_path.append(dirent_in->name, dirent_in->namelen);
+
+        std::string child_name(dirent_in->name, dirent_in->namelen);
+        std::string child_path = path + "/" + child_name;
 
         in += sizeof(*dirent_in) + round_up(dirent_in->namelen, sizeof(uint64_t));
         err = stat(child_path.c_str(), &stats);
@@ -1990,9 +1991,9 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
             ((stats.st_mode & 0001) || ((stats.st_mode & 0010) && req->ctx.gid == stats.st_gid) ||
              ((stats.st_mode & 0100) && req->ctx.uid == stats.st_uid) ||
              fuse->mp->isUidAllowedAccessToDataOrObbPath(req->ctx.uid, child_path) ||
-             strcmp(dirent_in->name, ".nomedia") == 0)) {
+             child_name == ".nomedia")) {
             *dirent_out = *dirent_in;
-            strcpy(dirent_out->name, dirent_in->name);
+            strcpy(dirent_out->name, child_name.c_str());
             fro->size += sizeof(*dirent_out) + round_up(dirent_out->namelen, sizeof(uint64_t));
         }
     }

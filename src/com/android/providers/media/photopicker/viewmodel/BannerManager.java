@@ -20,6 +20,7 @@ import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 
 import android.annotation.UserIdInt;
 import android.content.Context;
+import android.content.Intent;
 import android.os.UserHandle;
 import android.util.Log;
 
@@ -46,6 +47,8 @@ class BannerManager {
     private final MutableLiveData<String> mCloudMediaProviderLabel = new MutableLiveData<>();
     // Account name of the current CloudMediaProvider of the current user
     private final MutableLiveData<String> mCloudMediaAccountName = new MutableLiveData<>();
+    // Account selection activity intent of the current CloudMediaProvider of the current user
+    private Intent mChooseCloudMediaAccountActivityIntent = null;
 
     // Boolean Choose App Banner visibility
     private final MutableLiveData<Boolean> mShowChooseAppBanner = new MutableLiveData<>(false);
@@ -98,6 +101,24 @@ class BannerManager {
     @NonNull
     MutableLiveData<String> getCloudMediaProviderAppTitleLiveData() {
         return mCloudMediaProviderLabel;
+    }
+
+    /**
+     * @return the account selection activity {@link Intent} of the current
+     *         {@link android.provider.CloudMediaProvider}.
+     */
+    @Nullable
+    Intent getChooseCloudMediaAccountActivityIntent() {
+        return mChooseCloudMediaAccountActivityIntent;
+    }
+
+
+    /**
+     * Update the account selection activity {@link Intent} of the current
+     * {@link android.provider.CloudMediaProvider}.
+     */
+    void setChooseCloudMediaAccountActivityIntent(Intent intent) {
+        mChooseCloudMediaAccountActivityIntent = intent;
     }
 
     /**
@@ -291,6 +312,8 @@ class BannerManager {
                         .postValue(bannerController.getCloudMediaProviderLabel());
                 getCloudMediaAccountNameLiveData()
                         .postValue(bannerController.getCloudMediaProviderAccountName());
+                setChooseCloudMediaAccountActivityIntent(
+                        bannerController.getChooseCloudMediaAccountActivityIntent());
                 shouldShowChooseAppBannerLiveData()
                         .postValue(bannerController.shouldShowChooseAppBanner());
                 shouldShowCloudMediaAvailableBannerLiveData()

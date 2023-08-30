@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Media"</string>
     <string name="storage_description" msgid="4081716890357580107">"Hapësira ruajtëse lokale"</string>
     <string name="app_label" msgid="9035307001052716210">"Hapësira ruajtëse e medias"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Media"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Zgjedhësi i medias"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artisti"</string>
     <string name="unknown" msgid="2059049215682829375">"I panjohur"</string>
     <string name="root_images" msgid="5861633549189045666">"Fotografitë"</string>
@@ -42,10 +42,13 @@
     <string name="picker_settings" msgid="6443463167344790260">"Aplikacioni i medias në renë kompjuterike"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikacion i medias në renë kompjuterike"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikacioni i medias në renë kompjuterike"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Qasu te media jote në renë kompjuterike kur një aplikacion ose sajt uebi të kërkon të zgjedhësh fotografitë ose videot"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Qasu te media jote në renë kompjuterike kur një aplikacion ose uebsajt të kërkon të zgjedhësh fotografitë ose videot"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Qasu te media në renë kompjuterike nga"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Asnjë"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Aplikacioni i medias në renë kompjuterike nuk mund të ndryshohej në këtë moment."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Zgjedhësi i medias"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Zgjedhësi i medias"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Media po sinkronizohet…"</string>
     <string name="add" msgid="2894574044585549298">"Shto"</string>
     <string name="deselect" msgid="4297825044827769490">"Hiq përzgjedhjen"</string>
     <string name="deselected" msgid="8488133193326208475">"Zgjedhja është hequr"</string>
@@ -60,8 +63,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Fotografitë"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albumet"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Pamja paraprake"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Ndryshoje te puna"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Ndryshoje te personale"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Kalo te profili i punës"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Kalo te profili personal"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bllokuar nga administratori yt"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Qasja e të dhënave të punës nga një aplikacion personal nuk lejohet"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Qasja e të dhënave personale nga një aplikacion pune nuk lejohet"</string>

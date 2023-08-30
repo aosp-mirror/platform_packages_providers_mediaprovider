@@ -218,6 +218,8 @@ public class PickerSyncController {
         mDbFacade = dbFacade;
         mLocalProvider = localProvider;
 
+        // Listen to the device config, and try to enable cloud features when the config changes.
+        mConfigStore.addOnChangeListener(BackgroundThread.getExecutor(), this::initCloudProvider);
         initCloudProvider();
     }
 
@@ -259,6 +261,14 @@ public class PickerSyncController {
     }
 
     /**
+     * Returns the sync lock object for Cloud albums.
+     * @return the lock object for protecting synchronized code related to cloud albums.
+     */
+    public Object getCloudAlbumSyncLock() {
+        return mCloudAlbumSyncLock;
+    }
+
+    /**
      * Syncs the local and currently enabled cloud {@link CloudMediaProvider} instances
      */
     public void syncAllMedia() {
@@ -293,10 +303,6 @@ public class PickerSyncController {
      * Syncs the cloud media
      */
     public void syncAllMediaFromCloudProvider() {
-        // Reset the album_media table every time we sync all media
-        // TODO(b/294538740): This may create problems when multiple picker sessions are open at
-        //  the same time.
-        resetAlbumMedia();
 
         synchronized (mCloudSyncLock) {
             final String cloudProvider = getCloudProvider();
@@ -322,8 +328,12 @@ public class PickerSyncController {
      */
     public void syncAlbumMedia(String albumId, boolean isLocal) {
         if (isLocal) {
+            executeSyncAlbumReset(getLocalProvider(), isLocal, albumId);
             syncAlbumMediaFromLocalProvider(albumId);
         } else {
+            synchronized (mCloudAlbumSyncLock) {
+                executeSyncAlbumReset(getCloudProvider(), isLocal, albumId);
+            }
             syncAlbumMediaFromCloudProvider(albumId);
         }
     }
@@ -343,14 +353,6 @@ public class PickerSyncController {
         synchronized (mCloudAlbumSyncLock) {
             syncAlbumMediaFromProvider(getCloudProvider(), /* isLocal */ false, albumId,
                     /* enforcePagedSync*/ true);
-        }
-    }
-
-    private void resetAlbumMedia() {
-        executeSyncAlbumReset(mLocalProvider, /* isLocal */ true, /* albumId */ null);
-
-        synchronized (mCloudAlbumSyncLock) {
-            executeSyncAlbumReset(getCloudProvider(), /* isLocal */ false, /* albumId */ null);
         }
     }
 
@@ -442,12 +444,6 @@ public class PickerSyncController {
                 + "ignoreAllowList=" + ignoreAllowList);
         if (DEBUG) {
             Log.v(TAG, "Thread=" + Thread.currentThread() + "; Stacktrace:", new Throwable());
-        }
-
-        if (!mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
-            Log.w(TAG, "Ignoring a request to set the CloudMediaProvider (" + authority + ") "
-                    + "since the Cloud-Media-in-Photo-Picker feature is disabled");
-            return false;
         }
 
         synchronized (mCloudProviderLock) {
@@ -622,8 +618,6 @@ public class PickerSyncController {
 
         Trace.beginSection(traceSectionName("syncAlbumMediaFromProvider", isLocal));
         try {
-            executeSyncAlbumReset(authority, isLocal, albumId);
-
             if (authority != null) {
                 executeSyncAddAlbum(authority, isLocal, albumId, queryArgs, instanceId);
             }
@@ -632,6 +626,8 @@ public class PickerSyncController {
             // occurred in fetching all the album_media since incremental sync is not supported.
             // A full sync is therefore unlikely to resolve any issue
             Log.e(TAG, "Failed to sync album media", e);
+        } catch (RequestObsoleteException e) {
+            Log.e(TAG, "Failed to sync all album media because authority has changed: ", e);
         } finally {
             Trace.endSection();
         }
@@ -789,18 +785,29 @@ public class PickerSyncController {
     }
 
     /**
-     * Queries the provider and writes the data returned to the db.
+     * Queries the provider and adds media to the picker database.
      *
-     * <p> Also validates the cursor returned from provider has expected extras of not.
-     *
+     * @param authority Provider's authority
+     * @param isLocal Whether this is the local provider or not
+     * @param expectedMediaCollectionId The MediaCollectionId from the last sync point.
      * @param isIncrementalSync If true, {@link CloudMediaProviderContract#EXTRA_SYNC_GENERATION}
-     *                          should be honoured by the provider.
-     * @param enforcePagedSync If true, {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE} should
-     *                         be honoured by the provider.
+     *     should be honoured by the provider.
+     * @param enforcePagedSync If true, {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE} should be
+     *     honoured by the provider.
+     * @param queryArgs Query arguments to pass in query.
+     * @param instanceId Metrics related Picker session instance Id.
+     * @throws RequestObsoleteException When the sync is interrupted due to the provider
+     *     changing.
      */
-    private void executeSyncAdd(String authority, boolean isLocal,
-            String expectedMediaCollectionId, boolean isIncrementalSync, boolean enforcePagedSync,
-            Bundle queryArgs, InstanceId instanceId) {
+    private void executeSyncAdd(
+            String authority,
+            boolean isLocal,
+            String expectedMediaCollectionId,
+            boolean isIncrementalSync,
+            boolean enforcePagedSync,
+            Bundle queryArgs,
+            InstanceId instanceId)
+            throws RequestObsoleteException {
         final Uri uri = getMediaUri(authority);
         final List<String> expectedHonoredArgs = new ArrayList<>();
         if (isIncrementalSync) {
@@ -825,7 +832,8 @@ public class PickerSyncController {
                     queryArgs,
                     resumeKey,
                     OPERATION_ADD_MEDIA,
-                    authority);
+                    authority,
+                    isLocal);
             NonUiEventLogger.logPickerAddMediaSyncCompletion(instanceId, MY_UID, authority,
                     syncedItems);
         } finally {
@@ -833,8 +841,24 @@ public class PickerSyncController {
         }
     }
 
-    private void executeSyncAddAlbum(String authority, boolean isLocal,
-            String albumId, Bundle queryArgs, InstanceId instanceId) {
+    /**
+     * Queries the provider to sync media from the given albumId into the picker database.
+     *
+     * @param authority Provider's authority
+     * @param isLocal Whether this is the local provider or not
+     * @param albumId the Id of the album to sync
+     * @param queryArgs Query arguments to pass in query.
+     * @param instanceId Metrics related Picker session instance Id.
+     * @throws RequestObsoleteException When the sync is interrupted due to the provider
+     *     changing.
+     */
+    private void executeSyncAddAlbum(
+            String authority,
+            boolean isLocal,
+            String albumId,
+            Bundle queryArgs,
+            InstanceId instanceId)
+            throws RequestObsoleteException {
         final Uri uri = getMediaUri(authority);
 
         Log.i(TAG, "Executing SyncAddAlbum. "
@@ -847,9 +871,17 @@ public class PickerSyncController {
 
             // We don't need to validate the mediaCollectionId for album_media sync since it's
             // always a full sync
-            int syncedItems = executePagedSync(uri, /* mediaCollectionId */ null,
-                    List.of(EXTRA_ALBUM_ID), queryArgs, resumeKey, OPERATION_ADD_ALBUM, authority,
-                    albumId);
+            int syncedItems =
+                    executePagedSync(
+                            uri, /* mediaCollectionId */
+                            null,
+                            List.of(EXTRA_ALBUM_ID),
+                            queryArgs,
+                            resumeKey,
+                            OPERATION_ADD_ALBUM,
+                            authority,
+                            isLocal,
+                            albumId);
             NonUiEventLogger.logPickerAddAlbumMediaSyncCompletion(instanceId, MY_UID, authority,
                     syncedItems);
         } finally {
@@ -857,8 +889,24 @@ public class PickerSyncController {
         }
     }
 
-    private void executeSyncRemove(String authority, boolean isLocal,
-            String mediaCollectionId, Bundle queryArgs, InstanceId instanceId) {
+    /**
+     * Queries the provider and syncs removed media with the picker database.
+     *
+     * @param authority Provider's authority
+     * @param isLocal Whether this is the local provider or not
+     * @param mediaCollectionId The last synced media collection id
+     * @param queryArgs Query arguments to pass in query.
+     * @param instanceId Metrics related Picker session instance Id.
+     * @throws RequestObsoleteException When the sync is interrupted due to the provider
+     *     changing.
+     */
+    private void executeSyncRemove(
+            String authority,
+            boolean isLocal,
+            String mediaCollectionId,
+            Bundle queryArgs,
+            InstanceId instanceId)
+            throws RequestObsoleteException {
         final Uri uri = getDeletedMediaUri(authority);
 
         Log.i(TAG, "Executing SyncRemove. isLocal: " + isLocal + ". authority: " + authority);
@@ -867,9 +915,16 @@ public class PickerSyncController {
 
         Trace.beginSection(traceSectionName("executeSyncRemove", isLocal));
         try {
-            int syncedItems = executePagedSync(uri, mediaCollectionId,
-                    List.of(EXTRA_SYNC_GENERATION), queryArgs, resumeKey, OPERATION_REMOVE_MEDIA,
-                    authority);
+            int syncedItems =
+                    executePagedSync(
+                            uri,
+                            mediaCollectionId,
+                            List.of(EXTRA_SYNC_GENERATION),
+                            queryArgs,
+                            resumeKey,
+                            OPERATION_REMOVE_MEDIA,
+                            authority,
+                            isLocal);
             NonUiEventLogger.logPickerRemoveMediaSyncCompletion(instanceId, MY_UID, authority,
                     syncedItems);
         } finally {
@@ -1180,6 +1235,8 @@ public class PickerSyncController {
      *     between pages.
      * @param op The DbWriteOperation type. {@link OperationType}
      * @param authority The authority string of the provider to sync with.
+     * @throws RequestObsoleteException When the sync is interrupted due to the provider
+     *     changing.
      * @return the total number of rows synced.
      */
     private int executePagedSync(
@@ -1189,7 +1246,8 @@ public class PickerSyncController {
             Bundle queryArgs,
             @Nullable String resumeKey,
             @OperationType int op,
-            String authority) {
+            String authority,
+            Boolean isLocal) throws RequestObsoleteException {
         return executePagedSync(
                 uri,
                 expectedMediaCollectionId,
@@ -1198,6 +1256,7 @@ public class PickerSyncController {
                 resumeKey,
                 op,
                 authority,
+                isLocal,
                 /* albumId=*/ null);
     }
 
@@ -1216,6 +1275,8 @@ public class PickerSyncController {
      * @param op The DbWriteOperation type. {@link OperationType}
      * @param authority The authority string of the provider to sync with.
      * @param albumId A {@link Nullable} albumId for album related operations.
+     * @throws RequestObsoleteException When the sync is interrupted due to the provider
+     *     changing.
      * @return the total number of rows synced.
      */
     private int executePagedSync(
@@ -1226,7 +1287,8 @@ public class PickerSyncController {
             @Nullable String resumeKey,
             @OperationType int op,
             String authority,
-            @Nullable String albumId) {
+            Boolean isLocal,
+            @Nullable String albumId) throws RequestObsoleteException {
         Trace.beginSection(traceSectionName("executePagedSync"));
 
         try {
@@ -1245,33 +1307,55 @@ public class PickerSyncController {
 
             do {
                 String updateDateTakenMs = null;
-                try (PickerDbFacade.DbWriteOperation operation =
-                        beginPagedOperation(op, authority, albumId)) {
+                if (nextPageToken != null) {
+                    queryArgs.putString(EXTRA_PAGE_TOKEN, nextPageToken);
+                }
 
-                    if (nextPageToken != null) {
-                        queryArgs.putString(EXTRA_PAGE_TOKEN, nextPageToken);
-                    }
+                try (Cursor cursor = query(uri, queryArgs)) {
+                    nextPageToken =
+                            validateCursor(
+                                    cursor,
+                                    expectedMediaCollectionId,
+                                    expectedHonoredArgs,
+                                    tokens);
 
-                    try (Cursor cursor = query(uri, queryArgs)) {
-                        nextPageToken =
-                                validateCursor(
-                                        cursor,
-                                        expectedMediaCollectionId,
-                                        expectedHonoredArgs,
-                                        tokens);
-
-
+                    try (PickerDbFacade.DbWriteOperation operation =
+                                 beginPagedOperation(op, authority, albumId)) {
                         int writeCount = operation.execute(cursor);
 
+                        if (!isLocal) {
+                            // Ensure the cloud provider hasn't change out from underneath the
+                            // running sync. If it has, we need to stop syncing.
+                            String currentCloudProvider = getCloudProvider();
+                            if (TextUtils.isEmpty(currentCloudProvider)
+                                    || !currentCloudProvider.equals(authority)) {
+
+                                throw new RequestObsoleteException(
+                                        String.format(
+                                                "Aborting sync: the CloudProvider seems to have"
+                                                        + " changed mid-sync. Old: %s Current: %s",
+                                                authority, currentCloudProvider));
+                            }
+                        }
+
+                        operation.setSuccess();
                         totalRowcount += writeCount;
 
-                        // Before the cursor is closed pull the date taken ms for the first row.
-                        updateDateTakenMs = getFirstDateTakenMsInCursor(cursor);
-                    }
-                    operation.setSuccess();
+                        if (cursor.getCount() > 0) {
+                            // Before the cursor is closed pull the date taken ms for the first row.
+                            updateDateTakenMs = getFirstDateTakenMsInCursor(cursor);
 
+                            // If the cursor count is not null and the date taken field is not
+                            // present in the cursor, fallback on the operation to provide the date
+                            // taken.
+                            if (updateDateTakenMs == null) {
+                                updateDateTakenMs = getFirstDateTakenMsFromOperation(operation);
+                            }
+                        }
+                    }
                 } catch (IllegalArgumentException ex) {
-                    Log.e(TAG, String.format("Failed to open DbWriteOperation for op: %d", op), ex);
+                    Log.e(TAG, String.format("Failed to open DbWriteOperation for op: %d", op),
+                            ex);
                     return -1;
                 }
 
@@ -1311,11 +1395,22 @@ public class PickerSyncController {
      */
     @Nullable
     private String getFirstDateTakenMsInCursor(Cursor cursor) {
-        if (cursor.getCount() > 0) {
-            cursor.moveToFirst();
+        if (cursor.moveToFirst()) {
             return getCursorString(cursor, MediaColumns.DATE_TAKEN_MILLIS);
         }
         return null;
+    }
+
+    /**
+     * Extracts the first row's date taken from the operation. Note that all functions may not
+     * implement this method.
+     */
+    private String getFirstDateTakenMsFromOperation(PickerDbFacade.DbWriteOperation op) {
+        final long firstDateTakenMillis = op.getFirstDateTakenMillis();
+
+        return firstDateTakenMillis == Long.MIN_VALUE
+                ? null
+                : Long.toString(firstDateTakenMillis);
     }
 
     /**

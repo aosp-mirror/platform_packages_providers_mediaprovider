@@ -55,6 +55,7 @@ import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
 import com.android.providers.media.photopicker.sync.PickerSyncManager;
 import com.android.providers.media.photopicker.sync.SyncTracker;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
+import com.android.providers.media.util.ForegroundThread;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,6 +65,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -80,7 +83,17 @@ public class PickerDataLayer {
 
     public static final String QUERY_DATE_TAKEN_BEFORE_MS = "android:query-date-taken-before-ms";
 
+    public static final String QUERY_LOCAL_ID_SELECTION = "android:query-local-id-selection";
+
     public static final String QUERY_ROW_ID = "android:query-row-id";
+
+    // Thread pool size should be at least equal to the number of unique work requests in
+    // {@link PickerSyncManager} to ensure that any request type is not blocked on other request
+    // types. It is advisable to use unique work requests because in case the number of queued
+    // requests grows, they should not block other work requests.
+    private static final int WORK_MANAGER_THREAD_POOL_SIZE = 5;
+    @Nullable
+    private static volatile Executor sWorkManagerExecutor;
 
     @NonNull
     private final Context mContext;
@@ -111,6 +124,11 @@ public class PickerDataLayer {
         mConfigStore = requireNonNull(configStore);
         mSyncManager = new PickerSyncManager(
                 getWorkManager(), context, configStore, schedulePeriodicSyncs);
+
+        // Add a subscriber to config store changes to monitor the allowlist.
+        mConfigStore.addOnChangeListener(
+                ForegroundThread.getExecutor(),
+                this::validateCurrentCloudProviderOnAllowlistChange);
     }
 
     /**
@@ -185,19 +203,16 @@ public class PickerDataLayer {
                 // The album type here can only be local or cloud because merged categories like,
                 // Favorites and Videos would hit the first condition.
                 // Refresh the 'album_media' table
-                boolean validateAlbumAuthority;
                 if (shouldSyncBeforePickerQuery()) {
-                    validateAlbumAuthority = true;
                     mSyncController.syncAlbumMedia(albumId, isLocal(albumAuthority));
                 } else {
-                    validateAlbumAuthority = false;
                     waitForSync(SyncTrackerRegistry.getAlbumSyncTracker(isLocal(albumAuthority)));
                     Log.i(TAG, "Album sync is complete");
                 }
 
                 // Fetch album specific media for local or cloud from 'album_media' table
                 result = mDbFacade.queryAlbumMediaForUi(
-                        queryExtras.toQueryFilter(), albumAuthority, validateAlbumAuthority);
+                        queryExtras.toQueryFilter(), albumAuthority);
             }
             return result;
         } finally {
@@ -449,7 +464,7 @@ public class PickerDataLayer {
             if (!syncRequestExtras.shouldSyncMergedAlbum()) {
                 mSyncManager.syncAlbumMediaForProviderImmediately(
                         syncRequestExtras.getAlbumId(),
-                        isLocal(syncRequestExtras.getAlbumAuthority()));
+                        syncRequestExtras.getAlbumAuthority());
             }
         }
     }
@@ -477,7 +492,13 @@ public class PickerDataLayer {
      * local providers.
      */
     public void handleMediaEventNotification() {
-        mSyncManager.syncAllMediaProactively();
+        try {
+            mSyncManager.syncAllMediaProactively();
+        } catch (RuntimeException e) {
+            // Catch any unchecked exceptions so that critical paths in MP that call this method are
+            // not affected by Picker related issues.
+            Log.e(TAG, "Could not handle media event notification ", e);
+        }
     }
 
     public static class AccountInfo {
@@ -603,9 +624,22 @@ public class PickerDataLayer {
 
     @NonNull
     private static Configuration getWorkManagerConfiguration() {
+        ensureWorkManagerExecutor();
         return new Configuration.Builder()
                 .setMinimumLoggingLevel(Log.INFO)
+                .setExecutor(sWorkManagerExecutor)
                 .build();
+    }
+
+    private static void ensureWorkManagerExecutor() {
+        if (sWorkManagerExecutor == null) {
+            synchronized (PickerDataLayer.class) {
+                if (sWorkManagerExecutor == null) {
+                    sWorkManagerExecutor = Executors
+                            .newFixedThreadPool(WORK_MANAGER_THREAD_POOL_SIZE);
+                }
+            }
+        }
     }
 
     /**
@@ -617,5 +651,28 @@ public class PickerDataLayer {
      */
     private boolean shouldSyncBeforePickerQuery() {
         return !mConfigStore.isCloudMediaInPhotoPickerEnabled();
+    }
+
+    /**
+     * Checks the current allowed list of Cloud Provider packages, and ensures that the currently
+     * set provider is a member of the allowlist. In the event the current Cloud Provider is not on
+     * the list, the current Cloud Provider is removed.
+     */
+    private void validateCurrentCloudProviderOnAllowlistChange() {
+
+        List<String> currentAllowlist = mConfigStore.getAllowedCloudProviderPackages();
+        String currentCloudProvider = mSyncController.getCurrentCloudProviderInfo().packageName;
+
+        if (!currentAllowlist.contains(currentCloudProvider)) {
+            Log.d(
+                    TAG,
+                    String.format(
+                            "Cloud provider allowlist was changed, and the current cloud provider"
+                                    + " is no longer on the allowlist."
+                                    + " Allowlist: %s"
+                                    + " Current Provider: %s",
+                            currentAllowlist.toString(), currentCloudProvider));
+            mSyncController.notifyPackageRemoval(currentCloudProvider);
+        }
     }
 }

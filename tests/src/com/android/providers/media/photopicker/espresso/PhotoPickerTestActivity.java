@@ -32,16 +32,18 @@ public class PhotoPickerTestActivity extends PhotoPickerActivity {
     private final UiEventLogger mLogger = mock(UiEventLogger.class, RETURNS_SMART_NULLS);
     private InstanceId mInstanceId;
 
+    private PickerViewModel mPickerViewModel;
+
     @Override
     protected PickerViewModel getOrCreateViewModel() {
-        PickerViewModel pickerViewModel = super.getOrCreateViewModel();
-        pickerViewModel.setConfigStore(mConfigStore);
-        pickerViewModel.setItemsProvider(new ItemsProvider(
+        mPickerViewModel = super.getOrCreateViewModel();
+        mPickerViewModel.setConfigStore(mConfigStore);
+        mPickerViewModel.setItemsProvider(new ItemsProvider(
                 PhotoPickerBaseTest.getIsolatedContext()));
-        pickerViewModel.setUserIdManager(PhotoPickerBaseTest.getMockUserIdManager());
-        pickerViewModel.setLogger(new PhotoPickerUiEventLogger(mLogger));
-        mInstanceId = pickerViewModel.getInstanceId();
-        return pickerViewModel;
+        mPickerViewModel.setUserIdManager(PhotoPickerBaseTest.getMockUserIdManager());
+        mPickerViewModel.setLogger(new PhotoPickerUiEventLogger(mLogger));
+        mInstanceId = mPickerViewModel.getInstanceId();
+        return mPickerViewModel;
     }
 
     TestConfigStore getConfigStore() {
@@ -54,5 +56,13 @@ public class PhotoPickerTestActivity extends PhotoPickerActivity {
 
     InstanceId getInstanceId() {
         return mInstanceId;
+    }
+
+    void setItemsProvider(ItemsProvider itemsProvider) {
+        mPickerViewModel.setItemsProvider(itemsProvider);
+    }
+
+    void initSyncForPhotosGrid() {
+        mPickerViewModel.initPhotoPickerData();
     }
 }

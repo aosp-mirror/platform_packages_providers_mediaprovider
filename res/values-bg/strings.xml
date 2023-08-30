@@ -44,7 +44,7 @@
     <string name="picker_settings_title" msgid="5647700706470673258">"Приложение за мултимедия в облака"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Осъществяване на достъп до мултимедията в облака, когато приложение или уебсайт иска от вас да изберете снимки или видеоклипове"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Достъп до мултимедия в облака от"</string>
-    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Няма"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Нищо"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Медийното приложение в облака не бе променено."</string>
     <string name="add" msgid="2894574044585549298">"Добавяне"</string>
     <string name="deselect" msgid="4297825044827769490">"Премахване на избора"</string>

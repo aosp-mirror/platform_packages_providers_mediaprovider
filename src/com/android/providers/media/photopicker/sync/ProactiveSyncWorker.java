@@ -28,11 +28,13 @@ import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.work.ForegroundInfo;
 import androidx.work.ListenableWorker;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 
 /**
  * This is a {@link Worker} class responsible for proactively syncing media with the correct sync
@@ -40,6 +42,7 @@ import com.android.providers.media.photopicker.PickerSyncController;
  */
 public class ProactiveSyncWorker extends Worker {
     private static final String TAG = "PSyncWorker";
+    private final Context mContext;
 
     /**
      * Creates an instance of the {@link Worker}.
@@ -49,6 +52,7 @@ public class ProactiveSyncWorker extends Worker {
      */
     public ProactiveSyncWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
+        mContext = context;
     }
 
     @NonNull
@@ -67,6 +71,7 @@ public class ProactiveSyncWorker extends Worker {
                 localSyncTracker.createSyncFuture(getId());
 
                 // Complete sync and mark work tracker as finished.
+                checkIsWorkerStopped();
                 PickerSyncController.getInstanceOrThrow().syncAllMediaFromLocalProvider();
                 localSyncTracker.markSyncCompleted(getId());
                 Log.i(TAG, "Completed picker proactive sync complete from local provider.");
@@ -77,17 +82,40 @@ public class ProactiveSyncWorker extends Worker {
                 cloudSyncTracker.createSyncFuture(getId());
 
                 // Complete sync and mark work tracker as finished.
+                checkIsWorkerStopped();
                 PickerSyncController.getInstanceOrThrow().syncAllMediaFromCloudProvider();
                 cloudSyncTracker.markSyncCompleted(getId());
                 Log.i(TAG, "Completed picker proactive sync complete from cloud provider.");
             }
             return ListenableWorker.Result.success();
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException | RequestObsoleteException e) {
             Log.e(TAG, "Could not complete proactive sync for sync source: " + syncSource, e);
 
             // Mark all pending syncs as finished and set failure result.
             markSyncAsComplete(syncSource, getId());
             return ListenableWorker.Result.failure();
         }
+    }
+
+    private void checkIsWorkerStopped() throws RequestObsoleteException {
+        if (isStopped()) {
+            throw new RequestObsoleteException("Work is stopped " + getId());
+        }
+    }
+
+    @Override
+    @NonNull
+    public ForegroundInfo getForegroundInfo() {
+        Log.e(TAG, "Proactive Sync Worker should not run as an expedited task");
+        return PickerSyncNotificationHelper.getForegroundInfo(mContext);
+    }
+
+    @Override
+    public void onStopped() {
+        Log.w(TAG, "Worker is stopped. Clearing all pending futures. It's possible that the sync "
+                + "still finishes running if it has started already.");
+        final int syncSource = getInputData()
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
+        markSyncAsComplete(syncSource, getId());
     }
 }

@@ -20,6 +20,7 @@ import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 
 import android.annotation.UserIdInt;
 import android.content.Context;
+import android.content.Intent;
 import android.os.UserHandle;
 import android.util.Log;
 
@@ -29,6 +30,7 @@ import androidx.annotation.UiThread;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.util.PerUser;
@@ -45,6 +47,8 @@ class BannerManager {
     private final MutableLiveData<String> mCloudMediaProviderLabel = new MutableLiveData<>();
     // Account name of the current CloudMediaProvider of the current user
     private final MutableLiveData<String> mCloudMediaAccountName = new MutableLiveData<>();
+    // Account selection activity intent of the current CloudMediaProvider of the current user
+    private Intent mChooseCloudMediaAccountActivityIntent = null;
 
     // Boolean Choose App Banner visibility
     private final MutableLiveData<Boolean> mShowChooseAppBanner = new MutableLiveData<>(false);
@@ -59,13 +63,14 @@ class BannerManager {
     // The banner controllers per user
     private final PerUser<BannerController> mBannerControllers;
 
-    BannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager) {
+    BannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager,
+            @NonNull ConfigStore configStore) {
         mUserIdManager = userIdManager;
         mBannerControllers = new PerUser<BannerController>() {
             @NonNull
             @Override
             protected BannerController create(@UserIdInt int userId) {
-                return new BannerController(context, UserHandle.of(userId));
+                return new BannerController(context, UserHandle.of(userId), configStore);
             }
         };
         maybeInitialiseAndSetBannersForCurrentUser();
@@ -96,6 +101,24 @@ class BannerManager {
     @NonNull
     MutableLiveData<String> getCloudMediaProviderAppTitleLiveData() {
         return mCloudMediaProviderLabel;
+    }
+
+    /**
+     * @return the account selection activity {@link Intent} of the current
+     *         {@link android.provider.CloudMediaProvider}.
+     */
+    @Nullable
+    Intent getChooseCloudMediaAccountActivityIntent() {
+        return mChooseCloudMediaAccountActivityIntent;
+    }
+
+
+    /**
+     * Update the account selection activity {@link Intent} of the current
+     * {@link android.provider.CloudMediaProvider}.
+     */
+    void setChooseCloudMediaAccountActivityIntent(Intent intent) {
+        mChooseCloudMediaAccountActivityIntent = intent;
     }
 
     /**
@@ -260,8 +283,9 @@ class BannerManager {
     }
 
     static class CloudBannerManager extends BannerManager {
-        CloudBannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager) {
-            super(context, userIdManager);
+        CloudBannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager,
+                @NonNull ConfigStore configStore) {
+            super(context, userIdManager, configStore);
         }
 
         /**
@@ -288,6 +312,8 @@ class BannerManager {
                         .postValue(bannerController.getCloudMediaProviderLabel());
                 getCloudMediaAccountNameLiveData()
                         .postValue(bannerController.getCloudMediaProviderAccountName());
+                setChooseCloudMediaAccountActivityIntent(
+                        bannerController.getChooseCloudMediaAccountActivityIntent());
                 shouldShowChooseAppBannerLiveData()
                         .postValue(bannerController.shouldShowChooseAppBanner());
                 shouldShowCloudMediaAvailableBannerLiveData()

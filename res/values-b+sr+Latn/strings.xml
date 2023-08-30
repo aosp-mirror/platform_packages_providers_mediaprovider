@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Mediji"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokalni memorijski prostor"</string>
     <string name="app_label" msgid="9035307001052716210">"Memorijski prostor za medije"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Mediji"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Birač medija"</string>
     <string name="artist_label" msgid="8105600993099120273">"Izvođač"</string>
     <string name="unknown" msgid="2059049215682829375">"Nepoznato"</string>
     <string name="root_images" msgid="5861633549189045666">"Slike"</string>
@@ -46,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Pristupajte medijima u klaudu iz"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Ništa"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Promena aplikacije za medije u klaudu nije uspela."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Birač medija"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Birač medija"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Mediji se sinhronizuju…"</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Opozovi izbor"</string>
     <string name="deselected" msgid="8488133193326208475">"Opozvan je izbor"</string>
@@ -106,6 +109,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Odaberi aplikaciju"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Odaberi nalog"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Promeni nalog"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Preuzimaju se sve slike"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Želite li da dozvolite da <xliff:g id="APP_NAME_0">^1</xliff:g> izmeni ovaj audio fajl?}one{Želite li da dozvolite da <xliff:g id="APP_NAME_1">^1</xliff:g> izmeni <xliff:g id="COUNT">^2</xliff:g> audio fajl?}few{Želite li da dozvolite da <xliff:g id="APP_NAME_1">^1</xliff:g> izmeni <xliff:g id="COUNT">^2</xliff:g> audio fajla?}other{Želite li da dozvolite da <xliff:g id="APP_NAME_1">^1</xliff:g> izmeni <xliff:g id="COUNT">^2</xliff:g> audio fajlova?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Menja se audio fajl…}one{Menja se <xliff:g id="COUNT">^1</xliff:g> audio fajl…}few{Menjaju se <xliff:g id="COUNT">^1</xliff:g> audio fajla…}other{Menja se <xliff:g id="COUNT">^1</xliff:g> audio fajlova…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Želite li da dozvolite da <xliff:g id="APP_NAME_0">^1</xliff:g> izmeni ovaj video?}one{Želite li da dozvolite da <xliff:g id="APP_NAME_1">^1</xliff:g> izmeni <xliff:g id="COUNT">^2</xliff:g> video?}few{Želite li da dozvolite da <xliff:g id="APP_NAME_1">^1</xliff:g> izmeni <xliff:g id="COUNT">^2</xliff:g> video snimka?}other{Želite li da dozvolite da <xliff:g id="APP_NAME_1">^1</xliff:g> izmeni <xliff:g id="COUNT">^2</xliff:g> video snimaka?}}"</string>

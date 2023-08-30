@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Media"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokal na storage"</string>
     <string name="app_label" msgid="9035307001052716210">"Storage ng Media"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Media"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Tagapili ng media"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artist"</string>
     <string name="unknown" msgid="2059049215682829375">"Hindi alam"</string>
     <string name="root_images" msgid="5861633549189045666">"Mga Larawan"</string>
@@ -46,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"I-access ang cloud media sa"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Wala"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Hindi mapalitan ang cloud media app sa ngayon."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Tagapili ng media"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Tagapili ng media"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Sini-sync ang media…"</string>
     <string name="add" msgid="2894574044585549298">"Magdagdag"</string>
     <string name="deselect" msgid="4297825044827769490">"I-deselect"</string>
     <string name="deselected" msgid="8488133193326208475">"Na-deselect"</string>
@@ -106,6 +109,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Pumili ng app"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Pumili ng account"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Magpalit ng account"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Kinukuha ang lahat ng iyong larawan"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Payagan ang <xliff:g id="APP_NAME_0">^1</xliff:g> na baguhin ang audio file na ito?}one{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> audio file?}other{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> na audio file?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Binabago ang audio file…}one{Nagbabago ng <xliff:g id="COUNT">^1</xliff:g> audio file…}other{Nagbabago ng <xliff:g id="COUNT">^1</xliff:g> na audio file…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Payagan ang <xliff:g id="APP_NAME_0">^1</xliff:g> na baguhin ang video na ito?}one{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> video?}other{Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na baguhin ang <xliff:g id="COUNT">^2</xliff:g> na video?}}"</string>

@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -66,6 +67,14 @@ public class Selection {
      */
     public List<Item> getSelectedItems() {
         return Collections.unmodifiableList(new ArrayList<>(mSelectedItems.values()));
+    }
+
+    /**
+     * @return A {@link Set} of selected {@link Item} ids.
+     */
+    public Set<String> getSelectedItemsIds() {
+        return mSelectedItems.values().stream().map(Item::getId).collect(
+                Collectors.toSet());
     }
 
     /**
@@ -193,8 +202,7 @@ public class Selection {
 
     private int countOfPreGrantedItems() {
         if (mSelectedItems.values() != null) {
-            return mSelectedItems.values().stream().filter(Item::isPreGranted)
-                .collect(Collectors.toList()).size();
+            return (int) mSelectedItems.values().stream().filter(Item::isPreGranted).count();
         } else {
             return 0;
         }

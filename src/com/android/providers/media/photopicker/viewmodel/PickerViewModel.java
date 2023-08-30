@@ -89,6 +89,7 @@ import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -544,6 +545,54 @@ public class PickerViewModel extends AndroidViewModel {
             } else {
                 mLogger.logLoadedAlbumGridMediaItems(cloudProviderAuthority, mInstanceId, count);
             }
+        }
+    }
+
+    /**
+     * Gets item data for Uris which have not yet been loaded to the UI. This is important when the
+     * preview fragment is created and hence should be called only before creation.
+     *
+     * <p>This is used during pagination. All the items are not loaded at once and hence the
+     * preGranted item which is on a page that is yet to be loaded will would not be part of the
+     * mSelected list and hence will not show up in the preview fragment. This method fixes this
+     * issue by selectively loading those items and adding them to the selection list.</p>
+     */
+    public void getRemainingPreGrantedItems() {
+        if (isUserSelectForApp()
+                && getConfigStore().isPickerChoiceManagedSelectionEnabled()
+                && mPreGrantedItemsSet.getValue() != null) {
+            List<String> idsForItemsToBeFetched = new ArrayList<>(mPreGrantedItemsSet.getValue());
+            idsForItemsToBeFetched.removeAll(mSelection.getSelectedItemsIds());
+            if (!idsForItemsToBeFetched.isEmpty()) {
+                Log.d(TAG, "Fetching items for required preGranted ids.");
+                loadItemsWithLocalIdSelection(Category.DEFAULT,
+                        getUserIdManager().getCurrentUserProfileId(),
+                        idsForItemsToBeFetched.stream().map(Integer::valueOf).collect(
+                                Collectors.toList()));
+            }
+        }
+    }
+
+    private void loadItemsWithLocalIdSelection(Category category, UserId userId,
+            List<Integer> selectionArg) {
+        try (Cursor cursor = mItemsProvider.getLocalItemsForSelection(category, selectionArg,
+                mMimeTypeFilters, userId, mCancellationSignal)) {
+            if (cursor == null || cursor.getCount() == 0) {
+                Log.d(TAG, "Didn't receive any items for pre granted URIs" + category
+                        + ", either cursor is null or cursor count is zero");
+                return;
+            }
+
+            Set<String> selectedIdSet = new HashSet<>(mSelection.getSelectedItemsIds());
+            // Add all loaded items to selection after marking them as pre granted.
+            while (cursor.moveToNext()) {
+                final Item item = Item.fromCursor(cursor, userId);
+                item.setPreGranted();
+                if (!selectedIdSet.contains(item.getId())) {
+                    mSelection.addSelectedItem(item);
+                }
+            }
+            Log.d(TAG, "Pre granted items have been loaded.");
         }
     }
 

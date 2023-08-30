@@ -411,6 +411,7 @@ public class PhotosTabFragment extends TabFragment {
                     }
                     mSelection.prepareItemForPreviewOnLongPress(item);
                     mPickerViewModel.logMediaItemPreviewed(item, mCategory, position);
+                    // Transition to PreviewFragment.
                     PreviewFragment.show(getActivity().getSupportFragmentManager(),
                             PreviewFragment.getArgsForPreviewOnLongPress());
                     return true;

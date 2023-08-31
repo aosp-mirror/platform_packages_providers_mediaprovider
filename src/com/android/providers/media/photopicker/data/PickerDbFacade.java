@@ -55,6 +55,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * This is a facade that hides the complexities of executing some SQL statements on the picker db.
@@ -152,6 +153,7 @@ public class PickerDbFacade {
             String.format("%s < ? OR (%s = ? AND %s < ?)",
                     KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
     private static final String WHERE_ALBUM_ID = KEY_ALBUM_ID  + " = ?";
+    private static final String WHERE_LOCAL_ID_IN = KEY_LOCAL_ID  + " IN ";
 
     // This where clause returns all rows for media items that are local-only and are marked as
     // favorite.
@@ -691,9 +693,11 @@ public class PickerDbFacade {
         private final boolean mIsVideo;
         public boolean mIsLocalOnly;
 
+        private List<Integer> mLocalIdSelection;
+
         private QueryFilter(int limit, long dateTakenBeforeMs, long dateTakenAfterMs, long id,
                 String albumId, long sizeBytes, String[] mimeTypes, boolean isFavorite,
-                boolean isVideo, boolean isLocalOnly) {
+                boolean isVideo, boolean isLocalOnly, List<Integer> localIdSelection) {
             this.mLimit = limit;
             this.mDateTakenBeforeMs = dateTakenBeforeMs;
             this.mDateTakenAfterMs = dateTakenAfterMs;
@@ -704,6 +708,7 @@ public class PickerDbFacade {
             this.mIsFavorite = isFavorite;
             this.mIsVideo = isVideo;
             this.mIsLocalOnly = isLocalOnly;
+            this.mLocalIdSelection = localIdSelection;
         }
     }
 
@@ -715,6 +720,7 @@ public class PickerDbFacade {
         public static final String[] STRING_ARRAY_DEFAULT = null;
         public static final boolean BOOLEAN_DEFAULT = false;
 
+        public static final List LIST_DEFAULT = null;
         public static final int LIMIT_DEFAULT = 1000;
 
         private final int limit;
@@ -727,6 +733,8 @@ public class PickerDbFacade {
         private boolean isFavorite = BOOLEAN_DEFAULT;
         private boolean mIsVideo = BOOLEAN_DEFAULT;
         private boolean mIsLocalOnly = BOOLEAN_DEFAULT;
+
+        private List<Integer> mLocalIdSelection = LIST_DEFAULT;
 
         public QueryFilterBuilder(int limit) {
             this.limit = limit;
@@ -774,6 +782,14 @@ public class PickerDbFacade {
         }
 
         /**
+         * Sets the local id selection filter.
+         */
+        public QueryFilterBuilder setLocalIdSelection(List<Integer> localIdSelection) {
+            this.mLocalIdSelection = localIdSelection;
+            return this;
+        }
+
+        /**
          * If {@code isFavorite} is {@code true}, the {@link QueryFilter} returns only
          * favorited items, however, if it is {@code false}, it returns all items including
          * favorited and non-favorited items.
@@ -804,7 +820,7 @@ public class PickerDbFacade {
 
         public QueryFilter build() {
             return new QueryFilter(limit, mDateTakenBeforeMs, mDateTakenAfterMs, id, albumId,
-                    sizeBytes, mimeTypes, isFavorite, mIsVideo, mIsLocalOnly);
+                    sizeBytes, mimeTypes, isFavorite, mIsVideo, mIsLocalOnly, mLocalIdSelection);
         }
     }
 
@@ -1241,6 +1257,22 @@ public class PickerDbFacade {
         } else if (!TextUtils.isEmpty(query.mAlbumId)) {
             qb.appendWhereStandalone(WHERE_ALBUM_ID);
             selectArgs.add(query.mAlbumId);
+        }
+
+        if (query.mLocalIdSelection != null && !query.mLocalIdSelection.isEmpty()) {
+            StringBuilder localIdSelectionPlaceholder = new StringBuilder("(");
+            for (int itr = 0; itr < query.mLocalIdSelection.size(); itr++) {
+                localIdSelectionPlaceholder.append("?,");
+            }
+            localIdSelectionPlaceholder.deleteCharAt(localIdSelectionPlaceholder.length() - 1);
+            localIdSelectionPlaceholder.append(")");
+
+            // Append the where clause for local id selection to the query builder.
+            qb.appendWhereStandalone(WHERE_LOCAL_ID_IN + localIdSelectionPlaceholder);
+
+            // Add local ids to the selection args.
+            selectArgs.addAll(query.mLocalIdSelection.stream().map(
+                    String::valueOf).collect(Collectors.toList()));
         }
 
         if (selectArgs.isEmpty()) {

@@ -23,7 +23,7 @@
     <string name="artist_label" msgid="8105600993099120273">"هنرمند"</string>
     <string name="unknown" msgid="2059049215682829375">"نامشخص"</string>
     <string name="root_images" msgid="5861633549189045666">"تصویر"</string>
-    <string name="root_videos" msgid="8792703517064649453">"ویدئو"</string>
+    <string name="root_videos" msgid="8792703517064649453">"ویدیوها"</string>
     <string name="root_audio" msgid="3505830755201326018">"صوت"</string>
     <string name="root_documents" msgid="3829103301363849237">"اسناد"</string>
     <string name="permission_required" msgid="1460820436132943754">"برای اصلاح یا حذف این مورد مجوز لازم است."</string>
@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"اتصال اینترنت را بررسی کنید و دوباره امتحان کنید"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"امتحان مجدد"</string>
     <string name="not_selected" msgid="2244008151669896758">"انتخاب نشده است"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"درحال آماده‌سازی رسانه انتخاب‌شده"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> مورد از <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> مورد آماده است"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"عکس‌های پشتیبان‌گیری‌شده اکنون اضافه شده‌اند"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"می‌توانید عکس‌های حساب <xliff:g id="APP_NAME">%1$s</xliff:g>‏ (<xliff:g id="USER_ACCOUNT">%2$s</xliff:g>) را انتخاب کنید"</string>
@@ -153,10 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"محافظت امنیتی"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"هشدارهای تراتبدیل محلی"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"پیشرفت تراتبدیل محلی"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
     <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"نمی‌توان برخی‌از عکس‌ها را بار کرد"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"متوجه‌ام"</string>
 </resources>

@@ -60,7 +60,7 @@
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Walang sinusuportahang larawan o video"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Walang album"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Tingnan ang napili"</string>
-    <string name="picker_photos" msgid="7415035516411087392">"Photos"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"Mga Larawan"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Mga Album"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Preview"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Lumipat sa para sa trabaho"</string>
@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Tingnan ang iyong koneksyon sa internet at subukan ulit"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Subukan ulit"</string>
     <string name="not_selected" msgid="2244008151669896758">"hindi pinili"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Inihahanda ang napili mong media"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Handa na ang <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> sa <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Kasama na ngayon ang mga na-back up na larawan"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Puwede kang pumili ng mga larawan mula sa <xliff:g id="APP_NAME">%1$s</xliff:g> account na <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
@@ -153,10 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Proteksyon sa kaligtasan"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Native Transcode Alerts"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Native Transcode Progress"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
-    <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"Subukan ulit sa ibang pagkakataon. Magiging available ang iyong mga larawan kapag nalutas na ang isyu."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"Hindi ma-load ang ilang Larawan"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
 </resources>

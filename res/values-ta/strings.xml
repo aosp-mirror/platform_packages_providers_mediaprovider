@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"உங்கள் இணைய இணைப்பைச் சரிபார்த்துவிட்டு மீண்டும் முயலவும்"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"மீண்டும் முயல்க"</string>
     <string name="not_selected" msgid="2244008151669896758">"தேர்ந்தெடுக்கப்படவில்லை"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"நீங்கள் தேர்ந்தெடுத்த மீடியா தயாராகிறது"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> / <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> தயாராக உள்ளது"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"காப்புப் பிரதி எடுக்கப்பட்ட படங்கள் இப்போது சேர்க்கப்பட்டுள்ளன"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> ஆப்ஸில் <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> கணக்கிலிருந்தும் படங்களைத் தேர்ந்தெடுக்கலாம்"</string>
@@ -153,10 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"பாதுகாப்பு வளையம்"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"நேட்டிவ் குறிமாற்ற விழிப்பூட்டல்கள்"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"நேட்டிவ் குறிமாற்றச் செயல்நிலை"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
     <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"சில படங்களைப் பதிவேற்ற முடியவில்லை"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"சரி"</string>
 </resources>

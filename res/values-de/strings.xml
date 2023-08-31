@@ -46,12 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Zugriff auf Cloud-Medien aus"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Keine"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Ändern der Cloud-Medien-App derzeit nicht möglich."</string>
-    <!-- no translation found for picker_sync_notification_channel (1867105708912627993) -->
-    <skip />
-    <!-- no translation found for picker_sync_notification_title (1122713382122055246) -->
-    <skip />
-    <!-- no translation found for picker_sync_notification_text (8204423917712309382) -->
-    <skip />
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Media-Auswahl"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Media-Auswahl"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Medien werden synchronisiert…"</string>
     <string name="add" msgid="2894574044585549298">"Hinzufügen"</string>
     <string name="deselect" msgid="4297825044827769490">"Auswahl aufheben"</string>
     <string name="deselected" msgid="8488133193326208475">"Auswahl aufgehoben"</string>
@@ -99,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Prüfe deine Internetverbindung und versuche es noch einmal"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Wiederholen"</string>
     <string name="not_selected" msgid="2244008151669896758">"nicht ausgewählt"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Ausgewählte Medien werden vorbereitet"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> von <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> fertig"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Gesicherte Fotos jetzt mit berücksichtigt"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Du kannst Fotos aus dem <xliff:g id="APP_NAME">%1$s</xliff:g>-Konto <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> auswählen"</string>
@@ -156,10 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Schutz"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Warnmeldungen bei nativer Transcodierung"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Fortschritt bei nativer Transcodierung"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
     <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"Einige Fotos konnten nicht geladen werden"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Ok"</string>
 </resources>

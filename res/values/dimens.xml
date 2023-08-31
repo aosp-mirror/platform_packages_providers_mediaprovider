@@ -19,6 +19,7 @@
     <dimen name="permission_thumb_size">64dp</dimen>
     <dimen name="permission_thumb_margin">6dp</dimen>
     <dimen name="dialog_space">20dp</dimen>
+    <dimen name="button_touch_size">48dp</dimen>
 
     <!-- PhotoPicker -->
     <dimen name="picker_top_corner_radius">28dp</dimen>

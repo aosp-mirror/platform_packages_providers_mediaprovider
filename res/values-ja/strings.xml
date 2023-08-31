@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"メディア"</string>
     <string name="storage_description" msgid="4081716890357580107">"ローカル ストレージ"</string>
     <string name="app_label" msgid="9035307001052716210">"メディア ストレージ"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"メディア"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"メディアの選択"</string>
     <string name="artist_label" msgid="8105600993099120273">"アーティスト"</string>
     <string name="unknown" msgid="2059049215682829375">"不明"</string>
     <string name="root_images" msgid="5861633549189045666">"画像"</string>
@@ -46,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"クラウド メディアへのアクセス元"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"なし"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"クラウド メディアアプリを変更できませんでした。"</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"メディアの選択"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"メディアの選択"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"メディアを同期しています…"</string>
     <string name="add" msgid="2894574044585549298">"追加"</string>
     <string name="deselect" msgid="4297825044827769490">"選択を解除"</string>
     <string name="deselected" msgid="8488133193326208475">"選択解除済み"</string>
@@ -63,7 +66,7 @@
     <string name="picker_work_profile" msgid="2083221066869141576">"仕事用に切り替える"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"個人用に切り替える"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"管理者によりブロックされています"</string>
-    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"個人用アプリから仕事用データにアクセスすることは認められていません"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"個人用アプリから仕事用データにアクセスすることは許可されていません"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"仕事用アプリから個人データにアクセスすることは認められていません"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"仕事用アプリ一時停止中"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"仕事用の写真を開くには、仕事用アプリを有効にしてからもう一度試してください。"</string>

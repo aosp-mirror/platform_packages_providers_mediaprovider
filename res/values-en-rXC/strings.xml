@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‎‎‏‎‏‏‏‎‏‎‎‏‏‎‏‏‎‎‏‎‏‏‎‎‏‎‎‏‏‏‎‏‎‏‎‏‎‏‏‏‏‎‏‏‏‏‏‎‏‎‏‏‎‎‏‏‏‏‎‏‎Check your internet connection and try again‎‏‎‎‏‎"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‎‏‎‏‎‎‏‏‎‎‏‏‎‏‏‏‎‏‎‏‎‎‏‏‎‏‎‏‎‎‎‎‎‎‏‎‏‎‏‏‎‏‎‏‏‎‎‏‎‏‏‎‏‎‎‏‏‎‎‎‎‎Retry‎‏‎‎‏‎"</string>
     <string name="not_selected" msgid="2244008151669896758">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‏‏‏‏‎‎‏‎‎‏‎‎‎‏‎‏‎‎‎‏‏‎‎‎‎‏‏‎‎‏‎‏‎‎‎‏‎‏‎‏‏‏‎‏‎‏‏‏‎‏‏‎‎‎‏‏‎‏‏‎‎not selected‎‏‎‎‏‎"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‎‏‎‏‎‎‎‎‏‎‎‎‎‏‏‎‏‏‏‏‎‏‎‏‏‎‏‎‎‏‎‎‎‎‎‎‎‏‏‎‎‎‎‎‏‎‏‏‎‏‏‏‏‎‎‏‎‏‏‏‎Preparing your selected media‎‏‎‎‏‎"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‎‎‎‏‏‏‎‎‏‏‎‎‏‎‎‏‎‎‏‏‏‏‏‎‏‎‎‏‎‏‎‏‎‎‏‎‎‏‎‏‎‎‎‎‏‏‎‏‎‎‎‎‎‎‏‎‎‏‏‎‎‎‏‎‎‏‏‎<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>‎‏‎‎‏‏‏‎ of ‎‏‎‎‏‏‎<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>‎‏‎‎‏‏‏‎ ready‎‏‎‎‏‎"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‎‎‏‎‎‎‎‎‏‏‏‏‎‎‎‏‏‎‏‎‎‏‎‎‏‎‏‎‏‏‎‎‏‎‎‏‏‏‎‎‎‎‏‏‏‏‏‎‎‏‏‎‎‏‏‎‏‎‏‏‎Backed up photos now included‎‏‎‎‏‎"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‏‏‎‏‎‏‎‎‏‏‏‏‏‏‎‏‏‏‏‏‎‎‏‎‎‎‎‏‎‏‎‏‎‏‎‏‏‏‎‏‏‏‏‏‎‎‎‎‎‏‏‏‏‏‎‏‎‏‏‏‎You can select photos from ‎‏‎‎‏‏‎<xliff:g id="APP_NAME">%1$s</xliff:g>‎‏‎‎‏‏‏‎ account ‎‏‎‎‏‏‎<xliff:g id="USER_ACCOUNT">%2$s</xliff:g>‎‏‎‎‏‏‏‎‎‏‎‎‏‎"</string>
@@ -153,10 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‏‏‎‏‎‎‏‎‏‏‏‎‎‎‏‎‏‏‎‏‎‏‏‎‏‏‏‏‏‏‎‏‎‎‏‎‎‎‏‏‏‎‏‏‏‎‎‎‎‎‏‏‎‏‏‎‎‏‏‏‎Safety protection‎‏‎‎‏‎"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‎‏‏‎‏‏‏‎‏‎‏‏‏‎‎‏‏‏‏‎‎‏‎‎‎‎‎‏‎‎‎‎‎‏‏‎‏‏‎‎‏‏‏‎‏‎‏‎‎‎‏‏‏‎‏‎‏‏‏‏‎‎Native Transcode Alerts‎‏‎‎‏‎"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‏‏‏‏‏‏‎‏‎‎‏‏‏‏‏‏‏‎‎‏‎‏‎‏‎‎‏‎‏‏‎‏‏‎‏‎‎‎‏‏‏‎‏‏‎‏‎‏‎‏‎‏‎‏‎‏‎‎‏‏‎Native Transcode Progress‎‏‎‎‏‎"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
-    <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‎‏‏‏‎‎‎‎‏‏‏‏‎‏‏‎‏‏‎‏‏‏‏‏‎‏‏‎‎‎‎‎‎‏‎‎‎‎‏‏‎‏‏‏‏‎‏‎‎‏‏‎‎‏‎‎‎‏‏‎‎Try again later. Your photos will be available once the issue is resolved.‎‏‎‎‏‎"</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‎‏‎‎‎‏‏‎‏‎‏‎‎‏‏‎‎‎‏‎‎‎‏‎‎‏‏‎‏‎‏‏‎‎‏‏‎‏‎‎‎‏‎‎‎‎‏‎‏‏‎‏‎‏‏‎‏‏‏‎‎‎Can\'t load some Photos‎‏‎‎‏‎"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‎‏‏‏‎‎‏‏‏‎‎‎‎‎‎‏‎‎‏‏‎‏‏‏‏‏‎‏‎‎‏‏‏‎‏‎‏‎‏‏‎‎‎‎‏‎‎‎‏‎‏‏‏‏‎‎‏‏‏‎‎‎‎Got it‎‏‎‎‏‎"</string>
 </resources>

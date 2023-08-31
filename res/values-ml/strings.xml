@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"നിങ്ങളുടെ ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"വീണ്ടും ശ്രമിക്കുക"</string>
     <string name="not_selected" msgid="2244008151669896758">"തിരഞ്ഞെടുത്തിട്ടില്ല"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"നിങ്ങൾ തിരഞ്ഞെടുത്ത മീഡിയ തയ്യാറാക്കുന്നു"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>-ൽ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> എണ്ണം തയ്യാറാണ്"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ബാക്കപ്പ് ചെയ്ത ഫോട്ടോകൾ ഇപ്പോൾ ഉൾപ്പെടുത്തിയിരിക്കുന്നു"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"നിങ്ങൾക്ക് <xliff:g id="APP_NAME">%1$s</xliff:g> അക്കൗണ്ടിൽ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> നിന്ന് ഫോട്ടോകൾ തിരഞ്ഞെടുക്കാം"</string>
@@ -153,10 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"സുരക്ഷാ പരിരക്ഷ"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"നേറ്റീവ് ട്രാൻസ്കോഡ് മുന്നറിയിപ്പുകൾ"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"നേറ്റീവ് ട്രാൻസ്കോഡ് പുരോഗതി"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
     <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"ചില ഫോട്ടോകൾ ലോഡ് ചെയ്യാനാകുന്നില്ല"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"മനസ്സിലായി"</string>
 </resources>

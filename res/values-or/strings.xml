@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ଆପଣଙ୍କ ଇଣ୍ଟରନେଟ କନେକ୍ସନ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
     <string name="not_selected" msgid="2244008151669896758">"ଚୟନ କରାଯାଇନାହିଁ"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"ଆପଣଙ୍କ ଚୟନିତ ମିଡିଆକୁ ପ୍ରସ୍ତୁତ କରାଯାଉଛି"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>ରୁ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>ଟି ପ୍ରସ୍ତୁତ ଅଛି"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ବ୍ୟାକଅପ ନିଆଯାଇଥିବା ଫଟୋଗୁଡ଼ିକୁ ବର୍ତ୍ତମାନ ଅନ୍ତର୍ଭୁକ୍ତ କରାଯାଇଛି"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ଆପଣ <xliff:g id="APP_NAME">%1$s</xliff:g> ଆକାଉଣ୍ଟ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>ରୁ ଫଟୋଗୁଡ଼ିକୁ ଚୟନ କରିପାରିବେ"</string>
@@ -153,10 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"ସୁରକ୍ଷିତ ସୁରକ୍ଷା"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"ନେଟିଭ ଟ୍ରାନ୍ସକୋଡ ଆଲର୍ଟ"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"ନେଟିଭ ଟ୍ରାନ୍ସକୋଡ ପ୍ରୋଗ୍ରେସ"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
     <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"କିଛି ଫଟୋ ଲୋଡ କରାଯାଇପାରିବ ନାହିଁ"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"ବୁଝିଗଲି"</string>
 </resources>

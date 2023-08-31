@@ -70,7 +70,7 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Prístup k osobným údajom z pracovnej aplikácie nie je povolený"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Pracovné aplikácie sú pozastavené"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ak chcete otvoriť pracovné fotky, zapnite pracovné aplikácie a skúste to znova"</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"Táto aplikácia môže mať prístup iba k fotkám, ktoré vyberiete"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Táto aplikácia má prístup iba k fotkám, ktoré vyberiete"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Vyberte fotky a videá, ku ktorým má mať táto aplikácia prístup"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> položka}few{<xliff:g id="COUNT_1">^1</xliff:g> položky}many{<xliff:g id="COUNT_1">^1</xliff:g> items}other{<xliff:g id="COUNT_1">^1</xliff:g> položiek}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Pridať (<xliff:g id="COUNT">^1</xliff:g>)"</string>
@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Skontrolujte internetové pripojenie a skúste to znova"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Skúsiť znova"</string>
     <string name="not_selected" msgid="2244008151669896758">"nevybrané"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Pripravujú sa vybrané médiá"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Pripravené: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> z <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Zálohované fotky sú teraz zahrnuté"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Môžete vybrať fotky z účtu <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> aplikácie <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
@@ -153,10 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Bezpečnosť"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Upozornenia natívneho prekódovania"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Postup natívneho prekódovania"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
     <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"Niektoré fotky sa nedajú načítať"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Dobre"</string>
 </resources>

@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Проверьте подключение к интернету и повторите попытку."</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Повторить"</string>
     <string name="not_selected" msgid="2244008151669896758">"не выбрано"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Подготовка выбранных медиафайлов"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Предзагрузка: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> из <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Теперь можно выбирать фотографии в облаке"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Вы можете выбрать фотографии из аккаунта <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> приложения \"<xliff:g id="APP_NAME">%1$s</xliff:g>\"."</string>
@@ -153,10 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Защита безопасности"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Уведомления нативного перекодирования"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Прогресс нативного перекодирования"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
     <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"Не удается загрузить некоторые фотографии"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"ОК"</string>
 </resources>

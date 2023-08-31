@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"请检查互联网连接，然后重试"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"重试"</string>
     <string name="not_selected" msgid="2244008151669896758">"未选择"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"正在准备您选择的媒体"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> 个已准备就绪，共 <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> 个"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"备份照片现已添加完成"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"您可以选择来自<xliff:g id="APP_NAME">%1$s</xliff:g>账号 <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> 的照片"</string>
@@ -153,10 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"安全保护"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"原生转码警报"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"原生转码进度"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
     <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"部分照片无法加载"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"知道了"</string>
 </resources>

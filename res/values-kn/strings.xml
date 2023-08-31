@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ನಿಮ್ಮ ಇಂಟರ್ನೆಟ್ ಕನೆಕ್ಷನ್ ಅನ್ನು ಪರಿಶೀಲಿಸಿ ಹಾಗೂ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ಮರುಪ್ರಯತ್ನಿಸಿ"</string>
     <string name="not_selected" msgid="2244008151669896758">"ಆಯ್ಕೆಮಾಡಲಾಗಿಲ್ಲ"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"ನಿಮ್ಮ ಆಯ್ಕೆಮಾಡಿದ ಮೀಡಿಯಾವನ್ನು ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ರಲ್ಲಿ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> ಸಿದ್ಧವಾಗಿವೆ"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ಬ್ಯಾಕಪ್ ಮಾಡಲಾದ ಫೋಟೋಗಳನ್ನು ಈಗ ಸೇರಿಸಲಾಗಿದೆ"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> ಖಾತೆಯ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ನಲ್ಲಿರುವ ಫೋಟೋಗಳನ್ನು ನೀವು ಆಯ್ಕೆಮಾಡಬಹುದು"</string>
@@ -153,10 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"ಭದ್ರತಾ ರಕ್ಷಣೆ"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"ನೇಟಿವ್ ಟ್ರಾನ್ಸ್‌ಕೋಡ್ ಅಲರ್ಟ್‌ಗಳು"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"ನೇಟಿವ್ ಟ್ರಾನ್ಸ್‌ಕೋಡ್ ಪ್ರಗತಿ"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
     <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"ಕೆಲವು ಫೋಟೋಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"ಅರ್ಥವಾಯಿತು"</string>
 </resources>

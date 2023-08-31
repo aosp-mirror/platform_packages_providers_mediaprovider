@@ -23,6 +23,7 @@ import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -95,7 +96,15 @@ class MediaGrants {
                         values.put(FILE_ID_COLUMN, id);
                         values.put(PACKAGE_USER_ID_COLUMN, packageUserId);
 
-                        mQueryBuilder.insert(db, values);
+                        try {
+                            mQueryBuilder.insert(db, values);
+                        } catch (SQLiteConstraintException exception) {
+                            // no-op
+                            // this may happen due to the presence of a foreign key between the
+                            // media_grants and files table. An SQLiteConstraintException
+                            // exception my occur if: while inserting the grant for a file, the
+                            // file itself is deleted. In this situation no operation is required.
+                        }
                     }
 
                     Log.d(

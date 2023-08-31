@@ -62,7 +62,6 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.ConfigStore;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.PickerSyncController;
@@ -90,6 +89,8 @@ import java.util.concurrent.TimeUnit;
 public class PickerViewModelTest {
     private static final String FAKE_CATEGORY_NAME = "testCategoryName";
     private static final String FAKE_ID = "5";
+    private static final String FAKE_CLOUD_MEDIA_PROVIDER_PACKAGE_NAME =
+            "com.hooli.super.awesome.cloud.provider";
     private static final Context sTargetContext = getInstrumentation().getTargetContext();
 
     @Rule
@@ -112,20 +113,23 @@ public class PickerViewModelTest {
         when(mApplication.getApplicationContext()).thenReturn(sTargetContext);
         mConfigStore = new TestConfigStore();
         mConfigStore.enableCloudMediaFeature();
+        mConfigStore.setAllowedCloudProviderPackages(
+                new String[]{FAKE_CLOUD_MEDIA_PROVIDER_PACKAGE_NAME});
         getInstrumentation().runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
                 @Override
-                protected ConfigStore getConfigStore() {
-                    return mConfigStore;
+                protected void initConfigStore() {
+                    setConfigStore(mConfigStore);
                 }
             };
         });
         mItemsProvider = new TestItemsProvider(sTargetContext);
         mPickerViewModel.setItemsProvider(mItemsProvider);
-        UserIdManager userIdManager = mock(UserIdManager.class);
+        final UserIdManager userIdManager = mock(UserIdManager.class);
         when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
         mPickerViewModel.setUserIdManager(userIdManager);
-        final BannerManager bannerManager = new BannerManager(sTargetContext, userIdManager);
+        final BannerManager bannerManager = new BannerManager(sTargetContext, userIdManager,
+                mConfigStore);
         mPickerViewModel.setBannerManager(bannerManager);
     }
 

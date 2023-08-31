@@ -34,6 +34,7 @@ import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.DeviceConfig;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
@@ -178,6 +179,7 @@ public class StableUriIdleMaintenanceServiceTest {
                 BackupIdRow backupIdRow = BackupIdRow.deserialize(
                         MediaStore.readBackup(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY,
                                 filePath));
+                Log.i(TAG, "BackupIdRow is " + backupIdRow);
                 assertNotNull(backupIdRow);
                 assertEquals(pathToIdMap.get(filePath).longValue(), backupIdRow.getId());
                 assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());

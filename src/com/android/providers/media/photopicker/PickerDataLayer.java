@@ -83,6 +83,8 @@ public class PickerDataLayer {
 
     public static final String QUERY_DATE_TAKEN_BEFORE_MS = "android:query-date-taken-before-ms";
 
+    public static final String QUERY_LOCAL_ID_SELECTION = "android:query-local-id-selection";
+
     public static final String QUERY_ROW_ID = "android:query-row-id";
 
     // Thread pool size should be at least equal to the number of unique work requests in

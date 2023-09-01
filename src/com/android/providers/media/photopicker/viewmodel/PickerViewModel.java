@@ -47,6 +47,8 @@ import android.content.pm.ProviderInfo;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.os.CancellationSignal;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
@@ -98,12 +100,16 @@ public class PickerViewModel extends AndroidViewModel {
     private static final int INSTANCE_ID_MAX = 1 << 15;
     private static final int DELAY_MILLIS = 0;
 
+    // Token for the tasks to load the category items in the data loader thread's queue
+    private final Object mLoadCategoryItemsThreadToken = new Object();
+
     @NonNull
     @SuppressLint("StaticFieldLeak")
     private final Context mAppContext;
 
     private final Selection mSelection;
     private final MuteStatus mMuteStatus;
+    public boolean mEmptyPageDisplayed = false;
 
     // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
     //  data set to reduce memories.
@@ -148,7 +154,6 @@ public class PickerViewModel extends AndroidViewModel {
     // Note - Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
     private boolean mIsUserSelectForApp;
     private boolean mIsLocalOnly;
-    private boolean mIsAllItemsLoaded = false;
     private boolean mIsAllCategoryItemsLoaded = false;
     private boolean mIsNotificationForUpdateReceived = false;
     private CancellationSignal mCancellationSignal = new CancellationSignal();
@@ -190,13 +195,20 @@ public class PickerViewModel extends AndroidViewModel {
         // Signal ContentProvider to cancel currently running task.
         mCancellationSignal.cancel();
 
-        // Clear queued tasks in handler.
-        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
+        clearQueuedTasksInDataLoaderThread();
     }
 
     private void onNotificationReceived() {
         Log.d(TAG, "Notification for media update has been received");
         mIsNotificationForUpdateReceived = true;
+        if (mEmptyPageDisplayed && mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
+            (new Handler(Looper.getMainLooper())).post(() -> {
+                Log.d(TAG, "Refreshing UI to display new items.");
+                mEmptyPageDisplayed = false;
+                getPaginatedItemsForAction(ACTION_REFRESH_ITEMS,
+                        new PaginationParameters(mItemsPageSize, -1, -1));
+            });
+        }
     }
 
     @VisibleForTesting
@@ -232,6 +244,10 @@ public class PickerViewModel extends AndroidViewModel {
     @VisibleForTesting
     public void setConfigStore(@NonNull ConfigStore configStore) {
         mConfigStore = configStore;
+    }
+
+    public void setEmptyPageDisplayed(boolean emptyPageDisplayed) {
+        mEmptyPageDisplayed = emptyPageDisplayed;
     }
 
     /**
@@ -300,6 +316,15 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * @return the account selection activity {@link Intent} of the current
+     *         {@link android.provider.CloudMediaProvider}.
+     */
+    @Nullable
+    public Intent getChooseCloudMediaAccountActivityIntent() {
+        return mBannerManager.getChooseCloudMediaAccountActivityIntent();
+    }
+
+    /**
      * Reset to personal profile mode.
      */
     @UiThread
@@ -327,8 +352,7 @@ public class PickerViewModel extends AndroidViewModel {
         // Post 'should refresh UI live data' value as false to avoid unnecessary repetitive resets
         mShouldRefreshUiLiveData.postValue(false);
 
-        // Clear queued tasks in handler.
-        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
+        clearQueuedTasksInDataLoaderThread();
 
         initPhotoPickerData();
 
@@ -394,8 +418,8 @@ public class PickerViewModel extends AndroidViewModel {
                 // number of items. This will be equal to page size for pagination if cloud
                 // picker feature flag is enabled, else it will be -1 implying that the complete
                 // list should be loaded.
-                updatePaginatedItems(new PaginationParameters(mItemsPageSize, -1,
-                        -1), /* isReset */ true, action);
+                updatePaginatedItems(new PaginationParameters(mItemsPageSize,
+                        /*dateBeforeMs*/ Long.MIN_VALUE, /*rowId*/ -1), /* isReset */ true, action);
                 break;
             }
             case ACTION_REFRESH_ITEMS: {
@@ -440,9 +464,6 @@ public class PickerViewModel extends AndroidViewModel {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
 
         DataLoaderThread.getHandler().postDelayed(() -> {
-            if (action == ACTION_LOAD_NEXT_PAGE && mIsAllItemsLoaded) {
-                return;
-            }
             // Load the items as per the pagination parameters passed as params to this method.
             List<Item> newPageItemList = loadItems(Category.DEFAULT, userId, pagingParameters);
 
@@ -453,13 +474,8 @@ public class PickerViewModel extends AndroidViewModel {
                     mItemsResult.getValue() == null || isReset ? new ArrayList<>()
                             : mItemsResult.getValue().getItems();
             updatedList.addAll(newPageItemList);
-
-            if (isReset) {
-                mIsAllItemsLoaded = false;
-            }
             Log.d(TAG, "Next page for photos items have been loaded.");
             if (newPageItemList.isEmpty()) {
-                mIsAllItemsLoaded = true;
                 Log.d(TAG, "All photos items have been loaded.");
             }
 
@@ -527,7 +543,10 @@ public class PickerViewModel extends AndroidViewModel {
         switch (action) {
             case ACTION_VIEW_CREATED: {
                 // This call is made only for loading the first page of album media,
-                // hence the category and category item list should be refreshed each time.
+                // so the existing data loader thread tasks for updating the category items should
+                // be cleared and the category and category item list should be refreshed each time.
+                DataLoaderThread.getHandler().removeCallbacksAndMessages(
+                        mLoadCategoryItemsThreadToken);
                 mCategoryItemsResult = new MutableLiveData<>();
                 mCurrentCategory = category;
                 assert paginationParameters != null;
@@ -590,13 +609,14 @@ public class PickerViewModel extends AndroidViewModel {
     private void loadCategoryItemsAsync(PaginationParameters pagingParameters, boolean isReset,
             @ItemsAction.Type int action) {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
+        final Category category = mCurrentCategory;
 
         DataLoaderThread.getHandler().postDelayed(() -> {
             if (action == ACTION_LOAD_NEXT_PAGE && mIsAllCategoryItemsLoaded) {
                 return;
             }
             // Load the items as per the pagination parameters passed as params to this method.
-            List<Item> newPageItemList = loadItems(mCurrentCategory, userId, pagingParameters);
+            List<Item> newPageItemList = loadItems(category, userId, pagingParameters);
 
             // Based on if it is a reset case or not, create an updated list.
             // If it is a reset case, assign an empty list else use the contents of the pre-existing
@@ -609,13 +629,15 @@ public class PickerViewModel extends AndroidViewModel {
                 mIsAllCategoryItemsLoaded = false;
             }
             Log.d(TAG, "Next page for category items have been loaded. Category: "
-                    + mCurrentCategory + " " + updatedList.size());
+                    + category + " " + updatedList.size());
             if (newPageItemList.isEmpty()) {
                 mIsAllCategoryItemsLoaded = true;
                 Log.d(TAG, "All items have been loaded for category: " + mCurrentCategory);
             }
-            mCategoryItemsResult.postValue(new PaginatedItemsResult(updatedList, action));
-        }, TOKEN, DELAY_MILLIS);
+            if (Objects.equals(category, mCurrentCategory)) {
+                mCategoryItemsResult.postValue(new PaginatedItemsResult(updatedList, action));
+            }
+        }, mLoadCategoryItemsThreadToken, DELAY_MILLIS);
     }
 
     /**
@@ -1229,5 +1251,10 @@ public class PickerViewModel extends AndroidViewModel {
                         userId);
             }, TOKEN, DELAY_MILLIS);
         }
+    }
+
+    private void clearQueuedTasksInDataLoaderThread() {
+        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
+        DataLoaderThread.getHandler().removeCallbacksAndMessages(mLoadCategoryItemsThreadToken);
     }
 }

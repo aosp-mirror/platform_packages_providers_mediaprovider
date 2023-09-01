@@ -22,8 +22,10 @@ import static com.android.providers.media.photopicker.NotificationContentObserve
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -182,6 +184,78 @@ public class PickerSyncControllerTest {
             mController.setCloudProvider(/* authority */ null);
             mController.clearPersistedCloudProviderAuthority();
         }
+    }
+
+    @Test
+    public void testInitCloudProviderOnDeviceConfigChange() {
+
+        TestConfigStore configStore = new TestConfigStore();
+        configStore.disableCloudMediaFeature();
+
+        PickerSyncController controller =
+                PickerSyncController.initialize(mContext, mFacade, configStore);
+        assertThat(controller.getCurrentCloudProviderInfo()).isEqualTo(CloudProviderInfo.EMPTY);
+        configStore.setDefaultCloudProviderPackage(PACKAGE_NAME);
+        configStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
+        waitForIdle();
+
+        // Ensure the cloud provider is set to something. (The test package name here actually
+        // has multiple cloud providers in it, so just ensure something got set.)
+        assertThat(controller.getCurrentCloudProviderInfo().authority).isNotNull();
+
+        configStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
+        waitForIdle();
+
+        // Ensure the cloud provider is correctly nulled out when the config changes again.
+        assertThat(controller.getCurrentCloudProviderInfo().authority).isNull();
+    }
+
+    @Test
+    public void testSyncIsCancelledIfCloudProviderIsChanged() {
+
+        PickerSyncController controller = spy(mController);
+
+        // Ensure we return the appropriate authority until we actually enter the sync process,
+        // and then return a different authority than what the sync was started with to simulate
+        // a cloud provider changing.
+        doReturn(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
+                CLOUD_SECONDARY_PROVIDER_AUTHORITY)
+                .when(controller)
+                .getCloudProvider();
+
+        // Add local only media, we expect these to be successfully sync'd from the local provider.
+        addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
+        addMedia(mLocalMediaGenerator, LOCAL_ONLY_2);
+        mLocalMediaGenerator.setNextCursorExtras(
+                /* queryCount */ 2,
+                /* mediaCollectionId */ COLLECTION_1,
+                /* honoredSyncGeneration */ true,
+                /* honoredAlbumId */ false,
+                /* honoredPageSize */ true);
+
+        // Add cloud media, we should try to sync these, but not actually commit them since the
+        // cloud provider will be changed before the transaction can be committed.
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
+        mCloudPrimaryMediaGenerator.setNextCursorExtras(
+                /* queryCount */ 2,
+                /* mediaCollectionId */ COLLECTION_1,
+                /* honoredSyncGeneration */ true,
+                /* honoredAlbumId */ false,
+                /* honoredPageSize */ true);
+
+        controller.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        controller.syncAllMedia();
+
+        // The cursor should only contain the items from the local provider. (Even though we've
+        // aded a total of 4 items to the linked providers.)
+        try (Cursor cr = queryMedia()) {
+            assertThat(cr.getCount()).isEqualTo(2);
+
+            assertCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER_AUTHORITY);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
     }
 
     @Test
@@ -351,29 +425,6 @@ public class PickerSyncControllerTest {
             assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
-    }
-
-    @Test
-    public void testSyncAllMediaResetsAlbumMedia() {
-        // 1. Set primary cloud provider
-        setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
-        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
-
-        // 2. Add album_media
-        addAlbumMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1.first, CLOUD_ONLY_1.second,
-                ALBUM_ID_1);
-        addAlbumMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2.first, CLOUD_ONLY_2.second,
-                ALBUM_ID_1);
-        mController.syncAlbumMedia(ALBUM_ID_1, false);
-
-        // 3. Assert non-empty album_media
-        try (Cursor cr = queryAlbumMedia(ALBUM_ID_1, false)) {
-            assertThat(cr.getCount()).isEqualTo(2);
-        }
-
-        // 4. Sync all media and assert empty album_media
-        mController.syncAllMedia();
-        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
     }
 
     @Test
@@ -1245,7 +1296,7 @@ public class PickerSyncControllerTest {
     }
 
     @Test
-    public void testContentNotifications() throws Exception {
+    public void testContentAddNotifications() throws Exception {
         NotificationContentObserver observer = new NotificationContentObserver(null);
         observer.register(mContext.getContentResolver());
 
@@ -1277,6 +1328,36 @@ public class PickerSyncControllerTest {
         } finally {
             observer.unregister(mContext.getContentResolver());
         }
+    }
+
+    @Test
+    public void testContentDeleteNotifications() throws Exception {
+        NotificationContentObserver observer = new NotificationContentObserver(null);
+        observer.register(mContext.getContentResolver());
+
+        setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        CountDownLatch latch = new CountDownLatch(1);
+        NotificationContentObserver.ContentObserverCallback callback =
+                spy(new TestableContentObserverCallback(latch));
+        observer.registerKeysToObserverCallback(Arrays.asList(MEDIA), callback);
+
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
+        mController.syncAllMedia();
+        latch.await(2, TimeUnit.SECONDS);
+        verify(callback).onNotificationReceived(any(), any());
+
+        latch = new CountDownLatch(1);
+        callback = spy(new TestableContentObserverCallback(latch));
+        observer.registerKeysToObserverCallback(Arrays.asList(MEDIA), callback);
+
+        deleteMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        mController.syncAllMedia();
+        latch.await(2, TimeUnit.SECONDS);
+        verify(callback).onNotificationReceived(any(), any());
+
+        observer.unregister(mContext.getContentResolver());
     }
 
     @Test
@@ -1365,8 +1446,7 @@ public class PickerSyncControllerTest {
         final String authority = isLocal ? LOCAL_PROVIDER_AUTHORITY
                 : CLOUD_PRIMARY_PROVIDER_AUTHORITY;
         return mFacade.queryAlbumMediaForUi(
-                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId)
-                        .build(), authority, /* validateAlbumAuthority */ true);
+                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId).build(), authority);
     }
 
     private void assertEmptyCursorFromMediaQuery() {

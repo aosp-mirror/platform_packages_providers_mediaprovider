@@ -975,11 +975,14 @@ public class DatabaseBackupAndRecovery {
      */
     protected void removeRecoveryDataExceptValidUsers(List<String> validUsers) {
         List<String> xattrList = listXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH);
+        Log.i(TAG, "Xattr list is " + xattrList);
         if (xattrList.isEmpty()) {
             return;
         }
 
+        Log.i(TAG, "Valid users list is " + validUsers);
         List<String> invalidUsers = getInvalidUsersList(xattrList, validUsers);
+        Log.i(TAG, "Invalid users list is " + invalidUsers);
         for (String userIdToBeRemoved : invalidUsers) {
             removeRecoveryDataForUserId(Integer.parseInt(userIdToBeRemoved));
         }

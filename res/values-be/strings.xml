@@ -46,12 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Доступ да воблачных мультымедыя з:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Няма"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Воблачныя мультымедыйныя праграмы не зменены."</string>
-    <!-- no translation found for picker_sync_notification_channel (1867105708912627993) -->
-    <skip />
-    <!-- no translation found for picker_sync_notification_title (1122713382122055246) -->
-    <skip />
-    <!-- no translation found for picker_sync_notification_text (8204423917712309382) -->
-    <skip />
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Сродак выбару мультымедыя"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Сродак выбару мультымедыя"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Ідзе сінхранізацыя мультымедыя…"</string>
     <string name="add" msgid="2894574044585549298">"Дадаць"</string>
     <string name="deselect" msgid="4297825044827769490">"Адмяніць выбар"</string>
     <string name="deselected" msgid="8488133193326208475">"Выбар скасаваны"</string>
@@ -99,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Праверце падключэнне да інтэрнэту і паўтарыце спробу"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Паўтарыць спробу"</string>
     <string name="not_selected" msgid="2244008151669896758">"не выбраны"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Ідзе падрыхтоўка выбраных вамі медыяфайлаў"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Гатова: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> з <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Цяпер дададзены рэзервовыя копіі фотаздымкаў"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Вы можаце выбраць фотаздымкі з уліковага запісу <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> для праграмы \"<xliff:g id="APP_NAME">%1$s</xliff:g>\""</string>
@@ -156,10 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Ахова бяспекі"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Абвесткі пра ўбудаванае перакадзіраванне"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Ход убудаванага перакадзіравання"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
     <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"Некаторыя фота не ўдалося загрузіць"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
 </resources>

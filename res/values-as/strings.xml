@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"আপোনাৰ ইণ্টাৰনেট সংযোগ পৰীক্ষা কৰক আৰু পুনৰ চেষ্টা কৰক"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"পুনৰ চেষ্টা কৰক"</string>
     <string name="not_selected" msgid="2244008151669896758">"বাছনি কৰা হোৱা নাই"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"আপুনি বাছনি কৰা মিডিয়া সাজু কৰি থকা হৈছে"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> টা বস্তুৰ ভিতৰত <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> টা সাজু"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"এতিয়া বেকআপ লোৱা ফট’সমূহ অন্তৰ্ভুক্ত কৰা হৈছে"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"আপুনি <xliff:g id="APP_NAME">%1$s</xliff:g>ৰ একাউণ্টৰ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> পৰা ফট’সমূহ বাছনি কৰিব পাৰে"</string>
@@ -153,10 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"সুৰক্ষিত নিৰাপত্তা"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"স্থানীয় ট্ৰেন্সক’ড সতৰ্কবাৰ্তা"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"স্থানীয় ট্ৰেন্সক’ড অগ্ৰগতি"</string>
-    <!-- no translation found for dialog_error_message (1189707340166951261) -->
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
     <skip />
-    <!-- no translation found for dialog_error_title (636349284077820636) -->
-    <skip />
-    <!-- no translation found for dialog_button_text (351366485240852280) -->
-    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"কিছুমান ফট’ ল’ড কৰিব নোৱাৰি"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"বুজি পালোঁ"</string>
 </resources>

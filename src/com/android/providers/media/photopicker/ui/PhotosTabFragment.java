@@ -15,7 +15,6 @@
  */
 package com.android.providers.media.photopicker.ui;
 
-import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
@@ -44,7 +43,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -86,7 +84,6 @@ public class PhotosTabFragment extends TabFragment {
     private final Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
 
     private final Object mHideProgressBarToken = new Object();
-
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -133,6 +130,7 @@ public class PhotosTabFragment extends TabFragment {
         if (savedInstanceState == null) {
             initProgressBar(view);
         }
+        mSelection.clearCheckedItemList();
 
         final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
                 mImageLoader, mOnMediaItemClickListener, /* lifecycleOwner */ this,
@@ -153,7 +151,7 @@ public class PhotosTabFragment extends TabFragment {
                             ACTION_VIEW_CREATED,
                             new PaginationParameters(
                                     mPageSize,
-                                    /* dateBeforeMs */ -1,
+                                    /* dateBeforeMs */ Long.MIN_VALUE,
                                     /* rowId */ -1))
                     .observe(this, itemListResult -> {
                         onChangeMediaItems(itemListResult, adapter);
@@ -170,7 +168,7 @@ public class PhotosTabFragment extends TabFragment {
                             ACTION_VIEW_CREATED,
                             new PaginationParameters(
                                      mPageSize,
-                                    /* dateBeforeMs */ -1,
+                                    /* dateBeforeMs */ Long.MIN_VALUE,
                                     /* rowId */ -1))
                     .observe(this, itemListResult -> {
                         onChangeMediaItems(itemListResult, adapter);
@@ -190,8 +188,21 @@ public class PhotosTabFragment extends TabFragment {
         if (mIsCloudMediaInPhotoPickerEnabled) {
             setOnScrollListenerForRecyclerView();
         }
-    }
 
+        // uncheck the unavailable items at UI those are no longer available in the selection list
+        getPickerActivity().isItemPhotoGridViewChanged()
+                .observe(this, isItemViewChanged -> {
+                    if (isItemViewChanged) {
+                        // To re-bind the view just to uncheck the unavailable media items at UI
+                        // Size of mCheckItems is going to be constant ( Iterating over mCheckItems
+                        // is not a heavy operation)
+                        for (Integer index : mSelection.getCheckedItemsIndexes()) {
+                            adapter.notifyItemChanged(index);
+                        }
+                    }
+                }
+        );
+    }
 
     private void initProgressBar(@NonNull View view) {
         // Check feature flag for cloud media and if it is not true then hide progress bar and
@@ -281,7 +292,6 @@ public class PhotosTabFragment extends TabFragment {
     @Override
     public void onResume() {
         super.onResume();
-
         final String title;
         final LayoutModeUtils.Mode layoutMode;
         final boolean shouldHideProfileButton;
@@ -311,7 +321,8 @@ public class PhotosTabFragment extends TabFragment {
                 mPickerViewModel.getPaginatedItemsForAction(
                         ACTION_REFRESH_ITEMS,
                         new PaginationParameters(firstVisibleItemPosition
-                                + PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS, -1, -1));
+                                + PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS,
+                                /*dateBeforeMs*/ Long.MIN_VALUE, -1));
             }
         }
     }
@@ -325,7 +336,11 @@ public class PhotosTabFragment extends TabFragment {
         } else {
             adapter.setMediaItems(itemList.getItems(), itemList.getAction());
             // Handle emptyView's visibility
-            updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.getItems().size() == 0);
+            boolean shouldShowEmptyView = (itemList.getItems().size() == 0);
+            updateVisibilityForEmptyView(shouldShowEmptyView);
+            if (shouldShowEmptyView) {
+                mPickerViewModel.setEmptyPageDisplayed(true);
+            }
         }
         mIsCurrentPageLoading = false;
         mAtLeastOnePageLoaded = true;
@@ -342,12 +357,15 @@ public class PhotosTabFragment extends TabFragment {
             new PhotosTabAdapter.OnMediaItemClickListener() {
                 @Override
                 public void onItemClick(@NonNull View view, int position) {
+
                     if (mSelection.canSelectMultiple()) {
                         final boolean isSelectedBefore = view.isSelected();
 
                         if (isSelectedBefore) {
                             mSelection.removeSelectedItem((Item) view.getTag());
+                            mSelection.removeCheckedItemIndex((Item) view.getTag());
                         } else {
+                            mSelection.addCheckedItemIndex((Item) view.getTag(), position);
                             if (!mSelection.isSelectionAllowed()) {
                                 final int maxCount = mSelection.getMaxSelectionLimit();
                                 final CharSequence quantityText =
@@ -366,6 +384,7 @@ public class PhotosTabFragment extends TabFragment {
                             }
                         }
                         view.setSelected(!isSelectedBefore);
+
                         // There is an issue b/223695510 about not selected in Accessibility mode.
                         // It only says selected state, but it doesn't say not selected state.
                         // Add the not selected only to avoid that it says selected twice.
@@ -487,11 +506,10 @@ public class PhotosTabFragment extends TabFragment {
             mProgressBar.setVisibility(View.VISIBLE);
         }
     }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
         mMainThreadHandler.removeCallbacksAndMessages(mHideProgressBarToken);
-        // Clear queued tasks in handler.
-        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
     }
 }

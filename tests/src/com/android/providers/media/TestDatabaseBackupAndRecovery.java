@@ -75,7 +75,7 @@ public class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
     }
 
     @Override
-    protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath, long waitTime)
+    protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath)
             throws FileNotFoundException {
         return null;
     }

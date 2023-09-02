@@ -21,6 +21,8 @@ import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.m
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewAlbumMediaSyncRequests;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewSyncRequests;
 
+import static java.util.Objects.requireNonNull;
+
 import android.content.Context;
 import android.util.Log;
 
@@ -34,6 +36,7 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.Operation;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 
@@ -41,10 +44,13 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -88,11 +94,10 @@ public class PickerSyncManager {
 
     private static final String PERIODIC_SYNC_WORK_NAME;
     private static final String PROACTIVE_SYNC_WORK_NAME;
-    private static final String IMMEDIATE_LOCAL_SYNC_WORK_NAME;
+    public static final String IMMEDIATE_LOCAL_SYNC_WORK_NAME;
     private static final String IMMEDIATE_CLOUD_SYNC_WORK_NAME;
-    private static final String IMMEDIATE_ALBUM_SYNC_WORK_NAME;
+    public static final String IMMEDIATE_ALBUM_SYNC_WORK_NAME;
     private static final String PERIODIC_ALBUM_RESET_WORK_NAME;
-
 
     static {
         final String syncPeriodicPrefix = "SYNC_MEDIA_PERIODIC_";
@@ -118,9 +123,9 @@ public class PickerSyncManager {
             @NonNull Context context,
             @NonNull ConfigStore configStore,
             boolean shouldSchedulePeriodicSyncs) {
-        mWorkManager = workManager;
-        mConfigStore = configStore;
-        mContext = context;
+        mWorkManager = requireNonNull(workManager);
+        mConfigStore = requireNonNull(configStore);
+        mContext = requireNonNull(context);
 
         if (shouldSchedulePeriodicSyncs) {
             setUpPeriodicWork();
@@ -146,6 +151,27 @@ public class PickerSyncManager {
             // Disable any scheduled ongoing work if the feature is disabled.
             mWorkManager.cancelUniqueWork(PERIODIC_SYNC_WORK_NAME);
             mWorkManager.cancelUniqueWork(PERIODIC_ALBUM_RESET_WORK_NAME);
+        }
+    }
+
+    /**
+     * Returns true if the given unique work is pending. In case the unique work is complete or
+     * there was an error in getting the work state, it returns false.
+     */
+    public boolean isUniqueWorkPending(String uniqueWorkName) {
+        ListenableFuture<List<WorkInfo>> future =
+                mWorkManager.getWorkInfosForUniqueWork(uniqueWorkName);
+        try {
+            List<WorkInfo> workInfos = future.get();
+            for (WorkInfo workInfo : workInfos) {
+                if (!workInfo.getState().isFinished()) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (InterruptedException | ExecutionException e) {
+            Log.e(TAG, "Error occurred in fetching work info - ignore pending work");
+            return false;
         }
     }
 

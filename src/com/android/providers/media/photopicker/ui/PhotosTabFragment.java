@@ -336,7 +336,11 @@ public class PhotosTabFragment extends TabFragment {
         } else {
             adapter.setMediaItems(itemList.getItems(), itemList.getAction());
             // Handle emptyView's visibility
-            updateVisibilityForEmptyView(/* shouldShowEmptyView */ itemList.getItems().size() == 0);
+            boolean shouldShowEmptyView = (itemList.getItems().size() == 0);
+            updateVisibilityForEmptyView(shouldShowEmptyView);
+            if (shouldShowEmptyView) {
+                mPickerViewModel.setEmptyPageDisplayed(true);
+            }
         }
         mIsCurrentPageLoading = false;
         mAtLeastOnePageLoaded = true;

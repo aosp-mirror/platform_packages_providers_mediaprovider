@@ -1311,7 +1311,7 @@ public class MediaProvider extends ContentProvider {
 
         mPickerSyncController = PickerSyncController.initialize(context, mPickerDbFacade,
                 mConfigStore);
-        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController,
+        mPickerDataLayer = PickerDataLayer.create(context, mPickerDbFacade, mPickerSyncController,
                 mConfigStore);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper);
 
@@ -1320,9 +1320,6 @@ public class MediaProvider extends ContentProvider {
         } else {
             mTranscodeHelper = new TranscodeHelperNoOp();
         }
-
-        // Create dir for redacted and picker URI paths.
-        buildPrimaryVolumeFile(uidToUserId(MY_UID), getRedactedRelativePath()).mkdirs();
 
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
@@ -6810,10 +6807,15 @@ public class MediaProvider extends ContentProvider {
                 return bundle;
             }
             case MediaStore.IS_CURRENT_CLOUD_PROVIDER_CALL: {
-                final boolean isEnabled = mPickerSyncController.isProviderEnabled(arg,
-                        Binder.getCallingUid());
-
                 Bundle bundle = new Bundle();
+                boolean isEnabled = false;
+
+                if (mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
+                    isEnabled =
+                            mPickerSyncController.isProviderEnabled(
+                                    arg, Binder.getCallingUid());
+                }
+
                 bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT, isEnabled);
                 return bundle;
             }
@@ -10722,8 +10724,7 @@ public class MediaProvider extends ContentProvider {
 
             ForegroundThread.getExecutor().execute(() -> {
                 mExternalDatabase.runWithTransaction((db) -> {
-                    ensureDefaultFolders(volume, db);
-                    ensureThumbnailsValid(volume, db);
+                    ensureNecessaryFolders(volume, db);
                     return null;
                 });
 
@@ -10783,6 +10784,22 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (LOGV) Log.v(TAG, "Detached volume: " + volumeName);
+    }
+
+    private void ensureNecessaryFolders(MediaVolume volume, SQLiteDatabase db) {
+        ensureDefaultFolders(volume, db);
+        ensureThumbnailsValid(volume, db);
+
+        // Create redacted directories
+        if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volume.getName())) {
+            // Create dir for redacted and picker URI paths.
+            File redactedRelativePath = buildPrimaryVolumeFile(uidToUserId(MY_UID),
+                    getRedactedRelativePath());
+            if (!redactedRelativePath.exists() && !redactedRelativePath.mkdirs()) {
+                // We should always be able to create these directories from MediaProvider
+                Log.wtf(TAG, "Couldn't create redacted path for " + UserHandle.myUserId());
+            }
+        }
     }
 
     @GuardedBy("mAttachedVolumes")

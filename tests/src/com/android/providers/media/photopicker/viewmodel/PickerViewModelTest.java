@@ -89,6 +89,8 @@ import java.util.concurrent.TimeUnit;
 public class PickerViewModelTest {
     private static final String FAKE_CATEGORY_NAME = "testCategoryName";
     private static final String FAKE_ID = "5";
+    private static final String FAKE_CLOUD_MEDIA_PROVIDER_PACKAGE_NAME =
+            "com.hooli.super.awesome.cloud.provider";
     private static final Context sTargetContext = getInstrumentation().getTargetContext();
 
     @Rule
@@ -111,6 +113,8 @@ public class PickerViewModelTest {
         when(mApplication.getApplicationContext()).thenReturn(sTargetContext);
         mConfigStore = new TestConfigStore();
         mConfigStore.enableCloudMediaFeature();
+        mConfigStore.setAllowedCloudProviderPackages(
+                new String[]{FAKE_CLOUD_MEDIA_PROVIDER_PACKAGE_NAME});
         getInstrumentation().runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
                 @Override

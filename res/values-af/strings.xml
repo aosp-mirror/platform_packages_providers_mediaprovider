@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Media"</string>
     <string name="storage_description" msgid="4081716890357580107">"Plaaslike berging"</string>
     <string name="app_label" msgid="9035307001052716210">"Mediaberging"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Media"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Mediakieser"</string>
     <string name="artist_label" msgid="8105600993099120273">"Kunstenaar"</string>
     <string name="unknown" msgid="2059049215682829375">"Onbekend"</string>
     <string name="root_images" msgid="5861633549189045666">"Prente"</string>
@@ -46,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Kry toegang tot wolkmedia vanaf"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Geen"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Kon nie wolkmedia-app op dié tydstip verander nie."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Mediakieser"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Mediakieser"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Sinkroniseer tans media …"</string>
     <string name="add" msgid="2894574044585549298">"Voeg by"</string>
     <string name="deselect" msgid="4297825044827769490">"Ontkies"</string>
     <string name="deselected" msgid="8488133193326208475">"Ontkies"</string>
@@ -93,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Gaan jou internetverbinding na en probeer weer"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Herprobeer"</string>
     <string name="not_selected" msgid="2244008151669896758">"nie gekies nie"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Berei tans jou geselekteerde media voor"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> van <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> is gereed"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Gerugsteunde foto\'s word nou ingesluit"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Jy kan foto\'s van <xliff:g id="APP_NAME">%1$s</xliff:g>-rekening <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> af kies"</string>
@@ -106,6 +110,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Kies app"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Kies rekening"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Verander rekening"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Kry tans al jou foto’s"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie oudiolêer te wysig?}other{Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> oudiolêers te wysig?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Wysig tans oudiolêer …}other{Wysig tans <xliff:g id="COUNT">^1</xliff:g> oudiolêers …}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie video te wysig?}other{Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> video\'s te wysig?}}"</string>
@@ -149,4 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Veiligheidbeskerming"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Toestelspesifieke kodewisselingopletberigte"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Toestelspesifieke kodewisselingvordering"</string>
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
+    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"Sommige foto’s kan nie laai nie"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Het dit"</string>
 </resources>

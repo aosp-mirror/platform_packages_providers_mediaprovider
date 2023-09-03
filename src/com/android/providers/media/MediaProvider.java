@@ -1311,7 +1311,7 @@ public class MediaProvider extends ContentProvider {
 
         mPickerSyncController = PickerSyncController.initialize(context, mPickerDbFacade,
                 mConfigStore);
-        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController,
+        mPickerDataLayer = PickerDataLayer.create(context, mPickerDbFacade, mPickerSyncController,
                 mConfigStore);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper);
 

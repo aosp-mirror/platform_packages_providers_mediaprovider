@@ -27,7 +27,6 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.MediaStore;
-import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -192,32 +191,35 @@ class MediaGrants {
      *
      * <p>The action is performed for only specific {@code user}.</p>
      *
-     * @param packageName   the package name to clear media grants for.
+     * @param packages      the package(s) name to clear media grants for.
      * @param reason        a logged reason why the grants are being cleared.
      * @param user          the user for which the grants need to be modified.
      *
      * @return              the number of grants removed.
      */
-    int removeAllMediaGrantsForPackage(String packageName, String reason,
-            @NonNull Integer user)
+    int removeAllMediaGrantsForPackages(String[] packages, String reason, @NonNull Integer user)
             throws IllegalArgumentException {
-        Objects.requireNonNull(packageName);
-        if (TextUtils.isEmpty(packageName)) {
+        Objects.requireNonNull(packages);
+        if (packages.length == 0) {
             throw new IllegalArgumentException(
                     "Removing grants requires a non empty package name.");
         }
+
+        final SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
+        queryBuilder.setDistinct(true);
+        queryBuilder.setTables(MEDIA_GRANTS_TABLE);
+        String[] selectionArgs = buildSelectionArg(queryBuilder, packages, user);
+
         return mExternalDatabase.runWithTransaction(
                 (db) -> {
-                    int grantsRemoved =
-                            mQueryBuilder.delete(
-                                    db, String.format(
-                                            "%s = ? AND %s = ?", OWNER_PACKAGE_NAME_COLUMN,
-                                            PACKAGE_USER_ID_COLUMN),
-                                    new String[]{packageName, String.valueOf(user)});
-                    Log.d(TAG,
-                            String.format("Removed %s media_grants for %s user for %s. Reason: %s",
-                                    grantsRemoved, String.valueOf(user),
-                                    packageName,
+                    int grantsRemoved = queryBuilder.delete(db, null, selectionArgs);
+                    Log.d(
+                            TAG,
+                            String.format(
+                                    "Removed %s media_grants for %s user for %s. Reason: %s",
+                                    grantsRemoved,
+                                    String.valueOf(user),
+                                    Arrays.toString(packages),
                                     reason));
                     return grantsRemoved;
                 });

@@ -26,6 +26,8 @@ import static android.provider.MediaStore.MY_UID;
 
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_ALBUM_SYNC_WORK_NAME;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_LOCAL_SYNC_WORK_NAME;
 
 import static java.util.Objects.requireNonNull;
 
@@ -55,6 +57,7 @@ import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
 import com.android.providers.media.photopicker.sync.PickerSyncManager;
 import com.android.providers.media.photopicker.sync.SyncTracker;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
+import com.android.providers.media.util.ForegroundThread;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,6 +67,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -80,7 +85,17 @@ public class PickerDataLayer {
 
     public static final String QUERY_DATE_TAKEN_BEFORE_MS = "android:query-date-taken-before-ms";
 
+    public static final String QUERY_LOCAL_ID_SELECTION = "android:query-local-id-selection";
+
     public static final String QUERY_ROW_ID = "android:query-row-id";
+
+    // Thread pool size should be at least equal to the number of unique work requests in
+    // {@link PickerSyncManager} to ensure that any request type is not blocked on other request
+    // types. It is advisable to use unique work requests because in case the number of queued
+    // requests grows, they should not block other work requests.
+    private static final int WORK_MANAGER_THREAD_POOL_SIZE = 5;
+    @Nullable
+    private static volatile Executor sWorkManagerExecutor;
 
     @NonNull
     private final Context mContext;
@@ -95,22 +110,31 @@ public class PickerDataLayer {
     @NonNull
     private final ConfigStore mConfigStore;
 
-    public PickerDataLayer(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
-            @NonNull PickerSyncController syncController, @NonNull ConfigStore configStore) {
-        this(context, dbFacade, syncController, configStore, /* schedulePeriodicSyncs */ true);
-    }
-
     @VisibleForTesting
     public PickerDataLayer(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
             @NonNull PickerSyncController syncController, @NonNull ConfigStore configStore,
-            boolean schedulePeriodicSyncs) {
+            @NonNull PickerSyncManager syncManager) {
         mContext = requireNonNull(context);
         mDbFacade = requireNonNull(dbFacade);
         mSyncController = requireNonNull(syncController);
         mLocalProvider = requireNonNull(dbFacade.getLocalProvider());
         mConfigStore = requireNonNull(configStore);
-        mSyncManager = new PickerSyncManager(
-                getWorkManager(), configStore, schedulePeriodicSyncs);
+        mSyncManager = syncManager;
+
+        // Add a subscriber to config store changes to monitor the allowlist.
+        mConfigStore.addOnChangeListener(
+                ForegroundThread.getExecutor(),
+                this::validateCurrentCloudProviderOnAllowlistChange);
+    }
+
+    /**
+     * Create a new instance of PickerDataLayer.
+     */
+    public static PickerDataLayer create(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
+            @NonNull PickerSyncController syncController, @NonNull ConfigStore configStore) {
+        PickerSyncManager syncManager = new PickerSyncManager(
+                getWorkManager(context), context, configStore, /* schedulePeriodicSyncs */ true);
+        return new PickerDataLayer(context, dbFacade, syncController, configStore, syncManager);
     }
 
     /**
@@ -157,7 +181,8 @@ public class PickerDataLayer {
                     syncAllMedia(isLocalOnly);
                 } else {
                     // Wait for local sync to finish indefinitely
-                    waitForSync(SyncTrackerRegistry.getLocalSyncTracker());
+                    waitForSync(SyncTrackerRegistry.getLocalSyncTracker(),
+                            IMMEDIATE_LOCAL_SYNC_WORK_NAME);
                     Log.i(TAG, "Local sync is complete");
 
                     // Wait for on cloud sync with timeout
@@ -188,7 +213,8 @@ public class PickerDataLayer {
                 if (shouldSyncBeforePickerQuery()) {
                     mSyncController.syncAlbumMedia(albumId, isLocal(albumAuthority));
                 } else {
-                    waitForSync(SyncTrackerRegistry.getAlbumSyncTracker(isLocal(albumAuthority)));
+                    waitForSync(SyncTrackerRegistry.getAlbumSyncTracker(isLocal(albumAuthority)),
+                            IMMEDIATE_ALBUM_SYNC_WORK_NAME);
                     Log.i(TAG, "Album sync is complete");
                 }
 
@@ -220,10 +246,58 @@ public class PickerDataLayer {
         }
     }
 
-    private void waitForSync(@NonNull SyncTracker syncTracker) {
-        waitForSyncWithTimeout(syncTracker, /* timeout */ null);
+    /**
+     * Will try it's best to wait for the existing sync requests to complete. It may not wait for
+     * new sync requests received after this method starts running.
+     */
+    private void waitForSync(@NonNull SyncTracker syncTracker, String uniqueWorkName) {
+        try {
+            final CompletableFuture<Void> completableFuture =
+                    CompletableFuture.allOf(
+                            syncTracker.pendingSyncFutures().toArray(new CompletableFuture[0]));
+
+            waitForSync(completableFuture, uniqueWorkName, /* retryCount */ 30);
+        } catch (ExecutionException | InterruptedException e) {
+            Log.w(TAG, "Could not wait for the sync to finish: " + e);
+        }
     }
 
+    /**
+     * Wait for sync tracked by the input future to complete. In case the future takes an unusually
+     * long time to complete, check the relevant unique work status from Work Manager.
+     */
+    @VisibleForTesting
+    public int waitForSync(@NonNull CompletableFuture<Void> completableFuture,
+            @NonNull String uniqueWorkName,
+            int retryCount) throws ExecutionException, InterruptedException {
+        for (; retryCount > 0; retryCount--) {
+            try {
+                completableFuture.get(/* timeout */ 3, TimeUnit.SECONDS);
+                return retryCount;
+            } catch (TimeoutException e) {
+                if (mSyncManager.isUniqueWorkPending(uniqueWorkName)) {
+                    Log.i(TAG, "Waiting for the sync again."
+                            + " Unique work name: " + uniqueWorkName
+                            + " Retry count: " + retryCount);
+                } else {
+                    Log.e(TAG, "Either immediate unique work is complete and the sync futures "
+                            + "were not cleared, or a proactive sync might be blocking the query. "
+                            + "Unblocking the query now for " + uniqueWorkName);
+                    return retryCount;
+                }
+            }
+        }
+
+        if (retryCount == 0) {
+            Log.e(TAG, "Retry count exhausted, could not wait for sync anymore.");
+        }
+        return retryCount;
+    }
+
+    /**
+     * Will wait for the existing sync requests to complete till the provided timeout. It may
+     * not wait for new sync requests received after this method starts running.
+     */
     private boolean waitForSyncWithTimeout(
             @NonNull SyncTracker syncTracker,
             @Nullable Long timeoutInMillis) {
@@ -231,14 +305,10 @@ public class PickerDataLayer {
             final CompletableFuture<Void> completableFuture =
                     CompletableFuture.allOf(
                             syncTracker.pendingSyncFutures().toArray(new CompletableFuture[0]));
-            if (timeoutInMillis == null) {
-                completableFuture.get();
-            } else {
-                completableFuture.get(timeoutInMillis, TimeUnit.MILLISECONDS);
-            }
+            completableFuture.get(timeoutInMillis, TimeUnit.MILLISECONDS);
             return true;
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            Log.w(TAG, "Could not wait for the sync to finish: " + e);
+            Log.w(TAG, "Could not wait for the sync with timeout to finish: " + e);
             return false;
         }
     }
@@ -288,7 +358,8 @@ public class PickerDataLayer {
             cursorExtra.putString(MediaStore.EXTRA_LOCAL_PROVIDER, mLocalProvider);
 
             // Favorites and Videos are merged albums.
-            final Cursor mergedAlbums = mDbFacade.getMergedAlbums(queryExtras.toQueryFilter());
+            final Cursor mergedAlbums = mDbFacade.getMergedAlbums(queryExtras.toQueryFilter(),
+                    cloudProvider);
             if (mergedAlbums != null) {
                 cursors.add(mergedAlbums);
             }
@@ -445,7 +516,7 @@ public class PickerDataLayer {
             if (!syncRequestExtras.shouldSyncMergedAlbum()) {
                 mSyncManager.syncAlbumMediaForProviderImmediately(
                         syncRequestExtras.getAlbumId(),
-                        isLocal(syncRequestExtras.getAlbumAuthority()));
+                        syncRequestExtras.getAlbumAuthority());
             }
         }
     }
@@ -473,7 +544,13 @@ public class PickerDataLayer {
      * local providers.
      */
     public void handleMediaEventNotification() {
-        mSyncManager.syncAllMediaProactively();
+        try {
+            mSyncManager.syncAllMediaProactively();
+        } catch (RuntimeException e) {
+            // Catch any unchecked exceptions so that critical paths in MP that call this method are
+            // not affected by Picker related issues.
+            Log.e(TAG, "Could not handle media event notification ", e);
+        }
     }
 
     public static class AccountInfo {
@@ -589,7 +666,7 @@ public class PickerDataLayer {
      * @return a {@link WorkManager} object that can be used to run work requests.
      */
     @NonNull
-    private WorkManager getWorkManager() {
+    private static WorkManager getWorkManager(Context mContext) {
         if (!WorkManager.isInitialized()) {
             Log.i(TAG, "Work manager not initialised. Attempting to initialise.");
             WorkManager.initialize(mContext, getWorkManagerConfiguration());
@@ -599,9 +676,22 @@ public class PickerDataLayer {
 
     @NonNull
     private static Configuration getWorkManagerConfiguration() {
+        ensureWorkManagerExecutor();
         return new Configuration.Builder()
                 .setMinimumLoggingLevel(Log.INFO)
+                .setExecutor(sWorkManagerExecutor)
                 .build();
+    }
+
+    private static void ensureWorkManagerExecutor() {
+        if (sWorkManagerExecutor == null) {
+            synchronized (PickerDataLayer.class) {
+                if (sWorkManagerExecutor == null) {
+                    sWorkManagerExecutor = Executors
+                            .newFixedThreadPool(WORK_MANAGER_THREAD_POOL_SIZE);
+                }
+            }
+        }
     }
 
     /**
@@ -613,5 +703,28 @@ public class PickerDataLayer {
      */
     private boolean shouldSyncBeforePickerQuery() {
         return !mConfigStore.isCloudMediaInPhotoPickerEnabled();
+    }
+
+    /**
+     * Checks the current allowed list of Cloud Provider packages, and ensures that the currently
+     * set provider is a member of the allowlist. In the event the current Cloud Provider is not on
+     * the list, the current Cloud Provider is removed.
+     */
+    private void validateCurrentCloudProviderOnAllowlistChange() {
+
+        List<String> currentAllowlist = mConfigStore.getAllowedCloudProviderPackages();
+        String currentCloudProvider = mSyncController.getCurrentCloudProviderInfo().packageName;
+
+        if (!currentAllowlist.contains(currentCloudProvider)) {
+            Log.d(
+                    TAG,
+                    String.format(
+                            "Cloud provider allowlist was changed, and the current cloud provider"
+                                    + " is no longer on the allowlist."
+                                    + " Allowlist: %s"
+                                    + " Current Provider: %s",
+                            currentAllowlist.toString(), currentCloudProvider));
+            mSyncController.notifyPackageRemoval(currentCloudProvider);
+        }
     }
 }

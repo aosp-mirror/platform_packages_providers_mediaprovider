@@ -19,14 +19,17 @@ package com.android.providers.media.photopicker.viewmodel;
 import static android.provider.MediaStore.getCurrentCloudProvider;
 
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.getAvailableCloudProviders;
-import static com.android.providers.media.photopicker.util.CloudProviderUtils.getCloudMediaAccountName;
+import static com.android.providers.media.photopicker.util.CloudProviderUtils.getCloudMediaCollectionInfo;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.getProviderLabelForUser;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
 import android.os.Looper;
 import android.os.UserHandle;
+import android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import android.text.TextUtils;
 import android.util.AtomicFile;
 import android.util.Log;
@@ -44,6 +47,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Banner Controller to store and handle the banner data per user for
@@ -64,6 +69,7 @@ class BannerController {
      * {@link android.provider.CloudMediaProvider}.
      */
     private static final String ACCOUNT_NAME = "account_name";
+    private static final long GET_CLOUD_MEDIA_COLLECTION_INFO_TIMEOUT_IN_MILLIS = 100L;
 
     private final Context mContext;
     private final UserHandle mUserHandle;
@@ -82,6 +88,9 @@ class BannerController {
 
     // Label of the current cloud media provider
     private String mCmpLabel;
+
+    // Account selection activity intent of the current cloud media provider
+    private Intent mChooseCloudMediaAccountActivityIntent;
 
     // Boolean 'Choose App' banner visibility
     private boolean mShowChooseAppBanner;
@@ -130,7 +139,9 @@ class BannerController {
      * block the UI thread on the heavy Binder calls to fetch the cloud media provider info.
      */
     private void initialise() {
-        final String cmpAuthority, cmpAccountName;
+        String cmpAuthority = null, cmpAccountName = null;
+        mCmpLabel = null;
+        mChooseCloudMediaAccountActivityIntent = null;
         // TODO(b/245746037): Remove try-catch for the RuntimeException.
         //  Under the hood MediaStore.getCurrentCloudProvider() makes an IPC call to the primary
         //  MediaProvider process, where we currently perform a UID check (making sure that
@@ -149,14 +160,23 @@ class BannerController {
                     UserId.of(mUserHandle).getContentResolver(mContext);
             cmpAuthority = getCurrentCloudProvider(contentResolver);
             mCmpLabel = getProviderLabelForUser(mContext, mUserHandle, cmpAuthority);
-            cmpAccountName = getCloudMediaAccountName(contentResolver, cmpAuthority);
+            final Bundle cloudMediaCollectionInfo = getCloudMediaCollectionInfo(contentResolver,
+                    cmpAuthority, GET_CLOUD_MEDIA_COLLECTION_INFO_TIMEOUT_IN_MILLIS);
+            if (cloudMediaCollectionInfo != null) {
+                cmpAccountName = cloudMediaCollectionInfo.getString(
+                        MediaCollectionInfo.ACCOUNT_NAME);
+                mChooseCloudMediaAccountActivityIntent = cloudMediaCollectionInfo.getParcelable(
+                        MediaCollectionInfo.ACCOUNT_CONFIGURATION_INTENT);
+            }
 
             // Not logging the account name due to privacy concerns
             Log.d(TAG, "Current CloudMediaProvider authority: " + cmpAuthority + ", label: "
                     + mCmpLabel);
-        } catch (PackageManager.NameNotFoundException | RuntimeException e) {
+        } catch (PackageManager.NameNotFoundException | RuntimeException | ExecutionException
+                | InterruptedException | TimeoutException e) {
             Log.w(TAG, "Could not fetch the current CloudMediaProvider", e);
-            resetToDefault();
+            updateCloudProviderDataMap(cmpAuthority, cmpAccountName);
+            clearBanners();
             return;
         }
 
@@ -213,15 +233,6 @@ class BannerController {
     }
 
     /**
-     * Reset all the controller data to their default values.
-     */
-    private void resetToDefault() {
-        mCloudProviderDataMap.clear();
-        mCmpLabel = null;
-        clearBanners();
-    }
-
-    /**
      * Clear all banners
      *
      * Reset all should show banner {@code boolean} values to {@code false}.
@@ -260,6 +271,15 @@ class BannerController {
     @Nullable
     String getCloudMediaProviderAccountName() {
         return mCloudProviderDataMap.get(ACCOUNT_NAME);
+    }
+
+    /**
+     * @return the account selection activity {@link Intent} of the current
+     *         {@link android.provider.CloudMediaProvider}.
+     */
+    @Nullable
+    Intent getChooseCloudMediaAccountActivityIntent() {
+        return mChooseCloudMediaAccountActivityIntent;
     }
 
     /**
@@ -385,6 +405,12 @@ class BannerController {
 
     private void persistCloudProviderInfo(@Nullable String cmpAuthority,
             @Nullable String cmpAccountName) {
+        updateCloudProviderDataMap(cmpAuthority, cmpAccountName);
+        updateCloudProviderDataFile();
+    }
+
+    private void updateCloudProviderDataMap(@Nullable String cmpAuthority,
+            @Nullable String cmpAccountName) {
         mCloudProviderDataMap.clear();
         if (cmpAuthority != null) {
             mCloudProviderDataMap.put(AUTHORITY, cmpAuthority);
@@ -392,8 +418,6 @@ class BannerController {
         if (cmpAccountName != null) {
             mCloudProviderDataMap.put(ACCOUNT_NAME, cmpAccountName);
         }
-
-        updateCloudProviderDataFile();
     }
 
     @VisibleForTesting

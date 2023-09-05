@@ -193,8 +193,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         initBottomSheetBehavior();
 
-        final String intentAction = intent != null ? intent.getAction() : null;
-
         // Save the fragment container layout so that we can adjust the padding based on preview or
         // non-preview mode.
         mFragmentContainerView = findViewById(R.id.fragment_container);
@@ -210,7 +208,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // Restore state operation should always be kept at the end of this method.
         restoreState(savedInstanceState);
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
-        mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(), intentAction);
+        if (savedInstanceState == null) {
+            final String intentAction = intent != null ? intent.getAction() : null;
+            mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(),
+                    intentAction);
+        }
     }
 
     @Override
@@ -578,7 +580,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private void setResultForPickImagesOrGetContentAction() {
         final Intent resultData = getPickerResponseIntent(
-                getIntent().getAction(),
                 mSelection.canSelectMultiple(),
                 mSelection.getSelectedItems());
         setResult(RESULT_OK, resultData);

@@ -40,6 +40,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.util.ThreadUtils;
 import com.android.providers.media.util.XmlUtils;
 
 import java.io.File;
@@ -153,7 +154,7 @@ class BannerController {
         //  check for MANAGE_CLOUD_MEDIA_PROVIDER permission.
         try {
             // 0. Assert non-main thread.
-            assertNonMainThread();
+            ThreadUtils.assertNonMainThread();
 
             // 1. Fetch the latest cloud provider info.
             final ContentResolver contentResolver =

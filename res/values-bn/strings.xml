@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"মিডিয়া"</string>
     <string name="storage_description" msgid="4081716890357580107">"স্থানীয় স্টোরেজ"</string>
     <string name="app_label" msgid="9035307001052716210">"মিডিয়া স্টোরেজ"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"মিডিয়া"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"মিডিয়া বাছাইকারি"</string>
     <string name="artist_label" msgid="8105600993099120273">"শিল্পী"</string>
     <string name="unknown" msgid="2059049215682829375">"অজানা"</string>
     <string name="root_images" msgid="5861633549189045666">"ছবি"</string>
@@ -46,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"এখান থেকে ক্লাউড মিডিয়া অ্যাক্সেস করুন"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"কোনওটিই নয়"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"এই মুহূর্তে ক্লাউড মিডিয়া অ্যাপ বদল করা যায়নি।"</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"মিডিয়া বাছাইকারী"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"মিডিয়া বাছাইকারী"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"মিডিয়া সিঙ্ক করছে…"</string>
     <string name="add" msgid="2894574044585549298">"যোগ করুন"</string>
     <string name="deselect" msgid="4297825044827769490">"টিক চিহ্নটি সরিয়ে দিন"</string>
     <string name="deselected" msgid="8488133193326208475">"টিকচিহ্ন সরিয়ে দিন"</string>
@@ -93,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ইন্টারনেট কানেকশন ঠিক আছে কিনা দেখে নিয়ে আবার চেষ্টা করুন"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"আবার চেষ্টা করুন"</string>
     <string name="not_selected" msgid="2244008151669896758">"বেছে নেওয়া হয়নি"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"আপনার বেছে নেওয়া মিডিয়া রেডি করা হচ্ছে"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>টির মধ্যে <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> নম্বর আইটেম রেডি আছে"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ব্যাক-আপ নেওয়া ফটো এখন যোগ করা হয়েছে"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"আপনি <xliff:g id="APP_NAME">%1$s</xliff:g>-এর অ্যাকাউন্ট <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> থেকে ফটো বেছে নিতে পারবেন"</string>
@@ -106,6 +110,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"অ্যাপ বেছে নিন"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"অ্যাকাউন্ট বেছে নিন"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"অ্যাকাউন্ট পরিবর্তন করুন"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"আপনার সব ফটো লোড করা হচ্ছে"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>-কে এই অডিও ফাইল পরিবর্তন করার অনুমতি দিতে চান?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>-কে <xliff:g id="COUNT">^2</xliff:g>টি অডিও ফাইল পরিবর্তন করার অনুমতি দিতে চান?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>-কে <xliff:g id="COUNT">^2</xliff:g>টি অডিও ফাইল পরিবর্তন করার অনুমতি দিতে চান?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{অডিও ফাইলে পরিবর্তন করা হচ্ছে…}one{<xliff:g id="COUNT">^1</xliff:g>টি অডিও ফাইলে পরিবর্তন করা হচ্ছে…}other{<xliff:g id="COUNT">^1</xliff:g>টি অডিও ফাইলে পরিবর্তন করা হচ্ছে…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g>-কে এই ভিডিও পরিবর্তন করার অনুমতি দিতে চান?}one{<xliff:g id="APP_NAME_1">^1</xliff:g>-কে <xliff:g id="COUNT">^2</xliff:g>টি ভিডিও পরিবর্তন করার অনুমতি দিতে চান?}other{<xliff:g id="APP_NAME_1">^1</xliff:g>-কে <xliff:g id="COUNT">^2</xliff:g>টি ভিডিও পরিবর্তন করার অনুমতি দিতে চান?}}"</string>
@@ -149,4 +154,8 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"নিরাপত্তার সুরক্ষা"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"নেটিভ ট্রান্সকোড অ্যালার্ট"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"নেটিভ ট্রান্সকোড প্রোগ্রেস"</string>
+    <!-- no translation found for dialog_error_message (5120432204743681606) -->
+    <skip />
+    <string name="dialog_error_title" msgid="636349284077820636">"কিছু ফটো লোড করা যাচ্ছে না"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"বুঝেছি"</string>
 </resources>

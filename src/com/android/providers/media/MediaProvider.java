@@ -284,6 +284,7 @@ import com.android.providers.media.photopicker.PickerDataLayer;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
@@ -865,7 +866,7 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType,
+    protected void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType,
             @NonNull String volumeName) {
         // Quota type is only updated for external primary volume
         if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
@@ -1310,7 +1311,7 @@ public class MediaProvider extends ContentProvider {
 
         mPickerSyncController = PickerSyncController.initialize(context, mPickerDbFacade,
                 mConfigStore);
-        mPickerDataLayer = new PickerDataLayer(context, mPickerDbFacade, mPickerSyncController,
+        mPickerDataLayer = PickerDataLayer.create(context, mPickerDbFacade, mPickerSyncController,
                 mConfigStore);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper);
 
@@ -1319,9 +1320,6 @@ public class MediaProvider extends ContentProvider {
         } else {
             mTranscodeHelper = new TranscodeHelperNoOp();
         }
-
-        // Create dir for redacted and picker URI paths.
-        buildPrimaryVolumeFile(uidToUserId(MY_UID), getRedactedRelativePath()).mkdirs();
 
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
@@ -1614,12 +1612,12 @@ public class MediaProvider extends ContentProvider {
         // removing calling userId
         userIds.remove(String.valueOf(sUserId));
 
-        List<String> validUsers = mUserManager.getEnabledProfiles().stream()
+        List<String> validUserProfiles = mUserManager.getEnabledProfiles().stream()
                 .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
                         Collectors.toList());
         // removing all the valid/existing user, remaining userIds would be users who would have
         // been removed
-        userIds.removeAll(validUsers);
+        userIds.removeAll(validUserProfiles);
 
         // Cleaning media files of users who have been removed
         mExternalDatabase.runWithTransaction((db) -> {
@@ -1631,6 +1629,10 @@ public class MediaProvider extends ContentProvider {
             return null ;
         });
 
+        List<String> validUsers = mUserManager.getUserHandles(/* excludeDying */ true).stream()
+                .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
+                        Collectors.toList());
+        Log.i(TAG, "Active user ids are:" + validUsers);
         mDatabaseBackupAndRecovery.removeRecoveryDataExceptValidUsers(validUsers);
     }
 
@@ -6719,14 +6721,14 @@ public class MediaProvider extends ContentProvider {
                     }
                     packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
                     uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
-                    userId = uidToUserId(caller);
+                    // Caller is always shell which may not have the desired userId. Hence, use
+                    // UserId from the MediaProvider process itself.
+                    userId = UserHandle.myUserId();
                 } else {
                     // All other callers are unauthorized.
-                    throw new SecurityException("Create media grants not allowed. "
-                                + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
-                                + " Calling UID:" + Binder.getCallingUid()
-                                + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
-                                + " Media Provider UID:" + MY_UID);
+
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("Create media grants"));
                 }
 
                 mMediaGrants.addMediaGrantsForPackage(packageName, uris, userId);
@@ -6754,14 +6756,21 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
+            case MediaStore.PICKER_MEDIA_INIT_CALL: {
+                Log.i(TAG, "Received media init query for extras: " + extras);
+                if (!checkPermissionShell(Binder.getCallingUid())
+                        && !checkPermissionSelf(Binder.getCallingUid())) {
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("Picker media init"));
+                }
+                mPickerDataLayer.initMediaData(PickerSyncRequestExtras.fromBundle(extras));
+                return null;
+            }
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
                 if (!checkPermissionShell(Binder.getCallingUid())
                         && !checkPermissionSelf(Binder.getCallingUid())) {
-                    throw new SecurityException("Get cloud provider not allowed. "
-                            + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
-                            + " Calling UID:" + Binder.getCallingUid()
-                            + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
-                            + " Media Provider UID:" + MY_UID);
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("Get cloud provider"));
                 }
                 final Bundle bundle = new Bundle();
                 bundle.putString(MediaStore.GET_CLOUD_PROVIDER_RESULT,
@@ -6778,11 +6787,8 @@ public class MediaProvider extends ContentProvider {
                     isUpdateSuccessful =
                             mPickerSyncController.forceSetCloudProvider(cloudProvider);
                 } else {
-                    throw new SecurityException("Set cloud provider not allowed. "
-                            + " Calling app ID:" + UserHandle.getAppId(Binder.getCallingUid())
-                            + " Calling UID:" + Binder.getCallingUid()
-                            + " Media Provider app ID:" + UserHandle.getAppId(MY_UID)
-                            + " Media Provider UID:" + MY_UID);
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("Set cloud provider"));
                 }
 
                 if (isUpdateSuccessful) {
@@ -6805,10 +6811,15 @@ public class MediaProvider extends ContentProvider {
                 return bundle;
             }
             case MediaStore.IS_CURRENT_CLOUD_PROVIDER_CALL: {
-                final boolean isEnabled = mPickerSyncController.isProviderEnabled(arg,
-                        Binder.getCallingUid());
-
                 Bundle bundle = new Bundle();
+                boolean isEnabled = false;
+
+                if (mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
+                    isEnabled =
+                            mPickerSyncController.isProviderEnabled(
+                                    arg, Binder.getCallingUid());
+                }
+
                 bundle.putBoolean(MediaStore.EXTRA_CLOUD_PROVIDER_RESULT, isEnabled);
                 return bundle;
             }
@@ -6894,6 +6905,17 @@ public class MediaProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
+    }
+
+    private String getSecurityExceptionMessage(String method) {
+        int callingUid = Binder.getCallingUid();
+        return String.format("%s not allowed. Calling app ID: %d, Calling UID %d. "
+                        + "Media Provider app ID: %d, Media Provider UID: %d.",
+                method,
+                UserHandle.getAppId(callingUid),
+                callingUid,
+                UserHandle.getAppId(MY_UID),
+                MY_UID);
     }
 
     public void backupDatabases(CancellationSignal signal) {
@@ -10706,8 +10728,7 @@ public class MediaProvider extends ContentProvider {
 
             ForegroundThread.getExecutor().execute(() -> {
                 mExternalDatabase.runWithTransaction((db) -> {
-                    ensureDefaultFolders(volume, db);
-                    ensureThumbnailsValid(volume, db);
+                    ensureNecessaryFolders(volume, db);
                     return null;
                 });
 
@@ -10767,6 +10788,22 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (LOGV) Log.v(TAG, "Detached volume: " + volumeName);
+    }
+
+    private void ensureNecessaryFolders(MediaVolume volume, SQLiteDatabase db) {
+        ensureDefaultFolders(volume, db);
+        ensureThumbnailsValid(volume, db);
+
+        // Create redacted directories
+        if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volume.getName())) {
+            // Create dir for redacted and picker URI paths.
+            File redactedRelativePath = buildPrimaryVolumeFile(uidToUserId(MY_UID),
+                    getRedactedRelativePath());
+            if (!redactedRelativePath.exists() && !redactedRelativePath.mkdirs()) {
+                // We should always be able to create these directories from MediaProvider
+                Log.wtf(TAG, "Couldn't create redacted path for " + UserHandle.myUserId());
+            }
+        }
     }
 
     @GuardedBy("mAttachedVolumes")

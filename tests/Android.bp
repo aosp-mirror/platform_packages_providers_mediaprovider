@@ -194,6 +194,7 @@ android_test {
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
         "androidx.work_work-runtime",
+        "androidx.work_work-testing",
         "exoplayer-mediaprovider-ui",
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",
@@ -227,4 +228,11 @@ android_test {
 filegroup {
     name: "mediaprovider-testutils",
     srcs: ["utils/**/*.java"],
+}
+
+filegroup {
+    name: "mediaprovider-library",
+    srcs: [
+        "src/com/android/providers/media/library/RunOnlyOnPostsubmit.java",
+    ],
 }

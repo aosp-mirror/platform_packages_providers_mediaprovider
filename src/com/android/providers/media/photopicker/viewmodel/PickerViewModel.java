@@ -25,6 +25,14 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
+import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
+import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_GRID;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_DEFAULT;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
@@ -35,8 +43,12 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ProviderInfo;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.os.CancellationSignal;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
@@ -52,9 +64,12 @@ import androidx.lifecycle.Observer;
 
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.InstanceIdSequence;
+import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.MediaApplication;
+import com.android.providers.media.photopicker.DataLoaderThread;
+import com.android.providers.media.photopicker.NotificationContentObserver;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.PaginationParameters;
@@ -64,13 +79,15 @@ import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
+import com.android.providers.media.photopicker.ui.ItemsAction;
+import com.android.providers.media.photopicker.util.CategoryOrganiserUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
-import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * PickerViewModel to store and handle data for PhotoPickerActivity.
@@ -81,8 +98,10 @@ public class PickerViewModel extends AndroidViewModel {
     private static final int RECENT_MINIMUM_COUNT = 12;
 
     private static final int INSTANCE_ID_MAX = 1 << 15;
-    private static final List<String> LOCAL_OR_MERGED_ALBUMS = Arrays.asList(ALBUM_ID_FAVORITES,
-            ALBUM_ID_CAMERA, ALBUM_ID_DOWNLOADS, ALBUM_ID_SCREENSHOTS, ALBUM_ID_VIDEOS);
+    private static final int DELAY_MILLIS = 0;
+
+    // Token for the tasks to load the category items in the data loader thread's queue
+    private final Object mLoadCategoryItemsThreadToken = new Object();
 
     @NonNull
     @SuppressLint("StaticFieldLeak")
@@ -90,13 +109,19 @@ public class PickerViewModel extends AndroidViewModel {
 
     private final Selection mSelection;
     private final MuteStatus mMuteStatus;
+    public boolean mEmptyPageDisplayed = false;
 
     // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
     //  data set to reduce memories.
     // The list of Items with all photos and videos
-    private MutableLiveData<List<Item>> mItemList;
+    private MutableLiveData<PaginatedItemsResult> mItemsResult;
+    private int mItemsPageSize = -1;
+
     // The list of Items with all photos and videos in category
-    private MutableLiveData<List<Item>> mCategoryItemList;
+    private MutableLiveData<PaginatedItemsResult> mCategoryItemsResult;
+
+    private int mCategoryItemsPageSize = -1;
+
     // The list of categories.
     private MutableLiveData<List<Category>> mCategoryList;
 
@@ -108,12 +133,15 @@ public class PickerViewModel extends AndroidViewModel {
         }
     };
 
+    private MutableLiveData<Boolean> mIsSyncInProgress = new MutableLiveData<>(false);
+
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
     private BannerManager mBannerManager;
 
     private InstanceId mInstanceId;
     private PhotoPickerUiEventLogger mLogger;
+    private ConfigStore mConfigStore;
 
     private String[] mMimeTypeFilters = null;
     private int mBottomSheetState;
@@ -126,6 +154,9 @@ public class PickerViewModel extends AndroidViewModel {
     // Note - Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
     private boolean mIsUserSelectForApp;
     private boolean mIsLocalOnly;
+    private boolean mIsAllCategoryItemsLoaded = false;
+    private boolean mIsNotificationForUpdateReceived = false;
+    private CancellationSignal mCancellationSignal = new CancellationSignal();
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -138,12 +169,51 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger = new PhotoPickerUiEventLogger();
         mIsUserSelectForApp = false;
         mIsLocalOnly = false;
+
+        initConfigStore();
+
+        // When the user opens the PhotoPickerSettingsActivity and changes the cloud provider, it's
+        // possible that system kills PhotoPickerActivity and PickerViewModel while it's in the
+        // background. In these scenarios, content observer will be unregistered and PickerViewModel
+        // will not be able to receive CMP change notifications.
+        initPhotoPickerData();
         registerRefreshUiNotificationObserver();
+        // Add notification content observer for any notifications received for changes in media.
+        NotificationContentObserver contentObserver = new NotificationContentObserver(null);
+        contentObserver.registerKeysToObserverCallback(
+                Arrays.asList(NotificationContentObserver.MEDIA),
+                (dateTakenMs, albumId) -> {
+                    onNotificationReceived();
+                });
+        contentObserver.register(mAppContext.getContentResolver());
     }
 
     @Override
     protected void onCleared() {
         unregisterRefreshUiNotificationObserver();
+
+        // Signal ContentProvider to cancel currently running task.
+        mCancellationSignal.cancel();
+
+        clearQueuedTasksInDataLoaderThread();
+    }
+
+    private void onNotificationReceived() {
+        Log.d(TAG, "Notification for media update has been received");
+        mIsNotificationForUpdateReceived = true;
+        if (mEmptyPageDisplayed && mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
+            (new Handler(Looper.getMainLooper())).post(() -> {
+                Log.d(TAG, "Refreshing UI to display new items.");
+                mEmptyPageDisplayed = false;
+                getPaginatedItemsForAction(ACTION_REFRESH_ITEMS,
+                        new PaginationParameters(mItemsPageSize, -1, -1));
+            });
+        }
+    }
+
+    @VisibleForTesting
+    protected void initConfigStore() {
+        mConfigStore = MediaApplication.getConfigStore();
     }
 
     @VisibleForTesting
@@ -159,6 +229,32 @@ public class PickerViewModel extends AndroidViewModel {
     @VisibleForTesting
     public void setBannerManager(@NonNull BannerManager bannerManager) {
         mBannerManager = bannerManager;
+    }
+
+    @VisibleForTesting
+    public void setNotificationForUpdateReceived(boolean notificationForUpdateReceived) {
+        mIsNotificationForUpdateReceived = notificationForUpdateReceived;
+    }
+
+    @VisibleForTesting
+    public void setLogger(@NonNull PhotoPickerUiEventLogger logger) {
+        mLogger = logger;
+    }
+
+    @VisibleForTesting
+    public void setConfigStore(@NonNull ConfigStore configStore) {
+        mConfigStore = configStore;
+    }
+
+    public void setEmptyPageDisplayed(boolean emptyPageDisplayed) {
+        mEmptyPageDisplayed = emptyPageDisplayed;
+    }
+
+    /**
+     * @return the {@link ConfigStore} for this context.
+     */
+    public ConfigStore getConfigStore() {
+        return mConfigStore;
     }
 
     /**
@@ -185,7 +281,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     /**
      * @return {@code mIsUserSelectForApp} if the picker is currently being used
-     *         for the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP} action.
+     * for the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP} action.
      */
     public boolean isUserSelectForApp() {
         return mIsUserSelectForApp;
@@ -193,8 +289,8 @@ public class PickerViewModel extends AndroidViewModel {
 
     /**
      * @return a {@link LiveData} that holds the value (once it's fetched) of the
-     *         {@link android.content.ContentProvider#mAuthority authority} of the current
-     *         {@link android.provider.CloudMediaProvider}.
+     * {@link android.content.ContentProvider#mAuthority authority} of the current
+     * {@link android.provider.CloudMediaProvider}.
      */
     @NonNull
     public LiveData<String> getCloudMediaProviderAuthorityLiveData() {
@@ -203,7 +299,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     /**
      * @return a {@link LiveData} that holds the value (once it's fetched) of the label
-     *         of the current {@link android.provider.CloudMediaProvider}.
+     * of the current {@link android.provider.CloudMediaProvider}.
      */
     @NonNull
     public LiveData<String> getCloudMediaProviderAppTitleLiveData() {
@@ -212,11 +308,20 @@ public class PickerViewModel extends AndroidViewModel {
 
     /**
      * @return a {@link LiveData} that holds the value (once it's fetched) of the account name
-     *         of the current {@link android.provider.CloudMediaProvider}.
+     * of the current {@link android.provider.CloudMediaProvider}.
      */
     @NonNull
     public LiveData<String> getCloudMediaAccountNameLiveData() {
         return mBannerManager.getCloudMediaAccountNameLiveData();
+    }
+
+    /**
+     * @return the account selection activity {@link Intent} of the current
+     *         {@link android.provider.CloudMediaProvider}.
+     */
+    @Nullable
+    public Intent getChooseCloudMediaAccountActivityIntent() {
+        return mBannerManager.getChooseCloudMediaAccountActivityIntent();
     }
 
     /**
@@ -242,47 +347,149 @@ public class PickerViewModel extends AndroidViewModel {
      */
     @UiThread
     public void resetAllContentInCurrentProfile() {
+        Log.d(TAG, "Reset all content in current profile");
+
         // Post 'should refresh UI live data' value as false to avoid unnecessary repetitive resets
         mShouldRefreshUiLiveData.postValue(false);
+
+        clearQueuedTasksInDataLoaderThread();
+
+        initPhotoPickerData();
 
         // Clear the existing content - selection, photos grid, albums grid, banners
         mSelection.clearSelectedItems();
 
-        if (mItemList != null) {
-            ForegroundThread.getExecutor().execute(() ->
-                    mItemList.postValue(List.of(Item.EMPTY_VIEW)));
+        if (mItemsResult != null) {
+            DataLoaderThread.getHandler().postDelayed(() ->
+                    mItemsResult.postValue(new PaginatedItemsResult(List.of(Item.EMPTY_VIEW),
+                            ACTION_CLEAR_GRID)), TOKEN, DELAY_MILLIS);
         }
 
         if (mCategoryList != null) {
-            ForegroundThread.getExecutor().execute(() ->
-                    mCategoryList.postValue(List.of(Category.EMPTY_VIEW)));
+            DataLoaderThread.getHandler().postDelayed(() ->
+                    mCategoryList.postValue(List.of(Category.EMPTY_VIEW)), TOKEN, DELAY_MILLIS);
         }
 
         mBannerManager.hideAllBanners();
 
         // Update items, categories & banners
-        updateItems();
+        getPaginatedItemsForAction(ACTION_CLEAR_AND_UPDATE_LIST, null);
         updateCategories();
         mBannerManager.reset();
     }
 
     /**
-     * @return the list of Items with all photos and videos {@link #mItemList} on the device for a
-     * page represented by the {@code pagingParameters}.
-     *
-     * <p>Pass an object of {@link PaginationParameters} created using the default constructor
-     * to obtain the complete list of items present.</p>
+     * Performs required modification to the item list and returns the live data for it.
      */
-    public LiveData<List<Item>> getPaginatedItems(PaginationParameters pagingParameters) {
-        if (mItemList == null) {
-            updateItems(pagingParameters);
+    public LiveData<PaginatedItemsResult> getPaginatedItemsForAction(
+            @NonNull @ItemsAction.Type int action,
+            @Nullable PaginationParameters paginationParameters) {
+        Objects.requireNonNull(action);
+        switch (action) {
+            case ACTION_VIEW_CREATED: {
+                // Use this when a fresh view is created. If the current list is empty, it will
+                // load the first page and return the list, else it will return previously
+                // existing values.
+                mItemsPageSize = paginationParameters.getPageSize();
+                if (mItemsResult == null) {
+                    updatePaginatedItems(paginationParameters, true, action);
+                }
+                break;
+            }
+            case ACTION_LOAD_NEXT_PAGE: {
+                // Loads next page of the list, using the previously loaded list.
+                // If the current list is empty then it will not perform any actions.
+                if (mItemsResult != null && mItemsResult.getValue() != null) {
+                    List<Item> currentItemList = mItemsResult.getValue().getItems();
+                    // If the list is already empty that would mean that the first page was not
+                    // loaded since there were no items to be loaded.
+                    if (currentItemList != null && !currentItemList.isEmpty()) {
+                        // get the last item of the existing list.
+                        Item item = currentItemList.get(currentItemList.size() - 1);
+                        updatePaginatedItems(
+                                new PaginationParameters(mItemsPageSize, item.getDateTaken(),
+                                        item.getRowId()), false, action);
+                    }
+                }
+                break;
+            }
+            case ACTION_CLEAR_AND_UPDATE_LIST: {
+                // Clears the existing list and loads the list with for mItemsPageSize
+                // number of items. This will be equal to page size for pagination if cloud
+                // picker feature flag is enabled, else it will be -1 implying that the complete
+                // list should be loaded.
+                updatePaginatedItems(new PaginationParameters(mItemsPageSize,
+                        /*dateBeforeMs*/ Long.MIN_VALUE, /*rowId*/ -1), /* isReset */ true, action);
+                break;
+            }
+            case ACTION_REFRESH_ITEMS: {
+                if (mIsNotificationForUpdateReceived
+                        && mItemsResult != null
+                        && mItemsResult.getValue() != null) {
+                    updatePaginatedItems(paginationParameters, true, action);
+                    mIsNotificationForUpdateReceived = false;
+                }
+                break;
+            }
+            default:
+                Log.w(TAG, "Invalid action passed to fetch items");
         }
-        return mItemList;
+        return mItemsResult;
     }
+
+    /**
+     * Update the item List {@link #mItemsResult}. Loads the page requested represented by the
+     * pagination parameters and replaces/appends it to the existing list of items based on the
+     * reset value.
+     */
+    private void updatePaginatedItems(PaginationParameters pagingParameters, boolean isReset,
+            @ItemsAction.Type int action) {
+        if (mItemsResult == null) {
+            mItemsResult = new MutableLiveData<>();
+        }
+        loadItemsAsync(pagingParameters, /* isReset */ isReset, action);
+    }
+
+    /**
+     * Loads required items and sets it to the {@link PickerViewModel#mItemsResult} while
+     * considering the isReset value.
+     *
+     * @param pagingParameters parameters representing the items that needs to be loaded next.
+     * @param isReset          If this is true, clear the pre-existing list and add the newly loaded
+     *                         items.
+     * @param action           This is used while posting the result of the operation.
+     */
+    private void loadItemsAsync(@NonNull PaginationParameters pagingParameters, boolean isReset,
+            @ItemsAction.Type int action) {
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
+
+        DataLoaderThread.getHandler().postDelayed(() -> {
+            // Load the items as per the pagination parameters passed as params to this method.
+            List<Item> newPageItemList = loadItems(Category.DEFAULT, userId, pagingParameters);
+
+            // Based on if it is a reset case or not, create an updated list.
+            // If it is a reset case, assign an empty list else use the contents of the pre-existing
+            // list. Then add the newly loaded items.
+            List<Item> updatedList =
+                    mItemsResult.getValue() == null || isReset ? new ArrayList<>()
+                            : mItemsResult.getValue().getItems();
+            updatedList.addAll(newPageItemList);
+            Log.d(TAG, "Next page for photos items have been loaded.");
+            if (newPageItemList.isEmpty()) {
+                Log.d(TAG, "All photos items have been loaded.");
+            }
+
+            // post the result with the action.
+            mItemsResult.postValue(new PaginatedItemsResult(updatedList, action));
+            mIsSyncInProgress.postValue(false);
+        }, TOKEN, DELAY_MILLIS);
+    }
+
 
     private List<Item> loadItems(Category category, UserId userId,
             PaginationParameters pagingParameters) {
         final List<Item> items = new ArrayList<>();
+        String cloudProviderAuthority = null; // NULL if fetched items have NO cloud only media item
 
         try (Cursor cursor = fetchItems(category, userId, pagingParameters)) {
             if (cursor == null || cursor.getCount() == 0) {
@@ -294,98 +501,152 @@ public class PickerViewModel extends AndroidViewModel {
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
                 //  here again.
-                items.add(Item.fromCursor(cursor, userId));
+                final Item item = Item.fromCursor(cursor, userId);
+                String authority = item.getContentUri().getAuthority();
+
+                if (!LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority)) {
+                    cloudProviderAuthority = authority;
+                }
+                items.add(item);
+            }
+
+            Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
+                    + userId.toString());
+            return items;
+        } finally {
+            int count = items.size();
+            if (category.isDefault()) {
+                mLogger.logLoadedMainGridMediaItems(cloudProviderAuthority, mInstanceId, count);
+            } else {
+                mLogger.logLoadedAlbumGridMediaItems(cloudProviderAuthority, mInstanceId, count);
             }
         }
-
-        Log.d(TAG, "Loaded " + items.size() + " items in " + category + " for user "
-                + userId.toString());
-        return items;
     }
 
     private Cursor fetchItems(Category category, UserId userId,
             PaginationParameters pagingParameters) {
         if (shouldShowOnlyLocalFeatures()) {
             return mItemsProvider.getLocalItems(category, pagingParameters,
-                    mMimeTypeFilters, userId);
+                    mMimeTypeFilters, userId, mCancellationSignal);
         } else {
             return mItemsProvider.getAllItems(category, pagingParameters,
-                    mMimeTypeFilters, userId);
+                    mMimeTypeFilters, userId, mCancellationSignal);
         }
     }
 
-    private void loadItemsAsync(@Nullable PaginationParameters pagingParameters) {
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
-        ForegroundThread.getExecutor().execute(() -> {
-            mItemList.postValue(loadItems(Category.DEFAULT, userId, pagingParameters));
-        });
-    }
-
     /**
-     * Update the item List {@link #mItemList} for a page represented by the
-     * {@code pagingParameters}.
-     *
-     * <p>Use {@link PickerViewModel#updateItems()} to update the complete list.</p>
+     * Modifies and returns the live data for category items.
      */
-    public void updateItems(PaginationParameters pagingParameters) {
-        if (mItemList == null) {
-            mItemList = new MutableLiveData<>();
+    public LiveData<PaginatedItemsResult> getPaginatedCategoryItemsForAction(
+            @NonNull Category category,
+            @ItemsAction.Type int action, @Nullable PaginationParameters paginationParameters) {
+        switch (action) {
+            case ACTION_VIEW_CREATED: {
+                // This call is made only for loading the first page of album media,
+                // so the existing data loader thread tasks for updating the category items should
+                // be cleared and the category and category item list should be refreshed each time.
+                DataLoaderThread.getHandler().removeCallbacksAndMessages(
+                        mLoadCategoryItemsThreadToken);
+                mCategoryItemsResult = new MutableLiveData<>();
+                mCurrentCategory = category;
+                assert paginationParameters != null;
+                mCategoryItemsPageSize = paginationParameters.getPageSize();
+                updateCategoryItems(paginationParameters, action);
+                break;
+            }
+            case ACTION_LOAD_NEXT_PAGE: {
+                // Loads next page of the list, using the previously loaded list.
+                // If the current list is empty then it will not perform any actions.
+                if (mCategoryItemsResult == null || mCategoryItemsResult.getValue() == null
+                        || !TextUtils.equals(mCurrentCategory.getId(),
+                        category.getId())) {
+                    break;
+                }
+                List<Item> currentItemList = mCategoryItemsResult.getValue().getItems();
+                // If the categoryItemList does not contain any items, it would mean that the first
+                // page was empty.
+                if (currentItemList != null && !currentItemList.isEmpty()) {
+                    Item item = currentItemList.get(currentItemList.size() - 1);
+                    PaginationParameters pagingParams = new PaginationParameters(
+                            mCategoryItemsPageSize,
+                            item.getDateTaken(),
+                            item.getRowId());
+                    updateCategoryItems(pagingParams, action);
+                }
+                break;
+            }
+            default:
+                Log.w(TAG, "Invalid action passed to fetch category items");
         }
-        loadItemsAsync(pagingParameters);
+        return mCategoryItemsResult;
     }
 
     /**
-     * Update the complete item List {@link #mItemList}.
-     */
-    public void updateItems() {
-        if (mItemList == null) {
-            mItemList = new MutableLiveData<>();
-        }
-        loadItemsAsync(new PaginationParameters());
-    }
-
-    /**
-     * Get the list of all photos and videos with the specific {@code category} on the device.
-     *
-     * In our use case, we only keep the list of current category {@link #mCurrentCategory} in
-     * {@link #mCategoryItemList}. If the {@code category} and {@link #mCurrentCategory} are
-     * different, we will create the new LiveData to {@link #mCategoryItemList}.
-     *
-     * @param category the category we want to be queried
-     * @return the list of all photos and videos with the specific {@code category}
-     *         {@link #mCategoryItemList}
-     */
-    public LiveData<List<Item>> getPaginatedCategoryItems(@NonNull Category category,
-            PaginationParameters pagingParameters) {
-        if (mCategoryItemList == null || !TextUtils.equals(mCurrentCategory.getId(),
-                category.getId())) {
-            mCategoryItemList = new MutableLiveData<>();
-            mCurrentCategory = category;
-        }
-        updateCategoryItems(pagingParameters);
-        return mCategoryItemList;
-    }
-
-    private void loadCategoryItemsAsync(PaginationParameters pagingParameters) {
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
-        ForegroundThread.getExecutor().execute(() -> {
-            mCategoryItemList.postValue(loadItems(mCurrentCategory, userId, pagingParameters));
-        });
-    }
-
-    /**
-     * Update the item List with the {@link #mCurrentCategory} {@link #mCategoryItemList}
+     * Update the item List with the {@link #mCurrentCategory} {@link #mCategoryItemsResult}
      *
      * @throws IllegalStateException category and category items is not initiated before calling
-     *     this method
+     *                               this method
      */
     @VisibleForTesting
-    public void updateCategoryItems(PaginationParameters pagingParameters) {
-        if (mCategoryItemList == null || mCurrentCategory == null) {
-            throw new IllegalStateException("mCurrentCategory and mCategoryItemList are not"
+    public void updateCategoryItems(PaginationParameters pagingParameters,
+            @ItemsAction.Type int action) {
+        if (mCategoryItemsResult == null || mCurrentCategory == null) {
+            throw new IllegalStateException("mCurrentCategory and mCategoryItemsResult are not"
                     + " initiated. Please call getCategoryItems before calling this method");
         }
-        loadCategoryItemsAsync(pagingParameters);
+        loadCategoryItemsAsync(pagingParameters, action != ACTION_LOAD_NEXT_PAGE, action);
+    }
+
+    /**
+     * Loads required category items and sets it to the {@link PickerViewModel#mCategoryItemsResult}
+     * while considering the isReset value.
+     *
+     * @param pagingParameters parameters representing the items that needs to be loaded next.
+     * @param isReset          If this is true, clear the pre-existing list and add the newly loaded
+     *                         items.
+     * @param action           This is used while posting the result of the operation.
+     */
+    private void loadCategoryItemsAsync(PaginationParameters pagingParameters, boolean isReset,
+            @ItemsAction.Type int action) {
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
+        final Category category = mCurrentCategory;
+
+        DataLoaderThread.getHandler().postDelayed(() -> {
+            if (action == ACTION_LOAD_NEXT_PAGE && mIsAllCategoryItemsLoaded) {
+                return;
+            }
+            // Load the items as per the pagination parameters passed as params to this method.
+            List<Item> newPageItemList = loadItems(category, userId, pagingParameters);
+
+            // Based on if it is a reset case or not, create an updated list.
+            // If it is a reset case, assign an empty list else use the contents of the pre-existing
+            // list. Then add the newly loaded items.
+            List<Item> updatedList = mCategoryItemsResult.getValue() == null || isReset
+                    ? new ArrayList<>() : mCategoryItemsResult.getValue().getItems();
+            updatedList.addAll(newPageItemList);
+
+            if (isReset) {
+                mIsAllCategoryItemsLoaded = false;
+            }
+            Log.d(TAG, "Next page for category items have been loaded. Category: "
+                    + category + " " + updatedList.size());
+            if (newPageItemList.isEmpty()) {
+                mIsAllCategoryItemsLoaded = true;
+                Log.d(TAG, "All items have been loaded for category: " + mCurrentCategory);
+            }
+            if (Objects.equals(category, mCurrentCategory)) {
+                mCategoryItemsResult.postValue(new PaginatedItemsResult(updatedList, action));
+            }
+        }, mLoadCategoryItemsThreadToken, DELAY_MILLIS);
+    }
+
+    /**
+     * Used only for testing, clears out any data in item list and category item list.
+     */
+    @VisibleForTesting
+    public void clearItemsAndCategoryItemsList() {
+        mItemsResult = null;
+        mCategoryItemsResult = null;
     }
 
     /**
@@ -400,6 +661,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private List<Category> loadCategories(UserId userId) {
         final List<Category> categoryList = new ArrayList<>();
+        String cloudProviderAuthority = null; // NULL if fetched albums have NO cloud album
         try (Cursor cursor = fetchCategories(userId)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any categories, either cursor is null or"
@@ -409,28 +671,36 @@ public class PickerViewModel extends AndroidViewModel {
 
             while (cursor.moveToNext()) {
                 final Category category = Category.fromCursor(cursor, userId);
+                String authority = category.getAuthority();
+
+                if (!LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority)) {
+                    cloudProviderAuthority = authority;
+                }
                 categoryList.add(category);
             }
 
             Log.d(TAG,
                     "Loaded " + categoryList.size() + " categories for user " + userId.toString());
+            CategoryOrganiserUtils.getReorganisedCategoryList(categoryList);
+            return categoryList;
+        } finally {
+            mLogger.logLoadedAlbums(cloudProviderAuthority, mInstanceId, categoryList.size());
         }
-        return categoryList;
     }
 
     private Cursor fetchCategories(UserId userId) {
         if (shouldShowOnlyLocalFeatures()) {
-            return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId);
+            return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId, mCancellationSignal);
         } else {
-            return mItemsProvider.getAllCategories(mMimeTypeFilters, userId);
+            return mItemsProvider.getAllCategories(mMimeTypeFilters, userId, mCancellationSignal);
         }
     }
 
     private void loadCategoriesAsync() {
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
-        ForegroundThread.getExecutor().execute(() -> {
+        DataLoaderThread.getHandler().postDelayed(() -> {
             mCategoryList.postValue(loadCategories(userId));
-        });
+        }, TOKEN, DELAY_MILLIS);
     }
 
     /**
@@ -483,8 +753,8 @@ public class PickerViewModel extends AndroidViewModel {
         // in the extras.
         if (mIsUserSelectForApp
                 && (intent.getExtras() == null
-                        || !intent.getExtras()
-                                .containsKey(Intent.EXTRA_UID))) {
+                || !intent.getExtras()
+                .containsKey(Intent.EXTRA_UID))) {
             throw new IllegalArgumentException(
                     "EXTRA_UID is required for" + " ACTION_USER_SELECT_IMAGES_FOR_APP");
         }
@@ -495,8 +765,8 @@ public class PickerViewModel extends AndroidViewModel {
 
     private void initBannerManager() {
         mBannerManager = shouldShowOnlyLocalFeatures()
-                ? new BannerManager(mAppContext, mUserIdManager)
-                : new BannerManager.CloudBannerManager(mAppContext, mUserIdManager);
+                ? new BannerManager(mAppContext, mUserIdManager, mConfigStore)
+                : new BannerManager.CloudBannerManager(mAppContext, mUserIdManager, mConfigStore);
     }
 
     /**
@@ -553,8 +823,6 @@ public class PickerViewModel extends AndroidViewModel {
         maybeLogPickerOpenedWithCloudProvider();
     }
 
-    // TODO(b/245745412): Fix log params (uid & package name)
-    // TODO(b/245745424): Solve for active cloud provider without a logged in account
     private void maybeLogPickerOpenedWithCloudProvider() {
         if (shouldShowOnlyLocalFeatures()) {
             return;
@@ -569,13 +837,34 @@ public class PickerViewModel extends AndroidViewModel {
                         + ", log=" + (providerAuthority != null));
 
                 if (providerAuthority != null) {
-                    mLogger.logPickerOpenWithActiveCloudProvider(
-                            mInstanceId, /* cloudProviderUid */ -1, providerAuthority);
+                    BackgroundThread.getExecutor().execute(() ->
+                            logPickerOpenedWithCloudProvider(providerAuthority));
                 }
                 // We only need to get the value once.
                 cloudMediaProviderAuthorityLiveData.removeObserver(this);
             }
         });
+    }
+
+    private void logPickerOpenedWithCloudProvider(@NonNull String providerAuthority) {
+        String cloudProviderPackage = providerAuthority;
+        int cloudProviderUid = -1;
+
+        try {
+            final PackageManager packageManager =
+                    UserId.CURRENT_USER.getPackageManager(mAppContext);
+            final ProviderInfo providerInfo = packageManager.resolveContentProvider(
+                    providerAuthority, /* flags= */ 0);
+
+            cloudProviderPackage = providerInfo.applicationInfo.packageName;
+            cloudProviderUid = providerInfo.applicationInfo.uid;
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.d(TAG, "Logging the ui event 'picker open with an active cloud provider' with its "
+                    + "authority in place of the package name and a default uid.", e);
+        }
+
+        mLogger.logPickerOpenWithActiveCloudProvider(
+                mInstanceId, cloudProviderUid, cloudProviderPackage);
     }
 
     /**
@@ -618,6 +907,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     /**
      * Log metrics to notify that the user has clicked the 'view selected' button
+     *
      * @param selectedItemCount the number of items selected for preview all
      */
     public void logPreviewAllSelected(int selectedItemCount) {
@@ -646,6 +936,43 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * Log metrics to notify that the user has cancelled the current session by swiping down
+     */
+    public void logSwipeDownExit() {
+        mLogger.logSwipeDownExit(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has made a back gesture
+     * @param backStackEntryCount the number of fragment entries currently in the back stack
+     */
+    public void logBackGestureWithStackCount(int backStackEntryCount) {
+        mLogger.logBackGestureWithStackCount(mInstanceId, backStackEntryCount);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the action bar home button
+     * @param backStackEntryCount the number of fragment entries currently in the back stack
+     */
+    public void logActionBarHomeButtonClick(int backStackEntryCount) {
+        mLogger.logActionBarHomeButtonClick(mInstanceId, backStackEntryCount);
+    }
+
+    /**
+     * Log metrics to notify that the user has expanded from half screen to full
+     */
+    public void logExpandToFullScreen() {
+        mLogger.logExpandToFullScreen(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has opened the photo picker menu
+     */
+    public void logMenuOpened() {
+        mLogger.logMenuOpened(mInstanceId);
+    }
+
+    /**
      * Log metrics to notify that the user has switched to the photos tab
      */
     public void logSwitchToPhotosTab() {
@@ -660,19 +987,31 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Log metrics to notify that the user has opened a cloud album
+     * Log metrics to notify that the user has opened an album
+     *
      * @param category the opened album metadata
      * @param position the position of the album in the recycler view
      */
-    public void logCloudAlbumOpened(@NonNull Category category, int position) {
+    public void logAlbumOpened(@NonNull Category category, int position) {
         final String albumId = category.getId();
-        if (!LOCAL_OR_MERGED_ALBUMS.contains(albumId) && !category.isLocal()) {
+        if (ALBUM_ID_FAVORITES.equals(albumId)) {
+            mLogger.logFavoritesAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_CAMERA.equals(albumId)) {
+            mLogger.logCameraAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_DOWNLOADS.equals(albumId)) {
+            mLogger.logDownloadsAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_SCREENSHOTS.equals(albumId)) {
+            mLogger.logScreenshotsAlbumOpened(mInstanceId);
+        } else if (ALBUM_ID_VIDEOS.equals(albumId)) {
+            mLogger.logVideosAlbumOpened(mInstanceId);
+        } else if (!category.isLocal()) {
             mLogger.logCloudAlbumOpened(mInstanceId, position);
         }
     }
 
     /**
      * Log metrics to notify that the user has selected a media item
+     *
      * @param item     the selected item metadata
      * @param category the category of the item selected, {@link Category#DEFAULT} for main grid
      * @param position the position of the album in the recycler view
@@ -691,6 +1030,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     /**
      * Log metrics to notify that the user has previewed a media item
+     *
      * @param item     the previewed item metadata
      * @param category the category of the item previewed, {@link Category#DEFAULT} for main grid
      * @param position the position of the album in the recycler view
@@ -701,6 +1041,22 @@ public class PickerViewModel extends AndroidViewModel {
             mLogger.logPreviewedMainGridItem(
                     item.getSpecialFormat(), item.getMimeType(), mInstanceId, position);
         }
+    }
+
+    /**
+     * Log metrics to notify create surface controller triggered
+     * @param authority  the authority of the provider
+     */
+    public void logCreateSurfaceControllerStart(String authority) {
+        mLogger.logPickerCreateSurfaceControllerStart(mInstanceId, authority);
+    }
+
+    /**
+     * Log metrics to notify create surface controller ended
+     * @param authority  the authority of the provider
+     */
+    public void logCreateSurfaceControllerEnd(String authority) {
+        mLogger.logPickerCreateSurfaceControllerEnd(mInstanceId, authority);
     }
 
     public InstanceId getInstanceId() {
@@ -723,23 +1079,18 @@ public class PickerViewModel extends AndroidViewModel {
      *
      * Show only the local features in the following cases -
      * 1. Photo Picker is launched by the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP}
-     *    action for the permission flow.
+     * action for the permission flow.
      * 2. Photo Picker is launched with the {@link Intent#EXTRA_LOCAL_ONLY} as {@code true} in the
-     *    {@link Intent#ACTION_GET_CONTENT} or {@link MediaStore#ACTION_PICK_IMAGES} action.
+     * {@link Intent#ACTION_GET_CONTENT} or {@link MediaStore#ACTION_PICK_IMAGES} action.
      * 3. Cloud Media in Photo picker is disabled, i.e.,
-     *    {@link ConfigStore#isCloudMediaInPhotoPickerEnabled()} is {@code false}.
+     * {@link ConfigStore#isCloudMediaInPhotoPickerEnabled()} is {@code false}.
      *
      * @return {@code true} iff either {@link #isUserSelectForApp()} or {@link #isLocalOnly()} is
      * {@code true}, OR if {@link ConfigStore#isCloudMediaInPhotoPickerEnabled()} is {@code false}.
      */
     public boolean shouldShowOnlyLocalFeatures() {
         return isUserSelectForApp() || isLocalOnly()
-                || !getConfigStore().isCloudMediaInPhotoPickerEnabled();
-    }
-
-    @VisibleForTesting
-    protected ConfigStore getConfigStore() {
-        return MediaApplication.getConfigStore();
+                || !mConfigStore.isCloudMediaInPhotoPickerEnabled();
     }
 
     /**
@@ -845,5 +1196,65 @@ public class PickerViewModel extends AndroidViewModel {
                     + selectedUserId + "; returning the default content resolver.", e);
             return mAppContext.getContentResolver();
         }
+    }
+
+    public LiveData<Boolean> isSyncInProgress() {
+        return mIsSyncInProgress;
+    }
+
+    /**
+     * Class used to store the result of the item modification operations.
+     */
+    public class PaginatedItemsResult {
+        private List<Item> mItems = new ArrayList<>();
+
+        private int mAction = ACTION_DEFAULT;
+
+        public PaginatedItemsResult(@NonNull List<Item> itemList,
+                @ItemsAction.Type int action) {
+            mItems = itemList;
+            mAction = action;
+        }
+
+        public List<Item> getItems() {
+            return mItems;
+        }
+
+        @ItemsAction.Type
+        public int getAction() {
+            return mAction;
+        }
+    }
+
+    /**
+     * This will inform the media Provider process that the UI is preparing to load data for the
+     * main photos grid.
+     */
+    public void initPhotoPickerData() {
+        initPhotoPickerData(Category.DEFAULT);
+    }
+
+    /**
+     * This will inform the media Provider process that the UI is preparing to load data for main
+     * photos grid or album contents grid.
+     */
+    public void initPhotoPickerData(@NonNull Category category) {
+        if (mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
+            UserId userId = mUserIdManager.getCurrentUserProfileId();
+            DataLoaderThread.getHandler().postDelayed(() -> {
+                if (category == Category.DEFAULT) {
+                    mIsSyncInProgress.postValue(true);
+                }
+                mItemsProvider.initPhotoPickerData(category.getId(),
+                        category.getAuthority(),
+                        shouldShowOnlyLocalFeatures(),
+                        userId);
+            }, TOKEN, DELAY_MILLIS);
+        }
+    }
+
+    private void clearQueuedTasksInDataLoaderThread() {
+        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
+        DataLoaderThread.getHandler().removeCallbacksAndMessages(mLoadCategoryItemsThreadToken);
     }
 }

@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -51,6 +52,7 @@ public class MediaGrantsTest {
     private MediaGrants mGrants;
 
     private static final String TEST_OWNER_PACKAGE_NAME = "com.android.test.package";
+    private static final String TEST_OWNER_PACKAGE_NAME2 = "com.android.test.package2";
     private static final int TEST_USER_ID = UserHandle.myUserId();
 
     @BeforeClass
@@ -93,6 +95,46 @@ public class MediaGrantsTest {
 
         assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
         assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+    }
+
+    @Test
+    public void testGetMediaGrantsForPackage() throws Exception {
+        Long fileId1 = insertFileInResolver(mIsolatedResolver, "test_file1");
+        Long fileId2 = insertFileInResolver(mIsolatedResolver, "test_file2");
+        Long fileId3 = insertFileInResolver(mIsolatedResolver, "test_file3");
+        List<Uri> uris1 = List.of(buildValidPickerUri(fileId1), buildValidPickerUri(fileId2));
+        List<Uri> uris2 = List.of(buildValidPickerUri(fileId3));
+
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris1, TEST_USER_ID);
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME2, uris2, TEST_USER_ID);
+
+
+        List<Uri> fileUris = mGrants.getMediaGrantsForPackage(
+                TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+
+        List<Long> expectedFileIdsList = List.of(fileId1, fileId2);
+
+        assertEquals(fileUris.size(), expectedFileIdsList.size());
+        for (Uri uri: fileUris) {
+            assertTrue(expectedFileIdsList.contains(Long.valueOf(ContentUris.parseId(uri))));
+        }
+
+        List<Uri> fileUrisForTestPackage2 = mGrants.getMediaGrantsForPackage(
+                TEST_OWNER_PACKAGE_NAME2, TEST_USER_ID);
+
+        List<Long> expectedFileIdsList2 = List.of(fileId3);
+
+        assertEquals(fileUrisForTestPackage2.size(), expectedFileIdsList2.size());
+        for (Uri uri: fileUrisForTestPackage2) {
+            assertTrue(expectedFileIdsList2.contains(Long.valueOf(ContentUris.parseId(uri))));
+        }
+
+        List<Uri> fileUrisForTestPackage3 = mGrants.getMediaGrantsForPackage(
+                "non.existent.package", TEST_USER_ID);
+
+        // assert no items are returned for an invalid package.
+        assertEquals(/* expected= */fileUrisForTestPackage3.size(), /* actual= */0);
+
     }
 
     @Test

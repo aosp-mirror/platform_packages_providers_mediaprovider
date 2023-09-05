@@ -1433,6 +1433,8 @@ public class MediaProvider extends ContentProvider {
         boolean isGetContentTakeoverEnabled;
         if (SdkLevel.isAtLeastT()) {
             isGetContentTakeoverEnabled = true;
+        } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+            isGetContentTakeoverEnabled = true;
         } else {
             isGetContentTakeoverEnabled = mConfigStore.isGetContentTakeOverEnabled();
         }

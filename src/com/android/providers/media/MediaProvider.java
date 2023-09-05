@@ -6867,12 +6867,14 @@ public class MediaProvider extends ContentProvider {
                 getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
                         "Permission missing to call GET_OWNER_PACKAGE_NAME by "
                                 + "uid:" + Binder.getCallingUid());
-                Pair<String, Integer> packageNameAndUidPair =
-                        mDatabaseBackupAndRecovery.getOwnerPackageNameAndUidPair(
-                                Integer.parseInt(arg));
-                Bundle result = new Bundle();
-                result.putString(GET_OWNER_PACKAGE_NAME, packageNameAndUidPair.first);
-                return result;
+                try {
+                    String ownerPackageName = mDatabaseBackupAndRecovery.readOwnerPackageName(arg);
+                    Bundle result = new Bundle();
+                    result.putString(GET_OWNER_PACKAGE_NAME, ownerPackageName);
+                    return result;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             case MediaStore.DELETE_BACKED_UP_FILE_PATHS:
                 getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
                         "Permission missing to call DELETE_BACKED_UP_FILE_PATHS by "

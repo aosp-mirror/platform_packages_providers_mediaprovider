@@ -6833,37 +6833,35 @@ public class MediaProvider extends ContentProvider {
         if (checkPermissionSelf(caller)) {
             // If the caller is MediaProvider the accepted parameters are EXTRA_URI_LIST
             // and EXTRA_UID.
-            if (!extras.containsKey(MediaStore.EXTRA_URI_LIST)
+            if (!extras.containsKey(
+                    MediaStore.EXTRA_URI_LIST)
                     && !extras.containsKey(Intent.EXTRA_UID)) {
                 throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI_LIST or" + " EXTRA_UID");
+                        "Missing required extras arguments: EXTRA_URI_LIST or"
+                                + " EXTRA_UID");
             }
             uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
             final PackageManager pm = getContext().getPackageManager();
             final int packageUid = extras.getInt(Intent.EXTRA_UID);
-            final String[] packages = pm.getPackagesForUid(packageUid);
-            if (packages == null || packages.length == 0) {
-                throw new IllegalArgumentException(
-                        String.format(
-                                "Could not find packages for media_grants with uid: %d",
-                                packageUid));
-            }
-            // Use the first package in the returned list for grants. In the case this
-            // uid has multiple shared packages, the eventual queries to check for file
-            // access will use all of the packages in this list, so just one is needed
-            // to create the grants.
-            packageName = packages[0];
+            packageName = pm.getNameForUid(packageUid);
             // Get the userId from packageUid as the initiator could be a cloned app, which
             // accesses Media via MP of its parent user and Binder's callingUid reflects
             // the latter.
             userId = uidToUserId(packageUid);
+            if (packageName.contains(":")) {
+                // Check if the package name includes the package uid. This is expected
+                // for packages that are referencing a shared user. PackageManager will
+                // return a string such as <packagename>:<uid> in this instance.
+                packageName = packageName.split(":")[0];
+            }
         } else if (checkPermissionShell(caller)) {
             // If the caller is the shell, the accepted parameters are EXTRA_URI (as string)
             // and EXTRA_PACKAGE_NAME (as string).
             if (!extras.containsKey(MediaStore.EXTRA_URI)
                     && !extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
                 throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI or" + " EXTRA_PACKAGE_NAME");
+                        "Missing required extras arguments: EXTRA_URI or"
+                                + " EXTRA_PACKAGE_NAME");
             }
             packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
             uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
@@ -6873,7 +6871,8 @@ public class MediaProvider extends ContentProvider {
         } else {
             // All other callers are unauthorized.
 
-            throw new SecurityException(getSecurityExceptionMessage("Create media grants"));
+            throw new SecurityException(
+                    getSecurityExceptionMessage("Create media grants"));
         }
 
         mMediaGrants.addMediaGrantsForPackage(packageName, uris, userId);

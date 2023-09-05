@@ -64,6 +64,8 @@ public class Item {
     private boolean mIsVideo;
     private int mSpecialFormat;
 
+    private boolean mIsPreGranted;
+
     /**
      * This is the row id for the item in the db.
      */
@@ -145,6 +147,16 @@ public class Item {
 
     public int getRowId() {
         return mRowId;
+    }
+
+    /**
+     * Setting this represents that the item has READ_GRANT for the current package.
+     */
+    public void setPreGranted() {
+        mIsPreGranted = true;
+    }
+    public boolean isPreGranted() {
+        return mIsPreGranted;
     }
 
     public static Item fromCursor(@NonNull Cursor cursor, UserId userId) {

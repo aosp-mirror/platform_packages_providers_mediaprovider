@@ -156,7 +156,7 @@ public class DatabaseBackupAndRecovery {
 
     private AtomicBoolean mIsBackupSetupComplete = new AtomicBoolean(false);
 
-    private Map<String, String> mOwnerIdRelationMap;
+    private static Map<String, String> sOwnerIdRelationMap;
 
     protected DatabaseBackupAndRecovery(ConfigStore configStore, VolumeCache volumeCache) {
         mConfigStore = configStore;
@@ -792,10 +792,9 @@ public class DatabaseBackupAndRecovery {
     }
 
     protected Pair<String, Integer> getOwnerPackageNameAndUidPair(int ownerPackageId) {
-        if (mOwnerIdRelationMap == null) {
+        if (sOwnerIdRelationMap == null) {
             try {
-                mOwnerIdRelationMap = getFuseDaemonForPath(
-                        EXTERNAL_PRIMARY_ROOT_PATH).readOwnerIdRelations();
+                sOwnerIdRelationMap = readOwnerIdRelationsFromLevelDb();
                 Log.v(TAG, "Cached owner id map");
             } catch (IOException e) {
                 Log.e(TAG, "Failure in reading owner details for owner id:" + ownerPackageId, e);
@@ -803,10 +802,24 @@ public class DatabaseBackupAndRecovery {
             }
         }
 
-        if (mOwnerIdRelationMap.containsKey(String.valueOf(ownerPackageId))) {
-            return getPackageNameAndUserId(mOwnerIdRelationMap.get(String.valueOf(ownerPackageId)));
+        if (sOwnerIdRelationMap.containsKey(String.valueOf(ownerPackageId))) {
+            return getPackageNameAndUserId(sOwnerIdRelationMap.get(String.valueOf(ownerPackageId)));
         }
+
         return Pair.create(null, null);
+    }
+
+    protected Map<String, String> readOwnerIdRelationsFromLevelDb() throws IOException {
+        return getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH).readOwnerIdRelations();
+    }
+
+    protected String readOwnerPackageName(String ownerId) throws IOException {
+        Map<String, String> ownerIdRelationMap = readOwnerIdRelationsFromLevelDb();
+        if (ownerIdRelationMap.containsKey(String.valueOf(ownerId))) {
+            return getPackageNameAndUserId(ownerIdRelationMap.get(ownerId)).first;
+        }
+
+        return null;
     }
 
     protected void recoverData(SQLiteDatabase db, String volumeName) {
@@ -840,6 +853,8 @@ public class DatabaseBackupAndRecovery {
                 break;
             }
 
+            // Reset cached owner id relation map
+            sOwnerIdRelationMap = null;
             for (String filePath : backedUpFilePaths) {
                 Optional<BackupIdRow> fileRow = readDataFromBackup(volumeName, filePath);
                 if (fileRow.isPresent()) {

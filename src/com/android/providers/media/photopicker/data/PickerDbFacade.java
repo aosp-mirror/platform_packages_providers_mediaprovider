@@ -50,6 +50,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
+import com.android.providers.media.util.MimeUtils;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -944,8 +945,8 @@ public class PickerDbFacade {
 
             long count = getCursorLong(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT);
 
-            // We want to always display empty merged folder in case of cloud picker.
-            if (count == 0 && (query.mIsLocalOnly || cloudProvider == null)) {
+            // We want to display empty merged folder in case of cloud picker.
+            if (shouldHideMergedAlbum(query, albumId, cloudProvider, count)) {
                 continue;
             }
 
@@ -960,6 +961,27 @@ public class PickerDbFacade {
             c.addRow(projectionValue);
         }
         return c;
+    }
+
+    private static boolean shouldHideMergedAlbum(QueryFilter query, String albumId,
+            String cloudProvider, long count) {
+        final boolean isAlbumEmpty = (count == 0);
+        final boolean shouldNotShowCloudItems = (query.mIsLocalOnly || cloudProvider == null);
+
+        return (isAlbumEmpty && (shouldNotShowCloudItems || hideVideosAlbum(query, albumId)));
+    }
+
+    private static boolean hideVideosAlbum(QueryFilter query, String albumId) {
+        String[] mimeTypes = query.mMimeTypes;
+        if (!albumId.equals(ALBUM_ID_VIDEOS) || mimeTypes == null) {
+            return false;
+        }
+        for (String mimeType : mimeTypes) {
+            if (MimeUtils.isVideoMimeType(mimeType)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String[] getMergedAlbumProjection() {

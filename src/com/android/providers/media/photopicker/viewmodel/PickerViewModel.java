@@ -53,6 +53,7 @@ import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
@@ -82,6 +83,7 @@ import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.ui.ItemsAction;
 import com.android.providers.media.photopicker.util.CategoryOrganiserUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
+import com.android.providers.media.photopicker.util.ThreadUtils;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
@@ -1128,32 +1130,36 @@ public class PickerViewModel extends AndroidViewModel {
     /**
      * Dismiss (hide) the 'Choose App' banner for the current user.
      */
-    @UiThread
+    @MainThread
     public void onUserDismissedChooseAppBanner() {
+        ThreadUtils.assertMainThread();
         mBannerManager.onUserDismissedChooseAppBanner();
     }
 
     /**
      * Dismiss (hide) the 'Cloud Media Available' banner for the current user.
      */
-    @UiThread
+    @MainThread
     public void onUserDismissedCloudMediaAvailableBanner() {
+        ThreadUtils.assertMainThread();
         mBannerManager.onUserDismissedCloudMediaAvailableBanner();
     }
 
     /**
      * Dismiss (hide) the 'Account Updated' banner for the current user.
      */
-    @UiThread
+    @MainThread
     public void onUserDismissedAccountUpdatedBanner() {
+        ThreadUtils.assertMainThread();
         mBannerManager.onUserDismissedAccountUpdatedBanner();
     }
 
     /**
      * Dismiss (hide) the 'Choose Account' banner for the current user.
      */
-    @UiThread
+    @MainThread
     public void onUserDismissedChooseAccountBanner() {
+        ThreadUtils.assertMainThread();
         mBannerManager.onUserDismissedChooseAccountBanner();
     }
 

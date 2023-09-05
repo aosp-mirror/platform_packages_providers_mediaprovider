@@ -98,7 +98,7 @@ public class MediaGrantsTest {
     }
 
     @Test
-    public void testGetMediaGrantsForPackage() throws Exception {
+    public void testGetMediaGrantsForPackages() throws Exception {
         Long fileId1 = insertFileInResolver(mIsolatedResolver, "test_file1");
         Long fileId2 = insertFileInResolver(mIsolatedResolver, "test_file2");
         Long fileId3 = insertFileInResolver(mIsolatedResolver, "test_file3");
@@ -109,28 +109,28 @@ public class MediaGrantsTest {
         mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME2, uris2, TEST_USER_ID);
 
 
-        List<Uri> fileUris = mGrants.getMediaGrantsForPackage(
-                TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+        List<Uri> fileUris = mGrants.getMediaGrantsForPackages(
+                new String[]{TEST_OWNER_PACKAGE_NAME}, TEST_USER_ID);
 
         List<Long> expectedFileIdsList = List.of(fileId1, fileId2);
 
         assertEquals(fileUris.size(), expectedFileIdsList.size());
-        for (Uri uri: fileUris) {
+        for (Uri uri : fileUris) {
             assertTrue(expectedFileIdsList.contains(Long.valueOf(ContentUris.parseId(uri))));
         }
 
-        List<Uri> fileUrisForTestPackage2 = mGrants.getMediaGrantsForPackage(
-                TEST_OWNER_PACKAGE_NAME2, TEST_USER_ID);
+        List<Uri> fileUrisForTestPackage2 = mGrants.getMediaGrantsForPackages(
+                new String[]{TEST_OWNER_PACKAGE_NAME2}, TEST_USER_ID);
 
         List<Long> expectedFileIdsList2 = List.of(fileId3);
 
         assertEquals(fileUrisForTestPackage2.size(), expectedFileIdsList2.size());
-        for (Uri uri: fileUrisForTestPackage2) {
+        for (Uri uri : fileUrisForTestPackage2) {
             assertTrue(expectedFileIdsList2.contains(Long.valueOf(ContentUris.parseId(uri))));
         }
 
-        List<Uri> fileUrisForTestPackage3 = mGrants.getMediaGrantsForPackage(
-                "non.existent.package", TEST_USER_ID);
+        List<Uri> fileUrisForTestPackage3 = mGrants.getMediaGrantsForPackages(
+                new String[]{"non.existent.package"}, TEST_USER_ID);
 
         // assert no items are returned for an invalid package.
         assertEquals(/* expected= */fileUrisForTestPackage3.size(), /* actual= */0);

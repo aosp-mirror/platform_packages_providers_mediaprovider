@@ -115,6 +115,11 @@ public class MediaProviderTest {
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.READ_DEVICE_CONFIG,
+                        // Adding this to use getUserHandles() api of UserManagerService which
+                        // requires either MANAGE_USERS or CREATE_USERS. Since shell does not have
+                        // MANAGER_USERS permissions, using CREATE_USERS in test. This works with
+                        // MANAGE_USERS permission for MediaProvider module.
+                        Manifest.permission.CREATE_USERS,
                         Manifest.permission.INTERACT_ACROSS_USERS);
 
         resetIsolatedContext();
@@ -336,6 +341,39 @@ public class MediaProviderTest {
             testFile.delete();
         }
 
+    }
+
+    @Test
+    public void testGetReadGrantsForPackage() throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File testFile = stage(R.raw.lg_g4_iso_800_jpg,
+                new File(dir, "test" + System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, testFile);
+        Long fileId = ContentUris.parseId(uri);
+
+        final Uri.Builder builder = Uri.EMPTY.buildUpon();
+        builder.scheme("content");
+        builder.encodedAuthority(MediaStore.AUTHORITY);
+
+        final Uri testUri = builder.appendPath("picker")
+                .appendPath(Integer.toString(UserHandle.myUserId()))
+                .appendPath(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                .appendPath(MediaStore.AUTHORITY)
+                .appendPath(Long.toString(fileId))
+                .build();
+
+        try {
+            MediaStore.grantMediaReadForPackage(sIsolatedContext,
+                    android.os.Process.myUid(),
+                    List.of(testUri));
+            List<Uri> grantedUris = MediaStore.fetchReadGrantedItemsUrisForPackage(
+                    sIsolatedContext, android.os.Process.myUid());
+            assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris.get(0)));
+        } finally {
+            dir.delete();
+            testFile.delete();
+        }
     }
 
     /**

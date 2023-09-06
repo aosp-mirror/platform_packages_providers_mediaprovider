@@ -41,6 +41,8 @@ import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.util.MimeUtils;
 
+import java.util.Objects;
+
 /**
  * Base class for representing a single media item (a picture, a video, etc.) in the PhotoPicker.
  */
@@ -61,6 +63,8 @@ public class Item {
     private boolean mIsImage;
     private boolean mIsVideo;
     private int mSpecialFormat;
+
+    private boolean mIsPreGranted;
 
     /**
      * This is the row id for the item in the db.
@@ -145,6 +149,16 @@ public class Item {
         return mRowId;
     }
 
+    /**
+     * Setting this represents that the item has READ_GRANT for the current package.
+     */
+    public void setPreGranted() {
+        mIsPreGranted = true;
+    }
+    public boolean isPreGranted() {
+        return mIsPreGranted;
+    }
+
     public static Item fromCursor(@NonNull Cursor cursor, UserId userId) {
         return new Item(requireNonNull(cursor), userId);
     }
@@ -224,5 +238,18 @@ public class Item {
      */
     public boolean isLocal() {
         return LOCAL_PICKER_PROVIDER_AUTHORITY.equals(mUri.getAuthority());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || !(obj instanceof Item)) return false;
+
+        Item other = (Item) obj;
+        return mUri.equals(other.mUri);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hash(mUri);
     }
 }

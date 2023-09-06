@@ -229,3 +229,10 @@ filegroup {
     name: "mediaprovider-testutils",
     srcs: ["utils/**/*.java"],
 }
+
+filegroup {
+    name: "mediaprovider-library",
+    srcs: [
+        "src/com/android/providers/media/library/RunOnlyOnPostsubmit.java",
+    ],
+}

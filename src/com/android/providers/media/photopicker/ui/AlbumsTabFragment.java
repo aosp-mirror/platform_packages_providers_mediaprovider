@@ -15,8 +15,6 @@
  */
 package com.android.providers.media.photopicker.ui;
 
-import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
-
 import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
@@ -27,7 +25,6 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 
 import java.util.ArrayList;
@@ -105,12 +102,5 @@ public class AlbumsTabFragment extends TabFragment {
         final AlbumsTabFragment fragment = new AlbumsTabFragment();
         ft.replace(R.id.fragment_container, fragment);
         ft.commitAllowingStateLoss();
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        // Clear queued tasks in handler.
-        DataLoaderThread.getHandler().removeCallbacksAndMessages(TOKEN);
     }
 }

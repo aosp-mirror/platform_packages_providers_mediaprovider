@@ -24,6 +24,8 @@ import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeTyp
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -39,13 +41,18 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.ProjectionHelper;
+import com.android.providers.media.photopicker.sync.SyncTracker;
+import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerDbFacadeTest {
@@ -86,14 +93,25 @@ public class PickerDbFacadeTest {
     private Context mContext;
     private ProjectionHelper mProjectionHelper;
 
+    @Mock
+    private SyncTracker mMockLocalSyncTracker;
+    @Mock
+    private SyncTracker mMockCloudSyncTracker;
+
     @Before
     public void setUp() {
+        initMocks(this);
         mContext = InstrumentationRegistry.getTargetContext();
         File dbPath = mContext.getDatabasePath(PickerDatabaseHelper.PICKER_DATABASE_NAME);
         dbPath.delete();
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER);
         mFacade.setCloudProvider(CLOUD_PROVIDER);
         mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
+
+
+        // Inject mock trackers
+        SyncTrackerRegistry.setLocalSyncTracker(mMockLocalSyncTracker);
+        SyncTrackerRegistry.setCloudSyncTracker(mMockCloudSyncTracker);
     }
 
     @After
@@ -101,6 +119,10 @@ public class PickerDbFacadeTest {
         if (mFacade != null) {
             mFacade.setCloudProvider(null);
         }
+
+        // Reset mock trackers
+        SyncTrackerRegistry.setLocalSyncTracker(new SyncTracker());
+        SyncTrackerRegistry.setCloudSyncTracker(new SyncTracker());
     }
 
     @Test
@@ -237,6 +259,33 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 2);
+        }
+    }
+
+    @Test
+    public void testAddCloudAlbumMediaWhileCloudSyncIsRunning() {
+
+
+        doReturn(Collections.singletonList(new CompletableFuture<>()))
+                .when(mMockCloudSyncTracker)
+                .pendingSyncFutures();
+
+        Cursor cursor1 = getAlbumMediaCursor(/* local id */ null, CLOUD_ID, DATE_TAKEN_MS + 1);
+
+        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cursor1, 1, ALBUM_ID);
+
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID, false)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 1);
+        }
+
+        // These files should also be in the media table since we're pretending that
+        // we have a cloud sync running.
+        try (Cursor cr = queryMediaAll()) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 1);
         }
     }
 
@@ -456,6 +505,39 @@ public class PickerDbFacadeTest {
         }
 
         assertRemoveMediaOperation(CLOUD_PROVIDER, getDeletedMediaCursor(CLOUD_ID), 1);
+
+        try (Cursor cr = queryMediaAll()) {
+            assertThat(cr.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testRemoveMedia_withLatestDateTakenMillis() {
+        Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
+        Cursor cloudCursor1 = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS + 1);
+
+        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor1, 1);
+
+        try (Cursor cr = queryMediaAll()) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
+        }
+
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginRemoveMediaOperation(CLOUD_PROVIDER)) {
+            assertWriteOperation(operation, getDeletedMediaCursor(CLOUD_ID), /* writeCount */ 1);
+            assertThat(operation.getFirstDateTakenMillis()).isEqualTo(DATE_TAKEN_MS + 1);
+            operation.setSuccess();
+        }
+
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginRemoveMediaOperation(LOCAL_PROVIDER)) {
+            assertWriteOperation(operation, getDeletedMediaCursor(LOCAL_ID), /* writeCount */ 1);
+            assertThat(operation.getFirstDateTakenMillis()).isEqualTo(DATE_TAKEN_MS);
+            operation.setSuccess();
+        }
 
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(0);
@@ -1062,8 +1144,7 @@ public class PickerDbFacadeTest {
                 new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
         try (Cursor cr =
                      mFacade.queryAlbumMediaForUi(
-                             localQfb.setAlbumId(ALBUM_ID)
-                                     .build(), LOCAL_PROVIDER, /* validateAlbumAuthority */ true)) {
+                             localQfb.setAlbumId(ALBUM_ID).build(), LOCAL_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertThrows(
@@ -1081,8 +1162,7 @@ public class PickerDbFacadeTest {
                 new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
         try (Cursor cr =
                      mFacade.queryAlbumMediaForUi(
-                             cloudQfb.setAlbumId(ALBUM_ID)
-                                     .build(), CLOUD_PROVIDER, /* validateAlbumAuthority */ true)) {
+                             cloudQfb.setAlbumId(ALBUM_ID).build(), CLOUD_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertThrows(
@@ -1536,8 +1616,7 @@ public class PickerDbFacadeTest {
         final String authority = isLocal ? LOCAL_PROVIDER : CLOUD_PROVIDER;
 
         return mFacade.queryAlbumMediaForUi(
-                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId)
-                        .build(), authority, /* validateAlbumAuthority */ true);
+                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId).build(), authority);
     }
 
     private void assertAddMediaOperation(String authority, Cursor cursor, int writeCount) {

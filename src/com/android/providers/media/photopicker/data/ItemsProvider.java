@@ -22,6 +22,7 @@ import static android.provider.MediaStore.AUTHORITY;
 
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_DATE_TAKEN_BEFORE_MS;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_LOCAL_ID_SELECTION;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ROW_ID;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.sendInitPhotoPickerDataNotification;
 
@@ -50,7 +51,10 @@ import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.UserId;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Provides image and video items from {@link MediaStore} collection to the Photo Picker.
@@ -157,6 +161,26 @@ public class ItemsProvider {
     }
 
     /**
+     * Gets cursor for items corresponding to the ids passed as an argument.
+     *
+     * @param category  the category of items to return.
+     * @param mimeTypes the mime type of item. {@code null} returns all images/videos that are
+     *                 scanned by {@link MediaStore}.
+     * @param userId the {@link UserId} of the user to get items as.
+     *               {@code null} defaults to {@link UserId#CURRENT_USER}
+     * @param localIdSelection list of ids for which the item objects are required
+     */
+    public Cursor getLocalItemsForSelection(Category category,
+            @NonNull List<Integer> localIdSelection,
+            @Nullable String[] mimeTypes,
+            @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
+        Objects.requireNonNull(localIdSelection);
+        return queryMedia(URI_MEDIA_LOCAL, new PaginationParameters(), mimeTypes, category, userId,
+                localIdSelection, cancellationSignal);
+    }
+
+    /**
      * Returns a {@link Cursor} to all non-empty categories in which images/videos are categorised.
      * This includes:
      * * A constant list of local categories for on-device images/videos: {@link Category}
@@ -207,6 +231,15 @@ public class ItemsProvider {
     @Nullable
     private Cursor queryMedia(@NonNull Uri uri, PaginationParameters paginationParameters,
             String[] mimeTypes, @NonNull Category category, @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) {
+        return queryMedia(uri, paginationParameters, mimeTypes, category, userId, null,
+                cancellationSignal);
+    }
+
+    @Nullable
+    private Cursor queryMedia(@NonNull Uri uri, PaginationParameters paginationParameters,
+            String[] mimeTypes, @NonNull Category category, @Nullable UserId userId,
+            List<Integer> localIdSelection,
             @Nullable CancellationSignal cancellationSignal)
             throws IllegalStateException {
         if (userId == null) {
@@ -238,10 +271,15 @@ public class ItemsProvider {
             }
             extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category.getId());
             extras.putString(MediaStore.QUERY_ARG_ALBUM_AUTHORITY, category.getAuthority());
+
             if (paginationParameters.getRowId() >= 0
-                    && paginationParameters.getDateBeforeMs() >= 0) {
+                    && paginationParameters.getDateBeforeMs() > Long.MIN_VALUE) {
                 extras.putInt(QUERY_ROW_ID, paginationParameters.getRowId());
                 extras.putLong(QUERY_DATE_TAKEN_BEFORE_MS, paginationParameters.getDateBeforeMs());
+            }
+            if (localIdSelection != null) {
+                extras.putIntegerArrayList(QUERY_LOCAL_ID_SELECTION,
+                        (ArrayList<Integer>) localIdSelection);
             }
 
             result = client.query(uri, /* projection */ null, extras,

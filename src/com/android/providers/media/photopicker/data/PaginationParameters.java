@@ -17,7 +17,6 @@
 package com.android.providers.media.photopicker.data;
 
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.INT_DEFAULT;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 
 /**
  * Holder for parameters required for pagination of photos and category items grid recyclerView in
@@ -25,7 +24,7 @@ import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryF
  */
 public class PaginationParameters {
     private int mPageSize = INT_DEFAULT;
-    private long mDateBeforeMs = LONG_DEFAULT;
+    private long mDateBeforeMs = Long.MIN_VALUE;
     private int mRowId = INT_DEFAULT;
     public static final int PAGINATION_PAGE_SIZE_ITEMS = 600;
 
@@ -87,7 +86,7 @@ public class PaginationParameters {
      * <b>Note: This parameter is only used in the query if the row id is set. Else it is
      * ignored.</b>
      */
-    public long getDateBeforeMs() {
+    public Long getDateBeforeMs() {
         return mDateBeforeMs;
     }
 

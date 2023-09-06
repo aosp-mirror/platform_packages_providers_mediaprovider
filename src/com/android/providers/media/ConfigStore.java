@@ -65,8 +65,9 @@ public interface ConfigStore {
     boolean DEFAULT_PICKER_PICK_IMAGES_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG = false;
 
-    boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = false;
+    boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = true;
     boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
+    boolean DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED = false;
 
     /**
      * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and
@@ -75,6 +76,14 @@ public interface ConfigStore {
     default boolean isCloudMediaInPhotoPickerEnabled() {
         return DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED;
     }
+
+    /**
+     * @return if the Picker-Choice_Managed_selection is enabled.
+     */
+    default boolean isPickerChoiceManagedSelectionEnabled() {
+        return DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED;
+    }
+
 
     /**
      * @return package name of the pre-configured "system default"
@@ -242,7 +251,7 @@ public interface ConfigStore {
         private static final String KEY_USER_SELECT_FOR_APP = "user_select_for_app";
 
         @VisibleForTesting
-        public static final String KEY_STABILIZE_VOLUME_INTERNAL = "stablize_volume_internal";
+        public static final String KEY_STABILIZE_VOLUME_INTERNAL = "stabilize_volume_internal";
         @VisibleForTesting
         public static final String KEY_STABILIZE_VOLUME_EXTERNAL = "stabilize_volume_external";
 
@@ -264,6 +273,8 @@ public interface ConfigStore {
                 "picker_pick_images_respect_preload_selected_arg";
 
         private static final String KEY_CLOUD_MEDIA_FEATURE_ENABLED = "cloud_media_feature_enabled";
+        private static final String KEY_PICKER_CHOICE_MANAGED_SELECTION_ENABLED =
+                "picker_choice_managed_selection_enabled";
         private static final String KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST = "allowed_cloud_providers";
         private static final String KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST =
                 "cloud_media_enforce_provider_allowlist";
@@ -292,6 +303,14 @@ public interface ConfigStore {
             // Only consider the feature enabled when the enabled flag is on AND when the allowlist
             // of permitted cloud media providers is not empty.
             return isEnabled && !allowList.isEmpty();
+        }
+
+        @Override
+        public boolean isPickerChoiceManagedSelectionEnabled() {
+            return getBooleanDeviceConfig(
+                            NAMESPACE_MEDIAPROVIDER,
+                            KEY_PICKER_CHOICE_MANAGED_SELECTION_ENABLED,
+                            DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED);
         }
 
         @Nullable

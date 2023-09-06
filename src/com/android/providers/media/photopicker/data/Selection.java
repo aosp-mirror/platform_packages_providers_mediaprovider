@@ -27,15 +27,28 @@ import androidx.lifecycle.MutableLiveData;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A class that tracks Selection
  */
 public class Selection {
+    /**
+     * Contains positions of checked Item at UI. {@link #mCheckedItemIndexes} may have more number
+     * of indexes , from the number of items present in {@link #mSelectedItems}. The index in
+     * {@link #mCheckedItemIndexes} is a potential index that needs to be rechecked in
+     * notifyItemChanged() at the time of deselecting the unavailable item at UI when user is
+     * offline and tries adding unavailable non cached items. the item corresponding to the index in
+     * {@link #mCheckedItemIndexes} may no longer be selected.
+     */
+    private final Map<Item, Integer> mCheckedItemIndexes = new HashMap<>();
+
     // The list of selected items.
     private Map<Uri, Item> mSelectedItems = new HashMap<>();
     private MutableLiveData<Integer> mSelectedItemSize = new MutableLiveData<>();
@@ -47,6 +60,8 @@ public class Selection {
     // This is set to false when max selection limit is reached.
     private boolean mIsSelectionAllowed = true;
 
+    private int mTotalNumberOfPreGrantedItems = 0;
+
     /**
      * @return {@link #mSelectedItems} - A {@link List} of selected {@link Item}
      */
@@ -55,13 +70,49 @@ public class Selection {
     }
 
     /**
+     * @return A {@link Set} of selected {@link Item} ids.
+     */
+    public Set<String> getSelectedItemsIds() {
+        return mSelectedItems.values().stream().map(Item::getId).collect(
+                Collectors.toSet());
+    }
+
+    /**
+     * @return A {@link List} of selected {@link Item} that do not hold a READ_GRANT.
+     */
+    public List<Item> getSelectedItemsWithoutGrants() {
+        return mSelectedItems.values().stream().filter((Item item) -> !item.isPreGranted())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * @return Indexes - A {@link List} of checked {@link Item} positions.
+     */
+    public Collection<Integer> getCheckedItemsIndexes() {
+        return mCheckedItemIndexes.values();
+    }
+
+    /**
+     * Sets the count of pre granted items to ensure that the correct number is displayed in
+     * preview and on the add button.
+     */
+    public void setTotalNumberOfPreGrantedItems(int totalNumberOfPreGrantedItems) {
+        mTotalNumberOfPreGrantedItems = totalNumberOfPreGrantedItems;
+        mSelectedItemSize.postValue(getTotalItemsCount());
+    }
+
+    /**
      * @return {@link LiveData} of count of selected items in {@link #mSelectedItems}
      */
     public LiveData<Integer> getSelectedItemCount() {
         if (mSelectedItemSize.getValue() == null) {
-            mSelectedItemSize.setValue(mSelectedItems.size());
+            mSelectedItemSize.setValue(getTotalItemsCount());
         }
         return mSelectedItemSize;
+    }
+
+    private int getTotalItemsCount() {
+        return mSelectedItems.size() - countOfPreGrantedItems() + mTotalNumberOfPreGrantedItems;
     }
 
     /**
@@ -69,8 +120,15 @@ public class Selection {
      */
     public void addSelectedItem(Item item) {
         mSelectedItems.put(item.getContentUri(), item);
-        mSelectedItemSize.postValue(mSelectedItems.size());
+        mSelectedItemSize.postValue(getTotalItemsCount());
         updateSelectionAllowed();
+    }
+
+    /**
+     * Add the checked {@code item} index into {@link #mCheckedItemIndexes}.
+     */
+    public void addCheckedItemIndex(Item item, Integer index) {
+        mCheckedItemIndexes.put(item, index);
     }
 
     /**
@@ -79,28 +137,45 @@ public class Selection {
     public void setSelectedItem(Item item) {
         mSelectedItems.clear();
         mSelectedItems.put(item.getContentUri(), item);
-        mSelectedItemSize.postValue(mSelectedItems.size());
+        mSelectedItemSize.postValue(getTotalItemsCount());
         updateSelectionAllowed();
     }
 
     /**
-     * Remove the {@code item} from the selected item list {@link #mSelectedItems}.
+     * Remove the {@code item} from the selected item list {@link #mSelectedItems}
      *
      * @param item the item to be removed from the selected item list
      */
     public void removeSelectedItem(Item item) {
         mSelectedItems.remove(item.getContentUri());
-        mSelectedItemSize.postValue(mSelectedItems.size());
+        mSelectedItemSize.postValue(getTotalItemsCount());
         updateSelectionAllowed();
     }
 
     /**
-     * Clear all selected items
+     * Remove the {@code item} index from the checked item  index list {@link #mCheckedItemIndexes}.
+     *
+     * @param item the item to be removed from the selected item list
+     */
+    public void removeCheckedItemIndex(Item item) {
+        mCheckedItemIndexes.remove(item);
+    }
+
+    /**
+     * Clear all selected items and checked positions
      */
     public void clearSelectedItems() {
         mSelectedItems.clear();
-        mSelectedItemSize.postValue(mSelectedItems.size());
+        mCheckedItemIndexes.clear();
+        mSelectedItemSize.postValue(getTotalItemsCount());
         updateSelectionAllowed();
+    }
+
+    /**
+     * Clear all checked items
+     */
+    public void clearCheckedItemList() {
+        mCheckedItemIndexes.clear();
     }
 
     /**
@@ -113,7 +188,7 @@ public class Selection {
 
     private void updateSelectionAllowed() {
         final int size = mSelectedItems.size();
-        if (size >= mMaxSelectionLimit) {
+        if (size  - countOfPreGrantedItems() >= mMaxSelectionLimit) {
             if (mIsSelectionAllowed) {
                 mIsSelectionAllowed = false;
             }
@@ -122,6 +197,14 @@ public class Selection {
             if (!mIsSelectionAllowed) {
                 mIsSelectionAllowed = true;
             }
+        }
+    }
+
+    private int countOfPreGrantedItems() {
+        if (mSelectedItems.values() != null) {
+            return (int) mSelectedItems.values().stream().filter(Item::isPreGranted).count();
+        } else {
+            return 0;
         }
     }
 

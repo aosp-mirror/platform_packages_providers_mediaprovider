@@ -103,6 +103,10 @@ class PhotosTabAdapter extends TabAdapter {
 
         final boolean isSelected = mSelection.canSelectMultiple()
                 && mSelection.isItemSelected(item);
+        if (isSelected) {
+            mSelection.addCheckedItemIndex(item, position);
+        }
+
         mediaItemVH.bind(item, isSelected);
 
         // We also need to set Item as a tag so that OnClick/OnLongClickListeners can then

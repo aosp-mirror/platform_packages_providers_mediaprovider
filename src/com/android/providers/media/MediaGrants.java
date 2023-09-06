@@ -16,10 +16,14 @@
 
 package com.android.providers.media;
 
+import static android.provider.MediaStore.MediaColumns.DATA;
+
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 
 import android.content.ContentUris;
 import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -29,7 +33,10 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.util.FileUtils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -46,6 +53,15 @@ class MediaGrants {
     public static final String PACKAGE_USER_ID_COLUMN = "package_user_id";
     public static final String OWNER_PACKAGE_NAME_COLUMN =
             MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
+
+    private static final String MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME = "media_grants LEFT JOIN "
+            + "files ON media_grants.file_id = files._id";
+
+    private static final String WHERE_MEDIA_GRANTS_PACKAGE_NAME_IN =
+            "media_grants." + MediaGrants.OWNER_PACKAGE_NAME_COLUMN + " IN ";
+
+    private static final String WHERE_MEDIA_GRANTS_USER_ID =
+            "media_grants." + MediaGrants.PACKAGE_USER_ID_COLUMN + " = ? ";
 
     private SQLiteQueryBuilder mQueryBuilder = new SQLiteQueryBuilder();
     private DatabaseHelper mExternalDatabase;
@@ -87,7 +103,15 @@ class MediaGrants {
                         values.put(FILE_ID_COLUMN, id);
                         values.put(PACKAGE_USER_ID_COLUMN, packageUserId);
 
-                        mQueryBuilder.insert(db, values);
+                        try {
+                            mQueryBuilder.insert(db, values);
+                        } catch (SQLiteConstraintException exception) {
+                            // no-op
+                            // this may happen due to the presence of a foreign key between the
+                            // media_grants and files table. An SQLiteConstraintException
+                            // exception my occur if: while inserting the grant for a file, the
+                            // file itself is deleted. In this situation no operation is required.
+                        }
                     }
 
                     Log.d(
@@ -98,6 +122,63 @@ class MediaGrants {
 
                     return null;
                 });
+    }
+
+    /**
+     * Returns the file uris of items for which the passed package has READ_GRANTS.
+     *
+     * @param packageNames   the package name that has access.
+     * @param packageUserId the user_id of the package
+     */
+    List<Uri> getMediaGrantsForPackages(String[] packageNames, int packageUserId)
+            throws IllegalArgumentException {
+        Objects.requireNonNull(packageNames);
+        return mExternalDatabase.runWithoutTransaction((db) -> {
+            final List<Uri> filesUriList = new ArrayList<>();
+            final SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
+            queryBuilder.setDistinct(true);
+            queryBuilder.setTables(MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME);
+            String[] selectionArgs = buildSelectionArg(queryBuilder, packageNames, packageUserId);
+
+            try (Cursor c = queryBuilder.query(db,
+                    new String[]{DATA, FILE_ID_COLUMN},
+                    null,
+                    selectionArgs, null, null, null, null, null)) {
+                while (c.moveToNext()) {
+                    final String file_path = c.getString(c.getColumnIndexOrThrow(DATA));
+                    final Integer file_id = c.getInt(c.getColumnIndexOrThrow(FILE_ID_COLUMN));
+                    filesUriList.add(FileUtils.getContentUriForPath(
+                            file_path).buildUpon().appendPath(String.valueOf(file_id)).build());
+                }
+                return filesUriList;
+            }
+        });
+    }
+
+    private String[] buildSelectionArg(SQLiteQueryBuilder qb, String[] packageNames,
+            Integer userId) {
+        List<String> selectArgs = new ArrayList<>();
+        // Append where clause for package names.
+        if (packageNames.length > 0) {
+            StringBuilder packageNamePlaceholder = new StringBuilder("(");
+            for (int itr = 0; itr < packageNames.length; itr++) {
+                packageNamePlaceholder.append("?,");
+            }
+            packageNamePlaceholder.deleteCharAt(packageNamePlaceholder.length() - 1);
+            packageNamePlaceholder.append(")");
+
+            // Append the where clause for local id selection to the query builder.
+            qb.appendWhereStandalone(WHERE_MEDIA_GRANTS_PACKAGE_NAME_IN + packageNamePlaceholder);
+
+            // Add local ids to the selection args.
+            selectArgs.addAll(Arrays.asList(packageNames));
+        }
+
+        // Append where clause for userID.
+        qb.appendWhereStandalone(WHERE_MEDIA_GRANTS_USER_ID);
+        selectArgs.add(String.valueOf(userId));
+
+        return selectArgs.toArray(new String[selectArgs.size()]);
     }
 
     /**

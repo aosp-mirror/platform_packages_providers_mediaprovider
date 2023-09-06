@@ -160,11 +160,12 @@ public abstract class TabFragment extends Fragment {
             final Button viewSelectedButton = getActivity().findViewById(R.id.button_view_selected);
             // Transition to PreviewFragment on clicking "View Selected".
             viewSelectedButton.setOnClickListener(v -> {
+                // Load items for preview that are pre granted but not yet loaded for UI.
+                mPickerViewModel.getRemainingPreGrantedItems();
                 mSelection.prepareSelectedItemsForPreviewAll();
 
                 int selectedItemCount = mSelection.getSelectedItemCount().getValue();
                 mPickerViewModel.logPreviewAllSelected(selectedItemCount);
-
                 PreviewFragment.show(getActivity().getSupportFragmentManager(),
                         PreviewFragment.getArgsForPreviewOnViewSelected());
             });

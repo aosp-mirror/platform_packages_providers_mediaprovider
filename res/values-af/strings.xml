@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Veiligheidbeskerming"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Toestelspesifieke kodewisselingopletberigte"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Toestelspesifieke kodewisselingvordering"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"Probeer later weer. Jou foto’s sal beskikbaar wees sodra die kwessie opgelos is."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Sommige foto’s kan nie laai nie"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Het dit"</string>
 </resources>

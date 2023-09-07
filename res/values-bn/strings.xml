@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"নিরাপত্তার সুরক্ষা"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"নেটিভ ট্রান্সকোড অ্যালার্ট"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"নেটিভ ট্রান্সকোড প্রোগ্রেস"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"পরে আবার চেষ্টা করুন। সমস্যার সমাধান হয়ে গেলে আপনার ফটো উপলভ্য হবে।"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"কিছু ফটো লোড করা যাচ্ছে না"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"বুঝেছি"</string>
 </resources>

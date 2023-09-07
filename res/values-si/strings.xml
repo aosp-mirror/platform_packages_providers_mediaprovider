@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"සුරක්ෂිතතා ආරක්ෂණය"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"සහජ ට්‍රාන්ස්කෝඩ් ඇඟවීම්"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"සහජ ට්‍රාන්ස්කෝඩ් ප්‍රගතිය"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"පසුව නැවත උත්සාහ කරන්න. ගැටලුව විසඳූ පසු ඔබේ ඡායාරූප ලබා ගත හැකි වනු ඇත."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"සමහර ඡායාරූප පූරණය කළ නොහැක"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"තේරුණා"</string>
 </resources>

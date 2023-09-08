@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"பாதுகாப்பு வளையம்"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"நேட்டிவ் குறிமாற்ற விழிப்பூட்டல்கள்"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"நேட்டிவ் குறிமாற்றச் செயல்நிலை"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"பிறகு மீண்டும் முயலவும். சிக்கல் சரியானதும் உங்கள் படங்கள் கிடைக்கும்."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"சில படங்களைப் பதிவேற்ற முடியவில்லை"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"சரி"</string>
 </resources>

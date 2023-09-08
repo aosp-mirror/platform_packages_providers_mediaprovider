@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"حماية الأمن الشخصي"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"‏تنبيهات Native Transcode"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"‏مدى تقدُّم Native Transcode"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"يُرجى إعادة المحاولة لاحقًا. ستتوفّر صورك عند حل المشكلة."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"يتعذّر تحميل بعض الصور"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"حسنًا"</string>
 </resources>

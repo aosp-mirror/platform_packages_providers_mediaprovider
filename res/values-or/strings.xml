@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"ସୁରକ୍ଷିତ ସୁରକ୍ଷା"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"ନେଟିଭ ଟ୍ରାନ୍ସକୋଡ ଆଲର୍ଟ"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"ନେଟିଭ ଟ୍ରାନ୍ସକୋଡ ପ୍ରୋଗ୍ରେସ"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"ପରେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ। ସମସ୍ୟାର ସମାଧାନ ହେବା ପରେ ଆପଣଙ୍କ ଫଟୋଗୁଡ଼ିକ ଉପଲବ୍ଧ ହେବ।"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"କିଛି ଫଟୋ ଲୋଡ କରାଯାଇପାରିବ ନାହିଁ"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"ବୁଝିଗଲି"</string>
 </resources>

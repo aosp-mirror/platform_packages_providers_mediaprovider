@@ -1654,6 +1654,9 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                     struct fuse_file_info* fi) {
     ATRACE_CALL();
     handle* h = reinterpret_cast<handle*>(fi->fh);
+    if (h == nullptr) {
+        return;
+    }
     const bool direct_io = !h->cached;
     struct fuse* fuse = get_fuse(req);
 

@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"સલામતી સંરક્ષણ"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Native Transcode Alerts"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Native Transcode Progress"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"થોડા સમય પછી ફરી પ્રયાસ કરો. એકવાર સમસ્યાનું નિરાકરણ થઈ જાય, તે પછી તમારા ફોટા ઉપલબ્ધ થશે."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"અમુક ફોટા લોડ કરી શકાતા નથી"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"સમજાઈ ગયું"</string>
 </resources>

@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"安全保护"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"原生转码警报"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"原生转码进度"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"请稍后再试。问题解决后，您的照片就可用了。"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"部分照片无法加载"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"知道了"</string>
 </resources>

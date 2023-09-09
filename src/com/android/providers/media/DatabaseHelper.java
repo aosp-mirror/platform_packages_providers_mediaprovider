@@ -616,10 +616,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             // Recover data from backup
             // Ensure we do not back up in case of recovery.
             mIsRecovering.set(true);
-            mDatabaseBackupAndRecovery.recoverData(db, volumeName);
-            updateNextRowIdInDatabaseAndExternalStorage(db);
-            mIsRecovering.set(false);
-            updateSessionIdInDatabaseAndExternalStorage(db);
+            try {
+                mDatabaseBackupAndRecovery.recoverData(db, volumeName);
+            } catch (Exception exception) {
+                Log.e(TAG, "Error in recovering data", exception);
+            } finally {
+                updateNextRowIdInDatabaseAndExternalStorage(db);
+                mIsRecovering.set(false);
+                updateSessionIdInDatabaseAndExternalStorage(db);
+            }
         }
     }
 

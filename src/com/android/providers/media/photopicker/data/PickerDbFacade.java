@@ -50,6 +50,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
+import com.android.providers.media.util.MimeUtils;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -766,6 +767,7 @@ public class PickerDbFacade {
             this.id = id;
             return this;
         }
+
         public QueryFilterBuilder setAlbumId(String albumId) {
             this.albumId = albumId;
             return this;
@@ -837,6 +839,11 @@ public class PickerDbFacade {
         final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
         final String[] selectionArgs = buildSelectionArgs(qb, query);
 
+        if (query.mIsLocalOnly) {
+            return queryMediaForUi(qb, selectionArgs, query.mLimit,  /* isLocalOnly*/true,
+                    TABLE_MEDIA, /* cloudProvider*/ null);
+        }
+
         final String cloudProvider;
         synchronized (mLock) {
             // If the cloud sync is in progress or the cloud provider has changed but a sync has not
@@ -845,7 +852,8 @@ public class PickerDbFacade {
             cloudProvider = mCloudProvider;
         }
 
-        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_MEDIA, cloudProvider);
+        return queryMediaForUi(qb, selectionArgs, query.mLimit, query.mIsLocalOnly,
+                TABLE_MEDIA, cloudProvider);
     }
 
     /**
@@ -863,7 +871,8 @@ public class PickerDbFacade {
         final SQLiteQueryBuilder qb = createAlbumMediaQueryBuilder(isLocal(authority));
         final String[] selectionArgs = buildSelectionArgs(qb, query);
 
-        return queryMediaForUi(qb, selectionArgs, query.mLimit, TABLE_ALBUM_MEDIA, authority);
+        return queryMediaForUi(qb, selectionArgs, query.mLimit, query.mIsLocalOnly,
+                TABLE_ALBUM_MEDIA, authority);
     }
 
     /**
@@ -884,19 +893,19 @@ public class PickerDbFacade {
         }
 
         if (authority.equals(mLocalProvider)) {
-            return queryMediaIdForAppsInternal(qb, projection, selectionArgs);
+            return queryMediaIdForAppsLocked(qb, projection, selectionArgs);
         }
 
         synchronized (mLock) {
             if (authority.equals(mCloudProvider)) {
-                return queryMediaIdForAppsInternal(qb, projection, selectionArgs);
+                return queryMediaIdForAppsLocked(qb, projection, selectionArgs);
             }
         }
 
         return null;
     }
 
-    private Cursor queryMediaIdForAppsInternal(@NonNull SQLiteQueryBuilder qb,
+    private Cursor queryMediaIdForAppsLocked(@NonNull SQLiteQueryBuilder qb,
             @NonNull String[] projection, @NonNull String[] selectionArgs) {
         return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
                 /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
@@ -936,8 +945,8 @@ public class PickerDbFacade {
 
             long count = getCursorLong(cursor, CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT);
 
-            // We want to always display empty merged folder in case of cloud picker.
-            if (count == 0 && (query.mIsLocalOnly || cloudProvider == null)) {
+            // We want to display empty merged folder in case of cloud picker.
+            if (shouldHideMergedAlbum(query, albumId, cloudProvider, count)) {
                 continue;
             }
 
@@ -952,6 +961,27 @@ public class PickerDbFacade {
             c.addRow(projectionValue);
         }
         return c;
+    }
+
+    private static boolean shouldHideMergedAlbum(QueryFilter query, String albumId,
+            String cloudProvider, long count) {
+        final boolean isAlbumEmpty = (count == 0);
+        final boolean shouldNotShowCloudItems = (query.mIsLocalOnly || cloudProvider == null);
+
+        return (isAlbumEmpty && (shouldNotShowCloudItems || hideVideosAlbum(query, albumId)));
+    }
+
+    private static boolean hideVideosAlbum(QueryFilter query, String albumId) {
+        String[] mimeTypes = query.mMimeTypes;
+        if (!albumId.equals(ALBUM_ID_VIDEOS) || mimeTypes == null) {
+            return false;
+        }
+        for (String mimeType : mimeTypes) {
+            if (MimeUtils.isVideoMimeType(mimeType)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String[] getMergedAlbumProjection() {
@@ -979,10 +1009,15 @@ public class PickerDbFacade {
      * Returns sorted and deduped cloud and local media or album content items from the picker db.
      */
     private Cursor queryMediaForUi(SQLiteQueryBuilder qb, String[] selectionArgs,
-            int limit, String tableName, String authority) {
+            int limit, boolean isLocalOnly, String tableName, String authority) {
         // Use the <table>.<column> form to order _id to avoid ordering against the projection '_id'
         final String orderBy = getOrderClause(tableName);
         final String limitStr = String.valueOf(limit);
+
+        if (isLocalOnly) {
+            qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
+            return queryMediaForUiLocked(qb, selectionArgs, orderBy, limitStr);
+        }
 
         // Hold lock while checking the cloud provider and querying so that cursor extras containing
         // the cloud provider is consistent with the cursor results and doesn't race with
@@ -993,10 +1028,14 @@ public class PickerDbFacade {
                 //  from the UI, skip all cloud items in the picker db.
                 qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
             }
-
-            return qb.query(mDatabase, getCloudMediaProjectionLocked(), /* selection */ null,
-                    selectionArgs, /* groupBy */ null, /* having */ null, orderBy, limitStr);
+            return queryMediaForUiLocked(qb, selectionArgs, orderBy, limitStr);
         }
+    }
+
+    private Cursor queryMediaForUiLocked(SQLiteQueryBuilder qb, String[] selectionArgs,
+            String orderBy, String limitStr) {
+        return qb.query(mDatabase, getCloudMediaProjectionLocked(), /* selection */ null,
+                selectionArgs, /* groupBy */ null, /* having */ null, orderBy, limitStr);
     }
 
     private static String getOrderClause(String tableName) {

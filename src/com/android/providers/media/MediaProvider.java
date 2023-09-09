@@ -655,19 +655,22 @@ public class MediaProvider extends ContentProvider {
         Context context = getContext();
         PackageManager packageManager = context.getPackageManager();
         try {
-            int uid = packageManager.getPackageUidAsUser(packageName,
-                    PackageManager.PackageInfoFlags.of(0), userId);
-            if (!LocalCallingIdentity.fromExternal(context, mUserCache, uid)
-                    .checkCallingPermissionUserSelected()) {
-                // Revoke media grants if permission state is not "Select flow".
-                mMediaGrants.removeAllMediaGrantsForPackage(
-                        packageName,
-                        /*reason=*/ "Mode changed: " + op,
-                        userId);
+            int uid =
+                    packageManager.getPackageUidAsUser(
+                            packageName, PackageManager.PackageInfoFlags.of(0), userId);
+            LocalCallingIdentity lci = LocalCallingIdentity.fromExternal(context, mUserCache, uid);
+            if (!lci.checkCallingPermissionUserSelected()) {
+                String[] packages = lci.getSharedPackageNamesArray();
+                mMediaGrants.removeAllMediaGrantsForPackages(
+                        packages, /* reason= */ "Mode changed: " + op, userId);
             }
         } catch (NameNotFoundException e) {
-            Log.d(TAG, "Unable to resolve uid. Ignoring the AppOp change for "
-                    + packageName + ", User : " + userId);
+            Log.d(
+                    TAG,
+                    "Unable to resolve uid. Ignoring the AppOp change for "
+                            + packageName
+                            + ", User : "
+                            + userId);
         }
     }
 
@@ -1953,6 +1956,10 @@ public class MediaProvider extends ContentProvider {
         mExternalDatabase.runWithTransaction((db) -> {
             final int userId = uid / PER_USER_RANGE;
             onPackageOrphaned(db, packageName, userId);
+
+            if (SdkLevel.isAtLeastU()) {
+                removeAllMediaGrantsForUid(uid, userId, packageName);
+            }
             return null;
         });
     }
@@ -1968,9 +1975,34 @@ public class MediaProvider extends ContentProvider {
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
         mDatabaseBackupAndRecovery.removeOwnerIdToPackageRelation(packageName, userId);
-        // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package is removed.
-        mMediaGrants.removeAllMediaGrantsForPackage(packageName, /* reason */ "Package orphaned",
-                userId);
+
+    }
+
+    /**
+     * Removes all media_grants for all packages with the given UID. (i.e. shared packages.)
+     *
+     * @param uid the package uid. (will use this to query all shared packages that use this uid)
+     * @param userId the user id, since packages can be installed by multiple users.
+     * @param additionalPackageName An optional additional package name in the event that the
+     *     package has been removed at won't be returned by the PackageManager APIs.
+     */
+    private void removeAllMediaGrantsForUid(
+            int uid, int userId, @Nullable String additionalPackageName) {
+
+        LocalCallingIdentity lci = LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid);
+        String[] packages = lci.getSharedPackageNamesArray();
+        if (additionalPackageName != null) {
+            // Include the passed additional package in the list LocalCallingIdentity returns.
+            List<String> packageList = new ArrayList<>();
+            packageList.addAll(Arrays.asList(packages));
+            packageList.add(additionalPackageName);
+            packages = packageList.toArray(new String[packageList.size()]);
+        }
+
+        // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package
+        // is removed.
+        mMediaGrants.removeAllMediaGrantsForPackages(
+                packages, /* reason */ "Package orphaned", userId);
     }
 
     private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
@@ -6805,35 +6837,37 @@ public class MediaProvider extends ContentProvider {
         if (checkPermissionSelf(caller)) {
             // If the caller is MediaProvider the accepted parameters are EXTRA_URI_LIST
             // and EXTRA_UID.
-            if (!extras.containsKey(
-                    MediaStore.EXTRA_URI_LIST)
+            if (!extras.containsKey(MediaStore.EXTRA_URI_LIST)
                     && !extras.containsKey(Intent.EXTRA_UID)) {
                 throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI_LIST or"
-                                + " EXTRA_UID");
+                        "Missing required extras arguments: EXTRA_URI_LIST or" + " EXTRA_UID");
             }
             uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
             final PackageManager pm = getContext().getPackageManager();
             final int packageUid = extras.getInt(Intent.EXTRA_UID);
-            packageName = pm.getNameForUid(packageUid);
+            final String[] packages = pm.getPackagesForUid(packageUid);
+            if (packages == null || packages.length == 0) {
+                throw new IllegalArgumentException(
+                        String.format(
+                                "Could not find packages for media_grants with uid: %d",
+                                packageUid));
+            }
+            // Use the first package in the returned list for grants. In the case this
+            // uid has multiple shared packages, the eventual queries to check for file
+            // access will use all of the packages in this list, so just one is needed
+            // to create the grants.
+            packageName = packages[0];
             // Get the userId from packageUid as the initiator could be a cloned app, which
             // accesses Media via MP of its parent user and Binder's callingUid reflects
             // the latter.
             userId = uidToUserId(packageUid);
-            if (packageName.contains(":")) {
-                // Check if the package name includes the package uid. This is expected
-                // for packages that are referencing a shared user. PackageManager will
-                // return a string such as <packagename>:<uid> in this instance.
-                packageName = packageName.split(":")[0];
-            }
         } else if (checkPermissionShell(caller)) {
             // If the caller is the shell, the accepted parameters are EXTRA_URI (as string)
             // and EXTRA_PACKAGE_NAME (as string).
             if (!extras.containsKey(MediaStore.EXTRA_URI)
                     && !extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
                 throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI or"
-                                + " EXTRA_PACKAGE_NAME");
+                        "Missing required extras arguments: EXTRA_URI or" + " EXTRA_PACKAGE_NAME");
             }
             packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
             uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
@@ -6843,8 +6877,7 @@ public class MediaProvider extends ContentProvider {
         } else {
             // All other callers are unauthorized.
 
-            throw new SecurityException(
-                    getSecurityExceptionMessage("Create media grants"));
+            throw new SecurityException(getSecurityExceptionMessage("Create media grants"));
         }
 
         mMediaGrants.addMediaGrantsForPackage(packageName, uris, userId);

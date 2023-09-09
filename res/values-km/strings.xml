@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"ការការពារសុវត្ថិភាព"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"ការជូន​ដំណឹង​អំពី​ការបំប្លែង​កូដ​ដើម"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"ដំណើរ​វិវឌ្ឍ​នៃ​ការបំប្លែង​កូដ​ដើម"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"សូមព្យាយាមម្តងទៀតនៅពេលក្រោយ។ រូបថត​របស់អ្នក​នឹងអាចប្រើបាន បន្ទាប់ពី​ដោះស្រាយ​បញ្ហា។"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"មិនអាចផ្ទុករូបថតមួយចំនួនបានទេ"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"យល់ហើយ"</string>
 </resources>

@@ -181,8 +181,9 @@ public class MediaGrantsTest {
         assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
         assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
 
-        int removed = mGrants.removeAllMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, "test",
-                TEST_USER_ID);
+        int removed =
+                mGrants.removeAllMediaGrantsForPackages(
+                        new String[] {TEST_OWNER_PACKAGE_NAME}, "test", TEST_USER_ID);
         assertEquals(2, removed);
 
         try (Cursor c =
@@ -207,11 +208,73 @@ public class MediaGrantsTest {
     }
 
     @Test
+    public void removeAllMediaGrantsForMultiplePackages() throws Exception {
+
+        Long fileId1 = insertFileInResolver(mIsolatedResolver, "test_file1");
+        Long fileId2 = insertFileInResolver(mIsolatedResolver, "test_file2");
+        List<Uri> uris = List.of(buildValidPickerUri(fileId1), buildValidPickerUri(fileId2));
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris, TEST_USER_ID);
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME2, uris, TEST_USER_ID);
+
+        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME2, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME2, TEST_USER_ID);
+
+        int removed =
+                mGrants.removeAllMediaGrantsForPackages(
+                        new String[] {TEST_OWNER_PACKAGE_NAME, TEST_OWNER_PACKAGE_NAME2},
+                        "test",
+                        TEST_USER_ID);
+        assertEquals(4, removed);
+
+        try (Cursor c =
+                mExternalDatabase.runWithTransaction(
+                        (db) ->
+                                db.query(
+                                        MediaGrants.MEDIA_GRANTS_TABLE,
+                                        new String[] {
+                                            MediaGrants.FILE_ID_COLUMN,
+                                            MediaGrants.OWNER_PACKAGE_NAME_COLUMN
+                                        },
+                                        String.format(
+                                                "%s = '%s'",
+                                                MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                                                TEST_OWNER_PACKAGE_NAME),
+                                        null,
+                                        null,
+                                        null,
+                                        null))) {
+            assertEquals(0, c.getCount());
+        }
+
+        try (Cursor c =
+                mExternalDatabase.runWithTransaction(
+                        (db) ->
+                                db.query(
+                                        MediaGrants.MEDIA_GRANTS_TABLE,
+                                        new String[] {
+                                            MediaGrants.FILE_ID_COLUMN,
+                                            MediaGrants.OWNER_PACKAGE_NAME_COLUMN
+                                        },
+                                        String.format(
+                                                "%s = '%s'",
+                                                MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                                                TEST_OWNER_PACKAGE_NAME2),
+                                        null,
+                                        null,
+                                        null,
+                                        null))) {
+            assertEquals(0, c.getCount());
+        }
+    }
+
+    @Test
     public void removeAllMediaGrantsForPackageRequiresNonEmpty() throws Exception {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    mGrants.removeAllMediaGrantsForPackage("", "test", TEST_USER_ID);
+                    mGrants.removeAllMediaGrantsForPackages(new String[]{}, "test", TEST_USER_ID);
                 });
     }
 

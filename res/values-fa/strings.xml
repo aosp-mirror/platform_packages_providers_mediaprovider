@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"محافظت امنیتی"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"هشدارهای تراتبدیل محلی"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"پیشرفت تراتبدیل محلی"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"بعداً دوباره امتحان کنید. عکس‌هایتان پس‌از رفع مشکل دردسترس خواهد بود."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"نمی‌توان برخی‌از عکس‌ها را بار کرد"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"متوجه‌ام"</string>
 </resources>

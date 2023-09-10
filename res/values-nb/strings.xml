@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Beskyttelse"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Integrerte omkodingsvarsler"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Integrert omkodingsfremdrift"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"Prøv på nytt senere. Bildene dine blir tilgjengelige når problemet er løst."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Noen bilder kan ikke lastes inn"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Greit"</string>
 </resources>

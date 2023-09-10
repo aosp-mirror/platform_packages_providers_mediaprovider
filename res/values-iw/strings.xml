@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"הגנה על בטיחות"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"התראות של המרת קידוד מקורית"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"התקדמות של המרת קידוד מקורית"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"כדאי לנסות שוב אחר כך. התמונות שלך יהיו זמינות כשהבעיה תיפתר."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"לא ניתן לטעון תמונות מסוימות"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"הבנתי"</string>
 </resources>

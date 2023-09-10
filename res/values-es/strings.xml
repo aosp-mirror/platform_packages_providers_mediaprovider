@@ -55,7 +55,7 @@
     <string name="select" msgid="2704765470563027689">"Seleccionar"</string>
     <string name="selected" msgid="9151797369975828124">"Seleccionado"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Selecciona hasta <xliff:g id="COUNT_0">^1</xliff:g> elemento}many{Selecciona hasta <xliff:g id="COUNT_1">^1</xliff:g> elementos}other{Selecciona hasta <xliff:g id="COUNT_1">^1</xliff:g> elementos}}"</string>
-    <string name="recent" msgid="6694613584743207874">"Reciente"</string>
+    <string name="recent" msgid="6694613584743207874">"Recientes"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"No hay fotos ni vídeos"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"No hay fotos ni vídeos compatibles"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"No hay ningún álbum"</string>
@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Protección de seguridad"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Alertas de transcodificación nativa"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Progreso de transcodificación nativa"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"Inténtalo de nuevo más tarde. Tus fotos estarán disponibles cuando se resuelva el problema."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"No se pueden cargar algunas fotos"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Entendido"</string>
 </resources>

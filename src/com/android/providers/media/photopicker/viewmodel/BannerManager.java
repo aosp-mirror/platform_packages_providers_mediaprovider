@@ -24,15 +24,16 @@ import android.content.Intent;
 import android.os.UserHandle;
 import android.util.Log;
 
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.UiThread;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.util.ThreadUtils;
 import com.android.providers.media.util.PerUser;
 
 class BannerManager {
@@ -165,8 +166,10 @@ class BannerManager {
     /**
      * Dismiss (hide) the 'Choose App' banner for the current user.
      */
-    @UiThread
+    @MainThread
     void onUserDismissedChooseAppBanner() {
+        ThreadUtils.assertMainThread();
+
         if (Boolean.FALSE.equals(mShowChooseAppBanner.getValue())) {
             Log.d(TAG, "Choose App banner visibility live data value is false on dismiss");
         } else {
@@ -182,8 +185,10 @@ class BannerManager {
     /**
      * Dismiss (hide) the 'Cloud Media Available' banner for the current user.
      */
-    @UiThread
+    @MainThread
     void onUserDismissedCloudMediaAvailableBanner() {
+        ThreadUtils.assertMainThread();
+
         if (Boolean.FALSE.equals(mShowCloudMediaAvailableBanner.getValue())) {
             Log.d(TAG, "Cloud Media Available banner visibility live data value is false on "
                     + "dismiss");
@@ -200,8 +205,10 @@ class BannerManager {
     /**
      * Dismiss (hide) the 'Account Updated' banner for the current user.
      */
-    @UiThread
+    @MainThread
     void onUserDismissedAccountUpdatedBanner() {
+        ThreadUtils.assertMainThread();
+
         if (Boolean.FALSE.equals(mShowAccountUpdatedBanner.getValue())) {
             Log.d(TAG, "Account Updated banner visibility live data value is false on dismiss");
         } else {
@@ -217,8 +224,10 @@ class BannerManager {
     /**
      * Dismiss (hide) the 'Choose Account' banner for the current user.
      */
-    @UiThread
+    @MainThread
     void onUserDismissedChooseAccountBanner() {
+        ThreadUtils.assertMainThread();
+
         if (Boolean.FALSE.equals(mShowChooseAccountBanner.getValue())) {
             Log.d(TAG, "Choose Account banner visibility live data value is false on dismiss");
         } else {

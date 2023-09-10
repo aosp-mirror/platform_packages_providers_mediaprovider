@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Protecția în caz de accidente"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Alerte privind transcodarea în codul nativ"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Progresul transcodării în codul nativ"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"Încearcă din nou mai târziu. Fotografiile tale vor fi disponibile după ce se rezolvă problema."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Unele fotografii nu pot fi încărcate"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
 </resources>

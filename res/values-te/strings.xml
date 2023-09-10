@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"భద్రత రక్షణ"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"స్థానిక ట్రాన్స్‌కోడ్ అలర్ట్‌లు"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"స్థానిక ట్రాన్స్‌కోడ్ ప్రోగ్రెస్"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"తర్వాత మళ్లీ ట్రై చేయండి. సమస్య పరిష్కరించబడిన తర్వాత మీ ఫోటోలు అందుబాటులో ఉంటాయి."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"కొన్ని ఫోటోలను లోడ్ చేయడం సాధ్యపడదు"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"సరే"</string>
 </resources>

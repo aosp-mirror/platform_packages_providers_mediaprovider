@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Ахова бяспекі"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Абвесткі пра ўбудаванае перакадзіраванне"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Ход убудаванага перакадзіравання"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"Паўтарыце спробу пазней. Калі праблема будзе вырашана, вашы фота стануць даступнымі."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Некаторыя фота не ўдалося загрузіць"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
 </resources>

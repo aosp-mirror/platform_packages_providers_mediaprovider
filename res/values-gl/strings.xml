@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Protección de seguranza"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Alertas de transcodificación nativa"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Progreso da transcodificación nativa"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"Téntao de novo máis tarde. As túas fotos estarán dispoñibles en canto se resolva o problema."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Non se poden cargar algunhas fotos"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Entendido"</string>
 </resources>

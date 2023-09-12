@@ -127,28 +127,37 @@ public class IdleServiceTest {
         final File d = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", "random.bin"));
         final File e = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", ".nomedia"));
 
-        // Idle maintenance pass should clean up unknown files
-        MediaStore.runIdleMaintenance(resolver);
-        assertFalse(exists(a));
-        assertFalse(exists(b));
-        assertTrue(exists(c));
-        assertFalse(exists(d));
-        assertTrue(exists(e));
+        try {
+            // Idle maintenance pass should clean up unknown files
+            MediaStore.runIdleMaintenance(resolver);
+            assertFalse(exists(a));
+            assertFalse(exists(b));
+            assertTrue(exists(c));
+            assertFalse(exists(d));
+            assertTrue(exists(e));
 
-        // And change the UUID, which emulates ejecting and mounting a different
-        // storage device; all thumbnails should then be invalidated
-        final File uuidFile = buildPath(dir, Environment.DIRECTORY_PICTURES,
-                ".thumbnails", ".database_uuid");
-        delete(uuidFile);
-        touch(uuidFile);
+            // And change the UUID, which emulates ejecting and mounting a different
+            // storage device; all thumbnails should then be invalidated
+            final File uuidFile = buildPath(dir, Environment.DIRECTORY_PICTURES,
+                    ".thumbnails", ".database_uuid");
+            delete(uuidFile);
+            touch(uuidFile);
 
-        // Idle maintenance pass should clean up all files except .nomedia file
-        MediaStore.runIdleMaintenance(resolver);
-        assertFalse(exists(a));
-        assertFalse(exists(b));
-        assertFalse(exists(c));
-        assertFalse(exists(d));
-        assertTrue(exists(e));
+            // Idle maintenance pass should clean up all files except .nomedia file
+            MediaStore.runIdleMaintenance(resolver);
+            assertFalse("File a should have been deleted", exists(a));
+            assertFalse("File b should have been deleted", exists(b));
+            assertFalse("File c should have been deleted", exists(c));
+            assertFalse("File d should have been deleted", exists(d));
+            assertTrue("File e should have existed", exists(e));
+            delete(uuidFile);
+        } finally {
+            a.delete();
+            b.delete();
+            c.delete();
+            d.delete();
+            e.delete();
+        }
     }
 
     /**

@@ -106,7 +106,7 @@
     <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Per includere qui le foto di cui hai eseguito il backup, scegli un\'app multimediale con funzionalità cloud nelle impostazioni"</string>
     <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Scegli un account <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Per includere qui le foto di <xliff:g id="APP_NAME">%1$s</xliff:g>, scegli un account nell\'app"</string>
-    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Ignora"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Chiudi"</string>
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Scegli app"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Scegli account"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Cambia account"</string>

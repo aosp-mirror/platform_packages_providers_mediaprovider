@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Bảo vệ an toàn"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Cảnh báo chuyển mã gốc"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Tiến trình chuyển mã gốc"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"Hãy thử lại sau. Ảnh của bạn sẽ xuất hiện sau khi vấn đề được giải quyết."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Không tải được một số ảnh"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Tôi hiểu"</string>
 </resources>

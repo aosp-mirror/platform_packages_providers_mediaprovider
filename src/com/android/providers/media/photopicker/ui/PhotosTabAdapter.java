@@ -48,6 +48,8 @@ class PhotosTabAdapter extends TabAdapter {
     private final OnMediaItemClickListener mOnMediaItemClickListener;
     private final Selection mSelection;
 
+    private final View.OnHoverListener mOnMediaItemHoverListener;
+
     PhotosTabAdapter(boolean showRecentSection,
             @NonNull Selection selection,
             @NonNull ImageLoader imageLoader,
@@ -62,7 +64,8 @@ class PhotosTabAdapter extends TabAdapter {
             @NonNull OnBannerEventListener onChooseAppBannerEventListener,
             @NonNull OnBannerEventListener onCloudMediaAvailableBannerEventListener,
             @NonNull OnBannerEventListener onAccountUpdatedBannerEventListener,
-            @NonNull OnBannerEventListener onChooseAccountBannerEventListener) {
+            @NonNull OnBannerEventListener onChooseAccountBannerEventListener,
+            @NonNull View.OnHoverListener onMediaItemHoverListener) {
         super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
                 shouldShowChooseAppBanner, shouldShowCloudMediaAvailableBanner,
                 shouldShowAccountUpdatedBanner, shouldShowChooseAccountBanner,
@@ -71,6 +74,7 @@ class PhotosTabAdapter extends TabAdapter {
         mShowRecentSection = showRecentSection;
         mSelection = selection;
         mOnMediaItemClickListener = onMediaItemClickListener;
+        mOnMediaItemHoverListener = onMediaItemHoverListener;
     }
 
     @NonNull
@@ -85,7 +89,7 @@ class PhotosTabAdapter extends TabAdapter {
     RecyclerView.ViewHolder createMediaItemViewHolder(@NonNull ViewGroup viewGroup) {
         final View view = getView(viewGroup, R.layout.item_photo_grid);
         return new MediaItemGridViewHolder(view, mImageLoader, mOnMediaItemClickListener,
-                mSelection.canSelectMultiple());
+                mOnMediaItemHoverListener, mSelection.canSelectMultiple());
     }
 
     @Override

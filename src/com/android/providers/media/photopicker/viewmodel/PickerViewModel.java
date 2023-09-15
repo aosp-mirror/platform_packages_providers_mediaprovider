@@ -565,6 +565,7 @@ public class PickerViewModel extends AndroidViewModel {
                 && mPreGrantedItemsSet.getValue() != null) {
             List<String> idsForItemsToBeFetched = new ArrayList<>(mPreGrantedItemsSet.getValue());
             idsForItemsToBeFetched.removeAll(mSelection.getSelectedItemsIds());
+            idsForItemsToBeFetched.removeAll(mSelection.getPreGrantedItemIdsToBeRevoked());
             if (!idsForItemsToBeFetched.isEmpty()) {
                 Log.d(TAG, "Fetching items for required preGranted ids.");
                 loadItemsWithLocalIdSelection(Category.DEFAULT,

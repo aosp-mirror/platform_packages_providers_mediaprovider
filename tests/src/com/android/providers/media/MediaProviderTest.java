@@ -376,6 +376,47 @@ public class MediaProviderTest {
         }
     }
 
+    @Test
+    public void testRevokeReadGrantsForPackage() throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File testFile = stage(R.raw.lg_g4_iso_800_jpg,
+                new File(dir, "test" + System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, testFile);
+        Long fileId = ContentUris.parseId(uri);
+
+        final Uri.Builder builder = Uri.EMPTY.buildUpon();
+        builder.scheme("content");
+        builder.encodedAuthority(MediaStore.AUTHORITY);
+
+        final Uri testUri = builder.appendPath("picker")
+                .appendPath(Integer.toString(UserHandle.myUserId()))
+                .appendPath(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                .appendPath(MediaStore.AUTHORITY)
+                .appendPath(Long.toString(fileId))
+                .build();
+
+        try {
+            MediaStore.grantMediaReadForPackage(sIsolatedContext,
+                    android.os.Process.myUid(),
+                    List.of(testUri));
+            List<Uri> grantedUris = MediaStore.fetchReadGrantedItemsUrisForPackage(
+                    sIsolatedContext, android.os.Process.myUid());
+            assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris.get(0)));
+
+            // Revoked the grant that was provided to testUri and verify that now the current
+            // package has no grants.
+            MediaStore.revokeMediaReadForPackages(sIsolatedContext, android.os.Process.myUid(),
+                    grantedUris);
+            List<Uri> grantedUris2 = MediaStore.fetchReadGrantedItemsUrisForPackage(
+                    sIsolatedContext, android.os.Process.myUid());
+            assertEquals(0, grantedUris2.size());
+        } finally {
+            dir.delete();
+            testFile.delete();
+        }
+    }
+
     /**
      * We already have solid coverage of this logic in
      * {@code CtsProviderTestCases}, but the coverage system currently doesn't

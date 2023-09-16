@@ -362,10 +362,6 @@ public class PhotosTabFragment extends TabFragment {
                         final boolean isSelectedBefore = view.isSelected();
 
                         Item item = (Item) view.getTag();
-                        if (item.isPreGranted()) {
-                            // Since currently a pre-granted item can't be un-selected.
-                            return;
-                        }
                         if (isSelectedBefore) {
                             mSelection.removeSelectedItem((Item) view.getTag());
                             mSelection.removeCheckedItemIndex((Item) view.getTag());

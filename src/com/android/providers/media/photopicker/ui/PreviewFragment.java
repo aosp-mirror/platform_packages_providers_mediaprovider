@@ -290,10 +290,6 @@ public class PreviewFragment extends Fragment {
     }
 
     private void onClickSelectedCheckButton(@NonNull Button selectedCheckButton) {
-        if (mViewPager2Wrapper.getCurrentItem().isPreGranted()) {
-            // A pre granted item should not be allowed to be unselected.
-            return;
-        }
         final boolean isSelectedNow = updateSelectionAndGetState();
         updateSelectedCheckButtonStateAndText(selectedCheckButton, isSelectedNow);
     }
@@ -344,11 +340,6 @@ public class PreviewFragment extends Fragment {
 
     private void updateSelectButtonTextAndVisibility(@NonNull Button selectButton,
             boolean isSelected) {
-        if (mViewPager2Wrapper.getItemAt(/* position */ 0).isPreGranted()) {
-            // If the item is pre granted, don't give the option to select or deselect.
-            selectButton.setVisibility(View.GONE);
-            return;
-        }
         selectButton.setText(isSelected ? R.string.deselect : R.string.select);
         selectButton.setVisibility(
                 (isSelected || mSelection.isSelectionAllowed()) ? View.VISIBLE : View.GONE);

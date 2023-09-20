@@ -21,10 +21,6 @@
     <!-- Label to show client applications a short description of storage location -->
     <string name="storage_description">Local storage</string>
 
-    <!-- TODO(b/246345209): This string is unused. Update app_label string to "Media" -->
-    <!-- and delete picker_app_label  -->
-    <string name="app_label">Media Storage</string>
-
     <!-- Label to show to user for this package and for Photo picker. -->
     <string name="picker_app_label">Media picker</string>
 

@@ -1989,8 +1989,16 @@ public class MediaProvider extends ContentProvider {
     private void removeAllMediaGrantsForUid(
             int uid, int userId, @Nullable String additionalPackageName) {
 
-        LocalCallingIdentity lci = LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid);
-        String[] packages = lci.getSharedPackageNamesArray();
+        String[] packages;
+        try {
+            LocalCallingIdentity lci =
+                    LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid);
+            packages = lci.getSharedPackageNamesArray();
+        } catch (IllegalArgumentException notFound) {
+            // If there are no packages found, this means the specified UID has no packages
+            // remaining on the system.
+            packages = new String[]{};
+        }
         if (additionalPackageName != null) {
             // Include the passed additional package in the list LocalCallingIdentity returns.
             List<String> packageList = new ArrayList<>();

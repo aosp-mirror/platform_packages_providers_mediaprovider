@@ -640,7 +640,7 @@ public class PermissionActivity extends Activity {
     private @Nullable CharSequence resolveTitleText() {
         final String resName = "permission_" + verb + "_" + data;
         final int resId = getResources().getIdentifier(resName, "string",
-                getResources().getResourcePackageName(R.string.app_label));
+                getResources().getResourcePackageName(R.string.picker_app_label));
         if (resId != 0) {
             final int count = uris.size();
             final CharSequence text = StringUtils.getICUFormatString(getResources(), count, resId);
@@ -658,7 +658,7 @@ public class PermissionActivity extends Activity {
     private @Nullable CharSequence resolveProgressMessageText() {
         final String resName = "permission_progress_" + verb + "_" + data;
         final int resId = getResources().getIdentifier(resName, "string",
-                getResources().getResourcePackageName(R.string.app_label));
+                getResources().getResourcePackageName(R.string.picker_app_label));
         if (resId != 0) {
             final int count = uris.size();
             final CharSequence text = StringUtils.getICUFormatString(getResources(), count, resId);

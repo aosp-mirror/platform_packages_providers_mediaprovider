@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"ಮಾಧ್ಯಮ"</string>
     <string name="storage_description" msgid="4081716890357580107">"ಸ್ಥಳೀಯ ಸಂಗ್ರಹಣೆ"</string>
     <string name="app_label" msgid="9035307001052716210">"ಮಾಧ್ಯಮ ಸಂಗ್ರಹಣೆ"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"ಮಾಧ್ಯಮ"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"ಮಾಧ್ಯಮ ಪಿಕರ್"</string>
     <string name="artist_label" msgid="8105600993099120273">"ಕಲಾವಿದರು"</string>
     <string name="unknown" msgid="2059049215682829375">"ಅಪರಿಚಿತ"</string>
     <string name="root_images" msgid="5861633549189045666">"ಚಿತ್ರಗಳು"</string>
@@ -46,6 +46,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"ಇದರಿಂದ ಕ್ಲೌಡ್ ಮಾಧ್ಯಮವನ್ನು ಪ್ರವೇಶಿಸಿ"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ಯಾವುದೂ ಅಲ್ಲ"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"ಇದೀಗ ಕ್ಲೌಡ್ ಮೀಡಿಯಾ ಆ್ಯಪ್ ಬದಲಾಯಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"ಮಾಧ್ಯಮ ಪಿಕರ್"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"ಮಾಧ್ಯಮ ಪಿಕರ್"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"ಮಾಧ್ಯಮವನ್ನು ಸಿಂಕ್ ಮಾಡಲಾಗುತ್ತಿದೆ…"</string>
     <string name="add" msgid="2894574044585549298">"ಸೇರಿಸಿ"</string>
     <string name="deselect" msgid="4297825044827769490">"ಆಯ್ಕೆ ರದ್ದುಮಾಡಿ"</string>
     <string name="deselected" msgid="8488133193326208475">"ಆಯ್ಕೆ ರದ್ದುಮಾಡಲಾಗಿದೆ"</string>
@@ -60,16 +63,16 @@
     <string name="picker_photos" msgid="7415035516411087392">"ಫೋಟೋಗಳು"</string>
     <string name="picker_albums" msgid="4822511902115299142">"ಆಲ್ಬಮ್‌ಗಳು"</string>
     <string name="picker_preview" msgid="6257414886055861039">"ಪೂರ್ವವೀಕ್ಷಣೆ"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"ಕೆಲಸಕ್ಕೆ ಬದಲಿಸಿ"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"ವೈಯಕ್ತಿಕಕ್ಕೆ ಬದಲಿಸಿ"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"ಉದ್ಯೋಗ ಪ್ರೊಫೈಲ್‌ಗೆ ಬದಲಿಸಿ"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"ವೈಯಕ್ತಿಕ ಪ್ರೊಫೈಲ್‌ಗೆ ಬದಲಿಸಿ"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"ನಿಮ್ಮ ನಿರ್ವಾಹಕರು ನಿರ್ಬಂಧಿಸಿದ್ದಾರೆ"</string>
-    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ವೈಯಕ್ತಿಕ ಆ್ಯಪ್ ಮೂಲಕ ಅಧಿಕೃತ ಡೇಟಾವನ್ನು ಪ್ರವೇಶಿಸಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ವೈಯಕ್ತಿಕ ಆ್ಯಪ್‌ನಿಂದ ಉದ್ಯೋಗದ ಡೇಟಾವನ್ನು ಆ್ಯಕ್ಸೆಸ್ ಮಾಡಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್ ಮೂಲಕ ಅಧಿಕೃತ ಡೇಟಾವನ್ನು ಪ್ರವೇಶಿಸಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳನ್ನು ವಿರಾಮಗೊಳಿಸಲಾಗಿದೆ"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ಕೆಲಸದ ಫೋಟೋಗಳನ್ನು ತೆರೆಯಲು, ನಿಮ್ಮ ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್‌ಗಳನ್ನು ಆನ್ ಮಾಡಿ ನಂತರ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ"</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"ಈ ಆ್ಯಪ್ ನೀವು ಆಯ್ಕೆಮಾಡಿದ ಫೋಟೋಗಳನ್ನು ಮಾತ್ರ ಪ್ರವೇಶಿಸಬಹುದು"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"ಈ ಆ್ಯಪ್ ನೀವು ಆಯ್ಕೆಮಾಡಿದ ಫೋಟೋಗಳನ್ನು ಮಾತ್ರ ಆ್ಯಕ್ಸೆಸ್ ಮಾಡಬಹುದು"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"ಈ ಆ್ಯಪ್ ಅನ್ನು ಆ್ಯಕ್ಸೆಸ್ ಮಾಡಲು ನೀವು ಅನುಮತಿಸುವ ಫೋಟೋಗಳು ಮತ್ತು ವೀಡಿಯೊಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
-    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g>ಐಟಂ}one{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳು}other{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳು}}"</string>
+    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ಐಟಂ}one{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳು}other{<xliff:g id="COUNT_1">^1</xliff:g> ಐಟಂಗಳು}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"ಸೇರಿಸಿ (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"(<xliff:g id="COUNT">^1</xliff:g>) ಅನುಮತಿಸಿ"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"ಕ್ಯಾಮರಾ"</string>
@@ -93,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ನಿಮ್ಮ ಇಂಟರ್ನೆಟ್ ಕನೆಕ್ಷನ್ ಅನ್ನು ಪರಿಶೀಲಿಸಿ ಹಾಗೂ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ಮರುಪ್ರಯತ್ನಿಸಿ"</string>
     <string name="not_selected" msgid="2244008151669896758">"ಆಯ್ಕೆಮಾಡಲಾಗಿಲ್ಲ"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"ನಿಮ್ಮ ಆಯ್ಕೆಮಾಡಿದ ಮೀಡಿಯಾವನ್ನು ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ರಲ್ಲಿ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> ಸಿದ್ಧವಾಗಿವೆ"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ಬ್ಯಾಕಪ್ ಮಾಡಲಾದ ಫೋಟೋಗಳನ್ನು ಈಗ ಸೇರಿಸಲಾಗಿದೆ"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> ಖಾತೆಯ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ನಲ್ಲಿರುವ ಫೋಟೋಗಳನ್ನು ನೀವು ಆಯ್ಕೆಮಾಡಬಹುದು"</string>
@@ -106,6 +110,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ಆ್ಯಪ್ ಅನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ಖಾತೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ಖಾತೆಯನ್ನು ಬದಲಾಯಿಸಿ"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"ನಿಮ್ಮ ಎಲ್ಲಾ ಫೋಟೋಗಳನ್ನು ಪಡೆಯಲಾಗುತ್ತಿದೆ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ಈ ಆಡಿಯೋ ಫೈಲ್ ಅನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_0">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}one{ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}other{ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ಆಡಿಯೋ ಫೈಲ್ ಅನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}one{<xliff:g id="COUNT">^1</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}other{<xliff:g id="COUNT">^1</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲಾಗುತ್ತಿದೆ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ಈ ವೀಡಿಯೊವನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_0">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}one{ಈ <xliff:g id="COUNT">^2</xliff:g> ವೀಡಿಯೊಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}other{ಈ <xliff:g id="COUNT">^2</xliff:g> ವೀಡಿಯೊಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?}}"</string>
@@ -149,4 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"ಭದ್ರತಾ ರಕ್ಷಣೆ"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"ನೇಟಿವ್ ಟ್ರಾನ್ಸ್‌ಕೋಡ್ ಅಲರ್ಟ್‌ಗಳು"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"ನೇಟಿವ್ ಟ್ರಾನ್ಸ್‌ಕೋಡ್ ಪ್ರಗತಿ"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"ನಂತರ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ. ಸಮಸ್ಯೆ ಬಗೆಹರಿದ ನಂತರ ನಿಮ್ಮ ಫೋಟೋಗಳು ಲಭ್ಯವಿರುತ್ತವೆ."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"ಕೆಲವು ಫೋಟೋಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"ಅರ್ಥವಾಯಿತು"</string>
 </resources>

@@ -32,12 +32,14 @@ import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.Manifest;
 import android.app.Instrumentation;
 import android.app.UiAutomation;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
@@ -81,6 +83,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class ItemsProviderTest {
     /**
@@ -662,7 +665,7 @@ public class ItemsProviderTest {
         try {
             // Set the limit and ensure that only that number of items are returned.
             final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT,
-                    new PaginationParameters(/* limit */ 5, -1, -1),
+                    new PaginationParameters(/* limit */ 5, /*dateBeforeMs*/ Long.MIN_VALUE, -1),
                     /* mimeType */ null, /* userId */ null, /* cancellationSignal */ null);
             assertThat(res).isNotNull();
 
@@ -975,6 +978,72 @@ public class ItemsProviderTest {
             hiddenDir.delete();
         }
     }
+
+    /**
+     * Tests {@link ItemsProvider#getLocalItemsForSelection(Category, List, String[],
+     * UserId, CancellationSignal)} to return only selected items from the media table for ids
+     * defined in the localId selection list.
+     */
+    @Test
+    public void testGetItemsImages_withLocalIdSelection() throws Exception {
+        List<Uri> imageFilesUris = assertCreateNewImagesWithSameDateModifiedTimesAndReturnUri(10);
+        // Put the id of random items from the inserted set. say 4th and 6th item.
+        ArrayList<Long> inputIds = new ArrayList<>(1);
+        inputIds.add(ContentUris.parseId(imageFilesUris.get(4)));
+        inputIds.add(ContentUris.parseId(imageFilesUris.get(6)));
+        ArrayList<Integer> inputIdsAsIntegers =
+                (ArrayList<Integer>) inputIds.stream().map(
+                        (Long id) -> Integer.valueOf(Math.toIntExact(id))).collect(
+                        Collectors.toList());
+        try {
+            // get the item objects for the provided ids.
+            final Cursor res = mItemsProvider.getLocalItemsForSelection(Category.DEFAULT,
+                    /* local id selection list */ inputIdsAsIntegers,
+                    /* mimeType */ new String[]{"image/*"}, /* userId */ null,
+                    /* cancellationSignal */ null);
+
+            // verify that the correct number of items are returned and that they have the correct
+            // ids.
+            assertThat(res).isNotNull();
+            assertThat(res.getCount()).isEqualTo(2);
+            res.moveToPosition(0);
+            while (res.moveToNext()) {
+                Item item = Item.fromCursor(res, UserId.CURRENT_USER);
+                assertTrue(inputIds.contains(Long.parseLong(item.getId())));
+            }
+            assertThatOnlyImages(res);
+        } finally {
+            // clean up.
+            deleteAllFilesNoThrow();
+        }
+    }
+
+    /**
+     * Tests {@link ItemsProvider#getLocalItemsForSelection(Category, List, String[],
+     * UserId, CancellationSignal)} to return only selected items from the media table for ids
+     * defined in the localId selection list. Here the list is empty so the parameter is ignored and
+     * the list is returned without any selection.
+     */
+    @Test
+    public void testGetItemsImages_withLocalIdSelectionEmpty() throws Exception {
+        assertCreateNewImagesWithSameDateModifiedTimesAndReturnUri(10);
+        try {
+            // get the item objects for the empty list.
+            final Cursor res = mItemsProvider.getLocalItemsForSelection(Category.DEFAULT,
+                    /* local id selection list */ new ArrayList<>(),
+                    /* mimeType */ new String[]{"image/*"}, /* userId */ null,
+                    /* cancellationSignal */ null);
+
+            assertThat(res).isNotNull();
+            // All images are returned and selection is ignored.
+            assertThat(res.getCount()).isEqualTo(10);
+            assertThatOnlyImages(res);
+        } finally {
+            // clean up.
+            deleteAllFilesNoThrow();
+        }
+    }
+
 
     /**
      * Tests
@@ -1421,6 +1490,19 @@ public class ItemsProviderTest {
         return imageFiles;
     }
 
+
+    private List<Uri> assertCreateNewImagesWithSameDateModifiedTimesAndReturnUri(int numberOfImages)
+            throws Exception {
+        List<Uri> imageFiles = new ArrayList<>();
+        long currentTime = System.nanoTime() / 1000;
+        for (int itr = 0; itr < numberOfImages; itr++) {
+            String fileName = TAG + "_file_" + String.valueOf(System.nanoTime()) + ".jpg";
+            imageFiles.add(assertCreateNewFileWithLastModifiedTimeAndReturnUri(
+                    getDownloadsDir(), fileName, currentTime));
+        }
+        return imageFiles;
+    }
+
     private File assertCreateNewVideo(File dir) throws Exception {
         return assertCreateNewFile(dir, VIDEO_FILE_NAME);
     }
@@ -1449,6 +1531,11 @@ public class ItemsProviderTest {
         final File file = new File(parentDir, fileName);
         prepareFileAndGetUri(file, lastModifiedTime);
         return file;
+    }
+    private Uri assertCreateNewFileWithLastModifiedTimeAndReturnUri(File parentDir, String fileName,
+            long lastModifiedTime) throws Exception {
+        final File file = new File(parentDir, fileName);
+        return prepareFileAndGetUri(file, lastModifiedTime);
     }
 
 

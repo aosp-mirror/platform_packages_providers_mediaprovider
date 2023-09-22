@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Media"</string>
     <string name="storage_description" msgid="4081716890357580107">"Local storage"</string>
-    <string name="app_label" msgid="9035307001052716210">"Media Storage"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"Media picker"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artist"</string>
     <string name="unknown" msgid="2059049215682829375">"Unknown"</string>
@@ -155,6 +154,6 @@
     <string name="transcode_alert_channel" msgid="997332371757680478">"Native transcode alerts"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Native transcode progress"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Please try again later. Your photos will be available once the issue is resolved."</string>
-    <string name="dialog_error_title" msgid="636349284077820636">"Can\'t load some Photos"</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"Can\'t load some photos"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Got it"</string>
 </resources>

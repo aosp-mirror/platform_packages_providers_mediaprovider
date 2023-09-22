@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Médiá"</string>
     <string name="storage_description" msgid="4081716890357580107">"Miestne úložisko"</string>
-    <string name="app_label" msgid="9035307001052716210">"Úložisko médií"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"Nástroj na výber médií"</string>
     <string name="artist_label" msgid="8105600993099120273">"Interpret"</string>
     <string name="unknown" msgid="2059049215682829375">"Neznáme"</string>
@@ -99,7 +98,7 @@
     <string name="preloading_dialog_title" msgid="4974348221848532887">"Pripravujú sa vybrané médiá"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Pripravené: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> z <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Zálohované fotky sú teraz zahrnuté"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Môžete vybrať fotky z účtu <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> aplikácie <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Môžete vyberať fotky z účtu <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> aplikácie <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Účet <xliff:g id="APP_NAME">%1$s</xliff:g> bol aktualizovaný"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Odteraz sú tu zahrnuté fotky z účtu <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Vyberte cloudovú aplikáciu s médiami"</string>

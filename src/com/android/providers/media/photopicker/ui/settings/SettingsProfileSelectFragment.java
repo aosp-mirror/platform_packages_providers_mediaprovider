@@ -29,7 +29,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.settingslib.widget.ProfileSelectFragment;
-import com.android.settingslib.widget.R;
+import com.android.settingslib.widget.profileselector.R;
 
 import com.google.android.material.tabs.TabLayout;
 

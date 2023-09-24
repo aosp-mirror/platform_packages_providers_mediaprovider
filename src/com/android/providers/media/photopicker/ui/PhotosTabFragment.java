@@ -28,6 +28,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -138,7 +139,8 @@ public class PhotosTabFragment extends TabFragment {
                 mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner,
                 showCloudMediaAvailableBanner, showAccountUpdatedBanner, showChooseAccountBanner,
                 mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
-                mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
+                mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener,
+                mOnMediaItemHoverListener);
 
         if (mCategory.isDefault()) {
             mPageSize = mIsCloudMediaInPhotoPickerEnabled
@@ -359,7 +361,9 @@ public class PhotosTabFragment extends TabFragment {
                 public void onItemClick(@NonNull View view, int position) {
 
                     if (mSelection.canSelectMultiple()) {
-                        final boolean isSelectedBefore = view.isSelected();
+                        final boolean isSelectedBefore =
+                                mSelection.isItemSelected((Item) view.getTag())
+                                        && view.isSelected();
 
                         Item item = (Item) view.getTag();
                         if (isSelectedBefore) {
@@ -417,6 +421,19 @@ public class PhotosTabFragment extends TabFragment {
                     return true;
                 }
             };
+
+    public View.OnHoverListener mOnMediaItemHoverListener = (v, event) -> {
+        // When a cursor is hovered over an item the item should appear selected and when the
+        // cursor moves out of the bounds of the view, it should go back to being unselected.
+        if (event.getAction() == MotionEvent.ACTION_HOVER_ENTER) {
+            v.setSelected(true);
+        } else if (event.getAction() == MotionEvent.ACTION_HOVER_EXIT) {
+            if (!mSelection.isItemSelected((Item) v.getTag())) {
+                v.setSelected(false);
+            }
+        }
+        return true;
+    };
 
     /**
      * Create the fragment with the category and add it into the FragmentManager

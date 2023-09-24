@@ -23,6 +23,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
 
 import android.text.format.DateUtils;
+import android.view.View;
 
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
@@ -189,7 +190,8 @@ public class PhotosTabAdapterTest {
                 /* onAccountUpdatedBannerEventListener */
                 mock(TabAdapter.OnBannerEventListener.class),
                 /* onChooseAccountBannerEventListener */
-                mock(TabAdapter.OnBannerEventListener.class));
+                mock(TabAdapter.OnBannerEventListener.class),
+                /* onHoverListener */ mock(View.OnHoverListener.class));
     }
 
     private static Item generateFakeImageItem(String id) {

@@ -43,11 +43,13 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
     private final TextView mVideoDuration;
     private final View mOverlayGradient;
     private final boolean mCanSelectMultiple;
+
+    private final View.OnHoverListener mOnMediaItemHoverListener;
     private final PhotosTabAdapter.OnMediaItemClickListener mOnMediaItemClickListener;
 
     MediaItemGridViewHolder(@NonNull View itemView, @NonNull ImageLoader imageLoader,
             @NonNull PhotosTabAdapter.OnMediaItemClickListener onMediaItemClickListener,
-            boolean canSelectMultiple) {
+            View.OnHoverListener onMediaItemHoverListener, boolean canSelectMultiple) {
         super(itemView);
         mIconThumb = itemView.findViewById(R.id.icon_thumbnail);
         mIconGif = itemView.findViewById(R.id.icon_gif);
@@ -58,6 +60,7 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
         mImageLoader = imageLoader;
         mOnMediaItemClickListener = onMediaItemClickListener;
         mCanSelectMultiple = canSelectMultiple;
+        mOnMediaItemHoverListener = onMediaItemHoverListener;
 
         itemView.findViewById(R.id.icon_check).setVisibility(mCanSelectMultiple ? VISIBLE : GONE);
     }
@@ -67,6 +70,7 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
         itemView.setOnClickListener(v -> mOnMediaItemClickListener.onItemClick(v, position));
         itemView.setOnLongClickListener(v ->
                 mOnMediaItemClickListener.onItemLongClick(v, position));
+        itemView.setOnHoverListener(mOnMediaItemHoverListener);
 
         mImageLoader.loadPhotoThumbnail(item, mIconThumb);
 

@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"மீடியா"</string>
     <string name="storage_description" msgid="4081716890357580107">"சாதனச் சேமிப்பகம்"</string>
-    <string name="app_label" msgid="9035307001052716210">"மீடியா சேமிப்பிடம்"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"மீடியா தேர்வுக் கருவி"</string>
     <string name="artist_label" msgid="8105600993099120273">"கலைஞர்"</string>
     <string name="unknown" msgid="2059049215682829375">"அறியாதது"</string>
@@ -155,6 +154,6 @@
     <string name="transcode_alert_channel" msgid="997332371757680478">"நேட்டிவ் குறிமாற்ற விழிப்பூட்டல்கள்"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"நேட்டிவ் குறிமாற்றச் செயல்நிலை"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"பிறகு மீண்டும் முயலவும். சிக்கல் சரியானதும் உங்கள் படங்கள் கிடைக்கும்."</string>
-    <string name="dialog_error_title" msgid="636349284077820636">"சில படங்களைப் பதிவேற்ற முடியவில்லை"</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"சில படங்களை ஏற்ற முடியவில்லை"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"சரி"</string>
 </resources>

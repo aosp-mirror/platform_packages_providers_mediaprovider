@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Multivide"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokālā krātuve"</string>
-    <string name="app_label" msgid="9035307001052716210">"Multivides krātuve"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"Multivides atlasītājs"</string>
     <string name="artist_label" msgid="8105600993099120273">"Izpildītājs"</string>
     <string name="unknown" msgid="2059049215682829375">"Nezināms"</string>
@@ -154,7 +153,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Drošības aizsardzība"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Brīdinājumi par mantotā formāta pārkodēšanu"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Mantotā formāta pārkodēšanas norise"</string>
-    <string name="dialog_error_message" msgid="5120432204743681606">"Vēlāk mēģiniet vēlreiz. Fotoattēli būs pieejami, tiklīdz būs novērsta problēma."</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"Vēlāk mēģiniet vēlreiz. Fotoattēli būs pieejami, tiklīdz problēma būs novērsta."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Nevar ielādēt dažus fotoattēlus"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Labi"</string>
 </resources>

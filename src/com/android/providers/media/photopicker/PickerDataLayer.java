@@ -240,7 +240,7 @@ public class PickerDataLayer {
 
     private void syncAllMedia(boolean isLocalOnly) {
         if (isLocalOnly) {
-            mSyncController.syncAllMediaFromLocalProvider();
+            mSyncController.syncAllMediaFromLocalProvider(/* cancellationSignal= */ null);
         } else {
             mSyncController.syncAllMedia();
         }

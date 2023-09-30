@@ -5,7 +5,7 @@
             "options": [
                 {
                     // Ignore the tests with @RunOnlyOnPostsubmit annotation
-                    "exclude-annotation": "com.android.providers.media.annotation.RunOnlyOnPostsubmit"
+                    "exclude-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
                 }
             ]
         },
@@ -28,7 +28,7 @@
             "options": [
                 {
                     // Ignore the tests with @RunOnlyOnPostsubmit annotation
-                    "exclude-annotation": "com.android.providers.media.annotation.RunOnlyOnPostsubmit"
+                    "exclude-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
                 }
             ]
         },
@@ -93,7 +93,7 @@
             "options": [
                 {
                     // Only execute the tests with @RunOnlyOnPostsubmit annotation
-                    "include-annotation": "com.android.providers.media.annotation.RunOnlyOnPostsubmit"
+                    "include-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
                 }
             ]
         }
@@ -104,7 +104,7 @@
             "options": [
                 {
                     // Only execute the tests with @RunOnlyOnPostsubmit annotation
-                    "include-annotation": "com.android.providers.media.annotation.RunOnlyOnPostsubmit"
+                    "include-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
                 }
             ]
         },

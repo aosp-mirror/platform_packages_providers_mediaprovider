@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"ମିଡିଆ"</string>
     <string name="storage_description" msgid="4081716890357580107">"ଲୋକାଲ୍‍ ଷ୍ଟୋରେଜ୍‍"</string>
-    <string name="app_label" msgid="9035307001052716210">"ମିଡିଆ ଷ୍ଟୋରେଜ୍"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"ମିଡିଆ"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"ମିଡିଆ ପିକର"</string>
     <string name="artist_label" msgid="8105600993099120273">"କଳାକାର"</string>
     <string name="unknown" msgid="2059049215682829375">"ଅଜଣା"</string>
     <string name="root_images" msgid="5861633549189045666">"ଇମେଜ୍‌"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"ଏଠାରୁ କ୍ଲାଉଡ ମିଡିଆକୁ ଆକ୍ସେସ କରନ୍ତୁ"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"କିଛି ନାହିଁ"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"ଏହି ସମୟରେ କ୍ଲାଉଡ ମିଡିଆ ଆପ ପରିବର୍ତ୍ତନ ହେଲା ନାହିଁ।"</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"ମିଡିଆ ପିକର"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"ମିଡିଆ ପିକର"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"ମିଡିଆ ସିଙ୍କ କରାଯାଉଛି…"</string>
     <string name="add" msgid="2894574044585549298">"ଯୋଗ କରନ୍ତୁ"</string>
     <string name="deselect" msgid="4297825044827769490">"ଅଚୟନ କରନ୍ତୁ"</string>
     <string name="deselected" msgid="8488133193326208475">"ଅଚୟନ କରାଯାଇଛି"</string>
@@ -56,14 +58,14 @@
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"କୌଣସି ଫଟୋ କିମ୍ବା ଭିଡିଓ ନାହିଁ"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"କୌଣସି ସମର୍ଥିତ ଫଟୋ କିମ୍ବା ଭିଡିଓ ନାହିଁ"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"କୌଣସି ଆଲବମ ନାହିଁ"</string>
-    <string name="picker_view_selected" msgid="2266031384396143883">"ଚୟନିତଗୁଡ଼ିକୁ ଦେଖନ୍ତୁ"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"ଚୟନିତଗୁଡ଼ିକୁ ଭ୍ୟୁ କରନ୍ତୁ"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ଫଟୋ"</string>
     <string name="picker_albums" msgid="4822511902115299142">"ଆଲବମ"</string>
     <string name="picker_preview" msgid="6257414886055861039">"ପ୍ରିଭ୍ୟୁ"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"ୱାର୍କକୁ ସ୍ୱିଚ୍ କରନ୍ତୁ"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"ବ୍ୟକ୍ତିଗତକୁ ସ୍ୱିଚ୍ କରନ୍ତୁ"</string>
-    <string name="picker_profile_admin_title" msgid="4172022376418293777">"ଆପଣଙ୍କ ଆଡମିନଙ୍କ ଦ୍ୱାରା ବ୍ଲକ୍ କରାଯାଇଛି"</string>
-    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"କୌଣସି ବ୍ୟକ୍ତିଗତ ଆପରୁ ୱାର୍କ ଡାଟାକୁ ଆକ୍ସେସ୍ କରିବା ପାଇଁ ଅନୁମତି ଦିଆଯାଇନାହିଁ"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"ୱାର୍କକୁ ସୁଇଚ କରନ୍ତୁ"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"ବ୍ୟକ୍ତିଗତକୁ ସୁଇଚ କରନ୍ତୁ"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"ଆପଣଙ୍କ ଆଡମିନଙ୍କ ଦ୍ୱାରା ବ୍ଲକ କରାଯାଇଛି"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"କୌଣସି ବ୍ୟକ୍ତିଗତ ଆପରୁ ୱାର୍କ ଡାଟାକୁ ଆକ୍ସେସ କରିବା ପାଇଁ ଅନୁମତି ଦିଆଯାଇନାହିଁ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"କୌଣସି ୱାର୍କ ଆପରୁ ବ୍ୟକ୍ତିଗତ ଡାଟାକୁ ଆକ୍ସେସ୍ କରିବା ପାଇଁ ଅନୁମତି ଦିଆଯାଇନାହିଁ"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ୱାର୍କ ଆପଗୁଡ଼ିକୁ ବିରତ କରାଯାଇଛି"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ୱାର୍କ ଫଟୋଗୁଡ଼ିକୁ ଖୋଲିବାକୁ, ଆପଣଙ୍କ ୱାର୍କ ଆପଗୁଡ଼ିକୁ ଚାଲୁ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
@@ -93,6 +95,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ଆପଣଙ୍କ ଇଣ୍ଟରନେଟ କନେକ୍ସନ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
     <string name="not_selected" msgid="2244008151669896758">"ଚୟନ କରାଯାଇନାହିଁ"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"ଆପଣଙ୍କ ଚୟନିତ ମିଡିଆକୁ ପ୍ରସ୍ତୁତ କରାଯାଉଛି"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>ରୁ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>ଟି ପ୍ରସ୍ତୁତ ଅଛି"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ବ୍ୟାକଅପ ନିଆଯାଇଥିବା ଫଟୋଗୁଡ଼ିକୁ ବର୍ତ୍ତମାନ ଅନ୍ତର୍ଭୁକ୍ତ କରାଯାଇଛି"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ଆପଣ <xliff:g id="APP_NAME">%1$s</xliff:g> ଆକାଉଣ୍ଟ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>ରୁ ଫଟୋଗୁଡ଼ିକୁ ଚୟନ କରିପାରିବେ"</string>
@@ -106,6 +109,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ଆପ ବାଛନ୍ତୁ"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ଆକାଉଣ୍ଟ ବାଛନ୍ତୁ"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ଆକାଉଣ୍ଟ ବଦଳାନ୍ତୁ"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"ଆପଣଙ୍କର ସମସ୍ତ ଫଟୋ ପ୍ରାପ୍ତ କରାଯାଉଛି"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ଏହି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}other{<xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ଅଡିଓ ଫାଇଲ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…}other{<xliff:g id="COUNT">^1</xliff:g>ଟି ଅଡିଓ ଫାଇଲ ପରିବର୍ତ୍ତନ କରାଯାଉଛି…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ଏହି ଭିଡିଓକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}other{<xliff:g id="COUNT">^2</xliff:g>ଟି ଭିଡିଓକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?}}"</string>
@@ -149,4 +153,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"ସୁରକ୍ଷିତ ସୁରକ୍ଷା"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"ନେଟିଭ ଟ୍ରାନ୍ସକୋଡ ଆଲର୍ଟ"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"ନେଟିଭ ଟ୍ରାନ୍ସକୋଡ ପ୍ରୋଗ୍ରେସ"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"ପରେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ। ସମସ୍ୟାର ସମାଧାନ ହେବା ପରେ ଆପଣଙ୍କ ଫଟୋଗୁଡ଼ିକ ଉପଲବ୍ଧ ହେବ।"</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"କିଛି ଫଟୋ ଲୋଡ କରାଯାଇପାରିବ ନାହିଁ"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"ବୁଝିଗଲି"</string>
 </resources>

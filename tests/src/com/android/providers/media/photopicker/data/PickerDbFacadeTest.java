@@ -24,6 +24,8 @@ import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeTyp
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -39,13 +41,18 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.ProjectionHelper;
+import com.android.providers.media.photopicker.sync.SyncTracker;
+import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerDbFacadeTest {
@@ -86,14 +93,25 @@ public class PickerDbFacadeTest {
     private Context mContext;
     private ProjectionHelper mProjectionHelper;
 
+    @Mock
+    private SyncTracker mMockLocalSyncTracker;
+    @Mock
+    private SyncTracker mMockCloudSyncTracker;
+
     @Before
     public void setUp() {
+        initMocks(this);
         mContext = InstrumentationRegistry.getTargetContext();
         File dbPath = mContext.getDatabasePath(PickerDatabaseHelper.PICKER_DATABASE_NAME);
         dbPath.delete();
         mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER);
         mFacade.setCloudProvider(CLOUD_PROVIDER);
         mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
+
+
+        // Inject mock trackers
+        SyncTrackerRegistry.setLocalSyncTracker(mMockLocalSyncTracker);
+        SyncTrackerRegistry.setCloudSyncTracker(mMockCloudSyncTracker);
     }
 
     @After
@@ -101,6 +119,10 @@ public class PickerDbFacadeTest {
         if (mFacade != null) {
             mFacade.setCloudProvider(null);
         }
+
+        // Reset mock trackers
+        SyncTrackerRegistry.setLocalSyncTracker(new SyncTracker());
+        SyncTrackerRegistry.setCloudSyncTracker(new SyncTracker());
     }
 
     @Test
@@ -237,6 +259,33 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 2);
+        }
+    }
+
+    @Test
+    public void testAddCloudAlbumMediaWhileCloudSyncIsRunning() {
+
+
+        doReturn(Collections.singletonList(new CompletableFuture<>()))
+                .when(mMockCloudSyncTracker)
+                .pendingSyncFutures();
+
+        Cursor cursor1 = getAlbumMediaCursor(/* local id */ null, CLOUD_ID, DATE_TAKEN_MS + 1);
+
+        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cursor1, 1, ALBUM_ID);
+
+        try (Cursor cr = queryAlbumMedia(ALBUM_ID, false)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 1);
+        }
+
+        // These files should also be in the media table since we're pretending that
+        // we have a cloud sync running.
+        try (Cursor cr = queryMediaAll()) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 1);
         }
     }
 
@@ -456,6 +505,39 @@ public class PickerDbFacadeTest {
         }
 
         assertRemoveMediaOperation(CLOUD_PROVIDER, getDeletedMediaCursor(CLOUD_ID), 1);
+
+        try (Cursor cr = queryMediaAll()) {
+            assertThat(cr.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testRemoveMedia_withLatestDateTakenMillis() {
+        Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
+        Cursor cloudCursor1 = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS + 1);
+
+        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor1, 1);
+
+        try (Cursor cr = queryMediaAll()) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
+        }
+
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginRemoveMediaOperation(CLOUD_PROVIDER)) {
+            assertWriteOperation(operation, getDeletedMediaCursor(CLOUD_ID), /* writeCount */ 1);
+            assertThat(operation.getFirstDateTakenMillis()).isEqualTo(DATE_TAKEN_MS + 1);
+            operation.setSuccess();
+        }
+
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginRemoveMediaOperation(LOCAL_PROVIDER)) {
+            assertWriteOperation(operation, getDeletedMediaCursor(LOCAL_ID), /* writeCount */ 1);
+            assertThat(operation.getFirstDateTakenMillis()).isEqualTo(DATE_TAKEN_MS);
+            operation.setSuccess();
+        }
 
         try (Cursor cr = queryMediaAll()) {
             assertThat(cr.getCount()).isEqualTo(0);
@@ -1216,7 +1298,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(4);
         }
 
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
@@ -1232,6 +1314,90 @@ public class PickerDbFacadeTest {
                     LOCAL_ID + "1",
                     DATE_TAKEN_MS,
                     /* count */ 2);
+        }
+    }
+
+    @Test
+    public void testGetVideosAlbumWithMimeTypesFilter() throws Exception {
+        Cursor localCursor1 = getMediaCursor(LOCAL_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, MP4_VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor localCursor2 = getMediaCursor(LOCAL_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, JPEG_IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+        Cursor cloudCursor1 = getMediaCursor(CLOUD_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, JPEG_IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cloudCursor2 = getMediaCursor(CLOUD_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, MP4_VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginAddMediaOperation(LOCAL_PROVIDER)) {
+            assertWriteOperation(operation, localCursor1, 1);
+            assertWriteOperation(operation, localCursor2, 1);
+            operation.setSuccess();
+        }
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginAddMediaOperation(CLOUD_PROVIDER)) {
+            assertWriteOperation(operation, cloudCursor1, 1);
+            assertWriteOperation(operation, cloudCursor2, 1);
+            operation.setSuccess();
+        }
+
+        PickerDbFacade.QueryFilterBuilder qfb =
+                new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
+        try (Cursor cr = mFacade.queryMediaForUi(qfb.build())) {
+            assertThat(cr.getCount()).isEqualTo(4);
+        }
+
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
+            assertThat(cr.getCount()).isEqualTo(2);
+            cr.moveToFirst();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_FAVORITES,
+                    ALBUM_ID_FAVORITES,
+                    LOCAL_ID + "2",
+                    DATE_TAKEN_MS,
+                    /* count */ 1);
+            cr.moveToNext();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_VIDEOS,
+                    ALBUM_ID_VIDEOS,
+                    LOCAL_ID + "1",
+                    DATE_TAKEN_MS,
+                    /* count */ 2);
+        }
+
+        qfb.setMimeTypes(new String[]{MP4_VIDEO_MIME_TYPE, JPEG_IMAGE_MIME_TYPE});
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), /* cloudProvider*/ CLOUD_PROVIDER)) {
+            assertThat(cr.getCount()).isEqualTo(2);
+            cr.moveToFirst();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_FAVORITES,
+                    ALBUM_ID_FAVORITES,
+                    LOCAL_ID + "2",
+                    DATE_TAKEN_MS,
+                    /* count */ 1);
+            cr.moveToNext();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_VIDEOS,
+                    ALBUM_ID_VIDEOS,
+                    LOCAL_ID + "1",
+                    DATE_TAKEN_MS,
+                    /* count */ 2);
+        }
+
+        qfb.setMimeTypes(new String[]{GIF_IMAGE_MIME_TYPE, JPEG_IMAGE_MIME_TYPE});
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), /* cloudProvider*/ CLOUD_PROVIDER)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_FAVORITES,
+                    ALBUM_ID_FAVORITES,
+                    LOCAL_ID + "2",
+                    DATE_TAKEN_MS,
+                    /* count */ 1);
         }
     }
 
@@ -1269,7 +1435,7 @@ public class PickerDbFacadeTest {
             assertThat(cr.getCount()).isEqualTo(4);
         }
 
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
@@ -1288,7 +1454,18 @@ public class PickerDbFacadeTest {
         }
 
         qfb.setMimeTypes(IMAGE_MIME_TYPES_QUERY);
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), /* cloudProvider*/ null)) {
+            assertThat(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertCloudAlbumCursor(cr,
+                    ALBUM_ID_FAVORITES,
+                    ALBUM_ID_FAVORITES,
+                    CLOUD_ID + "1",
+                    DATE_TAKEN_MS,
+                    /* count */ 1);
+        }
+
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
@@ -1300,7 +1477,7 @@ public class PickerDbFacadeTest {
         }
 
         qfb.setMimeTypes(VIDEO_MIME_TYPES_QUERY);
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
@@ -1319,8 +1496,8 @@ public class PickerDbFacadeTest {
         }
 
         qfb.setMimeTypes(new String[]{"foo"});
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
-            assertThat(cr.getCount()).isEqualTo(0);
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
+            assertThat(cr.getCount()).isEqualTo(1);
         }
     }
 
@@ -1378,7 +1555,7 @@ public class PickerDbFacadeTest {
 
         // Verify that we see all available merged albums and their respective media count
         qfb.setIsLocalOnly(false);
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), CLOUD_PROVIDER)) {
             assertThat(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,
@@ -1398,7 +1575,7 @@ public class PickerDbFacadeTest {
 
         qfb.setIsLocalOnly(true);
         // Verify that with isLocalOnly=true, we only see one album with only one local item.
-        try (Cursor cr = mFacade.getMergedAlbums(qfb.build())) {
+        try (Cursor cr = mFacade.getMergedAlbums(qfb.build(), /* cloudProvider */ null)) {
             assertThat(cr.getCount()).isEqualTo(1);
             cr.moveToFirst();
             assertCloudAlbumCursor(cr,

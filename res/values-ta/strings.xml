@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"மீடியா"</string>
     <string name="storage_description" msgid="4081716890357580107">"சாதனச் சேமிப்பகம்"</string>
-    <string name="app_label" msgid="9035307001052716210">"மீடியா சேமிப்பிடம்"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"மீடியா"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"மீடியா தேர்வுக் கருவி"</string>
     <string name="artist_label" msgid="8105600993099120273">"கலைஞர்"</string>
     <string name="unknown" msgid="2059049215682829375">"அறியாதது"</string>
     <string name="root_images" msgid="5861633549189045666">"Images"</string>
@@ -46,12 +45,15 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"கிளவுட் மீடியாவை இதிலிருந்து அணுகும்"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"எதுவுமில்லை"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"இப்போது கிளவுடு மீடியா ஆப்ஸை மாற்ற முடியாது"</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"மீடியா தேர்வுக் கருவி"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"மீடியா தேர்வுக் கருவி"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"மீடியாவை ஒத்திசைக்கிறது…"</string>
     <string name="add" msgid="2894574044585549298">"சேர்"</string>
     <string name="deselect" msgid="4297825044827769490">"தேர்வுநீக்கு"</string>
     <string name="deselected" msgid="8488133193326208475">"தேர்வுநீக்கப்பட்டது"</string>
     <string name="select" msgid="2704765470563027689">"தேர்ந்தெடு"</string>
     <string name="selected" msgid="9151797369975828124">"தேர்ந்தெடுக்கப்பட்டது"</string>
-    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> படத்தைத் தேர்ந்தெடுங்கள்}other{<xliff:g id="COUNT_1">^1</xliff:g> படங்களைத் தேர்ந்தெடுங்கள்}}"</string>
+    <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> படத்தைத் தேர்ந்தெடுங்கள்}other{<xliff:g id="COUNT_1">^1</xliff:g> படங்கள் வரை தேர்ந்தெடுங்கள்}}"</string>
     <string name="recent" msgid="6694613584743207874">"சமீபத்தியவை"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"படங்களோ வீடியோக்களோ இல்லை"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"ஆதரிக்கப்படும் படங்களோ வீடியோக்களோ இல்லை"</string>
@@ -93,9 +95,10 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"உங்கள் இணைய இணைப்பைச் சரிபார்த்துவிட்டு மீண்டும் முயலவும்"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"மீண்டும் முயல்க"</string>
     <string name="not_selected" msgid="2244008151669896758">"தேர்ந்தெடுக்கப்படவில்லை"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"நீங்கள் தேர்ந்தெடுத்த மீடியா தயாராகிறது"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> / <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> தயாராக உள்ளது"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"காப்புப் பிரதி எடுக்கப்பட்ட படங்கள் இப்போது சேர்க்கப்பட்டுள்ளன"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> ஆப்ஸிலிருந்தும் <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> கணக்கிலிருந்தும் படங்களைத் தேர்ந்தெடுக்கலாம்"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> ஆப்ஸில் <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> கணக்கிலிருந்தும் படங்களைத் தேர்ந்தெடுக்கலாம்"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> கணக்கு புதுப்பிக்கப்பட்டது"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> கணக்கிலிருந்த படங்களும் இப்போது சேர்க்கப்பட்டுள்ளன"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"கிளவுட் மீடியா ஆப்ஸைத் தேர்வுசெய்தல்"</string>
@@ -106,6 +109,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ஆப்ஸைத் தேர்வுசெய்க"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"கணக்கைத் தேர்வுசெய்க"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"கணக்கை மாற்று"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"உங்கள் படங்கள் அனைத்தையும் பெறுகிறது"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{இந்த ஆடியோ ஃபைலில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}other{<xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ஆடியோ ஃபைலை மாற்றியமைக்கிறது…}other{<xliff:g id="COUNT">^1</xliff:g> ஆடியோ ஃபைல்களை மாற்றியமைக்கிறது…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{இந்த வீடியோவில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}other{<xliff:g id="COUNT">^2</xliff:g> வீடியோக்களில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?}}"</string>
@@ -149,4 +153,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"பாதுகாப்பு வளையம்"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"நேட்டிவ் குறிமாற்ற விழிப்பூட்டல்கள்"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"நேட்டிவ் குறிமாற்றச் செயல்நிலை"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"பிறகு மீண்டும் முயலவும். சிக்கல் சரியானதும் உங்கள் படங்கள் கிடைக்கும்."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"சில படங்களை ஏற்ற முடியவில்லை"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"சரி"</string>
 </resources>

@@ -20,17 +20,21 @@ import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 
 import android.annotation.UserIdInt;
 import android.content.Context;
+import android.content.Intent;
 import android.os.UserHandle;
 import android.util.Log;
 
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.UiThread;
+import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.util.ThreadUtils;
 import com.android.providers.media.util.PerUser;
 
 class BannerManager {
@@ -45,6 +49,8 @@ class BannerManager {
     private final MutableLiveData<String> mCloudMediaProviderLabel = new MutableLiveData<>();
     // Account name of the current CloudMediaProvider of the current user
     private final MutableLiveData<String> mCloudMediaAccountName = new MutableLiveData<>();
+    // Account selection activity intent of the current CloudMediaProvider of the current user
+    private Intent mChooseCloudMediaAccountActivityIntent = null;
 
     // Boolean Choose App Banner visibility
     private final MutableLiveData<Boolean> mShowChooseAppBanner = new MutableLiveData<>(false);
@@ -59,16 +65,24 @@ class BannerManager {
     // The banner controllers per user
     private final PerUser<BannerController> mBannerControllers;
 
-    BannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager) {
+    BannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager,
+            @NonNull ConfigStore configStore) {
         mUserIdManager = userIdManager;
         mBannerControllers = new PerUser<BannerController>() {
             @NonNull
             @Override
             protected BannerController create(@UserIdInt int userId) {
-                return new BannerController(context, UserHandle.of(userId));
+                return createBannerController(context, UserHandle.of(userId), configStore);
             }
         };
         maybeInitialiseAndSetBannersForCurrentUser();
+    }
+
+    @VisibleForTesting
+    @NonNull
+    BannerController createBannerController(@NonNull Context context,
+            @NonNull UserHandle userHandle, @NonNull ConfigStore configStore) {
+        return new BannerController(context, userHandle, configStore);
     }
 
     @UserIdInt int getCurrentUserProfileId() {
@@ -96,6 +110,24 @@ class BannerManager {
     @NonNull
     MutableLiveData<String> getCloudMediaProviderAppTitleLiveData() {
         return mCloudMediaProviderLabel;
+    }
+
+    /**
+     * @return the account selection activity {@link Intent} of the current
+     *         {@link android.provider.CloudMediaProvider}.
+     */
+    @Nullable
+    Intent getChooseCloudMediaAccountActivityIntent() {
+        return mChooseCloudMediaAccountActivityIntent;
+    }
+
+
+    /**
+     * Update the account selection activity {@link Intent} of the current
+     * {@link android.provider.CloudMediaProvider}.
+     */
+    void setChooseCloudMediaAccountActivityIntent(Intent intent) {
+        mChooseCloudMediaAccountActivityIntent = intent;
     }
 
     /**
@@ -142,8 +174,10 @@ class BannerManager {
     /**
      * Dismiss (hide) the 'Choose App' banner for the current user.
      */
-    @UiThread
+    @MainThread
     void onUserDismissedChooseAppBanner() {
+        ThreadUtils.assertMainThread();
+
         if (Boolean.FALSE.equals(mShowChooseAppBanner.getValue())) {
             Log.d(TAG, "Choose App banner visibility live data value is false on dismiss");
         } else {
@@ -159,8 +193,10 @@ class BannerManager {
     /**
      * Dismiss (hide) the 'Cloud Media Available' banner for the current user.
      */
-    @UiThread
+    @MainThread
     void onUserDismissedCloudMediaAvailableBanner() {
+        ThreadUtils.assertMainThread();
+
         if (Boolean.FALSE.equals(mShowCloudMediaAvailableBanner.getValue())) {
             Log.d(TAG, "Cloud Media Available banner visibility live data value is false on "
                     + "dismiss");
@@ -177,8 +213,10 @@ class BannerManager {
     /**
      * Dismiss (hide) the 'Account Updated' banner for the current user.
      */
-    @UiThread
+    @MainThread
     void onUserDismissedAccountUpdatedBanner() {
+        ThreadUtils.assertMainThread();
+
         if (Boolean.FALSE.equals(mShowAccountUpdatedBanner.getValue())) {
             Log.d(TAG, "Account Updated banner visibility live data value is false on dismiss");
         } else {
@@ -194,8 +232,10 @@ class BannerManager {
     /**
      * Dismiss (hide) the 'Choose Account' banner for the current user.
      */
-    @UiThread
+    @MainThread
     void onUserDismissedChooseAccountBanner() {
+        ThreadUtils.assertMainThread();
+
         if (Boolean.FALSE.equals(mShowChooseAccountBanner.getValue())) {
             Log.d(TAG, "Choose Account banner visibility live data value is false on dismiss");
         } else {
@@ -260,8 +300,9 @@ class BannerManager {
     }
 
     static class CloudBannerManager extends BannerManager {
-        CloudBannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager) {
-            super(context, userIdManager);
+        CloudBannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager,
+                @NonNull ConfigStore configStore) {
+            super(context, userIdManager, configStore);
         }
 
         /**
@@ -288,6 +329,8 @@ class BannerManager {
                         .postValue(bannerController.getCloudMediaProviderLabel());
                 getCloudMediaAccountNameLiveData()
                         .postValue(bannerController.getCloudMediaProviderAccountName());
+                setChooseCloudMediaAccountActivityIntent(
+                        bannerController.getChooseCloudMediaAccountActivityIntent());
                 shouldShowChooseAppBannerLiveData()
                         .postValue(bannerController.shouldShowChooseAppBanner());
                 shouldShowCloudMediaAvailableBannerLiveData()

@@ -1100,13 +1100,15 @@ public class PickerSyncController {
         return bundle;
     }
 
+    @NonNull
     private Bundle getLatestMediaCollectionInfo(String authority) {
         final InstanceId instanceId = NonUiEventLogger.generateInstanceId();
         NonUiEventLogger.logPickerGetMediaCollectionInfoStart(instanceId, MY_UID, authority);
         try {
-            return mContext.getContentResolver().call(getMediaCollectionInfoUri(authority),
+            Bundle result = mContext.getContentResolver().call(getMediaCollectionInfoUri(authority),
                     CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO, /* arg */ null,
                     /* extras */ null);
+            return (result == null) ? (new Bundle()) : result;
         } finally {
             NonUiEventLogger.logPickerGetMediaCollectionInfoEnd(instanceId, MY_UID, authority);
         }

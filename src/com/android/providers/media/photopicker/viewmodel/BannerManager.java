@@ -27,6 +27,7 @@ import android.util.Log;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -71,10 +72,17 @@ class BannerManager {
             @NonNull
             @Override
             protected BannerController create(@UserIdInt int userId) {
-                return new BannerController(context, UserHandle.of(userId), configStore);
+                return createBannerController(context, UserHandle.of(userId), configStore);
             }
         };
         maybeInitialiseAndSetBannersForCurrentUser();
+    }
+
+    @VisibleForTesting
+    @NonNull
+    BannerController createBannerController(@NonNull Context context,
+            @NonNull UserHandle userHandle, @NonNull ConfigStore configStore) {
+        return new BannerController(context, userHandle, configStore);
     }
 
     @UserIdInt int getCurrentUserProfileId() {

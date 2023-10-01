@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"מדיה"</string>
     <string name="storage_description" msgid="4081716890357580107">"אחסון מקומי"</string>
-    <string name="app_label" msgid="9035307001052716210">"אחסון מדיה"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"הכלי לבחירת מדיה"</string>
     <string name="artist_label" msgid="8105600993099120273">"אומן"</string>
     <string name="unknown" msgid="2059049215682829375">"לא ידוע"</string>
@@ -155,6 +154,6 @@
     <string name="transcode_alert_channel" msgid="997332371757680478">"התראות של המרת קידוד מקורית"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"התקדמות של המרת קידוד מקורית"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"כדאי לנסות שוב אחר כך. התמונות שלך יהיו זמינות כשהבעיה תיפתר."</string>
-    <string name="dialog_error_title" msgid="636349284077820636">"לא ניתן לטעון תמונות מסוימות"</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"יש תמונות שאי אפשר לטעון כרגע"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"הבנתי"</string>
 </resources>

@@ -67,13 +67,8 @@ public class BannerControllerTest {
 
         setCloudProvider(/* authority= */ null);
 
-        mBannerController =
-                new BannerController(mIsolatedContext, mIsolatedContext.getUser(), configStore) {
-                    @Override
-                    void updateCloudProviderDataFile() {
-                        // No-op
-                    }
-                };
+        mBannerController = BannerTestUtils.getTestBannerController(
+                mIsolatedContext, mIsolatedContext.getUser(), configStore);
 
         assertNull(mBannerController.getCloudMediaProviderAuthority());
         assertNull(mBannerController.getCloudMediaProviderLabel());

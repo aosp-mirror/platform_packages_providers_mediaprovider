@@ -42,6 +42,7 @@ import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -89,9 +90,10 @@ import java.util.concurrent.TimeUnit;
 public class PickerViewModelTest {
     private static final String FAKE_CATEGORY_NAME = "testCategoryName";
     private static final String FAKE_ID = "5";
-    private static final String FAKE_CLOUD_MEDIA_PROVIDER_PACKAGE_NAME =
-            "com.hooli.super.awesome.cloud.provider";
     private static final Context sTargetContext = getInstrumentation().getTargetContext();
+    private static final String TEST_PACKAGE_NAME = "com.android.providers.media.tests";
+    private static final String CMP_AUTHORITY = "authority";
+    private static final String CMP_ACCOUNT_NAME = "account_name";
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
@@ -102,6 +104,8 @@ public class PickerViewModelTest {
     private PickerViewModel mPickerViewModel;
     private TestItemsProvider mItemsProvider;
     private TestConfigStore mConfigStore;
+    private BannerManager mBannerManager;
+    private BannerController mBannerController;
 
     public PickerViewModelTest() {
     }
@@ -112,9 +116,8 @@ public class PickerViewModelTest {
 
         when(mApplication.getApplicationContext()).thenReturn(sTargetContext);
         mConfigStore = new TestConfigStore();
-        mConfigStore.enableCloudMediaFeature();
-        mConfigStore.setAllowedCloudProviderPackages(
-                new String[]{FAKE_CLOUD_MEDIA_PROVIDER_PACKAGE_NAME});
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(TEST_PACKAGE_NAME);
+
         getInstrumentation().runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
                 @Override
@@ -128,9 +131,18 @@ public class PickerViewModelTest {
         final UserIdManager userIdManager = mock(UserIdManager.class);
         when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
         mPickerViewModel.setUserIdManager(userIdManager);
-        final BannerManager bannerManager = new BannerManager(sTargetContext, userIdManager,
+
+        mBannerManager = BannerTestUtils.getTestCloudBannerManager(sTargetContext, userIdManager,
                 mConfigStore);
-        mPickerViewModel.setBannerManager(bannerManager);
+        mPickerViewModel.setBannerManager(mBannerManager);
+
+        // Set default banner manager values
+        mBannerController = mBannerManager.getBannerControllersPerUser().get(
+                UserId.CURRENT_USER.getIdentifier());
+        assertNotNull(mBannerController);
+        mBannerController.onChangeCloudMediaInfo(
+                /* cmpAuthority= */ null, /* cmpAccountName= */ null);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
     }
 
     @Test
@@ -518,5 +530,63 @@ public class PickerViewModelTest {
 
         mPickerViewModel.resetAllContentInCurrentProfile();
         assertFalse(shouldRefreshUi.getValue());
+    }
+
+    @Test
+    public void testDismissChooseAppBanner() {
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, CMP_ACCOUNT_NAME);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+
+        mBannerController.onChangeCloudMediaInfo(
+                /* cmpAuthority= */ null, /* cmpAccountName= */ null);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+        assertTrue(mBannerController.shouldShowChooseAppBanner());
+        assertTrue(mPickerViewModel.shouldShowChooseAppBannerLiveData().getValue());
+
+        getInstrumentation().runOnMainSync(() -> mPickerViewModel.onUserDismissedChooseAppBanner());
+        assertFalse(mBannerController.shouldShowChooseAppBanner());
+        assertFalse(mPickerViewModel.shouldShowChooseAppBannerLiveData().getValue());
+    }
+
+    @Test
+    public void testDismissCloudMediaAvailableBanner() {
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, CMP_ACCOUNT_NAME);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+        assertTrue(mBannerController.shouldShowCloudMediaAvailableBanner());
+        assertTrue(mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData().getValue());
+
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedCloudMediaAvailableBanner());
+        assertFalse(mBannerController.shouldShowCloudMediaAvailableBanner());
+        assertFalse(mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData().getValue());
+    }
+
+    @Test
+    public void testDismissAccountUpdatedBanner() {
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, /* cmpAccountName= */ null);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, CMP_ACCOUNT_NAME);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+        assertTrue(mBannerController.shouldShowAccountUpdatedBanner());
+        assertTrue(mPickerViewModel.shouldShowAccountUpdatedBannerLiveData().getValue());
+
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedAccountUpdatedBanner());
+        assertFalse(mBannerController.shouldShowAccountUpdatedBanner());
+        assertFalse(mPickerViewModel.shouldShowAccountUpdatedBannerLiveData().getValue());
+    }
+
+    @Test
+    public void testDismissChooseAccountBanner() {
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, /* cmpAccountName= */ null);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+        assertTrue(mBannerController.shouldShowChooseAccountBanner());
+        assertTrue(mPickerViewModel.shouldShowChooseAccountBannerLiveData().getValue());
+
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedChooseAccountBanner());
+        assertFalse(mBannerController.shouldShowChooseAccountBanner());
+        assertFalse(mPickerViewModel.shouldShowChooseAccountBannerLiveData().getValue());
     }
 }

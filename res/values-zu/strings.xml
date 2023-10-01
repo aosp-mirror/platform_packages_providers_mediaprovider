@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Abezind"</string>
     <string name="storage_description" msgid="4081716890357580107">"Isitoreji sasendaweni"</string>
-    <string name="app_label" msgid="9035307001052716210">"Isitoreji Semidiya"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"Isikhethi semidiya"</string>
     <string name="artist_label" msgid="8105600993099120273">"Umculi"</string>
     <string name="unknown" msgid="2059049215682829375">"Akwaziwa"</string>

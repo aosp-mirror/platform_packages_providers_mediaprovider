@@ -40,11 +40,13 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
 import androidx.lifecycle.LiveData;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.IsolatedContext;
@@ -58,7 +60,6 @@ import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -239,7 +240,7 @@ public class PickerViewModelPaginationTest {
         }
     }
 
-    @Ignore("Enable progress bar and pagination tests after fixing the flaky behaviour b/296520260")
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
     @Test
     public void test_differentCategories_getCategoryItems() throws Exception {
         int pageSize = 4;

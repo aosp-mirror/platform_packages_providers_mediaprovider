@@ -33,7 +33,6 @@ import java.io.File;
 
 @RunWith(AndroidJUnit4.class)
 public class MimeUtilsTest {
-    private static final String EMPTY_EXTENSION = "";
     @Test
     public void testConstructor() {
         new MimeUtils();
@@ -112,13 +111,14 @@ public class MimeUtilsTest {
     @Test
     public void testGetExtensionFromMimeType() {
         assertEquals(".svg", MimeUtils.getExtensionFromMimeType("image/svg+xml"));
-        assertEquals(EMPTY_EXTENSION,
+        assertEquals(MimeUtils.DEFAULT_IMAGE_FILE_EXTENSION,
                 MimeUtils.getExtensionFromMimeType("image/foo"));
 
         assertEquals(".mpeg", MimeUtils.getExtensionFromMimeType("video/mpeg"));
-        assertEquals(EMPTY_EXTENSION, MimeUtils.getExtensionFromMimeType("video/foo"));
+        assertEquals(MimeUtils.DEFAULT_VIDEO_FILE_EXTENSION,
+                MimeUtils.getExtensionFromMimeType("video/foo"));
 
-        assertEquals(EMPTY_EXTENSION, MimeUtils.getExtensionFromMimeType("foo/bar"));
-        assertEquals(EMPTY_EXTENSION, MimeUtils.getExtensionFromMimeType(null));
+        assertEquals("", MimeUtils.getExtensionFromMimeType("foo/bar"));
+        assertEquals("", MimeUtils.getExtensionFromMimeType(null));
     }
 }

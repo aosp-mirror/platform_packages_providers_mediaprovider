@@ -600,12 +600,18 @@ public class PickerViewModel extends AndroidViewModel {
 
     private Cursor fetchItems(Category category, UserId userId,
             PaginationParameters pagingParameters) {
-        if (shouldShowOnlyLocalFeatures()) {
-            return mItemsProvider.getLocalItems(category, pagingParameters,
-                    mMimeTypeFilters, userId, mCancellationSignal);
-        } else {
-            return mItemsProvider.getAllItems(category, pagingParameters,
-                    mMimeTypeFilters, userId, mCancellationSignal);
+        try {
+            if (shouldShowOnlyLocalFeatures()) {
+                return mItemsProvider.getLocalItems(category, pagingParameters,
+                        mMimeTypeFilters, userId, mCancellationSignal);
+            } else {
+                return mItemsProvider.getAllItems(category, pagingParameters,
+                        mMimeTypeFilters, userId, mCancellationSignal);
+            }
+        } catch (RuntimeException ignored) {
+            // Catch OperationCanceledException.
+            Log.e(TAG, "Failed to fetch items due to a runtime exception", ignored);
+            return null;
         }
     }
 
@@ -764,10 +770,18 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private Cursor fetchCategories(UserId userId) {
-        if (shouldShowOnlyLocalFeatures()) {
-            return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId, mCancellationSignal);
-        } else {
-            return mItemsProvider.getAllCategories(mMimeTypeFilters, userId, mCancellationSignal);
+        try {
+            if (shouldShowOnlyLocalFeatures()) {
+                return mItemsProvider
+                        .getLocalCategories(mMimeTypeFilters, userId, mCancellationSignal);
+            } else {
+                return mItemsProvider
+                        .getAllCategories(mMimeTypeFilters, userId, mCancellationSignal);
+            }
+        } catch (RuntimeException ignored) {
+            // Catch OperationCanceledException.
+            Log.e(TAG, "Failed to fetch categories due to a runtime exception", ignored);
+            return null;
         }
     }
 

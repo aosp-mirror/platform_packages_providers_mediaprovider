@@ -416,7 +416,7 @@ public class PickerSyncControllerTest {
         // 3. Add another media in primary cloud provider
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
 
-        mController.syncAllMediaFromLocalProvider();
+        mController.syncAllMediaFromLocalProvider(/* cancellationSignal=*/ null);
         // Verify that the sync only synced local items
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(3);
@@ -1048,11 +1048,11 @@ public class PickerSyncControllerTest {
     }
 
     @Test
-    public void testSyncAllMedia_missingHonouredArgs_doesNotDisplayCloud() {
+    public void testSyncAllMedia_missingOptionalHonoredArgs_displaysCloud() {
         // 1. Set cloud provider
         setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
-        // 2. Add media before setting primary cloud provider
+        // 2. Add media before syncing again with the cloud provider
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
 
@@ -1062,7 +1062,12 @@ public class PickerSyncControllerTest {
 
         // 4. Sync and verify media
         mController.syncAllMedia();
-        assertEmptyCursorFromMediaQuery();
+        try (Cursor cr = queryMedia()) {
+            assertThat(cr.getCount()).isEqualTo(/* expected= */ 2);
+
+            assertCursor(cr, CLOUD_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
     }
 
     @Test

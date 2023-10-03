@@ -24,6 +24,7 @@ import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import java.io.File;
 import java.util.Locale;
@@ -32,6 +33,10 @@ public class MimeUtils {
     private static final String TAG = "MimeUtils";
     private static final String ALL_IMAGES_MIME_TYPE = "image/*";
     private static final String ALL_VIDEOS_MIME_TYPE = "video/*";
+    @VisibleForTesting
+    static final String DEFAULT_IMAGE_FILE_EXTENSION = ".jpg";
+    @VisibleForTesting
+    static final String DEFAULT_VIDEO_FILE_EXTENSION = ".mp4";
 
     /**
      * Resolve the MIME type of the given file, returning
@@ -248,6 +253,8 @@ public class MimeUtils {
      *
      * @return -
      *      {@link MimeTypeMap#getExtensionFromMimeType} if not {@code null} or
+     *      {@link #DEFAULT_IMAGE_FILE_EXTENSION} if the mimeType is {@link #isImageMimeType} or
+     *      {@link #DEFAULT_VIDEO_FILE_EXTENSION} if the mimeType is {@link #isVideoMimeType} or
      *      {@code ""} otherwise.
      */
     @NonNull
@@ -258,7 +265,16 @@ public class MimeUtils {
         }
 
         Log.d(TAG, "No extension found for the mime type " + mimeType
-                + ", returning an empty string.");
+                + ", returning the default file extension.");
+        // TODO(b/269614462): Eliminate the image and video extension hard codes for picker uri
+        //  display names
+        if (isImageMimeType(mimeType)) {
+            return DEFAULT_IMAGE_FILE_EXTENSION;
+        }
+        if (isVideoMimeType(mimeType)) {
+            return DEFAULT_VIDEO_FILE_EXTENSION;
+        }
+
         return "";
     }
 }

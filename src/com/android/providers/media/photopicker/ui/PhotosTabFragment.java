@@ -140,6 +140,9 @@ public class PhotosTabFragment extends TabFragment {
                 mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
                 mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
 
+        mPickerViewModel.initialisePreGrantsIfNecessary(mPickerViewModel.getSelection(),
+                getPickerActivity().getIntent().getExtras());
+
         if (mCategory.isDefault()) {
             mPageSize = mIsCloudMediaInPhotoPickerEnabled
                     ? PaginationParameters.PAGINATION_PAGE_SIZE_ITEMS : -1;

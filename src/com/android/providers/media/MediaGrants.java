@@ -32,7 +32,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.android.providers.media.photopicker.PickerSyncController;
-import com.android.providers.media.util.FileUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,7 +45,7 @@ import java.util.stream.Collectors;
  *
  * <p>Manages media grants for files in the {@code files} table based on package name.
  */
-class MediaGrants {
+public class MediaGrants {
     public static final String TAG = "MediaGrants";
     public static final String MEDIA_GRANTS_TABLE = "media_grants";
     public static final String FILE_ID_COLUMN = "file_id";
@@ -126,34 +125,24 @@ class MediaGrants {
     }
 
     /**
-     * Returns the file uris of items for which the passed package has READ_GRANTS.
+     * Returns the cursor for file data of items for which the passed package has READ_GRANTS.
      *
      * @param packageNames  the package name that has access.
      * @param packageUserId the user_id of the package
      */
-    List<Uri> getMediaGrantsForPackages(String[] packageNames, int packageUserId)
+    Cursor getMediaGrantsForPackages(String[] packageNames, int packageUserId)
             throws IllegalArgumentException {
         Objects.requireNonNull(packageNames);
         return mExternalDatabase.runWithoutTransaction((db) -> {
-            final List<Uri> filesUriList = new ArrayList<>();
             final SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
             queryBuilder.setDistinct(true);
             queryBuilder.setTables(MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME);
             String[] selectionArgs = buildSelectionArg(queryBuilder, packageNames, packageUserId,
                     /* uris */ null);
 
-            try (Cursor c = queryBuilder.query(db,
-                    new String[]{DATA, FILE_ID_COLUMN},
-                    null,
-                    selectionArgs, null, null, null, null, null)) {
-                while (c.moveToNext()) {
-                    final String file_path = c.getString(c.getColumnIndexOrThrow(DATA));
-                    final Integer file_id = c.getInt(c.getColumnIndexOrThrow(FILE_ID_COLUMN));
-                    filesUriList.add(FileUtils.getContentUriForPath(
-                            file_path).buildUpon().appendPath(String.valueOf(file_id)).build());
-                }
-                return filesUriList;
-            }
+            return queryBuilder.query(db,
+                    new String[]{DATA, FILE_ID_COLUMN}, null, selectionArgs, null, null, null, null,
+                    null);
         });
     }
 

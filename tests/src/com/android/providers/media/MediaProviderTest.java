@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import static com.android.providers.media.photopicker.data.MediaGrantsProvider.fetchReadGrantedItemsUrisForPackage;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractRelativePath;
@@ -359,12 +360,20 @@ public class MediaProviderTest {
                 .build();
 
         try {
+            // Verify empty list with no grants.
+            List<Uri> grantedUris = fetchReadGrantedItemsUrisForPackage(
+                    sIsolatedContext, android.os.Process.myUid());
+            assertTrue(grantedUris.isEmpty());
+
+            // Grants the READ-GRANT for the testUris for the current package.
             MediaStore.grantMediaReadForPackage(sIsolatedContext,
                     android.os.Process.myUid(),
                     List.of(testUri));
-            List<Uri> grantedUris = MediaStore.fetchReadGrantedItemsUrisForPackage(
+
+            // Assert that the grant was returned.
+            List<Uri> grantedUris2 = fetchReadGrantedItemsUrisForPackage(
                     sIsolatedContext, android.os.Process.myUid());
-            assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris.get(0)));
+            assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris2.get(0)));
         } finally {
             dir.delete();
             testFile.delete();
@@ -395,7 +404,7 @@ public class MediaProviderTest {
             MediaStore.grantMediaReadForPackage(sIsolatedContext,
                     android.os.Process.myUid(),
                     List.of(testUri));
-            List<Uri> grantedUris = MediaStore.fetchReadGrantedItemsUrisForPackage(
+            List<Uri> grantedUris = fetchReadGrantedItemsUrisForPackage(
                     sIsolatedContext, android.os.Process.myUid());
             assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris.get(0)));
 
@@ -403,7 +412,7 @@ public class MediaProviderTest {
             // package has no grants.
             MediaStore.revokeMediaReadForPackages(sIsolatedContext, android.os.Process.myUid(),
                     grantedUris);
-            List<Uri> grantedUris2 = MediaStore.fetchReadGrantedItemsUrisForPackage(
+            List<Uri> grantedUris2 = fetchReadGrantedItemsUrisForPackage(
                     sIsolatedContext, android.os.Process.myUid());
             assertEquals(0, grantedUris2.size());
         } finally {

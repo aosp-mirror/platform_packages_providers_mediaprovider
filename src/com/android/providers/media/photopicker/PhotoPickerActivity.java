@@ -662,12 +662,18 @@ public class PhotoPickerActivity extends AppCompatActivity {
                         // To notify the fragment to uncheck the unavailable items at UI those are
                         // no longer available in the selection list.
                         mIsItemPhotoGridViewChanged.postValue(true);
-                        // Displaying  error dialog with an error message when the user tries
-                        // to add unavailable cloud only media (not cached) while offline.
-                        DialogUtils.showDialog(this,
-                                getResources().getString(R.string.dialog_error_title),
-                                getResources().getString(R.string.dialog_error_message));
 
+                        // Checking if preloading was intentionally be cancelled by the user
+                        if (unavailableMediaIndexes.get(unavailableMediaIndexes.size() - 1) != -1) {
+                            // Displaying  error dialog with an error message when the user tries
+                            // to add unavailable cloud only media (not cached) while offline.
+                            DialogUtils.showDialog(this,
+                                    getResources().getString(R.string.dialog_error_title),
+                                    getResources().getString(R.string.dialog_error_message));
+                        } else {
+                            unavailableMediaIndexes.remove(
+                                    unavailableMediaIndexes.size() - 1);
+                        }
                         List<Item> selectedItems = mSelection.getSelectedItems();
                         for (var mediaIndex : unavailableMediaIndexes) {
                             mSelection.removeSelectedItem(selectedItems.get(mediaIndex));

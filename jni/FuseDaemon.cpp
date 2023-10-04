@@ -101,7 +101,9 @@ const bool IS_OS_DEBUGABLE = android::base::GetIntProperty("ro.debuggable", 0);
 // Stolen from: android_filesystem_config.h
 #define AID_APP_START 10000
 
-constexpr size_t MAX_READ_SIZE = 128 * 1024;
+#define FUSE_MAX_MAX_PAGES 256
+
+const size_t MAX_READ_SIZE = FUSE_MAX_MAX_PAGES * getpagesize();
 // Stolen from: UserHandle#getUserId
 constexpr int PER_USER_RANGE = 100000;
 
@@ -1602,6 +1604,9 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                     struct fuse_file_info* fi) {
     ATRACE_CALL();
     handle* h = reinterpret_cast<handle*>(fi->fh);
+    if (h == nullptr) {
+        return;
+    }
     const bool direct_io = !h->cached;
     struct fuse* fuse = get_fuse(req);
 
@@ -2246,7 +2251,8 @@ void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
         }
 
         if (!name.empty()) {
-            fuse_inval(fuse->se, parent, child, name, path);
+            std::thread t([=]() { fuse_inval(fuse->se, parent, child, name, path); });
+            t.detach();
         }
     } else {
         LOG(WARNING) << "FUSE daemon is inactive. Cannot invalidate dentry";

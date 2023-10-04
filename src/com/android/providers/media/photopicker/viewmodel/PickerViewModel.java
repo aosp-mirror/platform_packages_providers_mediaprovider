@@ -375,12 +375,13 @@ public class PickerViewModel extends AndroidViewModel {
     /**
      * Loads list of pre granted items for the current package and userID.
      */
-    public void initialisePreGrantsIfNecessary(Selection selection, Bundle intentExtras) {
+    public void initialisePreGrantsIfNecessary(Selection selection, Bundle intentExtras,
+            String[] mimeTypeFilters) {
         if (getConfigStore().isPickerChoiceManagedSelectionEnabled() && isUserSelectForApp()
                 && selection.getPreGrantedItems() == null) {
             DataLoaderThread.getHandler().postDelayed(() -> {
                 selection.setPreGrantedItemSet(fetchReadGrantedItemsUrisForPackage(mAppContext,
-                        intentExtras.getInt(Intent.EXTRA_UID))
+                        intentExtras.getInt(Intent.EXTRA_UID), mimeTypeFilters)
                         .stream().map((Uri uri) -> String.valueOf(ContentUris.parseId(uri)))
                         .collect(Collectors.toSet()));
             }, TOKEN, DELAY_MILLIS);

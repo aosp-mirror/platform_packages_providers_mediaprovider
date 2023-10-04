@@ -16,8 +16,11 @@
 
 package com.android.providers.media;
 
+import static android.provider.MediaStore.MediaColumns.DATA;
+
 import static com.android.providers.media.util.FileCreationUtils.buildValidPickerUri;
 import static com.android.providers.media.util.FileCreationUtils.insertFileInResolver;
+import static com.android.providers.media.util.FileUtils.getContentUriForPath;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -41,6 +44,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
@@ -109,8 +113,8 @@ public class MediaGrantsTest {
         mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME2, uris2, TEST_USER_ID);
 
 
-        List<Uri> fileUris = mGrants.getMediaGrantsForPackages(
-                new String[]{TEST_OWNER_PACKAGE_NAME}, TEST_USER_ID);
+        List<Uri> fileUris = convertToListOfUri(mGrants.getMediaGrantsForPackages(
+                new String[]{TEST_OWNER_PACKAGE_NAME}, TEST_USER_ID));
 
         List<Long> expectedFileIdsList = List.of(fileId1, fileId2);
 
@@ -119,8 +123,8 @@ public class MediaGrantsTest {
             assertTrue(expectedFileIdsList.contains(Long.valueOf(ContentUris.parseId(uri))));
         }
 
-        List<Uri> fileUrisForTestPackage2 = mGrants.getMediaGrantsForPackages(
-                new String[]{TEST_OWNER_PACKAGE_NAME2}, TEST_USER_ID);
+        List<Uri> fileUrisForTestPackage2 = convertToListOfUri(mGrants.getMediaGrantsForPackages(
+                new String[]{TEST_OWNER_PACKAGE_NAME2}, TEST_USER_ID));
 
         List<Long> expectedFileIdsList2 = List.of(fileId3);
 
@@ -129,13 +133,12 @@ public class MediaGrantsTest {
             assertTrue(expectedFileIdsList2.contains(Long.valueOf(ContentUris.parseId(uri))));
         }
 
-        List<Uri> fileUrisForTestPackage3 = mGrants.getMediaGrantsForPackages(
-                new String[]{"non.existent.package"}, TEST_USER_ID);
+        List<Uri> fileUrisForTestPackage3 = convertToListOfUri(mGrants.getMediaGrantsForPackages(
+                new String[]{"non.existent.package"}, TEST_USER_ID));
 
         // assert no items are returned for an invalid package.
         assertEquals(/* expected= */fileUrisForTestPackage3.size(), /* actual= */0);
     }
-
 
     @Test
     public void testRemoveMediaGrantsForPackages() throws Exception {
@@ -151,8 +154,8 @@ public class MediaGrantsTest {
 
 
         // Verify the grants for the first package were inserted.
-        List<Uri> fileUris = mGrants.getMediaGrantsForPackages(
-                new String[]{TEST_OWNER_PACKAGE_NAME}, TEST_USER_ID);
+        List<Uri> fileUris = convertToListOfUri(mGrants.getMediaGrantsForPackages(
+                new String[]{TEST_OWNER_PACKAGE_NAME}, TEST_USER_ID));
         List<Long> expectedFileIdsList = List.of(fileId1, fileId2);
         assertEquals(fileUris.size(), expectedFileIdsList.size());
         for (Uri uri : fileUris) {
@@ -163,15 +166,15 @@ public class MediaGrantsTest {
         // still present.
         mGrants.removeMediaGrantsForPackage(new String[]{TEST_OWNER_PACKAGE_NAME},
                 List.of(buildValidPickerUri(fileId1)), TEST_USER_ID);
-        List<Uri> fileUris3 = mGrants.getMediaGrantsForPackages(
-                new String[]{TEST_OWNER_PACKAGE_NAME}, TEST_USER_ID);
+        List<Uri> fileUris3 = convertToListOfUri(mGrants.getMediaGrantsForPackages(
+                new String[]{TEST_OWNER_PACKAGE_NAME}, TEST_USER_ID));
         assertEquals(1, fileUris3.size());
         assertEquals(fileId2, Long.valueOf(ContentUris.parseId(fileUris3.get(0))));
 
 
         // Verify grants of other packages are unaffected.
-        List<Uri> fileUrisForTestPackage2 = mGrants.getMediaGrantsForPackages(
-                new String[]{TEST_OWNER_PACKAGE_NAME2}, TEST_USER_ID);
+        List<Uri> fileUrisForTestPackage2 = convertToListOfUri(mGrants.getMediaGrantsForPackages(
+                new String[]{TEST_OWNER_PACKAGE_NAME2}, TEST_USER_ID));
         List<Long> expectedFileIdsList2 = List.of(fileId3);
         assertEquals(fileUrisForTestPackage2.size(), expectedFileIdsList2.size());
         for (Uri uri : fileUrisForTestPackage2) {
@@ -418,5 +421,16 @@ public class MediaGrantsTest {
             assertEquals(fileIdValue, fileId);
             assertEquals(packageName, ownerValue);
         }
+    }
+
+    private List<Uri> convertToListOfUri(Cursor c) {
+        List<Uri> filesUriList = new ArrayList<>(0);
+        while (c.moveToNext()) {
+            final String file_path = c.getString(c.getColumnIndexOrThrow(DATA));
+            final Integer file_id = c.getInt(c.getColumnIndexOrThrow(MediaGrants.FILE_ID_COLUMN));
+            filesUriList.add(getContentUriForPath(
+                    file_path).buildUpon().appendPath(String.valueOf(file_id)).build());
+        }
+        return filesUriList;
     }
 }

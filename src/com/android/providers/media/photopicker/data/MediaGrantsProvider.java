@@ -39,8 +39,8 @@ import java.util.List;
  * Provider grants for items selected in previous sessions.
  */
 public final class MediaGrantsProvider {
-
     private static final String MEDIA_GRANTS_URI_PATH = "content://media/media_grants";
+    public static final String EXTRA_MIME_TYPE_SELECTION = "media_grant_mime_type_selection";
 
     /**
      * Fetches file Uris for items having {@link com.android.providers.media.MediaGrants} for the
@@ -50,12 +50,13 @@ public final class MediaGrantsProvider {
      */
     @NonNull
     public static List<Uri> fetchReadGrantedItemsUrisForPackage(
-            @NonNull Context context, int packageUid) {
+            @NonNull Context context, int packageUid, String[] mimeTypes) {
         final ContentResolver resolver = context.getContentResolver();
         try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
             assert client != null;
             final Bundle extras = new Bundle();
             extras.putInt(Intent.EXTRA_UID, packageUid);
+            extras.putStringArray(EXTRA_MIME_TYPE_SELECTION, mimeTypes);
             final Cursor c = client.query(Uri.parse(MEDIA_GRANTS_URI_PATH),
                     /* projection= */ null,
                     /* queryArgs= */ extras,

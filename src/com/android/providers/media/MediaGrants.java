@@ -19,6 +19,7 @@ package com.android.providers.media;
 import static android.provider.MediaStore.MediaColumns.DATA;
 
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
+import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
 
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -26,6 +27,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -62,6 +64,24 @@ public class MediaGrants {
     private static final String WHERE_MEDIA_GRANTS_USER_ID =
             "media_grants." + MediaGrants.PACKAGE_USER_ID_COLUMN + " = ? ";
 
+    private static final String WHERE_ITEM_IS_NOT_TRASHED =
+            "files." + MediaStore.Files.FileColumns.IS_TRASHED + " = ? ";
+
+    private static final String WHERE_ITEM_IS_NOT_PENDING =
+            "files." + MediaStore.Files.FileColumns.IS_PENDING + " = ? ";
+
+    private static final String WHERE_MEDIA_TYPE =
+            "files." + MediaStore.Files.FileColumns.MEDIA_TYPE + " IN ";
+
+    private static final String WHERE_MIME_TYPE =
+            "files." + MediaStore.Files.FileColumns.MIME_TYPE + " LIKE ? ";
+
+    private static final String WHERE_VOLUME_NAME_IN =
+            "files." + MediaStore.Files.FileColumns.VOLUME_NAME + " IN ";
+
+    private static final String ARG_VALUE_FOR_FALSE = "0";
+
+    private static final int VISUAL_MEDIA_TYPE_COUNT = 2;
     private SQLiteQueryBuilder mQueryBuilder = new SQLiteQueryBuilder();
     private DatabaseHelper mExternalDatabase;
     private LocalUriMatcher mUriMatcher;
@@ -121,15 +141,24 @@ public class MediaGrants {
      * @param packageNames  the package name that has access.
      * @param packageUserId the user_id of the package
      */
-    Cursor getMediaGrantsForPackages(String[] packageNames, int packageUserId)
+    Cursor getMediaGrantsForPackages(String[] packageNames, int packageUserId,
+            String[] mimeTypes, String[] availableVolumes)
             throws IllegalArgumentException {
         Objects.requireNonNull(packageNames);
         return mExternalDatabase.runWithoutTransaction((db) -> {
             final SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
             queryBuilder.setDistinct(true);
             queryBuilder.setTables(MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME);
-            String[] selectionArgs = buildSelectionArg(queryBuilder, packageNames, packageUserId,
-                    /* uris */ null);
+            String[] selectionArgs = buildSelectionArg(queryBuilder,
+                    QueryFilterBuilder.newInstance()
+                            .setPackageNameSelection(packageNames)
+                            .setUserIdSelection(packageUserId)
+                            .setIsNotTrashedSelection(true)
+                            .setIsNotPendingSelection(true)
+                            .setIsOnlyVisualMediaType(true)
+                            .setMimeTypeSelection(mimeTypes)
+                            .setAvailableVolumes(availableVolumes)
+                            .build());
 
             return queryBuilder.query(db,
                     new String[]{DATA, FILE_ID_COLUMN}, null, selectionArgs, null, null, null, null,
@@ -147,7 +176,11 @@ public class MediaGrants {
         final SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
         queryBuilder.setDistinct(true);
         queryBuilder.setTables(MEDIA_GRANTS_TABLE);
-        String[] selectionArgs = buildSelectionArg(queryBuilder, packages, packageUserId, uris);
+        String[] selectionArgs = buildSelectionArg(queryBuilder, QueryFilterBuilder.newInstance()
+                .setPackageNameSelection(packages)
+                .setUserIdSelection(packageUserId)
+                .setUriSelection(uris)
+                .build());
 
         return mExternalDatabase.runWithTransaction(
                 (db) -> {
@@ -191,7 +224,10 @@ public class MediaGrants {
         final SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
         queryBuilder.setDistinct(true);
         queryBuilder.setTables(MEDIA_GRANTS_TABLE);
-        String[] selectionArgs = buildSelectionArg(queryBuilder, packages, user, /* uris= */null);
+        String[] selectionArgs = buildSelectionArg(queryBuilder, QueryFilterBuilder.newInstance()
+                .setPackageNameSelection(packages)
+                .setUserIdSelection(user)
+                .build());
         return mExternalDatabase.runWithTransaction(
                 (db) -> {
                     int grantsRemoved = queryBuilder.delete(db, null, selectionArgs);
@@ -262,41 +298,89 @@ public class MediaGrants {
      * {@link SQLiteQueryBuilder} qb.
      *
      * @param qb           query builder on which the conditions/filters needs to be applied.
-     * @param packageNames used to add condition :WHERE owner_package_name in packageNames
-     * @param userId       used to add condition: WHERE package_user_id = userId
-     * @param uris         used to add condition: WHERE file_id IN parseIdsFrom(uris)
+     * @param queryFilter  representing the types of selection arguments to be applied.
      * @return array of selection args used to replace placeholders in query builder conditions.
      */
-    private String[] buildSelectionArg(SQLiteQueryBuilder qb, String[] packageNames,
-            Integer userId, List<Uri> uris) {
+    private String[] buildSelectionArg(SQLiteQueryBuilder qb, MediaGrantsQueryFilter queryFilter) {
         List<String> selectArgs = new ArrayList<>();
         // Append where clause for package names.
-        if (packageNames.length > 0) {
-
-            // Append the where clause for local id selection to the query builder.
+        if (queryFilter.mPackageNames != null && queryFilter.mPackageNames.length > 0) {
+            // Append the where clause for package name selection to the query builder.
             qb.appendWhereStandalone(
                     WHERE_MEDIA_GRANTS_PACKAGE_NAME_IN + buildPlaceholderForWhereClause(
-                            packageNames.length));
+                            queryFilter.mPackageNames.length));
 
-            // Add local ids to the selection args.
-            selectArgs.addAll(Arrays.asList(packageNames));
+            // Add package names to selection args.
+            selectArgs.addAll(Arrays.asList(queryFilter.mPackageNames));
         }
 
-        if (uris != null && !uris.isEmpty()) {
+        // Append Where clause for Uris
+        if (queryFilter.mUris != null && !queryFilter.mUris.isEmpty()) {
             // Append the where clause for local id selection to the query builder.
             qb.appendWhereStandalone(
-                    WHERE_MEDIA_GRANTS_FILE_ID_IN + buildPlaceholderForWhereClause(uris.size()));
+                    WHERE_MEDIA_GRANTS_FILE_ID_IN + buildPlaceholderForWhereClause(
+                            queryFilter.mUris.size()));
 
             // Add local ids to the selection args.
-            selectArgs.addAll(uris.stream().map(
+            selectArgs.addAll(queryFilter.mUris.stream().map(
                     (Uri uri) -> String.valueOf(ContentUris.parseId(uri))).collect(
                     Collectors.toList()));
         }
+
         // Append where clause for userID.
-        qb.appendWhereStandalone(WHERE_MEDIA_GRANTS_USER_ID);
-        selectArgs.add(String.valueOf(userId));
+        if (queryFilter.mUserId != null) {
+            qb.appendWhereStandalone(WHERE_MEDIA_GRANTS_USER_ID);
+            selectArgs.add(String.valueOf(queryFilter.mUserId));
+        }
+
+        if (queryFilter.mIsNotTrashed) {
+            qb.appendWhereStandalone(WHERE_ITEM_IS_NOT_TRASHED);
+            selectArgs.add(ARG_VALUE_FOR_FALSE);
+        }
+
+        if (queryFilter.mIsNotPending) {
+            qb.appendWhereStandalone(WHERE_ITEM_IS_NOT_PENDING);
+            selectArgs.add(ARG_VALUE_FOR_FALSE);
+        }
+
+        if (queryFilter.mIsOnlyVisualMediaType) {
+            qb.appendWhereStandalone(WHERE_MEDIA_TYPE + buildPlaceholderForWhereClause(
+                    VISUAL_MEDIA_TYPE_COUNT));
+            selectArgs.add(String.valueOf(MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE));
+            selectArgs.add(String.valueOf(MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO));
+        }
+
+        if (queryFilter.mAvailableVolumes != null && queryFilter.mAvailableVolumes.length > 0) {
+            qb.appendWhereStandalone(
+                    WHERE_VOLUME_NAME_IN + buildPlaceholderForWhereClause(
+                            queryFilter.mAvailableVolumes.length));
+            selectArgs.addAll(Arrays.asList(queryFilter.mAvailableVolumes));
+        }
+
+        addMimeTypesToQueryBuilderAndSelectionArgs(qb, selectArgs, queryFilter.mMimeTypeSelection);
 
         return selectArgs.toArray(new String[selectArgs.size()]);
+    }
+
+    private void addMimeTypesToQueryBuilderAndSelectionArgs(SQLiteQueryBuilder qb,
+            List<String> selectionArgs, String[] mimeTypes) {
+        if (mimeTypes == null) {
+            return;
+        }
+
+        mimeTypes = replaceMatchAnyChar(mimeTypes);
+        ArrayList<String> whereMimeTypes = new ArrayList<>();
+        for (String mimeType : mimeTypes) {
+            if (!TextUtils.isEmpty(mimeType)) {
+                whereMimeTypes.add(WHERE_MIME_TYPE);
+                selectionArgs.add(mimeType);
+            }
+        }
+
+        if (whereMimeTypes.isEmpty()) {
+            return;
+        }
+        qb.appendWhereStandalone(TextUtils.join(" OR ", whereMimeTypes));
     }
 
     private String buildPlaceholderForWhereClause(int numberOfItemsInSelection) {
@@ -307,5 +391,102 @@ public class MediaGrants {
         placeholder.deleteCharAt(placeholder.length() - 1);
         placeholder.append(")");
         return placeholder.toString();
+    }
+
+    static final class MediaGrantsQueryFilter {
+
+        private final List<Uri> mUris;
+        private final String[] mPackageNames;
+        private final Integer mUserId;
+
+        private final boolean mIsNotTrashed;
+
+        private final boolean mIsNotPending;
+
+        private final boolean mIsOnlyVisualMediaType;
+        private final String[] mMimeTypeSelection;
+
+        private final String[] mAvailableVolumes;
+
+        MediaGrantsQueryFilter(QueryFilterBuilder builder) {
+            this.mUris = builder.mUris;
+            this.mPackageNames = builder.mPackageNames;
+            this.mUserId = builder.mUserId;
+            this.mIsNotTrashed = builder.mIsNotTrashed;
+            this.mIsNotPending = builder.mIsNotPending;
+            this.mMimeTypeSelection = builder.mMimeTypeSelection;
+            this.mIsOnlyVisualMediaType = builder.mIsOnlyVisualMediaType;
+            this.mAvailableVolumes = builder.mAvailableVolumes;
+        }
+    }
+
+    // Static class Builder
+    static class QueryFilterBuilder {
+
+        private List<Uri> mUris;
+        private String[] mPackageNames;
+        private int mUserId;
+
+        private boolean mIsNotTrashed;
+
+        private boolean mIsNotPending;
+
+        private boolean mIsOnlyVisualMediaType;
+        private String[] mMimeTypeSelection;
+
+        private String[] mAvailableVolumes;
+
+        public static QueryFilterBuilder newInstance() {
+            return new QueryFilterBuilder();
+        }
+
+        private QueryFilterBuilder() {}
+
+        // Setter methods
+        public QueryFilterBuilder setUriSelection(List<Uri> uris) {
+            this.mUris = uris;
+            return this;
+        }
+
+        public QueryFilterBuilder setPackageNameSelection(String[] packageNames) {
+            this.mPackageNames = packageNames;
+            return this;
+        }
+
+        public QueryFilterBuilder setUserIdSelection(int userId) {
+            this.mUserId = userId;
+            return this;
+        }
+
+        public QueryFilterBuilder setIsNotTrashedSelection(boolean isNotTrashed) {
+            this.mIsNotTrashed = isNotTrashed;
+            return this;
+        }
+
+        public QueryFilterBuilder setIsNotPendingSelection(boolean isNotPending) {
+            this.mIsNotPending = isNotPending;
+            return this;
+        }
+
+        public QueryFilterBuilder setIsOnlyVisualMediaType(boolean isOnlyVisualMediaType) {
+            this.mIsOnlyVisualMediaType = isOnlyVisualMediaType;
+            return this;
+        }
+
+        public QueryFilterBuilder setMimeTypeSelection(String[] mimeTypeSelection) {
+            this.mMimeTypeSelection = mimeTypeSelection;
+            return this;
+        }
+
+        public QueryFilterBuilder setAvailableVolumes(String[] availableVolumes) {
+            this.mAvailableVolumes = availableVolumes;
+            return this;
+        }
+
+        // build method to deal with outer class
+        // to return outer instance
+        public MediaGrantsQueryFilter build() {
+            return new MediaGrantsQueryFilter(this);
+        }
     }
 }

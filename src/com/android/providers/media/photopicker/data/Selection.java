@@ -16,10 +16,12 @@
 
 package com.android.providers.media.photopicker.data;
 
+import android.annotation.Nullable;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -30,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,6 +67,33 @@ public class Selection {
     private boolean mIsSelectionAllowed = true;
 
     private int mTotalNumberOfPreGrantedItems = 0;
+
+    private Set<String> mPreGrantedItemsSet;
+
+    private static final String TAG = "PhotoPickerSelection";
+
+    /**
+     * Updates the list of pre granted items and the count of selected items.
+     */
+    public void setPreGrantedItemSet(@Nullable Set<String> preGrantedItemSet) {
+        if (preGrantedItemSet != null) {
+            mPreGrantedItemsSet = preGrantedItemSet;
+            setTotalNumberOfPreGrantedItems(preGrantedItemSet.size());
+            Log.d(TAG, "Pre-Granted items have been loaded. Number of items:"
+                    + preGrantedItemSet.size());
+        } else {
+            mPreGrantedItemsSet = new HashSet<>(0);
+            Log.d(TAG, "No Pre-Granted items present");
+        }
+    }
+
+    /**
+     * @return a set of item ids that are pre granted for the current package and user.
+     */
+    @Nullable
+    public Set<String> getPreGrantedItems() {
+        return mPreGrantedItemsSet;
+    }
 
     /**
      * @return {@link #mSelectedItems} - A {@link List} of selected {@link Item}

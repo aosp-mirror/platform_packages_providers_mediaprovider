@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Multivide"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokālā krātuve"</string>
     <string name="app_label" msgid="9035307001052716210">"Multivides krātuve"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Fotoattēlu paņēmējs"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Multivide"</string>
     <string name="artist_label" msgid="8105600993099120273">"Izpildītājs"</string>
     <string name="unknown" msgid="2059049215682829375">"Nezināms"</string>
     <string name="root_images" msgid="5861633549189045666">"Attēli"</string>
@@ -38,6 +38,14 @@
     <string name="clear" msgid="5524638938415865915">"Notīrīt"</string>
     <string name="allow" msgid="8885707816848569619">"Atļaut"</string>
     <string name="deny" msgid="6040983710442068936">"Neatļaut"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Pārlūkot…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Mākoņa multivides lietotne"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Mākoņa multivides lietotne"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Mākoņa multivides lietotne"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Piekļūstiet savam mākoņa multivides saturam, kad lietotne vai vietne lūdz atlasīt fotoattēlus vai video"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Piekļūstiet mākoņa multivides saturam no"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nav"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Nevarēja mainīt mākoņa multivides lietotni."</string>
     <string name="add" msgid="2894574044585549298">"Pievienot"</string>
     <string name="deselect" msgid="4297825044827769490">"Noņemt atlasi"</string>
     <string name="deselected" msgid="8488133193326208475">"Atlase noņemta"</string>
@@ -46,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Atlasiet līdz pat <xliff:g id="COUNT_0">^1</xliff:g> vienumam}zero{Atlasiet līdz pat <xliff:g id="COUNT_1">^1</xliff:g> vienumiem}one{Atlasiet līdz pat <xliff:g id="COUNT_1">^1</xliff:g> vienumam}other{Atlasiet līdz pat <xliff:g id="COUNT_1">^1</xliff:g> vienumiem}}"</string>
     <string name="recent" msgid="6694613584743207874">"Jaunākie"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Nav fotoattēlu vai videoklipu"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Nav atbalstītu fotoattēlu vai video"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nav albumu"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Skatīt atlasīto"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotoattēli"</string>
@@ -59,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Darba lietotnes ir apturētas"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Lai atvērtu darba fotoattēlus, ieslēdziet savas darba lietotnes un pēc tam mēģiniet vēlreiz."</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Šī lietotne var piekļūt tikai jūsu atlasītajiem fotoattēliem."</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Atlasiet fotoattēlus un videoklipus, kam var piekļūt šī lietotne"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> vienums}zero{<xliff:g id="COUNT_1">^1</xliff:g> vienumu}one{<xliff:g id="COUNT_1">^1</xliff:g> vienums}other{<xliff:g id="COUNT_1">^1</xliff:g> vienumi}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Pievienot <xliff:g id="COUNT">^1</xliff:g>"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Atļaut (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Lejupielādes"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Izlase"</string>
@@ -75,10 +86,27 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Kustības fotoattēls"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Izslēgt video skaņu"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Ieslēgt video skaņu"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Atskaņot videoklipu"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Apturēt videoklipa atskaņošanu"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Atskaņot"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Apturēt"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Nevar atskaņot videoklipu"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Atskaņojot videoklipu, radās kļūda"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Pārbaudiet interneta savienojumu un mēģiniet vēlreiz"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Mēģināt vēlreiz"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Tagad mākoņa multivides saturs ir pieejams, izmantojot lietotni <xliff:g id="PKG_NAME">%1$s</xliff:g>."</string>
     <string name="not_selected" msgid="2244008151669896758">"nav atlasīts"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"Gatavs: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> no <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Dublētie fotoattēli ir iekļauti"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Varat atlasīt fotoattēlus no lietotnes “<xliff:g id="APP_NAME">%1$s</xliff:g>” konta <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Lietotnes “<xliff:g id="APP_NAME">%1$s</xliff:g>” konts ir atjaunināts"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Tagad šeit ir iekļauti fotoattēli no konta <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Izvēlieties mākoņa multivides lietotni"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Lai šeit iekļautu dublētus fotoattēlus, iestatījumos izvēlieties mākoņa multivides lietotni"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Izvēlieties kontu lietotnē <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Lai šeit iekļautu fotoattēlus no lietotnes <xliff:g id="APP_NAME">%1$s</xliff:g>, lietotnē izvēlieties kontu"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Nerādīt"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Izvēlēties lietotni"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Izvēlēties kontu"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Mainīt kontu"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vai atļaut lietotnei <xliff:g id="APP_NAME_0">^1</xliff:g> pārveidot šo audio failu?}zero{Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārveidot <xliff:g id="COUNT">^2</xliff:g> audio failus?}one{Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārveidot <xliff:g id="COUNT">^2</xliff:g> audio failu?}other{Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārveidot <xliff:g id="COUNT">^2</xliff:g> audio failus?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Notiek audio faila pārveidošana…}zero{Notiek <xliff:g id="COUNT">^1</xliff:g> audio failu pārveidošana…}one{Notiek <xliff:g id="COUNT">^1</xliff:g> audio faila pārveidošana…}other{Notiek <xliff:g id="COUNT">^1</xliff:g> audio failu pārveidošana…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Vai atļaut lietotnei <xliff:g id="APP_NAME_0">^1</xliff:g> pārveidot šo videoklipu?}zero{Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārveidot <xliff:g id="COUNT">^2</xliff:g> videoklipus?}one{Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārveidot <xliff:g id="COUNT">^2</xliff:g> videoklipu?}other{Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārveidot <xliff:g id="COUNT">^2</xliff:g> videoklipus?}}"</string>
@@ -119,4 +147,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Notiek multivides apstrāde…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Atcelt"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Gaidīt"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Drošības aizsardzība"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Brīdinājumi par mantotā formāta pārkodēšanu"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Mantotā formāta pārkodēšanas norise"</string>
 </resources>

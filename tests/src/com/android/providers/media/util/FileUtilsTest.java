@@ -49,7 +49,9 @@ import static com.android.providers.media.util.FileUtils.extractVolumePath;
 import static com.android.providers.media.util.FileUtils.fromFuseFile;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
 import static com.android.providers.media.util.FileUtils.isDataOrObbRelativePath;
+import static com.android.providers.media.util.FileUtils.isDirectoryHidden;
 import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
+import static com.android.providers.media.util.FileUtils.isFileHidden;
 import static com.android.providers.media.util.FileUtils.isObbOrChildRelativePath;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 import static com.android.providers.media.util.FileUtils.translateModeAccessToPosix;
@@ -59,6 +61,7 @@ import static com.android.providers.media.util.FileUtils.translateModePosixToStr
 import static com.android.providers.media.util.FileUtils.translateModeStringToPosix;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -71,6 +74,7 @@ import android.content.ContentValues;
 import android.os.Environment;
 import android.os.SystemProperties;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
 
@@ -90,7 +94,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -918,19 +924,67 @@ public class FileUtilsTest {
         assertThat(FileUtils.shouldDirBeHidden(dirInHiddenParent)).isTrue();
     }
 
+    private static void assertDirectoryHidden(File file) {
+        assertTrue(file.getAbsolutePath(), isDirectoryHidden(file));
+    }
+
+    private static void assertDirectoryNotHidden(File file) {
+        assertFalse(file.getAbsolutePath(), isDirectoryHidden(file));
+    }
+
     // Visibility of default dirs is tested in ModernMediaScannerTest#testVisibleDefaultFolders.
     @Test
     public void testIsDirectoryHidden() throws Exception {
+        for (String prefix : new String[] {
+                "/storage/emulated/0",
+                "/storage/0000-0000",
+        }) {
+            assertDirectoryNotHidden(new File(prefix));
+            assertDirectoryNotHidden(new File(prefix + "/meow"));
+
+            assertDirectoryHidden(new File(prefix + "/.meow"));
+        }
+
+        final File nomediaFile = new File("storage/emulated/0/Download/meow", ".nomedia");
+        try {
+            assertTrue(nomediaFile.getParentFile().mkdirs());
+            assertTrue(nomediaFile.createNewFile());
+
+            assertDirectoryHidden(nomediaFile.getParentFile());
+
+            assertTrue(nomediaFile.delete());
+
+            assertDirectoryNotHidden(nomediaFile.getParentFile());
+        } finally {
+            nomediaFile.delete();
+            nomediaFile.getParentFile().delete();
+        }
+    }
+
+    @Test
+    public void testIsDirectoryHidden_downloadDirectory() throws Exception {
         File visibleDir = getNewDirInDownload("testDirectory");
-        assertThat(FileUtils.isDirectoryHidden(visibleDir)).isFalse();
+        assertDirectoryNotHidden(visibleDir);
 
         File hiddenDirName = getNewDirInDownload(".testDirectory");
-        assertThat(FileUtils.isDirectoryHidden(hiddenDirName)).isTrue();
+        assertDirectoryHidden(hiddenDirName);
 
         File hiddenDirNomedia = getNewDirInDownload("testDirectory2");
         File nomedia = new File(hiddenDirNomedia, ".nomedia");
         assertThat(nomedia.createNewFile()).isTrue();
-        assertThat(FileUtils.isDirectoryHidden(hiddenDirNomedia)).isTrue();
+        assertDirectoryHidden(hiddenDirNomedia);
+    }
+
+    @Test
+    public void testIsFileHidden() throws Exception {
+        assertFalse(isFileHidden(
+                new File("/storage/emulated/0/DCIM/IMG1024.JPG")));
+        assertFalse(isFileHidden(
+                new File("/storage/emulated/0/DCIM/.pending-1577836800-IMG1024.JPG")));
+        assertFalse(isFileHidden(
+                new File("/storage/emulated/0/DCIM/.trashed-1577836800-IMG1024.JPG")));
+        assertTrue(isFileHidden(
+                new File("/storage/emulated/0/DCIM/.IMG1024.JPG")));
     }
 
     @Test
@@ -1236,5 +1290,65 @@ public class FileUtilsTest {
         assertThrows(IllegalArgumentException.class,
                 () -> FileUtils.computeDataFromValues(values, new File("/storage/emulated/0"),
                         false));
+    }
+
+    @Test
+    public void testComputeAudioTypeValuesFromData() {
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Ringtones/a.mp3",
+                AudioColumns.IS_RINGTONE);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Notifications/a.mp3",
+                AudioColumns.IS_NOTIFICATION);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Alarms/a.mp3",
+                AudioColumns.IS_ALARM);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Podcasts/a.mp3",
+                AudioColumns.IS_PODCAST);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Audiobooks/a.mp3",
+                AudioColumns.IS_AUDIOBOOK);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Recordings/a.mp3",
+                AudioColumns.IS_RECORDING);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Music/a.mp3",
+                AudioColumns.IS_MUSIC);
+
+        // Categorized as music if it doesn't match any other category
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/a/a.mp3", AudioColumns.IS_MUSIC);
+
+        // All matches are case-insensitive
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/ringtones/a.mp3",
+                AudioColumns.IS_RINGTONE);
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/a/ringtones/a.mp3",
+                AudioColumns.IS_RINGTONE);
+    }
+
+    @Test
+    public void testComputeAudioTypeValuesFromData_multiple() {
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Ringtones/Recordings/a.mp3",
+                Arrays.asList(AudioColumns.IS_RINGTONE, AudioColumns.IS_RECORDING));
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Alarms/Notifications/a.mp3",
+                Arrays.asList(AudioColumns.IS_ALARM, AudioColumns.IS_NOTIFICATION));
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Audiobooks/Podcasts/a.mp3",
+                Arrays.asList(AudioColumns.IS_AUDIOBOOK, AudioColumns.IS_PODCAST));
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Audiobooks/Ringtones/a.mp3",
+                Arrays.asList(AudioColumns.IS_AUDIOBOOK, AudioColumns.IS_RINGTONE));
+        testComputeAudioTypeValuesFromData("/storage/emulated/0/Music/Ringtones/a.mp3",
+                Arrays.asList(AudioColumns.IS_MUSIC, AudioColumns.IS_RINGTONE));
+    }
+
+    private void testComputeAudioTypeValuesFromData(String path, String expectedColumn) {
+        testComputeAudioTypeValuesFromData(path, Collections.singletonList(expectedColumn));
+    }
+
+    private void testComputeAudioTypeValuesFromData(String path, List<String> expectedColumns) {
+        final ContentValues values = new ContentValues();
+        FileUtils.computeAudioTypeValuesFromData(path, values::put);
+
+        for (String column : FileUtils.sAudioTypes.values()) {
+            if (expectedColumns.contains(column)) {
+                assertWithMessage("Expected " + column + " to be set for " + path)
+                        .that(values.get(column)).isEqualTo(1);
+            } else {
+                assertWithMessage("Expected " + column + " to be unset for " + path)
+                        .that(values.get(column)).isEqualTo(0);
+            }
+        }
     }
 }

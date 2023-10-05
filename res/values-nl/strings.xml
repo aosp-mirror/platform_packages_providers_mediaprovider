@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Media"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokale opslag"</string>
     <string name="app_label" msgid="9035307001052716210">"Mediaopslag"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Fotokiezer"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Media"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artiest"</string>
     <string name="unknown" msgid="2059049215682829375">"Onbekend"</string>
     <string name="root_images" msgid="5861633549189045666">"Afbeeldingen"</string>
@@ -38,6 +38,14 @@
     <string name="clear" msgid="5524638938415865915">"Wissen"</string>
     <string name="allow" msgid="8885707816848569619">"Toestaan"</string>
     <string name="deny" msgid="6040983710442068936">"Weigeren"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Browsen…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Cloudmedia-app"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Cloudmedia-app"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Cloudmedia-app"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Toegang krijgen tot je cloudmedia als een app of website je vraagt om foto\'s of video\'s te selecteren"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Cloudmedia openen vanuit"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Geen"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Cloudmedia-app kan nu niet worden gewijzigd."</string>
     <string name="add" msgid="2894574044585549298">"Toevoegen"</string>
     <string name="deselect" msgid="4297825044827769490">"Deselecteren"</string>
     <string name="deselected" msgid="8488133193326208475">"Gedeselecteerd"</string>
@@ -46,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Selecteer maximaal <xliff:g id="COUNT_0">^1</xliff:g> item}other{Selecteer maximaal <xliff:g id="COUNT_1">^1</xliff:g> items}}"</string>
     <string name="recent" msgid="6694613584743207874">"Recent"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Geen foto\'s of video\'s"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Geen ondersteunde foto\'s of video\'s"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Geen albums"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Selectie bekijken"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Foto\'s"</string>
@@ -59,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Werk-apps zijn onderbroken"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Als je werkfoto\'s wilt openen, zet je je werk-apps aan en probeer je het opnieuw"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Deze app heeft alleen toegang tot de foto\'s die je selecteert"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Selecteer foto\'s en video\'s waartoe je deze app toegang geeft"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> item}other{<xliff:g id="COUNT_1">^1</xliff:g> items}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Toevoegen (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Toestaan (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Camera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Downloads"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Favorieten"</string>
@@ -75,10 +86,27 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Bewegingsfoto"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Geluid van video uitzetten"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Geluid van video aanzetten"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Video afspelen"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Video onderbreken"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Afspelen"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Onderbreken"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Video kan niet worden afgespeeld"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Probleem bij video afspelen"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Check de internetverbinding en probeer het opnieuw"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Opnieuw proberen"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Cloudmedia nu beschikbaar van <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"niet geselecteerd"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> van <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> klaar"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Nu ook met foto\'s waarvan een back-up is gemaakt"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Je kunt foto\'s selecteren uit het <xliff:g id="APP_NAME">%1$s</xliff:g>-account <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Account voor <xliff:g id="APP_NAME">%1$s</xliff:g> geüpdatet"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Je vindt hier nu foto\'s uit <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Kies een cloudmedia-app"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Als je hier foto\'s wilt toevoegen waarvan een back-up is gemaakt, kies je een cloudmedia-app in Instellingen"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Kies een <xliff:g id="APP_NAME">%1$s</xliff:g>-account"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Als je hier foto\'s van <xliff:g id="APP_NAME">%1$s</xliff:g> wilt toevoegen, kies je een account in de app"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Sluiten"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"App selecteren"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Account kiezen"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Account wijzigen"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> toestaan dit audiobestand aan te passen?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> toestaan <xliff:g id="COUNT">^2</xliff:g> audiobestanden aan te passen?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Audiobestand aanpassen…}other{<xliff:g id="COUNT">^1</xliff:g> audiobestanden aanpassen…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> toestaan deze video aan te passen?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> toestaan <xliff:g id="COUNT">^2</xliff:g> video\'s aan te passen?}}"</string>
@@ -119,4 +147,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Media verwerken…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Annuleren"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Wachten"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Beveiliging"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Meldingen voor native transcodering"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Voortgang van native transcodering"</string>
 </resources>

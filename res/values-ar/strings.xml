@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"الوسائط"</string>
     <string name="storage_description" msgid="4081716890357580107">"التخزين المحلي"</string>
     <string name="app_label" msgid="9035307001052716210">"تخزين الوسائط"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"أداة اختيار الصور"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"الوسائط"</string>
     <string name="artist_label" msgid="8105600993099120273">"الفنان"</string>
     <string name="unknown" msgid="2059049215682829375">"غير معروف"</string>
     <string name="root_images" msgid="5861633549189045666">"الصور"</string>
@@ -38,6 +38,14 @@
     <string name="clear" msgid="5524638938415865915">"محو"</string>
     <string name="allow" msgid="8885707816848569619">"سماح"</string>
     <string name="deny" msgid="6040983710442068936">"رفض"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"جارٍ التصفّح..."</string>
+    <string name="picker_settings" msgid="6443463167344790260">"تطبيق وسائط في السحابة الإلكترونية"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"تطبيق وسائط في السحابة الإلكترونية"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"تطبيق الوسائط في السحابة الإلكترونية"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"يمكنك الوصول إلى الوسائط في السحابة الإلكترونية عندما يطلب منك تطبيق أو موقع إلكتروني اختيار صور أو فيديوهات."</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"الوصول إلى الوسائط في السحابة الإلكترونية من"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"بلا تطبيق"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"تعذر تغيير تطبيق وسائط في السحابة الإلكترونية حاليًا"</string>
     <string name="add" msgid="2894574044585549298">"إضافة"</string>
     <string name="deselect" msgid="4297825044827769490">"إلغاء الاختيار"</string>
     <string name="deselected" msgid="8488133193326208475">"تم إلغاء الاختيار"</string>
@@ -46,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{اختَر ما يصل إلى عنصر واحد (<xliff:g id="COUNT_0">^1</xliff:g>).}zero{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصر.}two{اختَر ما يصل إلى عنصرين (<xliff:g id="COUNT_1">^1</xliff:g>).}few{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عناصر.}many{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصرًا.}other{اختَر ما يصل إلى <xliff:g id="COUNT_1">^1</xliff:g> عنصر.}}"</string>
     <string name="recent" msgid="6694613584743207874">"الأحدث"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"ما مِن صور أو فيديوهات"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"ما مِن صور أو فيديوهات متوافقة."</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ما مِن ألبومات"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"عرض ما تم اختياره"</string>
     <string name="picker_photos" msgid="7415035516411087392">"الصور"</string>
@@ -59,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"تطبيقات العمل متوقفة مؤقتًا"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"لفتح صور العمل، عليك تفعيل تطبيقات العمل ثم إعادة المحاولة."</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"يمكن لهذا التطبيق الوصول إلى الصور التي تختارها فقط."</string>
-    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{عنصر واحد (<xliff:g id="COUNT_0">^1</xliff:g>)}zero{<xliff:g id="COUNT_1">^1</xliff:g> عنصر}two{عنصران (<xliff:g id="COUNT_1">^1</xliff:g>)}few{<xliff:g id="COUNT_1">^1</xliff:g> عناصر}many{<xliff:g id="COUNT_1">^1</xliff:g> عنصرًا}other{<xliff:g id="COUNT_1">^1</xliff:g> عنصر}}"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"اختَر الصور والفيديوهات التي تريد السماح لهذا التطبيق بالوصول إليها"</string>
+    <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{صورة واحدة (<xliff:g id="COUNT_0">^1</xliff:g>)}zero{<xliff:g id="COUNT_1">^1</xliff:g> صورة}two{صورتان (<xliff:g id="COUNT_1">^1</xliff:g>)}few{<xliff:g id="COUNT_1">^1</xliff:g> صور}many{<xliff:g id="COUNT_1">^1</xliff:g> صورة}other{<xliff:g id="COUNT_1">^1</xliff:g> صورة}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"إضافة (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"السماح (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"الكاميرا"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"العناصر التي تم تنزيلها"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"العناصر المفضّلة"</string>
@@ -75,10 +86,27 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"صور حيّة"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"كتم صوت الفيديو"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"إعادة صوت الفيديو"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"تشغيل الفيديو"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"إيقاف الفيديو مؤقتًا"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"تشغيل"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"إيقاف مؤقت"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"يتعذّر تشغيل الفيديو."</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"مشكلة في تشغيل الفيديو"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"يُرجى التحقّق من الاتصال بالإنترنت ثم إعادة المحاولة."</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"إعادة المحاولة"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"يتوفّر محتوى الوسائط على السحابة الإلكترونية الآن من خلال تطبيق <xliff:g id="PKG_NAME">%1$s</xliff:g>."</string>
     <string name="not_selected" msgid="2244008151669896758">"غير محدّد"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> من إجمالي <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> صورة جاهزة"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"تم الآن تضمين الصور التي تم الاحتفاظ بنسخة احتياطية منها"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"يمكنك اختيار صور من حساب \"<xliff:g id="APP_NAME">%1$s</xliff:g>\" للمستخدم <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>."</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"تم تعديل الحساب <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"تم الآن تضمين الصور من <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> هنا."</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"اختيار تطبيق موسيقى على السحابة الإلكترونية"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"لتصبح الصور التي تم الاحتفاظ بنسخة احتياطية منها مضمَّنة هنا، اختَر تطبيق موسيقى على السحابة الإلكترونية في \"الإعدادات\"."</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"اختيار حساب <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"لتضمين الصور من <xliff:g id="APP_NAME">%1$s</xliff:g> هنا، اختَر حسابًا في التطبيق."</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"إغلاق"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"اختيار تطبيق"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"اختيار حساب"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"تبديل الحساب"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذا الملف الصوتي؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل ملفَين صوتيين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملفات صوتية؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملفًا صوتيًا؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{جارٍ تعديل ملف صوتي واحد…}zero{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…}two{جارٍ تعديل ملفَين صوتين (<xliff:g id="COUNT">^1</xliff:g>)…}few{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملفات صوتية…}many{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملفًا صوتيًا…}other{جارٍ تعديل <xliff:g id="COUNT">^1</xliff:g> ملف صوتي…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_0">^1</xliff:g> بتعديل هذا الفيديو؟}zero{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟}two{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل فيديوهين (<xliff:g id="COUNT">^2</xliff:g>)؟}few{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديوهات؟}many{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟}other{هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> فيديو؟}}"</string>
@@ -119,4 +147,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"جارٍ معالجة الوسائط…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"إلغاء"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"الانتظار"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"حماية الأمن الشخصي"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"‏تنبيهات Native Transcode"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"‏مدى تقدُّم Native Transcode"</string>
 </resources>

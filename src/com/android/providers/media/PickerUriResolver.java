@@ -19,6 +19,9 @@ package com.android.providers.media;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Process.SYSTEM_UID;
 
+import static com.android.providers.media.AccessChecker.isRedactionNeededForPickerUri;
+import static com.android.providers.media.LocalUriMatcher.PICKER_GET_CONTENT_ID;
+import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 
@@ -30,6 +33,7 @@ import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
@@ -58,7 +62,9 @@ import java.util.Set;
 public class PickerUriResolver {
     private static final String TAG = "PickerUriResolver";
 
-    private static final String PICKER_SEGMENT = "picker";
+    public static final String PICKER_SEGMENT = "picker";
+
+    public static final String PICKER_GET_CONTENT_SEGMENT = "picker_get_content";
     private static final String PICKER_INTERNAL_SEGMENT = "picker_internal";
     /** A uri with prefix "content://media/picker" is considered as a picker uri */
     public static final Uri PICKER_URI = MediaStore.AUTHORITY_URI.buildUpon().
@@ -84,23 +90,28 @@ public class PickerUriResolver {
     private final PickerDbFacade mDbFacade;
     private final Set<String> mAllValidProjectionColumns;
     private final String[] mAllValidProjectionColumnsArray;
+    private final LocalUriMatcher mLocalUriMatcher;
 
-    PickerUriResolver(Context context, PickerDbFacade dbFacade, ProjectionHelper projectionHelper) {
+    PickerUriResolver(Context context, PickerDbFacade dbFacade, ProjectionHelper projectionHelper,
+            LocalUriMatcher localUriMatcher) {
         mContext = context;
         mDbFacade = dbFacade;
         mAllValidProjectionColumns = projectionHelper.getProjectionMap(
                 MediaStore.PickerMediaColumns.class).keySet();
         mAllValidProjectionColumnsArray = mAllValidProjectionColumns.toArray(new String[0]);
+        mLocalUriMatcher = localUriMatcher;
     }
 
     public ParcelFileDescriptor openFile(Uri uri, String mode, CancellationSignal signal,
-            int callingPid, int callingUid) throws FileNotFoundException {
+            LocalCallingIdentity localCallingIdentity)
+            throws FileNotFoundException {
         if (ParcelFileDescriptor.parseMode(mode) != ParcelFileDescriptor.MODE_READ_ONLY) {
             throw new SecurityException("PhotoPicker Uris can only be accessed to read."
                     + " Uri: " + uri);
         }
 
-        checkUriPermission(uri, callingPid, callingUid);
+        checkPermissionForRequireOriginalQueryParam(uri, localCallingIdentity);
+        checkUriPermission(uri, localCallingIdentity.pid, localCallingIdentity.uid);
 
         final ContentResolver resolver;
         try {
@@ -117,9 +128,10 @@ public class PickerUriResolver {
     }
 
     public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts,
-            CancellationSignal signal, int callingPid, int callingUid)
+            CancellationSignal signal, LocalCallingIdentity localCallingIdentity)
             throws FileNotFoundException {
-        checkUriPermission(uri, callingPid, callingUid);
+        checkPermissionForRequireOriginalQueryParam(uri, localCallingIdentity);
+        checkUriPermission(uri, localCallingIdentity.pid, localCallingIdentity.uid);
 
         final ContentResolver resolver;
         try {
@@ -210,7 +222,8 @@ public class PickerUriResolver {
                 + CloudMediaProviderContract.URI_PATH_SURFACE_CONTROLLER);
     }
 
-    private ParcelFileDescriptor openPickerFile(Uri uri) throws FileNotFoundException {
+    private ParcelFileDescriptor openPickerFile(Uri uri)
+            throws FileNotFoundException {
         final File file = getPickerFileFromUri(uri);
         if (file == null) {
             throw new FileNotFoundException("File not found for uri: " + uri);
@@ -235,19 +248,38 @@ public class PickerUriResolver {
 
     @VisibleForTesting
     Cursor queryPickerUri(Uri uri, String[] projection) {
+        String pickerSegmentType = getPickerSegmentType(uri);
         uri = unwrapProviderUri(uri);
-        return mDbFacade.queryMediaIdForApps(uri.getHost(), uri.getLastPathSegment(),
-                projection);
+        return mDbFacade.queryMediaIdForApps(pickerSegmentType, uri.getHost(),
+                uri.getLastPathSegment(), projection);
     }
 
-    public static Uri wrapProviderUri(Uri uri, int userId) {
+    private String getPickerSegmentType(Uri uri) {
+        switch (mLocalUriMatcher.matchUri(uri, /* allowHidden */ false)) {
+            case PICKER_ID:
+                return PICKER_SEGMENT;
+            case PICKER_GET_CONTENT_ID:
+                return PICKER_GET_CONTENT_SEGMENT;
+        }
+
+        return null;
+    }
+
+    /**
+     * Creates a picker uri incorporating authority, user id and cloud provider.
+     */
+    public static Uri wrapProviderUri(Uri uri, String action, int userId) {
         final List<String> segments = uri.getPathSegments();
         if (segments.size() != 2) {
             throw new IllegalArgumentException("Unexpected provider URI: " + uri);
         }
 
         Uri.Builder builder = initializeUriBuilder(MediaStore.AUTHORITY);
-        builder.appendPath(PICKER_SEGMENT);
+        if (action.equalsIgnoreCase(Intent.ACTION_GET_CONTENT)) {
+            builder.appendPath(PICKER_GET_CONTENT_SEGMENT);
+        } else {
+            builder.appendPath(PICKER_SEGMENT);
+        }
         builder.appendPath(String.valueOf(userId));
         builder.appendPath(uri.getHost());
 
@@ -293,10 +325,36 @@ public class PickerUriResolver {
     }
 
     private void checkUriPermission(Uri uri, int pid, int uid) {
-        if (!isSelf(uid) && mContext.checkUriPermission(uri, pid, uid,
+        // Clear query parameters to check for URI permissions, apps can add requireOriginal
+        // query parameter to URI, URI grants will not be present in that case.
+        Uri uriWithoutQueryParams = uri.buildUpon().clearQuery().build();
+        if (!isSelf(uid) && mContext.checkUriPermission(uriWithoutQueryParams, pid, uid,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION) != PERMISSION_GRANTED) {
             throw new SecurityException("Calling uid ( " + uid + " ) does not have permission to " +
-                    "access picker uri: " + uri);
+                    "access picker uri: " + uriWithoutQueryParams);
+        }
+    }
+
+    private void checkPermissionForRequireOriginalQueryParam(Uri uri,
+            LocalCallingIdentity localCallingIdentity) {
+        String value = uri.getQueryParameter(MediaStore.PARAM_REQUIRE_ORIGINAL);
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+
+        // Check if requireOriginal is set
+        if (Integer.parseInt(value) == 1) {
+            if (mLocalUriMatcher.matchUri(uri, /* allowHidden */ false) == PICKER_ID) {
+                throw new UnsupportedOperationException(
+                        "Require Original is not supported for Picker URI " + uri);
+            }
+
+            if (mLocalUriMatcher.matchUri(uri, /* allowHidden */ false) == PICKER_GET_CONTENT_ID
+                    && isRedactionNeededForPickerUri(localCallingIdentity)) {
+                throw new UnsupportedOperationException("Calling uid ( " + Binder.getCallingUid()
+                        + " ) does not have ACCESS_MEDIA_LOCATION permission for requesting "
+                        + "original file");
+            }
         }
     }
 

@@ -1,0 +1,89 @@
+buffers: {
+    size_kb: 63488
+    fill_policy: DISCARD
+}
+buffers: {
+    size_kb: 2048
+    fill_policy: DISCARD
+}
+
+data_sources: {
+    config {
+        name: "linux.ftrace"
+
+        # See: https://perfetto.dev/docs/data-sources/atrace#traceconfig
+        ftrace_config {
+            ftrace_events: "ftrace/print"
+
+            # Trace all ContentProvider commands and SQLite queries.
+            # See: https://source.corp.google.com/android-internal/frameworks/base/core/java/android/os/Trace.java?q=TRACE_TAG_DATABASE
+            # See: https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/database/sqlite/SQLiteConnection.java
+            # Uncomment to enable. Note: on a userdebug build it will add a trace for every SQLite
+            # command any application runs, which will make a trace very "noisy".
+            # atrace_categories: "database"
+
+            # Trace Binder IPC transactions.
+            # Uncomment to enable. Note: on a userdebug build it will add a trace for every Binder
+            # transaction for every application, which will make a trace very "noisy".
+            # atrace_categories: "binder_driver"
+
+            # ActivityManager, WindowManager, Graphics, View System.
+            # Uncomment to enable. Note: on a userdebug build it will traces form corresponding
+            # category for every application, which will make a trace very "noisy".
+            # atrace_categories: "wm"
+            # atrace_categories: "am"
+            # atrace_categories: "gfx"
+            # atrace_categories: "view"
+
+            # Trace MediaProviders' events.
+            atrace_apps: "com.android.providers.media.module"
+            atrace_apps: "com.android.providers.media.module:PhotoPicker"
+            atrace_apps: "com.google.android.providers.media.module"
+            atrace_apps: "com.google.android.providers.media.module:PhotoPicker"
+
+            # Trace Google Photos' events.
+            # Uncomment to enable.
+            # atrace_apps: "com.google.android.apps.photos"
+
+            # Trace all apps' events.
+            # Uncomment to enable.
+            # atrace_apps: "*"
+        }
+    }
+}
+
+# Android Logcat
+data_sources: {
+    config {
+        name: "android.log"
+        android_log_config {
+            min_prio: PRIO_VERBOSE # Default: PRIO_DEBUG
+
+            # If filter_tags non-empty ignores all log messages whose tag doesn't match one of the
+            # specified values.
+            # filter_tags: "MediaProvider"
+            # filter_tags: "PickerDataLayer"
+            # filter_tags: "PickerDbFacade"
+            # filter_tags: "PickerSyncController"
+
+            log_ids: LID_EVENTS
+            log_ids: LID_CRASH
+            log_ids: LID_KERNEL
+            log_ids: LID_DEFAULT
+            log_ids: LID_RADIO
+            log_ids: LID_SECURITY
+            log_ids: LID_STATS
+            log_ids: LID_SYSTEM
+        }
+    }
+}
+
+# This is for getting Thread<>Process associations and full process names.
+data_sources: {
+    config {
+        name: "linux.process_stats"
+    }
+}
+
+# Max duration: 1 min
+duration_ms: 60000

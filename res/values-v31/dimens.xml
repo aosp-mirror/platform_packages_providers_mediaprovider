@@ -28,6 +28,9 @@
     <dimen name="picker_toolbar_title_text_size">22sp</dimen>
 
     <dimen name="preview_mute_marginBottom">88dp</dimen>
+    <dimen name="preview_progress_indicator_size">48dp</dimen>
+    <dimen name="preview_snackbar_margin_bottom">76dp</dimen>
+    <dimen name="preview_snackbar_margin_horizontal">10dp</dimen>
 
     <!-- PhotoPicker Work Profile -->
     <dimen name="picker_profile_dialog_radius">28dp</dimen>

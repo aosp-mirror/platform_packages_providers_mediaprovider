@@ -18,6 +18,7 @@
 
 #include "FuseDaemon.h"
 
+#include <android-base/file.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <android-base/strings.h>
@@ -63,6 +64,7 @@
 #define BPF_FD_JUST_USE_INT
 #include "BpfSyscallWrappers.h"
 #include "MediaProviderWrapper.h"
+#include "leveldb/db.h"
 #include "libfuse_jni/FuseUtils.h"
 #include "libfuse_jni/ReaddirHelper.h"
 #include "libfuse_jni/RedactionInfo.h"
@@ -124,8 +126,14 @@ const std::regex PATTERN_BPF_BACKING_PATH("^/storage/[^/]+/[0-9]+/Android/(data|
 static constexpr char TRANSFORM_SYNTHETIC_DIR[] = "synthetic";
 static constexpr char TRANSFORM_TRANSCODE_DIR[] = "transcode";
 static constexpr char PRIMARY_VOLUME_PREFIX[] = "/storage/emulated";
+static constexpr char STORAGE_PREFIX[] = "/storage";
 
-static constexpr char FUSE_BPF_PROG_PATH[] = "/sys/fs/bpf/prog_fuse_media_fuse_media";
+static constexpr char VOLUME_INTERNAL[] = "internal";
+static constexpr char VOLUME_EXTERNAL_PRIMARY[] = "external_primary";
+
+static constexpr char OWNERSHIP_RELATION[] = "ownership";
+
+static constexpr char FUSE_BPF_PROG_PATH[] = "/sys/fs/bpf/prog_fuseMedia_fuse_media";
 
 enum class BpfFd { REMOVE = -1 };
 
@@ -397,6 +405,10 @@ struct fuse {
     std::atomic_uint dev;
     const std::vector<string> supported_transcoding_relative_paths;
     const std::vector<string> supported_uncached_relative_paths;
+
+    // LevelDb Connection Map
+    std::map<std::string, leveldb::DB*> level_db_connection_map;
+    std::mutex level_db_mutex;
 };
 
 struct OpenInfo {
@@ -498,9 +510,8 @@ static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child
 }
 
 static double get_entry_timeout(const string& path, bool should_inval, struct fuse* fuse) {
-    string media_path = fuse->GetEffectiveRootPath() + "/Android/media";
     if (fuse->disable_dentry_cache || should_inval || is_package_owned_path(path, fuse->path) ||
-        android::base::StartsWithIgnoreCase(path, media_path) || fuse->ShouldNotCache(path)) {
+        fuse->ShouldNotCache(path)) {
         // We set dentry timeout to 0 for the following reasons:
         // 1. The dentry cache was completely disabled for the entire volume.
         // 2.1 Case-insensitive lookups need to invalidate other case-insensitive dentry matches
@@ -509,10 +520,7 @@ static double get_entry_timeout(const string& path, bool should_inval, struct fu
         // 3. With app data isolation enabled, app A should not guess existence of app B from the
         // Android/{data,obb}/<package> paths, hence we prevent the kernel from caching that
         // information.
-        // 4. Installd might delete Android/media/<package> dirs when app data is cleared.
-        // This can leave a stale entry in the kernel dcache, and break subsequent creation of the
-        // dir via FUSE.
-        // 5. The dentry cache was completely disabled for the given path.
+        // 4. The dentry cache was completely disabled for the given path.
         return 0;
     }
     return std::numeric_limits<double>::max();
@@ -597,7 +605,8 @@ static std::unique_ptr<mediaprovider::fuse::FileLookupResult> validate_node_path
     return file_lookup_result;
 }
 
-static node* make_node_entry(fuse_req_t req, node* parent, const string& name, const string& path,
+static node* make_node_entry(fuse_req_t req, node* parent, const string& name,
+                             const string& parent_path, const string& path,
                              struct fuse_entry_param* e, int* error_code, const FuseOp op) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
@@ -691,7 +700,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     // introduce a performance regression.
     // Currently FUSE BPF is limited to the Android/data and Android/obb
     // directories.
-    if (!fuse->bpf || !is_bpf_backing_path(path)) {
+    if (!fuse->bpf || !is_bpf_backing_path(parent_path)) {
         e->entry_timeout = get_entry_timeout(path, should_invalidate, fuse);
         e->attr_timeout = std::numeric_limits<double>::max();
     }
@@ -877,9 +886,20 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
         }
     }
 
-    auto node = make_node_entry(req, parent_node, name, child_path, e, error_code, op);
+    auto node = make_node_entry(req, parent_node, name, parent_path, child_path, e, error_code, op);
 
-    if (fuse->bpf && op == FuseOp::lookup) fuse_bpf_install(fuse, e, child_path, *backing_fd);
+    if (fuse->bpf) {
+        if (op == FuseOp::lookup) {
+            // Only direct lookup calls support setting backing_fd and bpf program
+            fuse_bpf_install(fuse, e, child_path, *backing_fd);
+        } else if (is_bpf_backing_path(child_path) && op == FuseOp::readdir) {
+            // Fuse-bpf driver implementation doesn’t support providing backing_fd
+            // and bpf program as a part of readdirplus lookup. So we make sure
+            // here we're not making any lookups on backed files because we want
+            // to receive separate lookup calls for them later to set backing_fd and bpf.
+            e->ino = 0;
+        }
+    }
 
     return node;
 }
@@ -898,6 +918,34 @@ static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
     }
 
     if (backing_fd != -1) close(backing_fd);
+}
+
+static void pf_lookup_postfilter(fuse_req_t req, fuse_ino_t parent, uint32_t error_in,
+                                 const char* name, struct fuse_entry_out* feo,
+                                 struct fuse_entry_bpf_out* febo) {
+    struct fuse* fuse = get_fuse(req);
+
+    ATRACE_CALL();
+    node* parent_node = fuse->FromInode(parent);
+    if (!parent_node) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
+
+    TRACE_NODE(parent_node, req);
+    const string path = parent_node->BuildPath() + "/" + name;
+    if (strcmp(name, ".nomedia") != 0 &&
+        !fuse->mp->isUidAllowedAccessToDataOrObbPath(req->ctx.uid, path)) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
+
+    struct {
+        struct fuse_entry_out feo;
+        struct fuse_entry_bpf_out febo;
+    } buf = {*feo, *febo};
+
+    fuse_reply_buf(req, (const char*)&buf, sizeof(buf));
 }
 
 static void do_forget(fuse_req_t req, struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
@@ -1115,7 +1163,8 @@ static void pf_mknod(fuse_req_t req,
 
     int error_code = 0;
     struct fuse_entry_param e;
-    if (make_node_entry(req, parent_node, name, child_path, &e, &error_code, FuseOp::mknod)) {
+    if (make_node_entry(req, parent_node, name, parent_path, child_path, &e, &error_code,
+                        FuseOp::mknod)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
@@ -1159,7 +1208,8 @@ static void pf_mkdir(fuse_req_t req,
 
     int error_code = 0;
     struct fuse_entry_param e;
-    if (make_node_entry(req, parent_node, name, child_path, &e, &error_code, FuseOp::mkdir)) {
+    if (make_node_entry(req, parent_node, name, parent_path, child_path, &e, &error_code,
+                        FuseOp::mkdir)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
@@ -1902,6 +1952,56 @@ static void pf_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     do_readdir_common(req, ino, size, off, fi, false);
 }
 
+static off_t round_up(off_t o, size_t s) {
+    return (o + s - 1) / s * s;
+}
+
+static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error_in, off_t off_in,
+                                  off_t off_out, size_t size_out, const void* dirents_in,
+                                  struct fuse_file_info* fi) {
+    struct fuse* fuse = get_fuse(req);
+    char buf[READDIR_BUF];
+    struct fuse_read_out* fro = (struct fuse_read_out*)(buf);
+    size_t used = sizeof(*fro);
+    char* dirents_out = (char*)(fro + 1);
+
+    ATRACE_CALL();
+    node* node = fuse->FromInode(ino);
+    if (!node) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
+
+    TRACE_NODE(node, req);
+    const string path = node->BuildPath();
+
+    *fro = (struct fuse_read_out){
+            .offset = (uint64_t)off_out,
+    };
+
+    for (off_t in = 0; in < size_out;) {
+        struct fuse_dirent* dirent_in = (struct fuse_dirent*)((char*)dirents_in + in);
+        struct fuse_dirent* dirent_out = (struct fuse_dirent*)((char*)dirents_out + fro->size);
+        struct stat stats;
+        int err;
+        std::string child_path = path + "/" + dirent_in->name;
+
+        in += sizeof(*dirent_in) + round_up(dirent_in->namelen, sizeof(uint64_t));
+        err = stat(child_path.c_str(), &stats);
+        if (err == 0 &&
+            ((stats.st_mode & 0001) || ((stats.st_mode & 0010) && req->ctx.gid == stats.st_gid) ||
+             ((stats.st_mode & 0100) && req->ctx.uid == stats.st_uid) ||
+             fuse->mp->isUidAllowedAccessToDataOrObbPath(req->ctx.uid, child_path) ||
+             strcmp(dirent_in->name, ".nomedia") == 0)) {
+            *dirent_out = *dirent_in;
+            strcpy(dirent_out->name, dirent_in->name);
+            fro->size += sizeof(*dirent_out) + round_up(dirent_out->namelen, sizeof(uint64_t));
+        }
+    }
+    used += fro->size;
+    fuse_reply_buf(req, buf, used);
+}
+
 static void pf_readdirplus(fuse_req_t req,
                            fuse_ino_t ino,
                            size_t size,
@@ -2066,8 +2166,8 @@ static void pf_create(fuse_req_t req,
 
     int error_code = 0;
     struct fuse_entry_param e;
-    node* node =
-            make_node_entry(req, parent_node, name, child_path, &e, &error_code, FuseOp::create);
+    node* node = make_node_entry(req, parent_node, name, parent_path, child_path, &e, &error_code,
+                                 FuseOp::create);
     TRACE_NODE(node, req);
     if (!node) {
         CHECK(error_code != 0);
@@ -2152,33 +2252,33 @@ static void pf_fallocate(fuse_req_t req, fuse_ino_t ino, int mode,
 */
 
 static struct fuse_lowlevel_ops ops{
-    .init = pf_init, .destroy = pf_destroy, .lookup = pf_lookup, .forget = pf_forget,
-    .getattr = pf_getattr, .setattr = pf_setattr, .canonical_path = pf_canonical_path,
-    .mknod = pf_mknod, .mkdir = pf_mkdir, .unlink = pf_unlink, .rmdir = pf_rmdir,
+    .init = pf_init, .destroy = pf_destroy, .lookup = pf_lookup,
+    .lookup_postfilter = pf_lookup_postfilter, .forget = pf_forget, .getattr = pf_getattr,
+    .setattr = pf_setattr, .canonical_path = pf_canonical_path, .mknod = pf_mknod,
+    .mkdir = pf_mkdir, .unlink = pf_unlink, .rmdir = pf_rmdir,
     /*.symlink = pf_symlink,*/
-    .rename = pf_rename,
+            .rename = pf_rename,
     /*.link = pf_link,*/
-    .open = pf_open, .read = pf_read,
+            .open = pf_open, .read = pf_read,
     /*.write = pf_write,*/
-    .flush = pf_flush,
-    .release = pf_release, .fsync = pf_fsync, .opendir = pf_opendir, .readdir = pf_readdir,
-    .releasedir = pf_releasedir, .fsyncdir = pf_fsyncdir, .statfs = pf_statfs,
+            .flush = pf_flush, .release = pf_release, .fsync = pf_fsync, .opendir = pf_opendir,
+    .readdir = pf_readdir, .readdirpostfilter = pf_readdir_postfilter, .releasedir = pf_releasedir,
+    .fsyncdir = pf_fsyncdir, .statfs = pf_statfs,
     /*.setxattr = pf_setxattr,
     .getxattr = pf_getxattr,
     .listxattr = pf_listxattr,
     .removexattr = pf_removexattr,*/
-    .access = pf_access, .create = pf_create,
+            .access = pf_access, .create = pf_create,
     /*.getlk = pf_getlk,
     .setlk = pf_setlk,
     .bmap = pf_bmap,
     .ioctl = pf_ioctl,
     .poll = pf_poll,*/
-    .write_buf = pf_write_buf,
+            .write_buf = pf_write_buf,
     /*.retrieve_reply = pf_retrieve_reply,*/
-    .forget_multi = pf_forget_multi,
+            .forget_multi = pf_forget_multi,
     /*.flock = pf_flock,*/
-    .fallocate = pf_fallocate,
-    .readdirplus = pf_readdirplus,
+            .fallocate = pf_fallocate, .readdirplus = pf_readdirplus,
     /*.copy_file_range = pf_copy_file_range,*/
 };
 
@@ -2266,14 +2366,40 @@ bool FuseDaemon::IsStarted() const {
     return active.load(std::memory_order_acquire);
 }
 
+static bool IsPropertySet(const char* name, bool& value) {
+    if (android::base::GetProperty(name, "") == "") return false;
+
+    value = android::base::GetBoolProperty(name, false);
+    LOG(INFO) << "fuse-bpf is " << (value ? "enabled" : "disabled") << " because of property "
+              << name;
+    return true;
+}
+
 bool IsFuseBpfEnabled() {
-    std::string bpf_override = android::base::GetProperty("persist.sys.fuse.bpf.override", "");
-    if (bpf_override == "true") {
-        return true;
-    } else if (bpf_override == "false") {
+    // ro.fuse.bpf.is_running may not be set when first reading this property, so we have to
+    // reproduce the vold/Utils.cpp:isFuseBpfEnabled() logic here
+
+    bool is_enabled;
+    if (IsPropertySet("ro.fuse.bpf.is_running", is_enabled)) return is_enabled;
+    if (IsPropertySet("persist.sys.fuse.bpf.override", is_enabled)) return is_enabled;
+    if (IsPropertySet("ro.fuse.bpf.enabled", is_enabled)) return is_enabled;
+
+    // If the kernel has fuse-bpf, /sys/fs/fuse/features/fuse_bpf will exist and have the contents
+    // 'supported\n' - see fs/fuse/inode.c in the kernel source
+    string contents;
+    const char* filename = "/sys/fs/fuse/features/fuse_bpf";
+    if (!android::base::ReadFileToString(filename, &contents)) {
+        LOG(INFO) << "fuse-bpf is disabled because " << filename << " cannot be read";
         return false;
     }
-    return android::base::GetBoolProperty("ro.fuse.bpf.enabled", false);
+
+    if (contents == "supported\n") {
+        LOG(INFO) << "fuse-bpf is enabled because " << filename << " reads 'supported'";
+        return true;
+    } else {
+        LOG(INFO) << "fuse-bpf is disabled because " << filename << " does not read 'supported'";
+        return false;
+    }
 }
 
 void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
@@ -2307,15 +2433,17 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
     bool bpf_enabled = IsFuseBpfEnabled();
     int bpf_fd = -1;
     if (bpf_enabled) {
-        LOG(INFO) << "Using FUSE BPF";
-
         bpf_fd = android::bpf::bpfFdGet(FUSE_BPF_PROG_PATH, BPF_F_RDONLY);
         if (bpf_fd < 0) {
             PLOG(ERROR) << "Failed to fetch BPF prog fd: " << bpf_fd;
             bpf_enabled = false;
         } else {
-            LOG(INFO) << "BPF prog fd fetched";
+            LOG(INFO) << "Using FUSE BPF, BPF prog fd fetched";
         }
+    }
+
+    if (!bpf_enabled) {
+        LOG(INFO) << "Not using FUSE BPF";
     }
 
     struct fuse fuse_default(path, stat.st_ino, uncached_mode, bpf_enabled, bpf_fd,
@@ -2415,5 +2543,221 @@ void FuseDaemon::InitializeDeviceId(const std::string& path) {
 
     fuse->dev.store(stat.st_dev, std::memory_order_release);
 }
+
+void FuseDaemon::SetupLevelDbConnection(const std::string& instance_name) {
+    if (CheckLevelDbConnection(instance_name)) {
+        LOG(DEBUG) << "Leveldb connection already exists for :" << instance_name;
+        return;
+    }
+
+    std::string leveldbPath = "/storage/emulated/" + MY_USER_ID_STRING +
+                              "/.transforms/recovery/leveldb-" + instance_name;
+    leveldb::Options options;
+    options.create_if_missing = true;
+    leveldb::DB* leveldb;
+    leveldb::Status status = leveldb::DB::Open(options, leveldbPath, &leveldb);
+    if (status.ok()) {
+        fuse->level_db_connection_map.insert(
+                std::pair<std::string, leveldb::DB*>(instance_name, leveldb));
+        LOG(INFO) << "Leveldb connection established for :" << instance_name;
+    } else {
+        LOG(ERROR) << "Leveldb connection failed for :" << instance_name
+                   << " with error:" << status.ToString();
+    }
+}
+
+void FuseDaemon::SetupLevelDbInstances() {
+    if (android::base::StartsWith(fuse->root->GetIoPath(), PRIMARY_VOLUME_PREFIX)) {
+        // Setup leveldb instance for both external primary and internal volume.
+        fuse->level_db_mutex.lock();
+        // Create level db instance for internal volume
+        SetupLevelDbConnection(VOLUME_INTERNAL);
+        // Create level db instance for external primary volume
+        SetupLevelDbConnection(VOLUME_EXTERNAL_PRIMARY);
+        // Create level db instance to store owner id to owner package name and vice versa relation
+        SetupLevelDbConnection(OWNERSHIP_RELATION);
+        fuse->level_db_mutex.unlock();
+    }
+}
+
+std::string deriveVolumeName(const std::string& path) {
+    std::string volume_name;
+    if (!android::base::StartsWith(path, STORAGE_PREFIX)) {
+        volume_name = VOLUME_INTERNAL;
+    } else if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
+        volume_name = VOLUME_EXTERNAL_PRIMARY;
+    } else {
+        size_t size = sizeof(STORAGE_PREFIX) / sizeof(STORAGE_PREFIX[0]);
+        volume_name = volume_name.substr(size);
+    }
+    return volume_name;
+}
+
+void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
+    std::string volume_name = deriveVolumeName(key);
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb delete in volume:" << volume_name << " for key:" << key;
+        return;
+    }
+
+    leveldb::Status status;
+    status = fuse->level_db_connection_map[volume_name]->Delete(leveldb::WriteOptions(), key);
+    if (!status.ok()) {
+        LOG(ERROR) << "Failure in leveldb delete for key: " << key <<
+            " from volume:" << volume_name;
+    }
+}
+
+void FuseDaemon::InsertInLevelDb(const std::string& key, const std::string& value) {
+    std::string volume_name = deriveVolumeName(key);
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb insert in volume:" << volume_name << " for key:" << key;
+        return;
+    }
+
+    leveldb::Status status;
+    status = fuse->level_db_connection_map[volume_name]->Put(leveldb::WriteOptions(), key, value);
+    if (!status.ok()) {
+        LOG(ERROR) << "Failure in leveldb insert for key: " << key << " in volume:" << volume_name;
+    }
+}
+
+std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string& volume_name,
+                                                              const std::string& last_read_value,
+                                                              int limit) {
+    int counter = 0;
+    std::vector<std::string> file_paths;
+
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb file paths read for volume:" << volume_name;
+        return file_paths;
+    }
+
+    leveldb::Iterator* it =
+            fuse->level_db_connection_map[volume_name]->NewIterator(leveldb::ReadOptions());
+    if (android::base::EqualsIgnoreCase(last_read_value, "")) {
+        it->SeekToFirst();
+    } else {
+        // Start after last read value
+        leveldb::Slice slice = last_read_value;
+        it->Seek(slice);
+        it->Next();
+    }
+    for (; it->Valid() && counter < limit; it->Next()) {
+        file_paths.push_back(it->key().ToString());
+        counter++;
+    }
+    return file_paths;
+}
+
+std::string FuseDaemon::ReadBackedUpDataFromLevelDb(const std::string& filePath) {
+    std::string data = "";
+    std::string volume_name = deriveVolumeName(filePath);
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Failure in leveldb data read for key:" << filePath;
+        return data;
+    }
+
+    leveldb::Status status = fuse->level_db_connection_map[volume_name]->Get(leveldb::ReadOptions(),
+                                                                             filePath, &data);
+    if (!status.ok()) {
+        LOG(WARNING) << "Failure in leveldb read for key: " << filePath << status.ToString();
+    } else {
+        LOG(DEBUG) << "Read successful for key: " << filePath;
+    }
+    return data;
+}
+
+std::string FuseDaemon::ReadOwnership(const std::string& key) {
+    // Return empty string if key not found
+    std::string data = "";
+    if (CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        leveldb::Status status = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Get(
+                leveldb::ReadOptions(), key, &data);
+        if (!status.ok()) {
+            LOG(WARNING) << "Failure in leveldb read for key: " << key << status.ToString();
+        } else {
+            LOG(DEBUG) << "Read successful for key: " << key;
+        }
+    }
+    return data;
+}
+
+void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
+                                       const std::string& ownerPackageIdentifier) {
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "Failure in leveldb insert for ownership relation.";
+        return;
+    }
+
+    leveldb::Status status1, status2;
+    status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+            leveldb::WriteOptions(), ownerId, ownerPackageIdentifier);
+    status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+            leveldb::WriteOptions(), ownerPackageIdentifier, ownerId);
+    if (!status1.ok() || !status2.ok()) {
+        // If both inserts did not go through, remove both.
+        status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                            ownerId);
+        status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                            ownerPackageIdentifier);
+        LOG(ERROR) << "Failure in leveldb insert for owner_id: " << ownerId
+                   << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
+    }
+}
+
+void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
+                                       const std::string& ownerPackageIdentifier) {
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "Failure in leveldb delete for ownership relation.";
+        return;
+    }
+
+    leveldb::Status status1, status2;
+    status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                        ownerId);
+    status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Delete(leveldb::WriteOptions(),
+                                                                        ownerPackageIdentifier);
+    if (status1.ok() && status2.ok()) {
+        LOG(INFO) << "Successfully deleted rows in leveldb for owner_id: " << ownerId
+                  << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
+    } else {
+        // If both deletes did not go through, revert both.
+        status1 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+                leveldb::WriteOptions(), ownerId, ownerPackageIdentifier);
+        status2 = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Put(
+                leveldb::WriteOptions(), ownerPackageIdentifier, ownerId);
+        LOG(ERROR) << "Failure in leveldb delete for owner_id: " << ownerId
+                   << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
+    }
+}
+
+std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
+    std::map<std::string, std::string> resultMap;
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "Failure in leveldb read for ownership relation.";
+        return resultMap;
+    }
+
+    leveldb::Status status;
+    // Get the key-value pairs from the database.
+    leveldb::Iterator* it =
+            fuse->level_db_connection_map[OWNERSHIP_RELATION]->NewIterator(leveldb::ReadOptions());
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+        std::string key = it->key().ToString();
+        std::string value = it->value().ToString();
+        resultMap.insert(std::pair<std::string, std::string>(key, value));
+    }
+    return resultMap;
+}
+
+bool FuseDaemon::CheckLevelDbConnection(const std::string& instance_name) {
+    if (fuse->level_db_connection_map.find(instance_name) == fuse->level_db_connection_map.end()) {
+        LOG(ERROR) << "Leveldb setup is missing for :" << instance_name;
+        return false;
+    }
+    return true;
+}
+
 } //namespace fuse
 }  // namespace mediaprovider

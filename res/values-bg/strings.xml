@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Мултимедия"</string>
     <string name="storage_description" msgid="4081716890357580107">"Локално хранилище"</string>
     <string name="app_label" msgid="9035307001052716210">"Мултимедийно хранилище"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Инструмент за избор на снимки"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Мултимедия"</string>
     <string name="artist_label" msgid="8105600993099120273">"Изпълнител"</string>
     <string name="unknown" msgid="2059049215682829375">"Неизвестно"</string>
     <string name="root_images" msgid="5861633549189045666">"Изображения"</string>
@@ -38,29 +38,40 @@
     <string name="clear" msgid="5524638938415865915">"Изчистване"</string>
     <string name="allow" msgid="8885707816848569619">"Разрешаване"</string>
     <string name="deny" msgid="6040983710442068936">"Отказ"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Преглед…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Прил. за мултимедия в облака"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Приложение за мултимедия в облака"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Приложение за мултимедия в облака"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Осъществяване на достъп до мултимедията в облака, когато приложение или уебсайт иска от вас да изберете снимки или видеоклипове"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Достъп до мултимедия в облака от"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Нищо"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Медийното приложение в облака не бе променено."</string>
     <string name="add" msgid="2894574044585549298">"Добавяне"</string>
     <string name="deselect" msgid="4297825044827769490">"Премахване на избора"</string>
-    <string name="deselected" msgid="8488133193326208475">"Неизбрано"</string>
+    <string name="deselected" msgid="8488133193326208475">"Отменен избор"</string>
     <string name="select" msgid="2704765470563027689">"Избиране"</string>
     <string name="selected" msgid="9151797369975828124">"Избрано"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Изберете най-много <xliff:g id="COUNT_0">^1</xliff:g> елемент}other{Изберете най-много <xliff:g id="COUNT_1">^1</xliff:g> елемента}}"</string>
     <string name="recent" msgid="6694613584743207874">"Скорошни"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Няма снимки или видеоклипове"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Няма поддържани снимки или видеоклипове"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Няма албуми"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Преглед на избраното"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Снимки"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Албуми"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Визуализация"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Превкл. към служ. пoтр. профил"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Превключване към личния потребителски профил"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Превкл. към личния потр. профил"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано от администратора ви"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Достъпът до служебни данни от лично приложение не е разрешен"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Достъпът до лични данни от служебно приложение не е разрешен"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Служебните приложения са поставени на пауза"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"За да отворите служебни снимки, включете служебните си приложения и опитайте отново"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Това приложение има достъп само до избраните от вас снимки"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Изберете снимки и видеоклипове, до които приложението да има достъп"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> елемент}other{<xliff:g id="COUNT_1">^1</xliff:g> елемента}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Добавяне (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Разрешаване (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Камера"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Изтегляния"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Любими"</string>
@@ -75,10 +86,27 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Снимка с движение"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Спиране на звука на видеоклипа"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Включване на звука на видеоклипа отново"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Пускане на видеоклипа"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Поставяне на видеоклипа на пауза"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Пускане"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Пауза"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Видеоклипът не може да бъде възпроизведен"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Проблем при възпроизвеждането на видеосъдържание"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Проверете връзката си с интернет и опитайте отново"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Нов опит"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Вече е налице мултимедия в облака от <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не е избрано"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"Готови: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> от <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Снимките, за които е създадено резервно копие, вече са добавени"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Можете да избирате снимки от профила <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> в(ъв) <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Профилът в(ъв) <xliff:g id="APP_NAME">%1$s</xliff:g> е актуализиран"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Снимките от <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> вече са включени тук"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Избиране на приложение за мултимедия в облака"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"За да добавите тук снимките, за които е създадено резервно копие, изберете приложение за мултимедия в облака от настройките"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Избиране на профил в(ъв) <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"За да включите тук снимките от <xliff:g id="APP_NAME">%1$s</xliff:g>, изберете профил в приложението"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Отхвърляне"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Избиране на приложение"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Избиране на профил"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Промяна на профила"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Да се разреши ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този аудиофайл?}other{Да се разреши ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> аудиофайла?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Аудиофайлът се променя…}other{<xliff:g id="COUNT">^1</xliff:g> аудиофайла се променят…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Да се разреши ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този видеоклип?}other{Да се разреши ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> видеоклипа?}}"</string>
@@ -119,4 +147,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Мултимедията се обработва…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Отказ"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Изчакване"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Защита на безопасността"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Стандартни сигнали за прекодиране"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Стандартен прогрес при прекодиране"</string>
 </resources>

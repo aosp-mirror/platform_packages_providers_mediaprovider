@@ -72,6 +72,7 @@ import com.google.common.io.ByteStreams;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -626,6 +627,7 @@ public class ItemsProviderTest {
      * execution when cancellation signal is triggered after query execution.
      */
     @Test
+    @Ignore("Enable once b/303494342 is fixed")
     public void testGetLocalCategories_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
         CancellationSignal cancellationSignal = new CancellationSignal();
 

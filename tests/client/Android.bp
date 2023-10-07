@@ -28,7 +28,7 @@ android_test {
         "androidx.test.rules",
         "collector-device-lib-platform",
         "mockito-target",
-        "truth-prebuilt",
+        "truth",
     ],
 
     certificate: "media",

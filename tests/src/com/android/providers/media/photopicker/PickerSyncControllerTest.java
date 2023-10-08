@@ -416,7 +416,7 @@ public class PickerSyncControllerTest {
         // 3. Add another media in primary cloud provider
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
 
-        mController.syncAllMediaFromLocalProvider();
+        mController.syncAllMediaFromLocalProvider(/* cancellationSignal=*/ null);
         // Verify that the sync only synced local items
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(3);

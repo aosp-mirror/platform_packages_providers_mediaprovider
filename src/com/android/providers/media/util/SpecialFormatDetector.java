@@ -110,11 +110,10 @@ public class SpecialFormatDetector {
         bitmapOptions.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOptions);
 
-        if (bitmapOptions.outMimeType.equalsIgnoreCase("image/gif")) {
+        if ("image/gif".equalsIgnoreCase(bitmapOptions.outMimeType)) {
             return FileColumns._SPECIAL_FORMAT_GIF;
         }
-        if (bitmapOptions.outMimeType.equalsIgnoreCase("image/webp") &&
-                isAnimatedWebp(file)) {
+        if ("image/webp".equalsIgnoreCase(bitmapOptions.outMimeType) && isAnimatedWebp(file)) {
             return FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP;
         }
         return FileColumns._SPECIAL_FORMAT_NONE;

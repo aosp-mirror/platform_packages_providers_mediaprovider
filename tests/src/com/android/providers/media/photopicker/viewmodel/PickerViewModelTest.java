@@ -41,8 +41,10 @@ import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -546,6 +548,11 @@ public class PickerViewModelTest {
         getInstrumentation().runOnMainSync(() -> mPickerViewModel.onUserDismissedChooseAppBanner());
         assertFalse(mBannerController.shouldShowChooseAppBanner());
         assertFalse(mPickerViewModel.shouldShowChooseAppBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
+        getInstrumentation().runOnMainSync(() -> mPickerViewModel.onUserDismissedChooseAppBanner());
+        assertFalse(mBannerController.shouldShowChooseAppBanner());
+        assertFalse(mPickerViewModel.shouldShowChooseAppBannerLiveData().getValue());
     }
 
     @Test
@@ -555,6 +562,12 @@ public class PickerViewModelTest {
         assertTrue(mBannerController.shouldShowCloudMediaAvailableBanner());
         assertTrue(mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData().getValue());
 
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedCloudMediaAvailableBanner());
+        assertFalse(mBannerController.shouldShowCloudMediaAvailableBanner());
+        assertFalse(mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
         getInstrumentation().runOnMainSync(() ->
                 mPickerViewModel.onUserDismissedCloudMediaAvailableBanner());
         assertFalse(mBannerController.shouldShowCloudMediaAvailableBanner());
@@ -575,6 +588,12 @@ public class PickerViewModelTest {
                 mPickerViewModel.onUserDismissedAccountUpdatedBanner());
         assertFalse(mBannerController.shouldShowAccountUpdatedBanner());
         assertFalse(mPickerViewModel.shouldShowAccountUpdatedBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedAccountUpdatedBanner());
+        assertFalse(mBannerController.shouldShowAccountUpdatedBanner());
+        assertFalse(mPickerViewModel.shouldShowAccountUpdatedBannerLiveData().getValue());
     }
 
     @Test
@@ -588,5 +607,34 @@ public class PickerViewModelTest {
                 mPickerViewModel.onUserDismissedChooseAccountBanner());
         assertFalse(mBannerController.shouldShowChooseAccountBanner());
         assertFalse(mPickerViewModel.shouldShowChooseAccountBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedChooseAccountBanner());
+        assertFalse(mBannerController.shouldShowChooseAccountBanner());
+        assertFalse(mPickerViewModel.shouldShowChooseAccountBannerLiveData().getValue());
+    }
+
+    @Test
+    public void testGetCloudMediaProviderAuthorityLiveData() {
+        assertNull(mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue());
+
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, /* cmpAccountName= */ null);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+
+        assertEquals(CMP_AUTHORITY,
+                mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue());
+    }
+
+    @Test
+    public void testGetChooseCloudMediaAccountActivityIntent() {
+        assertNull(mPickerViewModel.getChooseCloudMediaAccountActivityIntent());
+
+        final Intent testIntent = new Intent();
+        mBannerController.setChooseCloudMediaAccountActivityIntent(testIntent);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+
+        assertEquals(testIntent,
+                mPickerViewModel.getChooseCloudMediaAccountActivityIntent());
     }
 }

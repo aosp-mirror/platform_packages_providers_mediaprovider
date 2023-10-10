@@ -67,6 +67,7 @@
 
     <style name="MaterialAlertDialogTitleStyle"
            parent="@style/MaterialAlertDialog.MaterialComponents.Title.Text.CenterStacked">
+        <item name="android:textColor">?attr/pickerProfileDialogTitleColor</item>
         <item name="android:textAppearance">@style/PickerProfileDialogTitle</item>
     </style>
 
@@ -74,6 +75,7 @@
            parent="@style/MaterialAlertDialog.MaterialComponents.Body.Text">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">?attr/pickerProfileDialogBodyColor</item>
         <item name="android:textAppearance">@style/PickerProfileDialogBody</item>
     </style>
 
@@ -95,6 +97,12 @@
         <item name="android:windowNoTitle">true</item>
     </style>
 
+    <style name="PickerSettingsDefaultTheme" parent="PickerDefaultTheme">
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:listPreferredItemHeightSmall">@dimen/picker_settings_list_item_height</item>
+        <item name="android:listPreferredItemPaddingEnd">@dimen/picker_settings_list_item_padding_end</item>
+    </style>
+
     <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
         <item name="pickerDragBarColor">#DADCE0</item>
@@ -113,6 +121,21 @@
         <item name="pickerProfileDialogTitleColor">#202124</item>
         <item name="pickerProfileDialogBodyColor">#5F6368</item>
         <item name="pickerProfileDialogBackgroundColor">@android:color/white</item>
+        <!-- TODO(b/195009152): Final banner colors to be updated once received -->
+        <item name="pickerBannerBackgroundColor">@color/picker_background_color</item>
+        <item name="pickerBannerStrokeColor">@android:color/white</item>
+        <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
+        <item name="pickerBannerSecondaryTextColor">?android:attr/textColorPrimary</item>
+        <item name="pickerBannerButtonTextColor">?android:attr/colorAccent</item>
+    </style>
+
+    <style name="PickerBannerButtonTheme"
+           parent = "@style/Widget.Material3.Button.TextButton">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">@dimen/picker_banner_button_text_size</item>
+        <item name="android:letterSpacing">@dimen/picker_banner_button_text_letter_spacing</item>
+        <item name="android:textColor">?attr/pickerBannerButtonTextColor</item>
     </style>
 
 </resources>

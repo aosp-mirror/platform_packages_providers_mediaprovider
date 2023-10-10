@@ -16,7 +16,6 @@
 
 package com.android.providers.media.cloudproviders;
 
-import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
 import android.content.res.AssetFileDescriptor;
@@ -54,7 +53,7 @@ public class CloudProviderSecondary extends CloudMediaProvider {
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
         return mMediaGenerator.getMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
-                queryExtras.getMimeType(), queryExtras.getSizeBytes());
+                queryExtras.getMimeTypes(), queryExtras.getSizeBytes());
     }
 
     @Override
@@ -70,7 +69,7 @@ public class CloudProviderSecondary extends CloudMediaProvider {
         final CloudProviderQueryExtras queryExtras =
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
-        return mMediaGenerator.getAlbums(queryExtras.getMimeType(), queryExtras.getSizeBytes(),
+        return mMediaGenerator.getAlbums(queryExtras.getMimeTypes(), queryExtras.getSizeBytes(),
                 /* isLocal */ false);
     }
 

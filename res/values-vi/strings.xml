@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Phương tiện"</string>
     <string name="storage_description" msgid="4081716890357580107">"Bộ nhớ cục bộ"</string>
     <string name="app_label" msgid="9035307001052716210">"Bộ nhớ phương tiện"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Bộ chọn ảnh"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Nội dung nghe nhìn"</string>
     <string name="artist_label" msgid="8105600993099120273">"Nghệ sĩ"</string>
     <string name="unknown" msgid="2059049215682829375">"Không xác định"</string>
     <string name="root_images" msgid="5861633549189045666">"Hình ảnh"</string>
@@ -38,6 +38,14 @@
     <string name="clear" msgid="5524638938415865915">"Xóa"</string>
     <string name="allow" msgid="8885707816848569619">"Cho phép"</string>
     <string name="deny" msgid="6040983710442068936">"Từ chối"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Duyệt qua…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Ứng dụng nghe nhìn trên đám mây"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Ứng dụng nghe nhìn trên đám mây"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Ứng dụng nghe nhìn trên đám mây"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Truy cập vào nội dung nghe nhìn của bạn trên đám mây khi có ứng dụng hay trang web yêu cầu bạn chọn ảnh hoặc video"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Truy cập nội dung nghe nhìn trên đám mây qua"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Không có"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Hiện không thay đổi được ứng dụng đa phương tiện đám mây."</string>
     <string name="add" msgid="2894574044585549298">"Thêm"</string>
     <string name="deselect" msgid="4297825044827769490">"Bỏ chọn"</string>
     <string name="deselected" msgid="8488133193326208475">"Đã bỏ chọn"</string>
@@ -46,21 +54,24 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Chọn tối đa <xliff:g id="COUNT_0">^1</xliff:g> mục}other{Chọn tối đa <xliff:g id="COUNT_1">^1</xliff:g> mục}}"</string>
     <string name="recent" msgid="6694613584743207874">"Gần đây"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Không có ảnh hoặc video nào"</string>
-    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Không có đĩa nhạc nào"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Không có ảnh hoặc video nào được hỗ trợ"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"Không có album nào"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Xem các mục được chọn"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Ảnh"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Album"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Xem trước"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Chuyển sang hồ sơ công việc"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Chuyển sang hồ sơ cá nhân"</string>
-    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bị quản trị viên của bạn chặn"</string>
+    <string name="picker_profile_admin_title" msgid="4172022376418293777">"Quản trị viên của bạn đã chặn thao tác này"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Bạn không được phép truy cập dữ liệu công việc từ một ứng dụng cá nhân"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Bạn không được phép truy cập dữ liệu cá nhân từ một ứng dụng công việc"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ứng dụng công việc đã tạm dừng"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Để mở ảnh trong hồ sơ công việc, hãy bật ứng dụng công việc rồi thử lại"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ứng dụng này chỉ có thể truy cập vào những bức ảnh bạn chọn"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Chọn ảnh và video mà bạn cho phép ứng dụng này truy cập"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> mục}other{<xliff:g id="COUNT_1">^1</xliff:g> mục}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Thêm (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Cho phép (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Máy ảnh"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Tệp đã tải xuống"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Mục yêu thích"</string>
@@ -75,10 +86,27 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Ảnh chuyển động"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Tắt tiếng video"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Bật tiếng video"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Phát video"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Tạm dừng video"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Phát"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Tạm dừng"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Không thể phát video"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Sự cố khi phát video"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Hãy kiểm tra kết nối Internet rồi thử lại"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Thử lại"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Hiện đã có phương tiện đám mây từ <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"chưa được chọn"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>/<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> mục đã sẵn sàng"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Ảnh được sao lưu giờ đã có mặt"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Bạn có thể chọn ảnh của <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> trên <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Đã cập nhật tài khoản <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Ảnh của <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> giờ sẽ xuất hiện tại đây"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Chọn ứng dụng đa phương tiện trên đám mây"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Để ảnh đã sao lưu xuất hiện tại đây, hãy chọn một ứng dụng đa phương tiện trên đám mây trong phần Cài đặt"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Chọn tài khoản <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Để ảnh trên <xliff:g id="APP_NAME">%1$s</xliff:g> xuất hiện tại đây, hãy chọn một tài khoản trong ứng dụng"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Đóng"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Chọn ứng dụng"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Chọn tài khoản"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Thay đổi tài khoản"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> sửa đổi tệp âm thanh này?}other{Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> sửa đổi <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Đang sửa đổi tệp âm thanh…}other{Đang sửa đổi <xliff:g id="COUNT">^1</xliff:g> tệp âm thanh…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> sửa đổi video này?}other{Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> sửa đổi <xliff:g id="COUNT">^2</xliff:g> video?}}"</string>
@@ -119,4 +147,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Đang xử lý nội dung nghe nhìn..."</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Hủy"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Đợi"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Bảo vệ an toàn"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Cảnh báo chuyển mã gốc"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Tiến trình chuyển mã gốc"</string>
 </resources>

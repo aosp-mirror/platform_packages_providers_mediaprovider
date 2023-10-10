@@ -788,10 +788,23 @@ public abstract class CloudMediaProvider extends ContentProvider {
                         e);
             }
         }
+
+        /**
+         * Returns the underliying {@link IBinder} object.
+         *
+         * @hide
+         */
+        public IBinder getIBinder() {
+            return mCallback.asBinder();
+        }
     }
 
-    /** {@hide} */
-    private static class CloudMediaSurfaceControllerWrapper
+    /**
+     * {@link Binder} object backing a {@link CloudMediaSurfaceController} instance.
+     *
+     * @hide
+     */
+    public static class CloudMediaSurfaceControllerWrapper
             extends ICloudMediaSurfaceController.Stub {
 
         final private CloudMediaSurfaceController mSurfaceController;

@@ -18,17 +18,18 @@ package com.android.providers.media.photopicker.data.glide;
 
 import android.content.Context;
 import android.net.Uri;
-import android.os.ParcelFileDescriptor;
 
 import com.bumptech.glide.load.model.ModelLoader;
 import com.bumptech.glide.load.model.ModelLoaderFactory;
 import com.bumptech.glide.load.model.MultiModelLoaderFactory;
 
+import java.io.InputStream;
+
 /**
  * Custom {@link ModelLoaderFactory} which provides a {@link ModelLoader} for loading thumbnails
  * from cloud media provider.
  */
-public class PickerModelLoaderFactory implements ModelLoaderFactory<Uri, ParcelFileDescriptor> {
+public class PickerModelLoaderFactory implements ModelLoaderFactory<Uri, InputStream> {
 
     private final Context mContext;
 
@@ -37,7 +38,7 @@ public class PickerModelLoaderFactory implements ModelLoaderFactory<Uri, ParcelF
     }
 
     @Override
-    public ModelLoader<Uri, ParcelFileDescriptor> build(MultiModelLoaderFactory unused) {
+    public ModelLoader<Uri, InputStream> build(MultiModelLoaderFactory unused) {
         return new PickerModelLoader(mContext);
     }
 

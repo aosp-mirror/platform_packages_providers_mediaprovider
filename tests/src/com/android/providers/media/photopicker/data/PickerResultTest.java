@@ -73,7 +73,6 @@ public class PickerResultTest {
             final Uri result = intent.getData();
             assertPickerUriFormat(result);
             assertThat(result).isEqualTo(expectedPickerUri);
-            assertThat(mContext.getContentResolver().getType(result)).isEqualTo("image/jpeg");
 
             final ClipData clipData = intent.getClipData();
             assertThat(clipData).isNotNull();

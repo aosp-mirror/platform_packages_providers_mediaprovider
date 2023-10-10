@@ -13,6 +13,7 @@ android_app {
         "androidx.core_core",
         "androidx.legacy_legacy-support-core-ui",
         "androidx.lifecycle_lifecycle-extensions",
+        "androidx.preference_preference",
         "androidx.recyclerview_recyclerview",
         "com.google.android.material_material",
         "guava",
@@ -26,6 +27,9 @@ android_app {
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
         "exoplayer-mediaprovider-ui",
+        "modules-utils-shell-command-handler",
+        "SettingsLibProfileSelector",
+        "SettingsLibSelectorWithWidgetPreference",
     ],
 
     libs: [
@@ -55,6 +59,7 @@ android_app {
         shrink: true,
         optimize: false,
         obfuscate: false,
+        shrink_resources: true,
         proguard_flags_files: ["proguard.flags"],
     },
 
@@ -107,7 +112,7 @@ filegroup {
 java_library {
     name: "mediaprovider-database",
     srcs: [
-        "src/com/android/providers/media/DatabaseHelper.java",
+        "src/com/android/providers/media/LegacyDatabaseHelper.java",
         "src/com/android/providers/media/util/DatabaseUtils.java",
         "src/com/android/providers/media/util/FileUtils.java",
         "src/com/android/providers/media/util/ForegroundThread.java",
@@ -149,4 +154,9 @@ prebuilt_etc {
     name: "preinstalled-packages-com.android.providers.media.module.xml",
     src: "preinstalled-packages-com.android.providers.media.module.xml",
     sub_dir: "sysconfig",
+}
+
+sh_binary {
+    name: "media_provider",
+    src: "cli/media_provider_cli_wrapper.sh",
 }

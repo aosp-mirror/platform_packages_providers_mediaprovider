@@ -240,7 +240,7 @@ public class PickerDataLayer {
 
     private void syncAllMedia(boolean isLocalOnly) {
         if (isLocalOnly) {
-            mSyncController.syncAllMediaFromLocalProvider();
+            mSyncController.syncAllMediaFromLocalProvider(/* cancellationSignal= */ null);
         } else {
             mSyncController.syncAllMedia();
         }
@@ -431,7 +431,12 @@ public class PickerDataLayer {
         final Bundle accountBundle = mContext.getContentResolver()
                 .call(getMediaCollectionInfoUri(cloudProvider), METHOD_GET_MEDIA_COLLECTION_INFO,
                         /* arg */ null, /* extras */ null);
-
+        if (accountBundle == null) {
+            Log.e(TAG,
+                    "Media collection info received is null. Failed to fetch Cloud account "
+                            + "information.");
+            return null;
+        }
         final String accountName = accountBundle.getString(ACCOUNT_NAME);
         if (accountName == null) {
             return null;

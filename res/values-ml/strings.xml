@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"മീഡിയ"</string>
     <string name="storage_description" msgid="4081716890357580107">"ലോക്കൽ സ്റ്റോറേജ്"</string>
-    <string name="app_label" msgid="9035307001052716210">"മീഡിയ സ്റ്റോറേജ്"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"മീഡിയ പിക്കർ"</string>
     <string name="artist_label" msgid="8105600993099120273">"ആർട്ടിസ്‌റ്റ്"</string>
     <string name="unknown" msgid="2059049215682829375">"അജ്ഞാതം"</string>
@@ -154,8 +153,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"സുരക്ഷാ പരിരക്ഷ"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"നേറ്റീവ് ട്രാൻസ്കോഡ് മുന്നറിയിപ്പുകൾ"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"നേറ്റീവ് ട്രാൻസ്കോഡ് പുരോഗതി"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"പിന്നീട് വീണ്ടും ശ്രമിക്കുക. പ്രശ്‌നം പരിഹരിച്ച് കഴിഞ്ഞ് നിങ്ങളുടെ ഫോട്ടോകൾ ലഭ്യമാകും."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"ചില ഫോട്ടോകൾ ലോഡ് ചെയ്യാനാകുന്നില്ല"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"മനസ്സിലായി"</string>
 </resources>

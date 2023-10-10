@@ -27,7 +27,6 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.MediaStore;
-import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -36,8 +35,10 @@ import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.util.FileUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Manager class for the {@code media_grants} table in the {@link
@@ -55,6 +56,13 @@ class MediaGrants {
 
     private static final String MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME = "media_grants LEFT JOIN "
             + "files ON media_grants.file_id = files._id";
+
+    private static final String WHERE_MEDIA_GRANTS_PACKAGE_NAME_IN =
+            "media_grants." + MediaGrants.OWNER_PACKAGE_NAME_COLUMN + " IN ";
+    private static final String WHERE_MEDIA_GRANTS_FILE_ID_IN = MediaGrants.FILE_ID_COLUMN + " IN ";
+
+    private static final String WHERE_MEDIA_GRANTS_USER_ID =
+            "media_grants." + MediaGrants.PACKAGE_USER_ID_COLUMN + " = ? ";
 
     private SQLiteQueryBuilder mQueryBuilder = new SQLiteQueryBuilder();
     private DatabaseHelper mExternalDatabase;
@@ -120,27 +128,24 @@ class MediaGrants {
     /**
      * Returns the file uris of items for which the passed package has READ_GRANTS.
      *
-     * @param packageName   the package name that has access.
+     * @param packageNames  the package name that has access.
      * @param packageUserId the user_id of the package
      */
-    List<Uri> getMediaGrantsForPackage(String packageName, int packageUserId)
+    List<Uri> getMediaGrantsForPackages(String[] packageNames, int packageUserId)
             throws IllegalArgumentException {
-        Objects.requireNonNull(packageName);
+        Objects.requireNonNull(packageNames);
         return mExternalDatabase.runWithoutTransaction((db) -> {
             final List<Uri> filesUriList = new ArrayList<>();
-            final String selection = String.format(
-                    "%s = '%s' AND %s = %s",
-                    "media_grants." + MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
-                    packageName,
-                    "media_grants." + MediaGrants.PACKAGE_USER_ID_COLUMN,
-                    Integer.toString(packageUserId));
-            SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
+            final SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
             queryBuilder.setDistinct(true);
             queryBuilder.setTables(MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME);
+            String[] selectionArgs = buildSelectionArg(queryBuilder, packageNames, packageUserId,
+                    /* uris */ null);
+
             try (Cursor c = queryBuilder.query(db,
                     new String[]{DATA, FILE_ID_COLUMN},
-                    selection,
-                    null, null, null, null, null, null)) {
+                    null,
+                    selectionArgs, null, null, null, null, null)) {
                 while (c.moveToNext()) {
                     final String file_path = c.getString(c.getColumnIndexOrThrow(DATA));
                     final Integer file_id = c.getInt(c.getColumnIndexOrThrow(FILE_ID_COLUMN));
@@ -150,6 +155,32 @@ class MediaGrants {
                 return filesUriList;
             }
         });
+    }
+
+    int removeMediaGrantsForPackage(String[] packages, List<Uri> uris, int packageUserId) {
+        Objects.requireNonNull(packages);
+        if (packages.length == 0) {
+            throw new IllegalArgumentException(
+                    "Removing grants requires a non empty package name.");
+        }
+
+        final SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
+        queryBuilder.setDistinct(true);
+        queryBuilder.setTables(MEDIA_GRANTS_TABLE);
+        String[] selectionArgs = buildSelectionArg(queryBuilder, packages, packageUserId, uris);
+
+        return mExternalDatabase.runWithTransaction(
+                (db) -> {
+                    int grantsRemoved = queryBuilder.delete(db, null, selectionArgs);
+                    Log.d(
+                            TAG,
+                            String.format(
+                                    "Removed %s media_grants for %s user for %s.",
+                                    grantsRemoved,
+                                    String.valueOf(packageUserId),
+                                    Arrays.toString(packages)));
+                    return grantsRemoved;
+                });
     }
 
     /**
@@ -163,32 +194,34 @@ class MediaGrants {
      *
      * <p>The action is performed for only specific {@code user}.</p>
      *
-     * @param packageName   the package name to clear media grants for.
+     * @param packages      the package(s) name to clear media grants for.
      * @param reason        a logged reason why the grants are being cleared.
      * @param user          the user for which the grants need to be modified.
      *
      * @return              the number of grants removed.
      */
-    int removeAllMediaGrantsForPackage(String packageName, String reason,
-            @NonNull Integer user)
+    int removeAllMediaGrantsForPackages(String[] packages, String reason, @NonNull Integer user)
             throws IllegalArgumentException {
-        Objects.requireNonNull(packageName);
-        if (TextUtils.isEmpty(packageName)) {
+        Objects.requireNonNull(packages);
+        if (packages.length == 0) {
             throw new IllegalArgumentException(
                     "Removing grants requires a non empty package name.");
         }
+
+        final SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
+        queryBuilder.setDistinct(true);
+        queryBuilder.setTables(MEDIA_GRANTS_TABLE);
+        String[] selectionArgs = buildSelectionArg(queryBuilder, packages, user, /* uris= */null);
         return mExternalDatabase.runWithTransaction(
                 (db) -> {
-                    int grantsRemoved =
-                            mQueryBuilder.delete(
-                                    db, String.format(
-                                            "%s = ? AND %s = ?", OWNER_PACKAGE_NAME_COLUMN,
-                                            PACKAGE_USER_ID_COLUMN),
-                                    new String[]{packageName, String.valueOf(user)});
-                    Log.d(TAG,
-                            String.format("Removed %s media_grants for %s user for %s. Reason: %s",
-                                    grantsRemoved, String.valueOf(user),
-                                    packageName,
+                    int grantsRemoved = queryBuilder.delete(db, null, selectionArgs);
+                    Log.d(
+                            TAG,
+                            String.format(
+                                    "Removed %s media_grants for %s user for %s. Reason: %s",
+                                    grantsRemoved,
+                                    String.valueOf(user),
+                                    Arrays.toString(packages),
                                     reason));
                     return grantsRemoved;
                 });
@@ -242,5 +275,57 @@ class MediaGrants {
                 && PickerUriResolver.unwrapProviderUri(uri)
                         .getHost()
                         .equals(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+    }
+
+    /**
+     * Add required selection arguments like comparisons and WHERE checks to the
+     * {@link SQLiteQueryBuilder} qb.
+     *
+     * @param qb           query builder on which the conditions/filters needs to be applied.
+     * @param packageNames used to add condition :WHERE owner_package_name in packageNames
+     * @param userId       used to add condition: WHERE package_user_id = userId
+     * @param uris         used to add condition: WHERE file_id IN parseIdsFrom(uris)
+     * @return array of selection args used to replace placeholders in query builder conditions.
+     */
+    private String[] buildSelectionArg(SQLiteQueryBuilder qb, String[] packageNames,
+            Integer userId, List<Uri> uris) {
+        List<String> selectArgs = new ArrayList<>();
+        // Append where clause for package names.
+        if (packageNames.length > 0) {
+
+            // Append the where clause for local id selection to the query builder.
+            qb.appendWhereStandalone(
+                    WHERE_MEDIA_GRANTS_PACKAGE_NAME_IN + buildPlaceholderForWhereClause(
+                            packageNames.length));
+
+            // Add local ids to the selection args.
+            selectArgs.addAll(Arrays.asList(packageNames));
+        }
+
+        if (uris != null && !uris.isEmpty()) {
+            // Append the where clause for local id selection to the query builder.
+            qb.appendWhereStandalone(
+                    WHERE_MEDIA_GRANTS_FILE_ID_IN + buildPlaceholderForWhereClause(uris.size()));
+
+            // Add local ids to the selection args.
+            selectArgs.addAll(uris.stream().map(
+                    (Uri uri) -> String.valueOf(ContentUris.parseId(uri))).collect(
+                    Collectors.toList()));
+        }
+        // Append where clause for userID.
+        qb.appendWhereStandalone(WHERE_MEDIA_GRANTS_USER_ID);
+        selectArgs.add(String.valueOf(userId));
+
+        return selectArgs.toArray(new String[selectArgs.size()]);
+    }
+
+    private String buildPlaceholderForWhereClause(int numberOfItemsInSelection) {
+        StringBuilder placeholder = new StringBuilder("(");
+        for (int itr = 0; itr < numberOfItemsInSelection; itr++) {
+            placeholder.append("?,");
+        }
+        placeholder.deleteCharAt(placeholder.length() - 1);
+        placeholder.append(")");
+        return placeholder.toString();
     }
 }

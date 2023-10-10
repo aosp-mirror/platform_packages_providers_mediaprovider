@@ -19,7 +19,6 @@ package com.android.providers.media.photopicker.data;
 import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Build;
 
 import androidx.annotation.NonNull;
 
@@ -44,7 +43,7 @@ public class PickerResult {
     public static Intent getPickerResponseIntent(String action, boolean canSelectMultiple,
             @NonNull List<Item> selectedItems) {
         // 1. Get Picker Uris corresponding to the selected items
-        List<Uri> selectedUris = getPickerUrisForItems(selectedItems);
+        List<Uri> selectedUris = getPickerUrisForItems(action, selectedItems);
 
         // 2. Grant read access to picker Uris and return
         Intent intent = new Intent();
@@ -66,37 +65,29 @@ public class PickerResult {
         }
         intent.setClipData(clipData);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        if (Intent.ACTION_GET_CONTENT.equalsIgnoreCase(action)
-                && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            // Adding write grants for base sdk version < T. This fixes Samsung messaging app
-            // problem which tries to share URI with its image editor activity and crashes for
-            // ACTION_GET_CONTENT takeover by PhotoPicker because of missing write grants.
-            // No app should expect write grants on PhotoPicker uri apart from this specific
-            // scenario.
-            intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        }
         intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
 
         return intent;
     }
 
     @VisibleForTesting
-    static Uri getPickerUri(Uri uri) {
+    static Uri getPickerUri(String action, Uri uri) {
         final String userInfo = uri.getUserInfo();
         final String userId = userInfo == null ? UserId.CURRENT_USER.toString() : userInfo;
-        return PickerUriResolver.wrapProviderUri(uri, Integer.parseInt(userId));
+        return PickerUriResolver.wrapProviderUri(uri, action, Integer.parseInt(userId));
     }
 
     /**
      * Returns list of PhotoPicker Uris corresponding to each {@link Item}
      *
+     * @param action action name which opened PhotoPicker
      * @param items list of Item for which we return uri list.
      */
     @NonNull
-    public static List<Uri> getPickerUrisForItems(@NonNull List<Item> items) {
+    public static List<Uri> getPickerUrisForItems(String action, @NonNull List<Item> items) {
         List<Uri> uris = new ArrayList<>();
         for (Item item : items) {
-            uris.add(getPickerUri(item.getContentUri()));
+            uris.add(getPickerUri(action, item.getContentUri()));
         }
 
         return uris;

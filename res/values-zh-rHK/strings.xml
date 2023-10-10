@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"媒體"</string>
     <string name="storage_description" msgid="4081716890357580107">"本機儲存空間"</string>
-    <string name="app_label" msgid="9035307001052716210">"媒體儲存空間"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"媒體選擇器"</string>
     <string name="artist_label" msgid="8105600993099120273">"歌手"</string>
     <string name="unknown" msgid="2059049215682829375">"不明"</string>
@@ -154,8 +153,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"安全保護"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"原生轉碼警示"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"原生轉碼進度"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"請稍後再試。相片會在問題解決後顯示。"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"部分相片無法載入"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"知道了"</string>
 </resources>

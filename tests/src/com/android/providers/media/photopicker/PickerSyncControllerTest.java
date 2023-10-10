@@ -47,7 +47,6 @@ import androidx.annotation.Nullable;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.data.CloudProviderInfo;
@@ -197,14 +196,12 @@ public class PickerSyncControllerTest {
         assertThat(controller.getCurrentCloudProviderInfo()).isEqualTo(CloudProviderInfo.EMPTY);
         configStore.setDefaultCloudProviderPackage(PACKAGE_NAME);
         configStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
-        waitForIdle();
 
         // Ensure the cloud provider is set to something. (The test package name here actually
         // has multiple cloud providers in it, so just ensure something got set.)
         assertThat(controller.getCurrentCloudProviderInfo().authority).isNotNull();
 
         configStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
-        waitForIdle();
 
         // Ensure the cloud provider is correctly nulled out when the config changes again.
         assertThat(controller.getCurrentCloudProviderInfo().authority).isNull();
@@ -416,7 +413,7 @@ public class PickerSyncControllerTest {
         // 3. Add another media in primary cloud provider
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
 
-        mController.syncAllMediaFromLocalProvider();
+        mController.syncAllMediaFromLocalProvider(/* cancellationSignal=*/ null);
         // Verify that the sync only synced local items
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(3);
@@ -1048,11 +1045,11 @@ public class PickerSyncControllerTest {
     }
 
     @Test
-    public void testSyncAllMedia_missingHonouredArgs_doesNotDisplayCloud() {
+    public void testSyncAllMedia_missingOptionalHonoredArgs_displaysCloud() {
         // 1. Set cloud provider
         setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
-        // 2. Add media before setting primary cloud provider
+        // 2. Add media before syncing again with the cloud provider
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_2);
 
@@ -1062,7 +1059,12 @@ public class PickerSyncControllerTest {
 
         // 4. Sync and verify media
         mController.syncAllMedia();
-        assertEmptyCursorFromMediaQuery();
+        try (Cursor cr = queryMedia()) {
+            assertThat(cr.getCount()).isEqualTo(/* expected= */ 2);
+
+            assertCursor(cr, CLOUD_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
     }
 
     @Test
@@ -1399,17 +1401,6 @@ public class PickerSyncControllerTest {
         } finally {
             contentResolver.unregisterContentObserver(refreshUiNotificationObserver);
         }
-    }
-
-    private static void waitForIdle() {
-        final CountDownLatch latch = new CountDownLatch(1);
-        BackgroundThread.getExecutor().execute(latch::countDown);
-        try {
-            latch.await(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
-
     }
 
     private static void addMedia(MediaGenerator generator, Pair<String, String> media) {

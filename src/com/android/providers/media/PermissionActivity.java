@@ -243,10 +243,6 @@ public class PermissionActivity extends Activity {
             Log.w(TAG, "Couldn't find message element");
         }
 
-        final WindowManager.LayoutParams params = actionDialog.getWindow().getAttributes();
-        params.width = getResources().getDimensionPixelSize(R.dimen.permission_dialog_width);
-        actionDialog.getWindow().setAttributes(params);
-
         // Hunt around to find the title of our newly created dialog so we can
         // adjust accessibility focus once descriptions have been loaded
         titleView = (TextView) findViewByPredicate(actionDialog.getWindow().getDecorView(),
@@ -640,7 +636,7 @@ public class PermissionActivity extends Activity {
     private @Nullable CharSequence resolveTitleText() {
         final String resName = "permission_" + verb + "_" + data;
         final int resId = getResources().getIdentifier(resName, "string",
-                getResources().getResourcePackageName(R.string.app_label));
+                getResources().getResourcePackageName(R.string.picker_app_label));
         if (resId != 0) {
             final int count = uris.size();
             final CharSequence text = StringUtils.getICUFormatString(getResources(), count, resId);
@@ -658,7 +654,7 @@ public class PermissionActivity extends Activity {
     private @Nullable CharSequence resolveProgressMessageText() {
         final String resName = "permission_progress_" + verb + "_" + data;
         final int resId = getResources().getIdentifier(resName, "string",
-                getResources().getResourcePackageName(R.string.app_label));
+                getResources().getResourcePackageName(R.string.picker_app_label));
         if (resId != 0) {
             final int count = uris.size();
             final CharSequence text = StringUtils.getICUFormatString(getResources(), count, resId);

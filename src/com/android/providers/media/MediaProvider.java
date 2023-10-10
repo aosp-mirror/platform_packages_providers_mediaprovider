@@ -1363,9 +1363,9 @@ public class MediaProvider extends ContentProvider {
         }
 
         updateVolumes();
-        attachVolume(MediaVolume.fromInternal(), /* validate */ false);
+        attachVolume(MediaVolume.fromInternal(), /* validate */ false, /* volumeState */ null);
         for (MediaVolume volume : mVolumeCache.getExternalVolumes()) {
-            attachVolume(volume, /* validate */ false);
+            attachVolume(volume, /* validate */ false, /* volumeState */ null);
         }
 
         // Watch for performance-sensitive activity
@@ -5183,7 +5183,8 @@ public class MediaProvider extends ContentProvider {
             MediaVolume volume = null;
             try {
                 volume = getVolume(name);
-                Uri attachedVolume = attachVolume(volume, /* validate */ true);
+                Uri attachedVolume = attachVolume(volume, /* validate */ true, /* volumeState */
+                        null);
                 if (mMediaScannerVolume != null && mMediaScannerVolume.equals(name)) {
                     final DatabaseHelper helper = getDatabaseForUri(
                             MediaStore.Files.getContentUri(mMediaScannerVolume));
@@ -10997,7 +10998,8 @@ public class MediaProvider extends ContentProvider {
         return MediaStore.AUTHORITY_URI.buildUpon().appendPath(volumeName).build();
     }
 
-    public Uri attachVolume(MediaVolume volume, boolean validate) {
+    public Uri attachVolume(MediaVolume volume, boolean validate, String volumeState) {
+        Log.v(TAG, "attachVolume() called for " + volume.getName() + " with state:" + volumeState);
         if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
@@ -11045,8 +11047,11 @@ public class MediaProvider extends ContentProvider {
             });
         }
 
-        mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
-                        volume.getPath());
+        if (Environment.MEDIA_MOUNTED.equalsIgnoreCase(volumeState)) {
+            mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
+                    volume.getPath());
+        }
+
         return uri;
     }
 

@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"ਮੀਡੀਆ"</string>
     <string name="storage_description" msgid="4081716890357580107">"ਸਥਾਨਕ ਸਟੋਰੇਜ"</string>
-    <string name="app_label" msgid="9035307001052716210">"ਮੀਡੀਆ ਸਟੋਰੇਜ"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"ਮੀਡੀਆ"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"ਮੀਡੀਆ ਚੋਣਕਾਰ"</string>
     <string name="artist_label" msgid="8105600993099120273">"ਕਲਾਕਾਰ"</string>
     <string name="unknown" msgid="2059049215682829375">"ਅਗਿਆਤ"</string>
     <string name="root_images" msgid="5861633549189045666">"ਚਿੱਤਰ"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"ਇੱਥੋਂ ਕਲਾਊਡ ਮੀਡੀਆ ਤੱਕ ਪਹੁੰਚ ਕਰੋ"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ਕੋਈ ਨਹੀਂ"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"ਇਸ ਸਮੇਂ ਕਲਾਊਡ ਮੀਡੀਆ ਐਪ ਨੂੰ ਬਦਲਿਆ ਨਹੀਂ ਜਾ ਸਕਿਆ।"</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"ਮੀਡੀਆ ਚੋਣਕਾਰ"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"ਮੀਡੀਆ ਚੋਣਕਾਰ"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"ਮੀਡੀਆ ਸਿੰਕ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ…"</string>
     <string name="add" msgid="2894574044585549298">"ਸ਼ਾਮਲ ਕਰੋ"</string>
     <string name="deselect" msgid="4297825044827769490">"ਅਣ-ਚੁਣਿਆ ਕਰੋ"</string>
     <string name="deselected" msgid="8488133193326208475">"ਅਣ-ਚੁਣਿਆ"</string>
@@ -92,11 +94,11 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"ਵੀਡੀਓ ਚਲਾਉਣ ਵਿੱਚ ਸਮੱਸਿਆ ਆ ਰਹੀ ਹੈ"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ਆਪਣੇ ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ ਦੀ ਜਾਂਚ ਕਰ ਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ਮੁੜ-ਕੋਸ਼ਿਸ਼ ਕਰੋ"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ਕਲਾਊਡ ਮੀਡੀਆ ਹੁਣ <xliff:g id="PKG_NAME">%1$s</xliff:g> ਤੋਂ ਉਪਲਬਧ ਹੈ"</string>
     <string name="not_selected" msgid="2244008151669896758">"ਚੁਣਿਆ ਨਹੀਂ ਗਿਆ"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"ਤੁਹਾਡਾ ਚੁਣਿਆ ਗਿਆ ਮੀਡੀਆ ਤਿਆਰ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ਵਿੱਚੋਂ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> ਤਿਆਰ"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ਬੈਕਅੱਪ ਕੀਤੀਆਂ ਫ਼ੋਟੋਆਂ ਨੂੰ ਹੁਣ ਸ਼ਾਮਲ ਕੀਤਾ ਗਿਆ"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ਤੁਸੀਂ ਖਾਤੇ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ਦੀ <xliff:g id="APP_NAME">%1$s</xliff:g> ਵਿੱਚੋਂ ਫ਼ੋਟੋਆਂ ਨੂੰ ਚੁਣੋ"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ਤੁਸੀਂ <xliff:g id="APP_NAME">%1$s</xliff:g> ਵਿੱਚੋਂ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ਖਾਤੇ ਤੋਂ ਫ਼ੋਟੋਆਂ ਚੁਣ ਸਕਦੇ ਹੋ"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> ਖਾਤੇ ਨੂੰ ਅੱਪਡੇਟ ਕੀਤਾ ਗਿਆ"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> ਦੀਆਂ ਫ਼ੋਟੋਆਂ ਨੂੰ ਹੁਣ ਇੱਥੇ ਸ਼ਾਮਲ ਕੀਤਾ ਗਿਆ ਹੈ"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"ਕਲਾਊਡ ਮੀਡੀਆ ਐਪ ਨੂੰ ਚੁਣੋ"</string>
@@ -107,6 +109,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ਐਪ ਚੁਣੋ"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ਖਾਤਾ ਚੁਣੋ"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ਖਾਤਾ ਬਦਲੋ"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"ਤੁਹਾਡੀਆਂ ਸਾਰੀਆਂ ਫ਼ੋਟੋਆਂ ਪ੍ਰਾਪਤ ਕੀਤੀਆਂ ਜਾ ਰਹੀਆਂ ਹਨ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਆਡੀਓ ਫ਼ਾਈਲ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲਾਂ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ਆਡੀਓ ਫ਼ਾਈਲ ਸੋਧੀ ਜਾ ਰਹੀ ਹੈ…}one{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲ ਸੋਧੀ ਜਾ ਰਹੀ ਹੈ…}other{<xliff:g id="COUNT">^1</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲਾਂ ਸੋਧੀਆਂ ਜਾ ਰਹੀਆਂ ਹਨ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ਕੀ <xliff:g id="APP_NAME_0">^1</xliff:g> ਨੂੰ ਇਸ ਵੀਡੀਓ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}one{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਵੀਡੀਓ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}other{ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਵੀਡੀਓ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?}}"</string>
@@ -150,4 +153,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"ਸੁਰੱਖਿਆ ਬਚਾਅ"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"ਨੇਟਿਵ ਟ੍ਰਾਂਸਕੋਡ ਸੁਚੇਤਨਾਵਾਂ"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"ਨੇਟਿਵ ਟ੍ਰਾਂਸਕੋਡ ਪ੍ਰਗਤੀ"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"ਬਾਅਦ ਵਿੱਚ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ। ਸਮੱਸਿਆ ਹੱਲ ਹੋਣ ਤੋਂ ਬਾਅਦ ਤੁਹਾਡੀਆਂ ਫ਼ੋਟੋਆਂ ਉਪਲਬਧ ਹੋ ਜਾਣਗੀਆਂ।"</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"ਕੁਝ ਫ਼ੋਟੋਆਂ ਨੂੰ ਲੋਡ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"ਸਮਝ ਲਿਆ"</string>
 </resources>

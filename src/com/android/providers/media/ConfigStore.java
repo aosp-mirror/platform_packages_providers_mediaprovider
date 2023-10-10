@@ -48,6 +48,10 @@ import java.util.concurrent.Executor;
  * always have permissions for accessing the {@link android.provider.DeviceConfig}).
  */
 public interface ConfigStore {
+
+    // TODO(b/288066342): Remove and replace after new constant definition in
+    //  {@link android.provider.DeviceConfig}.
+    String NAMESPACE_MEDIAPROVIDER = "mediaprovider";
     boolean DEFAULT_TAKE_OVER_GET_CONTENT = false;
     boolean DEFAULT_USER_SELECT_FOR_APP = true;
     boolean DEFAULT_STABILISE_VOLUME_INTERNAL = false;
@@ -57,14 +61,13 @@ public interface ConfigStore {
     boolean DEFAULT_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = false;
     int DEFAULT_TRANSCODE_MAX_DURATION = 60 * 1000; // 1 minute
 
-    int DEFAULT_PICKER_SYNC_DELAY = 5000; // 5 seconds
-
     boolean DEFAULT_PICKER_GET_CONTENT_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG = false;
 
-    boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = false;
+    boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = true;
     boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
+    boolean DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED = false;
 
     /**
      * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and
@@ -73,6 +76,14 @@ public interface ConfigStore {
     default boolean isCloudMediaInPhotoPickerEnabled() {
         return DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED;
     }
+
+    /**
+     * @return if the Picker-Choice_Managed_selection is enabled.
+     */
+    default boolean isPickerChoiceManagedSelectionEnabled() {
+        return DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED;
+    }
+
 
     /**
      * @return package name of the pre-configured "system default"
@@ -102,14 +113,6 @@ public interface ConfigStore {
      */
     default boolean shouldEnforceCloudProviderAllowlist() {
         return DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST;
-    }
-
-    /**
-     * @return a delay (in milliseconds) before executing PhotoPicker media sync on media events
-     *         like inserts/updates/deletes to artificially throttle the burst notifications.
-     */
-    default int getPickerSyncDelayMs() {
-        return DEFAULT_PICKER_SYNC_DELAY;
     }
 
     /**
@@ -222,7 +225,6 @@ public interface ConfigStore {
         writer.println("  allowedCloudProviderPackages=" + getAllowedCloudProviderPackages());
         writer.println("  shouldEnforceCloudProviderAllowlist="
                 + shouldEnforceCloudProviderAllowlist());
-        writer.println("  pickerSyncDelayMs=" + getPickerSyncDelayMs());
         writer.println("  shouldPickerPreloadForGetContent=" + shouldPickerPreloadForGetContent());
         writer.println("  shouldPickerPreloadForPickImages=" + shouldPickerPreloadForPickImages());
         writer.println("  shouldPickerRespectPreloadArgumentForPickImages="
@@ -249,7 +251,7 @@ public interface ConfigStore {
         private static final String KEY_USER_SELECT_FOR_APP = "user_select_for_app";
 
         @VisibleForTesting
-        public static final String KEY_STABILISE_VOLUME_INTERNAL = "stablise_volume_internal";
+        public static final String KEY_STABILIZE_VOLUME_INTERNAL = "stabilize_volume_internal";
         @VisibleForTesting
         public static final String KEY_STABILIZE_VOLUME_EXTERNAL = "stabilize_volume_external";
 
@@ -262,7 +264,7 @@ public interface ConfigStore {
         private static final String SYSPROP_TRANSCODE_MAX_DURATION =
             "persist.sys.fuse.transcode_max_file_duration_ms";
         private static final int TRANSCODE_MAX_DURATION_INVALID = 0;
-        private static final String KEY_PICKER_SYNC_DELAY = "default_sync_delay_ms";
+
         private static final String KEY_PICKER_GET_CONTENT_PRELOAD =
                 "picker_get_content_preload_selected";
         private static final String KEY_PICKER_PICK_IMAGES_PRELOAD =
@@ -271,6 +273,8 @@ public interface ConfigStore {
                 "picker_pick_images_respect_preload_selected_arg";
 
         private static final String KEY_CLOUD_MEDIA_FEATURE_ENABLED = "cloud_media_feature_enabled";
+        private static final String KEY_PICKER_CHOICE_MANAGED_SELECTION_ENABLED =
+                "picker_choice_managed_selection_enabled";
         private static final String KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST = "allowed_cloud_providers";
         private static final String KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST =
                 "cloud_media_enforce_provider_allowlist";
@@ -286,8 +290,27 @@ public interface ConfigStore {
 
         @Override
         public boolean isCloudMediaInPhotoPickerEnabled() {
-            return getBooleanDeviceConfig(KEY_CLOUD_MEDIA_FEATURE_ENABLED,
-                    DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED);
+            Boolean isEnabled =
+                    getBooleanDeviceConfig(
+                            NAMESPACE_MEDIAPROVIDER,
+                            KEY_CLOUD_MEDIA_FEATURE_ENABLED,
+                            DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED);
+
+            List<String> allowList =
+                    getStringArrayDeviceConfig(
+                            NAMESPACE_MEDIAPROVIDER, KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST);
+
+            // Only consider the feature enabled when the enabled flag is on AND when the allowlist
+            // of permitted cloud media providers is not empty.
+            return isEnabled && !allowList.isEmpty();
+        }
+
+        @Override
+        public boolean isPickerChoiceManagedSelectionEnabled() {
+            return getBooleanDeviceConfig(
+                            NAMESPACE_MEDIAPROVIDER,
+                            KEY_PICKER_CHOICE_MANAGED_SELECTION_ENABLED,
+                            DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED);
         }
 
         @Nullable
@@ -311,7 +334,8 @@ public interface ConfigStore {
         @Override
         public List<String> getAllowedCloudProviderPackages() {
             final List<String> allowlist =
-                    getStringArrayDeviceConfig(KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST);
+                    getStringArrayDeviceConfig(NAMESPACE_MEDIAPROVIDER,
+                            KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST);
 
             // BACKWARD COMPATIBILITY WORKAROUND.
             // See javadoc to maybeExtractPackageNameFromCloudProviderAuthority() below for more
@@ -329,13 +353,10 @@ public interface ConfigStore {
 
         @Override
         public boolean shouldEnforceCloudProviderAllowlist() {
-            return getBooleanDeviceConfig(KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST,
+            return getBooleanDeviceConfig(
+                    NAMESPACE_MEDIAPROVIDER,
+                    KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST,
                     DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST);
-        }
-
-        @Override
-        public int getPickerSyncDelayMs() {
-            return getIntDeviceConfig(KEY_PICKER_SYNC_DELAY, DEFAULT_PICKER_SYNC_DELAY);
         }
 
         @Override
@@ -368,14 +389,14 @@ public interface ConfigStore {
 
         @Override
         public boolean isStableUrisForInternalVolumeEnabled() {
-            return getBooleanDeviceConfig(
-                    KEY_STABILISE_VOLUME_INTERNAL, DEFAULT_STABILISE_VOLUME_INTERNAL);
+            return getBooleanDeviceConfig(NAMESPACE_MEDIAPROVIDER, KEY_STABILIZE_VOLUME_INTERNAL,
+                    DEFAULT_STABILISE_VOLUME_INTERNAL);
         }
 
         @Override
         public boolean isStableUrisForExternalVolumeEnabled() {
-            return getBooleanDeviceConfig(
-                    KEY_STABILIZE_VOLUME_EXTERNAL, DEFAULT_STABILIZE_VOLUME_EXTERNAL);
+            return getBooleanDeviceConfig(NAMESPACE_MEDIAPROVIDER, KEY_STABILIZE_VOLUME_EXTERNAL,
+                    DEFAULT_STABILIZE_VOLUME_EXTERNAL);
         }
 
         @Override
@@ -430,6 +451,8 @@ public interface ConfigStore {
             // that make changes to this package independent of reboot
             DeviceConfig.addOnPropertiesChangedListener(
                     NAMESPACE_STORAGE_NATIVE_BOOT, executor, unused -> listener.run());
+            DeviceConfig.addOnPropertiesChangedListener(
+                    NAMESPACE_MEDIAPROVIDER, executor, unused -> listener.run());
         }
 
         private static boolean getBooleanDeviceConfig(@NonNull String key, boolean defaultValue) {
@@ -438,6 +461,15 @@ public interface ConfigStore {
             }
             return withCleanCallingIdentity(() ->
                     DeviceConfig.getBoolean(NAMESPACE_STORAGE_NATIVE_BOOT, key, defaultValue));
+        }
+
+        private static boolean getBooleanDeviceConfig(@NonNull String namespace,
+                @NonNull String key, boolean defaultValue) {
+            if (!sCanReadDeviceConfig) {
+                return defaultValue;
+            }
+            return withCleanCallingIdentity(
+                    () -> DeviceConfig.getBoolean(namespace, key, defaultValue));
         }
 
         private static int getIntDeviceConfig(@NonNull String key, int defaultValue) {
@@ -456,8 +488,26 @@ public interface ConfigStore {
                     DeviceConfig.getString(NAMESPACE_STORAGE_NATIVE_BOOT, key, null));
         }
 
+        private static String getStringDeviceConfig(@NonNull String namespace,
+                @NonNull String key) {
+            if (!sCanReadDeviceConfig) {
+                return null;
+            }
+            return withCleanCallingIdentity(() ->
+                    DeviceConfig.getString(namespace, key, null));
+        }
+
         private static List<String> getStringArrayDeviceConfig(@NonNull String key) {
             final String items = getStringDeviceConfig(key);
+            if (StringUtils.isNullOrEmpty(items)) {
+                return Collections.emptyList();
+            }
+            return Arrays.asList(items.split(","));
+        }
+
+        private static List<String> getStringArrayDeviceConfig(@NonNull String namespace,
+                @NonNull String key) {
+            final String items = getStringDeviceConfig(namespace, key);
             if (StringUtils.isNullOrEmpty(items)) {
                 return Collections.emptyList();
             }

@@ -21,6 +21,7 @@ import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIM
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
 
+import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorInt;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
@@ -39,6 +40,8 @@ import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.util.MimeUtils;
+
+import java.util.Objects;
 
 /**
  * Base class for representing a single media item (a picture, a video, etc.) in the PhotoPicker.
@@ -60,6 +63,8 @@ public class Item {
     private boolean mIsImage;
     private boolean mIsVideo;
     private int mSpecialFormat;
+
+    private boolean mIsPreGranted;
 
     /**
      * This is the row id for the item in the db.
@@ -144,6 +149,16 @@ public class Item {
         return mRowId;
     }
 
+    /**
+     * Setting this represents that the item has READ_GRANT for the current package.
+     */
+    public void setPreGranted() {
+        mIsPreGranted = true;
+    }
+    public boolean isPreGranted() {
+        return mIsPreGranted;
+    }
+
     public static Item fromCursor(@NonNull Cursor cursor, UserId userId) {
         return new Item(requireNonNull(cursor), userId);
     }
@@ -216,5 +231,25 @@ public class Item {
         } else {
             return mId.compareTo(anotherItem.getId());
         }
+    }
+
+    /**
+     * @return {@code true} iff this item is local (available on device), {@code false} otherwise.
+     */
+    public boolean isLocal() {
+        return LOCAL_PICKER_PROVIDER_AUTHORITY.equals(mUri.getAuthority());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || !(obj instanceof Item)) return false;
+
+        Item other = (Item) obj;
+        return mUri.equals(other.mUri);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hash(mUri);
     }
 }

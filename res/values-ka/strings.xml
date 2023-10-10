@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"მედია"</string>
     <string name="storage_description" msgid="4081716890357580107">"ადგილობრივი მეხსიერება"</string>
-    <string name="app_label" msgid="9035307001052716210">"მედიის საცავი"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"მედია"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"მედიის ამომრჩევი"</string>
     <string name="artist_label" msgid="8105600993099120273">"შემსრულებელი"</string>
     <string name="unknown" msgid="2059049215682829375">"უცნობი"</string>
     <string name="root_images" msgid="5861633549189045666">"სურათები"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"ღრუბლოვან მედიაზე წვდომა აქედან:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"არცერთი"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"ღრუბლური მედია აპის შეცვლა ამჯერად ვერ ხერხდება."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"მედიის ამომრჩევი"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"მედიის ამომრჩევი"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"მიმდინარეობს მედიის სინქრონიზაცია…"</string>
     <string name="add" msgid="2894574044585549298">"დამატება"</string>
     <string name="deselect" msgid="4297825044827769490">"არჩევის გაუქმება"</string>
     <string name="deselected" msgid="8488133193326208475">"არჩევა გაუქმებულია"</string>
@@ -60,7 +62,7 @@
     <string name="picker_photos" msgid="7415035516411087392">"ფოტოები"</string>
     <string name="picker_albums" msgid="4822511902115299142">"ალბომები"</string>
     <string name="picker_preview" msgid="6257414886055861039">"გადახედვა"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"სამსახურის პროფილზე გადართვა"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"სამსახურზე გადართვა"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"პირად პროფილზე გადართვა"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"დაბლოკილია თქვენი ადმინისტრატორის მიერ"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"პირადი აპიდან სამუშაო სამსახურებრივ მონაცემებზე წვდომა დაუშვებელია"</string>
@@ -92,10 +94,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"ვიდეოს იკვრება პრობლემურად"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"შეამოწმეთ ინტერნეტთან კავშირი და სცადეთ ხელახლა"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ცდა"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ღრუბლოვანი მედია უკვე ხელმისაწვდომია <xliff:g id="PKG_NAME">%1$s</xliff:g>-ისგან"</string>
     <string name="not_selected" msgid="2244008151669896758">"არ არის არჩეული"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"მიმდინარეობს თქვენ მიერ არჩეული მედიის მომზადება"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> სულ <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>-დან მზადაა"</string>
-    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ფოტოების სარეზერვო ასლები ახლა განთავსებულია"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"უკვე ფოტოების სარეზერვო ასლების ჩათვლით"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"შეგიძლიათ აირჩიოთ ფოტოები <xliff:g id="APP_NAME">%1$s</xliff:g>-ის ანგარიშიდან <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> ანგარიში განახლებულია"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g>-ის ფოტოები ახლა აქ არის განთავსებული"</string>
@@ -107,6 +109,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"აპის არჩევა"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"აირჩიეთ ანგარიში"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ანგარიშის შეცვლა"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"თქვენი ყველა ფოტოს მიღება"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{აძლევთ უფლებას <xliff:g id="APP_NAME_0">^1</xliff:g>-ს, შეცვალოს ეს აუდიოფაილი?}other{აძლევთ უფლებას <xliff:g id="APP_NAME_1">^1</xliff:g>-ს, შეცვალოს <xliff:g id="COUNT">^2</xliff:g> აუდიოფაილი?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{მიმდინარეობს აუდიოფაილის მოდიფიკაცია…}other{მიმდინარეობს <xliff:g id="COUNT">^1</xliff:g> აუდიოფაილის მოდიფიკაცია…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{აძლევთ უფლებას <xliff:g id="APP_NAME_0">^1</xliff:g>-ს, შეცვალოს ეს ვიდეო?}other{აძლევთ უფლებას <xliff:g id="APP_NAME_1">^1</xliff:g>-ს, შეცვალოს <xliff:g id="COUNT">^2</xliff:g> ვიდეო?}}"</string>
@@ -150,4 +153,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"უსაფრთხოების დაცვა"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"ტრანსკოდირების ადგილობრივი გაფრთხილება"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"ტრანსკოდირების ადგილობრივი პროგრესი"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"ცადეთ მოგვიანებით. თქვენი ფოტოები ხარვეზის აღმოფხვრის შემდეგ იქნება ხელმისაწვდომი."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"ზოგიერთი ფოტოს ჩატვირთვა ვერ ხერხდება"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"გასაგებია"</string>
 </resources>

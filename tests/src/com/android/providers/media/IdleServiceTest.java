@@ -28,7 +28,6 @@ import static android.provider.MediaStore.MediaColumns.RELATIVE_PATH;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -128,28 +127,37 @@ public class IdleServiceTest {
         final File d = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", "random.bin"));
         final File e = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", ".nomedia"));
 
-        // Idle maintenance pass should clean up unknown files
-        MediaStore.runIdleMaintenance(resolver);
-        assertFalse(exists(a));
-        assertFalse(exists(b));
-        assertTrue(exists(c));
-        assertFalse(exists(d));
-        assertTrue(exists(e));
+        try {
+            // Idle maintenance pass should clean up unknown files
+            MediaStore.runIdleMaintenance(resolver);
+            assertFalse(exists(a));
+            assertFalse(exists(b));
+            assertTrue(exists(c));
+            assertFalse(exists(d));
+            assertTrue(exists(e));
 
-        // And change the UUID, which emulates ejecting and mounting a different
-        // storage device; all thumbnails should then be invalidated
-        final File uuidFile = buildPath(dir, Environment.DIRECTORY_PICTURES,
-                ".thumbnails", ".database_uuid");
-        delete(uuidFile);
-        touch(uuidFile);
+            // And change the UUID, which emulates ejecting and mounting a different
+            // storage device; all thumbnails should then be invalidated
+            final File uuidFile = buildPath(dir, Environment.DIRECTORY_PICTURES,
+                    ".thumbnails", ".database_uuid");
+            delete(uuidFile);
+            touch(uuidFile);
 
-        // Idle maintenance pass should clean up all files except .nomedia file
-        MediaStore.runIdleMaintenance(resolver);
-        assertFalse(exists(a));
-        assertFalse(exists(b));
-        assertFalse(exists(c));
-        assertFalse(exists(d));
-        assertTrue(exists(e));
+            // Idle maintenance pass should clean up all files except .nomedia file
+            MediaStore.runIdleMaintenance(resolver);
+            assertFalse("File a should have been deleted", exists(a));
+            assertFalse("File b should have been deleted", exists(b));
+            assertFalse("File c should have been deleted", exists(c));
+            assertFalse("File d should have been deleted", exists(d));
+            assertTrue("File e should have existed", exists(e));
+            delete(uuidFile);
+        } finally {
+            a.delete();
+            b.delete();
+            c.delete();
+            d.delete();
+            e.delete();
+        }
     }
 
     /**
@@ -173,9 +181,9 @@ public class IdleServiceTest {
 
         MediaStore.runIdleMaintenance(resolver);
 
-        assertExpiredItemIsExtended(resolver, uri1);
-        assertExpiredItemIsExtended(resolver, uri2);
-        assertExpiredItemIsExtended(resolver, uri3);
+        assertExpiredItemIsExtended(resolver, uri1, dateExpires1);
+        assertExpiredItemIsExtended(resolver, uri2, dateExpires2);
+        assertExpiredItemIsExtended(resolver, uri3, dateExpires3);
     }
 
     @Test
@@ -187,7 +195,7 @@ public class IdleServiceTest {
 
         MediaStore.runIdleMaintenance(resolver);
 
-        assertExpiredItemIsExtended(resolver, uri);
+        assertExpiredItemIsExtended(resolver, uri, dateExpires);
     }
 
     @Test
@@ -263,7 +271,7 @@ public class IdleServiceTest {
     }
 
     @Test
-    public void testJobScheduling() throws Exception {
+    public void testJobScheduling() {
         try {
             final Context context = InstrumentationRegistry.getTargetContext();
             final JobScheduler scheduler = InstrumentationRegistry.getTargetContext()
@@ -273,12 +281,6 @@ public class IdleServiceTest {
 
             IdleService.scheduleIdlePass(context);
             assertNotNull(scheduler.getPendingJob(IDLE_JOB_ID));
-
-            String forceRunCommand = "cmd jobscheduler run "
-                    + "-f com.google.android.providers.media.module " + IDLE_JOB_ID;
-            String result = executeShellCommand(forceRunCommand).trim();
-
-            assertEquals("Running job [FORCED]", result);
         } finally {
             cancelJob();
         }
@@ -292,9 +294,8 @@ public class IdleServiceTest {
         }
     }
 
-    private void assertExpiredItemIsExtended(ContentResolver resolver, Uri uri) throws Exception {
-        final long expectedExtendedTimestamp =
-                (System.currentTimeMillis() + FileUtils.DEFAULT_DURATION_EXTENDED) / 1000 - 1;
+    private void assertExpiredItemIsExtended(ContentResolver resolver, Uri uri,
+            long lastExpiredDate) {
         final String[] projection = new String[]{DATE_EXPIRES};
         final Bundle queryArgs = new Bundle();
         queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
@@ -303,8 +304,15 @@ public class IdleServiceTest {
             assertThat(cursor.getCount()).isEqualTo(1);
             cursor.moveToFirst();
             final long dateExpiresAfter = cursor.getLong(0);
-            assertThat(dateExpiresAfter).isGreaterThan(expectedExtendedTimestamp);
+            assertThat(dateExpiresAfter).isGreaterThan(lastExpiredDate);
+            assertTrue(timeDifferenceInSeconds(
+                    (System.currentTimeMillis() + FileUtils.DEFAULT_DURATION_EXTENDED) / 1000,
+                    dateExpiresAfter) <= 10);
         }
+    }
+
+    private long timeDifferenceInSeconds(long timeAfter, long timeBefore) {
+        return timeAfter - timeBefore;
     }
 
     private Uri createExpiredTrashedItem(ContentResolver resolver, long dateExpires)

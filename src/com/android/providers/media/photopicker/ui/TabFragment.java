@@ -24,6 +24,7 @@ import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_SE
 
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
@@ -159,7 +160,12 @@ public abstract class TabFragment extends Fragment {
             final Button viewSelectedButton = getActivity().findViewById(R.id.button_view_selected);
             // Transition to PreviewFragment on clicking "View Selected".
             viewSelectedButton.setOnClickListener(v -> {
+                // Load items for preview that are pre granted but not yet loaded for UI.
+                mPickerViewModel.getRemainingPreGrantedItems();
                 mSelection.prepareSelectedItemsForPreviewAll();
+
+                int selectedItemCount = mSelection.getSelectedItemCount().getValue();
+                mPickerViewModel.logPreviewAllSelected(selectedItemCount);
                 PreviewFragment.show(getActivity().getSupportFragmentManager(),
                         PreviewFragment.getArgsForPreviewOnViewSelected());
             });
@@ -179,6 +185,13 @@ public abstract class TabFragment extends Fragment {
         if (crossProfileAllowed != null) {
             crossProfileAllowed.observe(this, isCrossProfileAllowed -> {
                 setUpProfileButton();
+                if (Boolean.TRUE.equals(mIsProfileButtonVisible.getValue())) {
+                    if (isCrossProfileAllowed) {
+                        mPickerViewModel.logProfileSwitchButtonEnabled();
+                    } else {
+                        mPickerViewModel.logProfileSwitchButtonDisabled();
+                    }
+                }
             });
         }
 
@@ -292,6 +305,8 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void onClickProfileButton() {
+        mPickerViewModel.logProfileSwitchButtonClick();
+
         if (!mUserIdManager.isCrossProfileAllowed()) {
             ProfileDialogFragment.show(getActivity().getSupportFragmentManager());
         } else {
@@ -313,7 +328,7 @@ public abstract class TabFragment extends Fragment {
 
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
 
-        mPickerViewModel.onUserSwitchedProfile();
+        mPickerViewModel.onSwitchedProfile();
     }
 
     private void updateProfileButtonContent(boolean isManagedUserSelected) {
@@ -455,7 +470,15 @@ public abstract class TabFragment extends Fragment {
         @Override
         public void onActionButtonClick() {
             dismissBanner();
-            getPickerActivity().startSettingsActivity();
+
+            final Intent accountChangeIntent =
+                    mPickerViewModel.getChooseCloudMediaAccountActivityIntent();
+
+            if (accountChangeIntent != null) {
+                getPickerActivity().startActivity(accountChangeIntent);
+            } else {
+                getPickerActivity().startSettingsActivity();
+            }
         }
 
         @Override
@@ -500,6 +523,11 @@ public abstract class TabFragment extends Fragment {
                 void dismissBanner() {
                     mPickerViewModel.onUserDismissedCloudMediaAvailableBanner();
                 }
+
+                @Override
+                public boolean shouldShowActionButton() {
+                    return mPickerViewModel.getChooseCloudMediaAccountActivityIntent() != null;
+                }
             };
 
     protected final OnBannerEventListener mOnAccountUpdatedBannerEventListener =
@@ -515,6 +543,11 @@ public abstract class TabFragment extends Fragment {
                 @Override
                 void dismissBanner() {
                     mPickerViewModel.onUserDismissedChooseAccountBanner();
+                }
+
+                @Override
+                public boolean shouldShowActionButton() {
+                    return mPickerViewModel.getChooseCloudMediaAccountActivityIntent() != null;
                 }
             };
 }

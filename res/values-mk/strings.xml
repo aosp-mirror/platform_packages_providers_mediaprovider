@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Аудио-визуелни содржини"</string>
     <string name="storage_description" msgid="4081716890357580107">"Локална меморија"</string>
-    <string name="app_label" msgid="9035307001052716210">"Капацитет за аудиовизуелни содржини"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Аудиовизуелни содржини"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Избирач на аудиовизуелни содржини"</string>
     <string name="artist_label" msgid="8105600993099120273">"Изведувач"</string>
     <string name="unknown" msgid="2059049215682829375">"Непознат"</string>
     <string name="root_images" msgid="5861633549189045666">"Слики"</string>
@@ -42,10 +41,13 @@
     <string name="picker_settings" msgid="6443463167344790260">"Апликација за содржини во облак"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Апликација за содржини во облак"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Апликација за аудиовизуелни содржини во облак"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Пристап до вашите аудиовизуелни содржини во облак кога некоја апликација или веб-сајт ќе ве праша да изберете фотографии или видеа"</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"Пристапете до аудиовизуелните содржини во облак од"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Пристапувајте до вашите аудиовизуелни содржини во облак кога некоја апликација или веб-сајт ќе побара да изберете фотографии или видеа"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Пристапувајте до аудиовизуелните содржини во облак од"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Нема"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Не може да се промени апликацијата за аудиовизуелни содржини во облак во моментов."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Избирач на аудиовизуелни содржини"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Избирач на аудиовизуелни содржини"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Се синхронизираат аудиовизуелните содржини…"</string>
     <string name="add" msgid="2894574044585549298">"Додај"</string>
     <string name="deselect" msgid="4297825044827769490">"Поништи го изборот"</string>
     <string name="deselected" msgid="8488133193326208475">"Изборот е поништен"</string>
@@ -60,8 +62,8 @@
     <string name="picker_photos" msgid="7415035516411087392">"Фотографии"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Албуми"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Преглед"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Префрли на работен профил"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Префрли на личен профил"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Префрлете се на работен профил"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Префрлете се на личен профил"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Блокирано од администраторот"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Не е дозволено пристапување до работни податоци од лична апликација"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Не е дозволено пристапување до лични податоци од работна апликација"</string>
@@ -92,10 +94,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Проблем со пуштањето видео"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Проверете ја интернет-врската и обидете се повторно"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Повторно"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Аудиовизуелните содржини во облак сега се достапни од <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не е избрано"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Вашите избрани аудиовизуелни содржини се подготвуваат"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Подготвени: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> од <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
-    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Бекап од фотографиите сега е влучен"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Сега се опфатени фотографии од бекап"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Можете да изберете фотографии од сметката <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> на <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Сметката на <xliff:g id="APP_NAME">%1$s</xliff:g> е ажурирана"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Фотографиите од <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> сега се вклучени овде"</string>
@@ -107,6 +109,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Изберете апликација"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Изберете сметка"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Променете ја сметката"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Се вчитуваат сите ваши фотографии"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Да се дозволи <xliff:g id="APP_NAME_0">^1</xliff:g> да ја измени аудиодатотекава?}one{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотека?}other{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотеки?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Се изменува аудиодатотеката…}one{Се изменуваат <xliff:g id="COUNT">^1</xliff:g> аудиодатотека…}other{Се изменуваат <xliff:g id="COUNT">^1</xliff:g> аудиодатотеки…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Да се дозволи <xliff:g id="APP_NAME_0">^1</xliff:g> да го измени видеово?}one{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> видео?}other{Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> видеа?}}"</string>
@@ -150,4 +153,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Безбедносна заштита"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Предупредувања за матичното транскодирање"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Напредок на матичното транскодирање"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"Обидете се повторно подоцна. Вашите фотографии ќе бидат достапни откако ќе се реши проблемот."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"Некои фотографии не може да се вчитаат"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Сфатив"</string>
 </resources>

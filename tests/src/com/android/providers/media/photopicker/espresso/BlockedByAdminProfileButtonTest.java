@@ -27,12 +27,15 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger.PhotoPickerEvent;
 
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class BlockedByAdminProfileButtonTest extends PhotoPickerBaseTest {
     @BeforeClass
@@ -53,10 +56,18 @@ public class BlockedByAdminProfileButtonTest extends PhotoPickerBaseTest {
         // Check the text on the button. It should be "Switch to personal"
         onView(withText(R.string.picker_personal_profile)).check(matches(isDisplayed()));
 
+        // Verify log
+        UiEventLoggerTestUtils.verifyLogWithInstanceId(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_DISABLED);
+
         // Verify onClick shows a dialog
         onView(withId(profileButtonId)).check(matches(isDisplayed())).perform(click());
         onView(withText(R.string.picker_profile_admin_title)).check(matches(isDisplayed()));
         onView(withText(R.string.picker_profile_admin_msg_from_work)).check(matches(isDisplayed()));
+
+        // Verify log
+        UiEventLoggerTestUtils.verifyLogWithInstanceId(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK);
 
         onView(withText(android.R.string.ok)).check(matches(isDisplayed())).perform(click());
     }

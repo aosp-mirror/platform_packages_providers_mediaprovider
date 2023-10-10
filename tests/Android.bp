@@ -180,7 +180,7 @@ android_test {
         "guava",
         "mockito-target",
         "modules-utils-build",
-        "truth-prebuilt",
+        "truth",
         "com.google.android.material_material",
         "cts-install-lib",
         "androidx.test.espresso.core",

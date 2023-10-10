@@ -1452,8 +1452,6 @@ public class MediaProvider extends ContentProvider {
 
         setComponentEnabledSetting("PhotoPickerUserSelectActivity",
                 mConfigStore.isUserSelectForAppEnabled());
-
-        mDatabaseBackupAndRecovery.onConfigPropertyChangeListener();
     }
 
     public DatabaseBackupAndRecovery getDatabaseBackupAndRecovery() {
@@ -11024,9 +11022,6 @@ public class MediaProvider extends ContentProvider {
             mAttachedVolumes.add(volume);
         }
 
-        mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
-                volume.getPath());
-
         final ContentResolver resolver = getContext().getContentResolver();
         final Uri uri = getBaseContentUri(volumeName);
         // TODO(b/182396009) we probably also want to notify clone profile (and vice versa)
@@ -11049,6 +11044,9 @@ public class MediaProvider extends ContentProvider {
                 MediaDocumentsProvider.onMediaStoreReady(getContext());
             });
         }
+
+        mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
+                        volume.getPath());
         return uri;
     }
 

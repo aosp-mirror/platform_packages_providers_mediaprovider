@@ -182,19 +182,6 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    protected void onConfigPropertyChangeListener() {
-        if ((mConfigStore.isStableUrisForInternalVolumeEnabled()
-                || mConfigStore.isStableUrisForExternalVolumeEnabled())
-                && mVolumeCache.getExternalVolumeNames().contains(
-                MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
-            Log.i(TAG,
-                    "On device config change, found stable uri support enabled. Attempting backup"
-                            + " and recovery setup.");
-            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
-                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
-        }
-    }
-
     /**
      * On device boot, leveldb setup is done as part of attachVolume call for primary external.
      * Also, on device config flag change, we check if flag is enabled, if yes, we proceed to
@@ -221,11 +208,6 @@ public class DatabaseBackupAndRecovery {
         }
 
         try {
-            boolean externalVolumeMounted = Environment.getExternalStorageState()
-                    .equals(Environment.MEDIA_MOUNTED);
-            Log.d(TAG, String.format("Setting up db backup for %s, external_primary "
-                    + "volume mounted: %s", volumeName, externalVolumeMounted));
-
             if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
                 new File(RECOVERY_DIRECTORY_PATH).mkdirs();
             }
@@ -245,6 +227,8 @@ public class DatabaseBackupAndRecovery {
      */
     public void backupDatabases(DatabaseHelper internalDatabaseHelper,
             DatabaseHelper externalDatabaseHelper, CancellationSignal signal) {
+        setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
+          new File(EXTERNAL_PRIMARY_ROOT_PATH));
         Log.i(TAG, "Triggering database backup");
         backupInternalDatabase(internalDatabaseHelper, signal);
         backupExternalDatabase(externalDatabaseHelper, signal);
@@ -278,8 +262,7 @@ public class DatabaseBackupAndRecovery {
         }
 
         if (!mIsBackupSetupComplete.get()) {
-            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
-                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
+            return;
         }
 
         FuseDaemon fuseDaemon;
@@ -318,8 +301,7 @@ public class DatabaseBackupAndRecovery {
         }
 
         if (!mIsBackupSetupComplete.get()) {
-            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
-                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
+            return;
         }
 
         FuseDaemon fuseDaemon;
@@ -840,7 +822,6 @@ public class DatabaseBackupAndRecovery {
         }
         Log.d(TAG, "Backup is present for " + volumeName);
 
-        setupVolumeDbBackupAndRecovery(volumeName, new File(EXTERNAL_PRIMARY_ROOT_PATH));
         long rowsRecovered = 0;
         long dirtyRowsCount = 0;
         String[] backedUpFilePaths;

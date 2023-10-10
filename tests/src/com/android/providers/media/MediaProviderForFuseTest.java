@@ -21,6 +21,8 @@ import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_DEL
 import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_READ;
 import static com.android.providers.media.MediaProvider.DIRECTORY_ACCESS_FOR_WRITE;
 
+import static org.junit.Assert.fail;
+
 import android.Manifest;
 import android.app.UiAutomation;
 import android.content.ContentResolver;
@@ -179,6 +181,23 @@ public class MediaProviderForFuseTest {
         try (Cursor cursor = sIsolatedResolver
                 .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null, queryArgs, null)) {
             Truth.assertThat(cursor.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void test_syntheticPathLookUpWithInvalidUid_throwsSecurityException() throws Exception {
+        try {
+            // Attempt a lookup for path that is synthetic and is a picker uri. Since the test
+            // uid is not the owner of the directory, the lookup should fail in the first step of
+            // the process that is, mContext.checkUriPermission and should throw a security
+            // exception.
+            sMediaProvider.onFileLookupForFuse(
+                    "/storage/emulated/0/.transforms/synthetic/picker/0/com.android.providers"
+                            + ".media.photopicker/media/1000000.jpg", sTestUid /* uid */,
+                    0 /* tid */);
+            fail("This test should throw a security exception");
+        } catch (SecurityException se) {
+            // no-op.
         }
     }
 

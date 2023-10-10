@@ -61,6 +61,7 @@ import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageM
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
+import static com.android.providers.media.AccessChecker.isRedactionNeededForPickerUri;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
@@ -108,6 +109,7 @@ import static com.android.providers.media.LocalUriMatcher.IMAGES_MEDIA_ID_THUMBN
 import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS;
 import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS_ID;
 import static com.android.providers.media.LocalUriMatcher.MEDIA_SCANNER;
+import static com.android.providers.media.LocalUriMatcher.PICKER_GET_CONTENT_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_ALL;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_LOCAL;
@@ -121,6 +123,8 @@ import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS_ID;
 import static com.android.providers.media.LocalUriMatcher.VOLUMES;
 import static com.android.providers.media.LocalUriMatcher.VOLUMES_ID;
+import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_SEGMENT;
+import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
@@ -655,19 +659,22 @@ public class MediaProvider extends ContentProvider {
         Context context = getContext();
         PackageManager packageManager = context.getPackageManager();
         try {
-            int uid = packageManager.getPackageUidAsUser(packageName,
-                    PackageManager.PackageInfoFlags.of(0), userId);
-            if (!LocalCallingIdentity.fromExternal(context, mUserCache, uid)
-                    .checkCallingPermissionUserSelected()) {
-                // Revoke media grants if permission state is not "Select flow".
-                mMediaGrants.removeAllMediaGrantsForPackage(
-                        packageName,
-                        /*reason=*/ "Mode changed: " + op,
-                        userId);
+            int uid =
+                    packageManager.getPackageUidAsUser(
+                            packageName, PackageManager.PackageInfoFlags.of(0), userId);
+            LocalCallingIdentity lci = LocalCallingIdentity.fromExternal(context, mUserCache, uid);
+            if (!lci.checkCallingPermissionUserSelected()) {
+                String[] packages = lci.getSharedPackageNamesArray();
+                mMediaGrants.removeAllMediaGrantsForPackages(
+                        packages, /* reason= */ "Mode changed: " + op, userId);
             }
         } catch (NameNotFoundException e) {
-            Log.d(TAG, "Unable to resolve uid. Ignoring the AppOp change for "
-                    + packageName + ", User : " + userId);
+            Log.d(
+                    TAG,
+                    "Unable to resolve uid. Ignoring the AppOp change for "
+                            + packageName
+                            + ", User : "
+                            + userId);
         }
     }
 
@@ -1315,7 +1322,8 @@ public class MediaProvider extends ContentProvider {
                 mConfigStore);
         mPickerDataLayer = PickerDataLayer.create(context, mPickerDbFacade, mPickerSyncController,
                 mConfigStore);
-        mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper);
+        mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper,
+                mUriMatcher);
 
         if (SdkLevel.isAtLeastS()) {
             mTranscodeHelper = new TranscodeHelperImpl(context, this, mConfigStore);
@@ -1444,8 +1452,6 @@ public class MediaProvider extends ContentProvider {
 
         setComponentEnabledSetting("PhotoPickerUserSelectActivity",
                 mConfigStore.isUserSelectForAppEnabled());
-
-        mDatabaseBackupAndRecovery.onConfigPropertyChangeListener();
     }
 
     public DatabaseBackupAndRecovery getDatabaseBackupAndRecovery() {
@@ -1953,6 +1959,10 @@ public class MediaProvider extends ContentProvider {
         mExternalDatabase.runWithTransaction((db) -> {
             final int userId = uid / PER_USER_RANGE;
             onPackageOrphaned(db, packageName, userId);
+
+            if (SdkLevel.isAtLeastU()) {
+                removeAllMediaGrantsForUid(uid, userId, packageName);
+            }
             return null;
         });
     }
@@ -1968,9 +1978,42 @@ public class MediaProvider extends ContentProvider {
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
         mDatabaseBackupAndRecovery.removeOwnerIdToPackageRelation(packageName, userId);
-        // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package is removed.
-        mMediaGrants.removeAllMediaGrantsForPackage(packageName, /* reason */ "Package orphaned",
-                userId);
+
+    }
+
+    /**
+     * Removes all media_grants for all packages with the given UID. (i.e. shared packages.)
+     *
+     * @param uid the package uid. (will use this to query all shared packages that use this uid)
+     * @param userId the user id, since packages can be installed by multiple users.
+     * @param additionalPackageName An optional additional package name in the event that the
+     *     package has been removed at won't be returned by the PackageManager APIs.
+     */
+    private void removeAllMediaGrantsForUid(
+            int uid, int userId, @Nullable String additionalPackageName) {
+
+        String[] packages;
+        try {
+            LocalCallingIdentity lci =
+                    LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid);
+            packages = lci.getSharedPackageNamesArray();
+        } catch (IllegalArgumentException notFound) {
+            // If there are no packages found, this means the specified UID has no packages
+            // remaining on the system.
+            packages = new String[]{};
+        }
+        if (additionalPackageName != null) {
+            // Include the passed additional package in the list LocalCallingIdentity returns.
+            List<String> packageList = new ArrayList<>();
+            packageList.addAll(Arrays.asList(packages));
+            packageList.add(additionalPackageName);
+            packages = packageList.toArray(new String[packageList.size()]);
+        }
+
+        // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package
+        // is removed.
+        mMediaGrants.removeAllMediaGrantsForPackages(
+                packages, /* reason */ "Package orphaned", userId);
     }
 
     private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
@@ -2294,13 +2337,14 @@ public class MediaProvider extends ContentProvider {
         boolean result = false;
         switch (segmentCount) {
             case 1:
-                // .../picker
-                if (lastSegment.equals("picker")) {
+                // .../picker or .../picker_get_content
+                if (lastSegment.equals(PICKER_SEGMENT) || lastSegment.equals(
+                        PICKER_GET_CONTENT_SEGMENT)) {
                     result = file.exists() || file.mkdir();
                 }
                 break;
             case 2:
-                // .../picker/<user-id>
+                // .../picker/<user-id> or .../picker_get_content/<user-id>
                 try {
                     Integer.parseInt(lastSegment);
                     result = file.exists() || file.mkdir();
@@ -2310,21 +2354,24 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             case 3:
-                // .../picker/<user-id>/<authority>
+                // .../picker/<user-id>/<authority> or .../picker_get_content/<user-id>/<authority>
                 result = preparePickerAuthorityPathSegment(file, lastSegment, uid);
                 break;
             case 4:
-                // .../picker/<user-id>/<authority>/media
+                // .../picker/<user-id>/<authority>/media or
+                // .../picker_get_content/<user-id>/<authority>/media
                 if (lastSegment.equals("media")) {
                     result = file.exists() || file.mkdir();
                 }
                 break;
             case 5:
-                // .../picker/<user-id>/<authority>/media/<media-id.extension>
+                // .../picker/<user-id>/<authority>/media/<media-id.extension> or
+                // .../picker_get_content/<user-id>/<authority>/media/<media-id.extension>
+                final String pickerSegmentType = syntheticRelativePathSegments.get(0);
                 final String fileUserId = syntheticRelativePathSegments.get(1);
                 final String authority = syntheticRelativePathSegments.get(2);
-                result = preparePickerMediaIdPathSegment(file, authority, lastSegment, fileUserId,
-                        uid);
+                result = preparePickerMediaIdPathSegment(file, pickerSegmentType, authority,
+                        lastSegment, fileUserId, uid);
                 break;
         }
 
@@ -2342,8 +2389,9 @@ public class MediaProvider extends ContentProvider {
                     new long[0]);
         }
 
-        // ['', 'storage', 'emulated', '0', 'transforms', 'synthetic', 'picker', '<user-id>',
-        // '<host>', 'media', '<fileName>']
+        // ['', 'storage', 'emulated', '0', 'transforms', 'synthetic',
+        // 'picker' or 'picker_get_content', '<user-id>', '<host>', 'media', '<fileName>']
+        final String pickerSegmentType = segments[6];
         final String userId = segments[7];
         final String fileName = segments[10];
         final String host = segments[8];
@@ -2379,7 +2427,19 @@ public class MediaProvider extends ContentProvider {
 
         try (FileInputStream fis = new FileInputStream(pfd.getFileDescriptor())) {
             final String mimeType = MimeUtils.resolveMimeType(new File(path));
-            final long[] redactionRanges = getRedactionRanges(fis, mimeType).redactionRanges;
+            // Picker segment indicates we need to force redact location metadata.
+            // Picker_get_content indicates that we need to check A_M_L permission to decide if the
+            // metadata needs to be redacted
+            LocalCallingIdentity callingIdentityForOriginalUid = getCachedCallingIdentityForFuse(
+                    uid);
+            final boolean isRedactionNeeded = pickerSegmentType.equalsIgnoreCase(PICKER_SEGMENT)
+                    || callingIdentityForOriginalUid == null
+                    || isRedactionNeededForPickerUri(callingIdentityForOriginalUid);
+            Log.v(TAG, "Redaction needed for file open: " + isRedactionNeeded);
+            long[] redactionRanges = new long[0];
+            if (isRedactionNeeded) {
+                redactionRanges = getRedactionRanges(fis, mimeType).redactionRanges;
+            }
             return new FileOpenResult(0 /* status */, uid, /* transformsUid */ 0,
                     /* nativeFd */ pfd.detachFd(), redactionRanges);
         } catch (IOException e) {
@@ -2396,13 +2456,14 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
-    private boolean preparePickerMediaIdPathSegment(File file, String authority, String fileName,
-            String userId, int uid) {
+    private boolean preparePickerMediaIdPathSegment(File file, String pickerSegmentType,
+            String authority, String fileName, String userId, int uid) {
         final String mediaId = extractFileName(fileName);
-        final String[] projection = new String[] { MediaStore.PickerMediaColumns.SIZE };
+        final String[] projection = new String[]{MediaStore.PickerMediaColumns.SIZE};
 
-        final Uri uri = Uri.parse("content://media/picker/" + userId + "/" + authority + "/media/"
-                + mediaId);
+        final Uri uri = Uri.parse(
+                "content://media/" + pickerSegmentType + "/" + userId + "/" + authority + "/media/"
+                        + mediaId);
         try (Cursor cursor = mPickerUriResolver.query(uri, projection, /* callingPid */0, uid,
                 mCallingIdentity.get().getPackageName())) {
             if (cursor != null && cursor.moveToFirst()) {
@@ -3950,6 +4011,7 @@ public class MediaProvider extends ContentProvider {
                 return Downloads.CONTENT_TYPE;
 
             case PICKER_ID:
+            case PICKER_GET_CONTENT_ID:
                 return mPickerUriResolver.getType(url, Binder.getCallingPid(),
                         Binder.getCallingUid());
         }
@@ -6515,6 +6577,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.GET_READ_GRANTED_MEDIA_FOR_PACKAGE_CALL: {
                 return getResultForGetReadGrantedMediaForPackage(extras);
             }
+            case MediaStore.REVOKE_READ_GRANT_FOR_PACKAGE_CALL: {
+                return getResultForRevokeReadGrantForPackage(extras);
+            }
             case MediaStore.CREATE_WRITE_REQUEST_CALL:
             case MediaStore.CREATE_FAVORITE_REQUEST_CALL:
             case MediaStore.CREATE_TRASH_REQUEST_CALL:
@@ -6565,6 +6630,44 @@ public class MediaProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
+    }
+
+    @Nullable
+    private Bundle getResultForRevokeReadGrantForPackage(Bundle extras) {
+        final int caller = Binder.getCallingUid();
+        int userId;
+        final List<Uri> uris;
+        String[] packageNames;
+        if (checkPermissionSelf(caller)) {
+            final PackageManager pm = getContext().getPackageManager();
+            final int packageUid = extras.getInt(Intent.EXTRA_UID);
+            packageNames = pm.getPackagesForUid(packageUid);
+            // Get the userId from packageUid as the initiator could be a cloned app, which
+            // accesses Media via MP of its parent user and Binder's callingUid reflects
+            // the latter.
+            userId = uidToUserId(packageUid);
+            uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
+        } else if (checkPermissionShell(caller)) {
+            // If the caller is the shell, the accepted parameter is EXTRA_PACKAGE_NAME
+            // (as string).
+            if (!extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
+                throw new IllegalArgumentException(
+                        "Missing required extras arguments: EXTRA_URI or"
+                                + " EXTRA_PACKAGE_NAME");
+            }
+            packageNames = new String[]{extras.getString(Intent.EXTRA_PACKAGE_NAME)};
+            uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+            // Caller is always shell which may not have the desired userId. Hence, use
+            // UserId from the MediaProvider process itself.
+            userId = UserHandle.myUserId();
+        } else {
+            // All other callers are unauthorized.
+            throw new SecurityException(
+                    getSecurityExceptionMessage("read media grants"));
+        }
+
+        mMediaGrants.removeMediaGrantsForPackage(packageNames, uris, userId);
+        return null;
     }
 
     @Nullable
@@ -6805,35 +6908,37 @@ public class MediaProvider extends ContentProvider {
         if (checkPermissionSelf(caller)) {
             // If the caller is MediaProvider the accepted parameters are EXTRA_URI_LIST
             // and EXTRA_UID.
-            if (!extras.containsKey(
-                    MediaStore.EXTRA_URI_LIST)
+            if (!extras.containsKey(MediaStore.EXTRA_URI_LIST)
                     && !extras.containsKey(Intent.EXTRA_UID)) {
                 throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI_LIST or"
-                                + " EXTRA_UID");
+                        "Missing required extras arguments: EXTRA_URI_LIST or" + " EXTRA_UID");
             }
             uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
             final PackageManager pm = getContext().getPackageManager();
             final int packageUid = extras.getInt(Intent.EXTRA_UID);
-            packageName = pm.getNameForUid(packageUid);
+            final String[] packages = pm.getPackagesForUid(packageUid);
+            if (packages == null || packages.length == 0) {
+                throw new IllegalArgumentException(
+                        String.format(
+                                "Could not find packages for media_grants with uid: %d",
+                                packageUid));
+            }
+            // Use the first package in the returned list for grants. In the case this
+            // uid has multiple shared packages, the eventual queries to check for file
+            // access will use all of the packages in this list, so just one is needed
+            // to create the grants.
+            packageName = packages[0];
             // Get the userId from packageUid as the initiator could be a cloned app, which
             // accesses Media via MP of its parent user and Binder's callingUid reflects
             // the latter.
             userId = uidToUserId(packageUid);
-            if (packageName.contains(":")) {
-                // Check if the package name includes the package uid. This is expected
-                // for packages that are referencing a shared user. PackageManager will
-                // return a string such as <packagename>:<uid> in this instance.
-                packageName = packageName.split(":")[0];
-            }
         } else if (checkPermissionShell(caller)) {
             // If the caller is the shell, the accepted parameters are EXTRA_URI (as string)
             // and EXTRA_PACKAGE_NAME (as string).
             if (!extras.containsKey(MediaStore.EXTRA_URI)
                     && !extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
                 throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI or"
-                                + " EXTRA_PACKAGE_NAME");
+                        "Missing required extras arguments: EXTRA_URI or" + " EXTRA_PACKAGE_NAME");
             }
             packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
             uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
@@ -6843,8 +6948,7 @@ public class MediaProvider extends ContentProvider {
         } else {
             // All other callers are unauthorized.
 
-            throw new SecurityException(
-                    getSecurityExceptionMessage("Create media grants"));
+            throw new SecurityException(getSecurityExceptionMessage("Create media grants"));
         }
 
         mMediaGrants.addMediaGrantsForPackage(packageName, uris, userId);
@@ -8511,7 +8615,7 @@ public class MediaProvider extends ContentProvider {
 
     private boolean isPickerUri(Uri uri) {
         final int match = matchUri(uri, /* allowHidden */ isCallingPackageAllowedHidden());
-        return match == PICKER_ID;
+        return match == PICKER_ID || match == PICKER_GET_CONTENT_ID;
     }
 
     @Override
@@ -8538,9 +8642,20 @@ public class MediaProvider extends ContentProvider {
         uri = safeUncanonicalize(uri);
 
         if (isPickerUri(uri)) {
-            final int callingPid = mCallingIdentity.get().pid;
-            final int callingUid = mCallingIdentity.get().uid;
-            return mPickerUriResolver.openFile(uri, mode, signal, callingPid, callingUid);
+            int tid = Process.myTid();
+            synchronized (mPendingOpenInfo) {
+                mPendingOpenInfo.put(tid, new PendingOpenInfo(
+                        Binder.getCallingUid(), /* mediaCapabilitiesUid */ 0, /* shouldRedact */
+                        false, /* transcodeReason */ 0));
+            }
+
+            try {
+                return mPickerUriResolver.openFile(uri, mode, signal, mCallingIdentity.get());
+            } finally {
+                synchronized (mPendingOpenInfo) {
+                    mPendingOpenInfo.remove(tid);
+                }
+            }
         }
 
         final boolean allowHidden = isCallingPackageAllowedHidden();
@@ -8673,10 +8788,21 @@ public class MediaProvider extends ContentProvider {
 
         // This is needed for thumbnail resolution as it doesn't go through openFileCommon
         if (isPickerUri(uri)) {
-            final int callingPid = mCallingIdentity.get().pid;
-            final int callingUid = mCallingIdentity.get().uid;
-            return mPickerUriResolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal,
-                    callingPid, callingUid);
+            int tid = Process.myTid();
+            synchronized (mPendingOpenInfo) {
+                mPendingOpenInfo.put(tid, new PendingOpenInfo(
+                        Binder.getCallingUid(), /* mediaCapabilitiesUid */ 0, /* shouldRedact */
+                        false, /* transcodeReason */ 0));
+            }
+
+            try {
+                return mPickerUriResolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal,
+                        mCallingIdentity.get());
+            } finally {
+                synchronized (mPendingOpenInfo) {
+                    mPendingOpenInfo.remove(tid);
+                }
+            }
         }
 
         // TODO: enforce that caller has access to this uri
@@ -10896,9 +11022,6 @@ public class MediaProvider extends ContentProvider {
             mAttachedVolumes.add(volume);
         }
 
-        mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
-                volume.getPath());
-
         final ContentResolver resolver = getContext().getContentResolver();
         final Uri uri = getBaseContentUri(volumeName);
         // TODO(b/182396009) we probably also want to notify clone profile (and vice versa)
@@ -10921,6 +11044,9 @@ public class MediaProvider extends ContentProvider {
                 MediaDocumentsProvider.onMediaStoreReady(getContext());
             });
         }
+
+        mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
+                        volume.getPath());
         return uri;
     }
 

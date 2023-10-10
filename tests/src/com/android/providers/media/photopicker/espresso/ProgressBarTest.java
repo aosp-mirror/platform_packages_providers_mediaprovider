@@ -37,15 +37,12 @@ import androidx.annotation.Nullable;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
-import com.android.providers.media.R;
 import com.android.providers.media.library.RunOnlyOnPostsubmit;
-import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -58,40 +55,6 @@ public class ProgressBarTest extends PhotoPickerBaseTest {
     @Before
     public void setup() {
         startPhotoPickerActivityAndEnableCloudFlag();
-    }
-
-    @Ignore("Enable progress bar and pagination tests after fixing the flaky behaviour b/296520260")
-    @Test
-    public void test_progressBarPhotosItems_isVisible() {
-        // To recreate the fragments with the new config.
-        mScenario.onActivity((PhotoPickerTestActivity::resetInCurrentProfile));
-        DataLoaderThread.waitForIdle();
-
-        setItemsProviderWithDelayInActivity();
-
-        // Re-initiate sync to ensure that the progress bar comes into view.
-        mScenario.onActivity((PhotoPickerTestActivity::initSyncForPhotosGrid));
-
-        // Verify that the progress bar and loading text is visible.
-        assertProgressBarAndLoadingTextAppears();
-    }
-
-
-    @Ignore("Enable progress bar and pagination tests after fixing the flaky behaviour b/296520260")
-    @Test
-    public void test_progressBarAlbumItems_isVisible() {
-        // Navigate to Albums tab
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                .perform(click());
-
-        setItemsProviderWithDelayInActivity();
-        // Navigate to photos in Camera album
-        final int cameraStringId = R.string.picker_category_camera;
-        onView(allOf(withText(cameraStringId),
-                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
-
-        // Verify that the progress bar and loading text is visible.
-        assertProgressBarAndLoadingTextAppears();
     }
 
     @Test

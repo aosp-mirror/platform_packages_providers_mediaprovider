@@ -43,6 +43,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Trace;
 import android.os.storage.StorageManager;
@@ -276,8 +277,8 @@ public class PickerSyncController {
 
         Trace.beginSection(traceSectionName("syncAllMedia"));
         try {
-            syncAllMediaFromLocalProvider();
-            syncAllMediaFromCloudProvider();
+            syncAllMediaFromLocalProvider(/*CancellationSignal=*/ null);
+            syncAllMediaFromCloudProvider(/*CancellationSignal=*/ null);
         } finally {
             Trace.endSection();
         }
@@ -286,14 +287,14 @@ public class PickerSyncController {
     /**
      * Syncs the local media
      */
-    public void syncAllMediaFromLocalProvider() {
+    public void syncAllMediaFromLocalProvider(@Nullable CancellationSignal cancellationSignal) {
         // Picker sync and special format update can execute concurrently and run into a deadlock.
         // Acquiring a lock before execution of each flow to avoid this.
         sIdleMaintenanceSyncLock.lock();
         try {
             final InstanceId instanceId = NonUiEventLogger.generateInstanceId();
             syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true,
-                    /* enablePagedSync= */ false, instanceId);
+                    /* enablePagedSync= */ false, instanceId, cancellationSignal);
         } finally {
             sIdleMaintenanceSyncLock.unlock();
         }
@@ -302,7 +303,7 @@ public class PickerSyncController {
     /**
      * Syncs the cloud media
      */
-    public void syncAllMediaFromCloudProvider() {
+    public void syncAllMediaFromCloudProvider(@Nullable CancellationSignal cancellationSignal) {
 
         synchronized (mCloudSyncLock) {
             final String cloudProvider = getCloudProvider();
@@ -311,7 +312,7 @@ public class PickerSyncController {
             final InstanceId instanceId = NonUiEventLogger.generateInstanceId();
             final boolean didSyncFinish = syncAllMediaFromProvider(cloudProvider,
                     /* isLocal= */ false, /* retryOnFailure= */ true, /* enablePagedSync= */ true,
-                    instanceId);
+                    instanceId, cancellationSignal);
 
             // Check if sync was completed successfully.
             if (!didSyncFinish) {
@@ -329,30 +330,28 @@ public class PickerSyncController {
     public void syncAlbumMedia(String albumId, boolean isLocal) {
         if (isLocal) {
             executeSyncAlbumReset(getLocalProvider(), isLocal, albumId);
-            syncAlbumMediaFromLocalProvider(albumId);
+            syncAlbumMediaFromLocalProvider(albumId, /* cancellationSignal=*/ null);
         } else {
             synchronized (mCloudAlbumSyncLock) {
                 executeSyncAlbumReset(getCloudProvider(), isLocal, albumId);
             }
-            syncAlbumMediaFromCloudProvider(albumId);
+            syncAlbumMediaFromCloudProvider(albumId, /*cancellationSignal=*/ null);
         }
     }
 
-    /**
-     * Syncs album media from the local provider.
-     */
-    public void syncAlbumMediaFromLocalProvider(@NonNull String albumId) {
+    /** Syncs album media from the local provider. */
+    public void syncAlbumMediaFromLocalProvider(
+            @NonNull String albumId, @Nullable CancellationSignal cancellationSignal) {
         syncAlbumMediaFromProvider(mLocalProvider, /* isLocal */ true, albumId,
-                /* enablePagedSync= */ false);
+                /* enablePagedSync= */ false, cancellationSignal);
     }
 
-    /**
-     * Syncs album media from the currently enabled cloud {@link CloudMediaProvider}.
-     */
-    public void syncAlbumMediaFromCloudProvider(@NonNull String albumId) {
+    /** Syncs album media from the currently enabled cloud {@link CloudMediaProvider}. */
+    public void syncAlbumMediaFromCloudProvider(
+            @NonNull String albumId, @Nullable CancellationSignal cancellationSignal) {
         synchronized (mCloudAlbumSyncLock) {
             syncAlbumMediaFromProvider(getCloudProvider(), /* isLocal */ false, albumId,
-                    /* enablePagedSync= */ true);
+                    /* enablePagedSync= */ true, cancellationSignal);
         }
     }
 
@@ -606,7 +605,7 @@ public class PickerSyncController {
      *                         is passed during query to the provider.
      */
     private void syncAlbumMediaFromProvider(String authority, boolean isLocal, String albumId,
-            boolean enablePagedSync) {
+            boolean enablePagedSync, @Nullable CancellationSignal cancellationSignal) {
         final InstanceId instanceId = NonUiEventLogger.generateInstanceId();
         NonUiEventLogger.logPickerAlbumMediaSyncStart(instanceId, MY_UID, authority);
 
@@ -619,7 +618,8 @@ public class PickerSyncController {
         Trace.beginSection(traceSectionName("syncAlbumMediaFromProvider", isLocal));
         try {
             if (authority != null) {
-                executeSyncAddAlbum(authority, isLocal, albumId, queryArgs, instanceId);
+                executeSyncAddAlbum(
+                        authority, isLocal, albumId, queryArgs, instanceId, cancellationSignal);
             }
         } catch (RuntimeException e) {
             // Unlike syncAllMediaFromProvider, we don't retry here because any errors would have
@@ -640,8 +640,13 @@ public class PickerSyncController {
      *                         If true, {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE} is passed
      *                         during query to the provider.
      */
-    private boolean syncAllMediaFromProvider(@Nullable String authority, boolean isLocal,
-            boolean retryOnFailure, boolean enablePagedSync, InstanceId instanceId) {
+    private boolean syncAllMediaFromProvider(
+            @Nullable String authority,
+            boolean isLocal,
+            boolean retryOnFailure,
+            boolean enablePagedSync,
+            InstanceId instanceId,
+            @Nullable CancellationSignal cancellationSignal) {
         Log.d(TAG, "syncAllMediaFromProvider() " + (isLocal ? "LOCAL" : "CLOUD")
                 + ", auth=" + authority
                 + ", retry=" + retryOnFailure);
@@ -674,7 +679,7 @@ public class PickerSyncController {
                     // pagination
                     executeSyncAdd(authority, isLocal, params.getMediaCollectionId(),
                             /* isIncrementalSync */ false, fullSyncQueryArgs,
-                            instanceId);
+                            instanceId, cancellationSignal);
 
                     // Commit sync position
                     return cacheMediaCollectionInfo(
@@ -688,10 +693,16 @@ public class PickerSyncController {
                         queryArgs.putInt(EXTRA_PAGE_SIZE, params.mPageSize);
                     }
 
-                    executeSyncAdd(authority, isLocal, params.getMediaCollectionId(),
-                            /* isIncrementalSync */ true, queryArgs, instanceId);
+                    executeSyncAdd(
+                            authority,
+                            isLocal,
+                            params.getMediaCollectionId(),
+                            /* isIncrementalSync */ true,
+                            queryArgs,
+                            instanceId,
+                            cancellationSignal);
                     executeSyncRemove(authority, isLocal, params.getMediaCollectionId(), queryArgs,
-                            instanceId);
+                            instanceId, cancellationSignal);
 
                     // Commit sync position
                     return cacheMediaCollectionInfo(
@@ -710,7 +721,7 @@ public class PickerSyncController {
             Log.e(TAG, "Failed to sync all media. Reset media and retry: " + retryOnFailure, e);
             if (retryOnFailure) {
                 return syncAllMediaFromProvider(authority, isLocal, /* retryOnFailure */ false,
-                        enablePagedSync, instanceId);
+                        enablePagedSync, instanceId, cancellationSignal);
             }
         } catch (RuntimeException e) {
             // Retry the failed operation to see if it was an intermittent problem. If this fails,
@@ -719,7 +730,7 @@ public class PickerSyncController {
             Log.e(TAG, "Failed to sync all media. Reset media and retry: " + retryOnFailure, e);
             if (retryOnFailure) {
                 return syncAllMediaFromProvider(authority, isLocal, /* retryOnFailure */ false,
-                        enablePagedSync, instanceId);
+                        enablePagedSync, instanceId, cancellationSignal);
             }
         } finally {
             Trace.endSection();
@@ -794,6 +805,7 @@ public class PickerSyncController {
      *     should be honoured by the provider.
      * @param queryArgs Query arguments to pass in query.
      * @param instanceId Metrics related Picker session instance Id.
+     * @param cancellationSignal CancellationSignal used to abort the sync.
      * @throws RequestObsoleteException When the sync is interrupted due to the provider
      *     changing.
      */
@@ -803,7 +815,8 @@ public class PickerSyncController {
             String expectedMediaCollectionId,
             boolean isIncrementalSync,
             Bundle queryArgs,
-            InstanceId instanceId)
+            InstanceId instanceId,
+            @Nullable CancellationSignal cancellationSignal)
             throws RequestObsoleteException {
         final Uri uri = getMediaUri(authority);
         final List<String> expectedHonoredArgs = new ArrayList<>();
@@ -826,7 +839,8 @@ public class PickerSyncController {
                     resumeKey,
                     OPERATION_ADD_MEDIA,
                     authority,
-                    isLocal);
+                    isLocal,
+                    cancellationSignal);
             NonUiEventLogger.logPickerAddMediaSyncCompletion(instanceId, MY_UID, authority,
                     syncedItems);
         } finally {
@@ -842,6 +856,7 @@ public class PickerSyncController {
      * @param albumId the Id of the album to sync
      * @param queryArgs Query arguments to pass in query.
      * @param instanceId Metrics related Picker session instance Id.
+     * @param cancellationSignal CancellationSignal used to abort the sync.
      * @throws RequestObsoleteException When the sync is interrupted due to the provider
      *     changing.
      */
@@ -850,7 +865,8 @@ public class PickerSyncController {
             boolean isLocal,
             String albumId,
             Bundle queryArgs,
-            InstanceId instanceId)
+            InstanceId instanceId,
+            @Nullable CancellationSignal cancellationSignal)
             throws RequestObsoleteException {
         final Uri uri = getMediaUri(authority);
 
@@ -874,7 +890,8 @@ public class PickerSyncController {
                             OPERATION_ADD_ALBUM,
                             authority,
                             isLocal,
-                            albumId);
+                            albumId,
+                            /*cancellationSignal=*/ cancellationSignal);
             NonUiEventLogger.logPickerAddAlbumMediaSyncCompletion(instanceId, MY_UID, authority,
                     syncedItems);
         } finally {
@@ -890,6 +907,7 @@ public class PickerSyncController {
      * @param mediaCollectionId The last synced media collection id
      * @param queryArgs Query arguments to pass in query.
      * @param instanceId Metrics related Picker session instance Id.
+     * @param cancellationSignal CancellationSignal used to abort the sync.
      * @throws RequestObsoleteException When the sync is interrupted due to the provider
      *     changing.
      */
@@ -898,7 +916,8 @@ public class PickerSyncController {
             boolean isLocal,
             String mediaCollectionId,
             Bundle queryArgs,
-            InstanceId instanceId)
+            InstanceId instanceId,
+            @Nullable CancellationSignal cancellationSignal)
             throws RequestObsoleteException {
         final Uri uri = getDeletedMediaUri(authority);
 
@@ -917,7 +936,8 @@ public class PickerSyncController {
                             resumeKey,
                             OPERATION_REMOVE_MEDIA,
                             authority,
-                            isLocal);
+                            isLocal,
+                            cancellationSignal);
             NonUiEventLogger.logPickerRemoveMediaSyncCompletion(instanceId, MY_UID, authority,
                     syncedItems);
         } finally {
@@ -1100,13 +1120,15 @@ public class PickerSyncController {
         return bundle;
     }
 
+    @NonNull
     private Bundle getLatestMediaCollectionInfo(String authority) {
         final InstanceId instanceId = NonUiEventLogger.generateInstanceId();
         NonUiEventLogger.logPickerGetMediaCollectionInfoStart(instanceId, MY_UID, authority);
         try {
-            return mContext.getContentResolver().call(getMediaCollectionInfoUri(authority),
+            Bundle result = mContext.getContentResolver().call(getMediaCollectionInfoUri(authority),
                     CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO, /* arg */ null,
                     /* extras */ null);
+            return (result == null) ? (new Bundle()) : result;
         } finally {
             NonUiEventLogger.logPickerGetMediaCollectionInfoEnd(instanceId, MY_UID, authority);
         }
@@ -1228,6 +1250,7 @@ public class PickerSyncController {
      *     between pages.
      * @param op The DbWriteOperation type. {@link OperationType}
      * @param authority The authority string of the provider to sync with.
+     * @param cancellationSignal CancellationSignal used to abort the sync.
      * @throws RequestObsoleteException When the sync is interrupted due to the provider
      *     changing.
      * @return the total number of rows synced.
@@ -1240,7 +1263,8 @@ public class PickerSyncController {
             @Nullable String resumeKey,
             @OperationType int op,
             String authority,
-            Boolean isLocal) throws RequestObsoleteException {
+            Boolean isLocal,
+            @Nullable CancellationSignal cancellationSignal) throws RequestObsoleteException {
         return executePagedSync(
                 uri,
                 expectedMediaCollectionId,
@@ -1250,7 +1274,8 @@ public class PickerSyncController {
                 op,
                 authority,
                 isLocal,
-                /* albumId=*/ null);
+                /* albumId=*/ null,
+                cancellationSignal);
     }
 
     /**
@@ -1268,6 +1293,7 @@ public class PickerSyncController {
      * @param op The DbWriteOperation type. {@link OperationType}
      * @param authority The authority string of the provider to sync with.
      * @param albumId A {@link Nullable} albumId for album related operations.
+     * @param cancellationSignal CancellationSignal used to abort the sync.
      * @throws RequestObsoleteException When the sync is interrupted due to the provider
      *     changing.
      * @return the total number of rows synced.
@@ -1281,7 +1307,8 @@ public class PickerSyncController {
             @OperationType int op,
             String authority,
             Boolean isLocal,
-            @Nullable String albumId) throws RequestObsoleteException {
+            @Nullable String albumId,
+            @Nullable CancellationSignal cancellationSignal) throws RequestObsoleteException {
         Trace.beginSection(traceSectionName("executePagedSync"));
 
         try {
@@ -1299,6 +1326,13 @@ public class PickerSyncController {
             }
 
             do {
+                // At the top of each loop check to see if we've received a CancellationSignal
+                // to stop the paged sync.
+                if (cancellationSignal != null && cancellationSignal.isCanceled()) {
+                    throw new RequestObsoleteException(
+                            "Aborting sync: cancellationSignal was received");
+                }
+
                 String updateDateTakenMs = null;
                 if (nextPageToken != null) {
                     queryArgs.putString(EXTRA_PAGE_TOKEN, nextPageToken);
@@ -1307,13 +1341,10 @@ public class PickerSyncController {
                 try (Cursor cursor = query(uri, queryArgs)) {
                     nextPageToken =
                             validateCursor(
-                                    cursor,
-                                    expectedMediaCollectionId,
-                                    expectedHonoredArgs,
-                                    tokens);
+                                    cursor, expectedMediaCollectionId, expectedHonoredArgs, tokens);
 
                     try (PickerDbFacade.DbWriteOperation operation =
-                                 beginPagedOperation(op, authority, albumId)) {
+                            beginPagedOperation(op, authority, albumId)) {
                         int writeCount = operation.execute(cursor);
 
                         if (!isLocal) {
@@ -1347,8 +1378,7 @@ public class PickerSyncController {
                         }
                     }
                 } catch (IllegalArgumentException ex) {
-                    Log.e(TAG, String.format("Failed to open DbWriteOperation for op: %d", op),
-                            ex);
+                    Log.e(TAG, String.format("Failed to open DbWriteOperation for op: %d", op), ex);
                     return -1;
                 }
 

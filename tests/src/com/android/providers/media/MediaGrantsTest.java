@@ -134,9 +134,50 @@ public class MediaGrantsTest {
 
         // assert no items are returned for an invalid package.
         assertEquals(/* expected= */fileUrisForTestPackage3.size(), /* actual= */0);
-
     }
 
+
+    @Test
+    public void testRemoveMediaGrantsForPackages() throws Exception {
+        Long fileId1 = insertFileInResolver(mIsolatedResolver, "test_file1");
+        Long fileId2 = insertFileInResolver(mIsolatedResolver, "test_file2");
+        Long fileId3 = insertFileInResolver(mIsolatedResolver, "test_file3");
+        List<Uri> uris1 = List.of(buildValidPickerUri(fileId1), buildValidPickerUri(fileId2));
+        List<Uri> uris2 = List.of(buildValidPickerUri(fileId3));
+
+        // Add grants for 2 different packages.
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris1, TEST_USER_ID);
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME2, uris2, TEST_USER_ID);
+
+
+        // Verify the grants for the first package were inserted.
+        List<Uri> fileUris = mGrants.getMediaGrantsForPackages(
+                new String[]{TEST_OWNER_PACKAGE_NAME}, TEST_USER_ID);
+        List<Long> expectedFileIdsList = List.of(fileId1, fileId2);
+        assertEquals(fileUris.size(), expectedFileIdsList.size());
+        for (Uri uri : fileUris) {
+            assertTrue(expectedFileIdsList.contains(Long.valueOf(ContentUris.parseId(uri))));
+        }
+
+        // Remove one of the 2 grants for TEST_OWNER_PACKAGE_NAME and verify the other grants is
+        // still present.
+        mGrants.removeMediaGrantsForPackage(new String[]{TEST_OWNER_PACKAGE_NAME},
+                List.of(buildValidPickerUri(fileId1)), TEST_USER_ID);
+        List<Uri> fileUris3 = mGrants.getMediaGrantsForPackages(
+                new String[]{TEST_OWNER_PACKAGE_NAME}, TEST_USER_ID);
+        assertEquals(1, fileUris3.size());
+        assertEquals(fileId2, Long.valueOf(ContentUris.parseId(fileUris3.get(0))));
+
+
+        // Verify grants of other packages are unaffected.
+        List<Uri> fileUrisForTestPackage2 = mGrants.getMediaGrantsForPackages(
+                new String[]{TEST_OWNER_PACKAGE_NAME2}, TEST_USER_ID);
+        List<Long> expectedFileIdsList2 = List.of(fileId3);
+        assertEquals(fileUrisForTestPackage2.size(), expectedFileIdsList2.size());
+        for (Uri uri : fileUrisForTestPackage2) {
+            assertTrue(expectedFileIdsList2.contains(Long.valueOf(ContentUris.parseId(uri))));
+        }
+    }
     @Test
     public void testAddDuplicateMediaGrants() throws Exception {
 
@@ -181,8 +222,9 @@ public class MediaGrantsTest {
         assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
         assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
 
-        int removed = mGrants.removeAllMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, "test",
-                TEST_USER_ID);
+        int removed =
+                mGrants.removeAllMediaGrantsForPackages(
+                        new String[] {TEST_OWNER_PACKAGE_NAME}, "test", TEST_USER_ID);
         assertEquals(2, removed);
 
         try (Cursor c =
@@ -207,11 +249,73 @@ public class MediaGrantsTest {
     }
 
     @Test
+    public void removeAllMediaGrantsForMultiplePackages() throws Exception {
+
+        Long fileId1 = insertFileInResolver(mIsolatedResolver, "test_file1");
+        Long fileId2 = insertFileInResolver(mIsolatedResolver, "test_file2");
+        List<Uri> uris = List.of(buildValidPickerUri(fileId1), buildValidPickerUri(fileId2));
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris, TEST_USER_ID);
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME2, uris, TEST_USER_ID);
+
+        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME2, TEST_USER_ID);
+        assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME2, TEST_USER_ID);
+
+        int removed =
+                mGrants.removeAllMediaGrantsForPackages(
+                        new String[] {TEST_OWNER_PACKAGE_NAME, TEST_OWNER_PACKAGE_NAME2},
+                        "test",
+                        TEST_USER_ID);
+        assertEquals(4, removed);
+
+        try (Cursor c =
+                mExternalDatabase.runWithTransaction(
+                        (db) ->
+                                db.query(
+                                        MediaGrants.MEDIA_GRANTS_TABLE,
+                                        new String[] {
+                                            MediaGrants.FILE_ID_COLUMN,
+                                            MediaGrants.OWNER_PACKAGE_NAME_COLUMN
+                                        },
+                                        String.format(
+                                                "%s = '%s'",
+                                                MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                                                TEST_OWNER_PACKAGE_NAME),
+                                        null,
+                                        null,
+                                        null,
+                                        null))) {
+            assertEquals(0, c.getCount());
+        }
+
+        try (Cursor c =
+                mExternalDatabase.runWithTransaction(
+                        (db) ->
+                                db.query(
+                                        MediaGrants.MEDIA_GRANTS_TABLE,
+                                        new String[] {
+                                            MediaGrants.FILE_ID_COLUMN,
+                                            MediaGrants.OWNER_PACKAGE_NAME_COLUMN
+                                        },
+                                        String.format(
+                                                "%s = '%s'",
+                                                MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                                                TEST_OWNER_PACKAGE_NAME2),
+                                        null,
+                                        null,
+                                        null,
+                                        null))) {
+            assertEquals(0, c.getCount());
+        }
+    }
+
+    @Test
     public void removeAllMediaGrantsForPackageRequiresNonEmpty() throws Exception {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    mGrants.removeAllMediaGrantsForPackage("", "test", TEST_USER_ID);
+                    mGrants.removeAllMediaGrantsForPackages(new String[]{}, "test", TEST_USER_ID);
                 });
     }
 

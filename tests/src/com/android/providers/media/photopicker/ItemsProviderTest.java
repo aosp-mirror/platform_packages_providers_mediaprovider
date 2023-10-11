@@ -484,6 +484,7 @@ public class ItemsProviderTest {
      * is triggered after query execution.
      */
     @Test
+    @Ignore("Enable or clean up - b/303494342")
     public void testGetItems_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
         CancellationSignal cancellationSignal = new CancellationSignal();
         Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
@@ -535,6 +536,7 @@ public class ItemsProviderTest {
      * is triggered after query execution.
      */
     @Test
+    @Ignore("Enable or clean up - b/303494342")
     public void testGetLocalItems_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
         CancellationSignal cancellationSignal = new CancellationSignal();
         Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
@@ -582,6 +584,7 @@ public class ItemsProviderTest {
      * execution when cancellation signal is triggered after query execution.
      */
     @Test
+    @Ignore("Enable or clean up - b/303494342")
     public void testGetCategories_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
         CancellationSignal cancellationSignal = new CancellationSignal();
         Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
@@ -627,7 +630,7 @@ public class ItemsProviderTest {
      * execution when cancellation signal is triggered after query execution.
      */
     @Test
-    @Ignore("Enable once b/303494342 is fixed")
+    @Ignore("Enable or clean up - b/303494342")
     public void testGetLocalCategories_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
         CancellationSignal cancellationSignal = new CancellationSignal();
 

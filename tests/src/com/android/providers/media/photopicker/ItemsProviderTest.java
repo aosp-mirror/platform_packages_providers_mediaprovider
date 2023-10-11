@@ -25,6 +25,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.VOLUME_EXTERNAL;
 
+import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.util.MimeUtils.isImageMimeType;
 import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
 
@@ -32,6 +33,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import android.Manifest;
+import android.app.Instrumentation;
 import android.app.UiAutomation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -39,28 +41,42 @@ import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
+import android.util.Log;
+import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
 
+import com.android.providers.media.IsolatedContext;
+import com.android.providers.media.PickerProviderMediaGenerator;
+import com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
+import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.cloudproviders.CloudProviderPrimary;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.UserId;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
+import com.google.common.io.ByteStreams;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class ItemsProviderTest {
-
     /**
      * To help avoid flaky tests, give ourselves a unique nonce to be used for
      * all filesystem paths, so that we don't risk conflicting with previous
@@ -72,27 +88,30 @@ public class ItemsProviderTest {
     private static final String IMAGE_FILE_NAME = TAG + "_file_" + NONCE + ".jpg";
     private static final String HIDDEN_DIR_NAME = TAG + "_hidden_dir_" + NONCE;
 
+    private static final Instrumentation sInstrumentation =
+            InstrumentationRegistry.getInstrumentation();
+    private static final Context sTargetContext = sInstrumentation.getTargetContext();
+    // We are in a self-instrumentation test - MediaProviderTests - so "target" package name and
+    // "own" package are the same: com.android.providers.media.tests.
+    private static final String sTargetPackageName = sTargetContext.getPackageName();
     private ContentResolver mIsolatedResolver;
     private ItemsProvider mItemsProvider;
+    private TestConfigStore mConfigStore;
 
     @Before
-    public void setUp() {
-        final UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation()
-                .getUiAutomation();
-
+    public void setUp() throws Exception {
+        final UiAutomation uiAutomation = sInstrumentation.getUiAutomation();
         uiAutomation.adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.READ_DEVICE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS);
 
+        mConfigStore = new TestConfigStore();
         // Remove sync delay to avoid flaky tests
-        final String setSyncDelayCommand =
-                "device_config put storage pickerdb.default_sync_delay_ms 0";
-        uiAutomation.executeShellCommand(setSyncDelayCommand);
+        mConfigStore.setPickerSyncDelayMs(0);
 
-        final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext
-                = new IsolatedContext(context, "databases", /*asFuseThread*/ false);
+        final Context isolatedContext = new IsolatedContext(sTargetContext, /* tag */ "databases",
+                /* asFuseThread */ false, sTargetContext.getUser(), mConfigStore);
         mIsolatedResolver = isolatedContext.getContentResolver();
         mItemsProvider = new ItemsProvider(isolatedContext);
 
@@ -100,17 +119,21 @@ public class ItemsProviderTest {
         MediaStore.waitForIdle(mIsolatedResolver);
     }
 
+    @After
+    public void tearDown() throws Exception {
+        setCloudProvider(null);
+    }
+
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link #ALBUM_ID_CAMERA}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link #ALBUM_ID_CAMERA}.
      */
     @Test
     public void testGetCategories_camera() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // Create 1 image file in Camera dir to test
-        // {@link ItemsProvider#getCategories(String, UserId)}.
         final File cameraDir = getCameraDir();
         File imageFile = assertCreateNewImage(cameraDir);
         try {
@@ -121,12 +144,12 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link #ALBUM_ID_CAMERA}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link #ALBUM_ID_CAMERA}.
      */
     @Test
     public void testGetCategories_not_camera() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // negative test case: image file which should not be returned in Camera category
@@ -140,16 +163,15 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link #ALBUM_ID_VIDEOS}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link #ALBUM_ID_VIDEOS}.
      */
     @Test
     public void testGetCategories_videos() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // Create 1 video file in Movies dir to test
-        // {@link ItemsProvider#getCategories(String, UserId)}.
         final File moviesDir = getMoviesDir();
         File videoFile = assertCreateNewVideo(moviesDir);
         try {
@@ -160,12 +182,12 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link #ALBUM_ID_VIDEOS}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link #ALBUM_ID_VIDEOS}.
      */
     @Test
     public void testGetCategories_not_videos() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // negative test case: image file which should not be returned in Videos category
@@ -179,40 +201,52 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link #ALBUM_ID_SCREENSHOTS}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link #ALBUM_ID_SCREENSHOTS}.
      */
     @Test
     public void testGetCategories_screenshots() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // Create 1 image file in Screenshots dir to test
-        // {@link ItemsProvider#getCategories(String, UserId)}
         final File screenshotsDir = getScreenshotsDir();
         File imageFile = assertCreateNewImage(screenshotsDir);
         // Create 1 image file in Screenshots dir of Downloads dir
-        // {@link ItemsProvider#getCategories(String, UserId)}
         final File screenshotsDirInDownloadsDir = getScreenshotsDirFromDownloadsDir();
         File imageFileInScreenshotDirInDownloads =
                 assertCreateNewImage(screenshotsDirInDownloadsDir);
+
+        // Add a top level /Screenshots directory and add a test image inside of it.
+        createTestScreenshotImages();
+
+        // This file should not be included since it's not a valid screenshot directory, even though
+        // it looks like one.
+        final File myAlbumScreenshotsDir =
+                new File(getPicturesDir(), "MyAlbum" + Environment.DIRECTORY_SCREENSHOTS);
+        final File myAlbumScreenshotsImg = assertCreateNewImage(myAlbumScreenshotsDir);
+
         try {
-            assertGetCategoriesMatchMultiple(ALBUM_ID_SCREENSHOTS,
-                    ALBUM_ID_DOWNLOADS, /* numberOfItemsInScreenshots */ 2,
-                                             /* numberOfItemsInDownloads */ 1);
+            assertGetCategoriesMatchMultiple(Arrays.asList(
+                    Pair.create(ALBUM_ID_SCREENSHOTS, 3),
+                    Pair.create(ALBUM_ID_DOWNLOADS, 1)
+            ));
         } finally {
             imageFile.delete();
             imageFileInScreenshotDirInDownloads.delete();
+            myAlbumScreenshotsImg.delete();
+            myAlbumScreenshotsDir.delete();
+            deleteTopLevelScreenshotDir();
         }
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link #ALBUM_ID_SCREENSHOTS}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link #ALBUM_ID_SCREENSHOTS}.
      */
     @Test
     public void testGetCategories_not_screenshots() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // negative test case: image file which should not be returned in Screenshots category
@@ -226,12 +260,12 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link AlbumColumns#ALBUM_ID_FAVORITES}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link AlbumColumns#ALBUM_ID_FAVORITES}.
      */
     @Test
     public void testGetCategories_favorites() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // positive test case: image file which should be returned in favorites category
@@ -246,12 +280,12 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link AlbumColumns#ALBUM_ID_FAVORITES}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link AlbumColumns#ALBUM_ID_FAVORITES}.
      */
     @Test
     public void testGetCategories_not_favorites() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // negative test case: image file which should not be returned in favorites category
@@ -265,16 +299,15 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link #ALBUM_ID_DOWNLOADS}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link #ALBUM_ID_DOWNLOADS}.
      */
     @Test
     public void testGetCategories_downloads() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // Create 1 image file in Downloads dir to test
-        // {@link ItemsProvider#getCategories(String, UserId)}.
         final File downloadsDir = getDownloadsDir();
         final File imageFile = assertCreateNewImage(downloadsDir);
         try {
@@ -285,12 +318,12 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link #ALBUM_ID_DOWNLOADS}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link #ALBUM_ID_DOWNLOADS}.
      */
     @Test
     public void testGetCategories_not_downloads() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // negative test case: image file which should not be returned in Downloads category
@@ -304,89 +337,86 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link #ALBUM_ID_CAMERA} and {@link #ALBUM_ID_VIDEOS}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link #ALBUM_ID_VIDEOS}.
      */
     @Test
     public void testGetCategories_camera_and_videos() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // Create 1 video file in Camera dir to test
-        // {@link ItemsProvider#getCategories(String, UserId)}.
         final File cameraDir = getCameraDir();
         File videoFile = assertCreateNewVideo(cameraDir);
         try {
-            assertGetCategoriesMatchMultiple(ALBUM_ID_CAMERA, ALBUM_ID_VIDEOS,
-                    /* numberOfItemsInCamera */ 1,
-                    /* numberOfItemsInVideos */ 1);
+            assertGetCategoriesMatchMultiple(Arrays.asList(
+                    Pair.create(ALBUM_ID_VIDEOS, 1),
+                    Pair.create(ALBUM_ID_CAMERA, 1)
+            ));
         } finally {
             videoFile.delete();
         }
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link AlbumColumns#ALBUM_ID_SCREENSHOTS} and {@link AlbumColumns#ALBUM_ID_FAVORITES}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link AlbumColumns#ALBUM_ID_FAVORITES}.
      */
     @Test
     public void testGetCategories_screenshots_and_favorites() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // Create 1 image file in Screenshots dir to test
-        // {@link ItemsProvider#getCategories(String, UserId)}
         final File screenshotsDir = getScreenshotsDir();
         File imageFile = assertCreateNewImage(screenshotsDir);
         setIsFavorite(imageFile);
         try {
-            assertGetCategoriesMatchMultiple(ALBUM_ID_SCREENSHOTS,
-                    ALBUM_ID_FAVORITES,
-                    /* numberOfItemsInScreenshots */ 1,
-                    /* numberOfItemsInFavorites */ 1);
+            assertGetCategoriesMatchMultiple(Arrays.asList(
+                    Pair.create(ALBUM_ID_FAVORITES, 1),
+                    Pair.create(ALBUM_ID_SCREENSHOTS, 1)
+            ));
         } finally {
             imageFile.delete();
         }
     }
 
     /**
-     * Tests {@link ItemsProvider#getCategories(String, UserId)} to return correct info about
-     * {@link AlbumColumns#ALBUM_ID_DOWNLOADS} and {@link AlbumColumns#ALBUM_ID_FAVORITES}.
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId)} to return correct info
+     * about {@link AlbumColumns#ALBUM_ID_DOWNLOADS} and {@link AlbumColumns#ALBUM_ID_FAVORITES}.
      */
     @Test
     public void testGetCategories_downloads_and_favorites() throws Exception {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // Create 1 image file in Screenshots dir to test
-        // {@link ItemsProvider#getCategories(String, UserId)}
         final File downloadsDir = getDownloadsDir();
         File imageFile = assertCreateNewImage(downloadsDir);
         setIsFavorite(imageFile);
         try {
-            assertGetCategoriesMatchMultiple(ALBUM_ID_DOWNLOADS,
-                    ALBUM_ID_FAVORITES,
-                    /* numberOfItemsInScreenshots */ 1,
-                    /* numberOfItemsInFavorites */ 1);
+            assertGetCategoriesMatchMultiple(Arrays.asList(
+                    Pair.create(ALBUM_ID_FAVORITES, 1),
+                    Pair.create(ALBUM_ID_DOWNLOADS, 1)
+            ));
         } finally {
             imageFile.delete();
         }
     }
 
     /**
-     * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} to return all
+     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} to return all
      * images and videos.
      */
     @Test
     public void testGetItems() throws Exception {
         // Create 1 image and 1 video file to test
-        // {@link ItemsProvider#getItems(String, int, int, String, UserId)}.
         // Both files should be returned.
         File imageFile = assertCreateNewImage();
         File videoFile = assertCreateNewVideo();
         try {
-            final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ null, /* userId */ null);
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+                    /* mimeType */ null, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(2);
 
@@ -413,7 +443,7 @@ public class ItemsProviderTest {
                     = prepareFileAndGetUri(new File(getCameraDir(), VIDEO_FILE_NAME), timeNow);
 
             // This is the list of uris based on the expected sort order of items returned by
-            // ItemsProvider#getItems
+            // ItemsProvider#getAllItems
             List<Uri> uris = new ArrayList<>();
             // This is the latest image file
             uris.add(imageFileDateNowPlus1Uri);
@@ -421,8 +451,8 @@ public class ItemsProviderTest {
             uris.add(videoFileDateNowUri);
             uris.add(imageFileDateNowUri);
 
-            try (Cursor cursor = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ null, /* userId */ null)) {
+            try (Cursor cursor = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+                    /* mimeType */ null, /* userId */ null)) {
                 assertThat(cursor).isNotNull();
 
                 final int expectedCount = uris.size();
@@ -446,20 +476,19 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link {@link ItemsProvider#getItems(String, int, int, String, UserId)}} does not
+     * Tests {@link {@link ItemsProvider#getAllItems(Category, int, String[], UserId)}} does not
      * return hidden images/videos.
      */
     @Test
     public void testGetItems_nonMedia() throws Exception {
         // Create 1 image and 1 video file in a hidden dir to test
-        // {@link ItemsProvider#getItems(String, int, int, String, UserId)}.
         // Both should not be returned.
         File hiddenDir = createHiddenDir();
         File imageFileHidden = assertCreateNewImage(hiddenDir);
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
-            final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ null, /* userId */ null);
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+                    /* mimeType */ null, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
         } finally {
@@ -470,19 +499,18 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} to return all
+     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} to return all
      * images and videos based on the mimeType. Image mimeType should only return images.
      */
     @Test
     public void testGetItemsImages() throws Exception {
         // Create 1 image and 1 video file to test
-        // {@link ItemsProvider#getItems(String, int, int, String, UserId)}.
         // Only 1 should be returned.
         File imageFile = assertCreateNewImage();
         File videoFile = assertCreateNewVideo();
         try {
-            final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "image/*", /* userId */ null);
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+                    /* mimeType */ new String[]{ "image/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
 
@@ -495,7 +523,7 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} to return all
+     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} to return all
      * images and videos based on the mimeType. Image mimeType should only return images.
      */
     @Test
@@ -503,8 +531,8 @@ public class ItemsProviderTest {
         // Create a jpg file image. Tests negative use case, this should not be returned below.
         File imageFile = assertCreateNewImage();
         try {
-            final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "image/png", /* userId */ null);
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+                    /* mimeType */ new String[]{"image/png"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
         } finally {
@@ -513,20 +541,19 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} does not return
+     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} does not return
      * hidden images/videos.
      */
     @Test
     public void testGetItemsImages_nonMedia() throws Exception {
         // Create 1 image and 1 video file in a hidden dir to test
-        // {@link ItemsProvider#getItems(String, int, int, String)}.
         // Both should not be returned.
         File hiddenDir = createHiddenDir();
         File imageFileHidden = assertCreateNewImage(hiddenDir);
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
-            final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "image/*", /* userId */ null);
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+                    /* mimeType */ new String[]{"image/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
         } finally {
@@ -537,19 +564,18 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} to return all
+     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} to return all
      * images and videos based on the mimeType. Video mimeType should only return videos.
      */
     @Test
     public void testGetItemsVideos() throws Exception {
         // Create 1 image and 1 video file to test
-        // {@link ItemsProvider#getItems(String, int, int, String)}.
         // Only 1 should be returned.
         File imageFile = assertCreateNewImage();
         File videoFile = assertCreateNewVideo();
         try {
-            final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "video/*", /* userId */ null);
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+                    /* mimeType */ new String[]{"video/*"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
 
@@ -562,7 +588,7 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} to return all
+     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} to return all
      * images and videos based on the mimeType. Image mimeType should only return images.
      */
     @Test
@@ -570,8 +596,8 @@ public class ItemsProviderTest {
         // Create a mp4 video file. Tests positive use case, this should be returned below.
         File videoFile = assertCreateNewVideo();
         try {
-            final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "video/mp4", /* userId */ null);
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+                    /* mimeType */ new String[]{"video/mp4"}, /* userId */ null);
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(1);
         } finally {
@@ -580,7 +606,7 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} does not return
+     * Tests {@link ItemsProvider#getAllItems(Category, int, String[], UserId)} does not return
      * hidden images/videos.
      */
     @Test
@@ -591,14 +617,178 @@ public class ItemsProviderTest {
         File imageFileHidden = assertCreateNewImage(hiddenDir);
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
-            final Cursor res = mItemsProvider.getItems(Category.DEFAULT, /* offset */ 0,
-                    /* limit */ -1, /* mimeType */ "video/*", /* userId */ null);
+            final Cursor res = mItemsProvider.getAllItems(Category.DEFAULT, /* limit */ -1,
+                    /* mimeType */ new String[]{"video/*"}, /* userId */ null);
+
             assertThat(res).isNotNull();
             assertThat(res.getCount()).isEqualTo(0);
         } finally {
             imageFileHidden.delete();
             videoFileHidden.delete();
             hiddenDir.delete();
+        }
+    }
+
+    /**
+     * Tests {@link ItemsProvider#getLocalItems(Category, int, String[], UserId)} to returns only
+     * local content.
+     */
+    @Test
+    public void testGetLocalItems_withCloud() throws Exception {
+        File videoFile = assertCreateNewVideo();
+        try {
+            mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
+                    sTargetPackageName);
+            // Init cloud provider and add one item
+            setupCloudProvider((cloudMediaGenerator) -> {
+                cloudMediaGenerator.addMedia(null, "cloud_id1");
+            });
+
+            // Verify that getLocalItems includes only local contents
+            try (Cursor c = mItemsProvider.getLocalItems(Category.DEFAULT, -1, new String[]{},
+                    UserId.CURRENT_USER)) {
+                assertThat(c.getCount()).isEqualTo(1);
+
+                assertThat(c.moveToFirst()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
+            }
+
+            // Verify that getAllItems includes cloud items
+            try (Cursor c = mItemsProvider.getAllItems(Category.DEFAULT, -1, new String[]{},
+                    UserId.CURRENT_USER)) {
+                assertThat(c.getCount()).isEqualTo(2);
+
+                // Verify that the first item is cloud item
+                assertThat(c.moveToFirst()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(CloudProviderPrimary.AUTHORITY);
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.ID))).isEqualTo(
+                        "cloud_id1");
+
+                // Verify that the second item is local item
+                assertThat(c.moveToNext()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
+            }
+        } finally {
+            videoFile.delete();
+            setCloudProvider(null);
+            mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
+        }
+    }
+
+    @Test
+    public void testGetLocalItems_mergedAlbum_withCloud() throws Exception {
+        File videoFile = assertCreateNewVideo();
+        Category videoAlbum = new Category(CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
+                LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 10, true);
+        try {
+            mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
+                    sTargetPackageName);
+            // Init cloud provider and add one item
+            setupCloudProvider((cloudMediaGenerator) -> {
+                cloudMediaGenerator.addMedia(null, "cloud_id1", null, "video/mp4", 0, 1024, false);
+            });
+
+            // Verify that getLocalItems for merged album "Video" includes only local contents
+            try (Cursor c = mItemsProvider.getLocalItems(videoAlbum, -1, new String[]{},
+                    UserId.CURRENT_USER)) {
+                assertThat(c.getCount()).isEqualTo(1);
+                assertThat(c.moveToFirst()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
+            }
+
+            // Verify that getAllItems for merged album "Video" also includes cloud contents
+            try (Cursor c = mItemsProvider.getAllItems(videoAlbum, -1, new String[]{},
+                    UserId.CURRENT_USER)) {
+                assertThat(c.getCount()).isEqualTo(2);
+                // Verify that the first item is cloud item
+                assertThat(c.moveToFirst()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(CloudProviderPrimary.AUTHORITY);
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.ID)))
+                        .isEqualTo("cloud_id1");
+
+                // Verify that the second item is local item
+                assertThat(c.moveToNext()).isTrue();
+                assertThat(c.getString(c.getColumnIndexOrThrow(MediaColumns.AUTHORITY)))
+                        .isEqualTo(LOCAL_PICKER_PROVIDER_AUTHORITY);
+            }
+        } finally {
+            videoFile.delete();
+            setCloudProvider(null);
+            mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
+        }
+    }
+
+    @Test
+    public void testGetLocalCategories_withCloud() throws Exception {
+        File videoFile = assertCreateNewVideo(getMoviesDir());
+        File screenshotFile = assertCreateNewImage(getScreenshotsDir());
+        final String cloudAlbum = "testAlbum";
+
+        try {
+            mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(
+                    sTargetPackageName);
+            // Init cloud provider with 2 items and one cloud album
+            setupCloudProvider((cloudMediaGenerator) -> {
+                cloudMediaGenerator.addMedia(null, "cloud_id1", null, "video/mp4", 0, 1024, false);
+                cloudMediaGenerator.addMedia(null, "cloud_id2", cloudAlbum, "image/jpeg", 0, 1024,
+                        false);
+                cloudMediaGenerator.createAlbum(cloudAlbum);
+            });
+
+            // Verify that getLocalCategories only returns local albums
+            try (Cursor c = mItemsProvider.getLocalCategories(/* mimeType */ null,
+                    /* userId */ null)) {
+                assertGetCategoriesMatchMultiple(c, Arrays.asList(
+                        Pair.create(ALBUM_ID_VIDEOS, 1),
+                        Pair.create(ALBUM_ID_SCREENSHOTS, 1)
+                ));
+            }
+
+
+            // Verify that getAllCategories returns local + cloud albums
+            try (Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null,
+                    /* userId */ null)) {
+                assertGetCategoriesMatchMultiple(c, Arrays.asList(
+                        Pair.create(ALBUM_ID_VIDEOS, 2),
+                        Pair.create(ALBUM_ID_SCREENSHOTS, 1),
+                        Pair.create(cloudAlbum, 1)
+                ));
+            }
+        } finally {
+            videoFile.delete();
+            screenshotFile.delete();
+            setCloudProvider(null);
+            mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
+        }
+    }
+
+    private void setupCloudProvider(Consumer<MediaGenerator> initMedia) {
+        MediaGenerator cloudPrimaryMediaGenerator =
+                PickerProviderMediaGenerator.getMediaGenerator(CloudProviderPrimary.AUTHORITY);
+        cloudPrimaryMediaGenerator.resetAll();
+        cloudPrimaryMediaGenerator.setMediaCollectionId("COLLECTION_1");
+        initMedia.accept(cloudPrimaryMediaGenerator);
+
+        // Set the newly initialized cloud provider.
+        setCloudProvider(CloudProviderPrimary.AUTHORITY);
+
+        mIsolatedResolver.call(MediaStore.AUTHORITY, MediaStore.SYNC_PROVIDERS_CALL, null,
+                Bundle.EMPTY);
+    }
+
+    private void setCloudProvider(String authority) {
+        Bundle in = new Bundle();
+        in.putString(MediaStore.EXTRA_CLOUD_PROVIDER, authority);
+        mIsolatedResolver.call(MediaStore.AUTHORITY, MediaStore.SET_CLOUD_PROVIDER_CALL, null, in);
+        if (authority != null) {
+            assertWithMessage("Expected " + authority + " to be current cloud provider.")
+                    .that(MediaStore.isCurrentCloudMediaProviderAuthority(mIsolatedResolver,
+                            authority)).isTrue();
         }
     }
 
@@ -609,7 +799,7 @@ public class ItemsProviderTest {
             return;
         }
 
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null);
         assertThat(c).isNotNull();
         assertThat(c.getCount()).isEqualTo(1);
 
@@ -622,7 +812,7 @@ public class ItemsProviderTest {
         final String categoryName = c.getString(nameColumnIndex);
         final int numOfItems = c.getInt(numOfItemsColumnIndex);
         final Uri coverUri = ItemsProvider.getItemsUri(c.getString(coverIdIndex),
-                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, UserId.CURRENT_USER);
+                LOCAL_PICKER_PROVIDER_AUTHORITY, UserId.CURRENT_USER);
 
         assertThat(categoryName).isEqualTo(expectedCategoryName);
         assertThat(numOfItems).isEqualTo(expectedNumberOfItems);
@@ -640,44 +830,37 @@ public class ItemsProviderTest {
     }
 
     private void assertCategoriesNoMatch(String expectedCategoryName) {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
-        while (c != null && c.moveToNext()) {
-            final int nameColumnIndex = c.getColumnIndexOrThrow(AlbumColumns.DISPLAY_NAME);
-            final String categoryName = c.getString(nameColumnIndex);
-            assertThat(categoryName).isNotEqualTo(expectedCategoryName);
+        try (Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null)) {
+            while (c != null && c.moveToNext()) {
+                final int nameColumnIndex = c.getColumnIndexOrThrow(AlbumColumns.DISPLAY_NAME);
+                final String categoryName = c.getString(nameColumnIndex);
+                assertThat(categoryName).isNotEqualTo(expectedCategoryName);
+            }
         }
     }
 
-    private void assertGetCategoriesMatchMultiple(String category1, String category2,
-            int numberOfItems1, int numberOfItems2) {
-        Cursor c = mItemsProvider.getCategories(/* mimeType */ null, /* userId */ null);
-        assertThat(c).isNotNull();
-        assertThat(c.getCount()).isEqualTo(2);
-
-        // Assert that category1 and category2 is returned and has numberOfItems1 and
-        // numberOfItems2 items in them respectively.
-        boolean isCategory1Returned = false;
-        boolean isCategory2Returned = false;
-        while (c.moveToNext()) {
-            final int nameColumnIndex = c.getColumnIndexOrThrow(AlbumColumns.DISPLAY_NAME);
-            final int numOfItemsColumnIndex = c.getColumnIndexOrThrow(
-                    AlbumColumns.MEDIA_COUNT);
-
-            final String categoryName = c.getString(nameColumnIndex);
-            final int numOfItems = c.getInt(numOfItemsColumnIndex);
-
-
-            if (categoryName.equals(category1)) {
-                isCategory1Returned = true;
-                assertThat(numOfItems).isEqualTo(numberOfItems1);
-            } else if (categoryName.equals(category2)) {
-                isCategory2Returned = true;
-                assertThat(numOfItems).isEqualTo(numberOfItems2);
-            }
+    private void assertGetCategoriesMatchMultiple(List<Pair<String, Integer>> categories) {
+        try (Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null)) {
+            assertGetCategoriesMatchMultiple(c, categories);
         }
+    }
 
-        assertThat(isCategory1Returned).isTrue();
-        assertThat(isCategory2Returned).isTrue();
+    private void assertGetCategoriesMatchMultiple(Cursor c,
+            List<Pair<String, Integer>> categories) {
+        assertThat(c).isNotNull();
+        assertWithMessage("Expected number of albums")
+                .that(c.getCount()).isEqualTo(categories.size());
+
+        final int nameColumnIndex = c.getColumnIndexOrThrow(AlbumColumns.DISPLAY_NAME);
+        final int numOfItemsColumnIndex = c.getColumnIndexOrThrow(
+                AlbumColumns.MEDIA_COUNT);
+        for (Pair<String, Integer> category : categories) {
+            c.moveToNext();
+
+            assertThat(category.first).isEqualTo(c.getString(nameColumnIndex));
+            assertWithMessage("Expected item count for " + category.first).that(
+                    c.getInt(numOfItemsColumnIndex)).isEqualTo(category.second);
+        }
     }
 
     private void setIsFavorite(File file) {
@@ -728,6 +911,37 @@ public class ItemsProviderTest {
     private void assertThatAllVideos(int count) {
         int countOfVideos = getCountOfMediaStoreVideos();
         assertThat(count).isEqualTo(countOfVideos);
+    }
+
+    private void createTestScreenshotImages() throws IOException {
+        // Top Level /Screenshots/ directory is not allowed by MediaProvider, so the directory
+        // and test files in it are created via shell commands.
+
+        final String createTopLevelScreenshotDirCommand =
+                "mkdir -p "
+                        + Environment.getExternalStorageDirectory().getPath()
+                        + "/"
+                        + Environment.DIRECTORY_SCREENSHOTS;
+        final String createTopLevelScreenshotImgCommand =
+                "touch " + getTopLevelScreenshotsDir().getPath() + "/" + IMAGE_FILE_NAME;
+        final String writeDataTopLevelScreenshotImgCommand =
+                "echo 1 > " + getTopLevelScreenshotsDir().getPath() + "/" + IMAGE_FILE_NAME;
+
+        executeShellCommand(createTopLevelScreenshotDirCommand);
+        executeShellCommand(createTopLevelScreenshotImgCommand);
+        // Writes 1 byte to the file.
+        executeShellCommand(writeDataTopLevelScreenshotImgCommand);
+
+        final File topLevelScreenshotsDirImage =
+                new File(getTopLevelScreenshotsDir(), IMAGE_FILE_NAME);
+
+        // Force the mock MediaProvider to scan.
+        final Uri uri = MediaStore.scanFile(mIsolatedResolver, topLevelScreenshotsDirImage);
+        assertWithMessage("Uri obtained by scanning file " + topLevelScreenshotsDirImage)
+                .that(uri)
+                .isNotNull();
+        // Wait for picker db sync
+        MediaStore.waitForIdle(mIsolatedResolver);
     }
 
     private int getCountOfMediaStoreImages() {
@@ -823,6 +1037,11 @@ public class ItemsProviderTest {
         return new File(getPicturesDir(), Environment.DIRECTORY_SCREENSHOTS);
     }
 
+    private File getTopLevelScreenshotsDir() {
+        return new File(
+                Environment.getExternalStorageDirectory(), Environment.DIRECTORY_SCREENSHOTS);
+    }
+
     private File getScreenshotsDirFromDownloadsDir() {
         return new File(getDownloadsDir(), Environment.DIRECTORY_SCREENSHOTS);
     }
@@ -848,6 +1067,33 @@ public class ItemsProviderTest {
                 (new File(c.getString(
                         c.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)))).delete();
             }
+        }
+    }
+
+    private void deleteTopLevelScreenshotDir() throws IOException {
+        final String removeTopLevelScreenshotDirCommand =
+                "rm -rf " + getTopLevelScreenshotsDir().getPath();
+        executeShellCommand(removeTopLevelScreenshotDirCommand);
+    }
+
+    /** Executes a shell command. */
+    private static String executeShellCommand(String command) throws IOException {
+        int attempt = 0;
+        while (attempt++ < 5) {
+            try {
+                return executeShellCommandInternal(command);
+            } catch (InterruptedIOException e) {
+                Log.v(TAG, "Trouble executing " + command + "; trying again", e);
+            }
+        }
+        throw new IOException("Failed to execute " + command);
+    }
+
+    private static String executeShellCommandInternal(String cmd) throws IOException {
+        UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        try (FileInputStream output = new FileInputStream(
+                uiAutomation.executeShellCommand(cmd).getFileDescriptor())) {
+            return new String(ByteStreams.toByteArray(output));
         }
     }
 }

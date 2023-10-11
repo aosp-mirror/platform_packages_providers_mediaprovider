@@ -22,6 +22,10 @@ import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 
+import static com.android.providers.media.photopicker.data.model.ModelTestUtils.generateItem;
+import static com.android.providers.media.photopicker.data.model.ModelTestUtils.generateJpegItem;
+import static com.android.providers.media.photopicker.data.model.ModelTestUtils.generateSpecialFormatItem;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import android.content.Context;
@@ -30,7 +34,6 @@ import android.database.MatrixCursor;
 import android.icu.util.VersionInfo;
 import android.net.Uri;
 import android.os.UserHandle;
-import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -72,7 +75,6 @@ public class ItemTest {
         assertThat(item.getContentUri()).isEqualTo(
                 Uri.parse("content://com.android.providers.media.photopicker/media/1"));
 
-        assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isTrue();
         assertThat(item.isVideo()).isFalse();
         assertThat(item.isGifOrAnimatedWebp()).isFalse();
@@ -103,7 +105,6 @@ public class ItemTest {
 
         assertThat(item.isImage()).isTrue();
 
-        assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
         assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
@@ -120,7 +121,6 @@ public class ItemTest {
 
         assertThat(item.isImage()).isTrue();
 
-        assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
         assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
@@ -137,7 +137,6 @@ public class ItemTest {
 
         assertThat(item.isVideo()).isTrue();
 
-        assertThat(item.isDate()).isFalse();
         assertThat(item.isImage()).isFalse();
         assertThat(item.isGifOrAnimatedWebp()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
@@ -157,7 +156,6 @@ public class ItemTest {
         assertThat(item.isImage()).isTrue();
 
         assertThat(item.isGifOrAnimatedWebp()).isFalse();
-        assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
     }
 
@@ -176,7 +174,6 @@ public class ItemTest {
         assertThat(gifItem.isImage()).isTrue();
 
         assertThat(gifItem.isAnimatedWebp()).isFalse();
-        assertThat(gifItem.isDate()).isFalse();
         assertThat(gifItem.isVideo()).isFalse();
 
         final Item animatedWebpItem = generateSpecialFormatItem(id, mimeType, dateTaken,
@@ -187,7 +184,6 @@ public class ItemTest {
         assertThat(animatedWebpItem.isImage()).isTrue();
 
         assertThat(animatedWebpItem.isGif()).isFalse();
-        assertThat(animatedWebpItem.isDate()).isFalse();
         assertThat(animatedWebpItem.isVideo()).isFalse();
     }
 
@@ -204,19 +200,8 @@ public class ItemTest {
         assertThat(item.isImage()).isTrue();
 
         assertThat(item.isGifOrAnimatedWebp()).isFalse();
-        assertThat(item.isDate()).isFalse();
         assertThat(item.isVideo()).isFalse();
         assertThat(item.isMotionPhoto()).isFalse();
-    }
-
-    @Test
-    public void testCreateDateItem() {
-        final long dateTaken = 12345678L;
-
-        final Item item = Item.createDateItem(dateTaken);
-
-        assertThat(item.getDateTaken()).isEqualTo(dateTaken);
-        assertThat(item.isDate()).isTrue();
     }
 
     @Test
@@ -324,57 +309,22 @@ public class ItemTest {
             long generationModified, long duration, int specialFormat) {
         final MatrixCursor cursor = new MatrixCursor(MediaColumns.ALL_PROJECTION);
         cursor.addRow(new Object[] {
-                    id,
-                    dateTaken,
-                    generationModified,
-                    mimeType,
-                    specialFormat,
-                    "1", // size_bytes
-                    null, // media_store_uri
-                    duration,
-                    "0", // is_favorite
-                    "/storage/emulated/0/foo", // data
-                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY});
+                id,
+                dateTaken,
+                generationModified,
+                mimeType,
+                specialFormat,
+                "1", // size_bytes
+                null, // media_store_uri
+                duration,
+                "0", // is_favorite
+                800, // width
+                500, // height
+                0, // orientation
+                "/storage/emulated/0/foo", // data
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+                }
+        );
         return cursor;
-    }
-
-    private static Item generateJpegItem(String id, long dateTaken, long generationModified) {
-        final String mimeType = "image/jpeg";
-        final long duration = 1000;
-        return generateItem(id, mimeType, dateTaken, generationModified, duration);
-    }
-
-    /**
-     * Generate the {@link Item}
-     * @param id the id
-     * @param mimeType the mime type
-     * @param dateTaken the time of date taken
-     * @param generationModified the generation number associated with the media
-     * @param duration the duration
-     * @return the Item
-     */
-    public static Item generateItem(String id, String mimeType, long dateTaken,
-            long generationModified, long duration) {
-        return new Item(id, mimeType, dateTaken, generationModified, duration,
-                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, Long.parseLong(id)),
-                _SPECIAL_FORMAT_NONE);
-    }
-
-    /**
-     * Generate the {@link Item}
-     * @param id the id
-     * @param mimeType the mime type
-     * @param dateTaken the time of date taken
-     * @param generationModified the generation number associated with the media
-     * @param duration the duration
-     * @param specialFormat the special format. See
-     * {@link MediaStore.Files.FileColumns#_SPECIAL_FORMAT}
-     * @return the Item
-     */
-    public static Item generateSpecialFormatItem(String id, String mimeType, long dateTaken,
-            long generationModified, long duration, int specialFormat) {
-        return new Item(id, mimeType, dateTaken, generationModified, duration,
-                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, Long.parseLong(id)),
-                specialFormat);
     }
 }

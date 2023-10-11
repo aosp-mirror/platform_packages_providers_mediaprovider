@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Mediji"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokalna pohrana"</string>
     <string name="app_label" msgid="9035307001052716210">"Pohranjivanje na mediju"</string>
-    <string name="picker_app_label" msgid="5487796494405738578">"Alat za odabir fotografija"</string>
+    <string name="picker_app_label" msgid="4254039089502164761">"Mediji"</string>
     <string name="artist_label" msgid="8105600993099120273">"Izvođač"</string>
     <string name="unknown" msgid="2059049215682829375">"Nepoznato"</string>
     <string name="root_images" msgid="5861633549189045666">"Slike"</string>
@@ -38,6 +38,14 @@
     <string name="clear" msgid="5524638938415865915">"Izbriši"</string>
     <string name="allow" msgid="8885707816848569619">"Dopusti"</string>
     <string name="deny" msgid="6040983710442068936">"Odbij"</string>
+    <string name="picker_browse" msgid="5554477454636075934">"Pregled…"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Aplikacija za medije u oblaku"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikacija za medijske sadržaje u oblaku"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Aplikacija za medijske sadržaje u oblaku"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Pristupite medijima u oblaku kad aplikacija ili web-lokacija zatraži da odaberete fotografije ili videozapise"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Pristupi medijima u oblaku putem"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Ništa"</string>
+    <string name="picker_settings_toast_error" msgid="697274445512467469">"Aplikaciju za medijske sadržaje u oblaku trenutačno nije moguće promijeniti."</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Poništi odabir"</string>
     <string name="deselected" msgid="8488133193326208475">"Odabir poništen"</string>
@@ -46,6 +54,7 @@
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Odaberite najviše <xliff:g id="COUNT_0">^1</xliff:g> stavku}one{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavku}few{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavke}other{Odaberite najviše <xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="recent" msgid="6694613584743207874">"Nedavno"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Nema fotografija i videozapisa"</string>
+    <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Nema podržanih fotografija ili videozapisa"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nema albuma"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Prikaži odabrano"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotografije"</string>
@@ -59,8 +68,10 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Poslovne aplikacije su pauzirane"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Da biste otvorili fotografije s poslovnog profila, uključite poslovne aplikacije i pokušajte ponovo"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ova aplikacija može pristupiti samo fotografijama koje odaberete"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Odaberite fotografije i videozapise kojima će aplikacija moći pristupiti"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> stavka}one{<xliff:g id="COUNT_1">^1</xliff:g> stavka}few{<xliff:g id="COUNT_1">^1</xliff:g> stavke}other{<xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Dodaj (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Dopusti (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Preuzimanja"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Omiljeno"</string>
@@ -75,10 +86,27 @@
     <string name="picker_motion_photo" msgid="4385182195289546308">"Fotografija s videom"</string>
     <string name="picker_mute_video" msgid="2496585809229800096">"Isključi kameru"</string>
     <string name="picker_unmute_video" msgid="6611741290641963568">"Uključi kameru"</string>
-    <string name="picker_play_video" msgid="5158816108935317185">"Reproduciraj videozapis"</string>
-    <string name="picker_pause_video" msgid="7239492902901477371">"Pauziraj videozapis"</string>
+    <string name="picker_play_video" msgid="7106025944628666250">"Reproduciraj"</string>
+    <string name="picker_pause_video" msgid="1092718225234326702">"Pauziraj"</string>
+    <string name="picker_error_snackbar" msgid="5970192792792369203">"Videozapis se ne može reproducirati"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Poteškoće s reprodukcijom videozapisa"</string>
+    <string name="picker_error_dialog_body" msgid="2515738446802971453">"Provjerite internetsku vezu i pokušajte ponovo"</string>
+    <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Pokušaj ponovo"</string>
     <string name="picker_cloud_sync" msgid="997251377538536319">"Medijski sadržaj u oblaku sada je dostupan iz aplikacije <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nije odabrano"</string>
+    <string name="preloading_progress_message" msgid="4741327138031980582">"Spremno: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> od <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Sad su uključene sigurnosno kopirane fotografije"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Možete odabrati aplikacije s računa <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> za aplikaciju <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Ažuriran je račun za aplikaciju <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Fotografije s računa <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> sad su uključene ovdje"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Odaberite aplikaciju za medijske sadržaje u oblaku"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Da biste ovdje uključili sigurnosno kopirane fotografije, u postavkama odaberite aplikaciju za medijske sadržaje u oblaku"</string>
+    <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Odaberite račun za aplikaciju <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Da biste ovdje uključili fotografije iz aplikacije <xliff:g id="APP_NAME">%1$s</xliff:g>, odaberite račun u toj aplikaciji"</string>
+    <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Odbaci"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Odaberite aplikaciju"</string>
+    <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Odaberite račun"</string>
+    <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Promijenite račun"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g> da izmijeni tu audiodatoteku?}one{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteku?}few{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteke?}other{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteka?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Mijenjanje audiodatoteke…}one{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteke…}few{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteke…}other{Mijenjanje <xliff:g id="COUNT">^1</xliff:g> audiodatoteka…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g> da izmijeni taj videozapis?}one{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapis?}few{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}other{Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> videozapisa?}}"</string>
@@ -119,4 +147,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"Obrada medijskih sadržaja…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"Odustani"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Pričekaj"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"Osiguranje"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"Upozorenja nativnog konvertiranja"</string>
+    <string name="transcode_progress_channel" msgid="6905136787933058387">"Napredak nativnog konvertiranja"</string>
 </resources>

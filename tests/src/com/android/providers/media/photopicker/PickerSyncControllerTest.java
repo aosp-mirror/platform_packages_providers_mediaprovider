@@ -47,7 +47,6 @@ import androidx.annotation.Nullable;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.data.CloudProviderInfo;
@@ -197,14 +196,12 @@ public class PickerSyncControllerTest {
         assertThat(controller.getCurrentCloudProviderInfo()).isEqualTo(CloudProviderInfo.EMPTY);
         configStore.setDefaultCloudProviderPackage(PACKAGE_NAME);
         configStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
-        waitForIdle();
 
         // Ensure the cloud provider is set to something. (The test package name here actually
         // has multiple cloud providers in it, so just ensure something got set.)
         assertThat(controller.getCurrentCloudProviderInfo().authority).isNotNull();
 
         configStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
-        waitForIdle();
 
         // Ensure the cloud provider is correctly nulled out when the config changes again.
         assertThat(controller.getCurrentCloudProviderInfo().authority).isNull();
@@ -1404,17 +1401,6 @@ public class PickerSyncControllerTest {
         } finally {
             contentResolver.unregisterContentObserver(refreshUiNotificationObserver);
         }
-    }
-
-    private static void waitForIdle() {
-        final CountDownLatch latch = new CountDownLatch(1);
-        BackgroundThread.getExecutor().execute(latch::countDown);
-        try {
-            latch.await(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
-
     }
 
     private static void addMedia(MediaGenerator generator, Pair<String, String> media) {

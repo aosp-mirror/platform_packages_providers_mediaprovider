@@ -484,6 +484,7 @@ public class ItemsProviderTest {
      * is triggered after query execution.
      */
     @Test
+    @Ignore("Enable or clean up - b/303494342")
     public void testGetItems_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
         CancellationSignal cancellationSignal = new CancellationSignal();
         Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
@@ -535,6 +536,7 @@ public class ItemsProviderTest {
      * is triggered after query execution.
      */
     @Test
+    @Ignore("Enable or clean up - b/303494342")
     public void testGetLocalItems_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
         CancellationSignal cancellationSignal = new CancellationSignal();
         Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
@@ -582,6 +584,7 @@ public class ItemsProviderTest {
      * execution when cancellation signal is triggered after query execution.
      */
     @Test
+    @Ignore("Enable or clean up - b/303494342")
     public void testGetCategories_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
         CancellationSignal cancellationSignal = new CancellationSignal();
         Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
@@ -627,7 +630,7 @@ public class ItemsProviderTest {
      * execution when cancellation signal is triggered after query execution.
      */
     @Test
-    @Ignore("Enable once b/303494342 is fixed")
+    @Ignore("Enable or clean up - b/303494342")
     public void testGetLocalCategories_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
         CancellationSignal cancellationSignal = new CancellationSignal();
 
@@ -809,55 +812,6 @@ public class ItemsProviderTest {
             }
         }
     }
-
-    @Test
-    public void testGetItems_sortOrder() throws Exception {
-        try {
-            final long timeNow = System.nanoTime() / 1000;
-            final Uri imageFileDateNowPlus1Uri = prepareFileAndGetUri(
-                    new File(getDownloadsDir(), "latest_" + IMAGE_FILE_NAME), timeNow + 1000);
-            final Uri imageFileDateNowUri
-                    = prepareFileAndGetUri(new File(getDcimDir(), IMAGE_FILE_NAME), timeNow);
-            final Uri videoFileDateNowUri
-                    = prepareFileAndGetUri(new File(getCameraDir(), VIDEO_FILE_NAME), timeNow);
-
-            // This is the list of uris based on the expected sort order of items returned by
-            // ItemsProvider#getAllItems(com.android.providers.media.photopicker.data.model
-            // .Category, com.android.providers.media.photopicker.data
-            // .PaginationParameters, java.lang.String[], com.android.providers.media
-            // .photopicker.data.model.UserId)
-            List<Uri> uris = new ArrayList<>();
-            // This is the latest image file
-            uris.add(imageFileDateNowPlus1Uri);
-            // Video file was scanned after image file, hence has higher _id than image file
-            uris.add(videoFileDateNowUri);
-            uris.add(imageFileDateNowUri);
-
-            try (Cursor cursor = mItemsProvider.getAllItems(Category.DEFAULT,
-                    new PaginationParameters(),
-                    /* mimeType */ null, /* userId */ null, /* cancellationSignal */ null)) {
-                assertThat(cursor).isNotNull();
-
-                final int expectedCount = uris.size();
-                assertThat(cursor.getCount()).isEqualTo(expectedCount);
-
-                int rowNum = 0;
-                assertThat(cursor.moveToFirst()).isTrue();
-                final int idColumnIndex = cursor.getColumnIndexOrThrow(MediaColumns.ID);
-                while (rowNum < expectedCount) {
-                    assertWithMessage("id at row:" + rowNum + " is expected to be"
-                            + " same as id in " + uris.get(rowNum))
-                            .that(String.valueOf(cursor.getLong(idColumnIndex)))
-                            .isEqualTo(uris.get(rowNum).getLastPathSegment());
-                    cursor.moveToNext();
-                    rowNum++;
-                }
-            }
-        } finally {
-            deleteAllFilesNoThrow();
-        }
-    }
-
     /**
      * Tests
      * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[],

@@ -33,7 +33,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import android.Manifest;
 import android.app.Instrumentation;
@@ -72,7 +71,6 @@ import com.google.common.io.ByteStreams;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -478,41 +476,6 @@ public class ItemsProviderTest {
 
     /**
      * Tests
-     * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId,
-     * CancellationSignal)}
-     * (Category, int, String[], UserId)} to stop execution when cancellation signal
-     * is triggered after query execution.
-     */
-    @Test
-    @Ignore("Enable or clean up - b/303494342")
-    public void testGetItems_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
-        CancellationSignal cancellationSignal = new CancellationSignal();
-        Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread th, Throwable ex) {
-                Log.d(TAG, "Uncaught exception " + ex);
-            }
-        };
-
-        final Cursor[] res = new Cursor[1];
-        Thread th = new Thread(() -> {
-            try {
-                res[0] = mItemsProvider.getAllItems(Category.DEFAULT,
-                        new PaginationParameters(),
-                        /* mimeType */ null, /* userId */ null,
-                        /* cancellationSignal */ cancellationSignal);
-                res[0].getCount(); // force execution
-                fail("Expected OperationCanceledException");
-            } catch (OperationCanceledException ex) {
-                // expected
-            }
-        });
-        th.setUncaughtExceptionHandler(h);
-        th.start();
-    }
-
-    /**
-     * Tests
      * {@link ItemsProvider#getLocalItems(Category, PaginationParameters, String[], UserId,
      * CancellationSignal)}
      * (Category, int, String[], UserId)} to stop execution when cancellation signal
@@ -531,41 +494,6 @@ public class ItemsProviderTest {
 
     /**
      * Tests
-     * {@link ItemsProvider#getLocalItems(Category, PaginationParameters, String[], UserId,
-     * CancellationSignal)} to stop execution when cancellation signal
-     * is triggered after query execution.
-     */
-    @Test
-    @Ignore("Enable or clean up - b/303494342")
-    public void testGetLocalItems_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
-        CancellationSignal cancellationSignal = new CancellationSignal();
-        Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread th, Throwable ex) {
-                Log.d(TAG, "Uncaught exception " + ex);
-            }
-        };
-
-        final Cursor[] res = new Cursor[1];
-
-        Thread th = new Thread(() -> {
-            try {
-                res[0] = mItemsProvider.getLocalItems(Category.DEFAULT,
-                        new PaginationParameters(),
-                        /* mimeType */ null, /* userId */ null,
-                        /* cancellationSignal */ cancellationSignal);
-                res[0].getCount(); // force execution
-                fail("Expected OperationCanceledException");
-            } catch (OperationCanceledException ex) {
-                // expected
-            }
-        });
-        th.setUncaughtExceptionHandler(h);
-        th.start();
-    }
-
-    /**
-     * Tests
      * {@link ItemsProvider#getAllCategories(String[], UserId, CancellationSignal)}
      * (Category, int, String[], UserId)} to stop execution when cancellation signal
      * is triggered before query execution.
@@ -576,37 +504,6 @@ public class ItemsProviderTest {
         cancellationSignal.cancel();
 
         mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null, cancellationSignal);
-    }
-
-    /**
-     * Tests
-     * {@link ItemsProvider#getAllCategories(String[], UserId, CancellationSignal)} to stop
-     * execution when cancellation signal is triggered after query execution.
-     */
-    @Test
-    @Ignore("Enable or clean up - b/303494342")
-    public void testGetCategories_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
-        CancellationSignal cancellationSignal = new CancellationSignal();
-        Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread th, Throwable ex) {
-                Log.d(TAG, "Uncaught exception " + ex);
-            }
-        };
-
-        final Cursor[] res = new Cursor[1];
-        Thread th = new Thread(() -> {
-            try {
-                res[0] = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null,
-                        cancellationSignal);
-                res[0].getCount(); // force execution
-                fail("Expected OperationCanceledException");
-            } catch (OperationCanceledException ex) {
-                // expected
-            }
-        });
-        th.setUncaughtExceptionHandler(h);
-        th.start();
     }
 
     /**
@@ -622,38 +519,6 @@ public class ItemsProviderTest {
 
         mItemsProvider.getLocalCategories(/* mimeType */ null, /* userId */ null,
                 cancellationSignal);
-    }
-
-    /**
-     * Tests
-     * {@link ItemsProvider#getLocalCategories(String[], UserId, CancellationSignal)} to stop
-     * execution when cancellation signal is triggered after query execution.
-     */
-    @Test
-    @Ignore("Enable or clean up - b/303494342")
-    public void testGetLocalCategories_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
-        CancellationSignal cancellationSignal = new CancellationSignal();
-
-        Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread th, Throwable ex) {
-                Log.d(TAG, "Uncaught exception " + ex);
-            }
-        };
-
-        final Cursor[] res = new Cursor[1];
-        Thread th = new Thread(() -> {
-            try {
-                res[0] = mItemsProvider.getLocalCategories(/* mimeType */ null,
-                        /* userId */ null, cancellationSignal);
-                res[0].getCount(); // force execution
-                fail("Expected OperationCanceledException");
-            } catch (OperationCanceledException ex) {
-                // expected
-            }
-        });
-        th.setUncaughtExceptionHandler(h);
-        th.start();
     }
 
     /**

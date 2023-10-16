@@ -17,6 +17,7 @@ package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -33,7 +34,7 @@ import java.util.ArrayList;
  * Albums tab fragment for showing the albums
  */
 public class AlbumsTabFragment extends TabFragment {
-
+    private static final String TAG = PhotosTabFragment.class.getSimpleName();
     private static final int MINIMUM_SPAN_COUNT = 2;
     private static final int GRID_COLUMN_COUNT = 2;
 
@@ -41,6 +42,11 @@ public class AlbumsTabFragment extends TabFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         final Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "Could not create fragment completely because the fragment is not "
+                    + "attached.");
+            return;
+        }
 
         // Set the pane title for A11y.
         view.setAccessibilityPaneTitle(getString(R.string.picker_albums));
@@ -75,7 +81,7 @@ public class AlbumsTabFragment extends TabFragment {
         mRecyclerView.setColumnWidth(albumSize + spacing);
         mRecyclerView.setMinimumSpanCount(MINIMUM_SPAN_COUNT);
 
-        setLayoutManager(adapter, GRID_COLUMN_COUNT);
+        setLayoutManager(context, adapter, GRID_COLUMN_COUNT);
         mRecyclerView.setAdapter(adapter);
         mRecyclerView.addItemDecoration(itemDecoration);
     }

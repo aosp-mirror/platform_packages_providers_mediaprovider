@@ -18,9 +18,11 @@ package com.android.providers.media.photopicker.data.model;
 
 import static androidx.core.util.Preconditions.checkNotNull;
 
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Process;
 import android.os.UserHandle;
@@ -72,6 +74,21 @@ public final class UserId {
      */
     public ContentResolver getContentResolver(Context context) throws NameNotFoundException {
         return asContext(context).getContentResolver();
+    }
+
+    /**
+     * Return Package Manager as an instance of this user.
+     */
+    @NonNull
+    public PackageManager getPackageManager(Context context) throws NameNotFoundException {
+        return asContext(context).getPackageManager();
+    }
+
+    /**
+     * Return identifier of the user.
+     */
+    public int getIdentifier() {
+        return mUserHandle.getIdentifier();
     }
 
     /**

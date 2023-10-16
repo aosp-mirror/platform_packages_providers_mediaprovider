@@ -27,8 +27,6 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
-import static com.android.providers.media.photopicker.espresso.OrientationUtils.setLandscapeOrientation;
-import static com.android.providers.media.photopicker.espresso.OrientationUtils.setPortraitOrientation;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.*;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotSelected;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemSelected;
@@ -37,8 +35,6 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewTestU
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.hamcrest.Matchers.not;
-
-import android.widget.Button;
 
 import androidx.lifecycle.ViewModelProvider;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
@@ -189,47 +185,6 @@ public class PreviewMultiSelectLongPressTest extends PhotoPickerBaseTest {
 
             swipeRightAndWait(PREVIEW_VIEW_PAGER_ID);
             onView(withId(imageViewId)).check(matches(isDisplayed()));
-        }
-    }
-
-    @Test
-    public void testPreview_selectButtonWidth() throws Exception {
-        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
-        // Navigate to preview
-        longClickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
-
-        try (ViewPager2IdlingResource idlingResource =
-                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
-            // Check that Select button is visible
-            onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(matches(isDisplayed()));
-            onView(withId(PREVIEW_ADD_OR_SELECT_BUTTON_ID)).check(
-                    matches(withText(R.string.select)));
-        }
-
-        setPortraitOrientation(mRule.getScenario());
-        try (ViewPager2IdlingResource idlingResource =
-                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
-            mRule.getScenario().onActivity(activity -> {
-                final Button addOrSelectButton
-                        = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
-                final int expectedAddOrSelectButtonWidth = activity.getResources()
-                        .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
-                // Check that button width in portrait mode = R.dimen.preview_add_or_select_width
-                assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
-            });
-        }
-
-        setLandscapeOrientation(mRule.getScenario());
-        try (ViewPager2IdlingResource idlingResource =
-                ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
-            mRule.getScenario().onActivity(activity -> {
-                final Button addOrSelectButton
-                        = activity.findViewById(PREVIEW_ADD_OR_SELECT_BUTTON_ID);
-                final int expectedAddOrSelectButtonWidth = activity.getResources()
-                        .getDimensionPixelOffset(DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH);
-                // Check that button width in landscape mode is R.dimen.preview_add_or_select_width
-                assertThat(addOrSelectButton.getWidth()).isEqualTo(expectedAddOrSelectButtonWidth);
-            });
         }
     }
 

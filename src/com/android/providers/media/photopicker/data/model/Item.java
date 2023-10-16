@@ -25,12 +25,11 @@ import static com.android.providers.media.photopicker.util.CursorUtils.getCursor
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 
+import static java.util.Objects.requireNonNull;
+
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Bundle;
-import android.provider.CloudMediaProviderContract;
-import android.provider.MediaStore;
 import android.text.format.DateUtils;
 
 import androidx.annotation.NonNull;
@@ -42,7 +41,7 @@ import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.util.MimeUtils;
 
 /**
- * Base class representing one single entity/item in the PhotoPicker.
+ * Base class for representing a single media item (a picture, a video, etc.) in the PhotoPicker.
  */
 public class Item {
     private String mId;
@@ -54,9 +53,6 @@ public class Item {
     private boolean mIsImage;
     private boolean mIsVideo;
     private int mSpecialFormat;
-    private boolean mIsDate;
-
-    private Item() {}
 
     public Item(@NonNull Cursor cursor, @NonNull UserId userId) {
         updateFromCursor(cursor, userId);
@@ -103,10 +99,6 @@ public class Item {
         return mSpecialFormat == _SPECIAL_FORMAT_MOTION_PHOTO;
     }
 
-    public boolean isDate() {
-        return mIsDate;
-    }
-
     public Uri getContentUri() {
         return mUri;
     }
@@ -132,23 +124,8 @@ public class Item {
         return mSpecialFormat;
     }
 
-    public static Item fromCursor(Cursor cursor, UserId userId) {
-        assert(cursor != null);
-        final Item item = new Item(cursor, userId);
-        return item;
-    }
-
-    /**
-     * Return the date item. If dateTaken is 0, it is a recent item.
-     * @param dateTaken the time of date taken. The unit is in milliseconds
-     *                  since January 1, 1970 00:00:00.0 UTC.
-     * @return the item with date type
-     */
-    public static Item createDateItem(long dateTaken) {
-        final Item item = new Item();
-        item.mIsDate = true;
-        item.mDateTaken = dateTaken;
-        return item;
+    public static Item fromCursor(@NonNull Cursor cursor, UserId userId) {
+        return new Item(requireNonNull(cursor), userId);
     }
 
     /**

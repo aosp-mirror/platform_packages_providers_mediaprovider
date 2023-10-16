@@ -64,7 +64,7 @@ public class MediaService extends JobIntentService {
 
     @Override
     protected void onHandleWork(Intent intent) {
-        Trace.beginSection(intent.getAction());
+        Trace.beginSection("MediaService.handle[" + intent.getAction() + ']');
         if (Log.isLoggable(TAG, Log.INFO)) {
             Log.i(TAG, "Begin " + intent);
         }
@@ -224,5 +224,17 @@ public class MediaService extends JobIntentService {
             final MediaProvider provider = ((MediaProvider) cpc.getLocalContentProvider());
             return provider.scanFile(file, REASON_DEMAND);
         }
+    }
+
+    @Override
+    public boolean onStopCurrentWork() {
+        // Scans are not stopped even if the job is stopped. So, no need to reschedule it again.
+        // MediaProvider scans are highly unlikely to get killed. But even if it does, we would run
+        // a scan on attachVolume(). But other requests to MediaService may get lost if
+        // MediaProvider process is killed, which would otherwise have been rescheduled by
+        // JobScheduler.
+        // TODO(b/233357418): Fix this by adhering to the protocol of stopping current work when job
+        // scheduler asks
+        return false;
     }
 }

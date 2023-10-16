@@ -23,6 +23,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemDisplayed;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.assertItemNotDisplayed;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
@@ -185,6 +186,8 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
 
         onView(withId(R.id.preview_selected_check_button)).check(matches(not(isDisplayed())));
         onView(withId(R.id.preview_add_button)).check(matches(not(isDisplayed())));
+        // Verify the overflow menu is not shown for PICK_IMAGES intent
+        assertOverflowMenuNotShown();
     }
 
     private void assertSingleSelectImagePreviewCommonLayout() {

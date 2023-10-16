@@ -49,9 +49,13 @@
     <permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
                 android:protectionLevel="signature" />
 
+    <!-- We use Photo Picker app icon and label for this package. It is necessary for Photo Picker
+         GET_CONTENT take over. Some apps query packages that can handle GET_CONTENT and want to
+         display the icon and label of the package to the user. -->
     <application
             android:name="com.android.providers.media.MediaApplication"
-            android:label="@string/app_label"
+            android:label="@string/picker_app_label"
+            android:icon="@mipmap/picker_app_icon"
             android:allowBackup="false"
             android:supportsRtl="true"
             android:forceQueryable="true"
@@ -79,6 +83,12 @@
         <provider
             android:name="com.android.providers.media.photopicker.PhotoPickerProvider"
             android:authorities="com.android.providers.media.photopicker"
+            android:exported="false" />
+
+        <provider
+            android:name="com.android.providers.media.photopicker.RemoteVideoPreviewProvider"
+            android:process=":PhotoPicker"
+            android:authorities="com.android.providers.media.remote_video_preview"
             android:exported="false" />
 
         <!-- Handles database upgrades after OTAs, then disables itself -->
@@ -125,6 +135,12 @@
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
+        <service
+            android:name=
+                "com.android.providers.media.stableuris.job.StableUriIdleMaintenanceService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE"/>
+
         <service android:name="com.android.providers.media.fuse.ExternalStorageServiceImpl"
                  android:exported="true"
                  android:permission="android.permission.BIND_EXTERNAL_STORAGE_SERVICE">
@@ -148,9 +164,8 @@
                 android:finishOnCloseSystemDialogs="true"
                 android:launchMode="singleTop"
                 android:excludeFromRecents="true"
-                android:visibleToInstantApps="true"
-                android:priority="100" >
-            <intent-filter>
+                android:visibleToInstantApps="true" >
+            <intent-filter android:priority="100">
                 <action android:name="android.os.storage.action.CLEAR_APP_CACHE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -160,10 +175,10 @@
                 android:name="com.android.providers.media.photopicker.PhotoPickerActivity"
                 android:process=":PhotoPicker"
                 android:label="@string/picker_app_label"
-                android:icon="@mipmap/picker_app_icon"
                 android:theme="@style/PickerDefaultTheme"
                 android:exported="true"
-                android:excludeFromRecents="true" >
+                android:excludeFromRecents="true"
+                android:colorMode="wideColorGamut">
             <intent-filter android:priority="100" >
                 <action android:name="android.provider.action.PICK_IMAGES" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -176,13 +191,64 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="com.android.providers.media.photopicker.PhotoPickerSettingsActivity"
+            android:theme="@style/PickerSettingsDefaultTheme"
+            android:launchMode="singleInstance"
+            android:process=":PhotoPicker"
+            android:excludeFromRecents="false"
+            android:exported="true"
+            android:enabled="false" >
+
+            <intent-filter android:priority="100" >
+                <action android:name="android.provider.action.PICK_IMAGES_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- ============== BEGIN SYSTEM SETTINGS MENU ITEM SECTION ============== -->
+            <intent-filter>
+                <action android:name="com.android.settings.action.IA_SETTINGS"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+
+            <meta-data
+                android:name="com.android.settings.category"
+                android:value="com.android.settings.category.ia.apps"/>
+            <meta-data
+                android:name="com.android.settings.title"
+                android:resource="@string/picker_settings_system_settings_menu_title"/>
+            <meta-data
+                android:name="com.android.settings.profile"
+                android:value="primary_profile_only"/>
+            <!-- ============== END BEGIN SYSTEM SETTINGS MENU ITEM SECTION ============== -->
+        </activity>
+
+        <activity-alias
+            android:name="com.android.providers.media.photopicker.PhotoPickerUserSelectActivity"
+            android:targetActivity="com.android.providers.media.photopicker.PhotoPickerActivity"
+            android:permission="android.permission.GRANT_RUNTIME_PERMISSIONS"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:enabled="true">
+            <intent-filter android:priority="100">
+               <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
         <activity-alias
             android:name="com.android.providers.media.photopicker.PhotoPickerGetContentActivity"
             android:targetActivity="com.android.providers.media.photopicker.PhotoPickerActivity"
             android:exported="true"
             android:excludeFromRecents="true"
-            android:enabled="false">
-            <intent-filter>
+            android:enabled="true">
+            <intent-filter android:priority="101" >
                 <action android:name="android.intent.action.GET_CONTENT" />
                 <category android:name="android.intent.category.OPENABLE" />
                 <category android:name="android.intent.category.DEFAULT" />

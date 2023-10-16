@@ -47,6 +47,12 @@
             android:src="@drawable/ic_drag"
             android:contentDescription="@null"/>
 
+        <com.android.providers.media.photopicker.ui.SafetyProtectionSectionView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"
+            android:layout_gravity="center" />
+
         <TextView
             android:id="@+id/privacy_text"
             android:layout_width="wrap_content"

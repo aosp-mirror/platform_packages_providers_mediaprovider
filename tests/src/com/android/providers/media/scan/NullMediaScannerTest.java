@@ -38,8 +38,6 @@ public class NullMediaScannerTest {
 
         scanner.scanDirectory(new File("/dev/null"), MediaScanner.REASON_UNKNOWN);
         scanner.scanFile(new File("/dev/null"), MediaScanner.REASON_UNKNOWN);
-        scanner.scanFile(new File("/dev/null"), MediaScanner.REASON_UNKNOWN,
-                    InstrumentationRegistry.getContext().getPackageName());
 
         scanner.onDetachVolume(null);
     }

@@ -294,7 +294,7 @@ public class PickerSyncController {
         try {
             final InstanceId instanceId = NonUiEventLogger.generateInstanceId();
             syncAllMediaFromProvider(mLocalProvider, /* isLocal */ true, /* retryOnFailure */ true,
-                    /* enablePagedSync= */ false, instanceId, cancellationSignal);
+                    /* enablePagedSync= */ true, instanceId, cancellationSignal);
         } finally {
             sIdleMaintenanceSyncLock.unlock();
         }
@@ -343,7 +343,7 @@ public class PickerSyncController {
     public void syncAlbumMediaFromLocalProvider(
             @NonNull String albumId, @Nullable CancellationSignal cancellationSignal) {
         syncAlbumMediaFromProvider(mLocalProvider, /* isLocal */ true, albumId,
-                /* enablePagedSync= */ false, cancellationSignal);
+                /* enablePagedSync= */ true, cancellationSignal);
     }
 
     /** Syncs album media from the currently enabled cloud {@link CloudMediaProvider}. */

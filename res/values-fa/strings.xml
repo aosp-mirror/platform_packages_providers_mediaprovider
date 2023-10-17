@@ -23,7 +23,7 @@
     <string name="artist_label" msgid="8105600993099120273">"هنرمند"</string>
     <string name="unknown" msgid="2059049215682829375">"نامشخص"</string>
     <string name="root_images" msgid="5861633549189045666">"تصویر"</string>
-    <string name="root_videos" msgid="8792703517064649453">"ویدیوها"</string>
+    <string name="root_videos" msgid="8792703517064649453">"ویدئو"</string>
     <string name="root_audio" msgid="3505830755201326018">"صوت"</string>
     <string name="root_documents" msgid="3829103301363849237">"اسناد"</string>
     <string name="permission_required" msgid="1460820436132943754">"برای اصلاح یا حذف این مورد مجوز لازم است."</string>
@@ -95,7 +95,7 @@
     <string name="picker_cloud_sync" msgid="997251377538536319">"رسانه ابری اکنون از <xliff:g id="PKG_NAME">%1$s</xliff:g> دردسترس است"</string>
     <string name="not_selected" msgid="2244008151669896758">"انتخاب نشده است"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> مورد از <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> مورد آماده است"</string>
-    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"عکس‌های پشتیبان‌گیری‌شده اکنون اضافه شده‌اند"</string>
+    <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"عکس‌های پشتیبان‌گیری‌شده اکنون اضافه می‌شود"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"می‌توانید عکس‌های حساب <xliff:g id="APP_NAME">%1$s</xliff:g>‏ (<xliff:g id="USER_ACCOUNT">%2$s</xliff:g>) را انتخاب کنید"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"حساب <xliff:g id="APP_NAME">%1$s</xliff:g> به‌روز شد"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"عکس‌های <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> اکنون در اینجا اضافه می‌شود"</string>
@@ -107,6 +107,8 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"انتخاب برنامه"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"انتخاب حساب"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"تغییر حساب"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{به <xliff:g id="APP_NAME_0">^1</xliff:g> اجازه می‌دهید این فایل صوتی را تغییر دهد؟}one{به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را تغییر دهد؟}other{به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را تغییر دهد؟}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{درحال اصلاح فایل صوتی…}one{درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> فایل صوتی…}other{درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> فایل صوتی…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{به <xliff:g id="APP_NAME_0">^1</xliff:g> اجازه می‌دهید این ویدیو را تغییر دهد؟}one{به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> ویدیو را تغییر دهد؟}other{به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> ویدیو را تغییر دهد؟}}"</string>

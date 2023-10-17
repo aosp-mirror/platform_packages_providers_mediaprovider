@@ -96,7 +96,7 @@
     <string name="not_selected" msgid="2244008151669896758">"sin seleccionar"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> de <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> listos"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Ahora se incluyen las fotos con copia de seguridad"</string>
-    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Puedes seleccionar imágenes de <xliff:g id="APP_NAME">%1$s</xliff:g> desde la cuenta de <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Puedes seleccionar fotos de <xliff:g id="APP_NAME">%1$s</xliff:g> desde la cuenta de <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Se actualizó la cuenta de <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Ahora se incluyen aquí las fotos de <xliff:g id="USER_ACCOUNT">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Elige una app multimedia en la nube"</string>
@@ -107,6 +107,8 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Elegir una app"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Elegir cuenta"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Cambiar cuenta"</string>
+    <!-- no translation found for picker_loading_photos_message (6449180084857178949) -->
+    <skip />
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{¿Deseas permitir que <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este archivo de audio?}many{¿Deseas permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> archivos de audio?}other{¿Deseas permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> archivos de audio?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Modificando el archivo de audio…}many{Modificando <xliff:g id="COUNT">^1</xliff:g> archivos de audio…}other{Modificando <xliff:g id="COUNT">^1</xliff:g> archivos de audio…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{¿Deseas permitir que <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este video?}many{¿Deseas permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> videos?}other{¿Deseas permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> videos?}}"</string>

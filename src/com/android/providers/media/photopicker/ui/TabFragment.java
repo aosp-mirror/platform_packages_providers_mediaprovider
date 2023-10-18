@@ -31,6 +31,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -67,7 +68,7 @@ import java.util.Locale;
  * The base abstract Tab fragment
  */
 public abstract class TabFragment extends Fragment {
-
+    private static final String TAG = TabFragment.class.getSimpleName();
     protected PickerViewModel mPickerViewModel;
     protected Selection mSelection;
     protected ImageLoader mImageLoader;
@@ -117,6 +118,13 @@ public abstract class TabFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         final Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "Could not create fragment completely because the fragment is not "
+                    + "attached.");
+            return;
+        }
+
+
         mImageLoader = new ImageLoader(context);
         mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
         mRecyclerView.setHasFixedSize(true);
@@ -171,12 +179,21 @@ public abstract class TabFragment extends Fragment {
             });
 
             mBottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
-            mSlideUpAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_up);
-            mSlideDownAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_down);
+            mSlideUpAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_up);
+            mSlideDownAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_down);
 
             mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
+                // Fetch activity or context again instead of capturing existing variable in lambdas
+                // to avoid memory leaks.
+                final Context activityContext = getContext();
+                if (activityContext == null) {
+                    Log.w(TAG, "The fragment is not attached to an activity. Could not update "
+                            + "profile button visibility.");
+                    return;
+                }
+
                 updateProfileButtonVisibility();
-                updateVisibilityAndAnimateBottomBar(selectedItemListSize);
+                updateVisibilityAndAnimateBottomBar(activityContext, selectedItemListSize);
             });
         }
 
@@ -225,7 +242,8 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setPadding(0, 0, 0, recyclerViewBottomPadding);
     }
 
-    private void updateVisibilityAndAnimateBottomBar(int selectedItemListSize) {
+    private void updateVisibilityAndAnimateBottomBar(@NonNull Context context,
+            int selectedItemListSize) {
         if (!mSelection.canSelectMultiple()) {
             return;
         }
@@ -240,7 +258,7 @@ public abstract class TabFragment extends Fragment {
                 mBottomBar.setVisibility(View.VISIBLE);
                 mBottomBar.startAnimation(mSlideUpAnimation);
             }
-            mAddButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
+            mAddButton.setText(generateAddButtonString(context, selectedItemListSize));
         }
         mIsBottomBarVisible.setValue(selectedItemListSize > 0);
     }
@@ -334,54 +352,73 @@ public abstract class TabFragment extends Fragment {
     private void updateProfileButtonContent(boolean isManagedUserSelected) {
         final Drawable icon;
         final String text;
+        final Context context = getContext();
+
+        if (context == null) {
+            Log.w(TAG, "Could not update profile button content because the fragment is not"
+                    + " attached.");
+            return;
+        }
+
         if (isManagedUserSelected) {
-            icon = getContext().getDrawable(R.drawable.ic_personal_mode);
-            text = getSwitchToPersonalMessage();
+            icon = context.getDrawable(R.drawable.ic_personal_mode);
+            text = getSwitchToPersonalMessage(context);
         } else {
-            icon = getWorkProfileIcon();
-            text = getSwitchToWorkMessage();
+            icon = getWorkProfileIcon(context);
+            text = getSwitchToWorkMessage(context);
         }
         mProfileButton.setIcon(icon);
         mProfileButton.setText(text);
     }
 
-    private String getSwitchToPersonalMessage() {
+    private String getSwitchToPersonalMessage(@NonNull Context context) {
         if (SdkLevel.isAtLeastT()) {
             return getUpdatedEnterpriseString(
-                    SWITCH_TO_PERSONAL_MESSAGE, R.string.picker_personal_profile);
+                    context, SWITCH_TO_PERSONAL_MESSAGE, R.string.picker_personal_profile);
         } else {
-            return getContext().getString(R.string.picker_personal_profile);
+            return context.getString(R.string.picker_personal_profile);
         }
     }
 
-    private String getSwitchToWorkMessage() {
+    private String getSwitchToWorkMessage(@NonNull Context context) {
         if (SdkLevel.isAtLeastT()) {
             return getUpdatedEnterpriseString(
-                    SWITCH_TO_WORK_MESSAGE, R.string.picker_work_profile);
+                    context, SWITCH_TO_WORK_MESSAGE, R.string.picker_work_profile);
         } else {
-            return getContext().getString(R.string.picker_work_profile);
+            return context.getString(R.string.picker_work_profile);
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private String getUpdatedEnterpriseString(String updatableStringId, int defaultStringId) {
-        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
+    private String getUpdatedEnterpriseString(@NonNull Context context,
+            @NonNull String updatableStringId,
+            int defaultStringId) {
+        final DevicePolicyManager dpm = context.getSystemService(DevicePolicyManager.class);
         return dpm.getResources().getString(updatableStringId, () -> getString(defaultStringId));
     }
 
-    private Drawable getWorkProfileIcon() {
+    private Drawable getWorkProfileIcon(@NonNull Context context) {
         if (SdkLevel.isAtLeastT()) {
-            return getUpdatedWorkProfileIcon();
+            return getUpdatedWorkProfileIcon(context);
         } else {
-            return getContext().getDrawable(R.drawable.ic_work_outline);
+            return context.getDrawable(R.drawable.ic_work_outline);
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private Drawable getUpdatedWorkProfileIcon() {
-        DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
-        return dpm.getResources().getDrawable(WORK_PROFILE_ICON, OUTLINE, () ->
-                getContext().getDrawable(R.drawable.ic_work_outline));
+    private Drawable getUpdatedWorkProfileIcon(@NonNull Context context) {
+        DevicePolicyManager dpm = context.getSystemService(DevicePolicyManager.class);
+        return dpm.getResources().getDrawable(WORK_PROFILE_ICON, OUTLINE, () -> {
+            // Fetch activity or context again instead of capturing existing variable in
+            // lambdas to avoid memory leaks.
+            final Context activityContext = getContext();
+            if (activityContext == null) {
+                Log.w(TAG, "The fragment is not attached to an activity. Could not "
+                        + "update profile button icon correctly.");
+                return null;
+            }
+            return activityContext.getDrawable(R.drawable.ic_work_outline);
+        });
     }
 
     private void updateProfileButtonColor(boolean isDisabled) {
@@ -446,9 +483,10 @@ public abstract class TabFragment extends Fragment {
         return (PhotoPickerActivity) getActivity();
     }
 
-    protected final void setLayoutManager(@NonNull TabAdapter adapter, int spanCount) {
+    protected final void setLayoutManager(@NonNull Context context,
+            @NonNull TabAdapter adapter, int spanCount) {
         final GridLayoutManager layoutManager =
-                new GridLayoutManager(getContext(), spanCount);
+                new GridLayoutManager(context, spanCount);
         final GridLayoutManager.SpanSizeLookup lookup = new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {

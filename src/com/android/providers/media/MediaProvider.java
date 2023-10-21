@@ -1429,11 +1429,6 @@ public class MediaProvider extends ContentProvider {
         mConfigStore.addOnChangeListener(
                 BackgroundThread.getExecutor(), this::storageNativeBootPropertyChangeListener);
 
-        // media_grants are cleared on device reboot, and onCreate is a good signal for this.
-        ForegroundThread.getExecutor().execute(() -> {
-            mMediaGrants.removeAllMediaGrants();
-        });
-
         PulledMetrics.initialize(context);
         return true;
     }

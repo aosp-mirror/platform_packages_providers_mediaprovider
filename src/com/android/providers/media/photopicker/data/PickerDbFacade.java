@@ -463,32 +463,35 @@ public class PickerDbFacade {
                             + "with %d rows instead.", PAGE_SIZE, cursor.getCount()));
             }
 
-            while (cursor.moveToNext()) {
-                ContentValues values = cursorToContentValue(cursor, isLocal);
+            if (cursor.moveToFirst()) {
+                do {
+                    ContentValues values = cursorToContentValue(cursor, isLocal);
 
-                String[] upsertArgs = {values.getAsString(isLocal ?
-                        KEY_LOCAL_ID : KEY_CLOUD_ID)};
-                if (upsertMedia(qb, values, upsertArgs) == SUCCESS) {
-                    counter++;
-                    continue;
-                }
+                    String[] upsertArgs = {values.getAsString(isLocal ? KEY_LOCAL_ID
+                            : KEY_CLOUD_ID)};
+                    if (upsertMedia(qb, values, upsertArgs) == SUCCESS) {
+                        counter++;
+                        continue;
+                    }
 
-                // Because we want to prioritize visible local media over visible cloud media,
-                // we do the following if the upsert above failed
-                if (isLocal) {
-                    // For local syncs, we attempt hiding the visible cloud media
-                    String cloudId = getVisibleCloudIdFromDb(values.getAsString(KEY_LOCAL_ID));
-                    demoteCloudMediaToHidden(cloudId);
-                } else {
-                    // For cloud syncs, we prepare an upsert as hidden cloud media
-                    values.putNull(KEY_IS_VISIBLE);
-                }
+                    // Because we want to prioritize visible local media over visible cloud media,
+                    // we do the following if the upsert above failed
+                    if (isLocal) {
+                        // For local syncs, we attempt hiding the visible cloud media
+                        String cloudId = getVisibleCloudIdFromDb(values.getAsString(KEY_LOCAL_ID));
+                        demoteCloudMediaToHidden(cloudId);
+                    } else {
+                        // For cloud syncs, we prepare an upsert as hidden cloud media
+                        values.putNull(KEY_IS_VISIBLE);
+                    }
 
-                // Now attempt upsert again, this should succeed
-                if (upsertMedia(qb, values, upsertArgs) == SUCCESS) {
-                    counter++;
-                }
+                    // Now attempt upsert again, this should succeed
+                    if (upsertMedia(qb, values, upsertArgs) == SUCCESS) {
+                        counter++;
+                    }
+                } while (cursor.moveToNext());
             }
+
             return counter;
         }
 
@@ -691,12 +694,15 @@ public class PickerDbFacade {
         private final boolean mIsFavorite;
         private final boolean mIsVideo;
         public boolean mIsLocalOnly;
+        private int mPageSize;
+        private String mPageToken;
 
         private List<Integer> mLocalIdSelection;
 
         private QueryFilter(int limit, long dateTakenBeforeMs, long dateTakenAfterMs, long id,
                 String albumId, long sizeBytes, String[] mimeTypes, boolean isFavorite,
-                boolean isVideo, boolean isLocalOnly, List<Integer> localIdSelection) {
+                boolean isVideo, boolean isLocalOnly, List<Integer> localIdSelection, int pageSize,
+                String pageToken) {
             this.mLimit = limit;
             this.mDateTakenBeforeMs = dateTakenBeforeMs;
             this.mDateTakenAfterMs = dateTakenAfterMs;
@@ -708,6 +714,8 @@ public class PickerDbFacade {
             this.mIsVideo = isVideo;
             this.mIsLocalOnly = isLocalOnly;
             this.mLocalIdSelection = localIdSelection;
+            this.mPageSize = pageSize;
+            this.mPageToken = pageToken;
         }
     }
 
@@ -732,6 +740,8 @@ public class PickerDbFacade {
         private boolean isFavorite = BOOLEAN_DEFAULT;
         private boolean mIsVideo = BOOLEAN_DEFAULT;
         private boolean mIsLocalOnly = BOOLEAN_DEFAULT;
+        private int mPageSize = INT_DEFAULT;
+        private String mPageToken = STRING_DEFAULT;
 
         private List<Integer> mLocalIdSelection = LIST_DEFAULT;
 
@@ -818,9 +828,26 @@ public class PickerDbFacade {
             return this;
         }
 
+        /**
+         * Sets the page size.
+         */
+        public QueryFilterBuilder setPageSize(int pageSize) {
+            mPageSize = pageSize;
+            return this;
+        }
+
+        /**
+         * Sets the page token.
+         */
+        public QueryFilterBuilder setPageToken(String pageToken) {
+            mPageToken = pageToken;
+            return this;
+        }
+
         public QueryFilter build() {
             return new QueryFilter(limit, mDateTakenBeforeMs, mDateTakenAfterMs, id, albumId,
-                    sizeBytes, mimeTypes, isFavorite, mIsVideo, mIsLocalOnly, mLocalIdSelection);
+                    sizeBytes, mimeTypes, isFavorite, mIsVideo, mIsLocalOnly, mLocalIdSelection,
+                    mPageSize, mPageToken);
         }
     }
 
@@ -1503,47 +1530,49 @@ public class PickerDbFacade {
                             + "with %d rows instead.", PAGE_SIZE, cursor.getCount()));
             }
 
-            while (cursor.moveToNext()) {
-                ContentValues values = cursorToContentValue(cursor, isLocal, albumId);
+            if (cursor.moveToFirst()) {
+                do {
+                    ContentValues values = cursorToContentValue(cursor, isLocal, albumId);
 
-                // In case of cloud albums, cloud provider returns both local and cloud ids.
-                // We give preference to inserting media data for the local copy of an item instead
-                // of the cloud copy. Hence, if local copy is available, fetch metadata from media
-                // table and update the album_media row accordingly.
-                if (!isLocal) {
-                    final String localId = values.getAsString(KEY_LOCAL_ID);
-                    final String cloudId = values.getAsString(KEY_CLOUD_ID);
-                    if (!TextUtils.isEmpty(localId) && !TextUtils.isEmpty(cloudId)) {
-                        // Fetch local media item details from media table.
-                        try (Cursor cursorLocalMedia = getLocalMediaMetadata(localId)) {
-                            if (cursorLocalMedia != null && cursorLocalMedia.getCount() == 1) {
-                                // If local media item details are present in the media table,
-                                // update content values and remove cloud id.
-                                values.putNull(KEY_CLOUD_ID);
-                                updateContentValues(values, cursorLocalMedia);
-                            } else {
-                                // If local media item details are NOT present in the media table,
-                                // insert cloud row after removing local_id. This will only happen
-                                // when local id points to a deleted item.
-                                values.putNull(KEY_LOCAL_ID);
+                    // In case of cloud albums, cloud provider returns both local and cloud ids.
+                    // We give preference to inserting media data for the local copy of an item
+                    // instea of the cloud copy. Hence, if local copy is available, fetch metadata
+                    // from media table and update the album_media row accordingly.
+                    if (!isLocal) {
+                        final String localId = values.getAsString(KEY_LOCAL_ID);
+                        final String cloudId = values.getAsString(KEY_CLOUD_ID);
+                        if (!TextUtils.isEmpty(localId) && !TextUtils.isEmpty(cloudId)) {
+                            // Fetch local media item details from media table.
+                            try (Cursor cursorLocalMedia = getLocalMediaMetadata(localId)) {
+                                if (cursorLocalMedia != null && cursorLocalMedia.getCount() == 1) {
+                                    // If local media item details are present in the media table,
+                                    // update content values and remove cloud id.
+                                    values.putNull(KEY_CLOUD_ID);
+                                    updateContentValues(values, cursorLocalMedia);
+                                } else {
+                                    // If local media item details are NOT present in the media
+                                    // table, insert cloud row after removing local_id. This will
+                                    // only happen when local id points to a deleted item.
+                                    values.putNull(KEY_LOCAL_ID);
+                                }
                             }
                         }
                     }
-                }
 
-                try {
-                    if (qb.insert(getDatabase(), values) > 0) {
-                        counter++;
-                    } else {
-                        Log.v(TAG, "Failed to insert album_media. ContentValues: " + values);
+                    try {
+                        if (qb.insert(getDatabase(), values) > 0) {
+                            counter++;
+                        } else {
+                            Log.v(TAG, "Failed to insert album_media. ContentValues: " + values);
+                        }
+                    } catch (SQLiteConstraintException e) {
+                        Log.v(TAG, "Failed to insert album_media. ContentValues: " + values, e);
                     }
-                } catch (SQLiteConstraintException e) {
-                    Log.v(TAG, "Failed to insert album_media. ContentValues: " + values, e);
-                }
 
-                // Check if a Cloud sync is running, and additionally insert this row to media table
-                // if true.
-                maybeInsertFileToMedia(qbMedia, cursor, isLocal);
+                    // Check if a Cloud sync is running, and additionally insert this row to media
+                    // table if true.
+                    maybeInsertFileToMedia(qbMedia, cursor, isLocal);
+                } while (cursor.moveToNext());
             }
 
             return counter;

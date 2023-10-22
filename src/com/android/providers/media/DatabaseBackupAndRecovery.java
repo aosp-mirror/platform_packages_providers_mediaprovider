@@ -171,7 +171,7 @@ public class DatabaseBackupAndRecovery {
             case MediaStore.VOLUME_INTERNAL:
                 return mConfigStore.isStableUrisForInternalVolumeEnabled()
                         || SystemProperties.getBoolean("persist.sys.fuse.backup.internal_db_backup",
-                        /* defaultValue */ true);
+                        /* defaultValue */ false);
             case MediaStore.VOLUME_EXTERNAL_PRIMARY:
                 return mConfigStore.isStableUrisForExternalVolumeEnabled()
                         || SystemProperties.getBoolean(

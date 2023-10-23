@@ -842,12 +842,6 @@ public class MediaProvider extends ContentProvider {
                             editor.commit();
                         }
                     }
-
-                    // Only default system user 0 has permission to update xattrs on /data/media/0
-                    if (sUserId == UserHandle.SYSTEM.getIdentifier()) {
-                        mDatabaseBackupAndRecovery.removeRecoveryDataForUserId(
-                                userToBeRemoved.getIdentifier());
-                    }
                     break;
             }
         }
@@ -1631,8 +1625,6 @@ public class MediaProvider extends ContentProvider {
             });
             return null ;
         });
-
-        mDatabaseBackupAndRecovery.removeRecoveryDataExceptValidUsers(validUsers);
     }
 
     private void pruneStalePackages(CancellationSignal signal) {

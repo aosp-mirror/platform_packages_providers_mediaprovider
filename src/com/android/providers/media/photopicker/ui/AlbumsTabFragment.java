@@ -41,7 +41,12 @@ public class AlbumsTabFragment extends TabFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        final Context context = requireContext();
+        final Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "Could not create fragment completely because the fragment is not "
+                    + "attached.");
+            return;
+        }
 
         // Set the pane title for A11y.
         view.setAccessibilityPaneTitle(getString(R.string.picker_albums));
@@ -84,19 +89,13 @@ public class AlbumsTabFragment extends TabFragment {
     @Override
     public void onResume() {
         super.onResume();
-
-        requirePickerActivity()
-                .updateCommonLayouts(LayoutModeUtils.MODE_ALBUMS_TAB, /* title */ "");
+        getPickerActivity().updateCommonLayouts(LayoutModeUtils.MODE_ALBUMS_TAB, /* title */ "");
     }
 
     private final AlbumsTabAdapter.OnAlbumClickListener mOnAlbumClickListener =
             (category, position) -> {
                 mPickerViewModel.logAlbumOpened(category, position);
-                try {
-                    PhotosTabFragment.show(requireActivity().getSupportFragmentManager(), category);
-                } catch (RuntimeException e) {
-                    Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
-                }
+                PhotosTabFragment.show(getActivity().getSupportFragmentManager(), category);
             };
 
     /**

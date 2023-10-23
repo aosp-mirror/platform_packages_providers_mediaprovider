@@ -46,7 +46,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
@@ -118,13 +117,18 @@ public abstract class TabFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        final Context context = requireContext();
-        final FragmentActivity activity = requireActivity();
+        final Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "Could not create fragment completely because the fragment is not "
+                    + "attached.");
+            return;
+        }
+
 
         mImageLoader = new ImageLoader(context);
         mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
         mRecyclerView.setHasFixedSize(true);
-        final ViewModelProvider viewModelProvider = new ViewModelProvider(activity);
+        final ViewModelProvider viewModelProvider = new ViewModelProvider(requireActivity());
         mPickerViewModel = viewModelProvider.get(PickerViewModel.class);
         mSelection = mPickerViewModel.getSelection();
         mRecyclerViewBottomPadding = getResources().getDimensionPixelSize(
@@ -151,21 +155,17 @@ public abstract class TabFragment extends Fragment {
         mButtonIconAndTextColor = ta.getColor(/* index */ 1, /* defValue */ -1);
         ta.recycle();
 
-        mProfileButton = activity.findViewById(R.id.profile_button);
+        mProfileButton = getActivity().findViewById(R.id.profile_button);
         mUserIdManager = mPickerViewModel.getUserIdManager();
 
         final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
-            mAddButton = activity.findViewById(R.id.button_add);
+            mAddButton = getActivity().findViewById(R.id.button_add);
             mAddButton.setOnClickListener(v -> {
-                try {
-                    requirePickerActivity().setResultAndFinishSelf();
-                } catch (RuntimeException e) {
-                    Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
-                }
+                ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
             });
 
-            final Button viewSelectedButton = activity.findViewById(R.id.button_view_selected);
+            final Button viewSelectedButton = getActivity().findViewById(R.id.button_view_selected);
             // Transition to PreviewFragment on clicking "View Selected".
             viewSelectedButton.setOnClickListener(v -> {
                 // Load items for preview that are pre granted but not yet loaded for UI.
@@ -174,28 +174,26 @@ public abstract class TabFragment extends Fragment {
 
                 int selectedItemCount = mSelection.getSelectedItemCount().getValue();
                 mPickerViewModel.logPreviewAllSelected(selectedItemCount);
-
-                try {
-                    PreviewFragment.show(requireActivity().getSupportFragmentManager(),
-                            PreviewFragment.getArgsForPreviewOnViewSelected());
-                } catch (RuntimeException e) {
-                    Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
-                }
+                PreviewFragment.show(getActivity().getSupportFragmentManager(),
+                        PreviewFragment.getArgsForPreviewOnViewSelected());
             });
 
-            mBottomBar = activity.findViewById(R.id.picker_bottom_bar);
+            mBottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
             mSlideUpAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_up);
             mSlideDownAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_down);
 
             mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
                 // Fetch activity or context again instead of capturing existing variable in lambdas
                 // to avoid memory leaks.
-                try {
-                    updateProfileButtonVisibility();
-                    updateVisibilityAndAnimateBottomBar(requireContext(), selectedItemListSize);
-                } catch (RuntimeException e) {
-                    Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                final Context activityContext = getContext();
+                if (activityContext == null) {
+                    Log.w(TAG, "The fragment is not attached to an activity. Could not update "
+                            + "profile button visibility.");
+                    return;
                 }
+
+                updateProfileButtonVisibility();
+                updateVisibilityAndAnimateBottomBar(activityContext, selectedItemListSize);
             });
         }
 
@@ -328,11 +326,7 @@ public abstract class TabFragment extends Fragment {
         mPickerViewModel.logProfileSwitchButtonClick();
 
         if (!mUserIdManager.isCrossProfileAllowed()) {
-            try {
-                ProfileDialogFragment.show(requireActivity().getSupportFragmentManager());
-            } catch (RuntimeException e) {
-                Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
-            }
+            ProfileDialogFragment.show(getActivity().getSupportFragmentManager());
         } else {
             changeProfile();
         }
@@ -358,11 +352,10 @@ public abstract class TabFragment extends Fragment {
     private void updateProfileButtonContent(boolean isManagedUserSelected) {
         final Drawable icon;
         final String text;
-        final Context context;
-        try {
-            context = requireContext();
-        } catch (RuntimeException e) {
-            Log.e(TAG, "Could not update profile button content because the fragment is not"
+        final Context context = getContext();
+
+        if (context == null) {
+            Log.w(TAG, "Could not update profile button content because the fragment is not"
                     + " attached.");
             return;
         }
@@ -418,12 +411,13 @@ public abstract class TabFragment extends Fragment {
         return dpm.getResources().getDrawable(WORK_PROFILE_ICON, OUTLINE, () -> {
             // Fetch activity or context again instead of capturing existing variable in
             // lambdas to avoid memory leaks.
-            try {
-                return requireContext().getDrawable(R.drawable.ic_work_outline);
-            } catch (RuntimeException e) {
-                Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+            final Context activityContext = getContext();
+            if (activityContext == null) {
+                Log.w(TAG, "The fragment is not attached to an activity. Could not "
+                        + "update profile button icon correctly.");
                 return null;
             }
+            return activityContext.getDrawable(R.drawable.ic_work_outline);
         });
     }
 
@@ -485,12 +479,8 @@ public abstract class TabFragment extends Fragment {
         return TextUtils.expandTemplate(template, sizeString).toString();
     }
 
-    /**
-     * Returns {@link PhotoPickerActivity} if the fragment is attached to one. Otherwise, throws an
-     * {@link IllegalStateException}.
-     */
-    protected final PhotoPickerActivity requirePickerActivity() throws IllegalStateException {
-        return (PhotoPickerActivity) requireActivity();
+    protected final PhotoPickerActivity getPickerActivity() {
+        return (PhotoPickerActivity) getActivity();
     }
 
     protected final void setLayoutManager(@NonNull Context context,
@@ -522,14 +512,10 @@ public abstract class TabFragment extends Fragment {
             final Intent accountChangeIntent =
                     mPickerViewModel.getChooseCloudMediaAccountActivityIntent();
 
-            try {
-                if (accountChangeIntent != null) {
-                    requirePickerActivity().startActivity(accountChangeIntent);
-                } else {
-                    requirePickerActivity().startSettingsActivity();
-                }
-            } catch (RuntimeException e) {
-                Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+            if (accountChangeIntent != null) {
+                getPickerActivity().startActivity(accountChangeIntent);
+            } else {
+                getPickerActivity().startSettingsActivity();
             }
         }
 

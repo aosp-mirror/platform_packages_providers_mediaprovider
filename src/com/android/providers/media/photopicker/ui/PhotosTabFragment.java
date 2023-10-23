@@ -149,7 +149,7 @@ public class PhotosTabFragment extends TabFragment {
                 mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
 
         // initialise pre-granted items is necessary.
-        Intent activityIntent = getPickerActivity().getIntent();
+        Intent activityIntent = requireActivity().getIntent();
         mPickerViewModel.initialisePreGrantsIfNecessary(mPickerViewModel.getSelection(),
                 activityIntent.getExtras(), MimeFilterUtils.getMimeTypeFilters(activityIntent));
 

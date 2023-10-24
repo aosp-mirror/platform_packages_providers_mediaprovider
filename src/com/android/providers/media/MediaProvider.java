@@ -108,6 +108,7 @@ import static com.android.providers.media.LocalUriMatcher.IMAGES_MEDIA_ID;
 import static com.android.providers.media.LocalUriMatcher.IMAGES_MEDIA_ID_THUMBNAIL;
 import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS;
 import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS_ID;
+import static com.android.providers.media.LocalUriMatcher.MEDIA_GRANTS;
 import static com.android.providers.media.LocalUriMatcher.MEDIA_SCANNER;
 import static com.android.providers.media.LocalUriMatcher.PICKER_GET_CONTENT_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
@@ -126,6 +127,7 @@ import static com.android.providers.media.LocalUriMatcher.VOLUMES_ID;
 import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
+import static com.android.providers.media.photopicker.data.MediaGrantsProvider.EXTRA_MIME_TYPE_SELECTION;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
@@ -850,12 +852,6 @@ public class MediaProvider extends ContentProvider {
                             editor.remove(key);
                             editor.commit();
                         }
-                    }
-
-                    // Only default system user 0 has permission to update xattrs on /data/media/0
-                    if (sUserId == UserHandle.SYSTEM.getIdentifier()) {
-                        mDatabaseBackupAndRecovery.removeRecoveryDataForUserId(
-                                userToBeRemoved.getIdentifier());
                     }
                     break;
             }
@@ -1617,12 +1613,12 @@ public class MediaProvider extends ContentProvider {
         // removing calling userId
         userIds.remove(String.valueOf(sUserId));
 
-        List<String> validUserProfiles = mUserManager.getEnabledProfiles().stream()
+        List<String> validUsers = mUserManager.getEnabledProfiles().stream()
                 .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
                         Collectors.toList());
         // removing all the valid/existing user, remaining userIds would be users who would have
         // been removed
-        userIds.removeAll(validUserProfiles);
+        userIds.removeAll(validUsers);
 
         // Cleaning media files of users who have been removed
         mExternalDatabase.runWithTransaction((db) -> {
@@ -1633,12 +1629,6 @@ public class MediaProvider extends ContentProvider {
             });
             return null ;
         });
-
-        List<String> validUsers = mUserManager.getUserHandles(/* excludeDying */ true).stream()
-                .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
-                        Collectors.toList());
-        Log.i(TAG, "Active user ids are:" + validUsers);
-        mDatabaseBackupAndRecovery.removeRecoveryDataExceptValidUsers(validUsers);
     }
 
     private void pruneStalePackages(CancellationSignal signal) {
@@ -3637,6 +3627,10 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int table = matchUri(uri, allowHidden);
 
+        if (table == MEDIA_GRANTS) {
+            return getReadGrantedMediaForPackage(queryArgs);
+        }
+
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (table == MEDIA_SCANNER) {
             // create a cursor to return volume currently being scanned by the media scanner
@@ -3785,6 +3779,31 @@ public class MediaProvider extends ContentProvider {
         }
 
         return c;
+    }
+
+    @NotNull
+    private Cursor getReadGrantedMediaForPackage(Bundle extras) {
+        final int caller = Binder.getCallingUid();
+        int userId;
+        String[] packageNames;
+        if (!checkPermissionSelf(caller)) {
+            // All other callers are unauthorized.
+            throw new SecurityException(
+                    getSecurityExceptionMessage("read media grants"));
+        }
+        final PackageManager pm = getContext().getPackageManager();
+        final int packageUid = extras.getInt(Intent.EXTRA_UID);
+        packageNames = pm.getPackagesForUid(packageUid);
+        // Get the userId from packageUid as the initiator could be a cloned app, which
+        // accesses Media via MP of its parent user and Binder's callingUid reflects
+        // the latter.
+        userId = uidToUserId(packageUid);
+        String[] mimeTypes = extras.getStringArray(EXTRA_MIME_TYPE_SELECTION);
+        // Available volumes, to filter out any external storage that may be removed but the grants
+        // persisted.
+        String[] availableVolumes = mVolumeCache.getExternalVolumeNames().toArray(new String[0]);
+        return mMediaGrants.getMediaGrantsForPackages(packageNames, userId, mimeTypes,
+                availableVolumes);
     }
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -6570,9 +6589,6 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.GRANT_MEDIA_READ_FOR_PACKAGE_CALL: {
                 return getResultForGrantMediaReadForPackage(extras);
             }
-            case MediaStore.GET_READ_GRANTED_MEDIA_FOR_PACKAGE_CALL: {
-                return getResultForGetReadGrantedMediaForPackage(extras);
-            }
             case MediaStore.REVOKE_READ_GRANT_FOR_PACKAGE_CALL: {
                 return getResultForRevokeReadGrantForPackage(extras);
             }
@@ -6949,44 +6965,6 @@ public class MediaProvider extends ContentProvider {
 
         mMediaGrants.addMediaGrantsForPackage(packageName, uris, userId);
         return null;
-    }
-
-    @NotNull
-    private Bundle getResultForGetReadGrantedMediaForPackage(Bundle extras) {
-        final int caller = Binder.getCallingUid();
-        int userId;
-        String[] packageNames;
-        if (checkPermissionSelf(caller)) {
-            final PackageManager pm = getContext().getPackageManager();
-            final int packageUid = extras.getInt(Intent.EXTRA_UID);
-            packageNames = pm.getPackagesForUid(packageUid);
-            // Get the userId from packageUid as the initiator could be a cloned app, which
-            // accesses Media via MP of its parent user and Binder's callingUid reflects
-            // the latter.
-            userId = uidToUserId(packageUid);
-        } else if (checkPermissionShell(caller)) {
-            // If the caller is the shell, the accepted parameter is EXTRA_PACKAGE_NAME
-            // (as string).
-            if (!extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
-                throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI or"
-                                + " EXTRA_PACKAGE_NAME");
-            }
-            packageNames = new String[]{extras.getString(Intent.EXTRA_PACKAGE_NAME)};
-            // Caller is always shell which may not have the desired userId. Hence, use
-            // UserId from the MediaProvider process itself.
-            userId = UserHandle.myUserId();
-        } else {
-            // All other callers are unauthorized.
-            throw new SecurityException(
-                    getSecurityExceptionMessage("read media grants"));
-        }
-        final Bundle bundle = new Bundle();
-        bundle.putStringArrayList(MediaStore.GET_READ_GRANTED_MEDIA_FOR_PACKAGE_RESULT,
-                mMediaGrants.getMediaGrantsForPackages(packageNames,
-                        userId).stream().map(Uri::toString).collect(
-                        Collectors.toCollection(ArrayList::new)));
-        return bundle;
     }
 
     @NotNull

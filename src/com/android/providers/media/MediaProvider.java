@@ -123,7 +123,7 @@ import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS_ID;
 import static com.android.providers.media.LocalUriMatcher.VOLUMES;
 import static com.android.providers.media.LocalUriMatcher.VOLUMES_ID;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
-import static com.android.providers.media.photopicker.data.MediaGrantsProvider.EXTRA_MIME_TYPE_SELECTION;
+import static com.android.providers.media.photopicker.data.ItemsProvider.EXTRA_MIME_TYPE_SELECTION;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.DatabaseUtils.bindList;

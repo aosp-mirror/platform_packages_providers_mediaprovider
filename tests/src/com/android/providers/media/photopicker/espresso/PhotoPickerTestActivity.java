@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.espresso;
 
+import static com.android.providers.media.photopicker.espresso.PhotoPickerUserSelectActivityTest.MANAGED_SELECTION_ENABLED_EXTRA;
+
 import static org.mockito.Mockito.RETURNS_SMART_NULLS;
 import static org.mockito.Mockito.mock;
 
@@ -34,7 +36,11 @@ public class PhotoPickerTestActivity extends PhotoPickerActivity {
 
     @Override
     protected PickerViewModel getOrCreateViewModel() {
-        PickerViewModel pickerViewModel = super.getOrCreateViewModel();
+        final PickerViewModel pickerViewModel = super.getOrCreateViewModel();
+        if (getIntent().getExtras() != null && getIntent().getExtras().getBoolean(
+                MANAGED_SELECTION_ENABLED_EXTRA)) {
+            mConfigStore.enablePickerChoiceManagedSelectionEnabled();
+        }
         pickerViewModel.setConfigStore(mConfigStore);
         pickerViewModel.setItemsProvider(new ItemsProvider(
                 PhotoPickerBaseTest.getIsolatedContext()));

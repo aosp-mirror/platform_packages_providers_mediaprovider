@@ -579,8 +579,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         // Revoke READ_GRANT for items that were pre-granted but now in the current session user has
         // deselected them.
-        if (isUserSelectImagesForAppAction()
-                && mPickerViewModel.getConfigStore().isPickerChoiceManagedSelectionEnabled()) {
+        if (mPickerViewModel.isManagedSelectionEnabled()) {
             final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
                     mSelection.getPreGrantedItemsToBeRevoked());
             if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {

@@ -103,12 +103,7 @@ public class PhotosTabFragment extends TabFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        final Context context = getContext();
-        if (context == null) {
-            Log.e(TAG, "Could not create fragment completely because the fragment is not "
-                    + "attached.");
-            return;
-        }
+        final Context context = requireContext();
 
         // Init is only required for album content tab fragments when the fragment is not being
         // recreated from a previous state.
@@ -205,7 +200,7 @@ public class PhotosTabFragment extends TabFragment {
         }
 
         // uncheck the unavailable items at UI those are no longer available in the selection list
-        getPickerActivity().isItemPhotoGridViewChanged()
+        requirePickerActivity().isItemPhotoGridViewChanged()
                 .observe(this, isItemViewChanged -> {
                     if (isItemViewChanged) {
                         // To re-bind the view just to uncheck the unavailable media items at UI
@@ -215,8 +210,7 @@ public class PhotosTabFragment extends TabFragment {
                             adapter.notifyItemChanged(index);
                         }
                     }
-                }
-        );
+                });
     }
 
     private void initProgressBar(@NonNull View view) {
@@ -310,17 +304,18 @@ public class PhotosTabFragment extends TabFragment {
         final String title;
         final LayoutModeUtils.Mode layoutMode;
         final boolean shouldHideProfileButton;
+
         if (mCategory.isDefault()) {
             title = "";
             layoutMode = MODE_PHOTOS_TAB;
             shouldHideProfileButton = false;
         } else {
-            title = mCategory.getDisplayName(getContext());
+            title = mCategory.getDisplayName(requireContext());
             layoutMode = MODE_ALBUM_PHOTOS_TAB;
             shouldHideProfileButton = true;
         }
+        requirePickerActivity().updateCommonLayouts(layoutMode, title);
 
-        getPickerActivity().updateCommonLayouts(layoutMode, title);
         hideProfileButton(shouldHideProfileButton);
 
         if (mIsCloudMediaInPhotoPickerEnabled
@@ -411,7 +406,11 @@ public class PhotosTabFragment extends TabFragment {
                         final Item item = (Item) view.getTag();
                         mSelection.setSelectedItem(item);
                         mPickerViewModel.logMediaItemSelected(item, mCategory, position);
-                        getPickerActivity().setResultAndFinishSelf();
+                        try {
+                            requirePickerActivity().setResultAndFinishSelf();
+                        } catch (RuntimeException e) {
+                            Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                        }
                     }
                 }
 
@@ -428,9 +427,16 @@ public class PhotosTabFragment extends TabFragment {
                     }
                     mSelection.prepareItemForPreviewOnLongPress(item);
                     mPickerViewModel.logMediaItemPreviewed(item, mCategory, position);
-                    // Transition to PreviewFragment.
-                    PreviewFragment.show(getActivity().getSupportFragmentManager(),
-                            PreviewFragment.getArgsForPreviewOnLongPress());
+
+                    try {
+                        // Transition to PreviewFragment.
+                        PreviewFragment.show(requireActivity().getSupportFragmentManager(),
+                                PreviewFragment.getArgsForPreviewOnLongPress());
+                    } catch (RuntimeException e) {
+                        Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                    }
+
+                    // Consume the long click so that it doesn't propagate in the View hierarchy.
                     return true;
                 }
             };

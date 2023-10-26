@@ -115,6 +115,11 @@ public class MediaProviderTest {
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.READ_DEVICE_CONFIG,
+                        // Adding this to use getUserHandles() api of UserManagerService which
+                        // requires either MANAGE_USERS or CREATE_USERS. Since shell does not have
+                        // MANAGER_USERS permissions, using CREATE_USERS in test. This works with
+                        // MANAGE_USERS permission for MediaProvider module.
+                        Manifest.permission.CREATE_USERS,
                         Manifest.permission.INTERACT_ACROSS_USERS);
 
         resetIsolatedContext();

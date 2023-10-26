@@ -363,16 +363,6 @@ public class AccessChecker {
         return PACKAGE_USER_ID_COLUMN + "=" + callingIdentity.uid / MediaStore.PER_USER_RANGE;
     }
 
-    /**
-     * Returns true if redaction is needed for openFile calls on picker uri by checking calling
-     * package permission
-     *
-     * @param callingIdentity - the current caller
-     */
-    public static boolean isRedactionNeededForPickerUri(LocalCallingIdentity callingIdentity) {
-        return callingIdentity.hasPermission(LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED);
-    }
-
     @VisibleForTesting
     static String getWhereForMediaTypeMatch(int mediaType) {
         return bindSelection("media_type=?", mediaType);

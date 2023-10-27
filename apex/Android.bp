@@ -9,6 +9,7 @@ apex {
     manifest: "apex_manifest.json",
     apps: ["MediaProvider", "PdfViewer"],
     compat_configs: ["media-provider-platform-compat-config"],
+    jni_libs: ["libpdfclient"],
 }
 
 apex_defaults {

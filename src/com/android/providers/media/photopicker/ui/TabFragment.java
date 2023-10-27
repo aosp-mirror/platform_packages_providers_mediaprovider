@@ -184,6 +184,8 @@ public abstract class TabFragment extends Fragment {
             });
 
             mBottomBar = activity.findViewById(R.id.picker_bottom_bar);
+            // consume the event so that it doesn't get passed through to the next view b/287661737
+            mBottomBar.setOnClickListener(v -> {});
             mSlideUpAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_up);
             mSlideDownAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_down);
 

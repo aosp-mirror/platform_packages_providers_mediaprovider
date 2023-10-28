@@ -40,10 +40,10 @@ public class PickerResult {
      * @return {@code Intent} which contains Uri that has been granted access on.
      */
     @NonNull
-    public static Intent getPickerResponseIntent(String action, boolean canSelectMultiple,
+    public static Intent getPickerResponseIntent(boolean canSelectMultiple,
             @NonNull List<Item> selectedItems) {
         // 1. Get Picker Uris corresponding to the selected items
-        List<Uri> selectedUris = getPickerUrisForItems(action, selectedItems);
+        List<Uri> selectedUris = getPickerUrisForItems(selectedItems);
 
         // 2. Grant read access to picker Uris and return
         Intent intent = new Intent();
@@ -71,23 +71,22 @@ public class PickerResult {
     }
 
     @VisibleForTesting
-    static Uri getPickerUri(String action, Uri uri) {
+    static Uri getPickerUri(Uri uri) {
         final String userInfo = uri.getUserInfo();
         final String userId = userInfo == null ? UserId.CURRENT_USER.toString() : userInfo;
-        return PickerUriResolver.wrapProviderUri(uri, action, Integer.parseInt(userId));
+        return PickerUriResolver.wrapProviderUri(uri, Integer.parseInt(userId));
     }
 
     /**
      * Returns list of PhotoPicker Uris corresponding to each {@link Item}
      *
-     * @param action action name which opened PhotoPicker
      * @param items list of Item for which we return uri list.
      */
     @NonNull
-    public static List<Uri> getPickerUrisForItems(String action, @NonNull List<Item> items) {
+    public static List<Uri> getPickerUrisForItems(@NonNull List<Item> items) {
         List<Uri> uris = new ArrayList<>();
         for (Item item : items) {
-            uris.add(getPickerUri(action, item.getContentUri()));
+            uris.add(getPickerUri(item.getContentUri()));
         }
 
         return uris;

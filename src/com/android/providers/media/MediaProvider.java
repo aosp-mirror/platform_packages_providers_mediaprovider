@@ -61,7 +61,6 @@ import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageM
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
-import static com.android.providers.media.AccessChecker.isRedactionNeededForPickerUri;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
@@ -110,7 +109,6 @@ import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS;
 import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS_ID;
 import static com.android.providers.media.LocalUriMatcher.MEDIA_GRANTS;
 import static com.android.providers.media.LocalUriMatcher.MEDIA_SCANNER;
-import static com.android.providers.media.LocalUriMatcher.PICKER_GET_CONTENT_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_ALL;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_LOCAL;
@@ -124,8 +122,6 @@ import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS_ID;
 import static com.android.providers.media.LocalUriMatcher.VOLUMES;
 import static com.android.providers.media.LocalUriMatcher.VOLUMES_ID;
-import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_SEGMENT;
-import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.photopicker.data.MediaGrantsProvider.EXTRA_MIME_TYPE_SELECTION;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
@@ -1318,8 +1314,7 @@ public class MediaProvider extends ContentProvider {
                 mConfigStore);
         mPickerDataLayer = PickerDataLayer.create(context, mPickerDbFacade, mPickerSyncController,
                 mConfigStore);
-        mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper,
-                mUriMatcher);
+        mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper);
 
         if (SdkLevel.isAtLeastS()) {
             mTranscodeHelper = new TranscodeHelperImpl(context, this, mConfigStore);
@@ -2322,14 +2317,13 @@ public class MediaProvider extends ContentProvider {
         boolean result = false;
         switch (segmentCount) {
             case 1:
-                // .../picker or .../picker_get_content
-                if (lastSegment.equals(PICKER_SEGMENT) || lastSegment.equals(
-                        PICKER_GET_CONTENT_SEGMENT)) {
+                // .../picker
+                if (lastSegment.equals("picker")) {
                     result = file.exists() || file.mkdir();
                 }
                 break;
             case 2:
-                // .../picker/<user-id> or .../picker_get_content/<user-id>
+                // .../picker/<user-id>
                 try {
                     Integer.parseInt(lastSegment);
                     result = file.exists() || file.mkdir();
@@ -2339,24 +2333,21 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             case 3:
-                // .../picker/<user-id>/<authority> or .../picker_get_content/<user-id>/<authority>
+                // .../picker/<user-id>/<authority>
                 result = preparePickerAuthorityPathSegment(file, lastSegment, uid);
                 break;
             case 4:
-                // .../picker/<user-id>/<authority>/media or
-                // .../picker_get_content/<user-id>/<authority>/media
+                // .../picker/<user-id>/<authority>/media
                 if (lastSegment.equals("media")) {
                     result = file.exists() || file.mkdir();
                 }
                 break;
             case 5:
-                // .../picker/<user-id>/<authority>/media/<media-id.extension> or
-                // .../picker_get_content/<user-id>/<authority>/media/<media-id.extension>
-                final String pickerSegmentType = syntheticRelativePathSegments.get(0);
+                // .../picker/<user-id>/<authority>/media/<media-id.extension>
                 final String fileUserId = syntheticRelativePathSegments.get(1);
                 final String authority = syntheticRelativePathSegments.get(2);
-                result = preparePickerMediaIdPathSegment(file, pickerSegmentType, authority,
-                        lastSegment, fileUserId, uid);
+                result = preparePickerMediaIdPathSegment(file, authority, lastSegment, fileUserId,
+                        uid);
                 break;
         }
 
@@ -2374,9 +2365,8 @@ public class MediaProvider extends ContentProvider {
                     new long[0]);
         }
 
-        // ['', 'storage', 'emulated', '0', 'transforms', 'synthetic',
-        // 'picker' or 'picker_get_content', '<user-id>', '<host>', 'media', '<fileName>']
-        final String pickerSegmentType = segments[6];
+        // ['', 'storage', 'emulated', '0', 'transforms', 'synthetic', 'picker', '<user-id>',
+        // '<host>', 'media', '<fileName>']
         final String userId = segments[7];
         final String fileName = segments[10];
         final String host = segments[8];
@@ -2412,19 +2402,7 @@ public class MediaProvider extends ContentProvider {
 
         try (FileInputStream fis = new FileInputStream(pfd.getFileDescriptor())) {
             final String mimeType = MimeUtils.resolveMimeType(new File(path));
-            // Picker segment indicates we need to force redact location metadata.
-            // Picker_get_content indicates that we need to check A_M_L permission to decide if the
-            // metadata needs to be redacted
-            LocalCallingIdentity callingIdentityForOriginalUid = getCachedCallingIdentityForFuse(
-                    uid);
-            final boolean isRedactionNeeded = pickerSegmentType.equalsIgnoreCase(PICKER_SEGMENT)
-                    || callingIdentityForOriginalUid == null
-                    || isRedactionNeededForPickerUri(callingIdentityForOriginalUid);
-            Log.v(TAG, "Redaction needed for file open: " + isRedactionNeeded);
-            long[] redactionRanges = new long[0];
-            if (isRedactionNeeded) {
-                redactionRanges = getRedactionRanges(fis, mimeType).redactionRanges;
-            }
+            final long[] redactionRanges = getRedactionRanges(fis, mimeType).redactionRanges;
             return new FileOpenResult(0 /* status */, uid, /* transformsUid */ 0,
                     /* nativeFd */ pfd.detachFd(), redactionRanges);
         } catch (IOException e) {
@@ -2441,14 +2419,13 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
-    private boolean preparePickerMediaIdPathSegment(File file, String pickerSegmentType,
-            String authority, String fileName, String userId, int uid) {
+    private boolean preparePickerMediaIdPathSegment(File file, String authority, String fileName,
+            String userId, int uid) {
         final String mediaId = extractFileName(fileName);
-        final String[] projection = new String[]{MediaStore.PickerMediaColumns.SIZE};
+        final String[] projection = new String[] { MediaStore.PickerMediaColumns.SIZE };
 
-        final Uri uri = Uri.parse(
-                "content://media/" + pickerSegmentType + "/" + userId + "/" + authority + "/media/"
-                        + mediaId);
+        final Uri uri = Uri.parse("content://media/picker/" + userId + "/" + authority + "/media/"
+                + mediaId);
         try (Cursor cursor = mPickerUriResolver.query(uri, projection, /* callingPid */0, uid,
                 mCallingIdentity.get().getPackageName())) {
             if (cursor != null && cursor.moveToFirst()) {
@@ -4025,7 +4002,6 @@ public class MediaProvider extends ContentProvider {
                 return Downloads.CONTENT_TYPE;
 
             case PICKER_ID:
-            case PICKER_GET_CONTENT_ID:
                 return mPickerUriResolver.getType(url, Binder.getCallingPid(),
                         Binder.getCallingUid());
         }
@@ -8589,7 +8565,7 @@ public class MediaProvider extends ContentProvider {
 
     private boolean isPickerUri(Uri uri) {
         final int match = matchUri(uri, /* allowHidden */ isCallingPackageAllowedHidden());
-        return match == PICKER_ID || match == PICKER_GET_CONTENT_ID;
+        return match == PICKER_ID;
     }
 
     @Override
@@ -8616,20 +8592,9 @@ public class MediaProvider extends ContentProvider {
         uri = safeUncanonicalize(uri);
 
         if (isPickerUri(uri)) {
-            int tid = Process.myTid();
-            synchronized (mPendingOpenInfo) {
-                mPendingOpenInfo.put(tid, new PendingOpenInfo(
-                        Binder.getCallingUid(), /* mediaCapabilitiesUid */ 0, /* shouldRedact */
-                        false, /* transcodeReason */ 0));
-            }
-
-            try {
-                return mPickerUriResolver.openFile(uri, mode, signal, mCallingIdentity.get());
-            } finally {
-                synchronized (mPendingOpenInfo) {
-                    mPendingOpenInfo.remove(tid);
-                }
-            }
+            final int callingPid = mCallingIdentity.get().pid;
+            final int callingUid = mCallingIdentity.get().uid;
+            return mPickerUriResolver.openFile(uri, mode, signal, callingPid, callingUid);
         }
 
         final boolean allowHidden = isCallingPackageAllowedHidden();
@@ -8762,21 +8727,10 @@ public class MediaProvider extends ContentProvider {
 
         // This is needed for thumbnail resolution as it doesn't go through openFileCommon
         if (isPickerUri(uri)) {
-            int tid = Process.myTid();
-            synchronized (mPendingOpenInfo) {
-                mPendingOpenInfo.put(tid, new PendingOpenInfo(
-                        Binder.getCallingUid(), /* mediaCapabilitiesUid */ 0, /* shouldRedact */
-                        false, /* transcodeReason */ 0));
-            }
-
-            try {
-                return mPickerUriResolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal,
-                        mCallingIdentity.get());
-            } finally {
-                synchronized (mPendingOpenInfo) {
-                    mPendingOpenInfo.remove(tid);
-                }
-            }
+            final int callingPid = mCallingIdentity.get().pid;
+            final int callingUid = mCallingIdentity.get().uid;
+            return mPickerUriResolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal,
+                    callingPid, callingUid);
         }
 
         // TODO: enforce that caller has access to this uri

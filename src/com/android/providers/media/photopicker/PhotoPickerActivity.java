@@ -543,7 +543,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         logPickerSelectionConfirmed(mSelection.getSelectedItems().size());
         if (shouldPreloadSelectedItems()) {
             final var uris = PickerResult.getPickerUrisForItems(
-                    getIntent().getAction(), mSelection.getSelectedItems());
+                    mSelection.getSelectedItems());
             mPreloaderInstanceHolder.preloader =
                     SelectedMediaPreloader.preload(/* activity */ this, uris);
             deSelectUnavailableMedia(mPreloaderInstanceHolder.preloader);
@@ -571,8 +571,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // The permission controller will pass the requesting package's UID here
         final Bundle extras = getIntent().getExtras();
         final int uid = extras.getInt(Intent.EXTRA_UID);
-        final List<Uri> uris = getPickerUrisForItems(getIntent().getAction(),
-                mSelection.getSelectedItemsWithoutGrants());
+        final List<Uri> uris = getPickerUrisForItems(mSelection.getSelectedItemsWithoutGrants());
         ForegroundThread.getExecutor().execute(() -> {
             // Handle grants in another thread to not block the UI.
             grantMediaReadForPackage(getApplicationContext(), uid, uris);
@@ -583,7 +582,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         if (isUserSelectImagesForAppAction()
                 && mPickerViewModel.getConfigStore().isPickerChoiceManagedSelectionEnabled()) {
             final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
-                    getIntent().getAction(), mSelection.getPreGrantedItemsToBeRevoked());
+                    mSelection.getPreGrantedItemsToBeRevoked());
             if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {
                 ForegroundThread.getExecutor().execute(() -> {
                     // Handle grants in another thread to not block the UI.
@@ -595,8 +594,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void setResultForPickImagesOrGetContentAction() {
-        final Intent resultData = getPickerResponseIntent(getIntent().getAction(),
-                mSelection.canSelectMultiple(), mSelection.getSelectedItems());
+        final Intent resultData = getPickerResponseIntent(
+                mSelection.canSelectMultiple(),
+                mSelection.getSelectedItems());
         setResult(RESULT_OK, resultData);
     }
 

@@ -21,6 +21,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 
 import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeType;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertThrows;
@@ -40,7 +41,6 @@ import android.provider.MediaStore.PickerMediaColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.ProjectionHelper;
 import com.android.providers.media.photopicker.sync.SyncTracker;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
@@ -1350,38 +1350,20 @@ public class PickerDbFacadeTest {
         // Assert all projection columns
         final String[] allProjection = mProjectionHelper.getProjectionMap(
                 PickerMediaColumns.class).keySet().toArray(new String[0]);
-        try (Cursor cr = mFacade.queryMediaIdForApps(PickerUriResolver.PICKER_SEGMENT,
-                LOCAL_PROVIDER, LOCAL_ID, allProjection)) {
-            assertWithMessage(
-                    "Unexpected number of rows when asserting all projection columns with "
-                            + "PickerUriResolver as PICKER_SEGMENT on local provider.")
-                    .that(cr.getCount()).isEqualTo(1);
+        try (Cursor cr = mFacade.queryMediaIdForApps(LOCAL_PROVIDER, LOCAL_ID,
+                allProjection)) {
+            assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
-            assertMediaStoreCursor(cr, LOCAL_ID, DATE_TAKEN_MS, PickerUriResolver.PICKER_SEGMENT);
-        }
-
-        try (Cursor cr = mFacade.queryMediaIdForApps(PickerUriResolver.PICKER_GET_CONTENT_SEGMENT,
-                LOCAL_PROVIDER, LOCAL_ID, allProjection)) {
-            assertWithMessage(
-                    "Unexpected number of rows when asserting all projection columns with "
-                            + "PickerUriResolver as PICKER_GET_CONTENT_SEGMENT on local provider.")
-                    .that(cr.getCount()).isEqualTo(1);
-
-            cr.moveToFirst();
-            assertMediaStoreCursor(cr, LOCAL_ID, DATE_TAKEN_MS,
-                    PickerUriResolver.PICKER_GET_CONTENT_SEGMENT);
+            assertMediaStoreCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
         // Assert one projection column
         final String[] oneProjection = new String[]{PickerMediaColumns.DATE_TAKEN};
 
-        try (Cursor cr = mFacade.queryMediaIdForApps(PickerUriResolver.PICKER_SEGMENT,
-                CLOUD_PROVIDER, CLOUD_ID, oneProjection)) {
-            assertWithMessage(
-                    "Unexpected number of rows when asserting one projection column with cloud "
-                            + "provider.")
-                    .that(cr.getCount()).isEqualTo(1);
+        try (Cursor cr = mFacade.queryMediaIdForApps(CLOUD_PROVIDER, CLOUD_ID,
+                oneProjection)) {
+            assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
             assertWithMessage(
@@ -1397,12 +1379,9 @@ public class PickerDbFacadeTest {
                 invalidColumn
         };
 
-        try (Cursor cr = mFacade.queryMediaIdForApps(PickerUriResolver.PICKER_SEGMENT,
-                CLOUD_PROVIDER, CLOUD_ID, invalidProjection)) {
-            assertWithMessage(
-                    "Unexpected number of rows when asserting invalid projection column with "
-                            + "cloud provider.")
-                    .that(cr.getCount()).isEqualTo(1);
+        try (Cursor cr = mFacade.queryMediaIdForApps(CLOUD_PROVIDER, CLOUD_ID,
+                invalidProjection)) {
+            assertThat(cr.getCount()).isEqualTo(1);
 
             cr.moveToFirst();
             assertWithMessage(
@@ -2263,8 +2242,8 @@ public class PickerDbFacadeTest {
         return mediaId + getExtensionFromMimeType(mimeType);
     }
 
-    private static String getData(String authority, String displayName, String pickerSegmentType) {
-        return "/sdcard/.transforms/synthetic/" + pickerSegmentType + "/0/" + authority + "/media/"
+    private static String getData(String authority, String displayName) {
+        return "/sdcard/.transforms/synthetic/picker/0/" + authority + "/media/"
                 + displayName;
     }
 
@@ -2290,10 +2269,8 @@ public class PickerDbFacadeTest {
 
     private static void assertCloudMediaCursor(Cursor cursor, String id, String mimeType) {
         final String displayName = getDisplayName(id, mimeType);
-        final String localData = getData(LOCAL_PROVIDER, displayName,
-                PickerUriResolver.PICKER_SEGMENT);
-        final String cloudData = getData(CLOUD_PROVIDER, displayName,
-                PickerUriResolver.PICKER_SEGMENT);
+        final String localData = getData(LOCAL_PROVIDER, displayName);
+        final String cloudData = getData(CLOUD_PROVIDER, displayName);
 
         assertWithMessage("Unexpected value of MediaColumns.ID for the cloud media cursor.")
                 .that(cursor.getString(cursor.getColumnIndex(MediaColumns.ID)))
@@ -2380,11 +2357,10 @@ public class PickerDbFacadeTest {
         }
     }
 
-    private static void assertMediaStoreCursor(Cursor cursor, String id, long dateTakenMs,
-            String pickerSegmentType) {
+    private static void assertMediaStoreCursor(Cursor cursor, String id, long dateTakenMs) {
         final String displayName = getDisplayName(id, MP4_VIDEO_MIME_TYPE);
-        final String localData = getData(LOCAL_PROVIDER, displayName, pickerSegmentType);
-        final String cloudData = getData(CLOUD_PROVIDER, displayName, pickerSegmentType);
+        final String localData = getData(LOCAL_PROVIDER, displayName);
+        final String cloudData = getData(CLOUD_PROVIDER, displayName);
 
         assertWithMessage(
                 "Unexpected value for PickerMediaColumns.DISPLAY_NAME for the media store cursor.")

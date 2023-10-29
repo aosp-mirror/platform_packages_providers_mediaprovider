@@ -193,6 +193,9 @@
     <!-- TODO(b/257208235): Update with finalized UX string. !-->
     <string name="picker_add_button_multi_select_permissions">Allow (<xliff:g id="count" example="42">^1</xliff:g>)</string>
 
+    <!-- Text shown on the add button for multi-select in Picker Choice when no photo is selected.[CHAR LIMIT=30]  -->
+    <string name="picker_add_button_allow_none_option">Allow none</string>
+
     <!-- Title for the category in the picker that offers items in Camera folder. [CHAR LIMIT=24] -->
     <string name="picker_category_camera">Camera</string>
     <!-- Title for the category in the picker that offers downloaded items. [CHAR LIMIT=24] -->

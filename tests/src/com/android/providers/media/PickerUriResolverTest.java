@@ -16,10 +16,8 @@
 
 package com.android.providers.media;
 
-import static android.content.Intent.ACTION_GET_CONTENT;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.provider.MediaStore.ACTION_PICK_IMAGES;
 
 import static androidx.test.InstrumentationRegistry.getContext;
 import static androidx.test.InstrumentationRegistry.getTargetContext;
@@ -28,7 +26,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -80,13 +77,10 @@ public class PickerUriResolverTest {
     private static Uri sTestPickerUri;
     private static String TEST_ID;
 
-    private static Uri sMediaStoreUriInOtherContext;
-
     private static class TestPickerUriResolver extends PickerUriResolver {
         TestPickerUriResolver(Context context) {
             super(context, new PickerDbFacade(getTargetContext()),
-                    new ProjectionHelper(Column.class, ExportedSince.class),
-                    new LocalUriMatcher(MediaStore.AUTHORITY));
+                    new ProjectionHelper(Column.class, ExportedSince.class));
         }
 
         @Override
@@ -124,16 +118,14 @@ public class PickerUriResolverTest {
                         Manifest.permission.INTERACT_ACROSS_USERS);
         sCurrentContext = mock(Context.class);
         when(sCurrentContext.getUser()).thenReturn(UserHandle.of(UserHandle.myUserId()));
-        PackageManager packageManager = mock(PackageManager.class);
-        when(sCurrentContext.getPackageManager()).thenReturn(packageManager);
-        when(packageManager.getPackagesForUid(anyInt())).thenReturn(
-                new String[]{getContext().getPackageName()});
 
         final Context otherUserContext = createOtherUserContext(TEST_USER);
         sTestPickerUriResolver = new TestPickerUriResolver(sCurrentContext);
 
-        sMediaStoreUriInOtherContext = createTestFileInContext(otherUserContext);
-        TEST_ID = sMediaStoreUriInOtherContext.getLastPathSegment();
+        final Uri mediaStoreUriInOtherContext = createTestFileInContext(otherUserContext);
+        TEST_ID = mediaStoreUriInOtherContext.getLastPathSegment();
+        sTestPickerUri = getPickerUriForId(ContentUris.parseId(mediaStoreUriInOtherContext),
+                TEST_USER);
     }
 
     @AfterClass
@@ -143,37 +135,24 @@ public class PickerUriResolverTest {
 
     @Test
     public void wrapProviderUriValid() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         final String providerSuffix = "authority/media/media_id";
 
         final Uri providerUriUserImplicit = Uri.parse("content://" + providerSuffix);
 
         final Uri providerUriUser0 = Uri.parse("content://0@" + providerSuffix);
         final Uri mediaUriUser0 = Uri.parse("content://media/picker/0/" + providerSuffix);
-        final Uri mediaUriUser0PickerGetContent = Uri.parse(
-                "content://media/picker_get_content/0/" + providerSuffix);
 
         final Uri providerUriUser10 = Uri.parse("content://10@" + providerSuffix);
         final Uri mediaUriUser10 = Uri.parse("content://media/picker/10/" + providerSuffix);
 
-        assertThat(PickerUriResolver.wrapProviderUri(providerUriUserImplicit,
-                ACTION_PICK_IMAGES, 0))
+        assertThat(PickerUriResolver.wrapProviderUri(providerUriUserImplicit, 0))
                 .isEqualTo(mediaUriUser0);
-        assertThat(PickerUriResolver.wrapProviderUri(providerUriUserImplicit,
-                ACTION_GET_CONTENT, 0))
-                .isEqualTo(mediaUriUser0PickerGetContent);
-        assertThat(
-                PickerUriResolver.wrapProviderUri(providerUriUser0, ACTION_PICK_IMAGES,
-                        0)).isEqualTo(mediaUriUser0);
+        assertThat(PickerUriResolver.wrapProviderUri(providerUriUser0, 0)).isEqualTo(mediaUriUser0);
         assertThat(PickerUriResolver.unwrapProviderUri(mediaUriUser0)).isEqualTo(providerUriUser0);
 
-        assertThat(PickerUriResolver.wrapProviderUri(providerUriUserImplicit,
-                ACTION_PICK_IMAGES, 10))
+        assertThat(PickerUriResolver.wrapProviderUri(providerUriUserImplicit, 10))
                 .isEqualTo(mediaUriUser10);
-        assertThat(
-                PickerUriResolver.wrapProviderUri(providerUriUser10, ACTION_PICK_IMAGES,
-                        10))
+        assertThat(PickerUriResolver.wrapProviderUri(providerUriUser10, 10))
                 .isEqualTo(mediaUriUser10);
         assertThat(PickerUriResolver.unwrapProviderUri(mediaUriUser10))
                 .isEqualTo(providerUriUser10);
@@ -181,8 +160,6 @@ public class PickerUriResolverTest {
 
     @Test
     public void wrapProviderUriInvalid() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         final String providerSuffixLong = "authority/media/media_id/another_media_id";
         final String providerSuffixShort = "authority/media";
 
@@ -193,22 +170,18 @@ public class PickerUriResolverTest {
         final Uri mediaUriUserShort = Uri.parse("content://media/picker/0/" + providerSuffixShort);
 
         assertThrows(IllegalArgumentException.class,
-                () -> PickerUriResolver.wrapProviderUri(providerUriUserLong, ACTION_PICK_IMAGES,
-                        0));
+                () -> PickerUriResolver.wrapProviderUri(providerUriUserLong, 0));
         assertThrows(IllegalArgumentException.class,
                 () -> PickerUriResolver.unwrapProviderUri(mediaUriUserLong));
 
         assertThrows(IllegalArgumentException.class,
                 () -> PickerUriResolver.unwrapProviderUri(mediaUriUserShort));
         assertThrows(IllegalArgumentException.class,
-                () -> PickerUriResolver.wrapProviderUri(providerUriUserShort, ACTION_PICK_IMAGES,
-                        0));
+                () -> PickerUriResolver.wrapProviderUri(providerUriUserShort, 0));
     }
 
     @Test
     public void testGetAlbumUri() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         final String authority = "foo";
         final Uri uri = Uri.parse("content://foo/album");
         assertThat(PickerUriResolver.getAlbumUri(authority)).isEqualTo(uri);
@@ -216,8 +189,6 @@ public class PickerUriResolverTest {
 
     @Test
     public void testGetMediaUri() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         final String authority = "foo";
         final Uri uri = Uri.parse("content://foo/media");
         assertThat(PickerUriResolver.getMediaUri(authority)).isEqualTo(uri);
@@ -225,8 +196,6 @@ public class PickerUriResolverTest {
 
     @Test
     public void testGetDeletedMediaUri() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         final String authority = "foo";
         final Uri uri = Uri.parse("content://foo/deleted_media");
         assertThat(PickerUriResolver.getDeletedMediaUri(authority)).isEqualTo(uri);
@@ -234,8 +203,6 @@ public class PickerUriResolverTest {
 
     @Test
     public void testCreateSurfaceControllerUri() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         final String authority = "foo";
         final Uri uri = Uri.parse("content://foo/surface_controller");
         assertThat(PickerUriResolver.createSurfaceControllerUri(authority)).isEqualTo(uri);
@@ -243,13 +210,10 @@ public class PickerUriResolverTest {
 
     @Test
     public void testOpenFile_mode_w() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         updateReadUriPermission(sTestPickerUri, /* grant */ true);
         try {
             sTestPickerUriResolver.openFile(sTestPickerUri, "w", /* signal */ null,
-                    LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                            0));
+                    /* callingPid */ -1, /* callingUid */ -1);
             fail("Write is not supported for Picker Uris. uri: " + sTestPickerUri);
         } catch (SecurityException expected) {
             // expected
@@ -260,13 +224,10 @@ public class PickerUriResolverTest {
 
     @Test
     public void testOpenFile_mode_rw() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         updateReadUriPermission(sTestPickerUri, /* grant */ true);
         try {
             sTestPickerUriResolver.openFile(sTestPickerUri, "rw", /* signal */ null,
-                    LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                            0));
+                    /* callingPid */ -1, /* callingUid */ -1);
             fail("Read-Write is not supported for Picker Uris. uri: " + sTestPickerUri);
         } catch (SecurityException expected) {
             // expected
@@ -277,13 +238,10 @@ public class PickerUriResolverTest {
 
     @Test
     public void testOpenFile_mode_invalid() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         updateReadUriPermission(sTestPickerUri, /* grant */ true);
         try {
             sTestPickerUriResolver.openFile(sTestPickerUri, "foo", /* signal */ null,
-                    LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                            0));
+                    /* callingPid */ -1, /* callingUid */ -1);
             fail("Invalid mode should not be supported for openFile. uri: " + sTestPickerUri);
         } catch (IllegalArgumentException expected) {
             // expected
@@ -293,8 +251,6 @@ public class PickerUriResolverTest {
 
     @Test
     public void testPickerUriResolver_permissionDenied() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         updateReadUriPermission(sTestPickerUri, /* grant */ false);
 
         testOpenFile_permissionDenied(sTestPickerUri);
@@ -305,15 +261,13 @@ public class PickerUriResolverTest {
 
     @Test
     public void testPermissionGrantedOnOtherUserUri() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         // This test requires the uri to be valid in 2 different users, but the permission is
         // granted in one user only.
         final int otherUserId = 50;
         final Context otherUserContext = createOtherUserContext(otherUserId);
         final Uri mediaStoreUserInAnotherValidUser = createTestFileInContext(otherUserContext);
         final Uri grantedUri = getPickerUriForId(ContentUris.parseId(
-                mediaStoreUserInAnotherValidUser), otherUserId, ACTION_PICK_IMAGES);
+                mediaStoreUserInAnotherValidUser), otherUserId);
         updateReadUriPermission(grantedUri, /* grant */ true);
 
         final Uri deniedUri = sTestPickerUri;
@@ -327,12 +281,9 @@ public class PickerUriResolverTest {
 
     @Test
     public void testPickerUriResolver_userInvalid() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         final int invalidUserId = 40;
 
-        final Uri inValidUserPickerUri = getPickerUriForId(/* id */ 1, invalidUserId,
-                ACTION_PICK_IMAGES);
+        final Uri inValidUserPickerUri = getPickerUriForId(/* id */ 1, invalidUserId);
         updateReadUriPermission(inValidUserPickerUri, /* grant */ true);
 
         // This method is called on current context when pickerUriResolver wants to get the content
@@ -350,8 +301,6 @@ public class PickerUriResolverTest {
 
     @Test
     public void testPickerUriResolver_userValid() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         updateReadUriPermission(sTestPickerUri, /* grant */ true);
 
         assertThat(PickerUriResolver.getUserId(sTestPickerUri)).isEqualTo(TEST_USER);
@@ -362,102 +311,7 @@ public class PickerUriResolverTest {
     }
 
     @Test
-    public void testPickerUriResolver_pickerUri_fileOpenWithRequireOriginal() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
-        // Grants given on original uri
-        updateReadUriPermission(sTestPickerUri, /* grant */ true);
-        sTestPickerUri = MediaStore.setRequireOriginal(sTestPickerUri);
-
-        assertThat(PickerUriResolver.getUserId(sTestPickerUri)).isEqualTo(TEST_USER);
-        try (ParcelFileDescriptor pfd = sTestPickerUriResolver.openFile(sTestPickerUri,
-                "r", /* signal */ null,
-                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        0))) {
-            fail("Require original should not be supported for picker uri:" + sTestPickerUri);
-        } catch (UnsupportedOperationException expected) {
-            // expected
-        }
-        try (ParcelFileDescriptor pfd = sTestPickerUriResolver.openFile(sTestPickerUri,
-                "r", /* signal */ null,
-                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        0))) {
-            fail("Require original should not be supported for picker uri:" + sTestPickerUri);
-        } catch (UnsupportedOperationException expected) {
-            // expected
-        }
-
-        try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(sTestPickerUri,
-                "image/*", /* opts */ null, /* signal */ null,
-                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        0))) {
-            fail("Require original should not be supported for picker uri:" + sTestPickerUri);
-        } catch (UnsupportedOperationException expected) {
-            // expected
-        }
-        try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(sTestPickerUri,
-                "image/*", /* opts */ null, /* signal */ null,
-                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        0))) {
-            fail("Require original should not be supported for picker uri:" + sTestPickerUri);
-        } catch (UnsupportedOperationException expected) {
-            // expected
-        }
-
-        testQuery(sTestPickerUri);
-        testGetType(sTestPickerUri, "image/jpeg");
-    }
-
-    @Test
-    public void testPickerUriResolver_pickerGetContentUri_fileOpenWithRequireOriginal()
-            throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_GET_CONTENT);
-        // Grants given on original uri
-        updateReadUriPermission(sTestPickerUri, /* grant */ true);
-        sTestPickerUri = MediaStore.setRequireOriginal(sTestPickerUri);
-
-        assertThat(PickerUriResolver.getUserId(sTestPickerUri)).isEqualTo(TEST_USER);
-        try (ParcelFileDescriptor pfd = sTestPickerUriResolver.openFile(sTestPickerUri,
-                "r", /* signal */ null,
-                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        ~LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED))) {
-            assertThat(pfd).isNotNull();
-        }
-        try (ParcelFileDescriptor pfd = sTestPickerUriResolver.openFile(sTestPickerUri,
-                "r", /* signal */ null,
-                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED))) {
-            fail("Require original should not be supported when calling package does not have "
-                    + "required permission");
-        } catch (UnsupportedOperationException expected) {
-            // expected
-        }
-
-        try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(sTestPickerUri,
-                "image/*", /* opts */ null, /* signal */ null,
-                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        ~LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED))) {
-            assertThat(afd).isNotNull();
-        }
-        try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(sTestPickerUri,
-                "image/*", /* opts */ null, /* signal */ null,
-                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED))) {
-            fail("Require original should not be supported when calling package does not have "
-                    + "required permission");
-        } catch (UnsupportedOperationException expected) {
-            // expected
-        }
-
-        testQuery(sTestPickerUri);
-        testGetType(sTestPickerUri, "image/jpeg");
-    }
-
-    @Test
     public void testQueryUnknownColumn() throws Exception {
-        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
-                TEST_USER, ACTION_PICK_IMAGES);
         final int myUid = Process.myUid();
         final int myPid = Process.myPid();
         final String myPackageName = getContext().getPackageName();
@@ -512,28 +366,25 @@ public class PickerUriResolverTest {
                 Intent.FLAG_GRANT_READ_URI_PERMISSION)).thenReturn(permission);
     }
 
-    private static Uri getPickerUriForId(long id, int user, String action) {
+    private static Uri getPickerUriForId(long id, int user) {
         final Uri providerUri = PickerUriResolver
                 .getMediaUri(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
                 .buildUpon()
                 .appendPath(String.valueOf(id))
                 .build();
-        return PickerUriResolver.wrapProviderUri(providerUri, action, user);
+        return PickerUriResolver.wrapProviderUri(providerUri, user);
     }
 
     private void testOpenFile(Uri uri) throws Exception {
         try (ParcelFileDescriptor pfd = sTestPickerUriResolver.openFile(uri, "r", /* signal */ null,
-                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        0))) {
+                /* callingPid */ -1, /* callingUid */ -1)) {
             assertThat(pfd).isNotNull();
         }
     }
 
     private void testOpenTypedAssetFile(Uri uri) throws Exception {
         try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(uri, "image/*",
-                /* opts */ null, /* signal */ null,
-                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        0))) {
+                /* opts */ null, /* signal */ null, /* callingPid */ -1, /* callingUid */ -1)) {
             assertThat(afd).isNotNull();
         }
     }
@@ -557,9 +408,8 @@ public class PickerUriResolverTest {
 
     private void testOpenFileInvalidUser(Uri uri) {
         try {
-            sTestPickerUriResolver.openFile(uri, "r", /* signal */ null,
-                    LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                            0));
+            sTestPickerUriResolver.openFile(uri, "r", /* signal */ null, /* callingPid */ -1,
+                    /* callingUid */ -1);
             fail("Invalid user specified in the picker uri: " + uri);
         } catch (FileNotFoundException expected) {
             // expected
@@ -570,9 +420,7 @@ public class PickerUriResolverTest {
     private void testOpenTypedAssetFileInvalidUser(Uri uri) throws Exception {
         try {
             sTestPickerUriResolver.openTypedAssetFile(uri, "image/*", /* opts */ null,
-                    /* signal */ null,
-                    LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                            0));
+                    /* signal */ null, /* callingPid */ -1, /* callingUid */ -1);
             fail("Invalid user specified in the picker uri: " + uri);
         } catch (FileNotFoundException expected) {
             // expected
@@ -600,9 +448,8 @@ public class PickerUriResolverTest {
 
     private void testOpenFile_permissionDenied(Uri uri) throws Exception {
         try {
-            sTestPickerUriResolver.openFile(uri, "r", /* signal */ null,
-                    LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                            0));
+            sTestPickerUriResolver.openFile(uri, "r", /* signal */ null, /* callingPid */ -1,
+                    /* callingUid */ -1);
             fail("openFile should fail if the caller does not have permission grant on the picker"
                     + " uri: " + uri);
         } catch (SecurityException expected) {
@@ -615,9 +462,7 @@ public class PickerUriResolverTest {
     private void testOpenTypedAssetFile_permissionDenied(Uri uri) throws Exception {
         try {
             sTestPickerUriResolver.openTypedAssetFile(uri, "image/*", /* opts */ null,
-                    /* signal */ null,
-                    LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                            0));
+                    /* signal */ null, /* callingPid */ -1, /* callingUid */ -1);
             fail("openTypedAssetFile should fail if the caller does not have permission grant on"
                     + " the picker uri: " + uri);
         } catch (SecurityException expected) {

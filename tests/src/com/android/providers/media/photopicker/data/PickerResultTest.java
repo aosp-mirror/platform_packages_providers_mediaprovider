@@ -16,12 +16,9 @@
 
 package com.android.providers.media.photopicker.data;
 
-import static android.content.Intent.ACTION_GET_CONTENT;
-import static android.provider.MediaStore.ACTION_PICK_IMAGES;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 
 import static com.android.compatibility.common.util.SystemUtil.runShellCommand;
-import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_SEGMENT;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -61,7 +58,7 @@ public class PickerResultTest {
     }
 
     /**
-     * Tests {@link PickerResult#getPickerResponseIntent(String, boolean, List)} with single item
+     * Tests {@link PickerResult#getPickerResponseIntent(boolean, List)} with single item
      * @throws Exception
      */
     @Test
@@ -69,10 +66,9 @@ public class PickerResultTest {
         List<Item> items = null;
         try {
             items = createItemSelection(1);
-            final Uri expectedPickerUri = PickerResult.getPickerUri(ACTION_PICK_IMAGES,
-                    items.get(0).getContentUri());
+            final Uri expectedPickerUri = PickerResult.getPickerUri(items.get(0).getContentUri());
             final Intent intent = PickerResult.getPickerResponseIntent(
-                    ACTION_PICK_IMAGES, /* canSelectMultiple */ false, items);
+                    /* canSelectMultiple */ false, items);
 
             final Uri result = intent.getData();
             assertPickerUriFormat(result);
@@ -88,32 +84,8 @@ public class PickerResultTest {
         }
     }
 
-    @Test
-    public void testGetResultSingleForActionGetContent() throws Exception {
-        List<Item> items = null;
-        try {
-            items = createItemSelection(1);
-            final Uri expectedPickerUri = PickerResult.getPickerUri(ACTION_GET_CONTENT,
-                    items.get(0).getContentUri());
-            final Intent intent = PickerResult.getPickerResponseIntent(
-                    ACTION_GET_CONTENT, /* canSelectMultiple */ false, items);
-
-            final Uri result = intent.getData();
-            assertGetContentPickerUriFormat(result);
-            assertThat(result).isEqualTo(expectedPickerUri);
-
-            final ClipData clipData = intent.getClipData();
-            assertThat(clipData).isNotNull();
-            final int count = clipData.getItemCount();
-            assertThat(count).isEqualTo(1);
-            assertThat(clipData.getItemAt(0).getUri()).isEqualTo(expectedPickerUri);
-        } finally {
-            deleteFiles(items);
-        }
-    }
-
     /**
-     * Tests {@link PickerResult#getPickerResponseIntent(String, boolean, List)} with multiple items
+     * Tests {@link PickerResult#getPickerResponseIntent(boolean, List)} with multiple items
      * @throws Exception
      */
     @Test
@@ -123,12 +95,11 @@ public class PickerResultTest {
             final int itemCount = 3;
             items = createItemSelection(itemCount);
             List<Uri> expectedPickerUris = new ArrayList<>();
-            for (Item item : items) {
-                expectedPickerUris.add(PickerResult.getPickerUri(ACTION_PICK_IMAGES,
-                        item.getContentUri()));
+            for (Item item: items) {
+                expectedPickerUris.add(PickerResult.getPickerUri(item.getContentUri()));
             }
-            final Intent intent = PickerResult.getPickerResponseIntent(
-                    ACTION_PICK_IMAGES, /* canSelectMultiple */ true, items);
+            final Intent intent = PickerResult.getPickerResponseIntent(/* canSelectMultiple */ true,
+                    items);
 
             final ClipData clipData = intent.getClipData();
             final int count = clipData.getItemCount();
@@ -143,36 +114,10 @@ public class PickerResultTest {
         }
     }
 
-    @Test
-    public void testGetResultMultipleForActionGetContent() throws Exception {
-        ArrayList<Item> items = null;
-        try {
-            final int itemCount = 3;
-            items = createItemSelection(itemCount);
-            List<Uri> expectedPickerUris = new ArrayList<>();
-            for (Item item : items) {
-                expectedPickerUris.add(PickerResult.getPickerUri(ACTION_GET_CONTENT,
-                        item.getContentUri()));
-            }
-            final Intent intent = PickerResult.getPickerResponseIntent(
-                    ACTION_GET_CONTENT, /* canSelectMultiple */ true, items);
-
-            final ClipData clipData = intent.getClipData();
-            final int count = clipData.getItemCount();
-            assertThat(count).isEqualTo(itemCount);
-            for (int i = 0; i < count; i++) {
-                Uri uri = clipData.getItemAt(i).getUri();
-                assertGetContentPickerUriFormat(uri);
-                assertThat(uri).isEqualTo(expectedPickerUris.get(i));
-            }
-        } finally {
-            deleteFiles(items);
-        }
-    }
-
     /**
-     * Tests {@link PickerResult#getPickerResponseIntent(String, boolean, List)} when the user
-     * selected only one item in multi-select mode
+     * Tests {@link PickerResult#getPickerResponseIntent(boolean, List)} when the user selected
+     * only one item in multi-select mode
+     * @throws Exception
      */
     @Test
     public void testGetResultMultiple_onlyOneItemSelected() throws Exception {
@@ -180,10 +125,9 @@ public class PickerResultTest {
         try {
             final int itemCount = 1;
             items = createItemSelection(itemCount);
-            final Uri expectedPickerUri = PickerResult.getPickerUri(ACTION_PICK_IMAGES,
-                    items.get(0).getContentUri());
-            final Intent intent = PickerResult.getPickerResponseIntent(
-                    ACTION_PICK_IMAGES, /* canSelectMultiple */ true, items);
+            final Uri expectedPickerUri = PickerResult.getPickerUri(items.get(0).getContentUri());
+            final Intent intent = PickerResult.getPickerResponseIntent(/* canSelectMultiple */ true,
+                    items);
 
             final ClipData clipData = intent.getClipData();
             final int count = clipData.getItemCount();
@@ -198,12 +142,6 @@ public class PickerResultTest {
     private void assertPickerUriFormat(Uri uri) {
         final String pickerUriPrefix = PickerUriResolver.PICKER_URI.toString();
         assertThat(uri.toString().startsWith(pickerUriPrefix)).isTrue();
-    }
-
-    private void assertGetContentPickerUriFormat(Uri uri) {
-        final String pickerNonRedactedUriPrefix = MediaStore.AUTHORITY_URI.buildUpon().appendPath(
-                PICKER_GET_CONTENT_SEGMENT).build().toString();
-        assertThat(uri.toString().startsWith(pickerNonRedactedUriPrefix)).isTrue();
     }
 
     /**

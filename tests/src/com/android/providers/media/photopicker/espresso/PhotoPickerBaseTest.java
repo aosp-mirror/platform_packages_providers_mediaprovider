@@ -36,6 +36,7 @@ import android.system.Os;
 import androidx.core.util.Supplier;
 import androidx.lifecycle.MutableLiveData;
 import androidx.test.InstrumentationRegistry;
+import androidx.work.testing.WorkManagerTestInitHelper;
 
 import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.R;
@@ -186,6 +187,8 @@ public class PhotoPickerBaseTest {
 
         sUserIdManager = mock(UserIdManager.class);
         when(sUserIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
+
+        WorkManagerTestInitHelper.initializeTestWorkManager(sIsolatedContext);
 
         createFiles();
     }

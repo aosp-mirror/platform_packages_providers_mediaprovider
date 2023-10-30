@@ -21,9 +21,9 @@
 #include <string>
 
 #include "cpp/fpdf_scopers.h"
-#include "external/pdfClient/utils/text.h"
 #include "fpdf_annot.h"
 #include "fpdfview.h"
+#include "utils/text.h"
 
 namespace pdfClient {
 

@@ -28,8 +28,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
-#include "external/pdfClient/utils/annot_hider.h"
-#include "external/pdfClient/utils/text.h"
 #include "extractors.h"
 #include "features.h"
 #include "form_filler.h"
@@ -41,6 +39,8 @@
 #include "normalize.h"
 #include "rect.h"
 #include "utf.h"
+#include "utils/annot_hider.h"
+#include "utils/text.h"
 
 using std::vector;
 

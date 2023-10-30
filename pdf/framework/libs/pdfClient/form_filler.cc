@@ -29,15 +29,15 @@
 #include "cpp/fpdf_scopers.h"
 #include "document.h"
 #include "external/pdfClient/pdfClient_formfillinfo.h"
-#include "external/pdfClient/utils/annot.h"
-#include "external/pdfClient/utils/text.h"
-#include "external/pdfClient/utils/utf.h"
 #include "form_widget_info.h"
 #include "fpdf_annot.h"
 #include "fpdf_formfill.h"
 #include "fpdf_fwlevent.h"
 #include "fpdfview.h"
 #include "rect.h"
+#include "utils/annot.h"
+#include "utils/text.h"
+#include "utils/utf.h"
 
 // Utility methods to group common widget type and feature checks.
 namespace {

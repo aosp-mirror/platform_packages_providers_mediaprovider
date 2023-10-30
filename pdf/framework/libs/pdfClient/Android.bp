@@ -23,6 +23,7 @@ cc_library_shared {
     name: "libpdfclient",
     srcs: [
         "*.cc",
+        "utils/*.cc",
     ],
 
     shared_libs: [

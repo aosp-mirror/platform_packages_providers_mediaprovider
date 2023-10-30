@@ -28,12 +28,12 @@
 #include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "document.h"
-#include "external/pdfClient/pdfClient_formfillinfo.h"
 #include "form_widget_info.h"
 #include "fpdf_annot.h"
 #include "fpdf_formfill.h"
 #include "fpdf_fwlevent.h"
 #include "fpdfview.h"
+#include "pdfClient_formfillinfo.h"
 #include "rect.h"
 #include "utils/annot.h"
 #include "utils/text.h"
@@ -95,7 +95,7 @@ static const Rectangle_i kDefaultAnnotationRect = IntRect(-1, -1, -1, -1);
 
 FormFiller::FormFiller(Document* document, FPDF_DOCUMENT fpdf_document) : document_(document) {
     // FPDF_FORMFILLINFO interface.
-    apps::viewer::pdfClient::StubFormFillInfo(this);
+    pdfClient::StubFormFillInfo(this);
     FFI_Invalidate = &Invalidate;
     form_handle_.reset(FPDFDOC_InitFormFillEnvironment(fpdf_document, this));
 }

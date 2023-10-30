@@ -25,6 +25,7 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteConstraintException;
+import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -55,12 +56,12 @@ public class MediaGrants {
     public static final String OWNER_PACKAGE_NAME_COLUMN =
             MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 
+    private static final String CREATE_TEMPORARY_TABLE_QUERY = "CREATE TEMPORARY TABLE ";
     private static final String MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME = "media_grants LEFT JOIN "
             + "files ON media_grants.file_id = files._id";
 
     private static final String WHERE_MEDIA_GRANTS_PACKAGE_NAME_IN =
             "media_grants." + MediaGrants.OWNER_PACKAGE_NAME_COLUMN + " IN ";
-    private static final String WHERE_MEDIA_GRANTS_FILE_ID_IN = MediaGrants.FILE_ID_COLUMN + " IN ";
 
     private static final String WHERE_MEDIA_GRANTS_USER_ID =
             "media_grants." + MediaGrants.PACKAGE_USER_ID_COLUMN + " = ? ";
@@ -79,6 +80,12 @@ public class MediaGrants {
 
     private static final String WHERE_VOLUME_NAME_IN =
             "files." + MediaStore.Files.FileColumns.VOLUME_NAME + " IN ";
+
+    private static final String TEMP_TABLE_NAME_FOR_DELETION =
+            "temp_table_for_media_grants_deletion";
+
+    private static final String TEMP_TABLE_FOR_DELETION_FILE_ID_COLUMN_NAME =
+            "temp_table_for_media_grants_deletion.file_id";
 
     private static final String ARG_VALUE_FOR_FALSE = "0";
 
@@ -175,24 +182,31 @@ public class MediaGrants {
         });
     }
 
-    int removeMediaGrantsForPackage(String[] packages, List<Uri> uris, int packageUserId) {
+    int removeMediaGrantsForPackage(@NonNull String[] packages, @NonNull List<Uri> uris,
+            int packageUserId) {
         Objects.requireNonNull(packages);
+        Objects.requireNonNull(uris);
         if (packages.length == 0) {
             throw new IllegalArgumentException(
                     "Removing grants requires a non empty package name.");
         }
 
-        final SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
-        queryBuilder.setDistinct(true);
-        queryBuilder.setTables(MEDIA_GRANTS_TABLE);
-        String[] selectionArgs = buildSelectionArg(queryBuilder, QueryFilterBuilder.newInstance()
-                .setPackageNameSelection(packages)
-                .setUserIdSelection(packageUserId)
-                .setUriSelection(uris)
-                .build());
-
         return mExternalDatabase.runWithTransaction(
                 (db) -> {
+                    // create a temporary table to be used as a selection criteria for local ids.
+                    createTempTableWithLocalIdsAsColumn(uris, db);
+
+                    // Create query builder and add selection args.
+                    final SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
+                    queryBuilder.setDistinct(true);
+                    queryBuilder.setTables(MEDIA_GRANTS_TABLE);
+                    String[] selectionArgs = buildSelectionArg(queryBuilder,
+                            QueryFilterBuilder.newInstance()
+                                    .setPackageNameSelection(packages)
+                                    .setUserIdSelection(packageUserId)
+                                    .setUriSelection(uris)
+                                    .build());
+                    // execute query.
                     int grantsRemoved = queryBuilder.delete(db, null, selectionArgs);
                     Log.d(
                             TAG,
@@ -201,8 +215,53 @@ public class MediaGrants {
                                     grantsRemoved,
                                     String.valueOf(packageUserId),
                                     Arrays.toString(packages)));
+                    // Drop the temporary table.
+                    deleteTempTableCreatedForLocalIdSelection(db);
                     return grantsRemoved;
                 });
+    }
+
+    private static void createTempTableWithLocalIdsAsColumn(@NonNull List<Uri> uris,
+            @NonNull SQLiteDatabase db) {
+
+        // create a temporary table and insert the ids from received uris.
+        db.execSQL(String.format(CREATE_TEMPORARY_TABLE_QUERY + "%s (%s INTEGER)",
+                TEMP_TABLE_NAME_FOR_DELETION, FILE_ID_COLUMN));
+
+        final SQLiteQueryBuilder queryBuilderTempTable = new SQLiteQueryBuilder();
+        queryBuilderTempTable.setTables(TEMP_TABLE_NAME_FOR_DELETION);
+
+        List<List<Uri>> listOfSelectionArgsForId = splitArrayList(uris,
+                /* number of ids per query */ 50);
+
+        StringBuilder sb = new StringBuilder();
+        List<Uri> selectionArgForIdSelection;
+        for (int itr = 0; itr < listOfSelectionArgsForId.size(); itr++) {
+            selectionArgForIdSelection = listOfSelectionArgsForId.get(itr);
+            if (itr == 0 || selectionArgForIdSelection.size() != listOfSelectionArgsForId.get(
+                    itr - 1).size()) {
+                sb.setLength(0);
+                for (int i = 0; i < selectionArgForIdSelection.size() - 1; i++) {
+                    sb.append("(?)").append(",");
+                }
+                sb.append("(?)");
+            }
+            db.execSQL("INSERT INTO " + TEMP_TABLE_NAME_FOR_DELETION + " VALUES " + sb.toString(),
+                    selectionArgForIdSelection.stream().map(
+                            ContentUris::parseId).collect(Collectors.toList()).stream().toArray());
+        }
+    }
+
+    private static <T> List<List<T>> splitArrayList(List<T> list, int chunkSize) {
+        List<List<T>> subLists = new ArrayList<>();
+        for (int i = 0; i < list.size(); i += chunkSize) {
+            subLists.add(list.subList(i, Math.min(i + chunkSize, list.size())));
+        }
+        return subLists;
+    }
+
+    private static void deleteTempTableCreatedForLocalIdSelection(SQLiteDatabase db) {
+        db.execSQL("DROP TABLE " + TEMP_TABLE_NAME_FOR_DELETION);
     }
 
     /**
@@ -298,8 +357,8 @@ public class MediaGrants {
 
         return isPickerUri(uri)
                 && PickerUriResolver.unwrapProviderUri(uri)
-                        .getHost()
-                        .equals(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+                .getHost()
+                .equals(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
     }
 
     /**
@@ -326,14 +385,14 @@ public class MediaGrants {
         // Append Where clause for Uris
         if (queryFilter.mUris != null && !queryFilter.mUris.isEmpty()) {
             // Append the where clause for local id selection to the query builder.
-            qb.appendWhereStandalone(
-                    WHERE_MEDIA_GRANTS_FILE_ID_IN + buildPlaceholderForWhereClause(
-                            queryFilter.mUris.size()));
-
-            // Add local ids to the selection args.
-            selectArgs.addAll(queryFilter.mUris.stream().map(
-                    (Uri uri) -> String.valueOf(ContentUris.parseId(uri))).collect(
-                    Collectors.toList()));
+            // this query would look like this example query:
+            // WHERE EXISTS (SELECT 1 from temp_table_for_media_grants_deletion WHERE
+            // temp_table_for_media_grants_deletion.file_id = media_grants.file_id)
+            qb.appendWhereStandalone(String.format("EXISTS (SELECT %s from %s WHERE %s = %s)",
+                    TEMP_TABLE_FOR_DELETION_FILE_ID_COLUMN_NAME,
+                    TEMP_TABLE_NAME_FOR_DELETION,
+                    TEMP_TABLE_FOR_DELETION_FILE_ID_COLUMN_NAME,
+                    MediaGrants.MEDIA_GRANTS_TABLE + "." + MediaGrants.FILE_ID_COLUMN));
         }
 
         // Append where clause for userID.

@@ -42,6 +42,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.ProjectionHelper;
+import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.sync.SyncTracker;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 
@@ -105,7 +106,7 @@ public class PickerDbFacadeTest {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
         File dbPath = mContext.getDatabasePath(PickerDatabaseHelper.PICKER_DATABASE_NAME);
         dbPath.delete();
-        mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER);
+        mFacade = new PickerDbFacade(mContext, new PickerSyncLockManager(), LOCAL_PROVIDER);
         mFacade.setCloudProvider(CLOUD_PROVIDER);
         mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
 

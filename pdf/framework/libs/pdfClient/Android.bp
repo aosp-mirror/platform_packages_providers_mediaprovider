@@ -21,9 +21,21 @@ package {
 
 cc_library_shared {
     name: "libpdfclient",
+    srcs: [
+        "*.cc",
+    ],
 
     shared_libs: [
-        "libpdfium"
+        "libpdfium",
+    ],
+
+    static_libs: [
+        "libabsl",
+    ],
+
+    cflags: [
+        "-Werror",
+        "-Wno-unused-parameter",
     ],
 
     sdk_version: "current",

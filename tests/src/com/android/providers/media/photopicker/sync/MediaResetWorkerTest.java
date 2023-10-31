@@ -92,7 +92,8 @@ public class MediaResetWorkerTest {
         SyncTrackerRegistry.setLocalAlbumSyncTracker(mMockLocalAlbumSyncTracker);
         SyncTrackerRegistry.setCloudAlbumSyncTracker(mMockCloudAlbumSyncTracker);
 
-        doReturn(new Object()).when(mMockPickerSyncController).getCloudAlbumSyncLock();
+        doReturn(new PickerSyncLockManager())
+                .when(mMockPickerSyncController).getPickerSyncLockManager();
         doReturn(TEST_CLOUD_AUTHORITY).when(mMockPickerSyncController).getCloudProvider();
         doReturn(TEST_LOCAL_AUTHORITY).when(mMockPickerSyncController).getLocalProvider();
 
@@ -102,7 +103,7 @@ public class MediaResetWorkerTest {
         File dbPath = mContext.getDatabasePath(PickerDatabaseHelper.PICKER_DATABASE_NAME);
         dbPath.delete();
 
-        mDbFacade = new PickerDbFacade(mContext, TEST_LOCAL_AUTHORITY);
+        mDbFacade = new PickerDbFacade(mContext, new PickerSyncLockManager(), TEST_LOCAL_AUTHORITY);
         mDbFacade.setCloudProvider(TEST_CLOUD_AUTHORITY);
 
         initializeTestWorkManager(mContext);

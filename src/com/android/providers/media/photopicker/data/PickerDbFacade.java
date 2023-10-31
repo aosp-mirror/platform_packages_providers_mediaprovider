@@ -49,7 +49,10 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.sync.CloseableReentrantLock;
+import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
+import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
 import com.android.providers.media.util.MimeUtils;
 
 import java.io.PrintWriter;
@@ -65,34 +68,32 @@ import java.util.stream.Collectors;
  */
 public class PickerDbFacade {
     private static final String VIDEO_MIME_TYPES = "video/%";
-
-    // TODO(b/278562157): If there is a dependency on
-    //  {@link PickerSyncController#mCloudProviderLock}, always acquire
-    //  {@link PickerSyncController#mCloudProviderLock} before {@link mLock} to avoid deadlock.
-    @NonNull
-    private final Object mLock = new Object();
     private final Context mContext;
     private final SQLiteDatabase mDatabase;
+    private final PickerSyncLockManager mPickerSyncLockManager;
     private final String mLocalProvider;
     // This is the cloud provider the database is synced with. It can be set as null to disable
     // cloud queries when database is not in sync with the current cloud provider.
     @Nullable
     private String mCloudProvider;
 
-    public PickerDbFacade(Context context) {
-        this(context, PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+    public PickerDbFacade(Context context, PickerSyncLockManager pickerSyncLockManager) {
+        this(context, pickerSyncLockManager, PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
     }
 
     @VisibleForTesting
-    public PickerDbFacade(Context context, String localProvider) {
-        this(context, localProvider, new PickerDatabaseHelper(context));
+    public PickerDbFacade(Context context, PickerSyncLockManager pickerSyncLockManager,
+            String localProvider) {
+        this(context, pickerSyncLockManager, localProvider, new PickerDatabaseHelper(context));
     }
 
     @VisibleForTesting
-    public PickerDbFacade(Context context, String localProvider, PickerDatabaseHelper dbHelper) {
+    public PickerDbFacade(Context context, PickerSyncLockManager pickerSyncLockManager,
+            String localProvider, PickerDatabaseHelper dbHelper) {
         mContext = context;
         mLocalProvider = localProvider;
         mDatabase = dbHelper.getWritableDatabase();
+        mPickerSyncLockManager = pickerSyncLockManager;
     }
 
     private static final String TAG = "PickerDbFacade";
@@ -227,19 +228,39 @@ public class PickerDbFacade {
     /**
      * Sets the cloud provider to be returned after querying the picker db
      * If null, cloud media will be excluded from all queries.
+     * This should not be used in picker sync paths because we should not wait on a lock
+     * indefinitely during the picker sync process.
+     * Use {@link this#setCloudProviderWithTimeout} instead.
      */
     public void setCloudProvider(String authority) {
-        synchronized (mLock) {
+        try (CloseableReentrantLock ignored = mPickerSyncLockManager
+                .lock(PickerSyncLockManager.DB_CLOUD_LOCK)) {
             mCloudProvider = authority;
         }
     }
 
     /**
-     * Returns the cloud provider that will be returned after querying the picker db
+     * Sets the cloud provider to be returned after querying the picker db
+     * If null, cloud media will be excluded from all queries.
+     * This should be used in picker sync paths because we should not wait on a lock
+     * indefinitely during the picker sync process
+     */
+    public void setCloudProviderWithTimeout(String authority) throws UnableToAcquireLockException {
+        try (CloseableReentrantLock ignored =
+                     mPickerSyncLockManager.tryLock(PickerSyncLockManager.DB_CLOUD_LOCK)) {
+            mCloudProvider = authority;
+        }
+    }
+
+    /**
+     * Returns the cloud provider that will be returned after querying the picker db.
+     * This should not be used in picker sync paths because we should not wait on a lock
+     * indefinitely during the picker sync process.
      */
     @VisibleForTesting
     public String getCloudProvider() {
-        synchronized (mLock) {
+        try (CloseableReentrantLock ignored = mPickerSyncLockManager
+                .lock(PickerSyncLockManager.DB_CLOUD_LOCK)) {
             return mCloudProvider;
         }
     }
@@ -871,13 +892,10 @@ public class PickerDbFacade {
                     TABLE_MEDIA, /* cloudProvider*/ null);
         }
 
-        final String cloudProvider;
-        synchronized (mLock) {
-            // If the cloud sync is in progress or the cloud provider has changed but a sync has not
-            // been completed and committed, {@link PickerDBFacade.mCloudProvider} will be
-            // {@code null}.
-            cloudProvider = mCloudProvider;
-        }
+        // If the cloud sync is in progress or the cloud provider has changed but a sync has not
+        // been completed and committed, {@link PickerDBFacade.mCloudProvider} will be
+        // {@code null}.
+        final String cloudProvider = getCloudProvider();
 
         return queryMediaForUi(qb, selectionArgs, query.mLimit, query.mIsLocalOnly,
                 TABLE_MEDIA, cloudProvider);
@@ -923,7 +941,8 @@ public class PickerDbFacade {
             return queryMediaIdForAppsLocked(qb, projection, selectionArgs);
         }
 
-        synchronized (mLock) {
+        try (CloseableReentrantLock ignored = mPickerSyncLockManager
+                .lock(PickerSyncLockManager.DB_CLOUD_LOCK)) {
             if (authority.equals(mCloudProvider)) {
                 return queryMediaIdForAppsLocked(qb, projection, selectionArgs);
             }
@@ -1049,7 +1068,8 @@ public class PickerDbFacade {
         // Hold lock while checking the cloud provider and querying so that cursor extras containing
         // the cloud provider is consistent with the cursor results and doesn't race with
         // #setCloudProvider
-        synchronized (mLock) {
+        try (CloseableReentrantLock ignored = mPickerSyncLockManager
+                .lock(PickerSyncLockManager.DB_CLOUD_LOCK)) {
             if (mCloudProvider == null || !Objects.equals(mCloudProvider, authority)) {
                 // TODO(b/278086344): If cloud provider is null or has changed from what we received
                 //  from the UI, skip all cloud items in the picker db.

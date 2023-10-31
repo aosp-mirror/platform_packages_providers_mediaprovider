@@ -24,11 +24,11 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "cpp/fpdf_scopers.h"
-#include "external/linux_fileops.h"
 #include "file.h"
 #include "form_filler.h"
 #include "fpdf_formfill.h"
 #include "fpdfview.h"
+#include "linux_fileops.h"
 #include "page.h"
 #include "rect.h"
 

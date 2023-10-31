@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-#include "../../utf8.h"
+#include "../unchecked.h"
 #include "absl/log/check.h"
 #include "byte_value.h"
 #include "fpdfview.h"
@@ -61,7 +61,7 @@ std::string GetUtf8Result(const std::function<size_t(T*, size_t)>& f) {
     }
 
     std::string result;
-    utf8::unchecked::utf16to8(start, end, std::back_inserter(result));
+    pdfClient::unchecked::utf16to8(start, end, std::back_inserter(result));
     return result;
 }
 
@@ -71,7 +71,7 @@ template std::string GetUtf8Result<FPDF_WCHAR>(const std::function<size_t(FPDF_W
 
 std::u16string Utf8ToUtf16Le(absl::string_view utf8) {
     std::u16string result;
-    utf8::unchecked::utf8to16(utf8.begin(), utf8.end(), std::back_inserter(result));
+    pdfClient::unchecked::utf8to16(utf8.begin(), utf8.end(), std::back_inserter(result));
 #ifdef IS_BIG_ENDIAN
     // Convert from big-endian to little-endian.
     std::transform(result.begin(), result.end(), result.begin(), &LittleEndian::FromHost16);

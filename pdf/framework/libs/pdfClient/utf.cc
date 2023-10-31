@@ -21,30 +21,30 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "external/utf8.h"
+#include "unchecked.h"
 
 namespace pdfClient {
 
 std::u32string Utf8ToUtf32(absl::string_view utf8) {
     std::u32string result;
-    utf8::unchecked::utf8to32(utf8.begin(), utf8.end(), std::back_inserter(result));
+    unchecked::utf8to32(utf8.begin(), utf8.end(), std::back_inserter(result));
     return result;
 }
 
 std::u32string Utf8ToUtf32(const char* utf8) {
     std::u32string result;
-    utf8::unchecked::utf8to32(utf8, utf8 + strlen(utf8), std::back_inserter(result));
+    unchecked::utf8to32(utf8, utf8 + strlen(utf8), std::back_inserter(result));
     return result;
 }
 
 std::string Utf16ToUtf8(const std::u16string& utf16) {
     std::string result;
-    utf8::unchecked::utf16to8(utf16.begin(), utf16.end(), std::back_inserter(result));
+    unchecked::utf16to8(utf16.begin(), utf16.end(), std::back_inserter(result));
     return result;
 }
 
 void AppendCodepointAsUtf8(const char32_t codepoint, std::string* output) {
-    utf8::unchecked::append(codepoint, std::back_inserter(*output));
+    unchecked::append(codepoint, std::back_inserter(*output));
 }
 
 void EraseTrailingNulls(std::string* str) {

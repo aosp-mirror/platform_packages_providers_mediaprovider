@@ -26,10 +26,10 @@
 #include <utility>
 
 #include "cpp/fpdf_scopers.h"
-#include "external/linux_fileops.h"
 #include "fpdf_dataavail.h"
 #include "fpdf_save.h"
 #include "fpdfview.h"
+#include "linux_fileops.h"
 
 namespace pdfClient {
 

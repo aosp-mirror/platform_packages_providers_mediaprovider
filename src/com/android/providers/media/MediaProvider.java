@@ -107,6 +107,7 @@ import static com.android.providers.media.LocalUriMatcher.IMAGES_MEDIA_ID;
 import static com.android.providers.media.LocalUriMatcher.IMAGES_MEDIA_ID_THUMBNAIL;
 import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS;
 import static com.android.providers.media.LocalUriMatcher.IMAGES_THUMBNAILS_ID;
+import static com.android.providers.media.LocalUriMatcher.MEDIA_GRANTS;
 import static com.android.providers.media.LocalUriMatcher.MEDIA_SCANNER;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_ALL;
@@ -122,6 +123,7 @@ import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS_ID;
 import static com.android.providers.media.LocalUriMatcher.VOLUMES;
 import static com.android.providers.media.LocalUriMatcher.VOLUMES_ID;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
+import static com.android.providers.media.photopicker.data.MediaGrantsProvider.EXTRA_MIME_TYPE_SELECTION;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
@@ -285,6 +287,7 @@ import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
+import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
@@ -655,19 +658,22 @@ public class MediaProvider extends ContentProvider {
         Context context = getContext();
         PackageManager packageManager = context.getPackageManager();
         try {
-            int uid = packageManager.getPackageUidAsUser(packageName,
-                    PackageManager.PackageInfoFlags.of(0), userId);
-            if (!LocalCallingIdentity.fromExternal(context, mUserCache, uid)
-                    .checkCallingPermissionUserSelected()) {
-                // Revoke media grants if permission state is not "Select flow".
-                mMediaGrants.removeAllMediaGrantsForPackage(
-                        packageName,
-                        /*reason=*/ "Mode changed: " + op,
-                        userId);
+            int uid =
+                    packageManager.getPackageUidAsUser(
+                            packageName, PackageManager.PackageInfoFlags.of(0), userId);
+            LocalCallingIdentity lci = LocalCallingIdentity.fromExternal(context, mUserCache, uid);
+            if (!lci.checkCallingPermissionUserSelected()) {
+                String[] packages = lci.getSharedPackageNamesArray();
+                mMediaGrants.removeAllMediaGrantsForPackages(
+                        packages, /* reason= */ "Mode changed: " + op, userId);
             }
         } catch (NameNotFoundException e) {
-            Log.d(TAG, "Unable to resolve uid. Ignoring the AppOp change for "
-                    + packageName + ", User : " + userId);
+            Log.d(
+                    TAG,
+                    "Unable to resolve uid. Ignoring the AppOp change for "
+                            + packageName
+                            + ", User : "
+                            + userId);
         }
     }
 
@@ -843,12 +849,6 @@ public class MediaProvider extends ContentProvider {
                             editor.remove(key);
                             editor.commit();
                         }
-                    }
-
-                    // Only default system user 0 has permission to update xattrs on /data/media/0
-                    if (sUserId == UserHandle.SYSTEM.getIdentifier()) {
-                        mDatabaseBackupAndRecovery.removeRecoveryDataForUserId(
-                                userToBeRemoved.getIdentifier());
                     }
                     break;
             }
@@ -1307,12 +1307,13 @@ public class MediaProvider extends ContentProvider {
                 mProjectionHelper, Metrics::logSchemaChange, mFilesListener,
                 MIGRATION_LISTENER, mIdGenerator, true, mDatabaseBackupAndRecovery);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
-        mPickerDbFacade = new PickerDbFacade(context);
 
         mMediaGrants = new MediaGrants(mExternalDatabase);
 
+        PickerSyncLockManager pickerSyncLockManager = new PickerSyncLockManager();
+        mPickerDbFacade = new PickerDbFacade(context, pickerSyncLockManager);
         mPickerSyncController = PickerSyncController.initialize(context, mPickerDbFacade,
-                mConfigStore);
+                mConfigStore, pickerSyncLockManager);
         mPickerDataLayer = PickerDataLayer.create(context, mPickerDbFacade, mPickerSyncController,
                 mConfigStore);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper);
@@ -1355,9 +1356,9 @@ public class MediaProvider extends ContentProvider {
         }
 
         updateVolumes();
-        attachVolume(MediaVolume.fromInternal(), /* validate */ false);
+        attachVolume(MediaVolume.fromInternal(), /* validate */ false, /* volumeState */ null);
         for (MediaVolume volume : mVolumeCache.getExternalVolumes()) {
-            attachVolume(volume, /* validate */ false);
+            attachVolume(volume, /* validate */ false, /* volumeState */ null);
         }
 
         // Watch for performance-sensitive activity
@@ -1421,11 +1422,6 @@ public class MediaProvider extends ContentProvider {
         mConfigStore.addOnChangeListener(
                 BackgroundThread.getExecutor(), this::storageNativeBootPropertyChangeListener);
 
-        // media_grants are cleared on device reboot, and onCreate is a good signal for this.
-        ForegroundThread.getExecutor().execute(() -> {
-            mMediaGrants.removeAllMediaGrants();
-        });
-
         PulledMetrics.initialize(context);
         return true;
     }
@@ -1444,8 +1440,6 @@ public class MediaProvider extends ContentProvider {
 
         setComponentEnabledSetting("PhotoPickerUserSelectActivity",
                 mConfigStore.isUserSelectForAppEnabled());
-
-        mDatabaseBackupAndRecovery.onConfigPropertyChangeListener();
     }
 
     public DatabaseBackupAndRecovery getDatabaseBackupAndRecovery() {
@@ -1616,12 +1610,12 @@ public class MediaProvider extends ContentProvider {
         // removing calling userId
         userIds.remove(String.valueOf(sUserId));
 
-        List<String> validUserProfiles = mUserManager.getEnabledProfiles().stream()
+        List<String> validUsers = mUserManager.getEnabledProfiles().stream()
                 .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
                         Collectors.toList());
         // removing all the valid/existing user, remaining userIds would be users who would have
         // been removed
-        userIds.removeAll(validUserProfiles);
+        userIds.removeAll(validUsers);
 
         // Cleaning media files of users who have been removed
         mExternalDatabase.runWithTransaction((db) -> {
@@ -1632,12 +1626,6 @@ public class MediaProvider extends ContentProvider {
             });
             return null ;
         });
-
-        List<String> validUsers = mUserManager.getUserHandles(/* excludeDying */ true).stream()
-                .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
-                        Collectors.toList());
-        Log.i(TAG, "Active user ids are:" + validUsers);
-        mDatabaseBackupAndRecovery.removeRecoveryDataExceptValidUsers(validUsers);
     }
 
     private void pruneStalePackages(CancellationSignal signal) {
@@ -1953,6 +1941,10 @@ public class MediaProvider extends ContentProvider {
         mExternalDatabase.runWithTransaction((db) -> {
             final int userId = uid / PER_USER_RANGE;
             onPackageOrphaned(db, packageName, userId);
+
+            if (SdkLevel.isAtLeastU()) {
+                removeAllMediaGrantsForUid(uid, userId, packageName);
+            }
             return null;
         });
     }
@@ -1968,9 +1960,42 @@ public class MediaProvider extends ContentProvider {
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
         mDatabaseBackupAndRecovery.removeOwnerIdToPackageRelation(packageName, userId);
-        // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package is removed.
-        mMediaGrants.removeAllMediaGrantsForPackage(packageName, /* reason */ "Package orphaned",
-                userId);
+
+    }
+
+    /**
+     * Removes all media_grants for all packages with the given UID. (i.e. shared packages.)
+     *
+     * @param uid the package uid. (will use this to query all shared packages that use this uid)
+     * @param userId the user id, since packages can be installed by multiple users.
+     * @param additionalPackageName An optional additional package name in the event that the
+     *     package has been removed at won't be returned by the PackageManager APIs.
+     */
+    private void removeAllMediaGrantsForUid(
+            int uid, int userId, @Nullable String additionalPackageName) {
+
+        String[] packages;
+        try {
+            LocalCallingIdentity lci =
+                    LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid);
+            packages = lci.getSharedPackageNamesArray();
+        } catch (IllegalArgumentException notFound) {
+            // If there are no packages found, this means the specified UID has no packages
+            // remaining on the system.
+            packages = new String[]{};
+        }
+        if (additionalPackageName != null) {
+            // Include the passed additional package in the list LocalCallingIdentity returns.
+            List<String> packageList = new ArrayList<>();
+            packageList.addAll(Arrays.asList(packages));
+            packageList.add(additionalPackageName);
+            packages = packageList.toArray(new String[packageList.size()]);
+        }
+
+        // TODO(b/260685885): Add e2e tests to ensure these are cleared when a package
+        // is removed.
+        mMediaGrants.removeAllMediaGrantsForPackages(
+                packages, /* reason */ "Package orphaned", userId);
     }
 
     private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
@@ -3581,6 +3606,10 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int table = matchUri(uri, allowHidden);
 
+        if (table == MEDIA_GRANTS) {
+            return getReadGrantedMediaForPackage(queryArgs);
+        }
+
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (table == MEDIA_SCANNER) {
             // create a cursor to return volume currently being scanned by the media scanner
@@ -3729,6 +3758,31 @@ public class MediaProvider extends ContentProvider {
         }
 
         return c;
+    }
+
+    @NotNull
+    private Cursor getReadGrantedMediaForPackage(Bundle extras) {
+        final int caller = Binder.getCallingUid();
+        int userId;
+        String[] packageNames;
+        if (!checkPermissionSelf(caller)) {
+            // All other callers are unauthorized.
+            throw new SecurityException(
+                    getSecurityExceptionMessage("read media grants"));
+        }
+        final PackageManager pm = getContext().getPackageManager();
+        final int packageUid = extras.getInt(Intent.EXTRA_UID);
+        packageNames = pm.getPackagesForUid(packageUid);
+        // Get the userId from packageUid as the initiator could be a cloned app, which
+        // accesses Media via MP of its parent user and Binder's callingUid reflects
+        // the latter.
+        userId = uidToUserId(packageUid);
+        String[] mimeTypes = extras.getStringArray(EXTRA_MIME_TYPE_SELECTION);
+        // Available volumes, to filter out any external storage that may be removed but the grants
+        // persisted.
+        String[] availableVolumes = mVolumeCache.getExternalVolumeNames().toArray(new String[0]);
+        return mMediaGrants.getMediaGrantsForPackages(packageNames, userId, mimeTypes,
+                availableVolumes);
     }
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -5121,7 +5175,8 @@ public class MediaProvider extends ContentProvider {
             MediaVolume volume = null;
             try {
                 volume = getVolume(name);
-                Uri attachedVolume = attachVolume(volume, /* validate */ true);
+                Uri attachedVolume = attachVolume(volume, /* validate */ true, /* volumeState */
+                        null);
                 if (mMediaScannerVolume != null && mMediaScannerVolume.equals(name)) {
                     final DatabaseHelper helper = getDatabaseForUri(
                             MediaStore.Files.getContentUri(mMediaScannerVolume));
@@ -6512,8 +6567,8 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.GRANT_MEDIA_READ_FOR_PACKAGE_CALL: {
                 return getResultForGrantMediaReadForPackage(extras);
             }
-            case MediaStore.GET_READ_GRANTED_MEDIA_FOR_PACKAGE_CALL: {
-                return getResultForGetReadGrantedMediaForPackage(extras);
+            case MediaStore.REVOKE_READ_GRANT_FOR_PACKAGE_CALL: {
+                return getResultForRevokeReadGrantForPackage(extras);
             }
             case MediaStore.CREATE_WRITE_REQUEST_CALL:
             case MediaStore.CREATE_FAVORITE_REQUEST_CALL:
@@ -6565,6 +6620,44 @@ public class MediaProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
+    }
+
+    @Nullable
+    private Bundle getResultForRevokeReadGrantForPackage(Bundle extras) {
+        final int caller = Binder.getCallingUid();
+        int userId;
+        final List<Uri> uris;
+        String[] packageNames;
+        if (checkPermissionSelf(caller)) {
+            final PackageManager pm = getContext().getPackageManager();
+            final int packageUid = extras.getInt(Intent.EXTRA_UID);
+            packageNames = pm.getPackagesForUid(packageUid);
+            // Get the userId from packageUid as the initiator could be a cloned app, which
+            // accesses Media via MP of its parent user and Binder's callingUid reflects
+            // the latter.
+            userId = uidToUserId(packageUid);
+            uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
+        } else if (checkPermissionShell(caller)) {
+            // If the caller is the shell, the accepted parameter is EXTRA_PACKAGE_NAME
+            // (as string).
+            if (!extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
+                throw new IllegalArgumentException(
+                        "Missing required extras arguments: EXTRA_URI or"
+                                + " EXTRA_PACKAGE_NAME");
+            }
+            packageNames = new String[]{extras.getString(Intent.EXTRA_PACKAGE_NAME)};
+            uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+            // Caller is always shell which may not have the desired userId. Hence, use
+            // UserId from the MediaProvider process itself.
+            userId = UserHandle.myUserId();
+        } else {
+            // All other callers are unauthorized.
+            throw new SecurityException(
+                    getSecurityExceptionMessage("read media grants"));
+        }
+
+        mMediaGrants.removeMediaGrantsForPackage(packageNames, uris, userId);
+        return null;
     }
 
     @Nullable
@@ -6805,35 +6898,37 @@ public class MediaProvider extends ContentProvider {
         if (checkPermissionSelf(caller)) {
             // If the caller is MediaProvider the accepted parameters are EXTRA_URI_LIST
             // and EXTRA_UID.
-            if (!extras.containsKey(
-                    MediaStore.EXTRA_URI_LIST)
+            if (!extras.containsKey(MediaStore.EXTRA_URI_LIST)
                     && !extras.containsKey(Intent.EXTRA_UID)) {
                 throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI_LIST or"
-                                + " EXTRA_UID");
+                        "Missing required extras arguments: EXTRA_URI_LIST or" + " EXTRA_UID");
             }
             uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
             final PackageManager pm = getContext().getPackageManager();
             final int packageUid = extras.getInt(Intent.EXTRA_UID);
-            packageName = pm.getNameForUid(packageUid);
+            final String[] packages = pm.getPackagesForUid(packageUid);
+            if (packages == null || packages.length == 0) {
+                throw new IllegalArgumentException(
+                        String.format(
+                                "Could not find packages for media_grants with uid: %d",
+                                packageUid));
+            }
+            // Use the first package in the returned list for grants. In the case this
+            // uid has multiple shared packages, the eventual queries to check for file
+            // access will use all of the packages in this list, so just one is needed
+            // to create the grants.
+            packageName = packages[0];
             // Get the userId from packageUid as the initiator could be a cloned app, which
             // accesses Media via MP of its parent user and Binder's callingUid reflects
             // the latter.
             userId = uidToUserId(packageUid);
-            if (packageName.contains(":")) {
-                // Check if the package name includes the package uid. This is expected
-                // for packages that are referencing a shared user. PackageManager will
-                // return a string such as <packagename>:<uid> in this instance.
-                packageName = packageName.split(":")[0];
-            }
         } else if (checkPermissionShell(caller)) {
             // If the caller is the shell, the accepted parameters are EXTRA_URI (as string)
             // and EXTRA_PACKAGE_NAME (as string).
             if (!extras.containsKey(MediaStore.EXTRA_URI)
                     && !extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
                 throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI or"
-                                + " EXTRA_PACKAGE_NAME");
+                        "Missing required extras arguments: EXTRA_URI or" + " EXTRA_PACKAGE_NAME");
             }
             packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
             uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
@@ -6843,50 +6938,11 @@ public class MediaProvider extends ContentProvider {
         } else {
             // All other callers are unauthorized.
 
-            throw new SecurityException(
-                    getSecurityExceptionMessage("Create media grants"));
+            throw new SecurityException(getSecurityExceptionMessage("Create media grants"));
         }
 
         mMediaGrants.addMediaGrantsForPackage(packageName, uris, userId);
         return null;
-    }
-
-    @NotNull
-    private Bundle getResultForGetReadGrantedMediaForPackage(Bundle extras) {
-        final int caller = Binder.getCallingUid();
-        int userId;
-        String[] packageNames;
-        if (checkPermissionSelf(caller)) {
-            final PackageManager pm = getContext().getPackageManager();
-            final int packageUid = extras.getInt(Intent.EXTRA_UID);
-            packageNames = pm.getPackagesForUid(packageUid);
-            // Get the userId from packageUid as the initiator could be a cloned app, which
-            // accesses Media via MP of its parent user and Binder's callingUid reflects
-            // the latter.
-            userId = uidToUserId(packageUid);
-        } else if (checkPermissionShell(caller)) {
-            // If the caller is the shell, the accepted parameter is EXTRA_PACKAGE_NAME
-            // (as string).
-            if (!extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
-                throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI or"
-                                + " EXTRA_PACKAGE_NAME");
-            }
-            packageNames = new String[]{extras.getString(Intent.EXTRA_PACKAGE_NAME)};
-            // Caller is always shell which may not have the desired userId. Hence, use
-            // UserId from the MediaProvider process itself.
-            userId = UserHandle.myUserId();
-        } else {
-            // All other callers are unauthorized.
-            throw new SecurityException(
-                    getSecurityExceptionMessage("read media grants"));
-        }
-        final Bundle bundle = new Bundle();
-        bundle.putStringArrayList(MediaStore.GET_READ_GRANTED_MEDIA_FOR_PACKAGE_RESULT,
-                mMediaGrants.getMediaGrantsForPackages(packageNames,
-                        userId).stream().map(Uri::toString).collect(
-                        Collectors.toCollection(ArrayList::new)));
-        return bundle;
     }
 
     @NotNull
@@ -10871,7 +10927,8 @@ public class MediaProvider extends ContentProvider {
         return MediaStore.AUTHORITY_URI.buildUpon().appendPath(volumeName).build();
     }
 
-    public Uri attachVolume(MediaVolume volume, boolean validate) {
+    public Uri attachVolume(MediaVolume volume, boolean validate, String volumeState) {
+        Log.v(TAG, "attachVolume() called for " + volume.getName() + " with state:" + volumeState);
         if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
@@ -10896,9 +10953,6 @@ public class MediaProvider extends ContentProvider {
             mAttachedVolumes.add(volume);
         }
 
-        mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
-                volume.getPath());
-
         final ContentResolver resolver = getContext().getContentResolver();
         final Uri uri = getBaseContentUri(volumeName);
         // TODO(b/182396009) we probably also want to notify clone profile (and vice versa)
@@ -10921,6 +10975,12 @@ public class MediaProvider extends ContentProvider {
                 MediaDocumentsProvider.onMediaStoreReady(getContext());
             });
         }
+
+        if (Environment.MEDIA_MOUNTED.equalsIgnoreCase(volumeState)) {
+            mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
+                    volume.getPath());
+        }
+
         return uri;
     }
 

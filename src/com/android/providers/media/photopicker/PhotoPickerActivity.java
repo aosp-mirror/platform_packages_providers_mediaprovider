@@ -130,7 +130,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private int mToolBarIconColor;
 
     private int mToolbarHeight = 0;
-    private boolean mIsAccessibilityEnabled;
     private boolean mShouldLogCancelledResult = true;
 
     @Override
@@ -185,10 +184,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mProfileButton = findViewById(R.id.profile_button);
 
         mTabLayout = findViewById(R.id.tab_layout);
-
-        final AccessibilityManager am = getSystemService(AccessibilityManager.class);
-        mIsAccessibilityEnabled = am.isEnabled();
-        am.addAccessibilityStateChangeListener(enabled -> mIsAccessibilityEnabled = enabled);
 
         initBottomSheetBehavior();
 
@@ -489,7 +484,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void initStateForBottomSheet() {
-        if (!mIsAccessibilityEnabled && !mSelection.canSelectMultiple()
+        if (!isAccessibilityEnabled() && !mSelection.canSelectMultiple()
                 && !isOrientationLandscape()) {
             final int peekHeight = getBottomSheetPeekHeight(this);
             mBottomSheetBehavior.setPeekHeight(peekHeight);
@@ -498,6 +493,15 @@ public class PhotoPickerActivity extends AppCompatActivity {
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             mBottomSheetBehavior.setSkipCollapsed(true);
         }
+    }
+
+    /**
+     * Warning: This method is visible for espresso tests, we are not customizing anything here.
+     * Allowing ourselves to control the accessibility state helps us mock it for these tests.
+     */
+    @VisibleForTesting
+    protected boolean isAccessibilityEnabled() {
+        return getSystemService(AccessibilityManager.class).isEnabled();
     }
 
     private static int getBottomSheetPeekHeight(Context context) {

@@ -171,7 +171,7 @@ public class DatabaseBackupAndRecovery {
             case MediaStore.VOLUME_INTERNAL:
                 return mConfigStore.isStableUrisForInternalVolumeEnabled()
                         || SystemProperties.getBoolean("persist.sys.fuse.backup.internal_db_backup",
-                        /* defaultValue */ true);
+                        /* defaultValue */ false);
             case MediaStore.VOLUME_EXTERNAL_PRIMARY:
                 return mConfigStore.isStableUrisForExternalVolumeEnabled()
                         || SystemProperties.getBoolean(
@@ -980,9 +980,7 @@ public class DatabaseBackupAndRecovery {
         List<String> invalidUsers = getInvalidUsersList(xattrList, validUsers);
         Log.i(TAG, "Invalid users list is " + invalidUsers);
         for (String userIdToBeRemoved : invalidUsers) {
-            if (userIdToBeRemoved != null && !userIdToBeRemoved.trim().isEmpty()) {
-                removeRecoveryDataForUserId(Integer.parseInt(userIdToBeRemoved));
-            }
+            removeRecoveryDataForUserId(Integer.parseInt(userIdToBeRemoved));
         }
     }
 

@@ -18,7 +18,6 @@ package com.android.providers.media.photopicker.util;
 
 import static android.provider.CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
-import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME;
 import static android.provider.MediaStore.EXTRA_ALBUM_AUTHORITY;
 import static android.provider.MediaStore.EXTRA_ALBUM_ID;
 import static android.provider.MediaStore.EXTRA_CLOUD_PROVIDER;
@@ -252,30 +251,6 @@ public class CloudProviderUtils {
     public static String getProviderLabel(@NonNull PackageManager packageManager,
             @NonNull ProviderInfo providerInfo) {
         return String.valueOf(providerInfo.loadLabel(packageManager));
-    }
-
-    /**
-     * @param resolver                    {@link ContentResolver} for the related user
-     * @param cloudMediaProviderAuthority authority {@link String} of the {@link CloudMediaProvider}
-     * @param timeout                     timeout in milliseconds for this query (<= 0 for timeout)
-     * @return the current cloud media account name for the {@link CloudMediaProvider} with the
-     *         given {@code cloudMediaProviderAuthority}.
-     */
-    @Nullable
-    public static String getCloudMediaAccountName(@NonNull ContentResolver resolver,
-            @Nullable String cloudMediaProviderAuthority, @DurationMillisLong long timeout)
-            throws ExecutionException, InterruptedException, TimeoutException {
-        if (cloudMediaProviderAuthority == null) {
-            return null;
-        }
-
-        CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-            final Bundle out = resolver.call(getMediaCollectionInfoUri(cloudMediaProviderAuthority),
-                    METHOD_GET_MEDIA_COLLECTION_INFO, /* arg */ null, /* extras */ null);
-            return (out == null) ? null : out.getString(ACCOUNT_NAME);
-        });
-
-        return (timeout > 0) ? future.get(timeout, MILLISECONDS) : future.get();
     }
 
     /**

@@ -36,6 +36,7 @@ import android.system.Os;
 import androidx.core.util.Supplier;
 import androidx.lifecycle.MutableLiveData;
 import androidx.test.InstrumentationRegistry;
+import androidx.work.testing.WorkManagerTestInitHelper;
 
 import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.R;
@@ -54,10 +55,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class PhotoPickerBaseTest {
-    public static final int PICKER_TAB_RECYCLERVIEW_ID = R.id.picker_tab_recyclerview;
-    public static final int TAB_LAYOUT_ID = R.id.tab_layout;
+    protected static final int PICKER_TAB_RECYCLERVIEW_ID = R.id.picker_tab_recyclerview;
+    protected static final int TAB_LAYOUT_ID = R.id.tab_layout;
     protected static final int PICKER_PHOTOS_STRING_ID = R.string.picker_photos;
-    public static final int PICKER_ALBUMS_STRING_ID = R.string.picker_albums;
+    protected static final int PICKER_ALBUMS_STRING_ID = R.string.picker_albums;
     protected static final int PREVIEW_VIEW_PAGER_ID = R.id.preview_viewPager;
     protected static final int ICON_CHECK_ID = R.id.icon_check;
     protected static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
@@ -133,7 +134,7 @@ public class PhotoPickerBaseTest {
     private static final long POLLING_SLEEP_MILLIS = 200;
 
     private static IsolatedContext sIsolatedContext;
-    static UserIdManager sUserIdManager;
+    private static UserIdManager sUserIdManager;
 
     public static Intent getSingleSelectMimeTypeFilterIntent(String mimeTypeFilter) {
         final Intent intent = new Intent(sSingleSelectIntent);
@@ -186,6 +187,8 @@ public class PhotoPickerBaseTest {
 
         sUserIdManager = mock(UserIdManager.class);
         when(sUserIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
+
+        WorkManagerTestInitHelper.initializeTestWorkManager(sIsolatedContext);
 
         createFiles();
     }

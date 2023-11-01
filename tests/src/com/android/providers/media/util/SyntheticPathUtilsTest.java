@@ -23,13 +23,9 @@ import static com.android.providers.media.util.SyntheticPathUtils.getSyntheticRe
 import static com.android.providers.media.util.SyntheticPathUtils.isPickerPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isRedactedPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isSyntheticPath;
-
 import static com.google.common.truth.Truth.assertThat;
 
 import androidx.test.runner.AndroidJUnit4;
-
-import com.android.providers.media.PickerUriResolver;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -50,10 +46,7 @@ public class SyntheticPathUtilsTest {
 
     @Test
     public void testGetPickerRelativePath() throws Exception {
-        assertThat(getPickerRelativePath(PickerUriResolver.PICKER_SEGMENT)).isEqualTo(
-                ".transforms/synthetic/picker");
-        assertThat(getPickerRelativePath(PickerUriResolver.PICKER_GET_CONTENT_SEGMENT)).isEqualTo(
-                ".transforms/synthetic/picker_get_content");
+        assertThat(getPickerRelativePath()).isEqualTo(".transforms/synthetic/picker");
     }
 
     @Test

@@ -39,8 +39,8 @@
     <string name="deny" msgid="6040983710442068936">"Refuser"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Parcourir…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"Appli multimédia infonuagique"</string>
-    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Application multimédia infonuagique"</string>
-    <string name="picker_settings_title" msgid="5647700706470673258">"Application multimédia infonuagique"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Appli multimédia infonuagique"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Appli multimédia infonuagique"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Accédez à votre contenu multimédia infonuagique lorsqu\'une application ou un site Web vous demande de sélectionner des photos ou des vidéos"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accéder au contenu multimédia infonuagique à partir de"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Aucune"</string>
@@ -74,6 +74,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> élément}one{<xliff:g id="COUNT_1">^1</xliff:g> élément}many{<xliff:g id="COUNT_1">^1</xliff:g> éléments}other{<xliff:g id="COUNT_1">^1</xliff:g> éléments}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Ajouter (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Autoriser (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Ne rien autoriser"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Appareil photo"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Téléchargements"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Favoris"</string>

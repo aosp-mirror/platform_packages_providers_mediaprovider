@@ -72,12 +72,13 @@ class LocalUriMatcher {
     static final int DOWNLOADS_ID = 801;
 
     static final int PICKER = 900;
-    public static final int PICKER_ID = 901;
+    static final int PICKER_ID = 901;
     static final int PICKER_INTERNAL_MEDIA_ALL = 902;
     static final int PICKER_INTERNAL_MEDIA_LOCAL = 903;
     static final int PICKER_INTERNAL_ALBUMS_ALL = 904;
     static final int PICKER_INTERNAL_ALBUMS_LOCAL = 905;
-    public static final int PICKER_GET_CONTENT_ID = 906;
+
+    public static final int MEDIA_GRANTS = 1000;
 
     // MediaProvider Command Line Interface
     static final int CLI = 100_000;
@@ -119,11 +120,6 @@ class LocalUriMatcher {
         mPublic.addURI(auth, "picker/#/#", PICKER_ID);
         // content://media/picker/<user-id>/<authority>/media/<media-id>
         mPublic.addURI(auth, "picker/#/*/media/*", PICKER_ID);
-
-        // content://media/picker_get_content/<user-id>/<media-id>
-        mPublic.addURI(auth, "picker_get_content/#/#", PICKER_GET_CONTENT_ID);
-        // content://media/picker_get_content/<user-id>/<authority>/media/<media-id>
-        mPublic.addURI(auth, "picker_get_content/#/*/media/*", PICKER_GET_CONTENT_ID);
 
         mPublic.addURI(auth, "cli", CLI);
 
@@ -175,6 +171,7 @@ class LocalUriMatcher {
         mHidden.addURI(auth, "picker_internal/media/local", PICKER_INTERNAL_MEDIA_LOCAL);
         mHidden.addURI(auth, "picker_internal/albums/all", PICKER_INTERNAL_ALBUMS_ALL);
         mHidden.addURI(auth, "picker_internal/albums/local", PICKER_INTERNAL_ALBUMS_LOCAL);
+        mHidden.addURI(auth, "media_grants", MEDIA_GRANTS);
         mHidden.addURI(auth, "*", VOLUMES_ID);
         mHidden.addURI(auth, null, VOLUMES);
 

@@ -586,13 +586,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     getExternalStorageDbXattrPath(), getSessionIdXattrKeyForDatabase());
             if (!lastUsedSessionIdFromExternalStoragePathXattr.isPresent()) {
                 // First time scenario will have no session id at /data/media/0.
-                // Trigger database backup to external storage because
-                // StableUrisIdleMaintenanceService will be attempted to run only once in 7days.
-                // Any rollback before that will not recover DB rows.
-                if (isInternal()) {
-                    BackgroundThread.getExecutor().execute(
-                            () -> mDatabaseBackupAndRecovery.backupInternalDatabase(this, null));
-                }
                 // Set next row id in External Storage to handle rollback in future.
                 backupNextRowId(NEXT_ROW_ID_DEFAULT_BILLION_VALUE);
                 updateSessionIdInDatabaseAndExternalStorage(db);
@@ -616,10 +609,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             // Recover data from backup
             // Ensure we do not back up in case of recovery.
             mIsRecovering.set(true);
-            mDatabaseBackupAndRecovery.recoverData(db, volumeName);
-            updateNextRowIdInDatabaseAndExternalStorage(db);
-            mIsRecovering.set(false);
-            updateSessionIdInDatabaseAndExternalStorage(db);
+            try {
+                mDatabaseBackupAndRecovery.recoverData(db, volumeName);
+            } catch (Exception exception) {
+                Log.e(TAG, "Error in recovering data", exception);
+            } finally {
+                updateNextRowIdInDatabaseAndExternalStorage(db);
+                mIsRecovering.set(false);
+                updateSessionIdInDatabaseAndExternalStorage(db);
+            }
         }
     }
 

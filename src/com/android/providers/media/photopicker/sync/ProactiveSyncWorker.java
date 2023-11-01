@@ -25,6 +25,7 @@ import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.g
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSyncAsComplete;
 
 import android.content.Context;
+import android.os.CancellationSignal;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -43,6 +44,7 @@ import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteEx
 public class ProactiveSyncWorker extends Worker {
     private static final String TAG = "PSyncWorker";
     private final Context mContext;
+    private final CancellationSignal mCancellationSignal = new CancellationSignal();
 
     /**
      * Creates an instance of the {@link Worker}.
@@ -58,10 +60,20 @@ public class ProactiveSyncWorker extends Worker {
     @NonNull
     @Override
     public ListenableWorker.Result doWork() {
-        final int syncSource = getInputData()
-                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
+        // Do not allow endless re-runs of this worker, if this isn't the original run,
+        // just succeed and wait until the next scheduled run.
+        if (getRunAttemptCount() > 0) {
+            Log.w(TAG, "Worker retry was detected, ending this run in failure.");
+            return ListenableWorker.Result.failure();
+        }
+        final int syncSource =
+                getInputData()
+                        .getInt(
+                                SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */
+                                SYNC_LOCAL_AND_CLOUD);
 
-        Log.i(TAG,
+        Log.i(
+                TAG,
                 String.format("Starting proactive picker sync from sync source: %s", syncSource));
 
         try {
@@ -72,7 +84,8 @@ public class ProactiveSyncWorker extends Worker {
 
                 // Complete sync and mark work tracker as finished.
                 checkIsWorkerStopped();
-                PickerSyncController.getInstanceOrThrow().syncAllMediaFromLocalProvider();
+                PickerSyncController.getInstanceOrThrow()
+                        .syncAllMediaFromLocalProvider(mCancellationSignal);
                 localSyncTracker.markSyncCompleted(getId());
                 Log.i(TAG, "Completed picker proactive sync complete from local provider.");
             }
@@ -83,7 +96,8 @@ public class ProactiveSyncWorker extends Worker {
 
                 // Complete sync and mark work tracker as finished.
                 checkIsWorkerStopped();
-                PickerSyncController.getInstanceOrThrow().syncAllMediaFromCloudProvider();
+                PickerSyncController.getInstanceOrThrow()
+                        .syncAllMediaFromCloudProvider(mCancellationSignal);
                 cloudSyncTracker.markSyncCompleted(getId());
                 Log.i(TAG, "Completed picker proactive sync complete from cloud provider.");
             }
@@ -114,6 +128,8 @@ public class ProactiveSyncWorker extends Worker {
     public void onStopped() {
         Log.w(TAG, "Worker is stopped. Clearing all pending futures. It's possible that the sync "
                 + "still finishes running if it has started already.");
+        // Send CancellationSignal to any running tasks.
+        mCancellationSignal.cancel();
         final int syncSource = getInputData()
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
         markSyncAsComplete(syncSource, getId());

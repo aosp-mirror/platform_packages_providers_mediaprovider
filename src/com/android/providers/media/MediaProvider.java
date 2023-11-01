@@ -287,6 +287,7 @@ import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
+import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
@@ -1306,12 +1307,13 @@ public class MediaProvider extends ContentProvider {
                 mProjectionHelper, Metrics::logSchemaChange, mFilesListener,
                 MIGRATION_LISTENER, mIdGenerator, true, mDatabaseBackupAndRecovery);
         mExternalDbFacade = new ExternalDbFacade(getContext(), mExternalDatabase, mVolumeCache);
-        mPickerDbFacade = new PickerDbFacade(context);
 
         mMediaGrants = new MediaGrants(mExternalDatabase);
 
+        PickerSyncLockManager pickerSyncLockManager = new PickerSyncLockManager();
+        mPickerDbFacade = new PickerDbFacade(context, pickerSyncLockManager);
         mPickerSyncController = PickerSyncController.initialize(context, mPickerDbFacade,
-                mConfigStore);
+                mConfigStore, pickerSyncLockManager);
         mPickerDataLayer = PickerDataLayer.create(context, mPickerDbFacade, mPickerSyncController,
                 mConfigStore);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper);

@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Мультимeдиа"</string>
     <string name="storage_description" msgid="4081716890357580107">"Жергілікті жад"</string>
-    <string name="app_label" msgid="9035307001052716210">"Мультимедиа қоймасы"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"Meдиафайл таңдағыш"</string>
     <string name="artist_label" msgid="8105600993099120273">"Орындаушы"</string>
     <string name="unknown" msgid="2059049215682829375">"Белгісіз"</string>
@@ -75,6 +74,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> элемент}other{<xliff:g id="COUNT_1">^1</xliff:g> элемент}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Қосу (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Рұқсат (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Ешқайсысына рұқсат етпеу"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Камера"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Жүктеп алынғандар"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Таңдаулылар"</string>
@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Интернет байланысын тексеріп, әрекетті қайталаңыз."</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Қайталау"</string>
     <string name="not_selected" msgid="2244008151669896758">"таңдалмаған"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Таңдалған мультимедиа әзірленіп жатыр"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>/<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> дайын"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Сақтық көшірмесі жасалған фотосуреттер қосылды"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Фотосуреттерді <xliff:g id="APP_NAME">%1$s</xliff:g> қолданбасының <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> аккаунтынан таңдай аласыз."</string>
@@ -153,4 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Қауіпсіздікті қорғау"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Түбірлік транскодтау туралы хабарландырулар"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Түбірлік транскодтау прогресі"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"Кейінірек қайталап көріңіз. Мәселе шешілген соң, фотосуреттеріңіз қолжетімді болады."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"Кейбір фотосуреттерді жүктеу мүмкін емес"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Түсінікті"</string>
 </resources>

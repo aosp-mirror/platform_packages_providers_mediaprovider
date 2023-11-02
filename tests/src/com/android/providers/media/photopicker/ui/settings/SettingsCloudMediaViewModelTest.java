@@ -60,9 +60,12 @@ import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
 public class SettingsCloudMediaViewModelTest {
+    private static final String PKG1 = "com.providers.test1";
+    private static final String PKG2 = "com.providers.test2";
     private static final List<String> sProviderAuthorities =
-            List.of("cloud_provider_1", "cloud_provider_2");
+            List.of(PKG1 + ".cloud_provider_1", PKG2 + ".cloud_provider_2");
     private static final List<ResolveInfo> sAvailableProviders = getAvailableProviders();
+    private static final List<String> sAllowlistedPackages = List.of(PKG1);
 
     @Mock
     private ConfigStore mConfigStore;
@@ -163,9 +166,42 @@ public class SettingsCloudMediaViewModelTest {
                 .call(eq(SET_CLOUD_PROVIDER_CALL), any(), any());
     }
 
+    @Test
+    public void testLoadDataWithAllowListedProviders() throws RemoteException {
+        final String expectedCloudProvider = sProviderAuthorities.get(0);
+        setUpCurrentCloudProvider(expectedCloudProvider);
+        setUpAvailableCloudProviders(sAvailableProviders);
+        setUpAllowedCloudPackages(sAllowlistedPackages);
+
+        mCloudMediaViewModel.loadData(mConfigStore);
+
+        // Verify cloud provider options
+        final List<CloudMediaProviderOption> providerOptions =
+                mCloudMediaViewModel.getProviderOptions();
+        assertThat(providerOptions.size()).isEqualTo(sAllowlistedPackages.size() + 1);
+        for (int i = 0; i < sAllowlistedPackages.size(); i++) {
+            final int lastDotIndex = providerOptions.get(i).getKey().lastIndexOf('.');
+            final String providerOptionsPackage = providerOptions.get(i).getKey().substring(0,
+                    lastDotIndex);
+            assertThat(sAllowlistedPackages).contains(providerOptionsPackage);
+        }
+        assertThat(providerOptions.get(providerOptions.size() - 1).getKey())
+                .isEqualTo(SettingsCloudMediaViewModel.NONE_PREF_KEY);
+
+        // Verify selected cloud provider
+        final String resultCloudProvider =
+                mCloudMediaViewModel.getSelectedProviderAuthority();
+        assertThat(resultCloudProvider).isEqualTo(expectedCloudProvider);
+    }
+
     private void setUpAvailableCloudProviders(@NonNull List<ResolveInfo> availableProviders) {
         doReturn(availableProviders).when(mPackageManager)
                 .queryIntentContentProvidersAsUser(any(), eq(0), any());
+    }
+
+    private void setUpAllowedCloudPackages(@NonNull List<String> allowlistedPackages) {
+        doReturn(true).when(mConfigStore).shouldEnforceCloudProviderAllowlist();
+        doReturn(allowlistedPackages).when(mConfigStore).getAllowedCloudProviderPackages();
     }
 
     private void setUpCurrentCloudProvider(@Nullable String providerAuthority)
@@ -195,15 +231,17 @@ public class SettingsCloudMediaViewModelTest {
     @NonNull
     private static ProviderInfo createProviderInfo(@NonNull String authority) {
         final ProviderInfo providerInfo = new ProviderInfo();
+        final int lastDotIndex = authority.lastIndexOf('.');
         providerInfo.authority = authority;
         providerInfo.readPermission = MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION;
+        providerInfo.packageName = authority.substring(0, lastDotIndex);
         providerInfo.applicationInfo = createApplicationInfo(authority);
         return providerInfo;
     }
 
     @NonNull
     private static ApplicationInfo createApplicationInfo(@NonNull String authority) {
-        final ApplicationInfo applicationInfo =  new ApplicationInfo();
+        final ApplicationInfo applicationInfo = new ApplicationInfo();
         applicationInfo.packageName = authority;
         applicationInfo.uid = 0;
         return applicationInfo;

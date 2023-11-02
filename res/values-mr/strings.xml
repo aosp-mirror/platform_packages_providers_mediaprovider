@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"मीडिया"</string>
     <string name="storage_description" msgid="4081716890357580107">"स्थानिक स्टोरेज"</string>
-    <string name="app_label" msgid="9035307001052716210">"मीडिया स्टोरेज"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"मीडिया पिकर"</string>
     <string name="artist_label" msgid="8105600993099120273">"कलाकार"</string>
     <string name="unknown" msgid="2059049215682829375">"अज्ञात"</string>
@@ -75,6 +74,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> आयटम}other{<xliff:g id="COUNT_1">^1</xliff:g> आयटम}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) जोडा"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"(<xliff:g id="COUNT">^1</xliff:g>) ला अनुमती द्या"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"काहीही नाही याला अनुमती द्या"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"कॅमेरा"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"डाउनलोड"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"आवडते"</string>
@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"तुमचे इंटरनेट कनेक्शन तपासा आणि पुन्हा प्रयत्न करा"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"पुन्हा प्रयत्न करा"</string>
     <string name="not_selected" msgid="2244008151669896758">"निवडला नाही"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"तुमचा निवडलेला मीडिया तयार करत आहे"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> पैकी <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> तयार"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"बॅकअप घेतलेल्या फोटोचा आता समावेश केला आहे"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"तुम्ही <xliff:g id="APP_NAME">%1$s</xliff:g> खात्याच्या <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> वरून फोटो निवडू शकता"</string>
@@ -153,4 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"सुरक्षितता संरक्षण"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"मूळ ट्रान्सकोड सूचना"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"मूळ ट्रान्सकोड प्रगती"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"नंतर पुन्हा प्रयत्न करा. समस्येचे निराकरण झाल्यावर तुमचे फोटो उपलब्ध होतील."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"काही फोटो लोड करू शकत नाही"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"समजले"</string>
 </resources>

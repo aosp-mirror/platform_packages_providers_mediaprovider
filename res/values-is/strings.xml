@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Margmiðlun"</string>
     <string name="storage_description" msgid="4081716890357580107">"Staðbundin vistun"</string>
-    <string name="app_label" msgid="9035307001052716210">"Efnisgeymsla"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"Efnisval"</string>
     <string name="artist_label" msgid="8105600993099120273">"Flytjandi"</string>
     <string name="unknown" msgid="2059049215682829375">"Óþekkt"</string>
@@ -75,6 +74,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> atriði}one{<xliff:g id="COUNT_1">^1</xliff:g> atriði}other{<xliff:g id="COUNT_1">^1</xliff:g> atriði}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Bæta við (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Leyfa (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Ekki leyfa neitt"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Myndavél"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Niðurhal"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Uppáhald"</string>
@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Athugaðu nettenginguna og reyndu aftur"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Reyna aftur"</string>
     <string name="not_selected" msgid="2244008151669896758">"ekki valið"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Undirbýr valið efni"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> af <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> til reiðu"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Afritaðar myndir eru nú hafðar með"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Þú getur valið myndir af reikningnum <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> í: <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
@@ -153,4 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Öryggisbúnaður"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Viðvaranir fyrir sérforritaðar umkóðanir"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Sérforritað umkóðunarferli"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"Reyndu aftur síðar. Myndirnar þínar verða tiltækar um leið og vandamálið er leyst."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"Ekki tekst að hlaða sumum myndum"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Ég skil"</string>
 </resources>

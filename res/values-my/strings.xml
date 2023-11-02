@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"မီဒီယာ"</string>
     <string name="storage_description" msgid="4081716890357580107">"စက်တွင်း သိုလှောင်ခန်း"</string>
-    <string name="app_label" msgid="9035307001052716210">"မီဒီယာ သိုလှောင်ခန်း"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"မီဒီယာရွေးရန်"</string>
     <string name="artist_label" msgid="8105600993099120273">"အနုပညာရှင်"</string>
     <string name="unknown" msgid="2059049215682829375">"အမျိုးအမည်မသိ"</string>
@@ -75,6 +74,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{ဖိုင် <xliff:g id="COUNT_0">^1</xliff:g> ခု}other{ဖိုင် <xliff:g id="COUNT_1">^1</xliff:g> ခု}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) ခု ထည့်ရန်"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"(<xliff:g id="COUNT">^1</xliff:g>) ခု ခွင့်ပြုရန်"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"သုည ခွင့်ပြုရန်"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"ကင်မရာ"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"ဒေါင်းလုဒ်များ"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"စိတ်ကြိုက်များ"</string>
@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"သင်၏ အင်တာနက် ချိတ်ဆက်မှုကို စစ်ဆေးပြီး ထပ်စမ်းကြည့်ပါ"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ထပ်စမ်းကြည့်ရန်"</string>
     <string name="not_selected" msgid="2244008151669896758">"ရွေးချယ်မထားပါ"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"သင်ရွေးထားသော မီဒီယာကို ပြင်ဆင်နေသည်"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> အနက် <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> အသင့်ဖြစ်ပြီ"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"အရန်သိမ်းထားသော ဓာတ်ပုံများ ယခုထည့်သွင်းထားပြီ"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> အကောင့် <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> မှ ဓာတ်ပုံများ ရွေးနိုင်သည်"</string>
@@ -153,4 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"လုံခြုံရေး ကာကွယ်မှု"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"မူရင်းမီဒီယာကုဒ်ပြောင်းသည့် သတိပေးချက်များ"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"မူရင်းမီဒီယာကုဒ်ပြောင်းသည့် အခြေအနေ"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"နောက်မှထပ်စမ်းပါ။ ပြဿနာကို ဖြေရှင်းပြီးသည့်အခါ သင့်ဓာတ်ပုံများကို ရနိုင်မည်။"</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"ဓာတ်ပုံအချို့ကို ဖွင့်၍ မရပါ"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"နားလည်ပြီ"</string>
 </resources>

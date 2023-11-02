@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"الوسائط"</string>
     <string name="storage_description" msgid="4081716890357580107">"التخزين المحلي"</string>
-    <string name="app_label" msgid="9035307001052716210">"تخزين الوسائط"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"أداة اختيار الوسائط"</string>
     <string name="artist_label" msgid="8105600993099120273">"الفنان"</string>
     <string name="unknown" msgid="2059049215682829375">"غير معروف"</string>
@@ -75,6 +74,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{صورة واحدة (<xliff:g id="COUNT_0">^1</xliff:g>)}zero{<xliff:g id="COUNT_1">^1</xliff:g> صورة}two{صورتان (<xliff:g id="COUNT_1">^1</xliff:g>)}few{<xliff:g id="COUNT_1">^1</xliff:g> صور}many{<xliff:g id="COUNT_1">^1</xliff:g> صورة}other{<xliff:g id="COUNT_1">^1</xliff:g> صورة}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"إضافة (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"السماح (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"لم يتم اختيار أي صورة"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"الكاميرا"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"العناصر التي تم تنزيلها"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"العناصر المفضّلة"</string>
@@ -96,6 +96,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"يُرجى التحقّق من الاتصال بالإنترنت ثم إعادة المحاولة."</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"إعادة المحاولة"</string>
     <string name="not_selected" msgid="2244008151669896758">"غير محدّد"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"جارٍ تحضير الوسائط التي تم اختيارها"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> من إجمالي <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> صورة جاهزة"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"تم الآن تضمين الصور التي تم الاحتفاظ بنسخة احتياطية منها"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"يمكنك اختيار صور من حساب \"<xliff:g id="APP_NAME">%1$s</xliff:g>\" للمستخدم <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>."</string>
@@ -153,4 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"حماية الأمن الشخصي"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"‏تنبيهات Native Transcode"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"‏مدى تقدُّم Native Transcode"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"يُرجى إعادة المحاولة لاحقًا. ستتوفّر صورك عند حل المشكلة."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"يتعذّر تحميل بعض الصور"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"حسنًا"</string>
 </resources>

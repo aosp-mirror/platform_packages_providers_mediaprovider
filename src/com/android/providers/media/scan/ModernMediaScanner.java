@@ -1751,6 +1751,6 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     static void logTroubleScanning(@NonNull File file, @NonNull Exception e) {
-        if (LOGW) Log.w(TAG, "Trouble scanning " + file + ": " + e);
+        if (LOGW) Log.w(TAG, "Trouble scanning " + file, e);
     }
 }

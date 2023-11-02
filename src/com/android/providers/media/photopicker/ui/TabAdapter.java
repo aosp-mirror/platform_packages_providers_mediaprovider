@@ -47,15 +47,14 @@ import java.util.List;
 /**
  * Adapts from model to something RecyclerView understands.
  */
-@VisibleForTesting
 public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     @VisibleForTesting
     public static final int ITEM_TYPE_BANNER = 0;
     // Date header sections for "Photos" tab
-    static final int ITEM_TYPE_SECTION = 1;
+    public static final int ITEM_TYPE_SECTION = 1;
     // Media items (a.k.a. Items) for "Photos" tab, Albums (a.k.a. Categories) for "Albums" tab
-    private static final int ITEM_TYPE_MEDIA_ITEM = 2;
+    public static final int ITEM_TYPE_MEDIA_ITEM = 2;
 
     @NonNull final ImageLoader mImageLoader;
     @NonNull private final LiveData<String> mCloudMediaProviderAppTitle;
@@ -273,7 +272,7 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     @NonNull
-    final Object getAdapterItem(int position) {
+    public final Object getAdapterItem(int position) {
         if (position < 0) {
             throw new IllegalStateException("Get adapter item for negative position " + position);
         }

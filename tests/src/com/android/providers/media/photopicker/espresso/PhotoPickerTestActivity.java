@@ -19,6 +19,8 @@ package com.android.providers.media.photopicker.espresso;
 import static org.mockito.Mockito.RETURNS_SMART_NULLS;
 import static org.mockito.Mockito.mock;
 
+import androidx.annotation.NonNull;
+
 import com.android.internal.logging.InstanceId;
 import com.android.internal.logging.UiEventLogger;
 import com.android.providers.media.TestConfigStore;
@@ -32,18 +34,17 @@ public class PhotoPickerTestActivity extends PhotoPickerActivity {
     private final UiEventLogger mLogger = mock(UiEventLogger.class, RETURNS_SMART_NULLS);
     private InstanceId mInstanceId;
 
-    private PickerViewModel mPickerViewModel;
-
     @Override
+    @NonNull
     protected PickerViewModel getOrCreateViewModel() {
-        mPickerViewModel = super.getOrCreateViewModel();
-        mPickerViewModel.setConfigStore(mConfigStore);
-        mPickerViewModel.setItemsProvider(new ItemsProvider(
+        final PickerViewModel pickerViewModel = super.getOrCreateViewModel();
+        pickerViewModel.setConfigStore(mConfigStore);
+        pickerViewModel.setItemsProvider(new ItemsProvider(
                 PhotoPickerBaseTest.getIsolatedContext()));
-        mPickerViewModel.setUserIdManager(PhotoPickerBaseTest.getMockUserIdManager());
-        mPickerViewModel.setLogger(new PhotoPickerUiEventLogger(mLogger));
-        mInstanceId = mPickerViewModel.getInstanceId();
-        return mPickerViewModel;
+        pickerViewModel.setUserIdManager(PhotoPickerBaseTest.getMockUserIdManager());
+        pickerViewModel.setLogger(new PhotoPickerUiEventLogger(mLogger));
+        mInstanceId = pickerViewModel.getInstanceId();
+        return pickerViewModel;
     }
 
     TestConfigStore getConfigStore() {
@@ -56,13 +57,5 @@ public class PhotoPickerTestActivity extends PhotoPickerActivity {
 
     InstanceId getInstanceId() {
         return mInstanceId;
-    }
-
-    void setItemsProvider(ItemsProvider itemsProvider) {
-        mPickerViewModel.setItemsProvider(itemsProvider);
-    }
-
-    void initSyncForPhotosGrid() {
-        mPickerViewModel.initPhotoPickerData();
     }
 }

@@ -21,10 +21,6 @@
     <!-- Label to show client applications a short description of storage location -->
     <string name="storage_description">Local storage</string>
 
-    <!-- TODO(b/246345209): This string is unused. Update app_label string to "Media" -->
-    <!-- and delete picker_app_label  -->
-    <string name="app_label">Media Storage</string>
-
     <!-- Label to show to user for this package and for Photo picker. -->
     <string name="picker_app_label">Media picker</string>
 
@@ -196,6 +192,9 @@
     <!-- Text shown on the add button for multi-select in PhotoPicker when granting photo access to apps. [CHAR LIMIT=30]  -->
     <!-- TODO(b/257208235): Update with finalized UX string. !-->
     <string name="picker_add_button_multi_select_permissions">Allow (<xliff:g id="count" example="42">^1</xliff:g>)</string>
+
+    <!-- Text shown on the add button for multi-select in Picker Choice when no photo is selected.[CHAR LIMIT=30]  -->
+    <string name="picker_add_button_allow_none_option">Allow none</string>
 
     <!-- Title for the category in the picker that offers items in Camera folder. [CHAR LIMIT=24] -->
     <string name="picker_category_camera">Camera</string>

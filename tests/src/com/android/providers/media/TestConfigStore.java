@@ -120,9 +120,8 @@ public class TestConfigStore implements ConfigStore {
      */
     private void notifyObservers() {
         for (Pair<Executor, Runnable> observer: mObservers) {
-            Executor exec = observer.first;
-            Runnable listener = observer.second;
-            exec.execute(listener);
+            // Run tasks in a synchronous manner to avoid test flakes.
+            observer.second.run();
         }
     }
 }

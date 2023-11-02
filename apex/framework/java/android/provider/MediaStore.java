@@ -274,6 +274,10 @@ public final class MediaStore {
     public static final String GRANT_MEDIA_READ_FOR_PACKAGE_CALL =
             "grant_media_read_for_package";
 
+    /** @hide */
+    public static final String REVOKE_READ_GRANT_FOR_PACKAGE_CALL =
+            "revoke_media_read_for_package";
+
     /** {@hide} */
     public static final String USES_FUSE_PASSTHROUGH = "uses_fuse_passthrough";
     /** {@hide} */
@@ -315,6 +319,20 @@ public final class MediaStore {
      */
     @VisibleForTesting
     public static final String GET_BACKUP_FILES = "get_backup_files";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String GET_RECOVERY_DATA = "get_recovery_data";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String REMOVE_RECOVERY_DATA = "remove_recovery_data";
 
     /**
      * Only used for testing.
@@ -4778,6 +4796,25 @@ public final class MediaStore {
     }
 
     /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String[] getRecoveryData(@NonNull ContentResolver resolver) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_RECOVERY_DATA, null, null);
+        return bundle.getStringArray(GET_RECOVERY_DATA);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static void removeRecoveryData(@NonNull ContentResolver resolver) {
+        resolver.call(AUTHORITY, REMOVE_RECOVERY_DATA, null, null);
+    }
+
+    /**
      * Block until any pending operations have finished, such as
      * {@link #scanFile} or {@link #scanVolume} requests.
      *
@@ -4938,6 +4975,31 @@ public final class MediaStore {
             extras.putInt(Intent.EXTRA_UID, packageUid);
             extras.putParcelableArrayList(EXTRA_URI_LIST, new ArrayList<Uri>(uris));
             client.call(GRANT_MEDIA_READ_FOR_PACKAGE_CALL,
+                    /* arg= */ null,
+                    /* extras= */ extras);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    /**
+     * Revoke {@link com.android.providers.media.MediaGrants} for the given package, for the
+     * list of local (to the device) content uris. These must be valid picker uris.
+     *
+     * @hide
+     */
+    public static void revokeMediaReadForPackages(
+            @NonNull Context context, int packageUid, @NonNull List<Uri> uris) {
+        Objects.requireNonNull(uris);
+        if (uris.isEmpty()) {
+            return;
+        }
+        final ContentResolver resolver = context.getContentResolver();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle extras = new Bundle();
+            extras.putInt(Intent.EXTRA_UID, packageUid);
+            extras.putParcelableArrayList(EXTRA_URI_LIST, new ArrayList<Uri>(uris));
+            client.call(REVOKE_READ_GRANT_FOR_PACKAGE_CALL,
                     /* arg= */ null,
                     /* extras= */ extras);
         } catch (RemoteException e) {

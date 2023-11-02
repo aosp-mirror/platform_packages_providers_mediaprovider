@@ -27,6 +27,7 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Looper;
 import android.util.Log;
@@ -42,12 +43,18 @@ import androidx.tracing.Trace;
 import com.android.providers.media.R;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Responsible for "preloading" selected media items including showing the appropriate UI
@@ -56,9 +63,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @see #preload(Context, List)
  */
 class SelectedMediaPreloader {
+    private static final long TIMEOUT_IN_SECONDS = 4L;
     private static final String TRACE_SECTION_NAME = "preload-selected-media";
     private static final String TAG = "SelectedMediaPreloader";
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
 
     @Nullable
     private static volatile Executor sExecutor;
@@ -66,6 +74,7 @@ class SelectedMediaPreloader {
     @NonNull
     private final List<Uri> mItems;
     private final int mCount;
+    private boolean mIsPreloadingCancelled = false;
     @NonNull
     private final AtomicInteger mFinishedCount = new AtomicInteger(0);
     @NonNull
@@ -73,10 +82,14 @@ class SelectedMediaPreloader {
     @NonNull
     private final MutableLiveData<Boolean> mIsFinishedLiveData = new MutableLiveData<>(false);
     @NonNull
+    private static final MutableLiveData<Boolean> mIsPreloadingCancelledLiveData =
+            new MutableLiveData<>(false);
+    @NonNull
     private final MutableLiveData<List<Integer>> mUnavailableMediaIndexes =
             new MutableLiveData<>(new ArrayList<>());
     @NonNull
     private final ContentResolver mContentResolver;
+    private List<Integer> mSuccessfullyPreloadedMediaIndexes = new ArrayList<>();
 
     /**
      * Creates, start and eventually returns a new {@link SelectedMediaPreloader} instance.
@@ -95,6 +108,7 @@ class SelectedMediaPreloader {
         // Make a copy of the list.
         final List<Uri> items = new ArrayList<>(requireNonNull(selectedMedia));
         final int count = items.size();
+        mIsPreloadingCancelledLiveData.setValue(false);
 
         Log.d(TAG, "preload() " + count + " items");
         if (DEBUG) {
@@ -136,9 +150,31 @@ class SelectedMediaPreloader {
             }
         });
 
+        mIsPreloadingCancelledLiveData.observeForever(new Observer<>() {
+            @Override
+            public void onChanged(Boolean isPreloadingCancelled) {
+                if (isPreloadingCancelled) {
+                    preloader.mIsPreloadingCancelled = true;
+                    mIsPreloadingCancelledLiveData.removeObserver(this);
+                    List<Integer> unsuccessfullyPreloadedMediaIndexes = new ArrayList<>();
+                    for (int index = 0; index < preloader.mItems.size(); index++) {
+                        if (!preloader.mSuccessfullyPreloadedMediaIndexes.contains(index)) {
+                            unsuccessfullyPreloadedMediaIndexes.add(index);
+                        }
+                    }
+                    // this extra "-1" element indicates that preloading has been cancelled by
+                    // the user
+                    unsuccessfullyPreloadedMediaIndexes.add(-1);
+                    preloader.mUnavailableMediaIndexes.setValue(
+                            unsuccessfullyPreloadedMediaIndexes);
+                    preloader.mIsFinishedLiveData.setValue(false);
+                    preloader.mFinishedCountLiveData.setValue(preloader.mItems.size());
+                }
+            }
+        });
+
         ensureExecutor();
         preloader.start(sExecutor);
-
         return preloader;
     }
 
@@ -176,16 +212,23 @@ class SelectedMediaPreloader {
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    boolean isOpenedSuccessfully = openFileDescriptor(mItems.get(currIndex));
+                    boolean isOpenedSuccessfully = false;
+                    if (!mIsPreloadingCancelled) {
+                        isOpenedSuccessfully = openFileDescriptor(mItems.get(currIndex));
+                    }
+
                     if (!isOpenedSuccessfully) {
                         unavailableMediaIndexes.add(currIndex);
+                    } else {
+                        mSuccessfullyPreloadedMediaIndexes.add(currIndex);
                     }
 
                     final int preloadedCount = mFinishedCount.incrementAndGet();
                     if (DEBUG) {
                         Log.d(TAG, "Preloaded " + preloadedCount + " (of " + mCount + ") items");
                     }
-                    if (preloadedCount == mCount) {
+
+                    if (preloadedCount == mCount && !mIsPreloadingCancelled) {
                         // Don't need to "synchronize" here: mCount is our final value for
                         // preloadedCount, it won't be changing anymore.
                         if (unavailableMediaIndexes.size() == 0) {
@@ -209,7 +252,7 @@ class SelectedMediaPreloader {
 
     @Nullable
     private Boolean openFileDescriptor(@NonNull Uri uri) {
-        Boolean isOpenedSuccessfully = true;
+        AtomicReference<Boolean> isOpenedSuccessfully = new AtomicReference<>(true);
         long start = 0;
         if (DEBUG) {
             Log.d(TAG, "openFileDescriptor() START, " + Thread.currentThread() + ", " + uri);
@@ -217,11 +260,24 @@ class SelectedMediaPreloader {
         }
 
         Trace.beginSection("Preloader.openFd");
+
+        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+            try {
+                mContentResolver.openAssetFileDescriptor(uri, "r").close();
+            } catch (FileNotFoundException e) {
+                isOpenedSuccessfully.set(false);
+                Log.w(TAG, "Could not open FileDescriptor for " + uri, e);
+            } catch (IOException e) {
+                Log.w(TAG, "Failed to preload media file ", e);
+            }
+        });
+
         try {
-            mContentResolver.openAssetFileDescriptor(uri, "r");
-        } catch (FileNotFoundException e) {
-            isOpenedSuccessfully = false;
-            Log.w(TAG, "Could not open FileDescriptor for " + uri, e);
+            future.get(TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            return isOpenedSuccessfully.get();
+        } catch (InterruptedException | ExecutionException e) {
+            Log.w(TAG, "Could not preload the media item ", e);
         } finally {
             Trace.endSection();
 
@@ -231,7 +287,8 @@ class SelectedMediaPreloader {
                         + ", " + uri);
             }
         }
-        return isOpenedSuccessfully;
+
+        return isOpenedSuccessfully.get();
     }
 
     @NonNull
@@ -243,7 +300,16 @@ class SelectedMediaPreloader {
         dialog.setMessage(/* message */ context.getString(
                 R.string.preloading_progress_message, 0, selectedMedia.size()));
         dialog.setIndeterminate(/* indeterminate */ true);
+        dialog.setCancelable(false);
+
+        dialog.setButton(DialogInterface.BUTTON_NEGATIVE,
+                // TODO(b/303013634): Add a Cancel string for this dialog and don't re-use an
+                // existing string.
+                context.getString(R.string.transcode_cancel), (dialog1, which) -> {
+                mIsPreloadingCancelledLiveData.setValue(true);
+            });
         dialog.show();
+
         return dialog;
     }
 

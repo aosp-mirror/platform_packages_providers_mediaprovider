@@ -91,7 +91,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * The contract between the media provider and applications. Contains
@@ -276,12 +275,8 @@ public final class MediaStore {
             "grant_media_read_for_package";
 
     /** @hide */
-    public static final String GET_READ_GRANTED_MEDIA_FOR_PACKAGE_CALL =
-            "read_granted_media_for_package";
-
-    /** @hide */
-    public static final String GET_READ_GRANTED_MEDIA_FOR_PACKAGE_RESULT =
-            "read_granted_media_for_package_result";
+    public static final String REVOKE_READ_GRANT_FOR_PACKAGE_CALL =
+            "revoke_media_read_for_package";
 
     /** {@hide} */
     public static final String USES_FUSE_PASSTHROUGH = "uses_fuse_passthrough";
@@ -4955,25 +4950,25 @@ public final class MediaStore {
     }
 
     /**
-     * Fetches file Uris for items having {@link com.android.providers.media.MediaGrants} for the
-     * given package. Returns an empty list if no grants are present.
+     * Revoke {@link com.android.providers.media.MediaGrants} for the given package, for the
+     * list of local (to the device) content uris. These must be valid picker uris.
      *
      * @hide
      */
-    @NonNull
-    public static List<Uri> fetchReadGrantedItemsUrisForPackage(
-            @NonNull Context context, int packageUid) {
+    public static void revokeMediaReadForPackages(
+            @NonNull Context context, int packageUid, @NonNull List<Uri> uris) {
+        Objects.requireNonNull(uris);
+        if (uris.isEmpty()) {
+            return;
+        }
         final ContentResolver resolver = context.getContentResolver();
         try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
             final Bundle extras = new Bundle();
             extras.putInt(Intent.EXTRA_UID, packageUid);
-            final Bundle out = client.call(MediaStore.GET_READ_GRANTED_MEDIA_FOR_PACKAGE_CALL,
+            extras.putParcelableArrayList(EXTRA_URI_LIST, new ArrayList<Uri>(uris));
+            client.call(REVOKE_READ_GRANT_FOR_PACKAGE_CALL,
                     /* arg= */ null,
                     /* extras= */ extras);
-            List<String> result = out.getStringArrayList(
-                    MediaStore.GET_READ_GRANTED_MEDIA_FOR_PACKAGE_RESULT);
-            return result != null ? result.stream().map(Uri::parse).collect(Collectors.toList())
-                    : new ArrayList<>();
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
         }

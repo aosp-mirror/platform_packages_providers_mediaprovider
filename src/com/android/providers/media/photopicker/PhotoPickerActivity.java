@@ -46,6 +46,7 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.UserHandle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Menu;
@@ -89,7 +90,6 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.common.collect.Lists;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
@@ -173,19 +173,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Intent intent = getIntent();
         try {
             mPickerViewModel.parseValuesFromIntent(intent);
-            if (isUserSelectImagesForAppAction() && mPickerViewModel.getConfigStore()
-                    .isPickerChoiceManagedSelectionEnabled()) {
-                // observe the set of pre granted items and update the number of selected items
-                // when the value is received.
-                mPickerViewModel.populateAndGetPreGrantedItemsSet().observe(this,
-                        (Set<String> preGrantedItems) -> {
-                            if (preGrantedItems != null) {
-                                Log.d(TAG, "Count of pre granted items : "
-                                        + preGrantedItems.size());
-                                mSelection.setTotalNumberOfPreGrantedItems(preGrantedItems.size());
-                            }
-                        });
-            }
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Finish activity due to an exception while parsing extras", e);
             finishWithoutLoggingCancelledResult();
@@ -556,7 +543,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         logPickerSelectionConfirmed(mSelection.getSelectedItems().size());
         if (shouldPreloadSelectedItems()) {
             final var uris = PickerResult.getPickerUrisForItems(
-                    mSelection.getSelectedItemsWithoutGrants());
+                    mSelection.getSelectedItems());
             mPreloaderInstanceHolder.preloader =
                     SelectedMediaPreloader.preload(/* activity */ this, uris);
             deSelectUnavailableMedia(mPreloaderInstanceHolder.preloader);
@@ -584,11 +571,26 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // The permission controller will pass the requesting package's UID here
         final Bundle extras = getIntent().getExtras();
         final int uid = extras.getInt(Intent.EXTRA_UID);
-        final List<Uri> uris = getPickerUrisForItems(mSelection.getSelectedItems());
+        final List<Uri> uris = getPickerUrisForItems(mSelection.getSelectedItemsWithoutGrants());
         ForegroundThread.getExecutor().execute(() -> {
             // Handle grants in another thread to not block the UI.
             grantMediaReadForPackage(getApplicationContext(), uid, uris);
         });
+
+        // Revoke READ_GRANT for items that were pre-granted but now in the current session user has
+        // deselected them.
+        if (isUserSelectImagesForAppAction()
+                && mPickerViewModel.getConfigStore().isPickerChoiceManagedSelectionEnabled()) {
+            final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
+                    mSelection.getPreGrantedItemsToBeRevoked());
+            if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {
+                ForegroundThread.getExecutor().execute(() -> {
+                    // Handle grants in another thread to not block the UI.
+                    MediaStore.revokeMediaReadForPackages(getApplicationContext(), uid,
+                            urisForItemsWhoseGrantsNeedsToBeRevoked);
+                });
+            }
+        }
     }
 
     private void setResultForPickImagesOrGetContentAction() {

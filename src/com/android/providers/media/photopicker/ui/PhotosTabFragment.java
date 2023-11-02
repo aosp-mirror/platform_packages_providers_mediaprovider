@@ -23,6 +23,7 @@ import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_
 
 import android.animation.ObjectAnimator;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -47,6 +48,7 @@ import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
+import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import com.android.providers.media.util.StringUtils;
 
@@ -139,6 +141,11 @@ public class PhotosTabFragment extends TabFragment {
                 showCloudMediaAvailableBanner, showAccountUpdatedBanner, showChooseAccountBanner,
                 mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
                 mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
+
+        // initialise pre-granted items is necessary.
+        Intent activityIntent = getPickerActivity().getIntent();
+        mPickerViewModel.initialisePreGrantsIfNecessary(mPickerViewModel.getSelection(),
+                activityIntent.getExtras(), MimeFilterUtils.getMimeTypeFilters(activityIntent));
 
         if (mCategory.isDefault()) {
             mPageSize = mIsCloudMediaInPhotoPickerEnabled
@@ -362,10 +369,6 @@ public class PhotosTabFragment extends TabFragment {
                         final boolean isSelectedBefore = view.isSelected();
 
                         Item item = (Item) view.getTag();
-                        if (item.isPreGranted()) {
-                            // Since currently a pre-granted item can't be un-selected.
-                            return;
-                        }
                         if (isSelectedBefore) {
                             mSelection.removeSelectedItem((Item) view.getTag());
                             mSelection.removeCheckedItemIndex((Item) view.getTag());

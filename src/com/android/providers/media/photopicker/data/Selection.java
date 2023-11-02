@@ -16,10 +16,12 @@
 
 package com.android.providers.media.photopicker.data;
 
+import android.annotation.Nullable;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -30,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,6 +54,9 @@ public class Selection {
 
     // The list of selected items.
     private Map<Uri, Item> mSelectedItems = new HashMap<>();
+
+    private Map<String, Item> mItemGrantRevocationMap = new HashMap<>();
+
     private MutableLiveData<Integer> mSelectedItemSize = new MutableLiveData<>();
     // The list of selected items for preview. This needs to be saved separately so that if activity
     // gets killed, we will still have deselected items for preview.
@@ -61,6 +67,33 @@ public class Selection {
     private boolean mIsSelectionAllowed = true;
 
     private int mTotalNumberOfPreGrantedItems = 0;
+
+    private Set<String> mPreGrantedItemsSet;
+
+    private static final String TAG = "PhotoPickerSelection";
+
+    /**
+     * Updates the list of pre granted items and the count of selected items.
+     */
+    public void setPreGrantedItemSet(@Nullable Set<String> preGrantedItemSet) {
+        if (preGrantedItemSet != null) {
+            mPreGrantedItemsSet = preGrantedItemSet;
+            setTotalNumberOfPreGrantedItems(preGrantedItemSet.size());
+            Log.d(TAG, "Pre-Granted items have been loaded. Number of items:"
+                    + preGrantedItemSet.size());
+        } else {
+            mPreGrantedItemsSet = new HashSet<>(0);
+            Log.d(TAG, "No Pre-Granted items present");
+        }
+    }
+
+    /**
+     * @return a set of item ids that are pre granted for the current package and user.
+     */
+    @Nullable
+    public Set<String> getPreGrantedItems() {
+        return mPreGrantedItemsSet;
+    }
 
     /**
      * @return {@link #mSelectedItems} - A {@link List} of selected {@link Item}
@@ -93,6 +126,20 @@ public class Selection {
     }
 
     /**
+     * @return A {@link List} of items for which the grants need to be revoked.
+     */
+    public List<Item> getPreGrantedItemsToBeRevoked() {
+        return mItemGrantRevocationMap.values().stream().collect(Collectors.toList());
+    }
+
+    /**
+     * @return A {@link List} of ids for which the grants need to be revoked.
+     */
+    public List<String> getPreGrantedItemIdsToBeRevoked() {
+        return mItemGrantRevocationMap.keySet().stream().collect(Collectors.toList());
+    }
+
+    /**
      * Sets the count of pre granted items to ensure that the correct number is displayed in
      * preview and on the add button.
      */
@@ -112,13 +159,17 @@ public class Selection {
     }
 
     private int getTotalItemsCount() {
-        return mSelectedItems.size() - countOfPreGrantedItems() + mTotalNumberOfPreGrantedItems;
+        return mSelectedItems.size() - countOfPreGrantedItems() + mTotalNumberOfPreGrantedItems
+                - mItemGrantRevocationMap.size();
     }
 
     /**
      * Add the selected {@code item} into {@link #mSelectedItems}.
      */
     public void addSelectedItem(Item item) {
+        if (item.isPreGranted() && mItemGrantRevocationMap.containsKey(item.getId())) {
+            mItemGrantRevocationMap.remove(item.getId());
+        }
         mSelectedItems.put(item.getContentUri(), item);
         mSelectedItemSize.postValue(getTotalItemsCount());
         updateSelectionAllowed();
@@ -147,6 +198,12 @@ public class Selection {
      * @param item the item to be removed from the selected item list
      */
     public void removeSelectedItem(Item item) {
+        if (item.isPreGranted()) {
+            // Maintain a list of items that were pre-granted but the user has deselected them in
+            // the current session. This list will be used to revoke existing grants for these
+            // items.
+            mItemGrantRevocationMap.put(item.getId(), item);
+        }
         mSelectedItems.remove(item.getContentUri());
         mSelectedItemSize.postValue(getTotalItemsCount());
         updateSelectionAllowed();

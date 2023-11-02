@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import static com.android.providers.media.photopicker.data.MediaGrantsProvider.fetchReadGrantedItemsUrisForPackage;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractRelativePath;
@@ -359,12 +360,63 @@ public class MediaProviderTest {
                 .build();
 
         try {
+            String[] mimeTypes = {"image/*"};
+            // Verify empty list with no grants.
+            List<Uri> grantedUris = fetchReadGrantedItemsUrisForPackage(
+                    sIsolatedContext, android.os.Process.myUid(), mimeTypes);
+            assertTrue(grantedUris.isEmpty());
+
+            // Grants the READ-GRANT for the testUris for the current package.
             MediaStore.grantMediaReadForPackage(sIsolatedContext,
                     android.os.Process.myUid(),
                     List.of(testUri));
-            List<Uri> grantedUris = MediaStore.fetchReadGrantedItemsUrisForPackage(
-                    sIsolatedContext, android.os.Process.myUid());
+
+            // Assert that the grant was returned.
+            List<Uri> grantedUris2 = fetchReadGrantedItemsUrisForPackage(
+                    sIsolatedContext, android.os.Process.myUid(), mimeTypes);
+            assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris2.get(0)));
+        } finally {
+            dir.delete();
+            testFile.delete();
+        }
+    }
+
+    @Test
+    public void testRevokeReadGrantsForPackage() throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File testFile = stage(R.raw.lg_g4_iso_800_jpg,
+                new File(dir, "test" + System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, testFile);
+        Long fileId = ContentUris.parseId(uri);
+
+        final Uri.Builder builder = Uri.EMPTY.buildUpon();
+        builder.scheme("content");
+        builder.encodedAuthority(MediaStore.AUTHORITY);
+
+        final Uri testUri = builder.appendPath("picker")
+                .appendPath(Integer.toString(UserHandle.myUserId()))
+                .appendPath(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                .appendPath(MediaStore.AUTHORITY)
+                .appendPath(Long.toString(fileId))
+                .build();
+
+        try {
+            String[] mimeTypes = {"image/*"};
+            MediaStore.grantMediaReadForPackage(sIsolatedContext,
+                    android.os.Process.myUid(),
+                    List.of(testUri));
+            List<Uri> grantedUris = fetchReadGrantedItemsUrisForPackage(
+                    sIsolatedContext, android.os.Process.myUid(), mimeTypes);
             assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris.get(0)));
+
+            // Revoked the grant that was provided to testUri and verify that now the current
+            // package has no grants.
+            MediaStore.revokeMediaReadForPackages(sIsolatedContext, android.os.Process.myUid(),
+                    grantedUris);
+            List<Uri> grantedUris2 = fetchReadGrantedItemsUrisForPackage(
+                    sIsolatedContext, android.os.Process.myUid(), mimeTypes);
+            assertEquals(0, grantedUris2.size());
         } finally {
             dir.delete();
             testFile.delete();

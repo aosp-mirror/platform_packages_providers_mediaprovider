@@ -191,6 +191,7 @@ android_test {
         "glide-gifdecoder-prebuilt",
         "glide-disklrucache-prebuilt",
         "glide-annotation-and-compiler-prebuilt",
+        "glide-integration-recyclerview-prebuilt",
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",

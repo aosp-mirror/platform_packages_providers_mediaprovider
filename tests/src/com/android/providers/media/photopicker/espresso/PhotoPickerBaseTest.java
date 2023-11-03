@@ -29,6 +29,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Process;
 import android.provider.MediaStore;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -118,7 +119,7 @@ public class PhotoPickerBaseTest {
         sUserSelectImagesForAppIntent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
         sUserSelectImagesForAppIntent.addCategory(Intent.CATEGORY_FRAMEWORK_INSTRUMENTATION_TEST);
         Bundle extras = new Bundle();
-        extras.putInt(Intent.EXTRA_UID, 1234);
+        extras.putInt(Intent.EXTRA_UID, Process.myUid());
         sUserSelectImagesForAppIntent.putExtras(extras);
     }
 

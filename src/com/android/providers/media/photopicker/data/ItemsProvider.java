@@ -19,17 +19,21 @@ package com.android.providers.media.photopicker.data;
 import static android.content.ContentResolver.QUERY_ARG_LIMIT;
 import static android.database.DatabaseUtils.dumpCursorToString;
 import static android.provider.MediaStore.AUTHORITY;
+import static android.provider.MediaStore.MediaColumns.DATA;
 
+import static com.android.providers.media.MediaGrants.FILE_ID_COLUMN;
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_DATE_TAKEN_BEFORE_MS;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_LOCAL_ID_SELECTION;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ROW_ID;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.sendInitPhotoPickerDataNotification;
+import static com.android.providers.media.util.FileUtils.getContentUriForPath;
 
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
@@ -74,6 +78,10 @@ public class ItemsProvider {
     private static final Uri URI_MEDIA_LOCAL;
     private static final Uri URI_ALBUMS_ALL;
     private static final Uri URI_ALBUMS_LOCAL;
+
+    private static final String MEDIA_GRANTS_URI_PATH = "content://media/media_grants";
+    public static final String EXTRA_MIME_TYPE_SELECTION = "media_grant_mime_type_selection";
+
 
     static {
         final Uri media = PICKER_INTERNAL_URI.buildUpon()
@@ -403,6 +411,36 @@ public class ItemsProvider {
     private static boolean uriHasUserId(Uri uri) {
         if (uri == null) return false;
         return !TextUtils.isEmpty(uri.getUserInfo());
+    }
+
+    /**
+     * Fetches file Uris for items having {@link com.android.providers.media.MediaGrants} for the
+     * given package. Returns an empty list if no grants are present.
+     */
+    @NonNull
+    public List<Uri> fetchReadGrantedItemsUrisForPackage(int packageUid, String[] mimeTypes) {
+        final ContentResolver resolver = mContext.getContentResolver();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            assert client != null;
+            final Bundle extras = new Bundle();
+            extras.putInt(Intent.EXTRA_UID, packageUid);
+            extras.putStringArray(EXTRA_MIME_TYPE_SELECTION, mimeTypes);
+            List<Uri> filesUriList = new ArrayList<>();
+            try (Cursor c = client.query(Uri.parse(MEDIA_GRANTS_URI_PATH),
+                    /* projection= */ null,
+                    /* queryArgs= */ extras,
+                    null)) {
+                while (c.moveToNext()) {
+                    final String file_path = c.getString(c.getColumnIndexOrThrow(DATA));
+                    final Integer file_id = c.getInt(c.getColumnIndexOrThrow(FILE_ID_COLUMN));
+                    filesUriList.add(getContentUriForPath(
+                            file_path).buildUpon().appendPath(String.valueOf(file_id)).build());
+                }
+            }
+            return filesUriList;
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
     }
 
     /**

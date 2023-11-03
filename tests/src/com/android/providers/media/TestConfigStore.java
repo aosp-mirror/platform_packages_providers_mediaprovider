@@ -35,6 +35,8 @@ import java.util.concurrent.Executor;
  */
 public class TestConfigStore implements ConfigStore {
     private boolean mCloudMediaInPhotoPickerEnabled = false;
+
+    private boolean mPickerChoiceManagedSelectionEnabled = false;
     private List<String> mAllowedCloudProviderPackages = Collections.emptyList();
     private @Nullable String mDefaultCloudProviderPackage = null;
     private List<Pair<Executor, Runnable>> mObservers = new ArrayList<>();
@@ -59,6 +61,13 @@ public class TestConfigStore implements ConfigStore {
     public void disableCloudMediaFeature() {
         mCloudMediaInPhotoPickerEnabled = false;
         notifyObservers();
+    }
+
+    /**
+     * Enables pickerChoiceManagedSelection flag in the test config.
+     */
+    public void enablePickerChoiceManagedSelectionEnabled() {
+        mPickerChoiceManagedSelectionEnabled = true;
     }
 
     @Override
@@ -109,6 +118,11 @@ public class TestConfigStore implements ConfigStore {
     }
 
     @Override
+    public boolean isPickerChoiceManagedSelectionEnabled() {
+        return mPickerChoiceManagedSelectionEnabled;
+    }
+
+    @Override
     public void addOnChangeListener(@NonNull Executor executor, @NonNull Runnable listener) {
         Pair p = Pair.create(executor, listener);
         mObservers.add(p);
@@ -120,9 +134,8 @@ public class TestConfigStore implements ConfigStore {
      */
     private void notifyObservers() {
         for (Pair<Executor, Runnable> observer: mObservers) {
-            Executor exec = observer.first;
-            Runnable listener = observer.second;
-            exec.execute(listener);
+            // Run tasks in a synchronous manner to avoid test flakes.
+            observer.second.run();
         }
     }
 }

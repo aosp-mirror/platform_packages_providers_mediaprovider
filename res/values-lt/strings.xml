@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Medija"</string>
     <string name="storage_description" msgid="4081716890357580107">"Vietinė saugykla"</string>
-    <string name="app_label" msgid="9035307001052716210">"Medijos saugykla"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"Medijos pasirinkimo priemonė"</string>
     <string name="artist_label" msgid="8105600993099120273">"Atlikėjas"</string>
     <string name="unknown" msgid="2059049215682829375">"Nežinoma"</string>
@@ -75,6 +74,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> elementas}one{<xliff:g id="COUNT_1">^1</xliff:g> elementas}few{<xliff:g id="COUNT_1">^1</xliff:g> elementai}many{<xliff:g id="COUNT_1">^1</xliff:g> elemento}other{<xliff:g id="COUNT_1">^1</xliff:g> elementų}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Pridėti (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Leisti (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Niekas neleidžiama"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Vaizdo kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Atsisiuntimai"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Mėgstamiausi"</string>
@@ -154,8 +154,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Apsauga"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Native Transcode Alerts"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Native Transcode Progress"</string>
-    <!-- no translation found for dialog_error_message (5120432204743681606) -->
-    <skip />
+    <string name="dialog_error_message" msgid="5120432204743681606">"Vėliau bandykite dar kartą. Nuotraukos bus pasiekiamos išsprendus problemą."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Nepavyko įkelti kai kurių nuotraukų"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Supratau"</string>
 </resources>

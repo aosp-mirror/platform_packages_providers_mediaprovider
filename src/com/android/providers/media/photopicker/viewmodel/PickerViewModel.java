@@ -40,12 +40,15 @@ import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.net.Uri;
+import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
@@ -53,6 +56,7 @@ import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
@@ -82,12 +86,16 @@ import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.ui.ItemsAction;
 import com.android.providers.media.photopicker.util.CategoryOrganiserUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
+import com.android.providers.media.photopicker.util.ThreadUtils;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * PickerViewModel to store and handle data for PhotoPickerActivity.
@@ -108,6 +116,9 @@ public class PickerViewModel extends AndroidViewModel {
     private final Context mAppContext;
 
     private final Selection mSelection;
+
+    private int mPackageUid = -1;
+
     private final MuteStatus mMuteStatus;
     public boolean mEmptyPageDisplayed = false;
 
@@ -153,6 +164,8 @@ public class PickerViewModel extends AndroidViewModel {
 
     // Note - Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
     private boolean mIsUserSelectForApp;
+
+    private boolean mIsManagedSelectionEnabled;
     private boolean mIsLocalOnly;
     private boolean mIsAllCategoryItemsLoaded = false;
     private boolean mIsNotificationForUpdateReceived = false;
@@ -168,6 +181,7 @@ public class PickerViewModel extends AndroidViewModel {
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
         mIsUserSelectForApp = false;
+        mIsManagedSelectionEnabled = false;
         mIsLocalOnly = false;
 
         initConfigStore();
@@ -271,7 +285,6 @@ public class PickerViewModel extends AndroidViewModel {
         return mSelection;
     }
 
-
     /**
      * @return {@code mMuteStatus} that tracks the volume mute status of the video preview
      */
@@ -285,6 +298,15 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public boolean isUserSelectForApp() {
         return mIsUserSelectForApp;
+    }
+
+    /**
+     * @return {@code mIsManagedSelectionEnabled} if the picker is currently being used
+     * for the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP} action and flag
+     * pickerChoiceManagedSelection is enabled..
+     */
+    public boolean isManagedSelectionEnabled() {
+        return mIsManagedSelectionEnabled;
     }
 
     /**
@@ -376,6 +398,21 @@ public class PickerViewModel extends AndroidViewModel {
         getPaginatedItemsForAction(ACTION_CLEAR_AND_UPDATE_LIST, null);
         updateCategories();
         mBannerManager.reset();
+    }
+
+    /**
+     * Loads list of pre granted items for the current package and userID.
+     */
+    public void initialisePreGrantsIfNecessary(Selection selection, Bundle intentExtras,
+            String[] mimeTypeFilters) {
+        if (isManagedSelectionEnabled() && selection.getPreGrantedItems() == null) {
+            DataLoaderThread.getHandler().postDelayed(() -> {
+                selection.setPreGrantedItemSet(mItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                        intentExtras.getInt(Intent.EXTRA_UID), mimeTypeFilters)
+                        .stream().map((Uri uri) -> String.valueOf(ContentUris.parseId(uri)))
+                        .collect(Collectors.toSet()));
+            }, TOKEN, DELAY_MILLIS);
+        }
     }
 
     /**
@@ -485,7 +522,6 @@ public class PickerViewModel extends AndroidViewModel {
         }, TOKEN, DELAY_MILLIS);
     }
 
-
     private List<Item> loadItems(Category category, UserId userId,
             PaginationParameters pagingParameters) {
         final List<Item> items = new ArrayList<>();
@@ -498,10 +534,23 @@ public class PickerViewModel extends AndroidViewModel {
                 return items;
             }
 
+            Set<String> preGrantedItems = new HashSet<>(0);
+            Set<String> deSelectedPreGrantedItems = new HashSet<>(0);
+            if (isManagedSelectionEnabled() && mSelection.getPreGrantedItems() != null) {
+                preGrantedItems = mSelection.getPreGrantedItems();
+                deSelectedPreGrantedItems = new HashSet<>(
+                        mSelection.getPreGrantedItemIdsToBeRevoked());
+            }
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
                 //  here again.
                 final Item item = Item.fromCursor(cursor, userId);
+                if (preGrantedItems.contains(item.getId())) {
+                    item.setPreGranted();
+                    if (!deSelectedPreGrantedItems.contains(item.getId())) {
+                        mSelection.addSelectedItem(item);
+                    }
+                }
                 String authority = item.getContentUri().getAuthority();
 
                 if (!LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority)) {
@@ -523,14 +572,67 @@ public class PickerViewModel extends AndroidViewModel {
         }
     }
 
+    /**
+     * Gets item data for Uris which have not yet been loaded to the UI. This is important when the
+     * preview fragment is created and hence should be called only before creation.
+     *
+     * <p>This is used during pagination. All the items are not loaded at once and hence the
+     * preGranted item which is on a page that is yet to be loaded will would not be part of the
+     * mSelected list and hence will not show up in the preview fragment. This method fixes this
+     * issue by selectively loading those items and adding them to the selection list.</p>
+     */
+    public void getRemainingPreGrantedItems() {
+        if (isManagedSelectionEnabled() && mSelection.getPreGrantedItems() != null) {
+            List<String> idsForItemsToBeFetched = new ArrayList<>(mSelection.getPreGrantedItems());
+            idsForItemsToBeFetched.removeAll(mSelection.getSelectedItemsIds());
+            idsForItemsToBeFetched.removeAll(mSelection.getPreGrantedItemIdsToBeRevoked());
+            if (!idsForItemsToBeFetched.isEmpty()) {
+                Log.d(TAG, "Fetching items for required preGranted ids.");
+                loadItemsWithLocalIdSelection(Category.DEFAULT,
+                        getUserIdManager().getCurrentUserProfileId(),
+                        idsForItemsToBeFetched.stream().map(Integer::valueOf).collect(
+                                Collectors.toList()));
+            }
+        }
+    }
+
+    private void loadItemsWithLocalIdSelection(Category category, UserId userId,
+            List<Integer> selectionArg) {
+        try (Cursor cursor = mItemsProvider.getLocalItemsForSelection(category, selectionArg,
+                mMimeTypeFilters, userId, mCancellationSignal)) {
+            if (cursor == null || cursor.getCount() == 0) {
+                Log.d(TAG, "Didn't receive any items for pre granted URIs" + category
+                        + ", either cursor is null or cursor count is zero");
+                return;
+            }
+
+            Set<String> selectedIdSet = new HashSet<>(mSelection.getSelectedItemsIds());
+            // Add all loaded items to selection after marking them as pre granted.
+            while (cursor.moveToNext()) {
+                final Item item = Item.fromCursor(cursor, userId);
+                item.setPreGranted();
+                if (!selectedIdSet.contains(item.getId())) {
+                    mSelection.addSelectedItem(item);
+                }
+            }
+            Log.d(TAG, "Pre granted items have been loaded.");
+        }
+    }
+
     private Cursor fetchItems(Category category, UserId userId,
             PaginationParameters pagingParameters) {
-        if (shouldShowOnlyLocalFeatures()) {
-            return mItemsProvider.getLocalItems(category, pagingParameters,
-                    mMimeTypeFilters, userId, mCancellationSignal);
-        } else {
-            return mItemsProvider.getAllItems(category, pagingParameters,
-                    mMimeTypeFilters, userId, mCancellationSignal);
+        try {
+            if (shouldShowOnlyLocalFeatures()) {
+                return mItemsProvider.getLocalItems(category, pagingParameters,
+                        mMimeTypeFilters, userId, mCancellationSignal);
+            } else {
+                return mItemsProvider.getAllItems(category, pagingParameters,
+                        mMimeTypeFilters, userId, mCancellationSignal);
+            }
+        } catch (RuntimeException ignored) {
+            // Catch OperationCanceledException.
+            Log.e(TAG, "Failed to fetch items due to a runtime exception", ignored);
+            return null;
         }
     }
 
@@ -689,10 +791,18 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private Cursor fetchCategories(UserId userId) {
-        if (shouldShowOnlyLocalFeatures()) {
-            return mItemsProvider.getLocalCategories(mMimeTypeFilters, userId, mCancellationSignal);
-        } else {
-            return mItemsProvider.getAllCategories(mMimeTypeFilters, userId, mCancellationSignal);
+        try {
+            if (shouldShowOnlyLocalFeatures()) {
+                return mItemsProvider
+                        .getLocalCategories(mMimeTypeFilters, userId, mCancellationSignal);
+            } else {
+                return mItemsProvider
+                        .getAllCategories(mMimeTypeFilters, userId, mCancellationSignal);
+            }
+        } catch (RuntimeException ignored) {
+            // Catch OperationCanceledException.
+            Log.e(TAG, "Failed to fetch categories due to a runtime exception", ignored);
+            return null;
         }
     }
 
@@ -744,6 +854,8 @@ public class PickerViewModel extends AndroidViewModel {
 
         mIsUserSelectForApp =
                 MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intent.getAction());
+        mIsManagedSelectionEnabled = mIsUserSelectForApp
+                && getConfigStore().isPickerChoiceManagedSelectionEnabled();
         if (!SdkLevel.isAtLeastU() && mIsUserSelectForApp) {
             throw new IllegalArgumentException("ACTION_USER_SELECT_IMAGES_FOR_APP is not enabled "
                     + " for this OS version");
@@ -759,6 +871,9 @@ public class PickerViewModel extends AndroidViewModel {
                     "EXTRA_UID is required for" + " ACTION_USER_SELECT_IMAGES_FOR_APP");
         }
 
+        if (mIsUserSelectForApp) {
+            mPackageUid = intent.getExtras().getInt(Intent.EXTRA_UID);
+        }
         // Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
         initBannerManager();
     }
@@ -1128,32 +1243,36 @@ public class PickerViewModel extends AndroidViewModel {
     /**
      * Dismiss (hide) the 'Choose App' banner for the current user.
      */
-    @UiThread
+    @MainThread
     public void onUserDismissedChooseAppBanner() {
+        ThreadUtils.assertMainThread();
         mBannerManager.onUserDismissedChooseAppBanner();
     }
 
     /**
      * Dismiss (hide) the 'Cloud Media Available' banner for the current user.
      */
-    @UiThread
+    @MainThread
     public void onUserDismissedCloudMediaAvailableBanner() {
+        ThreadUtils.assertMainThread();
         mBannerManager.onUserDismissedCloudMediaAvailableBanner();
     }
 
     /**
      * Dismiss (hide) the 'Account Updated' banner for the current user.
      */
-    @UiThread
+    @MainThread
     public void onUserDismissedAccountUpdatedBanner() {
+        ThreadUtils.assertMainThread();
         mBannerManager.onUserDismissedAccountUpdatedBanner();
     }
 
     /**
      * Dismiss (hide) the 'Choose Account' banner for the current user.
      */
-    @UiThread
+    @MainThread
     public void onUserDismissedChooseAccountBanner() {
+        ThreadUtils.assertMainThread();
         mBannerManager.onUserDismissedChooseAccountBanner();
     }
 

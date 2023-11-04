@@ -23,7 +23,6 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
-import static android.provider.MediaStore.fetchReadGrantedItemsUrisForPackage;
 
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
@@ -49,6 +48,7 @@ import android.content.pm.ProviderInfo;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
@@ -119,7 +119,6 @@ public class PickerViewModel extends AndroidViewModel {
 
     private int mPackageUid = -1;
 
-    private MutableLiveData<Set<String>> mPreGrantedItemsSet = new MutableLiveData<>();
     private final MuteStatus mMuteStatus;
     public boolean mEmptyPageDisplayed = false;
 
@@ -165,6 +164,8 @@ public class PickerViewModel extends AndroidViewModel {
 
     // Note - Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
     private boolean mIsUserSelectForApp;
+
+    private boolean mIsManagedSelectionEnabled;
     private boolean mIsLocalOnly;
     private boolean mIsAllCategoryItemsLoaded = false;
     private boolean mIsNotificationForUpdateReceived = false;
@@ -180,6 +181,7 @@ public class PickerViewModel extends AndroidViewModel {
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
         mIsUserSelectForApp = false;
+        mIsManagedSelectionEnabled = false;
         mIsLocalOnly = false;
 
         initConfigStore();
@@ -284,18 +286,6 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Initialises and returns the pre granted item set by getting the Ids of the items that have
-     * READ_GRANT for the current package and the user.
-     */
-    public LiveData<Set<String>> populateAndGetPreGrantedItemsSet() {
-        if (isUserSelectForApp()
-                && mPackageUid != -1) {
-            initialisePreGrantedMediaUris();
-        }
-        return mPreGrantedItemsSet;
-    }
-
-    /**
      * @return {@code mMuteStatus} that tracks the volume mute status of the video preview
      */
     public MuteStatus getMuteStatus() {
@@ -308,6 +298,15 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public boolean isUserSelectForApp() {
         return mIsUserSelectForApp;
+    }
+
+    /**
+     * @return {@code mIsManagedSelectionEnabled} if the picker is currently being used
+     * for the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP} action and flag
+     * pickerChoiceManagedSelection is enabled..
+     */
+    public boolean isManagedSelectionEnabled() {
+        return mIsManagedSelectionEnabled;
     }
 
     /**
@@ -399,6 +398,21 @@ public class PickerViewModel extends AndroidViewModel {
         getPaginatedItemsForAction(ACTION_CLEAR_AND_UPDATE_LIST, null);
         updateCategories();
         mBannerManager.reset();
+    }
+
+    /**
+     * Loads list of pre granted items for the current package and userID.
+     */
+    public void initialisePreGrantsIfNecessary(Selection selection, Bundle intentExtras,
+            String[] mimeTypeFilters) {
+        if (isManagedSelectionEnabled() && selection.getPreGrantedItems() == null) {
+            DataLoaderThread.getHandler().postDelayed(() -> {
+                selection.setPreGrantedItemSet(mItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                        intentExtras.getInt(Intent.EXTRA_UID), mimeTypeFilters)
+                        .stream().map((Uri uri) -> String.valueOf(ContentUris.parseId(uri)))
+                        .collect(Collectors.toSet()));
+            }, TOKEN, DELAY_MILLIS);
+        }
     }
 
     /**
@@ -520,14 +534,22 @@ public class PickerViewModel extends AndroidViewModel {
                 return items;
             }
 
+            Set<String> preGrantedItems = new HashSet<>(0);
+            Set<String> deSelectedPreGrantedItems = new HashSet<>(0);
+            if (isManagedSelectionEnabled() && mSelection.getPreGrantedItems() != null) {
+                preGrantedItems = mSelection.getPreGrantedItems();
+                deSelectedPreGrantedItems = new HashSet<>(
+                        mSelection.getPreGrantedItemIdsToBeRevoked());
+            }
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
                 //  here again.
                 final Item item = Item.fromCursor(cursor, userId);
-                if (isUserSelectForApp() && mPreGrantedItemsSet.getValue() != null
-                        && mPreGrantedItemsSet.getValue().contains(item.getId())) {
+                if (preGrantedItems.contains(item.getId())) {
                     item.setPreGranted();
-                    mSelection.addSelectedItem(item);
+                    if (!deSelectedPreGrantedItems.contains(item.getId())) {
+                        mSelection.addSelectedItem(item);
+                    }
                 }
                 String authority = item.getContentUri().getAuthority();
 
@@ -560,11 +582,10 @@ public class PickerViewModel extends AndroidViewModel {
      * issue by selectively loading those items and adding them to the selection list.</p>
      */
     public void getRemainingPreGrantedItems() {
-        if (isUserSelectForApp()
-                && getConfigStore().isPickerChoiceManagedSelectionEnabled()
-                && mPreGrantedItemsSet.getValue() != null) {
-            List<String> idsForItemsToBeFetched = new ArrayList<>(mPreGrantedItemsSet.getValue());
+        if (isManagedSelectionEnabled() && mSelection.getPreGrantedItems() != null) {
+            List<String> idsForItemsToBeFetched = new ArrayList<>(mSelection.getPreGrantedItems());
             idsForItemsToBeFetched.removeAll(mSelection.getSelectedItemsIds());
+            idsForItemsToBeFetched.removeAll(mSelection.getPreGrantedItemIdsToBeRevoked());
             if (!idsForItemsToBeFetched.isEmpty()) {
                 Log.d(TAG, "Fetching items for required preGranted ids.");
                 loadItemsWithLocalIdSelection(Category.DEFAULT,
@@ -833,6 +854,8 @@ public class PickerViewModel extends AndroidViewModel {
 
         mIsUserSelectForApp =
                 MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intent.getAction());
+        mIsManagedSelectionEnabled = mIsUserSelectForApp
+                && getConfigStore().isPickerChoiceManagedSelectionEnabled();
         if (!SdkLevel.isAtLeastU() && mIsUserSelectForApp) {
             throw new IllegalArgumentException("ACTION_USER_SELECT_IMAGES_FOR_APP is not enabled "
                     + " for this OS version");
@@ -853,18 +876,6 @@ public class PickerViewModel extends AndroidViewModel {
         }
         // Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
         initBannerManager();
-    }
-
-    /**
-     * Loads list of pre granted items for the current package and userID.
-     */
-    private void initialisePreGrantedMediaUris() {
-        DataLoaderThread.getHandler().postDelayed(() -> {
-            mPreGrantedItemsSet.postValue(
-                    fetchReadGrantedItemsUrisForPackage(mAppContext, mPackageUid)
-                            .stream().map((Uri uri) -> String.valueOf(ContentUris.parseId(uri)))
-                            .collect(Collectors.toSet()));
-        }, TOKEN, DELAY_MILLIS);
     }
 
     private void initBannerManager() {

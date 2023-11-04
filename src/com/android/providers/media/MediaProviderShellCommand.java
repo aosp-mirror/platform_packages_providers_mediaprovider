@@ -34,6 +34,7 @@ import com.android.modules.utils.HandlerExecutor;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
+import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
 
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -187,7 +188,12 @@ class MediaProviderShellCommand extends BasicShellCommandHandler {
 
         // TODO(b/242550131): add PickerSyncController's API to make it possible to reset just one
         //  provider's library at a time (i.e. either CMP or local).
-        mPickerSyncController.resetAllMedia();
+        try {
+            mPickerSyncController.resetAllMedia();
+        } catch (UnableToAcquireLockException e) {
+            pw.print("Could not reset all media" + e.getMessage());
+            return 1;
+        }
 
         pw.println("Done.");
         return 0;

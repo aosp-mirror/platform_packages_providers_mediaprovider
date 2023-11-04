@@ -980,7 +980,9 @@ public class DatabaseBackupAndRecovery {
         List<String> invalidUsers = getInvalidUsersList(xattrList, validUsers);
         Log.i(TAG, "Invalid users list is " + invalidUsers);
         for (String userIdToBeRemoved : invalidUsers) {
-            removeRecoveryDataForUserId(Integer.parseInt(userIdToBeRemoved));
+            if (userIdToBeRemoved != null && !userIdToBeRemoved.trim().isEmpty()) {
+                removeRecoveryDataForUserId(Integer.parseInt(userIdToBeRemoved));
+            }
         }
     }
 

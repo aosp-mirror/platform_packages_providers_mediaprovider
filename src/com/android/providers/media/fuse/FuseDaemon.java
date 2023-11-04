@@ -36,8 +36,8 @@ import java.util.Objects;
  */
 public final class FuseDaemon extends Thread {
     public static final String TAG = "FuseDaemonThread";
-    private static final int POLL_INTERVAL_MS = 1000;
-    private static final int POLL_COUNT = 5;
+    private static final int POLL_INTERVAL_MS = 100;
+    private static final int POLL_COUNT = 50;
 
     private final Object mLock = new Object();
     private final MediaProvider mMediaProvider;

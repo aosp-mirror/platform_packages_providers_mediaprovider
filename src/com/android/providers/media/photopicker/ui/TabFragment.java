@@ -83,6 +83,8 @@ public abstract class TabFragment extends Fragment {
     private boolean mIsAccessibilityEnabled;
 
     private Button mAddButton;
+
+    private Button mViewSelectedButton;
     private View mBottomBar;
     private Animation mSlideUpAnimation;
     private Animation mSlideDownAnimation;
@@ -157,6 +159,7 @@ public abstract class TabFragment extends Fragment {
         final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
             mAddButton = activity.findViewById(R.id.button_add);
+            mViewSelectedButton = activity.findViewById(R.id.button_view_selected);
             mAddButton.setOnClickListener(v -> {
                 try {
                     requirePickerActivity().setResultAndFinishSelf();
@@ -164,10 +167,8 @@ public abstract class TabFragment extends Fragment {
                     Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
                 }
             });
-
-            final Button viewSelectedButton = activity.findViewById(R.id.button_view_selected);
             // Transition to PreviewFragment on clicking "View Selected".
-            viewSelectedButton.setOnClickListener(v -> {
+            mViewSelectedButton.setOnClickListener(v -> {
                 // Load items for preview that are pre granted but not yet loaded for UI.
                 mPickerViewModel.getRemainingPreGrantedItems();
                 mSelection.prepareSelectedItemsForPreviewAll();
@@ -252,19 +253,38 @@ public abstract class TabFragment extends Fragment {
             return;
         }
 
-        if (selectedItemListSize == 0) {
-            if (mBottomBar.getVisibility() == View.VISIBLE) {
-                mBottomBar.setVisibility(View.GONE);
-                mBottomBar.startAnimation(mSlideDownAnimation);
+        if (mPickerViewModel.isManagedSelectionEnabled()) {
+            animateAndShowBottomBar(context, selectedItemListSize);
+            if (selectedItemListSize == 0) {
+                mViewSelectedButton.setVisibility(View.GONE);
+                // Update the add button to show "Allow none".
+                mAddButton.setText(R.string.picker_add_button_allow_none_option);
             }
         } else {
-            if (mBottomBar.getVisibility() == View.GONE) {
-                mBottomBar.setVisibility(View.VISIBLE);
-                mBottomBar.startAnimation(mSlideUpAnimation);
+            if (selectedItemListSize == 0) {
+                animateAndHideBottomBar();
+            } else {
+                animateAndShowBottomBar(context, selectedItemListSize);
             }
-            mAddButton.setText(generateAddButtonString(context, selectedItemListSize));
         }
-        mIsBottomBarVisible.setValue(selectedItemListSize > 0);
+        mIsBottomBarVisible.setValue(
+                mPickerViewModel.isManagedSelectionEnabled() || selectedItemListSize > 0);
+    }
+
+    private void animateAndShowBottomBar(Context context, int selectedItemListSize) {
+        if (mBottomBar.getVisibility() == View.GONE) {
+            mBottomBar.setVisibility(View.VISIBLE);
+            mBottomBar.startAnimation(mSlideUpAnimation);
+        }
+        mViewSelectedButton.setVisibility(View.VISIBLE);
+        mAddButton.setText(generateAddButtonString(context, selectedItemListSize));
+    }
+
+    private void animateAndHideBottomBar() {
+        if (mBottomBar.getVisibility() == View.VISIBLE) {
+            mBottomBar.setVisibility(View.GONE);
+            mBottomBar.startAnimation(mSlideDownAnimation);
+        }
     }
 
     private void setUpListenersForProfileButton() {

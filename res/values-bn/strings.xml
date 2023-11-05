@@ -74,6 +74,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g>টি আইটেম}one{<xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম}other{<xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>)টি যোগ করুন"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"অনুমতি দিন (<xliff:g id="COUNT">^1</xliff:g>টি)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"কারও অনুমতি নেই"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"ক্যামেরা"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"ডাউনলোড করা আইটেম"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"পছন্দসই আইটেম"</string>

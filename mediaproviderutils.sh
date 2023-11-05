@@ -1,5 +1,6 @@
 # Shell utility functions for mediaprovider developers.
 # sudo apt-get install rlwrap to have a more fully featured sqlite CLI
+# sudo apt-get install sqlitebrowser to navigate the database with a GUI
 set -x # enable debugging
 
 function add-media-grant () {
@@ -63,14 +64,9 @@ EOF
   fi
 }
 
-function sqlite3-pull () {
-    adb root
-    if [ -z "$1" ]
-    then
-        dir=$(pwd)
-    else
-        dir=$1
-    fi
+function media-pull () {
+    adb root && adb wait-for-device
+    dir=$(get-dir $1)
     package=$(get-package)
 
     if [ -f "$dir/external.db" ]; then
@@ -86,9 +82,20 @@ function sqlite3-pull () {
     sqlite3 $dir/external.db "drop trigger files_insert"
     sqlite3 $dir/external.db "drop trigger files_update"
     sqlite3 $dir/external.db "drop trigger files_delete"
-
-    rlwrap sqlite3 $dir/external.db
 }
+
+function sqlite3-pull () {
+      dir="$(get-dir $1)"
+      media-pull "$dir"
+      rlwrap sqlite3 "$dir"/external.db
+}
+
+function sqlitebrowser-pull () {
+    dir="$(get-dir "$1")"
+    media-pull "$dir"
+    sqlitebrowser "$dir"/external.db
+}
+
 
 function sqlite3-push () {
     adb root
@@ -143,6 +150,16 @@ function get-data-from-id () {
     clause="\"select _data from files where _id='$_id';\""
     echo $clause
     adb shell sqlite3 $dir $clause
+}
+
+function get-dir (){
+    if [ -z "$1" ]
+    then
+        dir=$(pwd)
+    else
+        dir=$1
+    fi
+    echo "$dir"
 }
 
 function get-package() {

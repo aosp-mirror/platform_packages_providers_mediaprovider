@@ -52,6 +52,8 @@ import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
+import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -136,6 +138,7 @@ public class PickerSyncControllerTest {
     private TestConfigStore mConfigStore;
     private PickerDbFacade mFacade;
     private PickerSyncController mController;
+    private PickerSyncLockManager mLockManager;
 
     @Before
     public void setUp() {
@@ -155,14 +158,16 @@ public class PickerSyncControllerTest {
         final File dbPath = mContext.getDatabasePath(DB_NAME);
         dbPath.delete();
 
+        mLockManager = new PickerSyncLockManager();
+
         PickerDatabaseHelper dbHelper = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
-        mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, dbHelper);
+        mFacade = new PickerDbFacade(mContext, mLockManager, LOCAL_PROVIDER_AUTHORITY, dbHelper);
 
         mConfigStore = new TestConfigStore();
         mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
 
         mController = PickerSyncController.initialize(
-                mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mContext, mFacade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         // Set cloud provider to null to avoid trying to sync it during other tests
         // that might be using an IsolatedContext
@@ -192,7 +197,7 @@ public class PickerSyncControllerTest {
         configStore.disableCloudMediaFeature();
 
         PickerSyncController controller =
-                PickerSyncController.initialize(mContext, mFacade, configStore);
+                PickerSyncController.initialize(mContext, mFacade, configStore, mLockManager);
         assertThat(controller.getCurrentCloudProviderInfo()).isEqualTo(CloudProviderInfo.EMPTY);
         configStore.setDefaultCloudProviderPackage(PACKAGE_NAME);
         configStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
@@ -208,7 +213,7 @@ public class PickerSyncControllerTest {
     }
 
     @Test
-    public void testSyncIsCancelledIfCloudProviderIsChanged() {
+    public void testSyncIsCancelledIfCloudProviderIsChanged() throws UnableToAcquireLockException {
 
         PickerSyncController controller = spy(mController);
 
@@ -218,7 +223,7 @@ public class PickerSyncControllerTest {
         doReturn(CLOUD_PRIMARY_PROVIDER_AUTHORITY,
                 CLOUD_SECONDARY_PROVIDER_AUTHORITY)
                 .when(controller)
-                .getCloudProvider();
+                .getCloudProviderWithTimeout();
 
         // Add local only media, we expect these to be successfully sync'd from the local provider.
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
@@ -245,10 +250,9 @@ public class PickerSyncControllerTest {
         controller.syncAllMedia();
 
         // The cursor should only contain the items from the local provider. (Even though we've
-        // aded a total of 4 items to the linked providers.)
+        // added a total of 4 items to the linked providers.)
         try (Cursor cr = queryMedia()) {
             assertThat(cr.getCount()).isEqualTo(2);
-
             assertCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER_AUTHORITY);
             assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
         }
@@ -773,7 +777,7 @@ public class PickerSyncControllerTest {
 
         mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
         final PickerSyncController controller = PickerSyncController.initialize(
-                mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mContext, mFacade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
         final List<CloudProviderInfo> providers = controller.getAvailableCloudProviders();
         assertThat(providers).containsExactly(primaryInfo, secondaryInfo, flakyInfo);
     }
@@ -797,7 +801,7 @@ public class PickerSyncControllerTest {
         mConfigStore.setDefaultCloudProviderPackage(PACKAGE_NAME);
 
         mController = PickerSyncController.initialize(mContext, mFacade, mConfigStore,
-                LOCAL_PROVIDER_AUTHORITY);
+                mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         assertThat(mController.getCurrentCloudProviderInfo().packageName).isEqualTo(PACKAGE_NAME);
     }
@@ -843,10 +847,10 @@ public class PickerSyncControllerTest {
 
         final PickerDatabaseHelper dbHelper = new PickerDatabaseHelper(
                 mContext, DB_NAME, DB_VERSION_1);
-        PickerDbFacade facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+        PickerDbFacade facade = new PickerDbFacade(mContext, mLockManager, LOCAL_PROVIDER_AUTHORITY,
                 dbHelper);
         PickerSyncController controller = PickerSyncController.initialize(
-                mContext, facade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mContext, facade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         controller.syncAllMedia();
@@ -863,9 +867,9 @@ public class PickerSyncControllerTest {
         final File dbPath = mContext.getDatabasePath(DB_NAME);
         dbPath.delete();
 
-        facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, dbHelper);
+        facade = new PickerDbFacade(mContext, mLockManager, LOCAL_PROVIDER_AUTHORITY, dbHelper);
         controller = PickerSyncController.initialize(
-                mContext, facade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mContext, facade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         // Initially empty db
         try (Cursor cr = queryMedia(facade)) {
@@ -887,10 +891,10 @@ public class PickerSyncControllerTest {
         mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
 
         PickerDatabaseHelper dbHelperV1 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
-        PickerDbFacade facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+        PickerDbFacade facade = new PickerDbFacade(mContext, mLockManager, LOCAL_PROVIDER_AUTHORITY,
                 dbHelperV1);
         PickerSyncController controller = PickerSyncController.initialize(
-                mContext, facade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mContext, facade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         controller.syncAllMedia();
@@ -904,9 +908,9 @@ public class PickerSyncControllerTest {
         // Upgrade db version
         dbHelperV1.close();
         PickerDatabaseHelper dbHelperV2 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_2);
-        facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, dbHelperV2);
+        facade = new PickerDbFacade(mContext, mLockManager, LOCAL_PROVIDER_AUTHORITY, dbHelperV2);
         controller = PickerSyncController.initialize(
-                mContext, facade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mContext, facade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         // Initially empty db
         try (Cursor cr = queryMedia(facade)) {
@@ -928,10 +932,10 @@ public class PickerSyncControllerTest {
         mConfigStore.clearAllowedCloudProviderPackagesAndDisableCloudMediaFeature();
 
         PickerDatabaseHelper dbHelperV2 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_2);
-        PickerDbFacade facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+        PickerDbFacade facade = new PickerDbFacade(mContext, mLockManager, LOCAL_PROVIDER_AUTHORITY,
                 dbHelperV2);
         PickerSyncController controller = PickerSyncController.initialize(
-                mContext, facade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mContext, facade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         controller.syncAllMedia();
@@ -945,10 +949,10 @@ public class PickerSyncControllerTest {
         // Downgrade db version
         dbHelperV2.close();
         PickerDatabaseHelper dbHelperV1 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
-        facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+        facade = new PickerDbFacade(mContext, mLockManager, LOCAL_PROVIDER_AUTHORITY,
                 dbHelperV1);
         controller = PickerSyncController.initialize(
-                mContext, facade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mContext, facade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         // Initially empty db
         try (Cursor cr = queryMedia(facade)) {
@@ -1102,10 +1106,10 @@ public class PickerSyncControllerTest {
         mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
 
         PickerDatabaseHelper dbHelperV1 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
-        PickerDbFacade facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+        PickerDbFacade facade = new PickerDbFacade(mContext, mLockManager, LOCAL_PROVIDER_AUTHORITY,
                 dbHelperV1);
         PickerSyncController controller = PickerSyncController.initialize(
-                mContext, facade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mContext, facade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         controller.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         assertThat(controller.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
@@ -1113,10 +1117,10 @@ public class PickerSyncControllerTest {
         // Downgrade db version
         dbHelperV1.close();
         PickerDatabaseHelper dbHelperV2 = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_2);
-        facade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY,
+        facade = new PickerDbFacade(mContext, mLockManager, LOCAL_PROVIDER_AUTHORITY,
                 dbHelperV2);
         controller = PickerSyncController.initialize(
-                mContext, facade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mContext, facade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         assertThat(controller.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
     }
@@ -1129,7 +1133,7 @@ public class PickerSyncControllerTest {
         // Test the default NOT_SET state
         mController =
                 PickerSyncController.initialize(
-                        mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                        mContext, mFacade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         assertThat(mController.getCurrentCloudProviderInfo().packageName).isEqualTo(PACKAGE_NAME);
 
@@ -1138,7 +1142,7 @@ public class PickerSyncControllerTest {
 
         mController =
                 PickerSyncController.initialize(
-                        mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                        mContext, mFacade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         assertThat(mController.getCloudProvider()).isNull();
 
@@ -1147,7 +1151,7 @@ public class PickerSyncControllerTest {
 
         mController =
                 PickerSyncController.initialize(
-                        mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                        mContext, mFacade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
 
         assertThat(mController.getCloudProvider()).isEqualTo(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
     }
@@ -1376,7 +1380,8 @@ public class PickerSyncControllerTest {
             mConfigStore.setDefaultCloudProviderPackage(PACKAGE_NAME);
 
             // The cloud provider is changed on PickerSyncController construction
-            mController = PickerSyncController.initialize(mContext, mFacade, mConfigStore);
+            mController = PickerSyncController
+                    .initialize(mContext, mFacade, mConfigStore, mLockManager);
             TimeUnit.MILLISECONDS.sleep(100);
             assertThat(refreshUiNotificationObserver.mNotificationReceived).isTrue();
 
@@ -1390,7 +1395,8 @@ public class PickerSyncControllerTest {
             refreshUiNotificationObserver.mNotificationReceived = false;
 
             // The cloud provider remains unchanged on PickerSyncController construction
-            mController = PickerSyncController.initialize(mContext, mFacade, mConfigStore);
+            mController = PickerSyncController
+                    .initialize(mContext, mFacade, mConfigStore, mLockManager);
             TimeUnit.MILLISECONDS.sleep(100);
             assertThat(refreshUiNotificationObserver.mNotificationReceived).isFalse();
 
@@ -1473,7 +1479,7 @@ public class PickerSyncControllerTest {
         }
 
         return PickerSyncController.initialize(
-                mockContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mockContext, mFacade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
     }
 
     private static void assertCursor(Cursor cursor, String id, String expectedAuthority) {

@@ -579,8 +579,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         // Revoke READ_GRANT for items that were pre-granted but now in the current session user has
         // deselected them.
-        if (isUserSelectImagesForAppAction()
-                && mPickerViewModel.getConfigStore().isPickerChoiceManagedSelectionEnabled()) {
+        if (mPickerViewModel.isManagedSelectionEnabled()) {
             final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
                     mSelection.getPreGrantedItemsToBeRevoked());
             if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {
@@ -912,8 +911,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     /**
      * Reset to Photo Picker initial launch state (Photos grid tab) in the current profile mode.
      */
-    @VisibleForTesting
-    public void resetInCurrentProfile() {
+    private void resetInCurrentProfile() {
         // Clear all the fragments in the FragmentManager
         final FragmentManager fragmentManager = getSupportFragmentManager();
         fragmentManager.popBackStackImmediate(/* name */ null,

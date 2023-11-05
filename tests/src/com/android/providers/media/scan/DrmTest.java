@@ -19,6 +19,8 @@ package com.android.providers.media.scan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -48,7 +50,6 @@ import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -99,7 +100,7 @@ public class DrmTest {
 
     @Test
     public void testForwardLock_Audio() throws Exception {
-        Assume.assumeTrue(isForwardLockSupported());
+        assumeTrue(isForwardLockSupported());
         doForwardLock("audio/mpeg", R.raw.test_audio, (values) -> {
             assertEquals(1_045L, (long) values.getAsLong(FileColumns.DURATION));
             assertEquals(FileColumns.MEDIA_TYPE_AUDIO,
@@ -109,7 +110,7 @@ public class DrmTest {
 
     @Test
     public void testForwardLock_Video() throws Exception {
-        Assume.assumeTrue(isForwardLockSupported());
+        assumeTrue(isForwardLockSupported());
         doForwardLock("video/mp4", R.raw.test_video, (values) -> {
             assertEquals(40_000L, (long) values.getAsLong(FileColumns.DURATION));
             assertEquals(FileColumns.MEDIA_TYPE_VIDEO,
@@ -119,7 +120,7 @@ public class DrmTest {
 
     @Test
     public void testForwardLock_Image() throws Exception {
-        Assume.assumeTrue(isForwardLockSupported());
+        assumeTrue(isForwardLockSupported());
         doForwardLock("image/jpeg", R.raw.test_image, (values) -> {
             // ExifInterface currently doesn't know how to scan DRM images, so
             // the best we can do is verify the base test metadata
@@ -130,7 +131,7 @@ public class DrmTest {
 
     @Test
     public void testForwardLock_Binary() throws Exception {
-        Assume.assumeTrue(isForwardLockSupported());
+        assumeTrue(isForwardLockSupported());
         doForwardLock("application/octet-stream", R.raw.test_image, null);
     }
 
@@ -140,7 +141,7 @@ public class DrmTest {
      */
     @Test
     public void testForwardLock_130680734() throws Exception {
-        Assume.assumeTrue(isForwardLockSupported());
+        assumeTrue(isForwardLockSupported());
 
         final ContentValues values = new ContentValues();
         values.put(MediaColumns.DISPLAY_NAME, "temp" + System.nanoTime() + ".fl");
@@ -165,10 +166,16 @@ public class DrmTest {
                 ContentUris.parseId(uri));
         try (Cursor c = mResolver.query(filesUri, null, null, null)) {
             assertTrue(c.moveToFirst());
+
+            final String mimeType = c.getString(c.getColumnIndex(FileColumns.MIME_TYPE));
+            // To be consistent with the logic in doForwardLock() below: if the devices does not
+            // handle .fl files we won't consider the test failing, but we also can't carry on here,
+            // thus let's do an AssumptionViolatedException.
+            assumeFalse(MIME_UNSUPPORTED.equals(mimeType));
+            assertEquals("video/mp4", mimeType);
+
             assertEquals(FileColumns.MEDIA_TYPE_VIDEO,
                     c.getInt(c.getColumnIndex(FileColumns.MEDIA_TYPE)));
-            assertEquals("video/mp4",
-                    c.getString(c.getColumnIndex(FileColumns.MIME_TYPE)));
         }
     }
 
@@ -232,7 +239,7 @@ public class DrmTest {
                 }
             } else if (Objects.equals(MIME_UNSUPPORTED, actualMimeType)) {
                 // We don't scan unsupported items, so we can't check our custom
-                // verifier, but we're still willing to consider this as passing
+                // verifier, but we're still willing to consider this as passing.
             } else {
                 fail("Unexpected MIME type " + actualMimeType);
             }

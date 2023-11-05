@@ -56,6 +56,8 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
 
+    public static final String MANAGED_SELECTION_ENABLED_EXTRA = "MANAGED_SELECTION_ENABLE";
+
     public ActivityScenario<PhotoPickerTestActivity> mScenario;
 
     @After
@@ -132,6 +134,34 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    public void testAddButtonIsShowsAllowNone() {
+        launchValidActivityWithManagedSelectionEnabled();
+        final int bottomBarId = R.id.picker_bottom_bar;
+        final int viewSelectedId = R.id.button_view_selected;
+        final int addButtonId = R.id.button_add;
+
+        // Default view, no item selected.
+        onView(withId(bottomBarId)).check(matches(isDisplayed()));
+        onView(withId(viewSelectedId)).check(matches(not(isDisplayed())));
+        onView(withId(addButtonId)).check(matches(isDisplayed()));
+        // verify that 'Allow none' is displayed in this case.
+        onView(withId(addButtonId)).check(
+                matches(withText(R.string.picker_add_button_allow_none_option)));
+
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+
+        onView(withId(bottomBarId)).check(matches(isDisplayed()));
+        onView(withId(viewSelectedId)).check(matches(isDisplayed()));
+
+        onView(withId(addButtonId)).check(matches(withText("Allow (1)")));
+        onView(withId(addButtonId)).check(matches(isDisplayed()));
+
+
+        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+        onView(withId(addButtonId)).check(matches(withText("Allow (1)")));
+    }
+
+    @Test
     public void testNoCloudSettingsAndBanners() {
         launchValidActivity();
 
@@ -154,5 +184,13 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         mScenario =
                 ActivityScenario.launchActivityForResult(
                         PhotoPickerBaseTest.getUserSelectImagesForAppIntent());
+    }
+
+    /** Test helper to launch a valid test activity. */
+    private void launchValidActivityWithManagedSelectionEnabled() {
+        Intent intent = PhotoPickerBaseTest.getUserSelectImagesForAppIntent();
+        intent.putExtra(MANAGED_SELECTION_ENABLED_EXTRA, true);
+        mScenario =
+                ActivityScenario.launchActivityForResult(intent);
     }
 }

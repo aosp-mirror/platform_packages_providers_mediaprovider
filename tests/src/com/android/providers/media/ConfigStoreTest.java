@@ -61,7 +61,7 @@ public class ConfigStoreTest {
         assertEquals(60000, mConfigStore.getTranscodeMaxDurationMs());
         assertTrue(mConfigStore.isCloudMediaInPhotoPickerEnabled());
         assertFalse(mConfigStore.isGetContentTakeOverEnabled());
-        assertFalse(mConfigStore.isPickerChoiceManagedSelectionEnabled());
+        assertTrue(mConfigStore.isPickerChoiceManagedSelectionEnabled());
         assertFalse(mConfigStore.isStableUrisForExternalVolumeEnabled());
         assertFalse(mConfigStore.isStableUrisForInternalVolumeEnabled());
         assertTrue(mConfigStore.isTranscodeEnabled());

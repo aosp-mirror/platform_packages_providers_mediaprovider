@@ -31,6 +31,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,6 +46,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
@@ -67,7 +69,7 @@ import java.util.Locale;
  * The base abstract Tab fragment
  */
 public abstract class TabFragment extends Fragment {
-
+    private static final String TAG = TabFragment.class.getSimpleName();
     protected PickerViewModel mPickerViewModel;
     protected Selection mSelection;
     protected ImageLoader mImageLoader;
@@ -116,11 +118,13 @@ public abstract class TabFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        final Context context = getContext();
+        final Context context = requireContext();
+        final FragmentActivity activity = requireActivity();
+
         mImageLoader = new ImageLoader(context);
         mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
         mRecyclerView.setHasFixedSize(true);
-        final ViewModelProvider viewModelProvider = new ViewModelProvider(requireActivity());
+        final ViewModelProvider viewModelProvider = new ViewModelProvider(activity);
         mPickerViewModel = viewModelProvider.get(PickerViewModel.class);
         mSelection = mPickerViewModel.getSelection();
         mRecyclerViewBottomPadding = getResources().getDimensionPixelSize(
@@ -147,35 +151,51 @@ public abstract class TabFragment extends Fragment {
         mButtonIconAndTextColor = ta.getColor(/* index */ 1, /* defValue */ -1);
         ta.recycle();
 
-        mProfileButton = getActivity().findViewById(R.id.profile_button);
+        mProfileButton = activity.findViewById(R.id.profile_button);
         mUserIdManager = mPickerViewModel.getUserIdManager();
 
         final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
-            mAddButton = getActivity().findViewById(R.id.button_add);
+            mAddButton = activity.findViewById(R.id.button_add);
             mAddButton.setOnClickListener(v -> {
-                ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
+                try {
+                    requirePickerActivity().setResultAndFinishSelf();
+                } catch (RuntimeException e) {
+                    Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                }
             });
 
-            final Button viewSelectedButton = getActivity().findViewById(R.id.button_view_selected);
+            final Button viewSelectedButton = activity.findViewById(R.id.button_view_selected);
             // Transition to PreviewFragment on clicking "View Selected".
             viewSelectedButton.setOnClickListener(v -> {
+                // Load items for preview that are pre granted but not yet loaded for UI.
+                mPickerViewModel.getRemainingPreGrantedItems();
                 mSelection.prepareSelectedItemsForPreviewAll();
 
                 int selectedItemCount = mSelection.getSelectedItemCount().getValue();
                 mPickerViewModel.logPreviewAllSelected(selectedItemCount);
 
-                PreviewFragment.show(getActivity().getSupportFragmentManager(),
-                        PreviewFragment.getArgsForPreviewOnViewSelected());
+                try {
+                    PreviewFragment.show(requireActivity().getSupportFragmentManager(),
+                            PreviewFragment.getArgsForPreviewOnViewSelected());
+                } catch (RuntimeException e) {
+                    Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                }
             });
 
-            mBottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
-            mSlideUpAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_up);
-            mSlideDownAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_down);
+            mBottomBar = activity.findViewById(R.id.picker_bottom_bar);
+            mSlideUpAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_up);
+            mSlideDownAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_down);
 
             mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
-                updateProfileButtonVisibility();
-                updateVisibilityAndAnimateBottomBar(selectedItemListSize);
+                // Fetch activity or context again instead of capturing existing variable in lambdas
+                // to avoid memory leaks.
+                try {
+                    updateProfileButtonVisibility();
+                    updateVisibilityAndAnimateBottomBar(requireContext(), selectedItemListSize);
+                } catch (RuntimeException e) {
+                    Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                }
             });
         }
 
@@ -224,7 +244,8 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setPadding(0, 0, 0, recyclerViewBottomPadding);
     }
 
-    private void updateVisibilityAndAnimateBottomBar(int selectedItemListSize) {
+    private void updateVisibilityAndAnimateBottomBar(@NonNull Context context,
+            int selectedItemListSize) {
         if (!mSelection.canSelectMultiple()) {
             return;
         }
@@ -239,7 +260,7 @@ public abstract class TabFragment extends Fragment {
                 mBottomBar.setVisibility(View.VISIBLE);
                 mBottomBar.startAnimation(mSlideUpAnimation);
             }
-            mAddButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
+            mAddButton.setText(generateAddButtonString(context, selectedItemListSize));
         }
         mIsBottomBarVisible.setValue(selectedItemListSize > 0);
     }
@@ -307,7 +328,11 @@ public abstract class TabFragment extends Fragment {
         mPickerViewModel.logProfileSwitchButtonClick();
 
         if (!mUserIdManager.isCrossProfileAllowed()) {
-            ProfileDialogFragment.show(getActivity().getSupportFragmentManager());
+            try {
+                ProfileDialogFragment.show(requireActivity().getSupportFragmentManager());
+            } catch (RuntimeException e) {
+                Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+            }
         } else {
             changeProfile();
         }
@@ -333,54 +358,73 @@ public abstract class TabFragment extends Fragment {
     private void updateProfileButtonContent(boolean isManagedUserSelected) {
         final Drawable icon;
         final String text;
+        final Context context;
+        try {
+            context = requireContext();
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Could not update profile button content because the fragment is not"
+                    + " attached.");
+            return;
+        }
+
         if (isManagedUserSelected) {
-            icon = getContext().getDrawable(R.drawable.ic_personal_mode);
-            text = getSwitchToPersonalMessage();
+            icon = context.getDrawable(R.drawable.ic_personal_mode);
+            text = getSwitchToPersonalMessage(context);
         } else {
-            icon = getWorkProfileIcon();
-            text = getSwitchToWorkMessage();
+            icon = getWorkProfileIcon(context);
+            text = getSwitchToWorkMessage(context);
         }
         mProfileButton.setIcon(icon);
         mProfileButton.setText(text);
     }
 
-    private String getSwitchToPersonalMessage() {
+    private String getSwitchToPersonalMessage(@NonNull Context context) {
         if (SdkLevel.isAtLeastT()) {
             return getUpdatedEnterpriseString(
-                    SWITCH_TO_PERSONAL_MESSAGE, R.string.picker_personal_profile);
+                    context, SWITCH_TO_PERSONAL_MESSAGE, R.string.picker_personal_profile);
         } else {
-            return getContext().getString(R.string.picker_personal_profile);
+            return context.getString(R.string.picker_personal_profile);
         }
     }
 
-    private String getSwitchToWorkMessage() {
+    private String getSwitchToWorkMessage(@NonNull Context context) {
         if (SdkLevel.isAtLeastT()) {
             return getUpdatedEnterpriseString(
-                    SWITCH_TO_WORK_MESSAGE, R.string.picker_work_profile);
+                    context, SWITCH_TO_WORK_MESSAGE, R.string.picker_work_profile);
         } else {
-            return getContext().getString(R.string.picker_work_profile);
+            return context.getString(R.string.picker_work_profile);
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private String getUpdatedEnterpriseString(String updatableStringId, int defaultStringId) {
-        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
+    private String getUpdatedEnterpriseString(@NonNull Context context,
+            @NonNull String updatableStringId,
+            int defaultStringId) {
+        final DevicePolicyManager dpm = context.getSystemService(DevicePolicyManager.class);
         return dpm.getResources().getString(updatableStringId, () -> getString(defaultStringId));
     }
 
-    private Drawable getWorkProfileIcon() {
+    private Drawable getWorkProfileIcon(@NonNull Context context) {
         if (SdkLevel.isAtLeastT()) {
-            return getUpdatedWorkProfileIcon();
+            return getUpdatedWorkProfileIcon(context);
         } else {
-            return getContext().getDrawable(R.drawable.ic_work_outline);
+            return context.getDrawable(R.drawable.ic_work_outline);
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private Drawable getUpdatedWorkProfileIcon() {
-        DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
-        return dpm.getResources().getDrawable(WORK_PROFILE_ICON, OUTLINE, () ->
-                getContext().getDrawable(R.drawable.ic_work_outline));
+    private Drawable getUpdatedWorkProfileIcon(@NonNull Context context) {
+        DevicePolicyManager dpm = context.getSystemService(DevicePolicyManager.class);
+        return dpm.getResources().getDrawable(WORK_PROFILE_ICON, OUTLINE, () -> {
+            // Fetch activity or context again instead of capturing existing variable in
+            // lambdas to avoid memory leaks.
+            try {
+                return requireContext().getDrawable(R.drawable.ic_work_outline);
+            } catch (RuntimeException e) {
+                Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                return null;
+            }
+        });
     }
 
     private void updateProfileButtonColor(boolean isDisabled) {
@@ -441,13 +485,18 @@ public abstract class TabFragment extends Fragment {
         return TextUtils.expandTemplate(template, sizeString).toString();
     }
 
-    protected final PhotoPickerActivity getPickerActivity() {
-        return (PhotoPickerActivity) getActivity();
+    /**
+     * Returns {@link PhotoPickerActivity} if the fragment is attached to one. Otherwise, throws an
+     * {@link IllegalStateException}.
+     */
+    protected final PhotoPickerActivity requirePickerActivity() throws IllegalStateException {
+        return (PhotoPickerActivity) requireActivity();
     }
 
-    protected final void setLayoutManager(@NonNull TabAdapter adapter, int spanCount) {
+    protected final void setLayoutManager(@NonNull Context context,
+            @NonNull TabAdapter adapter, int spanCount) {
         final GridLayoutManager layoutManager =
-                new GridLayoutManager(getContext(), spanCount);
+                new GridLayoutManager(context, spanCount);
         final GridLayoutManager.SpanSizeLookup lookup = new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {
@@ -473,10 +522,14 @@ public abstract class TabFragment extends Fragment {
             final Intent accountChangeIntent =
                     mPickerViewModel.getChooseCloudMediaAccountActivityIntent();
 
-            if (accountChangeIntent != null) {
-                getPickerActivity().startActivity(accountChangeIntent);
-            } else {
-                getPickerActivity().startSettingsActivity();
+            try {
+                if (accountChangeIntent != null) {
+                    requirePickerActivity().startActivity(accountChangeIntent);
+                } else {
+                    requirePickerActivity().startSettingsActivity();
+                }
+            } catch (RuntimeException e) {
+                Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
             }
         }
 

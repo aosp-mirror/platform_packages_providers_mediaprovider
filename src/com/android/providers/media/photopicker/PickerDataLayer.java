@@ -26,6 +26,8 @@ import static android.provider.MediaStore.MY_UID;
 
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_ALBUM_SYNC_WORK_NAME;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_LOCAL_SYNC_WORK_NAME;
 
 import static java.util.Objects.requireNonNull;
 
@@ -83,6 +85,8 @@ public class PickerDataLayer {
 
     public static final String QUERY_DATE_TAKEN_BEFORE_MS = "android:query-date-taken-before-ms";
 
+    public static final String QUERY_LOCAL_ID_SELECTION = "android:query-local-id-selection";
+
     public static final String QUERY_ROW_ID = "android:query-row-id";
 
     // Thread pool size should be at least equal to the number of unique work requests in
@@ -106,27 +110,31 @@ public class PickerDataLayer {
     @NonNull
     private final ConfigStore mConfigStore;
 
-    public PickerDataLayer(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
-            @NonNull PickerSyncController syncController, @NonNull ConfigStore configStore) {
-        this(context, dbFacade, syncController, configStore, /* schedulePeriodicSyncs */ true);
-    }
-
     @VisibleForTesting
     public PickerDataLayer(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
             @NonNull PickerSyncController syncController, @NonNull ConfigStore configStore,
-            boolean schedulePeriodicSyncs) {
+            @NonNull PickerSyncManager syncManager) {
         mContext = requireNonNull(context);
         mDbFacade = requireNonNull(dbFacade);
         mSyncController = requireNonNull(syncController);
         mLocalProvider = requireNonNull(dbFacade.getLocalProvider());
         mConfigStore = requireNonNull(configStore);
-        mSyncManager = new PickerSyncManager(
-                getWorkManager(), context, configStore, schedulePeriodicSyncs);
+        mSyncManager = syncManager;
 
         // Add a subscriber to config store changes to monitor the allowlist.
         mConfigStore.addOnChangeListener(
                 ForegroundThread.getExecutor(),
                 this::validateCurrentCloudProviderOnAllowlistChange);
+    }
+
+    /**
+     * Create a new instance of PickerDataLayer.
+     */
+    public static PickerDataLayer create(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
+            @NonNull PickerSyncController syncController, @NonNull ConfigStore configStore) {
+        PickerSyncManager syncManager = new PickerSyncManager(
+                getWorkManager(context), context, configStore, /* schedulePeriodicSyncs */ true);
+        return new PickerDataLayer(context, dbFacade, syncController, configStore, syncManager);
     }
 
     /**
@@ -173,7 +181,8 @@ public class PickerDataLayer {
                     syncAllMedia(isLocalOnly);
                 } else {
                     // Wait for local sync to finish indefinitely
-                    waitForSync(SyncTrackerRegistry.getLocalSyncTracker());
+                    waitForSync(SyncTrackerRegistry.getLocalSyncTracker(),
+                            IMMEDIATE_LOCAL_SYNC_WORK_NAME);
                     Log.i(TAG, "Local sync is complete");
 
                     // Wait for on cloud sync with timeout
@@ -204,7 +213,8 @@ public class PickerDataLayer {
                 if (shouldSyncBeforePickerQuery()) {
                     mSyncController.syncAlbumMedia(albumId, isLocal(albumAuthority));
                 } else {
-                    waitForSync(SyncTrackerRegistry.getAlbumSyncTracker(isLocal(albumAuthority)));
+                    waitForSync(SyncTrackerRegistry.getAlbumSyncTracker(isLocal(albumAuthority)),
+                            IMMEDIATE_ALBUM_SYNC_WORK_NAME);
                     Log.i(TAG, "Album sync is complete");
                 }
 
@@ -230,16 +240,64 @@ public class PickerDataLayer {
 
     private void syncAllMedia(boolean isLocalOnly) {
         if (isLocalOnly) {
-            mSyncController.syncAllMediaFromLocalProvider();
+            mSyncController.syncAllMediaFromLocalProvider(/* cancellationSignal= */ null);
         } else {
             mSyncController.syncAllMedia();
         }
     }
 
-    private void waitForSync(@NonNull SyncTracker syncTracker) {
-        waitForSyncWithTimeout(syncTracker, /* timeout */ null);
+    /**
+     * Will try it's best to wait for the existing sync requests to complete. It may not wait for
+     * new sync requests received after this method starts running.
+     */
+    private void waitForSync(@NonNull SyncTracker syncTracker, String uniqueWorkName) {
+        try {
+            final CompletableFuture<Void> completableFuture =
+                    CompletableFuture.allOf(
+                            syncTracker.pendingSyncFutures().toArray(new CompletableFuture[0]));
+
+            waitForSync(completableFuture, uniqueWorkName, /* retryCount */ 30);
+        } catch (ExecutionException | InterruptedException e) {
+            Log.w(TAG, "Could not wait for the sync to finish: " + e);
+        }
     }
 
+    /**
+     * Wait for sync tracked by the input future to complete. In case the future takes an unusually
+     * long time to complete, check the relevant unique work status from Work Manager.
+     */
+    @VisibleForTesting
+    public int waitForSync(@NonNull CompletableFuture<Void> completableFuture,
+            @NonNull String uniqueWorkName,
+            int retryCount) throws ExecutionException, InterruptedException {
+        for (; retryCount > 0; retryCount--) {
+            try {
+                completableFuture.get(/* timeout */ 3, TimeUnit.SECONDS);
+                return retryCount;
+            } catch (TimeoutException e) {
+                if (mSyncManager.isUniqueWorkPending(uniqueWorkName)) {
+                    Log.i(TAG, "Waiting for the sync again."
+                            + " Unique work name: " + uniqueWorkName
+                            + " Retry count: " + retryCount);
+                } else {
+                    Log.e(TAG, "Either immediate unique work is complete and the sync futures "
+                            + "were not cleared, or a proactive sync might be blocking the query. "
+                            + "Unblocking the query now for " + uniqueWorkName);
+                    return retryCount;
+                }
+            }
+        }
+
+        if (retryCount == 0) {
+            Log.e(TAG, "Retry count exhausted, could not wait for sync anymore.");
+        }
+        return retryCount;
+    }
+
+    /**
+     * Will wait for the existing sync requests to complete till the provided timeout. It may
+     * not wait for new sync requests received after this method starts running.
+     */
     private boolean waitForSyncWithTimeout(
             @NonNull SyncTracker syncTracker,
             @Nullable Long timeoutInMillis) {
@@ -247,14 +305,10 @@ public class PickerDataLayer {
             final CompletableFuture<Void> completableFuture =
                     CompletableFuture.allOf(
                             syncTracker.pendingSyncFutures().toArray(new CompletableFuture[0]));
-            if (timeoutInMillis == null) {
-                completableFuture.get();
-            } else {
-                completableFuture.get(timeoutInMillis, TimeUnit.MILLISECONDS);
-            }
+            completableFuture.get(timeoutInMillis, TimeUnit.MILLISECONDS);
             return true;
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            Log.w(TAG, "Could not wait for the sync to finish: " + e);
+            Log.w(TAG, "Could not wait for the sync with timeout to finish: " + e);
             return false;
         }
     }
@@ -377,7 +431,12 @@ public class PickerDataLayer {
         final Bundle accountBundle = mContext.getContentResolver()
                 .call(getMediaCollectionInfoUri(cloudProvider), METHOD_GET_MEDIA_COLLECTION_INFO,
                         /* arg */ null, /* extras */ null);
-
+        if (accountBundle == null) {
+            Log.e(TAG,
+                    "Media collection info received is null. Failed to fetch Cloud account "
+                            + "information.");
+            return null;
+        }
         final String accountName = accountBundle.getString(ACCOUNT_NAME);
         if (accountName == null) {
             return null;
@@ -612,7 +671,7 @@ public class PickerDataLayer {
      * @return a {@link WorkManager} object that can be used to run work requests.
      */
     @NonNull
-    private WorkManager getWorkManager() {
+    private static WorkManager getWorkManager(Context mContext) {
         if (!WorkManager.isInitialized()) {
             Log.i(TAG, "Work manager not initialised. Attempting to initialise.");
             WorkManager.initialize(mContext, getWorkManagerConfiguration());

@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"මාධ්‍ය"</string>
     <string name="storage_description" msgid="4081716890357580107">"පෙදෙසි ආචයනය"</string>
-    <string name="app_label" msgid="9035307001052716210">"මාධ්‍ය ගබඩාව"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"මාධ්‍ය තෝරනය"</string>
     <string name="artist_label" msgid="8105600993099120273">"කලාකරු"</string>
     <string name="unknown" msgid="2059049215682829375">"නොදනී"</string>
@@ -96,6 +95,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ඔබේ අන්තර්ජාල සබැඳුම පරීක්ෂා කර නැවත උත්සාහ කරන්න"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"යළි උත්සාහ කරන්න"</string>
     <string name="not_selected" msgid="2244008151669896758">"තෝරා නොමැත"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"ඔබ තෝරන ලද මාධ්‍ය සූදානම් කරමින්"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>කින් <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>ක් සූදානම්"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"උපස්ථ කළ ඡායාරූප දැන් ඇතුළත් කර ඇත"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ඔබට <xliff:g id="APP_NAME">%1$s</xliff:g> ගිණුමෙන් <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ඡායාරූප තෝරා ගත හැක"</string>
@@ -153,4 +153,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"සුරක්ෂිතතා ආරක්ෂණය"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"සහජ ට්‍රාන්ස්කෝඩ් ඇඟවීම්"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"සහජ ට්‍රාන්ස්කෝඩ් ප්‍රගතිය"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"පසුව නැවත උත්සාහ කරන්න. ගැටලුව විසඳූ පසු ඔබේ ඡායාරූප ලබා ගත හැකි වනු ඇත."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"සමහර ඡායාරූප පූරණය කළ නොහැක"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"තේරුණා"</string>
 </resources>

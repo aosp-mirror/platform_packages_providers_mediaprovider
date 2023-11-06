@@ -32,12 +32,13 @@ import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
 import android.app.Instrumentation;
 import android.app.UiAutomation;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
@@ -81,6 +82,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class ItemsProviderTest {
     /**
@@ -474,40 +476,6 @@ public class ItemsProviderTest {
 
     /**
      * Tests
-     * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[], UserId,
-     * CancellationSignal)}
-     * (Category, int, String[], UserId)} to stop execution when cancellation signal
-     * is triggered after query execution.
-     */
-    @Test
-    public void testGetItems_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
-        CancellationSignal cancellationSignal = new CancellationSignal();
-        Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread th, Throwable ex) {
-                Log.d(TAG, "Uncaught exception " + ex);
-            }
-        };
-
-        final Cursor[] res = new Cursor[1];
-        Thread th = new Thread(() -> {
-            try {
-                res[0] = mItemsProvider.getAllItems(Category.DEFAULT,
-                        new PaginationParameters(),
-                        /* mimeType */ null, /* userId */ null,
-                        /* cancellationSignal */ cancellationSignal);
-                res[0].getCount(); // force execution
-                fail("Expected OperationCanceledException");
-            } catch (OperationCanceledException ex) {
-                // expected
-            }
-        });
-        th.setUncaughtExceptionHandler(h);
-        th.start();
-    }
-
-    /**
-     * Tests
      * {@link ItemsProvider#getLocalItems(Category, PaginationParameters, String[], UserId,
      * CancellationSignal)}
      * (Category, int, String[], UserId)} to stop execution when cancellation signal
@@ -526,40 +494,6 @@ public class ItemsProviderTest {
 
     /**
      * Tests
-     * {@link ItemsProvider#getLocalItems(Category, PaginationParameters, String[], UserId,
-     * CancellationSignal)} to stop execution when cancellation signal
-     * is triggered after query execution.
-     */
-    @Test
-    public void testGetLocalItems_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
-        CancellationSignal cancellationSignal = new CancellationSignal();
-        Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread th, Throwable ex) {
-                Log.d(TAG, "Uncaught exception " + ex);
-            }
-        };
-
-        final Cursor[] res = new Cursor[1];
-
-        Thread th = new Thread(() -> {
-            try {
-                res[0] = mItemsProvider.getLocalItems(Category.DEFAULT,
-                        new PaginationParameters(),
-                        /* mimeType */ null, /* userId */ null,
-                        /* cancellationSignal */ cancellationSignal);
-                res[0].getCount(); // force execution
-                fail("Expected OperationCanceledException");
-            } catch (OperationCanceledException ex) {
-                // expected
-            }
-        });
-        th.setUncaughtExceptionHandler(h);
-        th.start();
-    }
-
-    /**
-     * Tests
      * {@link ItemsProvider#getAllCategories(String[], UserId, CancellationSignal)}
      * (Category, int, String[], UserId)} to stop execution when cancellation signal
      * is triggered before query execution.
@@ -570,36 +504,6 @@ public class ItemsProviderTest {
         cancellationSignal.cancel();
 
         mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null, cancellationSignal);
-    }
-
-    /**
-     * Tests
-     * {@link ItemsProvider#getAllCategories(String[], UserId, CancellationSignal)} to stop
-     * execution when cancellation signal is triggered after query execution.
-     */
-    @Test
-    public void testGetCategories_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
-        CancellationSignal cancellationSignal = new CancellationSignal();
-        Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread th, Throwable ex) {
-                Log.d(TAG, "Uncaught exception " + ex);
-            }
-        };
-
-        final Cursor[] res = new Cursor[1];
-        Thread th = new Thread(() -> {
-            try {
-                res[0] = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null,
-                        cancellationSignal);
-                res[0].getCount(); // force execution
-                fail("Expected OperationCanceledException");
-            } catch (OperationCanceledException ex) {
-                // expected
-            }
-        });
-        th.setUncaughtExceptionHandler(h);
-        th.start();
     }
 
     /**
@@ -615,37 +519,6 @@ public class ItemsProviderTest {
 
         mItemsProvider.getLocalCategories(/* mimeType */ null, /* userId */ null,
                 cancellationSignal);
-    }
-
-    /**
-     * Tests
-     * {@link ItemsProvider#getLocalCategories(String[], UserId, CancellationSignal)} to stop
-     * execution when cancellation signal is triggered after query execution.
-     */
-    @Test
-    public void testGetLocalCategories_canceledAfterQuery_ThrowsWhenExecuted() throws Exception {
-        CancellationSignal cancellationSignal = new CancellationSignal();
-
-        Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread th, Throwable ex) {
-                Log.d(TAG, "Uncaught exception " + ex);
-            }
-        };
-
-        final Cursor[] res = new Cursor[1];
-        Thread th = new Thread(() -> {
-            try {
-                res[0] = mItemsProvider.getLocalCategories(/* mimeType */ null,
-                        /* userId */ null, cancellationSignal);
-                res[0].getCount(); // force execution
-                fail("Expected OperationCanceledException");
-            } catch (OperationCanceledException ex) {
-                // expected
-            }
-        });
-        th.setUncaughtExceptionHandler(h);
-        th.start();
     }
 
     /**
@@ -804,55 +677,6 @@ public class ItemsProviderTest {
             }
         }
     }
-
-    @Test
-    public void testGetItems_sortOrder() throws Exception {
-        try {
-            final long timeNow = System.nanoTime() / 1000;
-            final Uri imageFileDateNowPlus1Uri = prepareFileAndGetUri(
-                    new File(getDownloadsDir(), "latest_" + IMAGE_FILE_NAME), timeNow + 1000);
-            final Uri imageFileDateNowUri
-                    = prepareFileAndGetUri(new File(getDcimDir(), IMAGE_FILE_NAME), timeNow);
-            final Uri videoFileDateNowUri
-                    = prepareFileAndGetUri(new File(getCameraDir(), VIDEO_FILE_NAME), timeNow);
-
-            // This is the list of uris based on the expected sort order of items returned by
-            // ItemsProvider#getAllItems(com.android.providers.media.photopicker.data.model
-            // .Category, com.android.providers.media.photopicker.data
-            // .PaginationParameters, java.lang.String[], com.android.providers.media
-            // .photopicker.data.model.UserId)
-            List<Uri> uris = new ArrayList<>();
-            // This is the latest image file
-            uris.add(imageFileDateNowPlus1Uri);
-            // Video file was scanned after image file, hence has higher _id than image file
-            uris.add(videoFileDateNowUri);
-            uris.add(imageFileDateNowUri);
-
-            try (Cursor cursor = mItemsProvider.getAllItems(Category.DEFAULT,
-                    new PaginationParameters(),
-                    /* mimeType */ null, /* userId */ null, /* cancellationSignal */ null)) {
-                assertThat(cursor).isNotNull();
-
-                final int expectedCount = uris.size();
-                assertThat(cursor.getCount()).isEqualTo(expectedCount);
-
-                int rowNum = 0;
-                assertThat(cursor.moveToFirst()).isTrue();
-                final int idColumnIndex = cursor.getColumnIndexOrThrow(MediaColumns.ID);
-                while (rowNum < expectedCount) {
-                    assertWithMessage("id at row:" + rowNum + " is expected to be"
-                            + " same as id in " + uris.get(rowNum))
-                            .that(String.valueOf(cursor.getLong(idColumnIndex)))
-                            .isEqualTo(uris.get(rowNum).getLastPathSegment());
-                    cursor.moveToNext();
-                    rowNum++;
-                }
-            }
-        } finally {
-            deleteAllFilesNoThrow();
-        }
-    }
-
     /**
      * Tests
      * {@link ItemsProvider#getAllItems(Category, PaginationParameters, String[],
@@ -959,6 +783,72 @@ public class ItemsProviderTest {
             hiddenDir.delete();
         }
     }
+
+    /**
+     * Tests {@link ItemsProvider#getLocalItemsForSelection(Category, List, String[],
+     * UserId, CancellationSignal)} to return only selected items from the media table for ids
+     * defined in the localId selection list.
+     */
+    @Test
+    public void testGetItemsImages_withLocalIdSelection() throws Exception {
+        List<Uri> imageFilesUris = assertCreateNewImagesWithSameDateModifiedTimesAndReturnUri(10);
+        // Put the id of random items from the inserted set. say 4th and 6th item.
+        ArrayList<Long> inputIds = new ArrayList<>(1);
+        inputIds.add(ContentUris.parseId(imageFilesUris.get(4)));
+        inputIds.add(ContentUris.parseId(imageFilesUris.get(6)));
+        ArrayList<Integer> inputIdsAsIntegers =
+                (ArrayList<Integer>) inputIds.stream().map(
+                        (Long id) -> Integer.valueOf(Math.toIntExact(id))).collect(
+                        Collectors.toList());
+        try {
+            // get the item objects for the provided ids.
+            final Cursor res = mItemsProvider.getLocalItemsForSelection(Category.DEFAULT,
+                    /* local id selection list */ inputIdsAsIntegers,
+                    /* mimeType */ new String[]{"image/*"}, /* userId */ null,
+                    /* cancellationSignal */ null);
+
+            // verify that the correct number of items are returned and that they have the correct
+            // ids.
+            assertThat(res).isNotNull();
+            assertThat(res.getCount()).isEqualTo(2);
+            res.moveToPosition(0);
+            while (res.moveToNext()) {
+                Item item = Item.fromCursor(res, UserId.CURRENT_USER);
+                assertTrue(inputIds.contains(Long.parseLong(item.getId())));
+            }
+            assertThatOnlyImages(res);
+        } finally {
+            // clean up.
+            deleteAllFilesNoThrow();
+        }
+    }
+
+    /**
+     * Tests {@link ItemsProvider#getLocalItemsForSelection(Category, List, String[],
+     * UserId, CancellationSignal)} to return only selected items from the media table for ids
+     * defined in the localId selection list. Here the list is empty so the parameter is ignored and
+     * the list is returned without any selection.
+     */
+    @Test
+    public void testGetItemsImages_withLocalIdSelectionEmpty() throws Exception {
+        assertCreateNewImagesWithSameDateModifiedTimesAndReturnUri(10);
+        try {
+            // get the item objects for the empty list.
+            final Cursor res = mItemsProvider.getLocalItemsForSelection(Category.DEFAULT,
+                    /* local id selection list */ new ArrayList<>(),
+                    /* mimeType */ new String[]{"image/*"}, /* userId */ null,
+                    /* cancellationSignal */ null);
+
+            assertThat(res).isNotNull();
+            // All images are returned and selection is ignored.
+            assertThat(res.getCount()).isEqualTo(10);
+            assertThatOnlyImages(res);
+        } finally {
+            // clean up.
+            deleteAllFilesNoThrow();
+        }
+    }
+
 
     /**
      * Tests
@@ -1405,6 +1295,19 @@ public class ItemsProviderTest {
         return imageFiles;
     }
 
+
+    private List<Uri> assertCreateNewImagesWithSameDateModifiedTimesAndReturnUri(int numberOfImages)
+            throws Exception {
+        List<Uri> imageFiles = new ArrayList<>();
+        long currentTime = System.nanoTime() / 1000;
+        for (int itr = 0; itr < numberOfImages; itr++) {
+            String fileName = TAG + "_file_" + String.valueOf(System.nanoTime()) + ".jpg";
+            imageFiles.add(assertCreateNewFileWithLastModifiedTimeAndReturnUri(
+                    getDownloadsDir(), fileName, currentTime));
+        }
+        return imageFiles;
+    }
+
     private File assertCreateNewVideo(File dir) throws Exception {
         return assertCreateNewFile(dir, VIDEO_FILE_NAME);
     }
@@ -1433,6 +1336,11 @@ public class ItemsProviderTest {
         final File file = new File(parentDir, fileName);
         prepareFileAndGetUri(file, lastModifiedTime);
         return file;
+    }
+    private Uri assertCreateNewFileWithLastModifiedTimeAndReturnUri(File parentDir, String fileName,
+            long lastModifiedTime) throws Exception {
+        final File file = new File(parentDir, fileName);
+        return prepareFileAndGetUri(file, lastModifiedTime);
     }
 
 

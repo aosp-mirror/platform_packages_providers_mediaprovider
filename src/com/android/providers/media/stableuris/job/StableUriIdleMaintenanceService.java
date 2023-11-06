@@ -72,7 +72,7 @@ public class StableUriIdleMaintenanceService extends JobService {
             final JobInfo job = new JobInfo.Builder(IDLE_JOB_ID,
                     new ComponentName(context,
                             StableUriIdleMaintenanceService.class))
-                    .setPeriodic(TimeUnit.DAYS.toMillis(7))
+                    .setPeriodic(TimeUnit.DAYS.toMillis(3))
                     .setRequiresCharging(true)
                     .setRequiresDeviceIdle(true)
                     .build();

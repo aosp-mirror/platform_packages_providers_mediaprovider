@@ -156,7 +156,7 @@ public class DatabaseBackupAndRecovery {
 
     private AtomicBoolean mIsBackupSetupComplete = new AtomicBoolean(false);
 
-    private Map<String, String> mOwnerIdRelationMap;
+    private static Map<String, String> sOwnerIdRelationMap;
 
     protected DatabaseBackupAndRecovery(ConfigStore configStore, VolumeCache volumeCache) {
         mConfigStore = configStore;
@@ -179,19 +179,6 @@ public class DatabaseBackupAndRecovery {
                         /* defaultValue */ false);
             default:
                 return false;
-        }
-    }
-
-    protected void onConfigPropertyChangeListener() {
-        if ((mConfigStore.isStableUrisForInternalVolumeEnabled()
-                || mConfigStore.isStableUrisForExternalVolumeEnabled())
-                && mVolumeCache.getExternalVolumeNames().contains(
-                MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
-            Log.i(TAG,
-                    "On device config change, found stable uri support enabled. Attempting backup"
-                            + " and recovery setup.");
-            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
-                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
         }
     }
 
@@ -221,11 +208,6 @@ public class DatabaseBackupAndRecovery {
         }
 
         try {
-            boolean externalVolumeMounted = Environment.getExternalStorageState()
-                    .equals(Environment.MEDIA_MOUNTED);
-            Log.d(TAG, String.format("Setting up db backup for %s, external_primary "
-                    + "volume mounted: %s", volumeName, externalVolumeMounted));
-
             if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
                 new File(RECOVERY_DIRECTORY_PATH).mkdirs();
             }
@@ -245,6 +227,8 @@ public class DatabaseBackupAndRecovery {
      */
     public void backupDatabases(DatabaseHelper internalDatabaseHelper,
             DatabaseHelper externalDatabaseHelper, CancellationSignal signal) {
+        setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
+          new File(EXTERNAL_PRIMARY_ROOT_PATH));
         Log.i(TAG, "Triggering database backup");
         backupInternalDatabase(internalDatabaseHelper, signal);
         backupExternalDatabase(externalDatabaseHelper, signal);
@@ -278,8 +262,7 @@ public class DatabaseBackupAndRecovery {
         }
 
         if (!mIsBackupSetupComplete.get()) {
-            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
-                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
+            return;
         }
 
         FuseDaemon fuseDaemon;
@@ -318,8 +301,7 @@ public class DatabaseBackupAndRecovery {
         }
 
         if (!mIsBackupSetupComplete.get()) {
-            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
-                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
+            return;
         }
 
         FuseDaemon fuseDaemon;
@@ -792,10 +774,9 @@ public class DatabaseBackupAndRecovery {
     }
 
     protected Pair<String, Integer> getOwnerPackageNameAndUidPair(int ownerPackageId) {
-        if (mOwnerIdRelationMap == null) {
+        if (sOwnerIdRelationMap == null) {
             try {
-                mOwnerIdRelationMap = getFuseDaemonForPath(
-                        EXTERNAL_PRIMARY_ROOT_PATH).readOwnerIdRelations();
+                sOwnerIdRelationMap = readOwnerIdRelationsFromLevelDb();
                 Log.v(TAG, "Cached owner id map");
             } catch (IOException e) {
                 Log.e(TAG, "Failure in reading owner details for owner id:" + ownerPackageId, e);
@@ -803,10 +784,24 @@ public class DatabaseBackupAndRecovery {
             }
         }
 
-        if (mOwnerIdRelationMap.containsKey(String.valueOf(ownerPackageId))) {
-            return getPackageNameAndUserId(mOwnerIdRelationMap.get(String.valueOf(ownerPackageId)));
+        if (sOwnerIdRelationMap.containsKey(String.valueOf(ownerPackageId))) {
+            return getPackageNameAndUserId(sOwnerIdRelationMap.get(String.valueOf(ownerPackageId)));
         }
+
         return Pair.create(null, null);
+    }
+
+    protected Map<String, String> readOwnerIdRelationsFromLevelDb() throws IOException {
+        return getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH).readOwnerIdRelations();
+    }
+
+    protected String readOwnerPackageName(String ownerId) throws IOException {
+        Map<String, String> ownerIdRelationMap = readOwnerIdRelationsFromLevelDb();
+        if (ownerIdRelationMap.containsKey(String.valueOf(ownerId))) {
+            return getPackageNameAndUserId(ownerIdRelationMap.get(ownerId)).first;
+        }
+
+        return null;
     }
 
     protected void recoverData(SQLiteDatabase db, String volumeName) {
@@ -827,7 +822,6 @@ public class DatabaseBackupAndRecovery {
         }
         Log.d(TAG, "Backup is present for " + volumeName);
 
-        setupVolumeDbBackupAndRecovery(volumeName, new File(EXTERNAL_PRIMARY_ROOT_PATH));
         long rowsRecovered = 0;
         long dirtyRowsCount = 0;
         String[] backedUpFilePaths;
@@ -840,6 +834,8 @@ public class DatabaseBackupAndRecovery {
                 break;
             }
 
+            // Reset cached owner id relation map
+            sOwnerIdRelationMap = null;
             for (String filePath : backedUpFilePaths) {
                 Optional<BackupIdRow> fileRow = readDataFromBackup(volumeName, filePath);
                 if (fileRow.isPresent()) {
@@ -975,11 +971,14 @@ public class DatabaseBackupAndRecovery {
      */
     protected void removeRecoveryDataExceptValidUsers(List<String> validUsers) {
         List<String> xattrList = listXattr(DATA_MEDIA_XATTR_DIRECTORY_PATH);
+        Log.i(TAG, "Xattr list is " + xattrList);
         if (xattrList.isEmpty()) {
             return;
         }
 
+        Log.i(TAG, "Valid users list is " + validUsers);
         List<String> invalidUsers = getInvalidUsersList(xattrList, validUsers);
+        Log.i(TAG, "Invalid users list is " + invalidUsers);
         for (String userIdToBeRemoved : invalidUsers) {
             removeRecoveryDataForUserId(Integer.parseInt(userIdToBeRemoved));
         }

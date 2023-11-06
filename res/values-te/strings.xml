@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"మీడియా"</string>
     <string name="storage_description" msgid="4081716890357580107">"స్థానిక స్టోరేజ్‌"</string>
-    <string name="app_label" msgid="9035307001052716210">"మీడియా స్టోరేజ్‌"</string>
     <string name="picker_app_label" msgid="1195424381053599122">"మీడియా సెలెక్టర్"</string>
     <string name="artist_label" msgid="8105600993099120273">"కళాకారుడు"</string>
     <string name="unknown" msgid="2059049215682829375">"తెలియదు"</string>
@@ -96,6 +95,7 @@
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"మీ ఇంటర్నెట్ కనెక్షన్‌ను చెక్ చేసి, మళ్ళీ ట్రై చేయండి"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"మళ్లీ ట్రై చేయండి"</string>
     <string name="not_selected" msgid="2244008151669896758">"ఎంచుకోబడలేదు"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"మీరు ఎంచుకున్న మీడియాను సిద్ధం చేస్తోంది"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>లో <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> సిద్ధంగా ఉన్నాయి"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"బ్యాకప్ చేసిన ఫోటోలు ఇప్పుడు చేర్చబడ్డాయి"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"మీరు <xliff:g id="APP_NAME">%1$s</xliff:g> ఖాతా <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> నుండి ఫోటోలను ఎంచుకోవచ్చు"</string>
@@ -153,4 +153,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"భద్రత రక్షణ"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"స్థానిక ట్రాన్స్‌కోడ్ అలర్ట్‌లు"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"స్థానిక ట్రాన్స్‌కోడ్ ప్రోగ్రెస్"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"తర్వాత మళ్లీ ట్రై చేయండి. సమస్య పరిష్కరించబడిన తర్వాత మీ ఫోటోలు అందుబాటులో ఉంటాయి."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"కొన్ని ఫోటోలను లోడ్ చేయడం సాధ్యపడదు"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"సరే"</string>
 </resources>

@@ -827,6 +827,41 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getLocalItemsForSelection(Category, List, String[],
      * UserId, CancellationSignal)} to return only selected items from the media table for ids
+     * defined in the localId selection list.
+     */
+    @Test
+    public void testGetItemsImages_withLocalIdSelection_largeDataSet() throws Exception {
+        List<Uri> imageFilesUris = assertCreateNewImagesWithSameDateModifiedTimesAndReturnUri(200);
+        // Try to fetch all items via selection. 200 items, this will hit the split query and
+        // verify that it is working.
+        List<Integer> inputIdsAsIntegers = imageFilesUris.stream().map(ContentUris::parseId).map(
+                Long::intValue).collect(Collectors.toList());
+        try {
+            // get the item objects for the provided ids.
+            final Cursor res = mItemsProvider.getLocalItemsForSelection(Category.DEFAULT,
+                    /* local id selection list */ inputIdsAsIntegers,
+                    /* mimeType */ new String[]{"image/*"}, /* userId */ null,
+                    /* cancellationSignal */ null);
+
+            // verify that the correct number of items are returned and that they have the correct
+            // ids.
+            assertThat(res).isNotNull();
+            assertThat(res.getCount()).isEqualTo(inputIdsAsIntegers.size());
+            res.moveToPosition(0);
+            while (res.moveToNext()) {
+                Item item = Item.fromCursor(res, UserId.CURRENT_USER);
+                assertTrue(inputIdsAsIntegers.contains(Integer.parseInt(item.getId())));
+            }
+            assertThatOnlyImages(res);
+        } finally {
+            // clean up.
+            deleteAllFilesNoThrow();
+        }
+    }
+
+    /**
+     * Tests {@link ItemsProvider#getLocalItemsForSelection(Category, List, String[],
+     * UserId, CancellationSignal)} to return only selected items from the media table for ids
      * defined in the localId selection list. Here the list is empty so the parameter is ignored and
      * the list is returned without any selection.
      */

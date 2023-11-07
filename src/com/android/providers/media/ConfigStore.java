@@ -67,7 +67,7 @@ public interface ConfigStore {
 
     boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = true;
     boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
-    boolean DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED = false;
+    boolean DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED = true;
 
     /**
      * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and

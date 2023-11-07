@@ -1174,6 +1174,37 @@ public class PickerViewModel extends AndroidViewModel {
         mLogger.logPickerCreateSurfaceControllerEnd(mInstanceId, authority);
     }
 
+    /**
+     * Log metrics to notify that the selected media preloading started
+     * @param count the number of items to preload
+     */
+    public void logPreloadingStarted(int count) {
+        mLogger.logPreloadingStarted(mInstanceId, count);
+    }
+
+    /**
+     * Log metrics to notify that the selected media preloading finished
+     */
+    public void logPreloadingFinished() {
+        mLogger.logPreloadingFinished(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user cancelled the selected media preloading
+     * @param count the number of items pending to preload
+     */
+    public void logPreloadingCancelled(int count) {
+        mLogger.logPreloadingCancelled(mInstanceId, count);
+    }
+
+    /**
+     * Log metrics to notify that the selected media preloading failed for some items
+     * @param count the number of items pending / failed to preload
+     */
+    public void logPreloadingFailed(int count) {
+        mLogger.logPreloadingFailed(mInstanceId, count);
+    }
+
     public InstanceId getInstanceId() {
         return mInstanceId;
     }

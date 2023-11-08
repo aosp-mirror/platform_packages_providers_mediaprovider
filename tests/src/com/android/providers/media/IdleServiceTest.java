@@ -32,8 +32,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import android.Manifest;
+import android.app.Instrumentation;
 import android.app.job.JobScheduler;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -45,14 +48,21 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
+import android.os.NewUserRequest;
 import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.provider.MediaStore;
 import android.text.format.DateUtils;
 import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.LargeTest;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 import com.android.providers.media.scan.MediaScannerTest;
 import com.android.providers.media.util.FileUtils;
 
@@ -68,7 +78,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
 public class IdleServiceTest {
@@ -85,6 +98,8 @@ public class IdleServiceTest {
                         android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         android.Manifest.permission.READ_DEVICE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS,
+                        Manifest.permission.MANAGE_USERS,
+                        Manifest.permission.WRITE_MEDIA_STORAGE,
                         android.Manifest.permission.DUMP);
 
         mDir = new File(context.getExternalMediaDirs()[0], "test_" + System.nanoTime());
@@ -291,6 +306,119 @@ public class IdleServiceTest {
                 .getSystemService(JobScheduler.class);
         if (scheduler.getPendingJob(IDLE_JOB_ID) != null) {
             scheduler.cancel(IDLE_JOB_ID);
+        }
+    }
+
+    /**
+     * Idle maintenance run on non-demo devices should not remove xattr data stored for different
+     * users on /data/media/0. This is not done due to b/305658663.
+     */
+    @Test
+    @RunOnlyOnPostsubmit
+    @LargeTest
+    @SdkSuppress(minSdkVersion = 33, codeName = "T")
+    public void test_idle_maintenance_nonDemoDevice() throws IOException {
+        assumeTrue(UserManager.supportsMultipleUsers());
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        Manifest.permission.CREATE_USERS,
+                        Manifest.permission.MANAGE_USERS,
+                        Manifest.permission.WRITE_MEDIA_STORAGE,
+                        android.Manifest.permission.DUMP);
+        SystemClock.sleep(3000);
+        Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
+        Context context = instrumentation.getContext();
+        UserManager userManager = context.getSystemService(UserManager.class);
+        Integer secondaryUser = -1;
+        boolean secondaryUserPresent = false;
+
+        try {
+            secondaryUser = createNewUser(userManager);
+            secondaryUserPresent = true;
+            startUser(secondaryUser);
+            SystemClock.sleep(3000);
+
+            // Verify presence of recovery data
+            String[] recoveryData = MediaStore.getRecoveryData(context.getContentResolver());
+            assertThat(getUserIdsForUsersFromRecoveryData(recoveryData)).containsAtLeastElementsIn(
+                    Arrays.asList(UserHandle.SYSTEM.getIdentifier(), secondaryUser));
+
+            executeShellCommand(
+                    "content call --uri content://media/external/file --method "
+                            + "run_idle_maintenance --user "
+                            + UserHandle.SYSTEM.getIdentifier());
+            executeShellCommand(
+                    "content call --uri content://media/external/file --method "
+                            + "run_idle_maintenance --user " + secondaryUser);
+
+            // Verify presence of recovery data even after running idle maintenance
+            recoveryData = MediaStore.getRecoveryData(context.getContentResolver());
+            assertThat(getUserIdsForUsersFromRecoveryData(recoveryData)).containsAtLeastElementsIn(
+                    Arrays.asList(UserHandle.SYSTEM.getIdentifier(), secondaryUser));
+
+            // Remove secondary user
+            removeUser(secondaryUser);
+            secondaryUserPresent = false;
+            SystemClock.sleep(3000);
+
+            // Run idle maintenance for user 0
+            executeShellCommand(
+                    "content call --uri content://media/external/file --method "
+                            + "run_idle_maintenance --user "
+                            + UserHandle.SYSTEM.getIdentifier());
+
+            // Verify presence of recovery data
+            recoveryData = MediaStore.getRecoveryData(context.getContentResolver());
+            assertThat(getUserIdsForUsersFromRecoveryData(recoveryData)).containsAtLeastElementsIn(
+                    Arrays.asList(UserHandle.SYSTEM.getIdentifier(), secondaryUser));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (secondaryUserPresent) {
+                removeUser(secondaryUser);
+            }
+            MediaStore.removeRecoveryData(context.getContentResolver());
+        }
+    }
+
+    private Set<Integer> getUserIdsForUsersFromRecoveryData(String[] recoveryData) {
+        Set<Integer> userIdSet = new HashSet<>();
+        for (String data : recoveryData) {
+            if (data.startsWith("user.extdbnextrowid")) {
+                userIdSet.add(Integer.valueOf(data.substring("user.extdbnextrowid".length())));
+            } else if (data.startsWith("user.extdbsessionid")) {
+                userIdSet.add(Integer.valueOf(data.substring("user.extdbsessionid".length())));
+            }
+        }
+
+        return userIdSet;
+    }
+
+
+    private int createNewUser(UserManager userManager) {
+        final NewUserRequest newUserRequest = new NewUserRequest.Builder().setName(
+                "test_user" + System.currentTimeMillis()).setUserType(
+                UserManager.USER_TYPE_FULL_SECONDARY).build();
+        final UserHandle newUser = userManager.createUser(newUserRequest).getUser();
+        if (newUser == null) {
+            fail("Error while creating a new user");
+        }
+        return newUser.getIdentifier();
+    }
+
+    private void startUser(int userId) throws IOException {
+        Log.i(TAG, "Starting user " + userId);
+        String output = executeShellCommand("am start-user -w " + userId);
+        if (output.startsWith("Error")) {
+            fail(String.format("Failed to start user %d: %s", userId, output));
+        }
+    }
+
+    private void removeUser(int userId) throws IOException {
+        final String output = executeShellCommand("cmd package remove-user " + userId);
+        if (output.startsWith("Error")) {
+            fail("Error removing the user #" + userId + ": " + output);
         }
     }
 

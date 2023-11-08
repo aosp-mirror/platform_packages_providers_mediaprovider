@@ -274,6 +274,10 @@ public final class MediaStore {
     public static final String GRANT_MEDIA_READ_FOR_PACKAGE_CALL =
             "grant_media_read_for_package";
 
+    /** @hide */
+    public static final String REVOKE_READ_GRANT_FOR_PACKAGE_CALL =
+            "revoke_media_read_for_package";
+
     /** {@hide} */
     public static final String USES_FUSE_PASSTHROUGH = "uses_fuse_passthrough";
     /** {@hide} */
@@ -4938,6 +4942,31 @@ public final class MediaStore {
             extras.putInt(Intent.EXTRA_UID, packageUid);
             extras.putParcelableArrayList(EXTRA_URI_LIST, new ArrayList<Uri>(uris));
             client.call(GRANT_MEDIA_READ_FOR_PACKAGE_CALL,
+                    /* arg= */ null,
+                    /* extras= */ extras);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    /**
+     * Revoke {@link com.android.providers.media.MediaGrants} for the given package, for the
+     * list of local (to the device) content uris. These must be valid picker uris.
+     *
+     * @hide
+     */
+    public static void revokeMediaReadForPackages(
+            @NonNull Context context, int packageUid, @NonNull List<Uri> uris) {
+        Objects.requireNonNull(uris);
+        if (uris.isEmpty()) {
+            return;
+        }
+        final ContentResolver resolver = context.getContentResolver();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle extras = new Bundle();
+            extras.putInt(Intent.EXTRA_UID, packageUid);
+            extras.putParcelableArrayList(EXTRA_URI_LIST, new ArrayList<Uri>(uris));
+            client.call(REVOKE_READ_GRANT_FOR_PACKAGE_CALL,
                     /* arg= */ null,
                     /* extras= */ extras);
         } catch (RemoteException e) {

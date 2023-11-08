@@ -46,6 +46,7 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.UserHandle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Menu;
@@ -153,7 +154,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_photo_picker);
-
         mToolbar = findViewById(R.id.toolbar);
         setSupportActionBar(mToolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -179,7 +179,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
             return;
         }
         mSelection = mPickerViewModel.getSelection();
-
         mDragBar = findViewById(R.id.drag_bar);
         mPrivacyText = findViewById(R.id.privacy_text);
         mBottomBar = findViewById(R.id.picker_bottom_bar);
@@ -541,7 +540,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void setResultAndFinishSelf() {
         logPickerSelectionConfirmed(mSelection.getSelectedItems().size());
         if (shouldPreloadSelectedItems()) {
-            final var uris = PickerResult.getPickerUrisForItems(mSelection.getSelectedItems());
+            final var uris = PickerResult.getPickerUrisForItems(
+                    mSelection.getSelectedItems());
             mPreloaderInstanceHolder.preloader =
                     SelectedMediaPreloader.preload(/* activity */ this, uris);
             deSelectUnavailableMedia(mPreloaderInstanceHolder.preloader);
@@ -569,11 +569,25 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // The permission controller will pass the requesting package's UID here
         final Bundle extras = getIntent().getExtras();
         final int uid = extras.getInt(Intent.EXTRA_UID);
-        final List<Uri> uris = getPickerUrisForItems(mSelection.getSelectedItems());
+        final List<Uri> uris = getPickerUrisForItems(mSelection.getSelectedItemsWithoutGrants());
         ForegroundThread.getExecutor().execute(() -> {
             // Handle grants in another thread to not block the UI.
             grantMediaReadForPackage(getApplicationContext(), uid, uris);
         });
+
+        // Revoke READ_GRANT for items that were pre-granted but now in the current session user has
+        // deselected them.
+        if (mPickerViewModel.isManagedSelectionEnabled()) {
+            final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
+                    mSelection.getPreGrantedItemsToBeRevoked());
+            if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {
+                ForegroundThread.getExecutor().execute(() -> {
+                    // Handle grants in another thread to not block the UI.
+                    MediaStore.revokeMediaReadForPackages(getApplicationContext(), uid,
+                            urisForItemsWhoseGrantsNeedsToBeRevoked);
+                });
+            }
+        }
     }
 
     private void setResultForPickImagesOrGetContentAction() {

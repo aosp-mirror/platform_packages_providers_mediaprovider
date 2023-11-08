@@ -59,6 +59,7 @@ import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.LargeTest;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.library.RunOnlyOnPostsubmit;
@@ -315,6 +316,7 @@ public class IdleServiceTest {
     @Test
     @RunOnlyOnPostsubmit
     @LargeTest
+    @SdkSuppress(minSdkVersion = 33, codeName = "T")
     public void test_idle_maintenance_nonDemoDevice() throws IOException {
         assumeTrue(UserManager.supportsMultipleUsers());
         InstrumentationRegistry.getInstrumentation().getUiAutomation()

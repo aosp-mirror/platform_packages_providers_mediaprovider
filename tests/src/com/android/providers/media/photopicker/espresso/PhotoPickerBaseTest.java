@@ -29,6 +29,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Process;
 import android.provider.MediaStore;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -59,6 +60,7 @@ public class PhotoPickerBaseTest {
     protected static final int TAB_LAYOUT_ID = R.id.tab_layout;
     protected static final int PICKER_PHOTOS_STRING_ID = R.string.picker_photos;
     protected static final int PICKER_ALBUMS_STRING_ID = R.string.picker_albums;
+    protected static final int PICKER_VIDEOS_STRING_ID = R.string.picker_videos;
     protected static final int PREVIEW_VIEW_PAGER_ID = R.id.preview_viewPager;
     protected static final int ICON_CHECK_ID = R.id.icon_check;
     protected static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
@@ -118,7 +120,7 @@ public class PhotoPickerBaseTest {
         sUserSelectImagesForAppIntent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
         sUserSelectImagesForAppIntent.addCategory(Intent.CATEGORY_FRAMEWORK_INSTRUMENTATION_TEST);
         Bundle extras = new Bundle();
-        extras.putInt(Intent.EXTRA_UID, 1234);
+        extras.putInt(Intent.EXTRA_UID, Process.myUid());
         sUserSelectImagesForAppIntent.putExtras(extras);
     }
 

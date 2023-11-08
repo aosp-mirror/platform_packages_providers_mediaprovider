@@ -27,7 +27,6 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
-import static com.android.providers.media.photopicker.data.MediaGrantsProvider.fetchReadGrantedItemsUrisForPackage;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_GRID;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_DEFAULT;
@@ -165,6 +164,8 @@ public class PickerViewModel extends AndroidViewModel {
 
     // Note - Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
     private boolean mIsUserSelectForApp;
+
+    private boolean mIsManagedSelectionEnabled;
     private boolean mIsLocalOnly;
     private boolean mIsAllCategoryItemsLoaded = false;
     private boolean mIsNotificationForUpdateReceived = false;
@@ -180,6 +181,7 @@ public class PickerViewModel extends AndroidViewModel {
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
         mIsUserSelectForApp = false;
+        mIsManagedSelectionEnabled = false;
         mIsLocalOnly = false;
 
         initConfigStore();
@@ -299,6 +301,15 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * @return {@code mIsManagedSelectionEnabled} if the picker is currently being used
+     * for the {@link MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP} action and flag
+     * pickerChoiceManagedSelection is enabled..
+     */
+    public boolean isManagedSelectionEnabled() {
+        return mIsManagedSelectionEnabled;
+    }
+
+    /**
      * @return a {@link LiveData} that holds the value (once it's fetched) of the
      * {@link android.content.ContentProvider#mAuthority authority} of the current
      * {@link android.provider.CloudMediaProvider}.
@@ -394,10 +405,9 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void initialisePreGrantsIfNecessary(Selection selection, Bundle intentExtras,
             String[] mimeTypeFilters) {
-        if (getConfigStore().isPickerChoiceManagedSelectionEnabled() && isUserSelectForApp()
-                && selection.getPreGrantedItems() == null) {
+        if (isManagedSelectionEnabled() && selection.getPreGrantedItems() == null) {
             DataLoaderThread.getHandler().postDelayed(() -> {
-                selection.setPreGrantedItemSet(fetchReadGrantedItemsUrisForPackage(mAppContext,
+                selection.setPreGrantedItemSet(mItemsProvider.fetchReadGrantedItemsUrisForPackage(
                         intentExtras.getInt(Intent.EXTRA_UID), mimeTypeFilters)
                         .stream().map((Uri uri) -> String.valueOf(ContentUris.parseId(uri)))
                         .collect(Collectors.toSet()));
@@ -526,8 +536,7 @@ public class PickerViewModel extends AndroidViewModel {
 
             Set<String> preGrantedItems = new HashSet<>(0);
             Set<String> deSelectedPreGrantedItems = new HashSet<>(0);
-            if (isUserSelectForApp() && getConfigStore().isPickerChoiceManagedSelectionEnabled()
-                    && mSelection.getPreGrantedItems() != null) {
+            if (isManagedSelectionEnabled() && mSelection.getPreGrantedItems() != null) {
                 preGrantedItems = mSelection.getPreGrantedItems();
                 deSelectedPreGrantedItems = new HashSet<>(
                         mSelection.getPreGrantedItemIdsToBeRevoked());
@@ -573,9 +582,7 @@ public class PickerViewModel extends AndroidViewModel {
      * issue by selectively loading those items and adding them to the selection list.</p>
      */
     public void getRemainingPreGrantedItems() {
-        if (isUserSelectForApp()
-                && getConfigStore().isPickerChoiceManagedSelectionEnabled()
-                && mSelection.getPreGrantedItems() != null) {
+        if (isManagedSelectionEnabled() && mSelection.getPreGrantedItems() != null) {
             List<String> idsForItemsToBeFetched = new ArrayList<>(mSelection.getPreGrantedItems());
             idsForItemsToBeFetched.removeAll(mSelection.getSelectedItemsIds());
             idsForItemsToBeFetched.removeAll(mSelection.getPreGrantedItemIdsToBeRevoked());
@@ -847,6 +854,8 @@ public class PickerViewModel extends AndroidViewModel {
 
         mIsUserSelectForApp =
                 MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intent.getAction());
+        mIsManagedSelectionEnabled = mIsUserSelectForApp
+                && getConfigStore().isPickerChoiceManagedSelectionEnabled();
         if (!SdkLevel.isAtLeastU() && mIsUserSelectForApp) {
             throw new IllegalArgumentException("ACTION_USER_SELECT_IMAGES_FOR_APP is not enabled "
                     + " for this OS version");
@@ -1163,6 +1172,37 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void logCreateSurfaceControllerEnd(String authority) {
         mLogger.logPickerCreateSurfaceControllerEnd(mInstanceId, authority);
+    }
+
+    /**
+     * Log metrics to notify that the selected media preloading started
+     * @param count the number of items to preload
+     */
+    public void logPreloadingStarted(int count) {
+        mLogger.logPreloadingStarted(mInstanceId, count);
+    }
+
+    /**
+     * Log metrics to notify that the selected media preloading finished
+     */
+    public void logPreloadingFinished() {
+        mLogger.logPreloadingFinished(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user cancelled the selected media preloading
+     * @param count the number of items pending to preload
+     */
+    public void logPreloadingCancelled(int count) {
+        mLogger.logPreloadingCancelled(mInstanceId, count);
+    }
+
+    /**
+     * Log metrics to notify that the selected media preloading failed for some items
+     * @param count the number of items pending / failed to preload
+     */
+    public void logPreloadingFailed(int count) {
+        mLogger.logPreloadingFailed(mInstanceId, count);
     }
 
     public InstanceId getInstanceId() {

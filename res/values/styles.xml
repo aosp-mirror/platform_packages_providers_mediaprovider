@@ -152,6 +152,11 @@
         <item name="materialAlertDialogTitleTextStyle">@style/AlertDialogTitleStyle</item>
     </style>
 
+    <style name="ProgressDialogCancelButtonStyle"
+           parent="@style/Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
     <style name="AlertDialogTitleStyle"
            parent="@style/MaterialAlertDialog.MaterialComponents.Title.Text.CenterStacked">
         <item name="android:textColor">?attr/colorOnSurface</item>

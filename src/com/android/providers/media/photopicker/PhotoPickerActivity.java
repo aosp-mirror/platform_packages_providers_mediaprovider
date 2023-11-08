@@ -544,6 +544,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         if (shouldPreloadSelectedItems()) {
             final var uris = PickerResult.getPickerUrisForItems(
                     mSelection.getSelectedItems());
+            mPickerViewModel.logPreloadingStarted(uris.size());
             mPreloaderInstanceHolder.preloader =
                     SelectedMediaPreloader.preload(/* activity */ this, uris);
             deSelectUnavailableMedia(mPreloaderInstanceHolder.preloader);
@@ -579,8 +580,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         // Revoke READ_GRANT for items that were pre-granted but now in the current session user has
         // deselected them.
-        if (isUserSelectImagesForAppAction()
-                && mPickerViewModel.getConfigStore().isPickerChoiceManagedSelectionEnabled()) {
+        if (mPickerViewModel.isManagedSelectionEnabled()) {
             final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
                     mSelection.getPreGrantedItemsToBeRevoked());
             if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {
@@ -633,6 +633,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 /* lifecycleOwner */ PhotoPickerActivity.this,
                 isFinished -> {
                     if (isFinished) {
+                        mPickerViewModel.logPreloadingFinished();
                         setResultAndFinishSelfInternal();
                     }
                 });
@@ -656,9 +657,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
                             DialogUtils.showDialog(this,
                                     getResources().getString(R.string.dialog_error_title),
                                     getResources().getString(R.string.dialog_error_message));
+                            mPickerViewModel.logPreloadingFailed(unavailableMediaIndexes.size());
                         } else {
                             unavailableMediaIndexes.remove(
                                     unavailableMediaIndexes.size() - 1);
+                            mPickerViewModel.logPreloadingCancelled(unavailableMediaIndexes.size());
                         }
                         List<Item> selectedItems = mSelection.getSelectedItems();
                         for (var mediaIndex : unavailableMediaIndexes) {

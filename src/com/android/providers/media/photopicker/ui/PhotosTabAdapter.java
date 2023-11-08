@@ -33,6 +33,8 @@ import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 
+import com.bumptech.glide.util.ViewPreloadSizeProvider;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -40,13 +42,14 @@ import java.util.List;
 /**
  * Adapts from model to something RecyclerView understands.
  */
-class PhotosTabAdapter extends TabAdapter {
+public class PhotosTabAdapter extends TabAdapter {
 
     private static final int RECENT_MINIMUM_COUNT = 12;
 
     private final boolean mShowRecentSection;
     private final OnMediaItemClickListener mOnMediaItemClickListener;
     private final Selection mSelection;
+    private final ViewPreloadSizeProvider mPreloadSizeProvider;
 
     private final View.OnHoverListener mOnMediaItemHoverListener;
 
@@ -65,7 +68,8 @@ class PhotosTabAdapter extends TabAdapter {
             @NonNull OnBannerEventListener onCloudMediaAvailableBannerEventListener,
             @NonNull OnBannerEventListener onAccountUpdatedBannerEventListener,
             @NonNull OnBannerEventListener onChooseAccountBannerEventListener,
-            @NonNull View.OnHoverListener onMediaItemHoverListener) {
+            @NonNull View.OnHoverListener onMediaItemHoverListener,
+            @NonNull ViewPreloadSizeProvider preloadSizeProvider) {
         super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
                 shouldShowChooseAppBanner, shouldShowCloudMediaAvailableBanner,
                 shouldShowAccountUpdatedBanner, shouldShowChooseAccountBanner,
@@ -75,6 +79,7 @@ class PhotosTabAdapter extends TabAdapter {
         mSelection = selection;
         mOnMediaItemClickListener = onMediaItemClickListener;
         mOnMediaItemHoverListener = onMediaItemHoverListener;
+        mPreloadSizeProvider = preloadSizeProvider;
     }
 
     @NonNull
@@ -88,8 +93,15 @@ class PhotosTabAdapter extends TabAdapter {
     @Override
     RecyclerView.ViewHolder createMediaItemViewHolder(@NonNull ViewGroup viewGroup) {
         final View view = getView(viewGroup, R.layout.item_photo_grid);
-        return new MediaItemGridViewHolder(view, mImageLoader, mOnMediaItemClickListener,
-                mOnMediaItemHoverListener, mSelection.canSelectMultiple());
+        final MediaItemGridViewHolder viewHolder =
+                new MediaItemGridViewHolder(
+                        view,
+                        mImageLoader,
+                        mOnMediaItemClickListener,
+                        mOnMediaItemHoverListener,
+                        mSelection.canSelectMultiple());
+        mPreloadSizeProvider.setView(viewHolder.getThumbnailImageView());
+        return viewHolder;
     }
 
     @Override
@@ -124,7 +136,7 @@ class PhotosTabAdapter extends TabAdapter {
     }
 
     @Override
-    boolean isItemTypeMediaItem(int position) {
+    public boolean isItemTypeMediaItem(int position) {
         return getAdapterItem(position) instanceof Item;
     }
 

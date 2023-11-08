@@ -108,6 +108,14 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
         return itemView.getContext();
     }
 
+    /**
+     * Get the {@link ImageView} for the thumbnail image representing this MediaItem.
+     * @return the image view for the thumbnail.
+     */
+    public ImageView getThumbnailImageView() {
+        return mIconThumb;
+    }
+
     private boolean showShowOverlayGradient(@NonNull Item item) {
         return mCanSelectMultiple
                 || item.isGifOrAnimatedWebp()

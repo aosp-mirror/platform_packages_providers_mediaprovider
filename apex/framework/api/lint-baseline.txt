@@ -1,0 +1,5 @@
+// Baseline format: 1.0
+RequiresPermission: android.provider.MediaStore#canManageMedia(android.content.Context):
+    Method 'canManageMedia' documentation mentions permissions without declaring @RequiresPermission
+RequiresPermission: android.provider.MediaStore#setRequireOriginal(android.net.Uri):
+    Method 'setRequireOriginal' documentation mentions permissions without declaring @RequiresPermission

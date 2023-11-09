@@ -30,8 +30,11 @@
 #include "fpdf_save.h"
 #include "fpdfview.h"
 #include "linux_fileops.h"
+#include "logging.h"
 #include "page.h"
 #include "rect.h"
+
+#define LOG_TAG "document"
 
 extern int GetLastError();
 
@@ -92,7 +95,7 @@ Status Document::Load(std::unique_ptr<FileReader> fileReader, const char* passwo
     if (error == FPDF_ERR_PASSWORD) {
         return REQUIRES_PASSWORD;
     } else {
-        // LOGE("Parse Document failed (err=%d).\n", error);
+        LOGE("Parse Document failed (err=%d).\n", error);
         return PDF_ERROR;
     }
 }
@@ -108,11 +111,11 @@ bool Document::SaveAs(LinuxFileOps::FDCloser fd) {
     FileWriter fw(std::move(fd));
     constexpr int flags = 0;
     if (!FPDF_SaveAsCopy(document_.get(), &fw, flags)) {
-        // LOGW("Failed to save-as to fd %d.", fw.Fd());
+        LOGW("Failed to save-as to fd %d.", fw.Fd());
         return false;
     }
     size_t destSize = lseek(fw.Fd(), 0, SEEK_END);
-    // LOGV("Save-as to fd %d [%zd bytes], flags=%d.", fw.Fd(), destSize, flags);
+    LOGV("Save-as to fd %d [%zd bytes], flags=%d.", fw.Fd(), destSize, flags);
     return true;
 }
 
@@ -183,9 +186,10 @@ bool Document::CloneRawFile(int source, int dest) {
     size_t destSize = lseek(dest, 0, SEEK_END);
     bool success = (destSize == sourceSize);
     if (success) {
-        // LOGV("Copied raw file to fd %d [%zd bytes].", dest, destSize);
+        LOGV("Copied raw file to fd %d [%zd bytes].", dest, destSize);
     } else {
-        // LOGV("Failed to copy raw file to fd %d (wrote %zd out of %zd).", dest, destSize, sourceSize);
+        LOGV("Failed to copy raw file to fd %d (wrote %zd out of %zd).",
+                dest, destSize, sourceSize);
     }
     // We own the FD and have to make sure to close it.
     LinuxFileOps::CloseFD(dest);
@@ -199,9 +203,9 @@ bool Document::SaveAsCopyWithoutSecurity(LinuxFileOps::FDCloser dest) {
 
     size_t destSize = lseek(fw.Fd(), 0, SEEK_END);
     if (success) {
-        // LOGV("Save-as to fd %d [%zd bytes], flags=%d.", fw.Fd(), destSize, flags);
+        LOGV("Save-as to fd %d [%zd bytes], flags=%d.", fw.Fd(), destSize, flags);
     } else {
-        // LOGV("Failed to save-as to fd %d, flags=%d.", fw.Fd(), flags);
+        LOGV("Failed to save-as to fd %d, flags=%d.", fw.Fd(), flags);
     }
     // No need to close the FD as lower level code already does that.
     return success;

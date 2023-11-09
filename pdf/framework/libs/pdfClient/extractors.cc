@@ -21,6 +21,10 @@
 
 #include <cstring>
 
+#include "logging.h"
+
+#define LOG_TAG "extractor"
+
 namespace pdfClient {
 
 Extractor::~Extractor() {}
@@ -42,13 +46,13 @@ bool BufferReader::extract(uint8_t* destination, int num_bytes) {
 FdWriter::~FdWriter() {}
 
 bool FdWriter::extract(uint8_t* source, int num_bytes) {
-    // LOGV("FdWriter Extracting %d bytes on %d", num_bytes, fd_);
+    LOGV("FdWriter Extracting %d bytes on %d", num_bytes, fd_);
     bool ret = true;
     while (num_bytes > 0) {
         int len = write(fd_, source, num_bytes);
         if (len == -1 || len == 0) {
             ret = false;
-            // LOGD("FdWriter extract failed at %d on %d", num_bytes, fd_);
+            LOGD("FdWriter extract failed at %d on %d", num_bytes, fd_);
             break;
         }
         num_bytes -= len;
@@ -61,13 +65,13 @@ bool FdWriter::extract(uint8_t* source, int num_bytes) {
 FdReader::~FdReader() {}
 
 bool FdReader::extract(uint8_t* destination, int num_bytes) {
-    // LOGV("FdReader Extracting %d bytes from %d", num_bytes, fd_);
+    LOGV("FdReader Extracting %d bytes from %d", num_bytes, fd_);
     bool ret = true;
     while (num_bytes > 0) {
         int len = read(fd_, destination, num_bytes);
         if (len == -1 || len == 0) {
             ret = false;
-            // LOGD("FdWriter extract failed at %d on %d", num_bytes, fd_);
+            LOGD("FdWriter extract failed at %d on %d", num_bytes, fd_);
             break;
         }
         num_bytes -= len;

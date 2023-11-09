@@ -28,6 +28,7 @@
 #include "document.h"
 #include "file.h"
 #include "form_widget_info.h"
+#include "logging.h"
 #include "page.h"
 // #include "proto/goto_links.proto.h" @Todo b/307870155
 #include "absl/container/flat_hash_set.h"
@@ -37,6 +38,8 @@
 #include "rect.h"
 // #include "util/java/scoped_local_ref.h"
 #include <unistd.h>
+
+#define LOG_TAG "pdf_document_jni"
 
 // using util::java::ScopedLocalRef;
 
@@ -94,7 +97,7 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     absl::MutexLock lock(&global_mutex);
     LinuxFileOps::FDCloser fd(jfd);
     const char* password = jpassword == NULL ? NULL : env->GetStringUTFChars(jpassword, NULL);
-    // LOGD("Creating FPDF_DOCUMENT from fd: %d", fd.get());
+    LOGD("Creating FPDF_DOCUMENT from fd: %d", fd.get());
     std::unique_ptr<Document> doc;
 
     auto fileReader = std::make_unique<FileReader>(std::move(fd));
@@ -112,9 +115,9 @@ JNIEXPORT void JNICALL
 Java_com_google_android_apps_viewer_pdflib_PdfDocument_destroy(JNIEnv* env, jobject jPdfDocument) {
     absl::MutexLock lock(&global_mutex);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
-    // LOGD("Deleting Document: %p", doc);
+    LOGD("Deleting Document: %p", doc);
     delete doc;
-    // LOGD("Destroyed Document: %p", doc);
+    LOGD("Destroyed Document: %p", doc);
 }
 
 JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_saveToFd(
@@ -122,7 +125,7 @@ JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocumen
     absl::MutexLock lock(&global_mutex);
     LinuxFileOps::FDCloser fd(jfd);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
-    // LOGD("Saving Document %p to fd %d", doc, fd.get());
+    LOGD("Saving Document %p to fd %d", doc, fd.get());
     return doc->SaveAs(std::move(fd));
 }
 
@@ -147,7 +150,7 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     std::shared_ptr<Page> page = doc->GetPage(pageNum);
     Rectangle_i dimensions = page->Dimensions();
     if (pdfClient::IsEmpty(dimensions)) {
-        // LOGE("pdfClient returned 0x0 page dimensions for page %d", pageNum);
+        LOGE("pdfClient returned 0x0 page dimensions for page %d", pageNum);
         dimensions = pdfClient::IntRect(0, 0, 612, 792);  // Default to Letter size.
     }
     return convert::ToJavaDimensions(env, dimensions);
@@ -166,11 +169,11 @@ JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocumen
         jboolean retainPage, jint fd) {
     absl::MutexLock lock(&global_mutex);
     Rectangle_i tile = pdfClient::IntRect(0, 0, w, h);
-    // LOGD("Start renderPageFd: Page %d at (%d x %d)", pageNum, w, h);
+    LOGD("Start renderPageFd: Page %d at (%d x %d)", pageNum, w, h);
 
     bool ret = RenderTileFd(env, jPdfDocument, pageNum, w, h, tile, hideTextAnnots, retainPage, fd);
 
-    // LOGD("Finish renderPageFd");
+    LOGD("Finish renderPageFd");
     return ret;
 }
 
@@ -180,13 +183,13 @@ JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocumen
         jint fd) {
     absl::MutexLock lock(&global_mutex);
     Rectangle_i tile = pdfClient::IntRectWithSize(left, top, tileWidth, tileHeight);
-    // LOGD("Start renderTileFd: Page %d at (%d x %d), Tile (%d, %d)", pageNum, pageWidth, pageHeight,
-    //  tile.Width(), tile.Height());
+    LOGD("Start renderTileFd: Page %d at (%d x %d), Tile (%d, %d)", pageNum, pageWidth, pageHeight,
+         tile.Width(), tile.Height());
 
     bool ret = RenderTileFd(env, jPdfDocument, pageNum, pageWidth, pageHeight, tile, hideTextAnnots,
                             retainPage, fd);
 
-    // LOGD("Finish renderTileFd");
+    LOGD("Finish renderTileFd");
     return ret;
 }
 

@@ -30,6 +30,9 @@
 #include "fpdf_save.h"
 #include "fpdfview.h"
 #include "linux_fileops.h"
+#include "logging.h"
+
+#define LOG_TAG "file"
 
 namespace pdfClient {
 
@@ -80,7 +83,7 @@ size_t FileReader::DoReadBlock(size_t pos, void* buffer, size_t size) const {
 
 void FileReader::RequestBlock(size_t offset, size_t size) {
     if (!CanReadBlock(offset, size)) {
-        // LOGI("pdfClient requests segment: offset=%zu, size=%zu", offset, size);
+        LOGI("pdfClient requests segment: offset=%zu, size=%zu", offset, size);
     }
 }
 
@@ -134,7 +137,7 @@ FileWriter::~FileWriter() {
 size_t FileWriter::DoWriteBlock(const void* data, size_t size) {
     size_t written = write(fd_.get(), data, size);
     if (written != size) {
-        // LOGE("Error performing write to fd: %s", strerror(errno));
+        LOGE("Error performing write to fd: %s", strerror(errno));
     }
     return written;
 }
@@ -146,7 +149,7 @@ int FileWriter::StaticWriteBlockImpl(FPDF_FILEWRITE* pThis, const void* data,
 }
 
 static void LogAddSegment(FX_DOWNLOADHINTS* pThis, size_t offset, size_t size) {
-    // LOGI("pdfClient requests segment: offset=%zu, size=%zu", offset, size);
+    LOGI("pdfClient requests segment: offset=%zu, size=%zu", offset, size);
 }
 
 FX_DOWNLOADHINTS* LogOnlyDownloadHints() {

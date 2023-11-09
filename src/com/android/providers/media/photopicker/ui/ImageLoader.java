@@ -56,6 +56,7 @@ public class ImageLoader {
             RequestOptions.option(THUMBNAIL_REQUEST, /* enableThumbnail */ true);
     private final Context mContext;
     private final PreferredColorSpace mPreferredColorSpace;
+    private static final String PREVIEW_PREFIX = "preview_";
 
     public ImageLoader(Context context) {
         mContext = context;
@@ -119,7 +120,7 @@ public class ImageLoader {
             loadWithGlide(
                     getGifRequestBuilder(loadable),
                     /* requestOptions */ null,
-                    getGlideSignature(loadable, /* prefix= */ null),
+                    getGlideSignature(loadable, /* prefix= */ PREVIEW_PREFIX),
                     imageView);
             return;
         }
@@ -128,7 +129,7 @@ public class ImageLoader {
             loadWithGlide(
                     getDrawableRequestBuilder(loadable),
                     /* requestOptions */ null,
-                    getGlideSignature(loadable, null),
+                    getGlideSignature(loadable, PREVIEW_PREFIX),
                     imageView);
             return;
         }
@@ -137,7 +138,7 @@ public class ImageLoader {
         loadWithGlide(
                 getBitmapRequestBuilder(loadable),
                 /* requestOptions */ null,
-                getGlideSignature(loadable, /* prefix= */ null),
+                getGlideSignature(loadable, /* prefix= */ PREVIEW_PREFIX),
                 imageView);
     }
 
@@ -149,7 +150,7 @@ public class ImageLoader {
         loadWithGlide(
                 getBitmapRequestBuilder(loadable),
                 new RequestOptions().frame(1000),
-                getGlideSignature(loadable, "Preview"),
+                getGlideSignature(loadable, /* prefix= */ PREVIEW_PREFIX),
                 imageView);
     }
 

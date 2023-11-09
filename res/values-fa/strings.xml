@@ -60,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"آلبومی موجود نیست"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"مشاهده موارد انتخاب‌شده"</string>
     <string name="picker_photos" msgid="7415035516411087392">"عکس‌ها"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"آلبوم‌ها"</string>
     <string name="picker_preview" msgid="6257414886055861039">"پیش‌نما"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"رفتن به نمایه کاری"</string>

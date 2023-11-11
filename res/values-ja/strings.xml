@@ -60,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"アルバムはありません"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"選択した写真を見る"</string>
     <string name="picker_photos" msgid="7415035516411087392">"写真"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"アルバム"</string>
     <string name="picker_preview" msgid="6257414886055861039">"プレビュー"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"仕事用に切り替える"</string>

@@ -21,6 +21,7 @@ android_app {
         "modules-utils-uieventlogger-interface",
         "glide-prebuilt",
         "glide-integration-recyclerview-prebuilt",
+        "glide-integration-webpdecoder-prebuilt",
         "glide-gifdecoder-prebuilt",
         "glide-disklrucache-prebuilt",
         "glide-annotation-and-compiler-prebuilt",

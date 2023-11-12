@@ -22,19 +22,21 @@ import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static org.hamcrest.Matchers.allOf;
 
-import androidx.test.ext.junit.rules.ActivityScenarioRule;
+import androidx.test.core.app.ActivityScenario;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
 import com.android.providers.media.library.RunOnlyOnPostsubmit;
 
-import org.junit.Rule;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -43,14 +45,23 @@ import org.junit.runner.RunWith;
 public class MimeTypeFilterTest extends PhotoPickerBaseTest {
 
     private static final String IMAGE_MIME_TYPE = "image/*";
+    private static final String VIDEO_MIME_TYPE = "video/*";
+    public ActivityScenario<PhotoPickerTestActivity> mScenario;
 
-    @Rule
-    public ActivityScenarioRule<PhotoPickerTestActivity> mRule = new ActivityScenarioRule<>(
-            PhotoPickerBaseTest.getSingleSelectMimeTypeFilterIntent(IMAGE_MIME_TYPE));
+    @Before
+    public void launchActivity() {
+        mScenario =
+                ActivityScenario.launchActivityForResult(
+                        PhotoPickerBaseTest.getSingleSelectMimeTypeFilterIntent(IMAGE_MIME_TYPE));
+    }
+
+    @After
+    public void closeActivity() {
+        mScenario.close();
+    }
 
     @Test
     public void testPhotosTabOnlyImageItems() {
-
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Two image items and one recent date header
@@ -91,5 +102,22 @@ public class MimeTypeFilterTest extends PhotoPickerBaseTest {
         // No item count on album items if there is mime type filter
         onView(allOf(withId(itemCountId),
                 withParent(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(doesNotExist());
+    }
+
+    @Test
+    public void testPickerTabTitleText_forVariousMimeTypeFilters() {
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .check(matches(isSelected()));
+
+        mScenario = ActivityScenario.launchActivityForResult(
+                PhotoPickerBaseTest.getSingleSelectMimeTypeFilterIntent(VIDEO_MIME_TYPE));
+        onView(allOf(withText(PICKER_VIDEOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .check(matches(isSelected()));
+
+        mScenario = ActivityScenario.launchActivityForResult(
+                PhotoPickerBaseTest.getSingleSelectionIntent());
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .check(matches(isSelected()));
+
     }
 }

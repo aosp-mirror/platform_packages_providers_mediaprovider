@@ -14,9 +14,11 @@
      limitations under the License.
 -->
 
+<!-- This vector draws the camera graphic that is displayed in the picker when the
+     device has no images/videos i.e. the picker is empty -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="120dp"
-    android:height="80dp"
+    android:width="100dp"
+    android:height="66.67dp"
     android:viewportWidth="120"
     android:viewportHeight="80">
   <path

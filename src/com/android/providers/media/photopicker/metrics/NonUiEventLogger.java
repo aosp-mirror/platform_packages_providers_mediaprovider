@@ -50,7 +50,13 @@ public class NonUiEventLogger {
         @UiEvent(doc = "Ended get media collection info in photo picker")
         PHOTO_PICKER_GET_MEDIA_COLLECTION_INFO_END(1450),
         @UiEvent(doc = "Ended get albums in photo picker")
-        PHOTO_PICKER_GET_ALBUMS_END(1451);
+        PHOTO_PICKER_GET_ALBUMS_END(1451),
+        @UiEvent(doc = "Read grants added count.")
+        PHOTO_PICKER_GRANTS_ADDED_COUNT(1528),
+        @UiEvent(doc = "Read grants revoked count.")
+        PHOTO_PICKER_GRANTS_REVOKED_COUNT(1529),
+        @UiEvent(doc = "Total initial grants count.")
+        PHOTO_PICKER_INIT_GRANTS_COUNT(1530);
 
         private final int mId;
 
@@ -221,4 +227,44 @@ public class NonUiEventLogger {
         LOGGER.logWithInstanceIdAndPosition(NonUiEvent.PHOTO_PICKER_GET_ALBUMS_END, uid, authority,
                 instanceId, count);
     }
+
+    /**
+     * Log metrics for count of grants added for a package.
+     * @param instanceId   an identifier for the current session
+     * @param uid          the uid of the MediaProvider logging this metric
+     * @param packageName  the package name receiving the grant.
+     * @param count        the number of items for which the grants have been added.
+     */
+    public static void logPickerChoiceGrantsAdditionCount(InstanceId instanceId, int uid,
+            String packageName, int count) {
+        LOGGER.logWithInstanceIdAndPosition(NonUiEvent.PHOTO_PICKER_GRANTS_ADDED_COUNT, uid,
+                packageName, instanceId, count);
+    }
+
+    /**
+     * Log metrics for count of grants revoked for a package.
+     * @param instanceId   an identifier for the current session
+     * @param uid          the uid of the MediaProvider logging this metric
+     * @param packageName  the package name for which the grants are being revoked.
+     * @param count        the number of items for which the grants have been revoked.
+     */
+    public static void logPickerChoiceGrantsRemovedCount(InstanceId instanceId, int uid,
+            String packageName, int count) {
+        LOGGER.logWithInstanceIdAndPosition(NonUiEvent.PHOTO_PICKER_GRANTS_REVOKED_COUNT, uid,
+                packageName, instanceId, count);
+    }
+
+    /**
+     * Log metrics for total count of grants previously added for the package.
+     * @param instanceId   an identifier for the current session
+     * @param uid          the uid of the MediaProvider logging this metric
+     * @param packageName  the package name for which the grants are being initialized.
+     * @param count        the number of items for which the grants have been initialized.
+     */
+    public static void logPickerChoiceInitGrantsCount(InstanceId instanceId, int uid,
+            String packageName, int count) {
+        LOGGER.logWithInstanceIdAndPosition(NonUiEvent.PHOTO_PICKER_INIT_GRANTS_COUNT, uid,
+                packageName, instanceId, count);
+    }
+
 }

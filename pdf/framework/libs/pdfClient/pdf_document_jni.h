@@ -38,9 +38,6 @@ Java_com_google_android_apps_viewer_pdflib_PdfDocument_destroy(JNIEnv* env, jobj
 JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_saveToFd(
         JNIEnv* env, jobject jPdfDocument, jint jfd);
 
-JNIEXPORT jint JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getNumAvailablePages(
-        JNIEnv* env, jobject jPdfDocument, jobject jDoubleEndedFile, jint start, jint end);
-
 JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageDimensions(
         JNIEnv* env, jobject jPdfDocument, jint pageNum);
 

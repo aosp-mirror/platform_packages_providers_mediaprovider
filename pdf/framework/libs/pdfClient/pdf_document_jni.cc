@@ -30,7 +30,8 @@
 #include "form_widget_info.h"
 #include "logging.h"
 #include "page.h"
-// #include "proto/goto_links.proto.h" @Todo b/307870155
+// TODO(b/307870155)
+// #include "proto/goto_links.proto.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
 #include "fcntl.h"
@@ -127,20 +128,6 @@ JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocumen
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     LOGD("Saving Document %p to fd %d", doc, fd.get());
     return doc->SaveAs(std::move(fd));
-}
-
-JNIEXPORT jint JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getNumAvailablePages(
-        JNIEnv* env, jobject jPdfDocument, jobject jDoubleEndedFile, jint start, jint end) {
-    absl::MutexLock lock(&global_mutex);
-    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
-    int progressPage = 0;
-    /* auto fileReader = convert::ToNativeDoubleEndedFile(env, jDoubleEndedFile);
-    int progressPage = doc->GetNumAvailablePages(
-            dynamic_cast<pdfClient::DoubleEndedFileReader*>(fileReader.get()), start, end);
-    convert::SetRequestedSizes(env, fileReader->RequestedHeaderSize(),
-                               fileReader->RequestedFooterSize(), jDoubleEndedFile);
-    fileReader->ReleaseFd();*/ // @Todo b/308079973
-    return progressPage;
 }
 
 JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageDimensions(

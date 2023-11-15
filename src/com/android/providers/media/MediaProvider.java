@@ -871,17 +871,33 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    protected void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType,
-            @NonNull String volumeName) {
+    protected void updateQuotaTypeForUri(@NonNull FileRow row) {
+        final String volumeName = row.getVolumeName();
+        final String path = row.getPath();
+
         // Quota type is only updated for external primary volume
         if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
             return;
         }
 
+        int mediaType = row.getMediaType();
         Trace.beginSection("MP.updateQuotaTypeForUri");
         File file;
         try {
-            file = queryForDataFile(uri, null);
+            if (path != null) {
+                file = new File(path);
+            } else {
+                // This can happen in case of renames, where the path isn't
+                // part of the 'new' FileRow data. Fall back to querying
+                // the path directly.
+                final Uri uri = MediaStore.Files.getContentUri(row.getVolumeName(),
+                        row.getId());
+                if (uri == null) {
+                    // Row could have been deleted
+                    return;
+                }
+                file = queryForDataFile(uri, null);
+            }
             if (!file.exists()) {
                 // This can happen if an item is inserted in MediaStore before it is created
                 return;
@@ -897,7 +913,7 @@ public class MediaProvider extends ContentProvider {
             updateQuotaTypeForFileInternal(file, mediaType);
         } catch (FileNotFoundException | IllegalArgumentException e) {
             // Ignore
-            Log.w(TAG, "Failed to update quota for uri: " + uri, e);
+            Log.w(TAG, "Failed to update quota", e);
         } finally {
             Trace.endSection();
         }
@@ -953,8 +969,7 @@ public class MediaProvider extends ContentProvider {
                     // Update the quota type on the filesystem
                     Uri fileUri = MediaStore.Files.getContentUri(insertedRow.getVolumeName(),
                             insertedRow.getId());
-                    updateQuotaTypeForUri(fileUri, insertedRow.getMediaType(),
-                            insertedRow.getVolumeName());
+                    updateQuotaTypeForUri(insertedRow);
                 }
 
                 // Tell our SAF provider so it knows when views are no longer empty
@@ -993,7 +1008,7 @@ public class MediaProvider extends ContentProvider {
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
-                    updateQuotaTypeForUri(fileUri, newRow.getMediaType(), oldRow.getVolumeName());
+                    updateQuotaTypeForUri(newRow);
                 }
 
                 if (mExternalDbFacade.onFileUpdated(oldRow.getId(),

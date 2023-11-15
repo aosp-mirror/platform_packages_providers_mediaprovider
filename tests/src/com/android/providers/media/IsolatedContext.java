@@ -21,7 +21,6 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.pm.ProviderInfo;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.UserHandle;
 import android.provider.CloudMediaProvider;
@@ -35,6 +34,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.cloudproviders.CloudProviderPrimary;
 import com.android.providers.media.cloudproviders.FlakyCloudProvider;
+import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.util.FileUtils;
@@ -121,8 +121,7 @@ public class IsolatedContext extends ContextWrapper {
             }
 
             @Override
-            protected void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType,
-                    @NonNull String volumeName) {
+            protected void updateQuotaTypeForUri(@NonNull FileRow row) {
                 return;
             }
         };

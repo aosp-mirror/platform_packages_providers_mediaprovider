@@ -2582,6 +2582,16 @@ void FuseDaemon::SetupLevelDbInstances() {
     }
 }
 
+void FuseDaemon::SetupPublicVolumeLevelDbInstance(const std::string& volume_name) {
+    if (android::base::StartsWith(fuse->root->GetIoPath(), PRIMARY_VOLUME_PREFIX)) {
+        // Setup leveldb instance for both external primary and internal volume.
+        fuse->level_db_mutex.lock();
+        // Create level db instance for public volume
+        SetupLevelDbConnection(volume_name);
+        fuse->level_db_mutex.unlock();
+    }
+}
+
 std::string deriveVolumeName(const std::string& path) {
     std::string volume_name;
     if (!android::base::StartsWith(path, STORAGE_PREFIX)) {
@@ -2589,8 +2599,10 @@ std::string deriveVolumeName(const std::string& path) {
     } else if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
         volume_name = VOLUME_EXTERNAL_PRIMARY;
     } else {
-        size_t size = sizeof(STORAGE_PREFIX) / sizeof(STORAGE_PREFIX[0]);
-        volume_name = volume_name.substr(size);
+        // Return "C58E-1702" from the path like "/storage/C58E-1702/Download/1935694997673.png"
+        volume_name = path.substr(9, 9);
+        // Convert to lowercase
+        std::transform(volume_name.begin(), volume_name.end(), volume_name.begin(), ::tolower);
     }
     return volume_name;
 }
@@ -2610,8 +2622,8 @@ void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
     }
 }
 
-void FuseDaemon::InsertInLevelDb(const std::string& key, const std::string& value) {
-    std::string volume_name = deriveVolumeName(key);
+void FuseDaemon::InsertInLevelDb(const std::string& volume_name, const std::string& key,
+                                 const std::string& value) {
     if (!CheckLevelDbConnection(volume_name)) {
         LOG(ERROR) << "InsertInLevelDb: Missing leveldb connection.";
         return;
@@ -2760,7 +2772,7 @@ std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
 
 bool FuseDaemon::CheckLevelDbConnection(const std::string& instance_name) {
     if (fuse->level_db_connection_map.find(instance_name) == fuse->level_db_connection_map.end()) {
-        LOG(ERROR) << "Leveldb setup is missing for :" << instance_name;
+        LOG(ERROR) << "Leveldb setup is missing for: " << instance_name;
         return false;
     }
     return true;

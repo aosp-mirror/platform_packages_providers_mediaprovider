@@ -196,6 +196,18 @@ void com_android_providers_media_FuseDaemon_setup_volume_db_backup(JNIEnv* env, 
     daemon->SetupLevelDbInstances();
 }
 
+void com_android_providers_media_FuseDaemon_setup_public_volume_db_backup(JNIEnv* env, jobject self,
+                                                                   jlong java_daemon,
+                                                                   jstring volume_name) {
+    fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
+    ScopedUtfChars utf_chars_volumeName(env, volume_name);
+    if (!utf_chars_volumeName.c_str()) {
+        LOG(WARNING) << "Couldn't initialise FUSE device id for " << volume_name;
+        return;
+    }
+    daemon->SetupPublicVolumeLevelDbInstance(utf_chars_volumeName.c_str());
+}
+
 void com_android_providers_media_FuseDaemon_delete_db_backup(JNIEnv* env, jobject self,
                                                              jlong java_daemon, jstring java_path) {
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
@@ -209,15 +221,19 @@ void com_android_providers_media_FuseDaemon_delete_db_backup(JNIEnv* env, jobjec
 
 void com_android_providers_media_FuseDaemon_backup_volume_db_data(JNIEnv* env, jobject self,
                                                                   jlong java_daemon,
-                                                                  jstring java_path, jstring value) {
+                                                                  jstring volume_name,
+                                                                  jstring java_path,
+                                                                  jstring value) {
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
     ScopedUtfChars utf_chars_path(env, java_path);
     ScopedUtfChars utf_chars_value(env, value);
+    ScopedUtfChars utf_chars_volumeName(env, volume_name);
     if (!utf_chars_path.c_str()) {
         LOG(WARNING) << "Couldn't initialise FUSE device id";
         return;
     }
-    daemon->InsertInLevelDb(utf_chars_path.c_str(), utf_chars_value.c_str());
+    daemon->InsertInLevelDb(utf_chars_volumeName.c_str(), utf_chars_path.c_str(),
+                            utf_chars_value.c_str());
 }
 
 bool com_android_providers_media_FuseDaemon_is_fuse_thread(JNIEnv* env, jclass clazz) {
@@ -328,9 +344,11 @@ const JNINativeMethod methods[] = {
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_initialize_device_id)},
         {"native_setup_volume_db_backup", "(J)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_setup_volume_db_backup)},
+         {"native_setup_public_volume_db_backup", "(JLjava/lang/String;)V",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_setup_public_volume_db_backup)},
         {"native_delete_db_backup", "(JLjava/lang/String;)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete_db_backup)},
-        {"native_backup_volume_db_data", "(JLjava/lang/String;Ljava/lang/String;)V",
+        {"native_backup_volume_db_data", "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_backup_volume_db_data)},
         {"native_read_backed_up_file_paths",
          "(JLjava/lang/String;Ljava/lang/String;I)[Ljava/lang/String;",

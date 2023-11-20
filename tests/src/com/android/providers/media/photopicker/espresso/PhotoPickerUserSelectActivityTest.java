@@ -92,7 +92,7 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
     @Test
     public void testActivityProfileButtonNotShown() {
         launchValidActivity();
-        // Partial screen does not show profile button
+        // User select mode does not show profile button
         onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
 
         // Navigate to Albums tab

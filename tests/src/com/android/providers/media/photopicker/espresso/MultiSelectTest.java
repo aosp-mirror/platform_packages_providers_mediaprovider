@@ -79,11 +79,6 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    public void testMultiSelectDoesNotShowProfileButton() {
-        assertProfileButtonNotShown();
-    }
-
-    @Test
     public void testMultiselect_showDragBar() {
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
     }
@@ -306,30 +301,5 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
 
         assertThat(mScenario.getResult().getResultCode()).isEqualTo(
                 Activity.RESULT_CANCELED);
-    }
-
-
-    private void assertProfileButtonNotShown() {
-        // Partial screen does not show profile button
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-        // Navigate to Albums tab
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                .perform(click());
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-        final int cameraStringId = R.string.picker_category_camera;
-        // Navigate to photos in Camera album
-        onView(allOf(withText(cameraStringId),
-                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-        // Click back button
-        onView(withContentDescription("Navigate up")).perform(click());
-
-        // on clicking back button we are back to Album grid
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                .check(matches(isSelected()));
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
     }
 }

@@ -166,6 +166,7 @@ import static com.android.providers.media.util.SyntheticPathUtils.isSyntheticPat
 
 import android.Manifest;
 import android.annotation.IntDef;
+import android.app.ActivityOptions;
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
 import android.app.AppOpsManager.OnOpChangedListener;
@@ -7407,8 +7408,13 @@ public class MediaProvider extends ContentProvider {
         final Context context = getContext();
         final Intent intent = new Intent(method, null, context, PermissionActivity.class);
         intent.putExtras(extras);
+        final ActivityOptions options = ActivityOptions.makeBasic();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            options.setPendingIntentCreatorBackgroundActivityStartMode(
+                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+        }
         return PendingIntent.getActivity(context, PermissionActivity.REQUEST_CODE, intent,
-                FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE);
+                FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE, options.toBundle());
     }
 
     /**

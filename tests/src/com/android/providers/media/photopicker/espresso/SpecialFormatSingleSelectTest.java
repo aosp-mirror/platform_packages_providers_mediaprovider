@@ -40,7 +40,6 @@ import com.android.providers.media.R;
 import com.android.providers.media.library.RunOnlyOnPostsubmit;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger.PhotoPickerEvent;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -158,7 +157,6 @@ public class SpecialFormatSingleSelectTest extends SpecialFormatBaseTest {
     }
 
     @Test
-    @Ignore("Enable after b/222013536 is fixed")
     public void testPreview_singleSelect_nonAnimatedWebp() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 

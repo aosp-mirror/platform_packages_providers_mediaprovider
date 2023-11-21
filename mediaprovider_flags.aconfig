@@ -1,0 +1,8 @@
+package: "com.android.providers.media.flags"
+
+flag {
+    name: "pick_ordered_images"
+    namespace: "mediaprovider"
+    description: "This flag controls whether to enable ordered selection in photopicker"
+    bug: "303784642"
+}

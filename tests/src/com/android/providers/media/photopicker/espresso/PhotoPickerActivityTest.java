@@ -96,7 +96,8 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         onView(withId(R.id.fragment_container)).check(matches(isDisplayed()));
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
         onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-        // Partial screen does not show profile button
+        // Assuming by default, the tests run without a managed user
+        // Single user mode does not show profile button
         onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
         onView(withId(android.R.id.empty)).check(matches(not(isDisplayed())));
 
@@ -108,22 +109,24 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    public void testDoesNotShowProfileButton_partialScreen() {
-        assertProfileButtonNotShown();
-    }
+    public void testProfileButtonHiddenInSingleUserMode() {
+        // Assuming that the test runs without a managed user
 
-    @Test
-    @Ignore("Enable after b/222013536 is fixed")
-    public void testDoesNotShowProfileButton_fullScreen() {
-        // Bottomsheet assertions are different for landscape mode
-        setPortraitOrientation(mScenario);
-
-        // Partial screen does not show profile button
+        // Single user mode does not show profile button in the main grid
         onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
 
-        BottomSheetTestUtils.swipeUp(mScenario);
+        onView(withId(TAB_LAYOUT_ID)).check(matches(isDisplayed()));
 
-        assertProfileButtonNotShown();
+        // On clicking albums tab item, we should see albums tab
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .perform(click());
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .check(matches(isSelected()));
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .check(matches(isNotSelected()));
+
+        // Single user mode does not show profile button in the albums grid
+        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
     }
 
     @Test
@@ -348,29 +351,5 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         // Verify activity reset to the initial launch state (Photos tab)
         onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
                 .check(matches(isSelected()));
-    }
-
-    private void assertProfileButtonNotShown() {
-        // Partial screen does not show profile button
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-        // Navigate to Albums tab
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                .perform(click());
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-        final int cameraStringId = R.string.picker_category_camera;
-        // Navigate to photos in Camera album
-        onView(allOf(withText(cameraStringId),
-                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-        // Click back button
-        onView(withContentDescription("Navigate up")).perform(click());
-
-        // on clicking back button we are back to Album grid
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                .check(matches(isSelected()));
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
     }
 }

@@ -598,6 +598,53 @@ public class PickerViewModelTest {
     }
 
     @Test
+    public void testParseValuesFromPickImagesIntent_launchPickerInPhotosTab() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB, MediaStore.PICK_IMAGES_TAB_IMAGES);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.getPickerLaunchTab()).isEqualTo(
+                MediaStore.PICK_IMAGES_TAB_IMAGES);
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_launchPickerInAlbumsTab() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB, MediaStore.PICK_IMAGES_TAB_ALBUMS);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.getPickerLaunchTab()).isEqualTo(
+                MediaStore.PICK_IMAGES_TAB_ALBUMS);
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_launchPickerWithIncorrectTabOption() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB, 2);
+
+        try {
+            mPickerViewModel.parseValuesFromIntent(intent);
+            fail("Incorrect value passed for the picker launch tab option in the intent");
+        } catch (IllegalArgumentException expected) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_extraPickerLaunchTab() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB, MediaStore.PICK_IMAGES_TAB_ALBUMS);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // GET_CONTENT doesn't support this option. Launch tab will always default to photos
+        assertThat(mPickerViewModel.getPickerLaunchTab()).isEqualTo(
+                MediaStore.PICK_IMAGES_TAB_IMAGES);
+    }
+
+    @Test
     public void testShouldShowOnlyLocalFeatures() {
         mConfigStore.enableCloudMediaFeature();
 

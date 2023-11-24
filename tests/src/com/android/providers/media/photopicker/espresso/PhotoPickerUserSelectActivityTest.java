@@ -33,12 +33,17 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewTestU
 import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
+
+import static junit.framework.Assert.fail;
 
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
 import android.app.Activity;
+import android.content.ContentUris;
 import android.content.Intent;
+import android.net.Uri;
 import android.provider.MediaStore;
 
 import androidx.lifecycle.ViewModelProvider;
@@ -49,12 +54,17 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
 import com.android.providers.media.library.RunOnlyOnPostsubmit;
+import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @RunOnlyOnPostsubmit
 @SdkSuppress(minSdkVersion = 34, codeName = "UpsideDownCake")
@@ -185,14 +195,12 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
-
         try (ViewPager2IdlingResource idlingResource =
                      ViewPager2IdlingResource.register(mScenario, PREVIEW_VIEW_PAGER_ID)) {
             final int previewAddButtonId = R.id.preview_add_button;
             final int previewSelectButtonId = R.id.preview_selected_check_button;
             final String selectedString =
                     getTargetContext().getResources().getString(R.string.selected);
-
             // Verify that, initially, we show "selected" check button
             onView(withId(previewSelectButtonId)).check(matches(isSelected()));
             onView(withId(previewSelectButtonId)).check(matches(withText(selectedString)));
@@ -222,6 +230,82 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
             onView(withId(previewAddButtonId))
                     .check(matches(withText("Allow (1)")));
             // Verify that we have 1 item in selected items
+            mScenario.onActivity(activity -> {
+                Selection selection =
+                        new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
+                assertThat(selection.getSelectedItemCount().getValue()).isEqualTo(1);
+            });
+        }
+    }
+
+    @Test
+    public void testPreview_showsOnlyAlreadyLoadedGrantItems() throws Exception {
+        launchValidActivityWithManagedSelectionEnabled();
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        final Uri uri = MediaStore.scanFile(getIsolatedContext().getContentResolver(),
+                IMAGE_1_FILE);
+        MediaStore.waitForIdle(getIsolatedContext().getContentResolver());
+        mScenario.onActivity(activity -> {
+            // Add an item id to the pre-granted set, so that when preview fragment gets opened up
+            // there is something to load as a remaining item.
+            Selection selection =
+                    new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
+            selection.setTotalNumberOfPreGrantedItems(1);
+            selection.setPreGrantedItemSet(Set.of(String.valueOf(ContentUris.parseId(uri))));
+
+            // Verify that we don't have anything to preview
+            selection.prepareSelectedItemsForPreviewAll();
+            assertWithMessage("Expected preview-able item list to be empty")
+                    .that(selection.getSelectedItemsForPreview()).isEmpty();
+        });
+
+        // Block the DataLoader thread by posting a conditional wait. This will block fetching of
+        // pregranted items in preview
+        final CountDownLatch latch = new CountDownLatch(1);
+        DataLoaderThread.waitForIdle();
+        DataLoaderThread.getHandler().postDelayed(() -> {
+            // Wait for 5 seconds if we don't receive a countdown
+            try {
+                assertWithMessage("Expected the test to send countdown before 5s")
+                        .that(latch.await(5, TimeUnit.SECONDS)).isTrue();
+            } catch (InterruptedException e) {
+                fail("Unexpected excepetion : " + e.getMessage());
+            }
+        }, DataLoaderThread.TOKEN, 0);
+
+        // Navigate to preview
+        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+
+        // Verify that UI shows no selected / deselected button
+        try (ViewPager2IdlingResource idlingResource =
+                     ViewPager2IdlingResource.register(mScenario, PREVIEW_VIEW_PAGER_ID)) {
+            final int previewAddButtonId = R.id.preview_add_button;
+            final int previewSelectButtonId = R.id.preview_selected_check_button;
+            // Verify that, initially, we show "selected" check button
+            onView(withId(previewSelectButtonId)).check(matches(not(isDisplayed())));
+            onView(withId(previewAddButtonId)).check(matches(isDisplayed()));
+            // Verify that the text in Add button matches "Allow (1)"
+            onView(withId(previewAddButtonId)).check(matches(withText("Allow (1)")));
+        }
+
+        // Free DataLoaderThread so that it can load pregranted items
+        latch.countDown();
+        DataLoaderThread.waitForIdle();
+
+        // Verify that UI now shows selected button
+        try (ViewPager2IdlingResource idlingResource =
+                     ViewPager2IdlingResource.register(mScenario, PREVIEW_VIEW_PAGER_ID)) {
+            final int previewAddButtonId = R.id.preview_add_button;
+            final int previewSelectButtonId = R.id.preview_selected_check_button;
+            final String selectedString =
+                    getTargetContext().getResources().getString(R.string.selected);
+            // Verify that, initially, we show "selected" check button
+            onView(withId(previewSelectButtonId)).check(matches(isSelected()));
+            onView(withId(previewSelectButtonId)).check(matches(withText(selectedString)));
+            // Verify that the text in Add button matches "Allow (1)"
+            onView(withId(previewAddButtonId))
+                    .check(matches(withText("Allow (1)")));
             mScenario.onActivity(activity -> {
                 Selection selection =
                         new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();

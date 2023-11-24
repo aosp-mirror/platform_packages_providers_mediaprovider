@@ -169,7 +169,9 @@ public abstract class TabFragment extends Fragment {
             });
             // Transition to PreviewFragment on clicking "View Selected".
             mViewSelectedButton.setOnClickListener(v -> {
-                // Load items for preview that are pre granted but not yet loaded for UI.
+                // Load items for preview that are pre granted but not yet loaded for UI. This is an
+                // async call. Until the items are loaded, we can still preview already available
+                // items
                 mPickerViewModel.getRemainingPreGrantedItems();
                 mSelection.prepareSelectedItemsForPreviewAll();
 

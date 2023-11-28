@@ -1235,6 +1235,36 @@ public class PickerViewModel extends AndroidViewModel {
                 getPackageNameForUid(intentExtras), numberOfGrants);
     }
 
+    /**
+     * Log metrics to notify that the banner is added to display in the recycler view grids
+     * @param bannerName the name of the banner added,
+     *                   refer {@link com.android.providers.media.photopicker.ui.TabAdapter.Banner}
+     */
+    public void logBannerAdded(@NonNull String bannerName) {
+        mLogger.logBannerAdded(mInstanceId, bannerName);
+    }
+
+    /**
+     * Log metrics to notify that the banner is dismissed by the user
+     */
+    public void logBannerDismissed() {
+        mLogger.logBannerDismissed(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user clicked the banner action button
+     */
+    public void logBannerActionButtonClicked() {
+        mLogger.logBannerActionButtonClicked(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user clicked on the remaining part of the banner
+     */
+    public void logBannerClicked() {
+        mLogger.logBannerClicked(mInstanceId);
+    }
+
     @NonNull
     private String getPackageNameForUid(Bundle extras) {
         final int uid = extras.getInt(Intent.EXTRA_UID);

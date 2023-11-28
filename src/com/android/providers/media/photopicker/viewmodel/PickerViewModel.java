@@ -878,7 +878,9 @@ public class PickerViewModel extends AndroidViewModel {
             mPackageUid = intent.getExtras().getInt(Intent.EXTRA_UID);
         }
         // Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
-        initBannerManager();
+        if (mBannerManager == null) {
+            initBannerManager();
+        }
     }
 
     private void initBannerManager() {

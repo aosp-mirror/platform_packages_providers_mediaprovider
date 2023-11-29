@@ -93,7 +93,7 @@ public class PickerDataLayer {
     // {@link PickerSyncManager} to ensure that any request type is not blocked on other request
     // types. It is advisable to use unique work requests because in case the number of queued
     // requests grows, they should not block other work requests.
-    private static final int WORK_MANAGER_THREAD_POOL_SIZE = 5;
+    private static final int WORK_MANAGER_THREAD_POOL_SIZE = 6;
     @Nullable
     private static volatile Executor sWorkManagerExecutor;
 
@@ -547,10 +547,11 @@ public class PickerDataLayer {
     /**
      * Handles notification about media events like inserts/updates/deletes received from cloud or
      * local providers.
+     * @param localOnly - whether the media event is coming from the local provider
      */
-    public void handleMediaEventNotification() {
+    public void handleMediaEventNotification(Boolean localOnly) {
         try {
-            mSyncManager.syncAllMediaProactively();
+            mSyncManager.syncMediaProactively(localOnly);
         } catch (RuntimeException e) {
             // Catch any unchecked exceptions so that critical paths in MP that call this method are
             // not affected by Picker related issues.

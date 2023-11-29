@@ -55,6 +55,20 @@
             </intent-filter>
         </activity>
 
+        <!-- Intent Action "android.intent.action.MAIN"
+
+             This intent action is used to start the activity as a main entry point, does not expect
+             to receive data.
+
+             {@link androidx.test.core.app.ActivityScenario#launchActivityForResult(Class)} launches
+             the activity with the intent action {@link android.content.Intent#ACTION_MAIN}.
+        -->
+        <activity android:name="com.android.providers.media.photopicker.espresso.PhotoPickerAccessibilityDisabledTestActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+            </intent-filter>
+        </activity>
+
         <provider android:name="com.android.providers.media.photopicker.LocalProvider"
             android:authorities="com.android.providers.media.photopicker.tests.local"
             android:exported="false" />

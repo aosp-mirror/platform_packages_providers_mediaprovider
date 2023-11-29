@@ -121,7 +121,15 @@ public class PhotoPickerUiEventLogger {
         @UiEvent(doc = "User cancelled the selected media preloading in photo picker")
         PHOTO_PICKER_PRELOADING_CANCELLED(1526),
         @UiEvent(doc = "Failed to preload some selected media items in photo picker")
-        PHOTO_PICKER_PRELOADING_FAILED(1527);
+        PHOTO_PICKER_PRELOADING_FAILED(1527),
+        @UiEvent(doc = "The banner is added to display in the recycler view grids in photo picker")
+        PHOTO_PICKER_BANNER_ADDED(1539),
+        @UiEvent(doc = "The user clicks the dismiss button of the banner in photo picker")
+        PHOTO_PICKER_BANNER_DISMISSED(1540),
+        @UiEvent(doc = "The user clicks the action button of the banner in photo picker")
+        PHOTO_PICKER_BANNER_ACTION_BUTTON_CLICKED(1541),
+        @UiEvent(doc = "The user clicks on the remaining part of the banner in photo picker")
+        PHOTO_PICKER_BANNER_CLICKED(1542);
 
         private final int mId;
 
@@ -644,6 +652,41 @@ public class PhotoPickerUiEventLogger {
     public void logPreloadingFailed(@NonNull InstanceId instanceId, int count) {
         logWithInstanceAndPosition(PhotoPickerEvent.PHOTO_PICKER_PRELOADING_FAILED, instanceId,
                 count);
+    }
+
+    /**
+     * Log metrics to notify that the banner is added to display in the recycler view grids
+     * @param instanceId an identifier for the current picker session
+     * @param bannerName the name of the banner added,
+     *                   refer {@link com.android.providers.media.photopicker.ui.TabAdapter.Banner}
+     */
+    public void logBannerAdded(@NonNull InstanceId instanceId, @NonNull String bannerName) {
+        logger.logWithInstanceId(PhotoPickerEvent.PHOTO_PICKER_BANNER_ADDED, /* uid= */ 0,
+                bannerName, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the banner is dismissed by the user
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logBannerDismissed(@NonNull InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_BANNER_DISMISSED, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user clicked the banner action button
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logBannerActionButtonClicked(@NonNull InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_BANNER_ACTION_BUTTON_CLICKED, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user clicked on the remaining part of the banner
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logBannerClicked(@NonNull InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_BANNER_CLICKED, instanceId);
     }
 
     private void logWithInstance(@NonNull UiEventLogger.UiEventEnum event, InstanceId instance) {

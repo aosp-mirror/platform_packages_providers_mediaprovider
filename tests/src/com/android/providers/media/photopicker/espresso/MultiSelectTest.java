@@ -62,8 +62,6 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class MultiSelectTest extends PhotoPickerBaseTest {
 
-    private static final int TAB_VIEW_PAGER_ID = R.id.picker_tab_viewpager;
-
     private ActivityScenario<PhotoPickerTestActivity> mScenario;
 
     @Before

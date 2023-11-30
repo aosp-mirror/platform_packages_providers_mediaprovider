@@ -721,6 +721,10 @@ public class PickerSyncController {
                 case SYNC_TYPE_MEDIA_FULL:
                     NonUiEventLogger.logPickerFullSyncStart(instanceId, MY_UID, authority);
 
+                    // Send UI refresh notification for any active picker sessions, as the
+                    // UI data might be stale if a full sync needs to be run.
+                    sendPickerUiRefreshNotification();
+
                     final Bundle fullSyncQueryArgs = new Bundle();
                     if (enablePagedSync) {
                         fullSyncQueryArgs.putInt(EXTRA_PAGE_SIZE, params.mPageSize);

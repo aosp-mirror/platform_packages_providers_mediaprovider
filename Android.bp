@@ -33,6 +33,7 @@ android_app {
         "modules-utils-shell-command-handler",
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",
+        "mediaprovider_flags_java_lib",
     ],
 
     libs: [
@@ -161,4 +162,19 @@ prebuilt_etc {
 sh_binary {
     name: "media_provider",
     src: "cli/media_provider_cli_wrapper.sh",
+}
+
+aconfig_declarations {
+    name: "mediaprovider_flags",
+    package: "com.android.providers.media.flags",
+    srcs: ["mediaprovider_flags.aconfig"],
+}
+
+java_aconfig_library {
+    name: "mediaprovider_flags_java_lib",
+    aconfig_declarations: "mediaprovider_flags",
+    min_sdk_version: "30",
+    apex_available: [
+        "com.android.mediaprovider",
+    ],
 }

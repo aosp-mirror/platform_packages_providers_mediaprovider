@@ -121,6 +121,7 @@ public class PickerSyncController {
     private static final int SYNC_TYPE_MEDIA_INCREMENTAL = 1;
     private static final int SYNC_TYPE_MEDIA_FULL = 2;
     private static final int SYNC_TYPE_MEDIA_RESET = 3;
+    private static final int SYNC_TYPE_MEDIA_FULL_WITH_RESET = 4;
     public static final int PAGE_SIZE = 1000;
     @NonNull
     private static final Handler sBgThreadHandler = BackgroundThread.getHandler();
@@ -129,10 +130,12 @@ public class PickerSyncController {
             SYNC_TYPE_MEDIA_INCREMENTAL,
             SYNC_TYPE_MEDIA_FULL,
             SYNC_TYPE_MEDIA_RESET,
+            SYNC_TYPE_MEDIA_FULL_WITH_RESET,
     })
     @Retention(RetentionPolicy.SOURCE)
     private @interface SyncType {}
 
+    private static final long DEFAULT_GENERATION = -1;
     private final Context mContext;
     private final ConfigStore mConfigStore;
     private final PickerDbFacade mDbFacade;
@@ -702,13 +705,21 @@ public class PickerSyncController {
                     // Can only happen when |authority| has been set to null and we need to clean up
                     disablePickerCloudMediaQueries(isLocal);
                     return resetAllMedia(authority, isLocal);
-                case SYNC_TYPE_MEDIA_FULL:
-                    NonUiEventLogger.logPickerFullSyncStart(instanceId, MY_UID, authority);
+                case SYNC_TYPE_MEDIA_FULL_WITH_RESET:
                     disablePickerCloudMediaQueries(isLocal);
                     if (!resetAllMedia(authority, isLocal)) {
                         return false;
                     }
                     enablePickerCloudMediaQueries(authority, isLocal);
+
+                    // Cache collection id with default generation id to prevent DB reset if full
+                    // sync resumes the next time sync is triggered.
+                    cacheMediaCollectionInfo(
+                            authority, isLocal,
+                            getDefaultGenerationCollectionInfo(params.latestMediaCollectionInfo));
+                    // Fall through to run full sync
+                case SYNC_TYPE_MEDIA_FULL:
+                    NonUiEventLogger.logPickerFullSyncStart(instanceId, MY_UID, authority);
 
                     final Bundle fullSyncQueryArgs = new Bundle();
                     if (enablePagedSync) {
@@ -1169,7 +1180,7 @@ public class PickerSyncController {
         final String collectionId = mSyncPrefs.getString(
                 getPrefsKey(isLocal, MEDIA_COLLECTION_ID), /* default */ null);
         final long generation = mSyncPrefs.getLong(
-                getPrefsKey(isLocal, LAST_MEDIA_SYNC_GENERATION), /* default */ -1);
+                getPrefsKey(isLocal, LAST_MEDIA_SYNC_GENERATION), DEFAULT_GENERATION);
 
         bundle.putString(MEDIA_COLLECTION_ID, collectionId);
         bundle.putLong(LAST_MEDIA_SYNC_GENERATION, generation);
@@ -1189,6 +1200,14 @@ public class PickerSyncController {
         } finally {
             NonUiEventLogger.logPickerGetMediaCollectionInfoEnd(instanceId, MY_UID, authority);
         }
+    }
+
+    private Bundle getDefaultGenerationCollectionInfo(@NonNull Bundle latestCollectionInfo) {
+        final Bundle bundle = new Bundle();
+        final String collectionId = latestCollectionInfo.getString(MEDIA_COLLECTION_ID);
+        bundle.putString(MEDIA_COLLECTION_ID, collectionId);
+        bundle.putLong(LAST_MEDIA_SYNC_GENERATION, DEFAULT_GENERATION);
+        return bundle;
     }
 
     @NonNull
@@ -1246,6 +1265,8 @@ public class PickerSyncController {
             }
 
             if (!Objects.equals(latestCollectionId, cachedCollectionId)) {
+                result = SyncRequestParams.forFullMediaWithReset(latestMediaCollectionInfo);
+            } else if (cachedGeneration == DEFAULT_GENERATION) {
                 result = SyncRequestParams.forFullMedia(latestMediaCollectionInfo);
             } else if (cachedGeneration == latestGeneration) {
                 result = SyncRequestParams.forNone();
@@ -1674,7 +1695,12 @@ public class PickerSyncController {
             return SYNC_REQUEST_MEDIA_RESET;
         }
 
-        static SyncRequestParams forFullMedia(Bundle latestMediaCollectionInfo) {
+        static SyncRequestParams forFullMediaWithReset(@NonNull Bundle latestMediaCollectionInfo) {
+            return new SyncRequestParams(SYNC_TYPE_MEDIA_FULL_WITH_RESET, /* generation */ 0,
+                    latestMediaCollectionInfo, /*pageSize */ PAGE_SIZE);
+        }
+
+        static SyncRequestParams forFullMedia(@NonNull Bundle latestMediaCollectionInfo) {
             return new SyncRequestParams(SYNC_TYPE_MEDIA_FULL, /* generation */ 0,
                     latestMediaCollectionInfo, /*pageSize */ PAGE_SIZE);
         }
@@ -1702,6 +1728,8 @@ public class PickerSyncController {
                 return "MEDIA_FULL";
             case SYNC_TYPE_MEDIA_RESET:
                 return "MEDIA_RESET";
+            case SYNC_TYPE_MEDIA_FULL_WITH_RESET:
+                return "MEDIA_FULL_WITH_RESET";
             default:
                 return "Unknown";
         }

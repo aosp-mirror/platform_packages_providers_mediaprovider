@@ -31,6 +31,7 @@ import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Looper;
 import android.util.Log;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -308,6 +309,14 @@ class SelectedMediaPreloader {
                 context.getString(R.string.transcode_cancel), (dialog1, which) -> {
                 mIsPreloadingCancelledLiveData.setValue(true);
             });
+        dialog.create();
+
+        Button cancelButton = dialog.getButton(DialogInterface.BUTTON_NEGATIVE);
+        if (cancelButton != null) {
+            cancelButton.setTextAppearance(R.style.ProgressDialogCancelButtonStyle);
+            cancelButton.setAllCaps(false);
+        }
+
         dialog.show();
 
         return dialog;

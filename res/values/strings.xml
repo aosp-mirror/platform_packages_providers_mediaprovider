@@ -146,8 +146,11 @@
     <!-- PhotoPicker view selected action text. [CHAR LIMIT=17] -->
     <string name="picker_view_selected">View selected</string>
 
-    <!-- The text of the photos tab for PhotoPicker. [CHAR LIMIT=30] -->
+    <!-- The text of the photos tab in PhotoPicker for 'Image/' mime type. [CHAR LIMIT=30] -->
     <string name="picker_photos">Photos</string>
+
+    <!-- The text of the photos tab in PhotoPicker for 'Video/' mime type. [CHAR LIMIT=30] -->
+    <string name="picker_videos">@string/root_videos</string>
 
     <!-- The text of the albums tab for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="picker_albums">Albums</string>

@@ -60,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ఆల్బమ్‌లు ఏవీ లేవు"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ఎంచుకున్న వాటిని చూడండి"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ఫోటోలు"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"ఆల్బమ్‌లు"</string>
     <string name="picker_preview" msgid="6257414886055861039">"ప్రివ్యూ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"వర్క్ ప్రొఫైల్‌కు మార్చండి"</string>

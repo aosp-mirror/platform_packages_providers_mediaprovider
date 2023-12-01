@@ -60,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"कुनै पनि एल्बम छैन"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"चयन गरिएका सामग्री हेर्नुहोस्"</string>
     <string name="picker_photos" msgid="7415035516411087392">"फोटोहरू"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"एल्बमहरू"</string>
     <string name="picker_preview" msgid="6257414886055861039">"प्रिभ्यू"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"कार्य प्रोफाइल प्रयोग गर्नुहोस्"</string>

@@ -16,7 +16,7 @@
 
 package com.android.providers.media.photopicker.espresso;
 
-import static com.android.providers.media.photopicker.espresso.PhotoPickerUserSelectActivityTest.MANAGED_SELECTION_ENABLED_EXTRA;
+import static com.android.providers.media.photopicker.espresso.PhotoPickerBaseTest.MANAGED_SELECTION_ENABLED_EXTRA;
 
 import static org.mockito.Mockito.RETURNS_SMART_NULLS;
 import static org.mockito.Mockito.mock;

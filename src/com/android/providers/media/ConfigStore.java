@@ -56,6 +56,7 @@ public interface ConfigStore {
     boolean DEFAULT_USER_SELECT_FOR_APP = true;
     boolean DEFAULT_STABILISE_VOLUME_INTERNAL = false;
     boolean DEFAULT_STABILIZE_VOLUME_EXTERNAL = false;
+    boolean DEFAULT_STABILIZE_VOLUME_PUBLIC = false;
 
     boolean DEFAULT_TRANSCODE_ENABLED = true;
     boolean DEFAULT_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = false;
@@ -67,7 +68,7 @@ public interface ConfigStore {
 
     boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = true;
     boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
-    boolean DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED = false;
+    boolean DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED = true;
 
     /**
      * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and
@@ -184,6 +185,13 @@ public interface ConfigStore {
     }
 
     /**
+     * @return if stable URI are enabled for public volumes.
+     */
+    default boolean isStableUrisForPublicVolumeEnabled() {
+        return DEFAULT_STABILIZE_VOLUME_PUBLIC;
+    }
+
+    /**
      * @return if transcoding is enabled.
      */
     default boolean isTranscodeEnabled() {
@@ -254,6 +262,8 @@ public interface ConfigStore {
         public static final String KEY_STABILIZE_VOLUME_INTERNAL = "stabilize_volume_internal";
         @VisibleForTesting
         public static final String KEY_STABILIZE_VOLUME_EXTERNAL = "stabilize_volume_external";
+        @VisibleForTesting
+        public static final String KEY_STABILIZE_VOLUME_PUBLIC = "stabilize_volume_public";
 
         private static final String KEY_TRANSCODE_ENABLED = "transcode_enabled";
         private static final String KEY_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = "transcode_default";
@@ -397,6 +407,12 @@ public interface ConfigStore {
         public boolean isStableUrisForExternalVolumeEnabled() {
             return getBooleanDeviceConfig(NAMESPACE_MEDIAPROVIDER, KEY_STABILIZE_VOLUME_EXTERNAL,
                     DEFAULT_STABILIZE_VOLUME_EXTERNAL);
+        }
+
+        @Override
+        public boolean isStableUrisForPublicVolumeEnabled() {
+            return getBooleanDeviceConfig(NAMESPACE_MEDIAPROVIDER, KEY_STABILIZE_VOLUME_PUBLIC,
+                    DEFAULT_STABILIZE_VOLUME_PUBLIC);
         }
 
         @Override

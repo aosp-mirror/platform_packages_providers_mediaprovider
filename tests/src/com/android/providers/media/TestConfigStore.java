@@ -35,6 +35,8 @@ import java.util.concurrent.Executor;
  */
 public class TestConfigStore implements ConfigStore {
     private boolean mCloudMediaInPhotoPickerEnabled = false;
+
+    private boolean mPickerChoiceManagedSelectionEnabled = false;
     private List<String> mAllowedCloudProviderPackages = Collections.emptyList();
     private @Nullable String mDefaultCloudProviderPackage = null;
     private List<Pair<Executor, Runnable>> mObservers = new ArrayList<>();
@@ -59,6 +61,13 @@ public class TestConfigStore implements ConfigStore {
     public void disableCloudMediaFeature() {
         mCloudMediaInPhotoPickerEnabled = false;
         notifyObservers();
+    }
+
+    /**
+     * Enables pickerChoiceManagedSelection flag in the test config.
+     */
+    public void enablePickerChoiceManagedSelectionEnabled() {
+        mPickerChoiceManagedSelectionEnabled = true;
     }
 
     @Override
@@ -106,6 +115,11 @@ public class TestConfigStore implements ConfigStore {
     @Override
     public List<String> getTranscodeCompatStale() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public boolean isPickerChoiceManagedSelectionEnabled() {
+        return mPickerChoiceManagedSelectionEnabled;
     }
 
     @Override

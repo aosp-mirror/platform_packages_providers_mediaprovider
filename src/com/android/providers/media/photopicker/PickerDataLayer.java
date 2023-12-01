@@ -93,7 +93,7 @@ public class PickerDataLayer {
     // {@link PickerSyncManager} to ensure that any request type is not blocked on other request
     // types. It is advisable to use unique work requests because in case the number of queued
     // requests grows, they should not block other work requests.
-    private static final int WORK_MANAGER_THREAD_POOL_SIZE = 5;
+    private static final int WORK_MANAGER_THREAD_POOL_SIZE = 6;
     @Nullable
     private static volatile Executor sWorkManagerExecutor;
 
@@ -547,10 +547,11 @@ public class PickerDataLayer {
     /**
      * Handles notification about media events like inserts/updates/deletes received from cloud or
      * local providers.
+     * @param localOnly - whether the media event is coming from the local provider
      */
-    public void handleMediaEventNotification() {
+    public void handleMediaEventNotification(Boolean localOnly) {
         try {
-            mSyncManager.syncAllMediaProactively();
+            mSyncManager.syncMediaProactively(localOnly);
         } catch (RuntimeException e) {
             // Catch any unchecked exceptions so that critical paths in MP that call this method are
             // not affected by Picker related issues.
@@ -579,6 +580,7 @@ public class PickerDataLayer {
 
         @NonNull static final Map<String, Integer> COLUMN_NAME_TO_INDEX_MAP;
         static final int AUTHORITY_COLUMN_INDEX;
+
         static {
             final Map<String, Integer> map = new HashMap<>();
             for (int columnIndex = 0; columnIndex < ALL_PROJECTION.length; columnIndex++) {
@@ -662,6 +664,23 @@ public class PickerDataLayer {
             // 2b. If this IS the AUTHORITY column: "override" whatever value (which may be null)
             // is stored in the cursor.
             return mAuthority;
+        }
+
+        @Override
+        public int getType(int columnIndex) {
+            // 1. Get value from the underlying cursor.
+            final int cursorColumnIndex = mColumnIndexToCursorColumnIndexArray[columnIndex];
+            final int cursorValue = cursorColumnIndex != -1
+                    ? getWrappedCursor().getType(cursorColumnIndex) : Cursor.FIELD_TYPE_NULL;
+
+            // 2a. If this is NOT the AUTHORITY column: just return the value.
+            if (columnIndex != AUTHORITY_COLUMN_INDEX) {
+                return cursorValue;
+            }
+
+            // 2b. If this IS the AUTHORITY column: "override" whatever value (which may be 0)
+            // is stored in the cursor.
+            return Cursor.FIELD_TYPE_STRING;
         }
     }
 

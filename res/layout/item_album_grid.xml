@@ -45,9 +45,7 @@
             android:scaleType="centerCrop"
             android:tint="?attr/categoryDefaultThumbnailColor"
             android:contentDescription="@null"
-            android:layout_gravity="center"
-            android:background="@drawable/ic_background_circle"
-            android:padding="16dp"/>
+            android:layout_gravity="center" />
     </com.google.android.material.card.MaterialCardView>
 
     <TextView

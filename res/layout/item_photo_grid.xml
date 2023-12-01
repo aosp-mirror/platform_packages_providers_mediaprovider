@@ -108,4 +108,17 @@
         android:layout_gravity="top|start"
         android:scaleType="fitCenter"/>
 
+    <TextView
+        android:id="@+id/selected_order"
+        android:layout_height="@dimen/picker_item_check_size"
+        android:layout_width="@dimen/picker_item_check_size"
+        android:layout_marginStart="@dimen/picker_item_check_margin"
+        android:layout_marginTop="@dimen/picker_item_check_margin"
+        android:background="@drawable/picker_item_order"
+        android:layout_gravity="top|start"
+        android:gravity="center"
+        android:textSize="12dp"
+        android:textColor="?attr/pickerHighlightTextColor"
+        android:scaleType="fitCenter"/>
+
 </FrameLayout>

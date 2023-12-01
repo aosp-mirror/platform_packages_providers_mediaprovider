@@ -16,11 +16,13 @@
 
 package com.android.providers.media.photopicker.espresso;
 
+import static androidx.test.InstrumentationRegistry.getTargetContext;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isNotSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.isSelected;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
@@ -39,6 +41,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.provider.MediaStore;
 
+import androidx.lifecycle.ViewModelProvider;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.filters.SdkSuppress;
@@ -46,6 +49,8 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
 import com.android.providers.media.library.RunOnlyOnPostsubmit;
+import com.android.providers.media.photopicker.data.Selection;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import org.junit.After;
 import org.junit.Test;
@@ -87,7 +92,7 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
     @Test
     public void testActivityProfileButtonNotShown() {
         launchValidActivity();
-        // Partial screen does not show profile button
+        // User select mode does not show profile button
         onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
 
         // Navigate to Albums tab
@@ -132,6 +137,34 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    public void testAddButtonIsShowsAllowNone() {
+        launchValidActivityWithManagedSelectionEnabled();
+        final int bottomBarId = R.id.picker_bottom_bar;
+        final int viewSelectedId = R.id.button_view_selected;
+        final int addButtonId = R.id.button_add;
+
+        // Default view, no item selected.
+        onView(withId(bottomBarId)).check(matches(isDisplayed()));
+        onView(withId(viewSelectedId)).check(matches(not(isDisplayed())));
+        onView(withId(addButtonId)).check(matches(isDisplayed()));
+        // verify that 'Allow none' is displayed in this case.
+        onView(withId(addButtonId)).check(
+                matches(withText(R.string.picker_add_button_allow_none_option)));
+
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+
+        onView(withId(bottomBarId)).check(matches(isDisplayed()));
+        onView(withId(viewSelectedId)).check(matches(isDisplayed()));
+
+        onView(withId(addButtonId)).check(matches(withText("Allow (1)")));
+        onView(withId(addButtonId)).check(matches(isDisplayed()));
+
+
+        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+        onView(withId(addButtonId)).check(matches(withText("Allow (1)")));
+    }
+
+    @Test
     public void testNoCloudSettingsAndBanners() {
         launchValidActivity();
 
@@ -141,6 +174,60 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID))
                 .check(matches(not(atPositionOnItemViewType(
                         DEFAULT_BANNER_POSITION, ITEM_TYPE_BANNER))));
+    }
+
+    @Test
+    public void testPreview_deselectAll_showAllowNone() throws Exception {
+        launchValidActivityWithManagedSelectionEnabled();
+        onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
+
+        // Select first and second image
+        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        // Navigate to preview
+        onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+
+        try (ViewPager2IdlingResource idlingResource =
+                     ViewPager2IdlingResource.register(mScenario, PREVIEW_VIEW_PAGER_ID)) {
+            final int previewAddButtonId = R.id.preview_add_button;
+            final int previewSelectButtonId = R.id.preview_selected_check_button;
+            final String selectedString =
+                    getTargetContext().getResources().getString(R.string.selected);
+
+            // Verify that, initially, we show "selected" check button
+            onView(withId(previewSelectButtonId)).check(matches(isSelected()));
+            onView(withId(previewSelectButtonId)).check(matches(withText(selectedString)));
+            // Verify that the text in Add button matches "Allow (1)"
+            onView(withId(previewAddButtonId))
+                    .check(matches(withText("Allow (1)")));
+
+            // Deselect item in preview
+            onView(withId(previewSelectButtonId)).perform(click());
+            onView(withId(previewSelectButtonId)).check(matches(isNotSelected()));
+            onView(withId(previewSelectButtonId)).check(matches(withText(R.string.deselected)));
+            // Verify that the text in Add button now changes to "Allow none"
+            onView(withId(previewAddButtonId))
+                    .check(matches(withText("Allow none")));
+            // Verify that we have 0 items in selected items
+            mScenario.onActivity(activity -> {
+                Selection selection =
+                        new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
+                assertThat(selection.getSelectedItemCount().getValue()).isEqualTo(0);
+            });
+
+            // Select the item again
+            onView(withId(previewSelectButtonId)).perform(click());
+            onView(withId(previewSelectButtonId)).check(matches(isSelected()));
+            onView(withId(previewSelectButtonId)).check(matches(withText(selectedString)));
+            // Verify that the text in Add button now changes back to "Allow (1)"
+            onView(withId(previewAddButtonId))
+                    .check(matches(withText("Allow (1)")));
+            // Verify that we have 1 item in selected items
+            mScenario.onActivity(activity -> {
+                Selection selection =
+                        new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
+                assertThat(selection.getSelectedItemCount().getValue()).isEqualTo(1);
+            });
+        }
     }
 
     @Test
@@ -154,5 +241,11 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         mScenario =
                 ActivityScenario.launchActivityForResult(
                         PhotoPickerBaseTest.getUserSelectImagesForAppIntent());
+    }
+
+    /** Test helper to launch a valid test activity. */
+    private void launchValidActivityWithManagedSelectionEnabled() {
+        mScenario = ActivityScenario.launchActivityForResult(
+                PhotoPickerBaseTest.getPickerChoiceManagedSelectionIntent());
     }
 }

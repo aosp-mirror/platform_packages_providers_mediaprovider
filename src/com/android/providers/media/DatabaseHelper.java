@@ -666,10 +666,23 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     "%s database inconsistent: isLastUsedDatabaseSession:%b, "
                             + "nextRowIdOptionalPresent:%b", mName, isLastUsedDatabaseSession,
                     nextRowIdFromXattrOptional.isPresent()));
+
+            // This could be a rollback, clear all media grants
+            clearMediaGrantsTable(db);
+
             // TODO(b/222313219): Add an assert to ensure that next row id xattr is always
             // present when DB session id matches across sequential open calls.
             updateNextRowIdInDatabaseAndExternalStorage(db);
             updateSessionIdInDatabaseAndExternalStorage(db);
+        }
+    }
+
+    private void clearMediaGrantsTable(SQLiteDatabase db) {
+        mSchemaLock.writeLock().lock();
+        try {
+            updateAddMediaGrantsTable(db);
+        } finally {
+            mSchemaLock.writeLock().unlock();
         }
     }
 

@@ -41,8 +41,8 @@
         <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerSecondaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerButtonTextColor">@android:color/system_accent1_300</item>
-        <item name="categoryDefaultThumbnailColor">@android:color/system_accent1_300</item>
-        <item name="categoryDefaultThumbnailCircleColor">?androidprv:attr/materialColorSurfaceContainer</item>
+        <item name="categoryDefaultThumbnailColor">?attr/colorOnSurfaceVariant</item>
+        <item name="categoryDefaultThumbnailCircleColor">?attr/colorSurfaceVariant</item>
     </style>
 
 </resources>

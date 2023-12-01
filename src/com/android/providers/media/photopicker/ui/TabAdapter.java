@@ -216,7 +216,7 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 mBanner = banner;
                 mOnBannerEventListener = onBannerEventListener;
                 notifyItemInserted(/* position */ 0);
-                mOnBannerEventListener.onBannerAdded();
+                mOnBannerEventListener.onBannerAdded(banner.name());
             } else {
                 mBanner = banner;
                 mOnBannerEventListener = onBannerEventListener;
@@ -385,11 +385,9 @@ public abstract class TabAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
         void onDismissButtonClick();
 
-        default void onBannerClick() {
-            onActionButtonClick();
-        }
+        void onBannerClick();
 
-        void onBannerAdded();
+        void onBannerAdded(@NonNull String name);
 
         default boolean shouldShowActionButton() {
             return true;

@@ -539,29 +539,28 @@ public abstract class TabFragment extends Fragment {
     private abstract class OnBannerEventListener implements TabAdapter.OnBannerEventListener {
         @Override
         public void onActionButtonClick() {
+            mPickerViewModel.logBannerActionButtonClicked();
             dismissBanner();
-
-            final Intent accountChangeIntent =
-                    mPickerViewModel.getChooseCloudMediaAccountActivityIntent();
-
-            try {
-                if (accountChangeIntent != null) {
-                    requirePickerActivity().startActivity(accountChangeIntent);
-                } else {
-                    requirePickerActivity().startSettingsActivity();
-                }
-            } catch (RuntimeException e) {
-                Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
-            }
+            launchCloudProviderSettings();
         }
 
         @Override
         public void onDismissButtonClick() {
+            mPickerViewModel.logBannerDismissed();
             dismissBanner();
         }
 
         @Override
-        public void onBannerAdded() {
+        public void onBannerClick() {
+            mPickerViewModel.logBannerClicked();
+            dismissBanner();
+            launchCloudProviderSettings();
+        }
+
+        @Override
+        public void onBannerAdded(@NonNull String name) {
+            mPickerViewModel.logBannerAdded(name);
+
             // Should scroll to the banner only if the first completely visible item is the one
             // just below it. The possible adapter item positions of such an item are 0 and 1.
             // During onViewCreated, before restoring the state, the first visible item position
@@ -581,6 +580,21 @@ public abstract class TabFragment extends Fragment {
         }
 
         abstract void dismissBanner();
+
+        private void launchCloudProviderSettings() {
+            final Intent accountChangeIntent =
+                    mPickerViewModel.getChooseCloudMediaAccountActivityIntent();
+
+            try {
+                if (accountChangeIntent != null) {
+                    requirePickerActivity().startActivity(accountChangeIntent);
+                } else {
+                    requirePickerActivity().startSettingsActivity();
+                }
+            } catch (RuntimeException e) {
+                Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+            }
+        }
     }
 
     protected final OnBannerEventListener mOnChooseAppBannerEventListener =

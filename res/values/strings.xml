@@ -260,6 +260,8 @@
     <!-- A message for the Progress Dialog shown while preloading selected items before "closing" Photo Picker. [CHAR LIMIT=NONE] -->
     <string name="preloading_progress_message"><xliff:g id="number_preloaded">%1$d</xliff:g> of <xliff:g id="number_total">%2$d</xliff:g> ready</string>
 
+    <string name="preloading_cancel_button">Cancel</string>
+
     <!-- ========================= PHOTO PICKER CLOUD EDUCATION BANNERS ========================= -->
 
     <!-- Title for the banner notifying the user that the cloud media is now available in the picker [CHAR LIMIT=NONE] -->

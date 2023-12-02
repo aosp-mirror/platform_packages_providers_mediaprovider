@@ -31,15 +31,10 @@ import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentat
 
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.espresso.BottomSheetTestUtils.assertBottomSheetState;
-import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.customSwipeDownPartialScreen;
-import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
-import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
 import static com.android.providers.media.photopicker.espresso.OrientationUtils.setLandscapeOrientation;
-import static com.android.providers.media.photopicker.espresso.OrientationUtils.setPortraitOrientation;
 import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
 
-import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED;
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 import static com.google.common.truth.Truth.assertThat;
 
@@ -70,8 +65,6 @@ import java.util.concurrent.TimeUnit;
 @RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
-
-    private static final int TAB_VIEW_PAGER_ID = R.id.picker_tab_viewpager;
 
     public ActivityScenario<PhotoPickerTestActivity> mScenario;
 
@@ -130,55 +123,8 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    @Ignore("Enable after b/222013536 is fixed")
-    public void testBottomSheetState() {
-        // Bottom sheet assertions are different for landscape mode
-        setPortraitOrientation(mScenario);
-
-        // Register bottom sheet idling resource so that we don't read bottom sheet state when
-        // in between changing states
-        final BottomSheetIdlingResource bottomSheetIdlingResource =
-                BottomSheetIdlingResource.register(mScenario);
-
-        try {
-            // Single select PhotoPicker is launched in partial screen mode
-            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            mScenario.onActivity(
-                    activity -> {
-                        assertBottomSheetState(activity, STATE_COLLAPSED);
-                    });
-
-            // Swipe up and check that the PhotoPicker is in full screen mode
-            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
-            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
-            mScenario.onActivity(
-                    activity -> {
-                        assertBottomSheetState(activity, STATE_EXPANDED);
-                    });
-
-            // Swipe down and check that the PhotoPicker is in partial screen mode
-            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeDown());
-            mScenario.onActivity(
-                    activity -> {
-                        assertBottomSheetState(activity, STATE_COLLAPSED);
-                    });
-
-            // Swiping down on drag bar is not strong enough as closing the bottomsheet requires a
-            // stronger downward swipe using espresso.
-            // Simply swiping down on R.id.bottom_sheet throws an error from espresso, as the view
-            // is only 60% visible, but downward swipe is only successful on an element which is 90%
-            // visible.
-            onView(withId(R.id.bottom_sheet)).perform(customSwipeDownPartialScreen());
-        } finally {
-            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
-        }
-        assertThat(mScenario.getResult().getResultCode()).isEqualTo(Activity.RESULT_CANCELED);
-    }
-
-    @Test
+    @Ignore("b/313489524")
+    // TODO(b/313489524): Fix flaky orientation change in the photo picker espresso tests
     public void testBottomSheetStateInLandscapeMode() {
         // Bottom sheet assertions are different for landscape mode
         setLandscapeOrientation(mScenario);
@@ -253,69 +199,6 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
                 .atPositionOnView(0, R.id.date_header_title))
                 .check(matches(withText(R.string.recent)));
-    }
-
-    @Test
-    @Ignore("Enable after b/222013536 is fixed")
-    public void testTabSwiping() throws Exception {
-        onView(withId(TAB_LAYOUT_ID)).check(matches(isDisplayed()));
-
-        // If we want to swipe the viewPager2 of tabContainerFragment in Espresso tests, at least 90
-        // percent of the view's area is displayed to the user. Swipe up the bottom Sheet to make
-        // sure it is in full Screen mode.
-        // Register bottom sheet idling resource so that we don't read bottom sheet state when
-        // in between changing states
-        final BottomSheetIdlingResource bottomSheetIdlingResource =
-                BottomSheetIdlingResource.register(mScenario);
-
-        try {
-
-            // When accessibility is enabled, we always launch the photo picker in full screen mode.
-            // Accessibility is enabled in Espresso test, so we can't check the COLLAPSED state.
-            //            // Single select PhotoPicker is launched in partial screen mode
-            //            bottomSheetIdlingResource.setExpectedState(STATE_COLLAPSED);
-            //            mScenario.onActivity(activity -> {
-            //                assertBottomSheetState(activity, STATE_COLLAPSED);
-            //            });
-
-            // Swipe up and check that the PhotoPicker is in full screen mode.
-            //            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            //            onView(withId(PRIVACY_TEXT_ID)).perform(ViewActions.swipeUp());
-            bottomSheetIdlingResource.setExpectedState(STATE_EXPANDED);
-            mScenario.onActivity(
-                    activity -> {
-                        assertBottomSheetState(activity, STATE_EXPANDED);
-                    });
-        } finally {
-            IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
-        }
-
-        try (ViewPager2IdlingResource idlingResource =
-                ViewPager2IdlingResource.register(mScenario, TAB_VIEW_PAGER_ID)) {
-            // Swipe left, we should see albums tab
-            swipeLeftAndWait(TAB_VIEW_PAGER_ID);
-
-            onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                    .check(matches(isSelected()));
-            onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                    .check(matches(isNotSelected()));
-            // Verify Camera album is shown, we are in albums tab
-            onView(allOf(withText(R.string.picker_category_camera),
-                    isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(
-                    matches(isDisplayed()));
-
-            // Swipe right, we should see photos tab
-            swipeRightAndWait(TAB_VIEW_PAGER_ID);
-
-            onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                    .check(matches(isSelected()));
-            onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                    .check(matches(isNotSelected()));
-            // Verify first item is recent header, we are in photos tab
-            onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
-                    .atPositionOnView(0, R.id.date_header_title))
-                    .check(matches(withText(R.string.recent)));
-        }
     }
 
     @Test

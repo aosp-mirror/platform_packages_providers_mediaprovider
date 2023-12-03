@@ -82,6 +82,7 @@ import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.ui.ItemsAction;
 import com.android.providers.media.photopicker.util.CategoryOrganiserUtils;
@@ -407,10 +408,12 @@ public class PickerViewModel extends AndroidViewModel {
             String[] mimeTypeFilters) {
         if (isManagedSelectionEnabled() && selection.getPreGrantedItems() == null) {
             DataLoaderThread.getHandler().postDelayed(() -> {
-                selection.setPreGrantedItemSet(mItemsProvider.fetchReadGrantedItemsUrisForPackage(
-                        intentExtras.getInt(Intent.EXTRA_UID), mimeTypeFilters)
+                Set<String> preGrantedItems = mItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                                intentExtras.getInt(Intent.EXTRA_UID), mimeTypeFilters)
                         .stream().map((Uri uri) -> String.valueOf(ContentUris.parseId(uri)))
-                        .collect(Collectors.toSet()));
+                        .collect(Collectors.toSet());
+                selection.setPreGrantedItemSet(preGrantedItems);
+                logPickerChoiceInitGrantsCount(preGrantedItems.size(), intentExtras);
             }, TOKEN, DELAY_MILLIS);
         }
     }
@@ -875,7 +878,9 @@ public class PickerViewModel extends AndroidViewModel {
             mPackageUid = intent.getExtras().getInt(Intent.EXTRA_UID);
         }
         // Must init banner manager on mIsUserSelectForApp / mIsLocalOnly updates
-        initBannerManager();
+        if (mBannerManager == null) {
+            initBannerManager();
+        }
     }
 
     private void initBannerManager() {
@@ -1203,6 +1208,72 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void logPreloadingFailed(int count) {
         mLogger.logPreloadingFailed(mInstanceId, count);
+    }
+
+    /**
+     * Logs metrics for count of grants initialised for a package.
+     */
+    public void logPickerChoiceInitGrantsCount(int numberOfGrants, Bundle intentExtras) {
+        NonUiEventLogger.logPickerChoiceInitGrantsCount(mInstanceId, android.os.Process.myUid(),
+                getPackageNameForUid(intentExtras), numberOfGrants);
+
+    }
+
+    /**
+     * Logs metrics for count of grants added for a package.
+     */
+    public void logPickerChoiceAddedGrantsCount(int numberOfGrants, Bundle intentExtras) {
+        NonUiEventLogger.logPickerChoiceGrantsAdditionCount(mInstanceId, android.os.Process.myUid(),
+                getPackageNameForUid(intentExtras), numberOfGrants);
+    }
+
+    /**
+     * Logs metrics for count of grants removed for a package.
+     */
+    public void logPickerChoiceRevokedGrantsCount(int numberOfGrants, Bundle intentExtras) {
+        NonUiEventLogger.logPickerChoiceGrantsRemovedCount(mInstanceId, android.os.Process.myUid(),
+                getPackageNameForUid(intentExtras), numberOfGrants);
+    }
+
+    /**
+     * Log metrics to notify that the banner is added to display in the recycler view grids
+     * @param bannerName the name of the banner added,
+     *                   refer {@link com.android.providers.media.photopicker.ui.TabAdapter.Banner}
+     */
+    public void logBannerAdded(@NonNull String bannerName) {
+        mLogger.logBannerAdded(mInstanceId, bannerName);
+    }
+
+    /**
+     * Log metrics to notify that the banner is dismissed by the user
+     */
+    public void logBannerDismissed() {
+        mLogger.logBannerDismissed(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user clicked the banner action button
+     */
+    public void logBannerActionButtonClicked() {
+        mLogger.logBannerActionButtonClicked(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user clicked on the remaining part of the banner
+     */
+    public void logBannerClicked() {
+        mLogger.logBannerClicked(mInstanceId);
+    }
+
+    @NonNull
+    private String getPackageNameForUid(Bundle extras) {
+        final int uid = extras.getInt(Intent.EXTRA_UID);
+        final PackageManager pm = mAppContext.getPackageManager();
+        String[] packageNames = pm.getPackagesForUid(uid);
+        if (packageNames.length != 0) {
+            return packageNames[0];
+        }
+        return new String();
     }
 
     public InstanceId getInstanceId() {

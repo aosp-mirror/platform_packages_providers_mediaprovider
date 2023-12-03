@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,14 +54,15 @@ public class Selection {
     private final Map<Item, Integer> mCheckedItemIndexes = new HashMap<>();
 
     // The list of selected items.
-    private Map<Uri, Item> mSelectedItems = new HashMap<>();
-
+    private Map<Uri, Item> mSelectedItems = new LinkedHashMap<>();
+    private Map<Uri, MutableLiveData<Integer>> mSelectedItemsOrder = new HashMap<>();
     private Map<String, Item> mItemGrantRevocationMap = new HashMap<>();
 
     private MutableLiveData<Integer> mSelectedItemSize = new MutableLiveData<>();
     // The list of selected items for preview. This needs to be saved separately so that if activity
     // gets killed, we will still have deselected items for preview.
     private List<Item> mSelectedItemsForPreview = new ArrayList<>();
+    private boolean mIsSelectionOrdered = false;
     private boolean mSelectMultiple = false;
     private int mMaxSelectionLimit = 1;
     // This is set to false when max selection limit is reached.
@@ -99,7 +101,8 @@ public class Selection {
      * @return {@link #mSelectedItems} - A {@link List} of selected {@link Item}
      */
     public List<Item> getSelectedItems() {
-        return Collections.unmodifiableList(new ArrayList<>(mSelectedItems.values()));
+        ArrayList<Item> result = new ArrayList<>(mSelectedItems.values());
+        return Collections.unmodifiableList(result);
     }
 
     /**
@@ -158,6 +161,13 @@ public class Selection {
         return mSelectedItemSize;
     }
 
+    /**
+     * @return {@link LiveData} of the item selection order.
+     */
+    public LiveData<Integer> getSelectedItemOrder(Item item) {
+        return mSelectedItemsOrder.get(item.getContentUri());
+    }
+
     private int getTotalItemsCount() {
         return mSelectedItems.size() - countOfPreGrantedItems() + mTotalNumberOfPreGrantedItems
                 - mItemGrantRevocationMap.size();
@@ -169,6 +179,10 @@ public class Selection {
     public void addSelectedItem(Item item) {
         if (item.isPreGranted() && mItemGrantRevocationMap.containsKey(item.getId())) {
             mItemGrantRevocationMap.remove(item.getId());
+        }
+        if (mIsSelectionOrdered) {
+            mSelectedItemsOrder.put(
+                    item.getContentUri(), new MutableLiveData(getTotalItemsCount() + 1));
         }
         mSelectedItems.put(item.getContentUri(), item);
         mSelectedItemSize.postValue(getTotalItemsCount());
@@ -186,8 +200,13 @@ public class Selection {
      * Clears {@link #mSelectedItems} and sets the selected item as given {@code item}
      */
     public void setSelectedItem(Item item) {
+        mSelectedItemsOrder.clear();
         mSelectedItems.clear();
         mSelectedItems.put(item.getContentUri(), item);
+        if (mIsSelectionOrdered) {
+            mSelectedItemsOrder.put(
+                    item.getContentUri(), new MutableLiveData(getTotalItemsCount()));
+        }
         mSelectedItemSize.postValue(getTotalItemsCount());
         updateSelectionAllowed();
     }
@@ -203,6 +222,16 @@ public class Selection {
             // the current session. This list will be used to revoke existing grants for these
             // items.
             mItemGrantRevocationMap.put(item.getId(), item);
+        }
+        if (mIsSelectionOrdered) {
+            MutableLiveData<Integer> removedItem = mSelectedItemsOrder.remove(item.getContentUri());
+            int removedItemOrder = removedItem.getValue().intValue();
+            mSelectedItemsOrder.values().stream()
+                    .filter(order -> order.getValue().intValue() > removedItemOrder)
+                    .forEach(
+                            order -> {
+                                order.setValue(order.getValue().intValue() - 1);
+                            });
         }
         mSelectedItems.remove(item.getContentUri());
         mSelectedItemSize.postValue(getTotalItemsCount());
@@ -222,6 +251,7 @@ public class Selection {
      * Clear all selected items and checked positions
      */
     public void clearSelectedItems() {
+        mSelectedItemsOrder.clear();
         mSelectedItems.clear();
         mCheckedItemIndexes.clear();
         mSelectedItemSize.postValue(getTotalItemsCount());
@@ -303,11 +333,15 @@ public class Selection {
         final Bundle extras = intent.getExtras();
         final boolean isExtraPickImagesMaxSet =
                 extras != null && extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_MAX);
+        final boolean isExtraOrderedSelectionSet =
+                extras != null && extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER);
 
         if (intent.getAction() != null
                 && intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
             // If this is picking media for an app, enable multiselect.
             mSelectMultiple = true;
+            // disable ordered selection.
+            mIsSelectionOrdered = false;
             // Allow selections up to the limit.
             // TODO(b/255301849): Update max limit after discussing with product team.
             mMaxSelectionLimit = MediaStore.getPickImagesMaxLimit();
@@ -321,12 +355,21 @@ public class Selection {
                         "EXTRA_PICK_IMAGES_MAX is not supported for " + "ACTION_GET_CONTENT");
             }
 
+            if (isExtraOrderedSelectionSet) {
+                throw new IllegalArgumentException(
+                        "EXTRA_PICK_IMAGES_IN_ORDER is not supported for ACTION_GET_CONTENT");
+            }
+
             mSelectMultiple = intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
             if (mSelectMultiple) {
                 mMaxSelectionLimit = MediaStore.getPickImagesMaxLimit();
             }
 
             return;
+        }
+
+        if (isExtraOrderedSelectionSet) {
+            mIsSelectionOrdered = extras.getBoolean(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER);
         }
 
         // Check EXTRA_PICK_IMAGES_MAX value only if the flag is set.
@@ -342,6 +385,7 @@ public class Selection {
             mSelectMultiple = true;
             mMaxSelectionLimit = extraMax;
         }
+
     }
 
     /**
@@ -349,6 +393,11 @@ public class Selection {
      */
     public boolean canSelectMultiple() {
         return mSelectMultiple;
+    }
+
+    /** Return whether ordered selection is enabled or not. */
+    public boolean isSelectionOrdered() {
+        return mIsSelectionOrdered;
     }
 
     /**

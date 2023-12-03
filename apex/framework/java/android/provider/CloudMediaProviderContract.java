@@ -88,8 +88,8 @@ public final class CloudMediaProviderContract {
         public static final String DATE_TAKEN_MILLIS = "date_taken_millis";
 
         /**
-         * Number associated with a media item indicating what generation or batch the media item
-         * was synced into the media collection.
+         * Non-negative number associated with a media item indicating what generation or batch the
+         * media item was synced into the media collection.
          * <p>
          * Providers should associate a monotonically increasing sync generation number to each
          * media item which is expected to increase for each atomic modification on the media item.

@@ -243,7 +243,9 @@ public class PreviewFragment extends Fragment {
                                             /* context= */ getContext(),
                                             /* size= */ selectedItemCount,
                                             /* isUserSelectForApp= */ mPickerViewModel
-                                                    .isUserSelectForApp()));
+                                                    .isUserSelectForApp(),
+                                            /* isManagedSelectionEnabled */
+                                            mPickerViewModel.isManagedSelectionEnabled()));
                         });
 
         selectedCheckButton.setOnClickListener(
@@ -391,7 +393,11 @@ public class PreviewFragment extends Fragment {
 
     // TODO: There is a same method in TabFragment. To find a way to reuse it.
     private static String generateAddButtonString(
-            @NonNull Context context, int size, boolean isUserSelectForApp) {
+            @NonNull Context context, int size, boolean isUserSelectForApp,
+            boolean isManagedSelection) {
+        if (isManagedSelection && size == 0) {
+            return context.getString(R.string.picker_add_button_allow_none_option);
+        }
         final String sizeString = NumberFormat.getInstance(Locale.getDefault()).format(size);
         final String template =
                 isUserSelectForApp

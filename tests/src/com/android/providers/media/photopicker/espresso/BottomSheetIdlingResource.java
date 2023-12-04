@@ -99,7 +99,8 @@ public class BottomSheetIdlingResource implements IdlingResource {
      *     given {@link ActivityScenarioRule}.
      * @param scenario
      */
-    public static BottomSheetIdlingResource register(ActivityScenario scenario) {
+    public static <T extends PhotoPickerTestActivity> BottomSheetIdlingResource register(
+            ActivityScenario<T> scenario) {
         final BottomSheetIdlingResource[] idlingResources = new BottomSheetIdlingResource[1];
         scenario.onActivity(
                 (activity -> {

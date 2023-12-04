@@ -19,6 +19,15 @@
             "name": "CtsScopedStorageDeviceOnlyTest[com.google.android.mediaprovider.apex]"
         },
         {
+            "name": "CtsScopedStorageBypassDatabaseOperationsTest[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsScopedStorageGeneralTest[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsScopedStorageRedactUriTest[com.google.android.mediaprovider.apex]"
+        },
+        {
             "name": "CtsMediaProviderTranscodeTests[com.google.android.mediaprovider.apex]"
         }
     ],
@@ -64,6 +73,15 @@
         },
         {
             "name": "CtsScopedStorageDeviceOnlyTest"
+        },
+        {
+            "name": "CtsScopedStorageBypassDatabaseOperationsTest"
+        },
+        {
+            "name": "CtsScopedStorageGeneralTest"
+        },
+        {
+            "name": "CtsScopedStorageRedactUriTest"
         },
         {
             "name": "fuse_node_test"

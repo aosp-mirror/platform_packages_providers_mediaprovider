@@ -32,6 +32,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
 import android.os.Build;
+import android.os.CancellationSignal;
 
 import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -96,9 +97,9 @@ public class ImmediateAlbumSyncWorkerTest {
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
 
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
-                .syncAlbumMediaFromLocalProvider(anyString());
+                .syncAlbumMediaFromLocalProvider(anyString(), any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAlbumMediaFromCloudProvider(anyString());
+                .syncAlbumMediaFromCloudProvider(anyString(), any(CancellationSignal.class));
 
         verify(mMockLocalAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .createSyncFuture(any());
@@ -129,9 +130,9 @@ public class ImmediateAlbumSyncWorkerTest {
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
 
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAlbumMediaFromLocalProvider(anyString());
+                .syncAlbumMediaFromLocalProvider(anyString(), any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
-                .syncAlbumMediaFromCloudProvider(anyString());
+                .syncAlbumMediaFromCloudProvider(anyString(), any(CancellationSignal.class));
 
         verify(mMockLocalAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .createSyncFuture(any());
@@ -163,9 +164,9 @@ public class ImmediateAlbumSyncWorkerTest {
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.FAILED);
 
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromLocalProvider();
+                .syncAllMediaFromLocalProvider(any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromCloudProvider();
+                .syncAllMediaFromCloudProvider(any(CancellationSignal.class));
 
         verify(mMockLocalAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .createSyncFuture(any());
@@ -197,9 +198,9 @@ public class ImmediateAlbumSyncWorkerTest {
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.FAILED);
 
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromLocalProvider();
+                .syncAllMediaFromLocalProvider(any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromCloudProvider();
+                .syncAllMediaFromCloudProvider(any(CancellationSignal.class));
 
         verify(mMockLocalAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .createSyncFuture(any());
@@ -231,9 +232,9 @@ public class ImmediateAlbumSyncWorkerTest {
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.FAILED);
 
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromLocalProvider();
+                .syncAllMediaFromLocalProvider(any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromCloudProvider();
+                .syncAllMediaFromCloudProvider(any(CancellationSignal.class));
 
         verify(mMockLocalAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .createSyncFuture(any());

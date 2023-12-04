@@ -24,6 +24,7 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markAlbumMediaSyncAsComplete;
 
 import android.content.Context;
+import android.os.CancellationSignal;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -44,6 +45,7 @@ public class ImmediateAlbumSyncWorker extends Worker {
     private static final String TAG = "IASyncWorker";
     private static final int INVALID_SYNC_SOURCE = -1;
     private final Context mContext;
+    private final CancellationSignal mCancellationSignal = new CancellationSignal();
 
     /**
      * Creates an instance of the {@link Worker}.
@@ -61,6 +63,12 @@ public class ImmediateAlbumSyncWorker extends Worker {
     @NonNull
     @Override
     public ListenableWorker.Result doWork() {
+        // Do not allow endless re-runs of this worker, if this isn't the original run,
+        // just succeed and wait until the next scheduled run.
+        if (getRunAttemptCount() > 0) {
+            Log.w(TAG, "Worker retry was detected, ending this run in failure.");
+            return ListenableWorker.Result.failure();
+        }
         final int syncSource = getInputData()
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ INVALID_SYNC_SOURCE);
         final String albumId = getInputData().getString(SYNC_WORKER_INPUT_ALBUM_ID);
@@ -77,9 +85,11 @@ public class ImmediateAlbumSyncWorker extends Worker {
             // request in WorkManager.
             checkIsWorkerStopped();
             if (syncSource == SYNC_LOCAL_ONLY) {
-                PickerSyncController.getInstanceOrThrow().syncAlbumMediaFromLocalProvider(albumId);
+                PickerSyncController.getInstanceOrThrow()
+                        .syncAlbumMediaFromLocalProvider(albumId, mCancellationSignal);
             } else {
-                PickerSyncController.getInstanceOrThrow().syncAlbumMediaFromCloudProvider(albumId);
+                PickerSyncController.getInstanceOrThrow()
+                        .syncAlbumMediaFromCloudProvider(albumId, mCancellationSignal);
             }
 
             Log.i(TAG, String.format(
@@ -127,6 +137,8 @@ public class ImmediateAlbumSyncWorker extends Worker {
     public void onStopped() {
         Log.w(TAG, "Worker is stopped. Clearing all pending futures. It's possible that the sync "
                 + "will continue to run if it has started already.");
+        // Send CancellationSignal to any running tasks.
+        mCancellationSignal.cancel();
         final int syncSource = getInputData()
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_ONLY);
         markAlbumMediaSyncAsComplete(syncSource, getId());

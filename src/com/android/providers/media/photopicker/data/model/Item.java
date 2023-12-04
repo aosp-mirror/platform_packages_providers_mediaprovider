@@ -38,6 +38,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.glide.GlideLoadable;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.util.MimeUtils;
 
@@ -63,6 +64,8 @@ public class Item {
     private boolean mIsImage;
     private boolean mIsVideo;
     private int mSpecialFormat;
+
+    private boolean mIsPreGranted;
 
     /**
      * This is the row id for the item in the db.
@@ -145,6 +148,16 @@ public class Item {
 
     public int getRowId() {
         return mRowId;
+    }
+
+    /**
+     * Setting this represents that the item has READ_GRANT for the current package.
+     */
+    public void setPreGranted() {
+        mIsPreGranted = true;
+    }
+    public boolean isPreGranted() {
+        return mIsPreGranted;
     }
 
     public static Item fromCursor(@NonNull Cursor cursor, UserId userId) {
@@ -240,4 +253,14 @@ public class Item {
     @Override public int hashCode() {
         return Objects.hash(mUri);
     }
+
+    /**
+     * Convert this item into a loadable object for Glide.
+     *
+     * @return {@link GlideLoadable} that represents the relevant loadable data for this item.
+     */
+    public GlideLoadable toGlideLoadable() {
+        return new GlideLoadable(mUri, String.valueOf(getGenerationModified()));
+    }
+
 }

@@ -146,8 +146,11 @@
     <!-- PhotoPicker view selected action text. [CHAR LIMIT=17] -->
     <string name="picker_view_selected">View selected</string>
 
-    <!-- The text of the photos tab for PhotoPicker. [CHAR LIMIT=30] -->
+    <!-- The text of the photos tab in PhotoPicker for 'Image/' mime type. [CHAR LIMIT=30] -->
     <string name="picker_photos">Photos</string>
+
+    <!-- The text of the photos tab in PhotoPicker for 'Video/' mime type. [CHAR LIMIT=30] -->
+    <string name="picker_videos">@string/root_videos</string>
 
     <!-- The text of the albums tab for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="picker_albums">Albums</string>
@@ -256,6 +259,8 @@
     <string name="preloading_dialog_title">"Preparing your selected media"</string>
     <!-- A message for the Progress Dialog shown while preloading selected items before "closing" Photo Picker. [CHAR LIMIT=NONE] -->
     <string name="preloading_progress_message"><xliff:g id="number_preloaded">%1$d</xliff:g> of <xliff:g id="number_total">%2$d</xliff:g> ready</string>
+
+    <string name="preloading_cancel_button">Cancel</string>
 
     <!-- ========================= PHOTO PICKER CLOUD EDUCATION BANNERS ========================= -->
 

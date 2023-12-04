@@ -16,7 +16,6 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.photopicker.data.MediaGrantsProvider.fetchReadGrantedItemsUrisForPackage;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractRelativePath;
@@ -74,6 +73,7 @@ import com.android.providers.media.MediaProvider.FallbackException;
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
 import com.android.providers.media.MediaProvider.VolumeNotFoundException;
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.FileUtilsTest;
 import com.android.providers.media.util.SQLiteQueryBuilder;
@@ -107,6 +107,8 @@ public class MediaProviderTest {
     static final String PERMISSIONLESS_APP = "com.android.providers.media.testapp.withoutperms";
 
     private static Context sIsolatedContext;
+
+    private static ItemsProvider sItemsProvider;
     private static Context sContext;
     private static ContentResolver sIsolatedResolver;
 
@@ -116,6 +118,11 @@ public class MediaProviderTest {
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
                         Manifest.permission.READ_DEVICE_CONFIG,
+                        // Adding this to use getUserHandles() api of UserManagerService which
+                        // requires either MANAGE_USERS or CREATE_USERS. Since shell does not have
+                        // MANAGER_USERS permissions, using CREATE_USERS in test. This works with
+                        // MANAGE_USERS permission for MediaProvider module.
+                        Manifest.permission.CREATE_USERS,
                         Manifest.permission.INTERACT_ACROSS_USERS);
 
         resetIsolatedContext();
@@ -362,8 +369,8 @@ public class MediaProviderTest {
         try {
             String[] mimeTypes = {"image/*"};
             // Verify empty list with no grants.
-            List<Uri> grantedUris = fetchReadGrantedItemsUrisForPackage(
-                    sIsolatedContext, android.os.Process.myUid(), mimeTypes);
+            List<Uri> grantedUris = sItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                    android.os.Process.myUid(), mimeTypes);
             assertTrue(grantedUris.isEmpty());
 
             // Grants the READ-GRANT for the testUris for the current package.
@@ -372,8 +379,8 @@ public class MediaProviderTest {
                     List.of(testUri));
 
             // Assert that the grant was returned.
-            List<Uri> grantedUris2 = fetchReadGrantedItemsUrisForPackage(
-                    sIsolatedContext, android.os.Process.myUid(), mimeTypes);
+            List<Uri> grantedUris2 = sItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                    android.os.Process.myUid(), mimeTypes);
             assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris2.get(0)));
         } finally {
             dir.delete();
@@ -406,16 +413,16 @@ public class MediaProviderTest {
             MediaStore.grantMediaReadForPackage(sIsolatedContext,
                     android.os.Process.myUid(),
                     List.of(testUri));
-            List<Uri> grantedUris = fetchReadGrantedItemsUrisForPackage(
-                    sIsolatedContext, android.os.Process.myUid(), mimeTypes);
+            List<Uri> grantedUris = sItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                    android.os.Process.myUid(), mimeTypes);
             assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris.get(0)));
 
             // Revoked the grant that was provided to testUri and verify that now the current
             // package has no grants.
             MediaStore.revokeMediaReadForPackages(sIsolatedContext, android.os.Process.myUid(),
                     grantedUris);
-            List<Uri> grantedUris2 = fetchReadGrantedItemsUrisForPackage(
-                    sIsolatedContext, android.os.Process.myUid(), mimeTypes);
+            List<Uri> grantedUris2 = sItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                    android.os.Process.myUid(), mimeTypes);
             assertEquals(0, grantedUris2.size());
         } finally {
             dir.delete();
@@ -1831,5 +1838,6 @@ public class MediaProviderTest {
         sContext = InstrumentationRegistry.getTargetContext();
         sIsolatedContext = new IsolatedContext(sContext, "modern", /*asFuseThread*/ false);
         sIsolatedResolver = sIsolatedContext.getContentResolver();
+        sItemsProvider = new ItemsProvider(sIsolatedContext);
     }
 }

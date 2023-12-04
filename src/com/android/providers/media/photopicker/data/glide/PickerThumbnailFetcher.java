@@ -20,43 +20,46 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Point;
-import android.net.Uri;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.provider.CloudMediaProviderContract;
+import android.provider.MediaStore;
 import android.util.Log;
 
-import com.bumptech.glide.Glide;
+import androidx.annotation.Nullable;
+
 import com.bumptech.glide.Priority;
 import com.bumptech.glide.load.DataSource;
-import com.bumptech.glide.load.ImageHeaderParserUtils;
 import com.bumptech.glide.load.data.DataFetcher;
-import com.bumptech.glide.load.data.ExifOrientationStream;
-
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Custom {@link DataFetcher} to fetch a {@link InputStream} for a thumbnail from a cloud
- * media provider.
+ * Custom {@link DataFetcher} to fetch a {@link InputStream} for a thumbnail from a cloud media
+ * provider.
  */
 public class PickerThumbnailFetcher implements DataFetcher<InputStream> {
 
     private static final String TAG = "PickerThumbnailFetcher";
     private final Context mContext;
-    private final Uri mModel;
+    private final GlideLoadable mModel;
     private final int mWidth;
     private final int mHeight;
     private final boolean mIsThumbRequest;
+    private final CancellationSignal mCancellationSignal;
+    @Nullable private AssetFileDescriptor mAssetFileDescriptor = null;
+    @Nullable private InputStream mInputStream = null;
 
-    PickerThumbnailFetcher(Context context, Uri model, int width, int height,
-            boolean isThumbRequest) {
+    PickerThumbnailFetcher(
+            Context context, GlideLoadable model, int width, int height, boolean isThumbRequest) {
         mContext = context;
         mModel = model;
         mWidth = width;
         mHeight = height;
         mIsThumbRequest = isThumbRequest;
+        mCancellationSignal = new CancellationSignal();
     }
 
     @Override
@@ -70,57 +73,50 @@ public class PickerThumbnailFetcher implements DataFetcher<InputStream> {
             opts.putBoolean(CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB, true);
         }
 
-        try (AssetFileDescriptor afd = contentResolver.openTypedAssetFileDescriptor(mModel,
-                /* mimeType */ "image/*", opts, /* cancellationSignal */ null)) {
-            if (afd == null) {
+        try {
+            // Do not close the afd or InputStream as it will close the input stream. The
+            // afd needs to be closed when cleanup is called, so save a reference so it can
+            // be closed when Glide is done with it.
+            mAssetFileDescriptor =
+                    contentResolver.openTypedAssetFileDescriptor(
+                            mModel.getLoadableUri(),
+                            /* mimeType= */ "image/*",
+                            opts,
+                            /* cancellationSignal= */ mCancellationSignal);
+            if (mAssetFileDescriptor == null) {
                 final String err = "Failed to load data for " + mModel;
                 callback.onLoadFailed(new FileNotFoundException(err));
                 return;
             }
-
-            final InputStream inputStream;
-            if (mIsThumbRequest) {
-                inputStream = getOrientationInputStream(afd);
-            } else {
-                // We don't need to handle orientation for preview requests. Glide load takes care
-                // of loading the image in the right orientation.
-                inputStream = afd.createInputStream();
-            }
-            callback.onDataReady(inputStream);
+            mInputStream = mAssetFileDescriptor.createInputStream();
+            callback.onDataReady(mInputStream);
         } catch (IOException e) {
             callback.onLoadFailed(e);
         }
     }
 
-    private InputStream getOrientationInputStream(AssetFileDescriptor afd) throws IOException {
-        InputStream inputStream = afd.createInputStream();
-
-        int orientation = -1;
-        if (inputStream != null) {
-            try {
-                orientation = ImageHeaderParserUtils.getOrientation(
-                        Glide.get(mContext).getRegistry().getImageHeaderParsers(), inputStream,
-                        Glide.get(mContext).getArrayPool());
-            } catch (IOException | NullPointerException ignored) {
-                Log.d(TAG, "Unable to fetch orientation for " + mModel, ignored);
-            }
-        }
-
-        if (orientation != -1) {
-            inputStream = new ExifOrientationStream(inputStream, orientation);
-        }
-        return inputStream;
-    }
-
+    /**
+     * Cleanup is called after Glide is done with this Fetcher instance, and it is now safe to close
+     * the remembered AssetFileDescriptor.
+     */
     @Override
     public void cleanup() {
-        // Intentionally empty only because we're not opening an InputStream or another I/O
-        // resource.
+        try {
+            if (mInputStream != null) {
+                mInputStream.close();
+            }
+
+            if (mAssetFileDescriptor != null) {
+                mAssetFileDescriptor.close();
+            }
+        } catch (IOException e) {
+            Log.d(TAG, "Unexpected error during thumbnail request cleanup.", e);
+        }
     }
 
     @Override
     public void cancel() {
-        // Intentionally empty.
+        mCancellationSignal.cancel();
     }
 
     @Override
@@ -130,6 +126,13 @@ public class PickerThumbnailFetcher implements DataFetcher<InputStream> {
 
     @Override
     public DataSource getDataSource() {
-        return DataSource.LOCAL;
+        // If the authority belongs to MediaProvider, we can consider this a local load.
+        if (mModel.getLoadableUri().getAuthority().equals(MediaStore.AUTHORITY)) {
+            return DataSource.LOCAL;
+        } else {
+            // Otherwise, let's assume it's a Remote data source so that Glide will cache
+            // the raw return value rather than manipulated bytes.
+            return DataSource.REMOTE;
+        }
     }
 }

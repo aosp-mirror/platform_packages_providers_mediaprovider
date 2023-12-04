@@ -123,7 +123,7 @@ import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS_ID;
 import static com.android.providers.media.LocalUriMatcher.VOLUMES;
 import static com.android.providers.media.LocalUriMatcher.VOLUMES_ID;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
-import static com.android.providers.media.photopicker.data.MediaGrantsProvider.EXTRA_MIME_TYPE_SELECTION;
+import static com.android.providers.media.photopicker.data.ItemsProvider.EXTRA_MIME_TYPE_SELECTION;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
@@ -250,6 +250,7 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
+import android.provider.Settings;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
@@ -850,6 +851,23 @@ public class MediaProvider extends ContentProvider {
                             editor.commit();
                         }
                     }
+
+                    boolean isDeviceInDemoMode = false;
+                    try {
+                        isDeviceInDemoMode = Settings.Global.getInt(
+                                getContext().getContentResolver(), Settings.Global.DEVICE_DEMO_MODE)
+                                > 0;
+                    } catch (Settings.SettingNotFoundException e) {
+                        Log.w(TAG, "Exception in reading DEVICE_DEMO_MODE setting", e);
+                    }
+
+                    Log.i(TAG, "isDeviceInDemoMode: " + isDeviceInDemoMode);
+                    // Only allow default system user 0 to update xattrs on /data/media/0 and
+                    // only on retail demo devices
+                    if (sUserId == UserHandle.SYSTEM.getIdentifier() && isDeviceInDemoMode) {
+                        mDatabaseBackupAndRecovery.removeRecoveryDataForUserId(
+                                userToBeRemoved.getIdentifier());
+                    }
                     break;
             }
         }
@@ -960,7 +978,7 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileInserted(insertedRow.getMediaType(),
                         insertedRow.isPending())) {
-                    mPickerDataLayer.handleMediaEventNotification();
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
                 }
 
                 mDatabaseBackupAndRecovery.backupVolumeDbData(helper, insertedRow);
@@ -999,7 +1017,7 @@ public class MediaProvider extends ContentProvider {
                         oldRow.isPending(), newRow.isPending(),
                         oldRow.isFavorite(), newRow.isFavorite(),
                         oldRow.getSpecialFormat(), newRow.getSpecialFormat())) {
-                    mPickerDataLayer.handleMediaEventNotification();
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
                 }
 
                 mDatabaseBackupAndRecovery.updateBackup(helper, oldRow, newRow);
@@ -1059,7 +1077,7 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileDeleted(deletedRow.getId(),
                         deletedRow.getMediaType())) {
-                    mPickerDataLayer.handleMediaEventNotification();
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
                 }
 
                 mDatabaseBackupAndRecovery.deleteFromDbBackup(helper, deletedRow);
@@ -1610,12 +1628,12 @@ public class MediaProvider extends ContentProvider {
         // removing calling userId
         userIds.remove(String.valueOf(sUserId));
 
-        List<String> validUsers = mUserManager.getEnabledProfiles().stream()
+        List<String> validUserProfiles = mUserManager.getEnabledProfiles().stream()
                 .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
                         Collectors.toList());
         // removing all the valid/existing user, remaining userIds would be users who would have
         // been removed
-        userIds.removeAll(validUsers);
+        userIds.removeAll(validUserProfiles);
 
         // Cleaning media files of users who have been removed
         mExternalDatabase.runWithTransaction((db) -> {
@@ -1626,6 +1644,25 @@ public class MediaProvider extends ContentProvider {
             });
             return null ;
         });
+
+        boolean isDeviceInDemoMode = false;
+        try {
+            isDeviceInDemoMode = Settings.Global.getInt(getContext().getContentResolver(),
+                    Settings.Global.DEVICE_DEMO_MODE) > 0;
+        } catch (Settings.SettingNotFoundException e) {
+            Log.w(TAG, "Exception in reading DEVICE_DEMO_MODE setting", e);
+        }
+
+        Log.i(TAG, "isDeviceInDemoMode: " + isDeviceInDemoMode);
+        // Only allow default system user 0 to update xattrs on /data/media/0 and only when
+        // device is in retail mode
+        if (sUserId == UserHandle.SYSTEM.getIdentifier() && isDeviceInDemoMode) {
+            List<String> validUsers = mUserManager.getUserHandles(/* excludeDying */ true).stream()
+                    .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
+                            Collectors.toList());
+            Log.i(TAG, "Active user ids are:" + validUsers);
+            mDatabaseBackupAndRecovery.removeRecoveryDataExceptValidUsers(validUsers);
+        }
     }
 
     private void pruneStalePackages(CancellationSignal signal) {
@@ -6617,6 +6654,13 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.GET_BACKUP_FILES: {
                 return getResultForGetBackupFiles();
             }
+            case MediaStore.GET_RECOVERY_DATA: {
+                return getResultForGetRecoveryData();
+            }
+            case MediaStore.REMOVE_RECOVERY_DATA: {
+                removeRecoveryData();
+                return new Bundle();
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
@@ -7052,7 +7096,7 @@ public class MediaProvider extends ContentProvider {
     private Bundle getResultForNotifyCloudMediaChangedEvent(String arg) {
         final boolean notifyCloudEventResult;
         if (mPickerSyncController.isProviderEnabled(arg, Binder.getCallingUid())) {
-            mPickerDataLayer.handleMediaEventNotification();
+            mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ false);
             notifyCloudEventResult = true;
         } else {
             notifyCloudEventResult = false;
@@ -7144,6 +7188,36 @@ public class MediaProvider extends ContentProvider {
         String[] resultArray = Arrays.copyOf(values, values.length, String[].class);
         bundle.putStringArray(GET_BACKUP_FILES, resultArray);
         return bundle;
+    }
+
+    @NotNull
+    private Bundle getResultForGetRecoveryData() {
+        getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
+                "Permission missing to call GET_RECOVERY_DATA by "
+                        + "uid:" + Binder.getCallingUid());
+
+        String[] xattrs = null;
+        try {
+           xattrs = Os.listxattr("/data/media/0");
+        } catch (ErrnoException e) {
+            Log.w(TAG, "Error in getting xattr list ", e);
+        }
+
+        Bundle bundle = new Bundle();
+        bundle.putStringArray(MediaStore.GET_RECOVERY_DATA, xattrs);
+        return bundle;
+    }
+
+    private void removeRecoveryData() {
+        getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
+                "Permission missing to call REMOVE_RECOVERY_DATA by "
+                        + "uid:" + Binder.getCallingUid());
+
+        List<String> validUsers = mUserManager.getUserHandles(/* excludeDying */ true).stream()
+                .map(userHandle -> String.valueOf(userHandle.getIdentifier())).collect(
+                        Collectors.toList());
+        Log.i(TAG, "Active user ids are:" + validUsers);
+        mDatabaseBackupAndRecovery.removeRecoveryDataExceptValidUsers(validUsers);
     }
 
     private String getSecurityExceptionMessage(String method) {

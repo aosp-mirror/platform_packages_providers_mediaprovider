@@ -573,10 +573,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Bundle extras = getIntent().getExtras();
         final int uid = extras.getInt(Intent.EXTRA_UID);
         final List<Uri> uris = getPickerUrisForItems(mSelection.getSelectedItemsWithoutGrants());
-        ForegroundThread.getExecutor().execute(() -> {
-            // Handle grants in another thread to not block the UI.
-            grantMediaReadForPackage(getApplicationContext(), uid, uris);
-        });
+        if (!uris.isEmpty()) {
+            ForegroundThread.getExecutor().execute(() -> {
+                // Handle grants in another thread to not block the UI.
+                grantMediaReadForPackage(getApplicationContext(), uid, uris);
+                mPickerViewModel.logPickerChoiceAddedGrantsCount(uris.size(), extras);
+            });
+        }
 
         // Revoke READ_GRANT for items that were pre-granted but now in the current session user has
         // deselected them.
@@ -588,6 +591,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
                     // Handle grants in another thread to not block the UI.
                     MediaStore.revokeMediaReadForPackages(getApplicationContext(), uid,
                             urisForItemsWhoseGrantsNeedsToBeRevoked);
+                    mPickerViewModel.logPickerChoiceRevokedGrantsCount(
+                            urisForItemsWhoseGrantsNeedsToBeRevoked.size(), extras);
                 });
             }
         }

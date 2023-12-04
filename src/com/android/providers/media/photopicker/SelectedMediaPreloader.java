@@ -312,7 +312,10 @@ class SelectedMediaPreloader {
         dialog.create();
 
         Button cancelButton = dialog.getButton(DialogInterface.BUTTON_NEGATIVE);
-        cancelButton.setTextAppearance(R.style.ProgressDialogCancelButtonStyle);
+        if (cancelButton != null) {
+            cancelButton.setTextAppearance(R.style.ProgressDialogCancelButtonStyle);
+            cancelButton.setAllCaps(false);
+        }
 
         dialog.show();
 

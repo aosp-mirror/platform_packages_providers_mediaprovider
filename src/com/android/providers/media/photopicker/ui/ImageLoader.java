@@ -20,12 +20,9 @@ import static com.bumptech.glide.load.resource.bitmap.Downsampler.PREFERRED_COLO
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.ImageDecoder;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 
@@ -59,6 +56,7 @@ public class ImageLoader {
             RequestOptions.option(THUMBNAIL_REQUEST, /* enableThumbnail */ true);
     private final Context mContext;
     private final PreferredColorSpace mPreferredColorSpace;
+    private static final String PREVIEW_PREFIX = "preview_";
 
     public ImageLoader(Context context) {
         mContext = context;
@@ -122,13 +120,17 @@ public class ImageLoader {
             loadWithGlide(
                     getGifRequestBuilder(loadable),
                     /* requestOptions */ null,
-                    getGlideSignature(loadable, /* prefix= */ null),
+                    getGlideSignature(loadable, /* prefix= */ PREVIEW_PREFIX),
                     imageView);
             return;
         }
 
         if (item.isAnimatedWebp()) {
-            loadAnimatedWebpPreview(loadable, imageView);
+            loadWithGlide(
+                    getDrawableRequestBuilder(loadable),
+                    /* requestOptions */ null,
+                    getGlideSignature(loadable, PREVIEW_PREFIX),
+                    imageView);
             return;
         }
 
@@ -136,30 +138,7 @@ public class ImageLoader {
         loadWithGlide(
                 getBitmapRequestBuilder(loadable),
                 /* requestOptions */ null,
-                getGlideSignature(loadable, /* prefix= */ null),
-                imageView);
-    }
-
-    private void loadAnimatedWebpPreview(
-            @NonNull GlideLoadable loadable, @NonNull ImageView imageView) {
-        final Uri uri = loadable.getLoadableUri();
-        final ImageDecoder.Source source =
-                ImageDecoder.createSource(mContext.getContentResolver(), uri);
-        Drawable drawable = null;
-        try {
-            drawable = ImageDecoder.decodeDrawable(source);
-        } catch (Exception e) {
-            Log.d(TAG, "Failed to decode drawable for uri: " + uri, e);
-        }
-
-        // If we failed to decode drawable for a source using ImageDecoder, then try
-        // using uri directly. Glide will show static image for an animated webp. That
-        // is okay as we tried our best to load animated webp but couldn't, and we
-        // anyway show the GIF badge in preview.
-        loadWithGlide(
-                getDrawableRequestBuilder(drawable == null ? loadable : drawable),
-                /* requestOptions */ null,
-                getGlideSignature(loadable, null),
+                getGlideSignature(loadable, /* prefix= */ PREVIEW_PREFIX),
                 imageView);
     }
 
@@ -171,7 +150,7 @@ public class ImageLoader {
         loadWithGlide(
                 getBitmapRequestBuilder(loadable),
                 new RequestOptions().frame(1000),
-                getGlideSignature(loadable, "Preview"),
+                getGlideSignature(loadable, /* prefix= */ PREVIEW_PREFIX),
                 imageView);
     }
 

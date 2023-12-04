@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.ui;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_LOAD_NEXT_PAGE;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_REFRESH_ITEMS;
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_MEDIA_ITEM;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_ALBUM_PHOTOS_TAB;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
@@ -46,6 +47,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.PaginationParameters;
+import com.android.providers.media.photopicker.data.glide.PickerPreloadModelProvider;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
@@ -53,6 +55,10 @@ import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import com.android.providers.media.util.StringUtils;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestManager;
+import com.bumptech.glide.integration.recyclerview.RecyclerViewPreloader;
+import com.bumptech.glide.util.ViewPreloadSizeProvider;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.jetbrains.annotations.NotNull;
@@ -80,6 +86,10 @@ public class PhotosTabFragment extends TabFragment {
     private boolean mIsCloudMediaInPhotoPickerEnabled;
 
     private int mPageSize;
+    private PickerPreloadModelProvider mPreloadModelProvider;
+
+    @Nullable
+    private RequestManager mGlideRequestManager = null;
 
     private ProgressBar mProgressBar;
     private TextView mLoadingTextView;
@@ -136,14 +146,39 @@ public class PhotosTabFragment extends TabFragment {
         }
         mSelection.clearCheckedItemList();
 
-        final PhotosTabAdapter adapter = new PhotosTabAdapter(showRecentSection, mSelection,
-                mImageLoader, mOnMediaItemClickListener, /* lifecycleOwner */ this,
-                mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
-                mPickerViewModel.getCloudMediaAccountNameLiveData(), showChooseAppBanner,
-                showCloudMediaAvailableBanner, showAccountUpdatedBanner, showChooseAccountBanner,
-                mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
-                mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener,
-                mOnMediaItemHoverListener);
+        ViewPreloadSizeProvider viewSizeProvider = new ViewPreloadSizeProvider();
+
+        final PhotosTabAdapter adapter =
+                new PhotosTabAdapter(
+                        showRecentSection,
+                        mSelection,
+                        mImageLoader,
+                        mOnMediaItemClickListener,
+                        this, /* lifecycleOwner */
+                        mPickerViewModel.getCloudMediaProviderAppTitleLiveData(),
+                        mPickerViewModel.getCloudMediaAccountNameLiveData(),
+                        showChooseAppBanner,
+                        showCloudMediaAvailableBanner,
+                        showAccountUpdatedBanner,
+                        showChooseAccountBanner,
+                        mOnChooseAppBannerEventListener,
+                        mOnCloudMediaAvailableBannerEventListener,
+                        mOnAccountUpdatedBannerEventListener,
+                        mOnChooseAccountBannerEventListener,
+                        mOnMediaItemHoverListener,
+                        viewSizeProvider);
+
+        mPreloadModelProvider = new PickerPreloadModelProvider(getContext(), adapter);
+        mGlideRequestManager = Glide.with(this);
+
+        RecyclerViewPreloader<Item> preloader =
+                new RecyclerViewPreloader<>(
+                        Glide.with(getContext()),
+                        mPreloadModelProvider,
+                        viewSizeProvider,
+                        /* maxPreload= */ 8);
+        mRecyclerView.addOnScrollListener(preloader);
+
 
         // initialise pre-granted items is necessary.
         Intent activityIntent = requireActivity().getIntent();
@@ -195,6 +230,24 @@ public class PhotosTabFragment extends TabFragment {
         setLayoutManager(context, adapter, GRID_COLUMN_COUNT);
         mRecyclerView.setAdapter(adapter);
         mRecyclerView.addItemDecoration(itemDecoration);
+
+        mRecyclerView.addRecyclerListener(
+                new RecyclerView.RecyclerListener() {
+                    @Override
+                    public void onViewRecycled(RecyclerView.ViewHolder holder) {
+                        if (mGlideRequestManager != null
+                                && holder.getItemViewType() == ITEM_TYPE_MEDIA_ITEM) {
+                            // This cast is safe as we've already checked the view type is
+                            MediaItemGridViewHolder vh = (MediaItemGridViewHolder) holder;
+                            // Cancel pending glide load requests on recycling, to prevent a large
+                            // backlog of requests building up in the event of large scrolls.
+                            cancelGlideLoadForViewHolder(vh);
+                            vh.release();
+                        }
+                    }
+                });
+        mRecyclerView.setItemViewCacheSize(10);
+
         if (mIsCloudMediaInPhotoPickerEnabled) {
             setOnScrollListenerForRecyclerView();
         }
@@ -366,7 +419,8 @@ public class PhotosTabFragment extends TabFragment {
     private final PhotosTabAdapter.OnMediaItemClickListener mOnMediaItemClickListener =
             new PhotosTabAdapter.OnMediaItemClickListener() {
                 @Override
-                public void onItemClick(@NonNull View view, int position) {
+                public void onItemClick(
+                        @NonNull View view, int position, MediaItemGridViewHolder viewHolder) {
 
                     if (mSelection.canSelectMultiple()) {
                         final boolean isSelectedBefore =
@@ -375,6 +429,9 @@ public class PhotosTabFragment extends TabFragment {
 
                         Item item = (Item) view.getTag();
                         if (isSelectedBefore) {
+                            if (mSelection.isSelectionOrdered()) {
+                                viewHolder.setSelectionOrder(null);
+                            }
                             mSelection.removeSelectedItem((Item) view.getTag());
                             mSelection.removeCheckedItemIndex((Item) view.getTag());
                         } else {
@@ -384,14 +441,19 @@ public class PhotosTabFragment extends TabFragment {
                                 final CharSequence quantityText =
                                         StringUtils.getICUFormatString(
                                                 getResources(), maxCount, R.string.select_up_to);
-                                final String itemCountString = NumberFormat
-                                        .getInstance(Locale.getDefault()).format(maxCount);
-                                final CharSequence message = TextUtils.expandTemplate(quantityText,
-                                        itemCountString);
+                                final String itemCountString =
+                                        NumberFormat.getInstance(Locale.getDefault())
+                                                .format(maxCount);
+                                final CharSequence message =
+                                        TextUtils.expandTemplate(quantityText, itemCountString);
                                 Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
                                 return;
                             } else {
                                 mSelection.addSelectedItem(item);
+                                if (mSelection.isSelectionOrdered()) {
+                                    viewHolder.setSelectionOrder(
+                                            mSelection.getSelectedItemOrder(item));
+                                }
                                 mPickerViewModel.logMediaItemSelected(item, mCategory, position);
                             }
                         }
@@ -430,7 +492,8 @@ public class PhotosTabFragment extends TabFragment {
 
                     try {
                         // Transition to PreviewFragment.
-                        PreviewFragment.show(requireActivity().getSupportFragmentManager(),
+                        PreviewFragment.show(
+                                requireActivity().getSupportFragmentManager(),
                                 PreviewFragment.getArgsForPreviewOnLongPress());
                     } catch (RuntimeException e) {
                         Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
@@ -543,9 +606,21 @@ public class PhotosTabFragment extends TabFragment {
         }
     }
 
+    /**
+     * Attempts to cancel any outstanding Glide requests for the given ViewHolder.
+     *
+     * @param holder The View holder in the RecyclerView to cancel requests for.
+     */
+    private void cancelGlideLoadForViewHolder(MediaItemGridViewHolder vh) {
+        // Attempt to clear the potential pending load out of glide's request
+        // manager.
+        mGlideRequestManager.clear(vh.getThumbnailImageView());
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
         mMainThreadHandler.removeCallbacksAndMessages(mHideProgressBarToken);
+        mGlideRequestManager = null;
     }
 }

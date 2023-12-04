@@ -20,6 +20,7 @@ import android.annotation.BytesLong;
 import android.annotation.CurrentTimeMillisLong;
 import android.annotation.CurrentTimeSecondsLong;
 import android.annotation.DurationMillisLong;
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -325,6 +326,20 @@ public final class MediaStore {
      * {@hide}
      */
     @VisibleForTesting
+    public static final String GET_RECOVERY_DATA = "get_recovery_data";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String REMOVE_RECOVERY_DATA = "remove_recovery_data";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
     public static final String DELETE_BACKED_UP_FILE_PATHS = "delete_backed_up_file_paths";
 
     /** {@hide} */
@@ -503,18 +518,18 @@ public final class MediaStore {
     public static final String EXTRA_SHOW_ACTION_ICONS = "android.intent.extra.showActionIcons";
 
     /**
-     * The name of the Intent-extra used to control the onCompletion behavior of a MovieView.
-     * This is a boolean property that specifies whether or not to finish the MovieView activity
-     * when the movie completes playing. The default value is true, which means to automatically
-     * exit the movie player activity when the movie completes playing.
+     * The name of the Intent-extra used to control the onCompletion behavior of a MovieView. This
+     * is a boolean property that specifies whether or not to finish the MovieView activity when the
+     * movie completes playing. The default value is true, which means to automatically exit the
+     * movie player activity when the movie completes playing.
      */
-    public static final String EXTRA_FINISH_ON_COMPLETION = "android.intent.extra.finishOnCompletion";
+    public static final String EXTRA_FINISH_ON_COMPLETION =
+            "android.intent.extra.finishOnCompletion";
 
-    /**
-     * The name of the Intent action used to launch a camera in still image mode.
-     */
+    /** The name of the Intent action used to launch a camera in still image mode. */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
-    public static final String INTENT_ACTION_STILL_IMAGE_CAMERA = "android.media.action.STILL_IMAGE_CAMERA";
+    public static final String INTENT_ACTION_STILL_IMAGE_CAMERA =
+            "android.media.action.STILL_IMAGE_CAMERA";
 
     /**
      * Name under which an activity handling {@link #INTENT_ACTION_STILL_IMAGE_CAMERA} or
@@ -741,42 +756,39 @@ public final class MediaStore {
     public final static String EXTRA_OUTPUT = "output";
 
     /**
-     * Activity Action: Allow the user to select images or videos provided by
-     * system and return it. This is different than {@link Intent#ACTION_PICK}
-     * and {@link Intent#ACTION_GET_CONTENT} in that
+     * Activity Action: Allow the user to select images or videos provided by system and return it.
+     * This is different than {@link Intent#ACTION_PICK} and {@link Intent#ACTION_GET_CONTENT} in
+     * that
+     *
      * <ul>
-     * <li> the data for this action is provided by the system
-     * <li> this action is only used for picking images and videos
-     * <li> caller gets read access to user picked items even without storage
-     * permissions
+     *   <li>the data for this action is provided by the system
+     *   <li>this action is only used for picking images and videos
+     *   <li>caller gets read access to user picked items even without storage permissions
      * </ul>
-     * <p>
-     * Callers can optionally specify MIME type (such as {@code image/*} or
-     * {@code video/*}), resulting in a range of content selection that the
-     * caller is interested in. The optional MIME type can be requested with
-     * {@link Intent#setType(String)}.
-     * <p>
-     * If the caller needs multiple returned items (or caller wants to allow
-     * multiple selection), then it can specify
-     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} to indicate this.
-     * <p>
-     * When the caller requests multiple selection, the value of
-     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} must be a positive integer
-     * greater than 1 and less than or equal to
-     * {@link MediaStore#getPickImagesMaxLimit}, otherwise
-     * {@link Activity#RESULT_CANCELED} is returned.
-     * <p>
-     * Callers may use {@link Intent#EXTRA_LOCAL_ONLY} to limit content
-     * selection to local data.
-     * <p>
-     * Output: MediaStore content URI(s) of the item(s) that was picked.
-     * Unlike other MediaStore URIs, these are referred to as 'picker' URIs and
-     * expose a limited set of read-only operations. Specifically, picker URIs
-     * can only be opened for read and queried for columns in {@link PickerMediaColumns}.
-     * <p>
-     * Before this API, apps could use {@link Intent#ACTION_GET_CONTENT}. However,
-     * {@link #ACTION_PICK_IMAGES} is now the recommended option for images and videos,
-     * since it offers a better user experience.
+     *
+     * <p>Callers can optionally specify MIME type (such as {@code image/*} or {@code video/*}),
+     * resulting in a range of content selection that the caller is interested in. The optional MIME
+     * type can be requested with {@link Intent#setType(String)}.
+     *
+     * <p>If the caller needs multiple returned items (or caller wants to allow multiple selection),
+     * then it can specify {@link MediaStore#EXTRA_PICK_IMAGES_MAX} to indicate this.
+     *
+     * <p>When the caller requests multiple selection, the value of {@link
+     * MediaStore#EXTRA_PICK_IMAGES_MAX} must be a positive integer greater than 1 and less than or
+     * equal to {@link MediaStore#getPickImagesMaxLimit}, otherwise {@link Activity#RESULT_CANCELED}
+     * is returned. Use {@link MediaStore#EXTRA_PICK_IMAGES_IN_ORDER} in multiple selection mode to
+     * allow the user to pick images in order.
+     *
+     * <p>Callers may use {@link Intent#EXTRA_LOCAL_ONLY} to limit content selection to local data.
+     *
+     * <p>Output: MediaStore content URI(s) of the item(s) that was picked. Unlike other MediaStore
+     * URIs, these are referred to as 'picker' URIs and expose a limited set of read-only
+     * operations. Specifically, picker URIs can only be opened for read and queried for columns in
+     * {@link PickerMediaColumns}.
+     *
+     * <p>Before this API, apps could use {@link Intent#ACTION_GET_CONTENT}. However, {@link
+     * #ACTION_PICK_IMAGES} is now the recommended option for images and videos, since it offers a
+     * better user experience.
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
@@ -822,6 +834,20 @@ public final class MediaStore {
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_PICK_IMAGES_SETTINGS =
             "android.provider.action.PICK_IMAGES_SETTINGS";
+
+    /**
+     * The name of an optional intent-extra used to allow ordered selection of items. Set this extra
+     * to true to allow the user to see the order of their selected items. The result returned to
+     * the caller will be the same as the user selected order. This extra is only allowed via the
+     * {@link MediaStore#ACTION_PICK_IMAGES}.
+     *
+     * <p>The value of this intent-extra should be a boolean. Default value is false.
+     *
+     * @see #ACTION_PICK_IMAGES
+     */
+    @FlaggedApi("com.android.providers.media.flags.pick_ordered_images")
+    public static final String EXTRA_PICK_IMAGES_IN_ORDER =
+            "android.provider.extra.PICK_IMAGES_IN_ORDER";
 
     /**
      * The name of an optional intent-extra used to allow multiple selection of
@@ -4779,6 +4805,25 @@ public final class MediaStore {
     public static String[] getBackupFiles(@NonNull ContentResolver resolver) {
         Bundle bundle = resolver.call(AUTHORITY, GET_BACKUP_FILES, null, null);
         return bundle.getStringArray(GET_BACKUP_FILES);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static String[] getRecoveryData(@NonNull ContentResolver resolver) {
+        Bundle bundle = resolver.call(AUTHORITY, GET_RECOVERY_DATA, null, null);
+        return bundle.getStringArray(GET_RECOVERY_DATA);
+    }
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static void removeRecoveryData(@NonNull ContentResolver resolver) {
+        resolver.call(AUTHORITY, REMOVE_RECOVERY_DATA, null, null);
     }
 
     /**

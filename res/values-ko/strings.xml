@@ -60,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"앨범 없음"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"선택 항목 보기"</string>
     <string name="picker_photos" msgid="7415035516411087392">"사진"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"앨범"</string>
     <string name="picker_preview" msgid="6257414886055861039">"미리보기"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"직장 프로필로 전환"</string>

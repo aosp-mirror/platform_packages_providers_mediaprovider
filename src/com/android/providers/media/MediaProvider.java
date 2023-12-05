@@ -499,6 +499,12 @@ public class MediaProvider extends ContentProvider {
 
     private static final String DEFAULT_FOLDER_CREATED_KEY_PREFIX = "created_default_folders_";
 
+    /**
+     * This value should match android.os.Trace.MAX_SECTION_NAME_LEN , not accessible from this
+     * class
+     */
+    private static final int MAX_SECTION_NAME_LEN = 127;
+
     @GuardedBy("mPendingOpenInfo")
     private final Map<Integer, PendingOpenInfo> mPendingOpenInfo = new ArrayMap<>();
 
@@ -2607,14 +2613,14 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    public Uri canonicalize(Uri uri) {
-        final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int match = matchUri(uri, allowHidden);
-
+    public Uri canonicalize(@NonNull Uri uri) {
         // Skip when we have nothing to canonicalize
         if ("1".equals(uri.getQueryParameter(CANONICAL))) {
             return uri;
         }
+
+        final boolean allowHidden = mCallingIdentity.get().hasPermission(PERMISSION_IS_SELF);
+        final int match = matchUri(uri, allowHidden);
 
         try (Cursor c = queryForSingleItem(uri, null, null, null, null)) {
             switch (match) {
@@ -2648,14 +2654,13 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    public Uri uncanonicalize(Uri uri) {
-        final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int match = matchUri(uri, allowHidden);
-
+    public Uri uncanonicalize(@NonNull Uri uri) {
         // Skip when we have nothing to uncanonicalize
         if (!"1".equals(uri.getQueryParameter(CANONICAL))) {
             return uri;
         }
+        final boolean allowHidden = mCallingIdentity.get().hasPermission(PERMISSION_IS_SELF);
+        final int match = matchUri(uri, allowHidden);
 
         // Extract values and then clear to avoid recursive lookups
         final String title = uri.getQueryParameter(AudioColumns.TITLE);
@@ -2717,6 +2722,14 @@ public class MediaProvider extends ContentProvider {
             return newUri;
         }
         return uri;
+    }
+
+    private static String safeTraceSectionNameWithUri(String operation, Uri uri) {
+        String sectionName = "MP." + operation + " [" + uri + "]";
+        if (sectionName.length() > MAX_SECTION_NAME_LEN) {
+            return sectionName.substring(0, MAX_SECTION_NAME_LEN);
+        }
+        return sectionName;
     }
 
     /**
@@ -3604,20 +3617,21 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
-            String sortOrder) {
+    public Cursor query(@NonNull Uri uri, String[] projection, String selection,
+                        String[] selectionArgs, String sortOrder) {
         return query(uri, projection,
                 DatabaseUtils.createSqlQueryBundle(selection, selectionArgs, sortOrder), null);
     }
 
     @Override
-    public Cursor query(Uri uri, String[] projection, Bundle queryArgs, CancellationSignal signal) {
+    public Cursor query(@NonNull Uri uri, String[] projection, Bundle queryArgs,
+                        CancellationSignal signal) {
         return query(uri, projection, queryArgs, signal, /* forSelf */ false);
     }
 
     private Cursor query(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal, boolean forSelf) {
-        Trace.beginSection("MP.query [" + uri + ']');
+        Trace.beginSection(safeTraceSectionNameWithUri("query", uri));
         try {
             return queryInternal(uri, projection, queryArgs, signal, forSelf);
         } catch (FallbackException e) {
@@ -5175,7 +5189,7 @@ public class MediaProvider extends ContentProvider {
     @Nullable
     public Uri insert(@NonNull Uri uri, @Nullable ContentValues values,
             @Nullable Bundle extras) {
-        Trace.beginSection("MP.insert [" + uri + ']');
+        Trace.beginSection(safeTraceSectionNameWithUri("insert", uri));
         try {
             try {
                 return insertInternal(uri, values, extras);
@@ -5209,7 +5223,6 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final String resolvedVolumeName = resolveVolumeName(uri);
 
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
@@ -6229,7 +6242,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int delete(@NonNull Uri uri, @Nullable Bundle extras) {
-        Trace.beginSection("MP.delete [" + uri + ']');
+        Trace.beginSection(safeTraceSectionNameWithUri("delete", uri));
         try {
             return deleteInternal(uri, extras);
         } catch (FallbackException e) {
@@ -6287,8 +6300,6 @@ public class MediaProvider extends ContentProvider {
         final String[] userWhereArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
 
         int count = 0;
-
-        final int targetSdkVersion = getCallingPackageTargetSdkVersion();
 
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (match == MEDIA_SCANNER) {
@@ -7708,7 +7719,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(@NonNull Uri uri, @Nullable ContentValues values,
             @Nullable Bundle extras) {
-        Trace.beginSection("MP.update [" + uri + ']');
+        Trace.beginSection(safeTraceSectionNameWithUri("update", uri));
         try {
             return updateInternal(uri, values, extras);
         } catch (FallbackException e) {
@@ -7758,7 +7769,6 @@ public class MediaProvider extends ContentProvider {
 
         int count;
 
-        final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
         final DatabaseHelper helper = getDatabaseForUri(uri);

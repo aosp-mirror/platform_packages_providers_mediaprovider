@@ -63,6 +63,7 @@ public class PhotoPickerToolActivity extends Activity {
     private CheckBox mSetSelectionCountCheckBox;
     private CheckBox mAllowMultipleCheckBox;
     private CheckBox mGetContentCheckBox;
+    private CheckBox mOrderedSelectionCheckBox;
     private EditText mMaxCountText;
     private EditText mMimeTypeText;
 
@@ -77,6 +78,7 @@ public class PhotoPickerToolActivity extends Activity {
         mSetMimeTypeCheckBox = findViewById(R.id.cbx_set_mime_type);
         mSetSelectionCountCheckBox = findViewById(R.id.cbx_set_selection_count);
         mSetVideoOnlyCheckBox = findViewById(R.id.cbx_set_video_only);
+        mOrderedSelectionCheckBox = findViewById(R.id.cbx_ordered_selection);
         mMaxCountText = findViewById(R.id.edittext_max_count);
         mMimeTypeText = findViewById(R.id.edittext_mime_type);
         mScrollView = findViewById(R.id.scrollview);
@@ -169,6 +171,10 @@ public class PhotoPickerToolActivity extends Activity {
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             } else {
                 intent.putExtra(EXTRA_PICK_IMAGES_MAX, PICK_IMAGES_MAX_LIMIT);
+                // ordered selection is not allowed in get content.
+                if (mOrderedSelectionCheckBox.isChecked()) {
+                    intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER, true);
+                }
             }
         }
 

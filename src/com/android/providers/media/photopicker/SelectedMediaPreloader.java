@@ -31,6 +31,7 @@ import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Looper;
 import android.util.Log;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -303,11 +304,17 @@ class SelectedMediaPreloader {
         dialog.setCancelable(false);
 
         dialog.setButton(DialogInterface.BUTTON_NEGATIVE,
-                // TODO(b/303013634): Add a Cancel string for this dialog and don't re-use an
-                // existing string.
-                context.getString(R.string.transcode_cancel), (dialog1, which) -> {
+                context.getString(R.string.preloading_cancel_button), (dialog1, which) -> {
                 mIsPreloadingCancelledLiveData.setValue(true);
             });
+        dialog.create();
+
+        Button cancelButton = dialog.getButton(DialogInterface.BUTTON_NEGATIVE);
+        if (cancelButton != null) {
+            cancelButton.setTextAppearance(R.style.ProgressDialogCancelButtonStyle);
+            cancelButton.setAllCaps(false);
+        }
+
         dialog.show();
 
         return dialog;

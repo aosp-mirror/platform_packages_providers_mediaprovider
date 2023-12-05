@@ -302,6 +302,27 @@ public class MediaGrantsTest {
             assertTrue(expectedFileIdsList2.contains(Long.valueOf(ContentUris.parseId(uri))));
         }
     }
+
+    @Test
+    public void testRemoveMediaGrantsForPackagesLargerDataSet() throws Exception {
+        List<Uri> inputFiles = new ArrayList<>();
+        for (int itr = 1; itr < 110; itr++) {
+            inputFiles.add(buildValidPickerUri(
+                    insertFileInResolver(mIsolatedResolver, "test_file" + itr)));
+        }
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, inputFiles, TEST_USER_ID);
+
+        String[] mimeTypes = {PNG_MIME_TYPE};
+        String[] volumes = {MediaStore.VOLUME_EXTERNAL_PRIMARY};
+
+        // The query used inside remove grants is batched by 50 ids, hence having a test like this
+        // would help ensure the batching worked perfectly.
+        mGrants.removeMediaGrantsForPackage(new String[]{TEST_OWNER_PACKAGE_NAME},
+                inputFiles.subList(0, 101), TEST_USER_ID);
+        List<Uri> fileUris3 = convertToListOfUri(mGrants.getMediaGrantsForPackages(
+                new String[]{TEST_OWNER_PACKAGE_NAME}, TEST_USER_ID, mimeTypes, volumes));
+        assertEquals(8, fileUris3.size());
+    }
     @Test
     public void testAddDuplicateMediaGrants() throws Exception {
 

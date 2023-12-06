@@ -62,6 +62,10 @@ class ViewPager2Wrapper {
         mViewPager.setPageTransformer(compositePageTransformer);
     }
 
+    void updateList(List<Item> selectedItems) {
+        mAdapter.updateItemList(selectedItems);
+    }
+
     /**
      * Registers given {@link ViewPager2.OnPageChangeCallback} to the {@link ViewPager2}. This class
      * also takes care of unregistering the callback onDestroy()

@@ -1586,8 +1586,8 @@ public class MediaProvider extends ContentProvider {
 
             try {
                 MediaService.onScanVolume(getContext(), volume, REASON_IDLE);
-            } catch (IOException e) {
-                Log.w(TAG, e);
+            } catch (IOException | IllegalArgumentException e) {
+                Log.w(TAG, "Failure in " + volume.getName() + " volume scan", e);
             }
 
             // Ensure that our thumbnails are valid

@@ -60,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"কোনো এলবাম নাই"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ভিউ বাছনি কৰা হৈছে"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ফট’"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"এলবাম"</string>
     <string name="picker_preview" msgid="6257414886055861039">"পূৰ্বদৰ্শন কৰক"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"কৰ্মস্থানৰ প্ৰ’ফাইললৈ সলনি কৰক"</string>

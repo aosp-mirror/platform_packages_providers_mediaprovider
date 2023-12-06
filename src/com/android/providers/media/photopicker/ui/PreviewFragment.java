@@ -48,6 +48,7 @@ import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * Displays a selected items in one up view. Supports deselecting items.
@@ -114,11 +115,7 @@ public class PreviewFragment extends Fragment {
         final List<Item> selectedItemsList = mSelection.getSelectedItemsForPreview();
         final int selectedItemsListSize = selectedItemsList.size();
 
-        if (selectedItemsListSize <= 0) {
-            // This can happen if we lost PickerViewModel to optimize memory.
-            Log.e(TAG, "No items to preview. Returning back to photo grid");
-            requireActivity().getSupportFragmentManager().popBackStack();
-        } else if (selectedItemsListSize > 1 && !mSelection.canSelectMultiple()) {
+        if (selectedItemsListSize > 1 && !mSelection.canSelectMultiple()) {
             // This should never happen
             throw new IllegalStateException("Found more than one preview items in single select"
                     + " mode. Selected items count: " + selectedItemsListSize);
@@ -135,6 +132,35 @@ public class PreviewFragment extends Fragment {
 
         setUpPreviewLayout(view, getArguments());
         setupScrimLayerAndBottomBar(view);
+        // Don't add any code post this line. The lazy loading setup should be the last thing we do
+        // to avoid the UI getting overwritten.
+        setUpUIForLazyLoading(view, selectedItemsListSize);
+    }
+
+    private void setUpUIForLazyLoading(View view, int selectedItemsListSize) {
+        final Button selectedCheckButton = view.findViewById(R.id.preview_selected_check_button);
+        Objects.requireNonNull(selectedCheckButton);
+        if (selectedItemsListSize == 0) {
+            // This can happen in two cases -
+            // 1. ACTION_USER_SELECT_IMAGES_FOR_APP launched the Photo Picker UI, and we are waiting
+            //    for items that's not preloaded due to pagination
+            // 2. PreviewFragment was launched from SavedPreference state but PickerViewModel was
+            //    killed and hence there is no selected items.
+            // In both these cases, user will see a blank UI with only Add/Allow button
+            selectedCheckButton.setVisibility(View.GONE);
+            Log.i(TAG, "No items to preview yet" + selectedCheckButton.getVisibility());
+        }
+
+        if (mPickerViewModel.isManagedSelectionEnabled()) {
+            mPickerViewModel.getIsAllPreGrantedMediaLoaded().observe(this, (isLoadComplete) -> {
+                if (!isLoadComplete) return;
+
+                selectedCheckButton.setVisibility(View.VISIBLE);
+
+                mSelection.prepareSelectedItemsForPreviewAll();
+                mViewPager2Wrapper.updateList(mSelection.getSelectedItemsForPreview());
+            });
+        }
     }
 
     private void setupScrimLayerAndBottomBar(View fragmentView) {
@@ -243,7 +269,9 @@ public class PreviewFragment extends Fragment {
                                             /* context= */ getContext(),
                                             /* size= */ selectedItemCount,
                                             /* isUserSelectForApp= */ mPickerViewModel
-                                                    .isUserSelectForApp()));
+                                                    .isUserSelectForApp(),
+                                            /* isManagedSelectionEnabled */
+                                            mPickerViewModel.isManagedSelectionEnabled()));
                         });
 
         selectedCheckButton.setOnClickListener(
@@ -391,7 +419,11 @@ public class PreviewFragment extends Fragment {
 
     // TODO: There is a same method in TabFragment. To find a way to reuse it.
     private static String generateAddButtonString(
-            @NonNull Context context, int size, boolean isUserSelectForApp) {
+            @NonNull Context context, int size, boolean isUserSelectForApp,
+            boolean isManagedSelection) {
+        if (isManagedSelection && size == 0) {
+            return context.getString(R.string.picker_add_button_allow_none_option);
+        }
         final String sizeString = NumberFormat.getInstance(Locale.getDefault()).format(size);
         final String template =
                 isUserSelectForApp

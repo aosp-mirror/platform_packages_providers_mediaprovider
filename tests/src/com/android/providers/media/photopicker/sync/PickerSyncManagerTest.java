@@ -111,7 +111,8 @@ public class PickerSyncManagerTest {
         assertThat(periodicWorkRequest.getWorkSpec().expedited).isFalse();
         assertThat(periodicWorkRequest.getWorkSpec().isPeriodic()).isTrue();
         assertThat(periodicWorkRequest.getWorkSpec().id).isNotNull();
-        assertThat(periodicWorkRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isTrue();
+        assertThat(periodicWorkRequest.getWorkSpec().constraints.requiresCharging()).isTrue();
+        assertThat(periodicWorkRequest.getWorkSpec().constraints.requiresDeviceIdle()).isTrue();
         assertThat(periodicWorkRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_LOCAL_AND_CLOUD);
@@ -123,7 +124,7 @@ public class PickerSyncManagerTest {
         assertThat(periodicResetRequest.getWorkSpec().expedited).isFalse();
         assertThat(periodicResetRequest.getWorkSpec().isPeriodic()).isTrue();
         assertThat(periodicResetRequest.getWorkSpec().id).isNotNull();
-        assertThat(periodicResetRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isTrue();
+        assertThat(periodicResetRequest.getWorkSpec().constraints.requiresCharging()).isTrue();
         assertThat(periodicResetRequest.getWorkSpec().constraints.requiresDeviceIdle()).isTrue();
         assertThat(periodicResetRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
@@ -162,7 +163,8 @@ public class PickerSyncManagerTest {
         assertThat(periodicWorkRequest.getWorkSpec().expedited).isFalse();
         assertThat(periodicWorkRequest.getWorkSpec().isPeriodic()).isTrue();
         assertThat(periodicWorkRequest.getWorkSpec().id).isNotNull();
-        assertThat(periodicWorkRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isTrue();
+        assertThat(periodicWorkRequest.getWorkSpec().constraints.requiresCharging()).isTrue();
+        assertThat(periodicWorkRequest.getWorkSpec().constraints.requiresDeviceIdle()).isTrue();
         assertThat(periodicWorkRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_LOCAL_AND_CLOUD);
@@ -174,7 +176,7 @@ public class PickerSyncManagerTest {
         assertThat(periodicResetRequest.getWorkSpec().expedited).isFalse();
         assertThat(periodicResetRequest.getWorkSpec().isPeriodic()).isTrue();
         assertThat(periodicResetRequest.getWorkSpec().id).isNotNull();
-        assertThat(periodicResetRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isTrue();
+        assertThat(periodicResetRequest.getWorkSpec().constraints.requiresCharging()).isTrue();
         assertThat(periodicResetRequest.getWorkSpec().constraints.requiresDeviceIdle()).isTrue();
         assertThat(periodicResetRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
@@ -189,10 +191,32 @@ public class PickerSyncManagerTest {
     }
 
     @Test
+    public void testAdhocProactiveSyncLocalOnly() {
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        mPickerSyncManager.syncMediaProactively(/* localOnly */ true);
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(),
+                        any(),
+                        mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final OneTimeWorkRequest workRequest = mOneTimeWorkRequestArgumentCaptor.getValue();
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(ProactiveSyncWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isFalse();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().id).isNotNull();
+        assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isTrue();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_LOCAL_ONLY);
+    }
+
+    @Test
     public void testAdhocProactiveSync() {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
-        mPickerSyncManager.syncAllMediaProactively();
+        mPickerSyncManager.syncMediaProactively(/* localOnly */ false);
         verify(mMockWorkManager, times(1))
                 .enqueueUniqueWork(anyString(),
                         any(),

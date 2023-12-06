@@ -45,7 +45,7 @@ import java.util.List;
 public class PhotosTabAdapter extends TabAdapter {
 
     private static final int RECENT_MINIMUM_COUNT = 12;
-
+    private final LifecycleOwner mLifecycleOwner;
     private final boolean mShowRecentSection;
     private final OnMediaItemClickListener mOnMediaItemClickListener;
     private final Selection mSelection;
@@ -75,6 +75,7 @@ public class PhotosTabAdapter extends TabAdapter {
                 shouldShowAccountUpdatedBanner, shouldShowChooseAccountBanner,
                 onChooseAppBannerEventListener, onCloudMediaAvailableBannerEventListener,
                 onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener);
+        mLifecycleOwner = lifecycleOwner;
         mShowRecentSection = showRecentSection;
         mSelection = selection;
         mOnMediaItemClickListener = onMediaItemClickListener;
@@ -95,11 +96,13 @@ public class PhotosTabAdapter extends TabAdapter {
         final View view = getView(viewGroup, R.layout.item_photo_grid);
         final MediaItemGridViewHolder viewHolder =
                 new MediaItemGridViewHolder(
+                        mLifecycleOwner,
                         view,
                         mImageLoader,
                         mOnMediaItemClickListener,
                         mOnMediaItemHoverListener,
-                        mSelection.canSelectMultiple());
+                        mSelection.canSelectMultiple(),
+                        mSelection.isSelectionOrdered());
         mPreloadSizeProvider.setView(viewHolder.getThumbnailImageView());
         return viewHolder;
     }
@@ -119,12 +122,15 @@ public class PhotosTabAdapter extends TabAdapter {
 
         final boolean isSelected = mSelection.canSelectMultiple()
                 && mSelection.isItemSelected(item);
+
         if (isSelected) {
             mSelection.addCheckedItemIndex(item, position);
         }
 
         mediaItemVH.bind(item, isSelected);
-
+        if (isSelected && mSelection.isSelectionOrdered()) {
+            mediaItemVH.setSelectionOrder(mSelection.getSelectedItemOrder(item));
+        }
         // We also need to set Item as a tag so that OnClick/OnLongClickListeners can then
         // retrieve it.
         mediaItemVH.itemView.setTag(item);
@@ -207,7 +213,7 @@ public class PhotosTabAdapter extends TabAdapter {
     }
 
     interface OnMediaItemClickListener {
-        void onItemClick(@NonNull View view, int position);
+        void onItemClick(@NonNull View view, int position, MediaItemGridViewHolder viewHolder);
 
         boolean onItemLongClick(@NonNull View view, int position);
     }

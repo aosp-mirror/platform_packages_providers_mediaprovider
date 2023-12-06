@@ -93,6 +93,7 @@ public class PickerSyncManager {
     private static final int RESET_ALBUM_MEDIA_PERIODIC_WORK_INTERVAL = 12; // Time unit is hours.
 
     private static final String PERIODIC_SYNC_WORK_NAME;
+    private static final String PROACTIVE_LOCAL_SYNC_WORK_NAME;
     private static final String PROACTIVE_SYNC_WORK_NAME;
     public static final String IMMEDIATE_LOCAL_SYNC_WORK_NAME;
     private static final String IMMEDIATE_CLOUD_SYNC_WORK_NAME;
@@ -109,6 +110,7 @@ public class PickerSyncManager {
 
         PERIODIC_ALBUM_RESET_WORK_NAME = "RESET_ALBUM_MEDIA_PERIODIC";
         PERIODIC_SYNC_WORK_NAME = syncPeriodicPrefix + syncAllSuffix;
+        PROACTIVE_LOCAL_SYNC_WORK_NAME = syncProactivePrefix + syncLocalSuffix;
         PROACTIVE_SYNC_WORK_NAME = syncProactivePrefix + syncAllSuffix;
         IMMEDIATE_LOCAL_SYNC_WORK_NAME = syncImmediatePrefix + syncLocalSuffix;
         IMMEDIATE_CLOUD_SYNC_WORK_NAME = syncImmediatePrefix + syncCloudSuffix;
@@ -231,16 +233,23 @@ public class PickerSyncManager {
     /**
      * Use this method for proactive syncs. The sync might take a while to start. Some device state
      * conditions may apply before the sync can start like battery level etc.
+     *
+     * @param localOnly - whether the proactive sync should only sync with the local provider.
      */
-    public void syncAllMediaProactively() {
-        final Data inputData =
-                new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD));
+    public void syncMediaProactively(Boolean localOnly) {
+
+        final int syncSource = localOnly ? SYNC_LOCAL_ONLY : SYNC_LOCAL_AND_CLOUD;
+        final String workName =
+                localOnly ? PROACTIVE_LOCAL_SYNC_WORK_NAME : PROACTIVE_SYNC_WORK_NAME;
+
+        final Data inputData = new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, syncSource));
         final OneTimeWorkRequest syncRequest = getOneTimeProactiveSyncRequest(inputData);
 
-        // Don't wait for the sync operation to enqueue so that Picker sync enqueue requests in
+        // Don't wait for the sync operation to enqueue so that Picker sync enqueue
+        // requests in
         // order to avoid adding latency to critical MP code paths.
-        mWorkManager.enqueueUniqueWork(PROACTIVE_SYNC_WORK_NAME, ExistingWorkPolicy.KEEP,
-                syncRequest);
+
+        mWorkManager.enqueueUniqueWork(workName, ExistingWorkPolicy.KEEP, syncRequest);
     }
 
     /**
@@ -351,41 +360,40 @@ public class PickerSyncManager {
         return new PeriodicWorkRequest.Builder(
                 ProactiveSyncWorker.class, SYNC_MEDIA_PERIODIC_WORK_INTERVAL, TimeUnit.HOURS)
                 .setInputData(inputData)
-                .setConstraints(getProactiveSyncConstraints())
+                .setConstraints(getRequiresChargingAndIdleConstraints())
                 .build();
     }
 
     @NotNull
     private PeriodicWorkRequest getPeriodicAlbumResetRequest(@NotNull Data inputData) {
 
-        Constraints constraints =
-                new Constraints.Builder()
-                        .setRequiresBatteryNotLow(true)
-                        .setRequiresDeviceIdle(true)
-                        .build();
-
         return new PeriodicWorkRequest.Builder(
                         MediaResetWorker.class,
                         RESET_ALBUM_MEDIA_PERIODIC_WORK_INTERVAL,
                         TimeUnit.HOURS)
                 .setInputData(inputData)
-                .setConstraints(constraints)
+                .setConstraints(getRequiresChargingAndIdleConstraints())
                 .addTag(SYNC_WORKER_TAG_IS_PERIODIC)
                 .build();
     }
 
     @NotNull
     private OneTimeWorkRequest getOneTimeProactiveSyncRequest(@NotNull Data inputData) {
+        Constraints constraints =  new Constraints.Builder()
+                .setRequiresBatteryNotLow(true)
+                .build();
+
         return new OneTimeWorkRequest.Builder(ProactiveSyncWorker.class)
                 .setInputData(inputData)
-                .setConstraints(getProactiveSyncConstraints())
+                .setConstraints(constraints)
                 .build();
     }
 
     @NotNull
-    private static Constraints getProactiveSyncConstraints() {
+    private static Constraints getRequiresChargingAndIdleConstraints() {
         return new Constraints.Builder()
-                .setRequiresBatteryNotLow(true)
+                .setRequiresCharging(true)
+                .setRequiresDeviceIdle(true)
                 .build();
     }
 

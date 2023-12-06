@@ -100,6 +100,7 @@
     <string name="not_selected" msgid="2244008151669896758">"não selecionado"</string>
     <string name="preloading_dialog_title" msgid="4974348221848532887">"A preparar conteúdo multimédia selecionado"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> de <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> item(ns) pronto(s)"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"Cancelar"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"As fotos com cópia de segurança já estão incluídas"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Pode selecionar fotos da app <xliff:g id="APP_NAME">%1$s</xliff:g> da conta <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Conta da app <xliff:g id="APP_NAME">%1$s</xliff:g> atualizada"</string>

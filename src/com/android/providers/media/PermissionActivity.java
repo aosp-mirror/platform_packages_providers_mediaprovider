@@ -243,10 +243,6 @@ public class PermissionActivity extends Activity {
             Log.w(TAG, "Couldn't find message element");
         }
 
-        final WindowManager.LayoutParams params = actionDialog.getWindow().getAttributes();
-        params.width = getResources().getDimensionPixelSize(R.dimen.permission_dialog_width);
-        actionDialog.getWindow().setAttributes(params);
-
         // Hunt around to find the title of our newly created dialog so we can
         // adjust accessibility focus once descriptions have been loaded
         titleView = (TextView) findViewByPredicate(actionDialog.getWindow().getDecorView(),

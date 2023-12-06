@@ -30,6 +30,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
 import android.os.Build;
+import android.os.CancellationSignal;
 
 import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -94,9 +95,9 @@ public class ImmediateSyncWorkerTest {
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
 
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
-                .syncAllMediaFromLocalProvider();
+                .syncAllMediaFromLocalProvider(any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromCloudProvider();
+                .syncAllMediaFromCloudProvider(any(CancellationSignal.class));
 
         verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .createSyncFuture(any());
@@ -126,9 +127,9 @@ public class ImmediateSyncWorkerTest {
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
 
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromLocalProvider();
+                .syncAllMediaFromLocalProvider(any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
-                .syncAllMediaFromCloudProvider();
+                .syncAllMediaFromCloudProvider(any(CancellationSignal.class));
 
         verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .createSyncFuture(any());
@@ -159,9 +160,9 @@ public class ImmediateSyncWorkerTest {
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
 
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
-                .syncAllMediaFromLocalProvider();
+                .syncAllMediaFromLocalProvider(any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
-                .syncAllMediaFromCloudProvider();
+                .syncAllMediaFromCloudProvider(any(CancellationSignal.class));
 
         verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .createSyncFuture(any());
@@ -193,9 +194,9 @@ public class ImmediateSyncWorkerTest {
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.FAILED);
 
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromLocalProvider();
+                .syncAllMediaFromLocalProvider(any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromCloudProvider();
+                .syncAllMediaFromCloudProvider(any(CancellationSignal.class));
 
         verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .createSyncFuture(any());

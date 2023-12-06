@@ -27,7 +27,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.Looper;
 import android.os.UserHandle;
 import android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import android.text.TextUtils;
@@ -283,6 +282,12 @@ class BannerController {
         return mChooseCloudMediaAccountActivityIntent;
     }
 
+    @VisibleForTesting
+    void setChooseCloudMediaAccountActivityIntent(
+            @Nullable Intent chooseCloudMediaAccountActivityIntent) {
+        mChooseCloudMediaAccountActivityIntent = chooseCloudMediaAccountActivityIntent;
+    }
+
     /**
      * @return the 'Choose App' banner visibility {@link #mShowChooseAppBanner}.
      */
@@ -366,15 +371,6 @@ class BannerController {
         } else {
             mShowChooseAccountBanner = false;
         }
-    }
-
-    private static void assertNonMainThread() {
-        if (!Looper.getMainLooper().isCurrentThread()) {
-            return;
-        }
-
-        throw new IllegalStateException("Expected to NOT be called from the main thread."
-                + " Current thread: " + Thread.currentThread());
     }
 
     private void loadCloudProviderInfo() {

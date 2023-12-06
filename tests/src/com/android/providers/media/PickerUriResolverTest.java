@@ -53,6 +53,7 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -79,7 +80,7 @@ public class PickerUriResolverTest {
 
     private static class TestPickerUriResolver extends PickerUriResolver {
         TestPickerUriResolver(Context context) {
-            super(context, new PickerDbFacade(getTargetContext()),
+            super(context, new PickerDbFacade(getTargetContext(), new PickerSyncLockManager()),
                     new ProjectionHelper(Column.class, ExportedSince.class));
         }
 

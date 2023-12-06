@@ -53,6 +53,7 @@ import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
+import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.sync.PickerSyncManager;
 import com.android.providers.media.util.ForegroundThread;
 
@@ -137,14 +138,16 @@ public class PickerDataLayerTest {
         final File dbPath = mContext.getDatabasePath(DB_NAME);
         dbPath.delete();
 
+        final PickerSyncLockManager lockManager = new PickerSyncLockManager();
+
         mDbHelper = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
-        mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
+        mFacade = new PickerDbFacade(mContext, lockManager, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
 
         mConfigStore = new TestConfigStore();
         mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
 
         mController = PickerSyncController.initialize(
-                mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
+                mContext, mFacade, mConfigStore, lockManager, LOCAL_PROVIDER_AUTHORITY);
 
         initializeTestWorkManager(mContext);
         final WorkManager workManager = WorkManager.getInstance(mContext);

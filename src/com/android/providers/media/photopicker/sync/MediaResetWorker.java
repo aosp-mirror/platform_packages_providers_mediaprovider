@@ -43,6 +43,7 @@ import androidx.work.WorkerParameters;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.sync.PickerSyncManager.SyncResetType;
+import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
 
 /**
  * This is a {@link Worker} class responsible for handling table reset operations in the picker
@@ -80,9 +81,11 @@ public class MediaResetWorker extends Worker {
 
         PickerSyncController controller;
         PickerDbFacade dBFacade;
+        PickerSyncLockManager pickerSyncLockManager;
         try {
             controller = PickerSyncController.getInstanceOrThrow();
-            dBFacade = new PickerDbFacade(mContext);
+            pickerSyncLockManager = controller.getPickerSyncLockManager();
+            dBFacade = new PickerDbFacade(mContext, pickerSyncLockManager);
         } catch (IllegalStateException ex) {
             Log.e(TAG, "Unable to obtain PickerSyncController", ex);
             return ListenableWorker.Result.failure();
@@ -91,39 +94,42 @@ public class MediaResetWorker extends Worker {
             return ListenableWorker.Result.failure();
         }
 
-        if (getTags().contains(SYNC_WORKER_TAG_IS_PERIODIC)) {
-            // If this worker is being run as part of periodic work, it needs to register
-            // its own sync with the sync tracker.
-            trackNewAlbumMediaSyncRequests(mSyncSource, getId());
-
-            // Since this is a periodic worker, we'll use the cloud authority, if it exists.
-            // Using the cloud authority will reset files for all providers. If the local
-            // authority is used, it will limit the query to only files with a local_id, but
-            // the cloud authority does not have such a limitation.
-            // (This is not intuitive, it's just how it works.)
-            mAuthority = controller.getCloudProvider();
-            if (mAuthority == null) {
-                mAuthority = controller.getLocalProvider();
-            }
-            // If the authority is still null, end the operation.
-            if (mAuthority == null) {
-                Log.e(TAG, "Unable to set authority for periodic worker");
-                return ListenableWorker.Result.failure();
-            }
-        }
 
         try {
+            if (getTags().contains(SYNC_WORKER_TAG_IS_PERIODIC)) {
+                // If this worker is being run as part of periodic work, it needs to register
+                // its own sync with the sync tracker.
+                trackNewAlbumMediaSyncRequests(mSyncSource, getId());
+
+                // Since this is a periodic worker, we'll use the cloud authority, if it exists.
+                // Using the cloud authority will reset files for all providers. If the local
+                // authority is used, it will limit the query to only files with a local_id, but
+                // the cloud authority does not have such a limitation.
+                // (This is not intuitive, it's just how it works.)
+                mAuthority = controller.getCloudProviderWithTimeout();
+                if (mAuthority == null) {
+                    mAuthority = controller.getLocalProvider();
+                }
+                // If the authority is still null, end the operation.
+                if (mAuthority == null) {
+                    Log.e(TAG, "Unable to set authority for periodic worker");
+                    return ListenableWorker.Result.failure();
+                }
+            }
 
             if (mSyncSource == SYNC_LOCAL_ONLY) {
                 return start(dBFacade);
             } else {
                 // SyncSource is either CLOUD_ONLY or LOCAL_AND_CLOUD, either way we need the
                 // cloud lock.
-                final Object cloudAlbumSyncLock = controller.getCloudAlbumSyncLock();
-                synchronized (cloudAlbumSyncLock) {
+                try (CloseableReentrantLock ignored = pickerSyncLockManager
+                        .tryLock(PickerSyncLockManager.CLOUD_ALBUM_SYNC_LOCK)) {
                     return start(dBFacade);
                 }
             }
+        } catch (UnableToAcquireLockException e) {
+            Log.e(TAG, "Could not acquire lock", e);
+            return ListenableWorker.Result.failure();
         } finally {
             markAlbumMediaSyncAsComplete(mSyncSource, getId());
         }

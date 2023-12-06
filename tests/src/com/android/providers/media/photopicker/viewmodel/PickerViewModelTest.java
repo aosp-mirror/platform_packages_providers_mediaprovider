@@ -41,8 +41,10 @@ import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -61,6 +63,7 @@ import android.text.format.DateUtils;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.TestConfigStore;
@@ -68,6 +71,7 @@ import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.PaginationParameters;
+import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -82,6 +86,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -117,6 +122,7 @@ public class PickerViewModelTest {
         when(mApplication.getApplicationContext()).thenReturn(sTargetContext);
         mConfigStore = new TestConfigStore();
         mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(TEST_PACKAGE_NAME);
+        mConfigStore.enablePickerChoiceManagedSelectionEnabled();
 
         getInstrumentation().runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
@@ -207,8 +213,8 @@ public class PickerViewModelTest {
 
         LiveData<PickerViewModel.PaginatedItemsResult> testItems =
                 mPickerViewModel.getPaginatedItemsForAction(
-                ACTION_VIEW_CREATED,
-                new PaginationParameters());
+                        ACTION_VIEW_CREATED,
+                        new PaginationParameters());
         DataLoaderThread.waitForIdle();
 
         assertThat(testItems).isNotNull();
@@ -220,6 +226,45 @@ public class PickerViewModelTest {
             assertThat(testItems.getValue().getItems().get(itr).compareTo(
                     expectedItems.get(itr))).isEqualTo(0);
         }
+    }
+
+    @SdkSuppress(minSdkVersion = 34, codeName = "UpsideDownCake")
+    @Test
+    public void test_getRemainingPreGrantedItems_correctItemsLoaded() {
+        // Enable managed selection for this test.
+        Intent intent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+        intent.putExtra(Intent.EXTRA_UID, 0);
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        final int numberOfTestItems = 4;
+        final List<Item> expectedItems = generateFakeImageItemList(numberOfTestItems);
+        for (Item item : expectedItems) {
+            item.setPreGranted();
+        }
+        mItemsProvider.setItems(expectedItems);
+        List<String> preGrantedItems = List.of(expectedItems.get(0).getId(),
+                expectedItems.get(1).getId(),
+                expectedItems.get(2).getId());
+        Selection selection = mPickerViewModel.getSelection();
+        // Add 3 item ids is preGranted set.
+        selection.setPreGrantedItemSet(new HashSet<>(preGrantedItems));
+
+        // adding 1 item in selection item set.
+        selection.addSelectedItem(expectedItems.get(1));
+
+        // revoking grant for 1 id.
+        selection.removeSelectedItem(expectedItems.get(0));
+
+        // since only one item is added in selection set, the size should be one.
+        assertThat(selection.getSelectedItems().size()).isEqualTo(1);
+
+        // Since out of 3 one grant was removed, so there would be one item loaded when remaining
+        // grants are loaded.
+        mPickerViewModel.getRemainingPreGrantedItems();
+        DataLoaderThread.waitForIdle();
+
+        // Now the selection set should have 2 items.
+        assertThat(selection.getSelectedItems().size()).isEqualTo(2);
     }
 
     private static Item generateFakeImageItem(String id) {
@@ -363,6 +408,60 @@ public class PickerViewModelTest {
             }
 
             return c;
+        }
+
+        @Override
+        public Cursor getLocalItemsForSelection(Category category,
+                @NonNull List<Integer> localIdSelection,
+                @Nullable String[] mimeTypes,
+                @Nullable UserId userId,
+                @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
+            final String[] all_projection = new String[]{
+                    ID,
+                    // This field is unique to the cursor received by the pickerVIewModel.
+                    // It is not a part of cloud provider contract.
+                    ROW_ID,
+                    DATE_TAKEN_MILLIS,
+                    SYNC_GENERATION,
+                    MIME_TYPE,
+                    STANDARD_MIME_TYPE_EXTENSION,
+                    SIZE_BYTES,
+                    MEDIA_STORE_URI,
+                    DURATION_MILLIS,
+                    IS_FAVORITE,
+                    WIDTH,
+                    HEIGHT,
+                    ORIENTATION,
+                    DATA,
+                    AUTHORITY,
+            };
+            final MatrixCursor c = new MatrixCursor(all_projection);
+
+            int itr = 1;
+            for (Item item : mItemList) {
+                if (localIdSelection.contains(Integer.parseInt(item.getId()))) {
+                    c.addRow(new String[]{
+                            item.getId(),
+                            String.valueOf(itr),
+                            String.valueOf(item.getDateTaken()),
+                            String.valueOf(item.getGenerationModified()),
+                            item.getMimeType(),
+                            String.valueOf(item.getSpecialFormat()),
+                            "1", // size_bytes
+                            null, // media_store_uri
+                            String.valueOf(item.getDuration()),
+                            "0", // is_favorite
+                            String.valueOf(800), // width
+                            String.valueOf(500), // height
+                            String.valueOf(0), // orientation
+                            "/storage/emulated/0/foo",
+                            PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+                    });
+                    itr++;
+                }
+            }
+            return c;
+
         }
 
         @Nullable
@@ -546,6 +645,11 @@ public class PickerViewModelTest {
         getInstrumentation().runOnMainSync(() -> mPickerViewModel.onUserDismissedChooseAppBanner());
         assertFalse(mBannerController.shouldShowChooseAppBanner());
         assertFalse(mPickerViewModel.shouldShowChooseAppBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
+        getInstrumentation().runOnMainSync(() -> mPickerViewModel.onUserDismissedChooseAppBanner());
+        assertFalse(mBannerController.shouldShowChooseAppBanner());
+        assertFalse(mPickerViewModel.shouldShowChooseAppBannerLiveData().getValue());
     }
 
     @Test
@@ -555,6 +659,12 @@ public class PickerViewModelTest {
         assertTrue(mBannerController.shouldShowCloudMediaAvailableBanner());
         assertTrue(mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData().getValue());
 
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedCloudMediaAvailableBanner());
+        assertFalse(mBannerController.shouldShowCloudMediaAvailableBanner());
+        assertFalse(mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
         getInstrumentation().runOnMainSync(() ->
                 mPickerViewModel.onUserDismissedCloudMediaAvailableBanner());
         assertFalse(mBannerController.shouldShowCloudMediaAvailableBanner());
@@ -575,6 +685,12 @@ public class PickerViewModelTest {
                 mPickerViewModel.onUserDismissedAccountUpdatedBanner());
         assertFalse(mBannerController.shouldShowAccountUpdatedBanner());
         assertFalse(mPickerViewModel.shouldShowAccountUpdatedBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedAccountUpdatedBanner());
+        assertFalse(mBannerController.shouldShowAccountUpdatedBanner());
+        assertFalse(mPickerViewModel.shouldShowAccountUpdatedBannerLiveData().getValue());
     }
 
     @Test
@@ -588,5 +704,34 @@ public class PickerViewModelTest {
                 mPickerViewModel.onUserDismissedChooseAccountBanner());
         assertFalse(mBannerController.shouldShowChooseAccountBanner());
         assertFalse(mPickerViewModel.shouldShowChooseAccountBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedChooseAccountBanner());
+        assertFalse(mBannerController.shouldShowChooseAccountBanner());
+        assertFalse(mPickerViewModel.shouldShowChooseAccountBannerLiveData().getValue());
+    }
+
+    @Test
+    public void testGetCloudMediaProviderAuthorityLiveData() {
+        assertNull(mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue());
+
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, /* cmpAccountName= */ null);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+
+        assertEquals(CMP_AUTHORITY,
+                mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue());
+    }
+
+    @Test
+    public void testGetChooseCloudMediaAccountActivityIntent() {
+        assertNull(mPickerViewModel.getChooseCloudMediaAccountActivityIntent());
+
+        final Intent testIntent = new Intent();
+        mBannerController.setChooseCloudMediaAccountActivityIntent(testIntent);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+
+        assertEquals(testIntent,
+                mPickerViewModel.getChooseCloudMediaAccountActivityIntent());
     }
 }

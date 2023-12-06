@@ -21,6 +21,7 @@ import static com.android.providers.media.MediaApplication.getConfigStore;
 import static java.util.Objects.requireNonNull;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.UserHandle;
 import android.text.TextUtils;
@@ -67,7 +68,7 @@ public class SettingsCloudMediaSelectFragment extends PreferenceFragmentCompat
     public void onResume() {
         super.onResume();
 
-        mSettingsCloudMediaViewModel.loadAccountNameAsync();
+        mSettingsCloudMediaViewModel.loadMediaCollectionInfoAsync();
     }
 
     @UiThread
@@ -93,7 +94,7 @@ public class SettingsCloudMediaSelectFragment extends PreferenceFragmentCompat
         super.addPreferencesFromResource(R.xml.pref_screen_picker_settings);
 
         mSettingsCloudMediaViewModel.loadData(getConfigStore());
-        observeAccountNameChanges();
+        observeMediaCollectionInfoChanges();
         refreshUI();
     }
 
@@ -111,23 +112,34 @@ public class SettingsCloudMediaSelectFragment extends PreferenceFragmentCompat
         updateSelectedRadioButton();
     }
 
-    private void observeAccountNameChanges() {
-        mSettingsCloudMediaViewModel.getCurrentProviderAccount()
-                .observe(this, accountDetails -> {
-                    // Only update current account name on the UI if cloud provider linked to the
-                    // account name matches the current provider.
-                    if (accountDetails != null
-                            && accountDetails.getCloudProviderAuthority()
-                            .equals(mSettingsCloudMediaViewModel.getSelectedProviderAuthority())) {
-                        final Preference selectedPref = findPreference(
-                                mSettingsCloudMediaViewModel.getSelectedPreferenceKey());
-                        // TODO(b/262002538): {@code selectedPref} could be null if the selected
-                        //  cloud provider is not in the allowed list. This is not something a
-                        //  typical user will encounter.
-                        if (selectedPref != null) {
-                            selectedPref.setSummary(accountDetails.getCloudProviderAccountName());
-                        }
+    private void observeMediaCollectionInfoChanges() {
+        mSettingsCloudMediaViewModel.getCurrentProviderMediaCollectionInfo().observe(this,
+                providerMediaCollectionInfo -> {
+                    // Only update the UI preference if the cloud provider linked to the media
+                    // collection info matches the current provider.
+                    if (providerMediaCollectionInfo == null
+                            || !TextUtils.equals(providerMediaCollectionInfo.getAuthority(),
+                            mSettingsCloudMediaViewModel.getSelectedProviderAuthority())) {
+                        return;
                     }
+
+                    final SelectorWithWidgetPreference selectedPref =
+                            findPreference(mSettingsCloudMediaViewModel.getSelectedPreferenceKey());
+
+                    // TODO(b/262002538): {@code selectedPref} could be null if the selected
+                    //  cloud provider is not in the allowed list. This is not something a
+                    //  typical user will encounter.
+                    if (selectedPref == null) {
+                        return;
+                    }
+
+                    selectedPref.setSummary(providerMediaCollectionInfo.getAccountName());
+
+                    final Intent accountConfigurationIntent =
+                            providerMediaCollectionInfo.getAccountConfigurationIntent();
+                    selectedPref.setExtraWidgetOnClickListener(
+                            accountConfigurationIntent == null ? null : v ->
+                                    requireActivity().startActivity(accountConfigurationIntent));
                 });
     }
 
@@ -137,19 +149,19 @@ public class SettingsCloudMediaSelectFragment extends PreferenceFragmentCompat
                 mSettingsCloudMediaViewModel.getSelectedPreferenceKey();
         for (CloudMediaProviderOption providerOption
                 : mSettingsCloudMediaViewModel.getProviderOptions()) {
-            final Preference pref = findPreference(providerOption.getKey());
-            if (pref instanceof SelectorWithWidgetPreference) {
-                final SelectorWithWidgetPreference providerPref =
-                        (SelectorWithWidgetPreference) pref;
+            final SelectorWithWidgetPreference preference = findPreference(providerOption.getKey());
+            if (preference == null) {
+                continue;
+            }
 
-                final boolean newSelectionState =
-                        TextUtils.equals(providerPref.getKey(), selectedPreferenceKey);
-                providerPref.setChecked(newSelectionState);
+            final boolean isSelected = TextUtils.equals(preference.getKey(), selectedPreferenceKey);
+            preference.setChecked(isSelected);
 
-                providerPref.setSummary(null);
-                if (newSelectionState) {
-                    mSettingsCloudMediaViewModel.loadAccountNameAsync();
-                }
+            preference.setSummary(null);
+            preference.setExtraWidgetOnClickListener(null);
+
+            if (isSelected) {
+                mSettingsCloudMediaViewModel.loadMediaCollectionInfoAsync();
             }
         }
     }

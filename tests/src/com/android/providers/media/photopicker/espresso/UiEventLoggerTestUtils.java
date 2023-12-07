@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.espresso;
 
 import static org.mockito.Mockito.verify;
 
+import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.internal.logging.UiEventLogger;
@@ -45,8 +46,15 @@ public class UiEventLoggerTestUtils {
     static void verifyLogWithInstanceIdAndPosition(
             ActivityScenarioRule<PhotoPickerTestActivity> rule, UiEventLogger.UiEventEnum event,
             int uid, String packageName, int position) {
-        rule.getScenario().onActivity(activity ->
-                verify(activity.getLogger()).logWithInstanceIdAndPosition(
-                        event, uid, packageName, activity.getInstanceId(), position));
+        verifyLogWithInstanceIdAndPosition(rule.getScenario(), event, uid, packageName, position);
+    }
+
+    static <T extends PhotoPickerTestActivity> void verifyLogWithInstanceIdAndPosition(
+            ActivityScenario<T> scenario, UiEventLogger.UiEventEnum event,
+            int uid, String packageName, int position) {
+        scenario.onActivity(activity ->
+                verify(activity.getLogger())
+                        .logWithInstanceIdAndPosition(
+                                event, uid, packageName, activity.getInstanceId(), position));
     }
 }

@@ -207,6 +207,7 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
+        final long startTime = SystemClock.elapsedRealtime();
         try {
             if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
                 new File(RECOVERY_DIRECTORY_PATH).mkdirs();
@@ -227,6 +228,9 @@ public class DatabaseBackupAndRecovery {
         } catch (IOException e) {
             Log.e(TAG, "Failure in setting up backup and recovery for volume: " + volumeName, e);
             return;
+        } finally {
+            Log.i(TAG, "Backup and recovery setup time taken in milliseconds:" + (
+                    SystemClock.elapsedRealtime() - startTime));
         }
         Log.i(TAG, "Successfully set up backup and recovery for volume: " + volumeName);
     }

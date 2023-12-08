@@ -30,6 +30,7 @@ import android.os.CancellationSignal;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.work.ForegroundInfo;
 import androidx.work.ListenableWorker;
 import androidx.work.Worker;
@@ -122,5 +123,10 @@ public class ImmediateSyncWorker extends Worker {
         final int syncSource = getInputData()
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
         markSyncAsComplete(syncSource, getId());
+    }
+
+    @VisibleForTesting
+    CancellationSignal getCancellationSignal() {
+        return mCancellationSignal;
     }
 }

@@ -1620,10 +1620,17 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     void detectSpecialFormat(@NonNull CancellationSignal signal) {
-        mExternalDatabase.runWithTransaction((db) -> {
-            updateSpecialFormatColumn(db, signal);
-            return null;
-        });
+        // Picker sync and special format update can execute concurrently and run into a deadlock.
+        // Acquiring a lock before execution of each flow to avoid this.
+        PickerSyncController.sIdleMaintenanceSyncLock.lock();
+        try {
+            mExternalDatabase.runWithTransaction((db) -> {
+                updateSpecialFormatColumn(db, signal);
+                return null;
+            });
+        } finally {
+            PickerSyncController.sIdleMaintenanceSyncLock.unlock();
+        }
     }
 
     private void updateSpecialFormatColumn(SQLiteDatabase db, @NonNull CancellationSignal signal) {

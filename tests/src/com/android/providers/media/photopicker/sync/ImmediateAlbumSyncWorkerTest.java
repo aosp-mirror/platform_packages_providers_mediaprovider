@@ -16,10 +16,13 @@
 
 package com.android.providers.media.photopicker.sync;
 
+import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_CHANNEL_ID;
+import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_ID;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getCloudAlbumSyncInputData;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAlbumSyncInputData;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudAlbumSyncInputData;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudSyncInputData;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudSyncTestWorkParams;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.initializeTestWorkManager;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -36,6 +39,7 @@ import android.os.CancellationSignal;
 
 import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.work.ForegroundInfo;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
@@ -245,5 +249,38 @@ public class ImmediateAlbumSyncWorkerTest {
                 .createSyncFuture(any());
         verify(mMockCloudAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .markSyncCompleted(any());
+    }
+
+    @Test
+    public void testImmediateAlbumSyncWorkerOnStopped() {
+        // Setup
+        final ImmediateAlbumSyncWorker immediateAlbumSyncWorker =
+                new ImmediateAlbumSyncWorker(mContext, getLocalAndCloudSyncTestWorkParams());
+
+        // Test onStopped
+        immediateAlbumSyncWorker.onStopped();
+
+        // Verify
+        assertThat(immediateAlbumSyncWorker.getCancellationSignal().isCanceled()).isTrue();
+
+        verify(mMockLocalAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+    }
+
+    @Test
+    public void testGetForegroundInfo() {
+        final ForegroundInfo foregroundInfo = new ImmediateAlbumSyncWorker(
+                mContext, getLocalAndCloudSyncTestWorkParams()).getForegroundInfo();
+
+        assertThat(foregroundInfo.getNotificationId()).isEqualTo(NOTIFICATION_ID);
+        assertThat(foregroundInfo.getNotification().getChannelId())
+                .isEqualTo(NOTIFICATION_CHANNEL_ID);
     }
 }

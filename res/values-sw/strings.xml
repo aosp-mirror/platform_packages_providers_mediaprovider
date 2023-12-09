@@ -100,6 +100,7 @@
     <string name="not_selected" msgid="2244008151669896758">"haijachaguliwa"</string>
     <string name="preloading_dialog_title" msgid="4974348221848532887">"Inaandaa maudhui yako uliyochagua"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> kati ya <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ziko tayari"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"Ghairi"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Picha zilizohifadhiwa nakala zimejumuishwa sasa"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Unaweza kuchagua picha zilizotoka kwenye akaunti ya <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> katika programu ya <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Umesasisha akaunti ya <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>

@@ -874,7 +874,7 @@ public class FileUtilsTest {
 
     @Test
     public void testShouldFileBeHidden() throws Exception {
-        File dir = getNewDirInDownload("testDirectory2");
+        File dir = getNewDirInDownload("testVisibleDirectory");
 
         // We don't create the files since shouldFileBeHidden needs to work even if the file has
         // not been created yet.

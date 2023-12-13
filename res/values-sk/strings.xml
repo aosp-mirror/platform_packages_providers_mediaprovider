@@ -60,14 +60,14 @@
     <string name="picker_photos" msgid="7415035516411087392">"Fotky"</string>
     <string name="picker_albums" msgid="4822511902115299142">"Albumy"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Ukážka"</string>
-    <string name="picker_work_profile" msgid="2083221066869141576">"Prepnúť na pracovný profil"</string>
-    <string name="picker_personal_profile" msgid="639484258397758406">"Prepnúť na osobný profil"</string>
+    <string name="picker_work_profile" msgid="2083221066869141576">"Prepnúť na pracovný"</string>
+    <string name="picker_personal_profile" msgid="639484258397758406">"Prepnúť na osobný"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokované vaším správcom"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Prístup k pracovným údajom z osobnej aplikácie nie je povolený"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Prístup k osobným údajom z pracovnej aplikácie nie je povolený"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Pracovné aplikácie sú pozastavené"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ak chcete otvoriť pracovné fotky, zapnite pracovné aplikácie a skúste to znova"</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"Táto aplikácia má prístup iba k fotkám, ktoré vyberiete"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Táto aplikácia môže mať prístup iba k fotkám, ktoré vyberiete"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Vyberte fotky a videá, ku ktorým má mať táto aplikácia prístup"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> položka}few{<xliff:g id="COUNT_1">^1</xliff:g> položky}many{<xliff:g id="COUNT_1">^1</xliff:g> items}other{<xliff:g id="COUNT_1">^1</xliff:g> položiek}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Pridať (<xliff:g id="COUNT">^1</xliff:g>)"</string>
@@ -107,6 +107,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Vybrať aplikáciu"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Vybrať účet"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Zmeniť účet"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Načítavajú sa všekty vaše fotky"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Chcete povoliť aplikácii <xliff:g id="APP_NAME_0">^1</xliff:g> upraviť tento zvukový súbor?}few{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> zvukové súbory?}many{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> audio files?}other{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> zvukových súborov?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Upravuje sa zvukový súbor…}few{Upravujú sa <xliff:g id="COUNT">^1</xliff:g> zvukové súbory…}many{Modifying <xliff:g id="COUNT">^1</xliff:g> audio files…}other{Upravuje sa <xliff:g id="COUNT">^1</xliff:g> zvukových súborov…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Chcete povoliť aplikácii <xliff:g id="APP_NAME_0">^1</xliff:g> upraviť toto video?}few{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> videá?}many{Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> videos?}other{Chcete povoliť aplikácii <xliff:g id="APP_NAME_1">^1</xliff:g> upraviť <xliff:g id="COUNT">^2</xliff:g> videí?}}"</string>

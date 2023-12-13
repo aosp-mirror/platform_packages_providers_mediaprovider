@@ -26,9 +26,11 @@ import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.g
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSyncAsComplete;
 
 import android.content.Context;
+import android.os.CancellationSignal;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.work.ForegroundInfo;
 import androidx.work.ListenableWorker;
 import androidx.work.Worker;
@@ -43,6 +45,7 @@ import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteEx
 public class ImmediateSyncWorker extends Worker {
     private static final String TAG = "ISyncWorker";
     private final Context mContext;
+    private final CancellationSignal mCancellationSignal = new CancellationSignal();
 
     /**
      * Creates an instance of the {@link Worker}.
@@ -58,6 +61,12 @@ public class ImmediateSyncWorker extends Worker {
     @NonNull
     @Override
     public ListenableWorker.Result doWork() {
+        // Do not allow endless re-runs of this worker, if this isn't the original run,
+        // just succeed and wait until the next scheduled run.
+        if (getRunAttemptCount() > 0) {
+            Log.w(TAG, "Worker retry was detected, ending this run in failure.");
+            return ListenableWorker.Result.failure();
+        }
         final int syncSource = getInputData()
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_ONLY);
 
@@ -70,13 +79,15 @@ public class ImmediateSyncWorker extends Worker {
             // request in WorkManager.
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_LOCAL_ONLY) {
                 checkIsWorkerStopped();
-                PickerSyncController.getInstanceOrThrow().syncAllMediaFromLocalProvider();
+                PickerSyncController.getInstanceOrThrow()
+                        .syncAllMediaFromLocalProvider(mCancellationSignal);
                 getLocalSyncTracker().markSyncCompleted(getId());
                 Log.i(TAG, "Completed immediate picker sync from local provider.");
             }
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_CLOUD_ONLY) {
                 checkIsWorkerStopped();
-                PickerSyncController.getInstanceOrThrow().syncAllMediaFromCloudProvider();
+                PickerSyncController.getInstanceOrThrow()
+                        .syncAllMediaFromCloudProvider(mCancellationSignal);
                 getCloudSyncTracker().markSyncCompleted(getId());
                 Log.i(TAG, "Completed immediate picker sync from cloud provider.");
             }
@@ -107,8 +118,15 @@ public class ImmediateSyncWorker extends Worker {
     public void onStopped() {
         Log.w(TAG, "Worker is stopped. Clearing all pending futures. It's possible that the sync "
                 + "still finishes running if it has started already.");
+        // Send CancellationSignal to any running tasks.
+        mCancellationSignal.cancel();
         final int syncSource = getInputData()
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
         markSyncAsComplete(syncSource, getId());
+    }
+
+    @VisibleForTesting
+    CancellationSignal getCancellationSignal() {
+        return mCancellationSignal;
     }
 }

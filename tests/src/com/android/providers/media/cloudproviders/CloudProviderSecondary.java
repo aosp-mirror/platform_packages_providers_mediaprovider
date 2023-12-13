@@ -38,7 +38,7 @@ import java.io.FileNotFoundException;
  * {@link MediaGenerator}
  */
 public class CloudProviderSecondary extends CloudMediaProvider {
-    private static final String AUTHORITY =
+    public static final String AUTHORITY =
             "com.android.providers.media.photopicker.tests.cloud_secondary";
 
     private final MediaGenerator mMediaGenerator =

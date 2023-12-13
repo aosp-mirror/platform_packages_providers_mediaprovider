@@ -40,11 +40,13 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
 import androidx.lifecycle.LiveData;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.IsolatedContext;
@@ -58,7 +60,6 @@ import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -135,8 +136,8 @@ public class PickerViewModelPaginationTest {
             // Get live data for items, this also loads the first page.
             LiveData<PickerViewModel.PaginatedItemsResult> testItems =
                     mPickerViewModel.getPaginatedItemsForAction(
-                            ACTION_VIEW_CREATED, new
-                                    PaginationParameters(pageSize, -1, -1));
+                            ACTION_VIEW_CREATED, new PaginationParameters(
+                                    pageSize, /*dateBeforeMs*/ Long.MIN_VALUE, /* rowId*/ -1));
             DataLoaderThread.waitForIdle();
 
             // Empty list should be returned.
@@ -170,7 +171,8 @@ public class PickerViewModelPaginationTest {
             LiveData<PickerViewModel.PaginatedItemsResult> testItems =
                     mPickerViewModel.getPaginatedCategoryItemsForAction(
                             downloadsAlbum, ACTION_VIEW_CREATED,
-                            new PaginationParameters(pageSize, -1, -1));
+                            new PaginationParameters(
+                                    pageSize, /*dateBeforeMs*/ Long.MIN_VALUE, /* rowId*/ -1));
             DataLoaderThread.waitForIdle();
 
             // Empty list should be returned.
@@ -202,8 +204,8 @@ public class PickerViewModelPaginationTest {
             // Get live data for items, this also loads the first page.
             LiveData<PickerViewModel.PaginatedItemsResult> testItems =
                     mPickerViewModel.getPaginatedItemsForAction(
-                            ACTION_VIEW_CREATED, new
-                                    PaginationParameters(pageSize, -1, -1));
+                            ACTION_VIEW_CREATED, new PaginationParameters(
+                                    pageSize, /*dateBeforeMs*/ Long.MIN_VALUE, /* rowId*/ -1));
             DataLoaderThread.waitForIdle();
 
             // Page 1: Since the page size is set to 4, only 4 images should be returned.
@@ -238,7 +240,7 @@ public class PickerViewModelPaginationTest {
         }
     }
 
-    @Ignore("Enable progress bar and pagination tests after fixing the flaky behaviour b/296520260")
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
     @Test
     public void test_differentCategories_getCategoryItems() throws Exception {
         int pageSize = 4;
@@ -262,7 +264,8 @@ public class PickerViewModelPaginationTest {
             LiveData<PickerViewModel.PaginatedItemsResult> testItems =
                     mPickerViewModel.getPaginatedCategoryItemsForAction(
                             cameraAlbum, ACTION_VIEW_CREATED,
-                            new PaginationParameters(pageSize, -1, -1));
+                            new PaginationParameters(
+                                    pageSize, /*dateBeforeMs*/ Long.MIN_VALUE, /* rowId*/ -1));
             DataLoaderThread.waitForIdle();
 
             // Page 1: Since the page size is set to 4, only 4 images should be returned.
@@ -298,7 +301,8 @@ public class PickerViewModelPaginationTest {
             LiveData<PickerViewModel.PaginatedItemsResult> testItemsDownloads =
                     mPickerViewModel.getPaginatedCategoryItemsForAction(
                             downloadsAlbum, ACTION_VIEW_CREATED,
-                            new PaginationParameters(pageSize, -1, -1));
+                            new PaginationParameters(
+                                    pageSize, /*dateBeforeMs*/ Long.MIN_VALUE, /* rowId*/ -1));
             DataLoaderThread.waitForIdle();
 
             // Page 1: Since the page size is set to 4, only 4 images should be returned.
@@ -351,7 +355,8 @@ public class PickerViewModelPaginationTest {
             // Get live data for items, this also loads the first page.
             LiveData<PickerViewModel.PaginatedItemsResult> testItems =
                     mPickerViewModel.getPaginatedItemsForAction(
-                            ACTION_VIEW_CREATED, new PaginationParameters(pageSize, -1, -1));
+                            ACTION_VIEW_CREATED, new PaginationParameters(pageSize,
+                                    /*dateBeforeMs*/ Long.MIN_VALUE, /* rowId*/ -1));
             DataLoaderThread.waitForIdle();
 
             // Page 1: Since the page size is set to 4, only 4 images should be returned.
@@ -394,7 +399,8 @@ public class PickerViewModelPaginationTest {
             // loaded.
             LiveData<PickerViewModel.PaginatedItemsResult> testItems =
                     mPickerViewModel.getPaginatedItemsForAction(
-                            ACTION_VIEW_CREATED, new PaginationParameters(pageSize, -1, -1));
+                            ACTION_VIEW_CREATED, new PaginationParameters(pageSize,
+                                    /*dateBeforeMs*/ Long.MIN_VALUE, /* rowId*/ -1));
             DataLoaderThread.waitForIdle();
 
             assertThat(testItems.getValue().getItems().size()).isEqualTo(pageSize);
@@ -411,7 +417,8 @@ public class PickerViewModelPaginationTest {
             // Call updateItems which is usually called on profile switch or reset.
             // This should clear out the list and load the first page.
             mPickerViewModel.getPaginatedItemsForAction(ACTION_REFRESH_ITEMS,
-                    new PaginationParameters(pageSize, -1, -1));
+                    new PaginationParameters(
+                            pageSize, /*dateBeforeMs*/ Long.MIN_VALUE, /* rowId*/ -1));
             DataLoaderThread.waitForIdle();
 
             // Assert that only one page of items are present now.

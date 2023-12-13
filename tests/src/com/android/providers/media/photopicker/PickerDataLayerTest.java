@@ -22,11 +22,15 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.initializeTestWorkManager;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 import android.content.Context;
 import android.content.Intent;
@@ -40,6 +44,7 @@ import android.util.Pair;
 import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+import androidx.work.WorkManager;
 
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
@@ -48,6 +53,8 @@ import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
+import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
+import com.android.providers.media.photopicker.sync.PickerSyncManager;
 import com.android.providers.media.util.ForegroundThread;
 
 import org.junit.After;
@@ -57,8 +64,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerDataLayerTest {
@@ -128,16 +138,22 @@ public class PickerDataLayerTest {
         final File dbPath = mContext.getDatabasePath(DB_NAME);
         dbPath.delete();
 
+        final PickerSyncLockManager lockManager = new PickerSyncLockManager();
+
         mDbHelper = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
-        mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
+        mFacade = new PickerDbFacade(mContext, lockManager, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
 
         mConfigStore = new TestConfigStore();
         mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
 
         mController = PickerSyncController.initialize(
-                mContext, mFacade, mConfigStore, LOCAL_PROVIDER_AUTHORITY);
-        mDataLayer = new PickerDataLayer(mContext, mFacade, mController, mConfigStore,
-                /* schedulePeriodicSyncs */ false);
+                mContext, mFacade, mConfigStore, lockManager, LOCAL_PROVIDER_AUTHORITY);
+
+        initializeTestWorkManager(mContext);
+        final WorkManager workManager = WorkManager.getInstance(mContext);
+        final PickerSyncManager syncManager = new PickerSyncManager(
+                workManager, mContext, mConfigStore, /* schedulePeriodicSyncs */ false);
+        mDataLayer = new PickerDataLayer(mContext, mFacade, mController, mConfigStore, syncManager);
 
         // Set cloud provider to null to discard
         mFacade.setCloudProvider(null);
@@ -739,6 +755,48 @@ public class PickerDataLayerTest {
 
         // Ensure nothing was changed.
         assertThat(mController.getCurrentCloudProviderInfo().packageName).isEqualTo(PACKAGE_NAME);
+    }
+
+    @Test
+    public void testWaitForSyncWhenSyncFutureIsComplete()
+            throws ExecutionException, InterruptedException {
+        final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+        completableFuture.complete(null);
+
+        final int inputRetryCount = 3;
+        assertThat(mDataLayer
+                .waitForSync(completableFuture, "work-name", inputRetryCount))
+                .isEqualTo(inputRetryCount);
+    }
+
+    @Test
+    public void testWaitForSyncWhenSyncFutureNeverCompletes()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        final PickerSyncManager mockSyncManager = mock(PickerSyncManager.class);
+        final PickerDataLayer dataLayer = new PickerDataLayer(mContext, mFacade, mController,
+                mConfigStore, mockSyncManager);
+        final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+        doReturn(true).when(mockSyncManager).isUniqueWorkPending(any());
+
+        final int inputRetryCount = 3;
+        assertThat(dataLayer
+                .waitForSync(completableFuture, "work-name", inputRetryCount))
+                .isEqualTo(0);
+    }
+
+    @Test
+    public void testWaitForSyncWhenWorkerFails()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        final PickerSyncManager mockSyncManager = mock(PickerSyncManager.class);
+        final PickerDataLayer dataLayer = new PickerDataLayer(mContext, mFacade, mController,
+                mConfigStore, mockSyncManager);
+        final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+        doReturn(false).when(mockSyncManager).isUniqueWorkPending(any());
+
+        final int inputRetryCount = 3;
+        assertThat(dataLayer
+                .waitForSync(completableFuture, "work-name", inputRetryCount))
+                .isEqualTo(inputRetryCount);
     }
 
     private static void waitForIdle() {

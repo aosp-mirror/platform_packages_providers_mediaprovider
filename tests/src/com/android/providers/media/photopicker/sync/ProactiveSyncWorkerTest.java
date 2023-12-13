@@ -16,8 +16,11 @@
 
 package com.android.providers.media.photopicker.sync;
 
+import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_CHANNEL_ID;
+import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_ID;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getCloudSyncInputData;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudSyncInputData;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudSyncTestWorkParams;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalSyncInputData;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.initializeTestWorkManager;
 
@@ -30,9 +33,11 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
 import android.os.Build;
+import android.os.CancellationSignal;
 
 import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.work.ForegroundInfo;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
@@ -93,9 +98,9 @@ public class ProactiveSyncWorkerTest {
         final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
-                .syncAllMediaFromLocalProvider();
+                .syncAllMediaFromLocalProvider(any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromCloudProvider();
+                .syncAllMediaFromCloudProvider(any(CancellationSignal.class));
 
         verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 1))
                 .createSyncFuture(any());
@@ -125,9 +130,9 @@ public class ProactiveSyncWorkerTest {
         final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromLocalProvider();
+                .syncAllMediaFromLocalProvider(any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
-                .syncAllMediaFromCloudProvider();
+                .syncAllMediaFromCloudProvider(any(CancellationSignal.class));
 
         verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .createSyncFuture(any());
@@ -157,9 +162,9 @@ public class ProactiveSyncWorkerTest {
         final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
-                .syncAllMediaFromLocalProvider();
+                .syncAllMediaFromLocalProvider(any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 1))
-                .syncAllMediaFromCloudProvider();
+                .syncAllMediaFromCloudProvider(any(CancellationSignal.class));
 
         verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 1))
                 .createSyncFuture(any());
@@ -189,9 +194,9 @@ public class ProactiveSyncWorkerTest {
         final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.FAILED);
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromLocalProvider();
+                .syncAllMediaFromLocalProvider(any(CancellationSignal.class));
         verify(mMockPickerSyncController, times(/* wantedNumberOfInvocations */ 0))
-                .syncAllMediaFromCloudProvider();
+                .syncAllMediaFromCloudProvider(any(CancellationSignal.class));
 
         verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 1))
                 .createSyncFuture(any());
@@ -202,5 +207,38 @@ public class ProactiveSyncWorkerTest {
                 .createSyncFuture(any());
         verify(mMockCloudSyncTracker, times(/* wantedNumberOfInvocations */ 1))
                 .markSyncCompleted(any());
+    }
+
+    @Test
+    public void testProactiveSyncWorkerOnStopped() {
+        // Setup
+        final ProactiveSyncWorker proactiveSyncWorker =
+                new ProactiveSyncWorker(mContext, getLocalAndCloudSyncTestWorkParams());
+
+        // Test onStopped
+        proactiveSyncWorker.onStopped();
+
+        // Verify
+        assertThat(proactiveSyncWorker.getCancellationSignal().isCanceled()).isTrue();
+
+        verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+    }
+
+    @Test
+    public void testGetForegroundInfo() {
+        final ForegroundInfo foregroundInfo = new ProactiveSyncWorker(
+                mContext, getLocalAndCloudSyncTestWorkParams()).getForegroundInfo();
+
+        assertThat(foregroundInfo.getNotificationId()).isEqualTo(NOTIFICATION_ID);
+        assertThat(foregroundInfo.getNotification().getChannelId())
+                .isEqualTo(NOTIFICATION_CHANNEL_ID);
     }
 }

@@ -23,6 +23,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
 
 import android.text.format.DateUtils;
+import android.view.View;
 
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
@@ -31,6 +32,8 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.PhotosTabAdapter.DateHeader;
+
+import com.bumptech.glide.util.ViewPreloadSizeProvider;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -189,7 +192,9 @@ public class PhotosTabAdapterTest {
                 /* onAccountUpdatedBannerEventListener */
                 mock(TabAdapter.OnBannerEventListener.class),
                 /* onChooseAccountBannerEventListener */
-                mock(TabAdapter.OnBannerEventListener.class));
+                mock(TabAdapter.OnBannerEventListener.class),
+                /* onHoverListener */ mock(View.OnHoverListener.class),
+                /* mPreloadSizeProvider */ mock(ViewPreloadSizeProvider.class));
     }
 
     private static Item generateFakeImageItem(String id) {

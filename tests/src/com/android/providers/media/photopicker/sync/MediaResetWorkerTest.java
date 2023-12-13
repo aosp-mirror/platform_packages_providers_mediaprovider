@@ -22,7 +22,10 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_RESET_TYPE;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_TAG_IS_PERIODIC;
+import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_CHANNEL_ID;
+import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_ID;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getAlbumResetInputData;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudSyncTestWorkParams;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.initializeTestWorkManager;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -42,6 +45,7 @@ import android.provider.CloudMediaProviderContract.MediaColumns;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.work.Data;
+import androidx.work.ForegroundInfo;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
@@ -92,7 +96,8 @@ public class MediaResetWorkerTest {
         SyncTrackerRegistry.setLocalAlbumSyncTracker(mMockLocalAlbumSyncTracker);
         SyncTrackerRegistry.setCloudAlbumSyncTracker(mMockCloudAlbumSyncTracker);
 
-        doReturn(new Object()).when(mMockPickerSyncController).getCloudAlbumSyncLock();
+        doReturn(new PickerSyncLockManager())
+                .when(mMockPickerSyncController).getPickerSyncLockManager();
         doReturn(TEST_CLOUD_AUTHORITY).when(mMockPickerSyncController).getCloudProvider();
         doReturn(TEST_LOCAL_AUTHORITY).when(mMockPickerSyncController).getLocalProvider();
 
@@ -102,7 +107,7 @@ public class MediaResetWorkerTest {
         File dbPath = mContext.getDatabasePath(PickerDatabaseHelper.PICKER_DATABASE_NAME);
         dbPath.delete();
 
-        mDbFacade = new PickerDbFacade(mContext, TEST_LOCAL_AUTHORITY);
+        mDbFacade = new PickerDbFacade(mContext, new PickerSyncLockManager(), TEST_LOCAL_AUTHORITY);
         mDbFacade.setCloudProvider(TEST_CLOUD_AUTHORITY);
 
         initializeTestWorkManager(mContext);
@@ -358,6 +363,31 @@ public class MediaResetWorkerTest {
         Cursor cursor = queryAlbumMediaAll(TEST_LOCAL_AUTHORITY);
         assertThat(cursor.getCount()).isEqualTo(0);
         cursor.close();
+    }
+
+    @Test
+    public void testMediaResetWorkerOnStopped() {
+        new MediaResetWorker(mContext, getLocalAndCloudSyncTestWorkParams()).onStopped();
+
+        verify(mMockLocalAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+    }
+
+    @Test
+    public void testGetForegroundInfo() {
+        final ForegroundInfo foregroundInfo = new MediaResetWorker(
+                mContext, getLocalAndCloudSyncTestWorkParams()).getForegroundInfo();
+
+        assertThat(foregroundInfo.getNotificationId()).isEqualTo(NOTIFICATION_ID);
+        assertThat(foregroundInfo.getNotification().getChannelId())
+                .isEqualTo(NOTIFICATION_CHANNEL_ID);
     }
 
     /**

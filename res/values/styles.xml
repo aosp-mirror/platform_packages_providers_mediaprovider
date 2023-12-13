@@ -105,7 +105,7 @@
         <item name="android:listPreferredItemPaddingEnd">@dimen/picker_settings_list_item_padding_end</item>
     </style>
 
-    <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="PickerMaterialTheme" parent="@style/Theme.Material3.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
         <item name="pickerDragBarColor">#DADCE0</item>
         <item name="pickerHighlightColor">?android:attr/colorAccent</item>
@@ -129,8 +129,8 @@
         <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerSecondaryTextColor">?android:attr/textColorPrimary</item>
         <item name="pickerBannerButtonTextColor">?android:attr/colorAccent</item>
-        <item name="categoryDefaultThumbnailColor">?android:attr/colorAccent</item>
-        <item name="categoryDefaultThumbnailCircleColor">?androidprv:attr/materialColorSurfaceContainer</item>
+        <item name="categoryDefaultThumbnailColor">?attr/colorOnSurfaceVariant</item>
+        <item name="categoryDefaultThumbnailCircleColor">?attr/colorSurfaceVariant</item>
     </style>
 
     <style name="PickerBannerButtonTheme"
@@ -150,6 +150,11 @@
            parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog.Centered">
         <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
         <item name="materialAlertDialogTitleTextStyle">@style/AlertDialogTitleStyle</item>
+    </style>
+
+    <style name="ProgressDialogCancelButtonStyle"
+           parent="@style/Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">?attr/colorOnSurface</item>
     </style>
 
     <style name="AlertDialogTitleStyle"

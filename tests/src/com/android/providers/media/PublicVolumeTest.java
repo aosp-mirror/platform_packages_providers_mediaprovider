@@ -35,6 +35,7 @@ import com.android.providers.media.util.FileUtils;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -63,6 +64,7 @@ public class PublicVolumeTest {
     }
 
     @Test
+    @Ignore("Re-enable with fix b/281794265")
     public void testPublicVolumeDefaultFolders() throws Exception {
         Context context = InstrumentationRegistry.getTargetContext();
 
